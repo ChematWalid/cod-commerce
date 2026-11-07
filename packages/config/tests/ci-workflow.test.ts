@@ -9,6 +9,9 @@ const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8'
 interface Step {
   uses?: string;
   run?: string;
+  if?: string;
+  shell?: string;
+  'continue-on-error'?: boolean;
 }
 interface Job {
   name?: string;
@@ -86,6 +89,70 @@ describe('ci.yml', () => {
 
   it('fails the gate unless every needed job succeeded', () => {
     expect(gateScript(ci)).toMatch(/!= "success"/);
+  });
+
+  it('uses no secrets', () => {
+    expect(read('.github/workflows/ci.yml')).not.toMatch(/secrets\./);
+    expect(read('.github/actions/setup/action.yml')).not.toMatch(/secrets\./);
+  });
+
+  it('pins each action to the exact SHA of the plan table', () => {
+    const expected: Record<string, string> = {
+      'actions/checkout': '3d3c42e5aac5ba805825da76410c181273ba90b1',
+      'actions/setup-node': '949feb2413d6458794dcd2491c4babbbce0c15c1',
+      'pnpm/action-setup': '73e46992e05b19abd31f2f3c20e0e7370d762115',
+      'actions/cache': '55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
+    };
+    const remote = allUses(ci, compositeAction).filter((uses) => !uses.startsWith('./'));
+
+    expect(remote.length).toBeGreaterThan(0);
+    for (const uses of remote) {
+      const [name = '', sha] = uses.split('@');
+      expect(sha, name).toBe(expected[name]);
+    }
+  });
+
+  it('sets every work job up through the composite action, except data-services', () => {
+    for (const name of ['lint', 'typecheck', 'unit', 'build']) {
+      expect(
+        jobOf(ci, name).steps?.map((step) => step.uses),
+        name,
+      ).toContain('./.github/actions/setup');
+    }
+    expect(jobOf(ci, 'data-services').steps?.map((step) => step.uses)).not.toContain('./.github/actions/setup');
+  });
+
+  it('always tears the data services down', () => {
+    const teardown = (jobOf(ci, 'data-services').steps ?? []).filter((step) => step.run?.includes('down -v'));
+
+    expect(teardown).toHaveLength(1);
+    expect(teardown[0]?.if).toBe('always()');
+  });
+
+  it('fails the data-services pipe when docker compose config fails', () => {
+    const step = (jobOf(ci, 'data-services').steps ?? []).find((s) => s.run?.includes('check-compose-portability'));
+
+    expect(step?.shell).toBe('bash');
+    expect(step?.run).toMatch(/set -o pipefail/);
+  });
+
+  it('checks ignored builds through .modules.yaml, not command output', () => {
+    const text = read('.github/actions/setup/action.yml');
+
+    expect(text).toContain('.modules.yaml');
+    expect(text).not.toMatch(/Cannot identify|pnpm ignored-builds/);
+  });
+
+  it('derives the gate verdict from needs.*.result', () => {
+    const verdict = (jobOf(ci, 'build-test').steps ?? []).find((step) => step.run?.includes('!= "success"'));
+
+    expect(JSON.stringify(verdict)).toContain('needs.*.result');
+  });
+
+  it('never lets the timing report fail the gate', () => {
+    const timing = (jobOf(ci, 'build-test').steps ?? []).find((step) => step.run?.includes('GITHUB_STEP_SUMMARY'));
+
+    expect(timing?.['continue-on-error']).toBe(true);
   });
 
   it('leaves the attribution check unchanged', () => {

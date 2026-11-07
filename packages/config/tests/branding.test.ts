@@ -5,7 +5,7 @@ import { findBrandingViolations, type SourceFile } from '../gates/branding';
 
 const repoRoot = resolve(__dirname, '../../..');
 const fixtures = join(__dirname, 'fixtures/branding');
-const SKIPPED_DIRS = new Set(['node_modules', 'dist', '.next', '.turbo', 'coverage', 'cache']);
+const SKIPPED_DIRS = new Set(['node_modules', 'dist', '.next', '.turbo', 'coverage']);
 /** ADR 0007: the gate covers product code, not `packages/config` (it holds the checker itself). */
 const PRODUCT_ROOTS = ['apps', 'plugins', 'packages/shared'] as const;
 
@@ -26,6 +26,13 @@ describe('findBrandingViolations', () => {
     expect(violations).toHaveLength(2);
     expect(violations.join('\n')).toContain('dirty/upper.txt');
     expect(violations.join('\n')).toContain('dirty/lower.txt');
+  });
+
+  it('scans product folders named cache', () => {
+    const files = filesUnder(fixtures, 'nested');
+
+    expect(files.map((file) => file.path)).toEqual(['nested/infrastructure/cache/note.txt']);
+    expect(findBrandingViolations(files)).toHaveLength(1);
   });
 
   it('accepts neutral copy', () => {

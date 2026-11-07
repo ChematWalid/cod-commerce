@@ -61,11 +61,15 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Placeholders only; CI uses no secrets.
+      # Placeholders only; no credentials are involved.
       - run: cp .env.example .env
       - run: docker compose up -d --wait
       - run: scripts/check-data-services.sh
-      - run: docker compose config --format json | node scripts/check-compose-portability.mjs
+      - name: Check compose portability
+        shell: bash
+        run: |
+          set -o pipefail
+          docker compose config --format json | node scripts/check-compose-portability.mjs
       - name: Tear down
         if: always()
         run: docker compose down -v
@@ -95,6 +99,7 @@ jobs:
           done
       - name: Report wall-clock time
         if: always()
+        continue-on-error: true # a GitHub API hiccup must not turn a green run red
         run: |
           started=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .run_started_at)
           seconds=$(( $(date +%s) - $(date -d "$started" +%s) ))

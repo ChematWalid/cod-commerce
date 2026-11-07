@@ -49,7 +49,7 @@ Run from the repo root.
 | Garage S3 | 3900 |
 | Mailpit SMTP / web UI | 1026 / 8026 |
 
-The API runs on port 3100 in development (3000 inside containers).
+Dev servers: API on port 3100 (3000 inside containers), storefront on port 3001.
 
 ## CI
 `.github/workflows/ci.yml` runs `lint`, `typecheck`, `unit`, `build` and `data-services` in parallel. The `build-test` job gates them all and is the required status check, next to `attribution-check`. The whole pipeline must finish in 10 minutes or less (ADR 0001); `build-test` writes the wall-clock time to the run summary, and `scripts/ci/ci-duration.sh` reports the p90 over the last 20 runs on `main`.
