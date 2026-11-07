@@ -40,7 +40,7 @@ These rules are mandatory and override defaults. If a rule conflicts with a requ
 - Execute the plan task by task (**`superpowers:executing-plans`**, or **`superpowers:subagent-driven-development`** for many independent tasks). Keep the task list updated.
 - **Commit after every completed task/step** — small Conventional Commits (`feat(scope): …`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`); scope = plugin/app name. Each commit builds and passes its tests. Never one giant commit at the end.
 - **Tests first** where logic exists (**`tdd-workflow`**): unit tests for services/pure logic, integration tests for every new endpoint, and a **multi-tenant isolation test** for every new entity/endpoint (business A never sees business B).
-- UI work: check the screen in the browser against the matching flow in `docs/research/`; attach screenshots to the PR.
+- UI work: check the screen in the browser against the matching flow in `docs/research/`. Screenshots and API transcripts go in `docs/evidence/<session-id>/` (§3a.14) and the PR links them.
 - **Never edit Vendure core.** Everything lives in `plugins/<name>`, `apps/*`, `packages/shared`. A core fix is only allowed via a reviewed `pnpm patch` with a PR labelled `vendure-patch` (ADR 0001).
 - Follow the shared contracts in `docs/roadmap/README.md` (owner session defines, others consume) and the architecture docs. Deviations → write them in the handoff and propose an ADR/roadmap change.
 - Use **`superpowers:verification-before-completion`**: never claim something works without running it and showing the output.
@@ -73,7 +73,15 @@ Goal: adding or changing a feature touches one place and stays easy. These rules
 13. **Workflow.**
     - Use subagents for independent work: research, parallel drafting, reviews.
     - A fresh agent reviews every plan before it is committed.
-14. **Meta-rule.** When the user states a lasting working principle, record it here via a `docs/claude-md-*` PR.
+14. **Proof of working (user, 2026-11-07).** Beyond unit and integration tests, every session leaves evidence from real runs in `docs/evidence/<session-id>/`. Each session commits a re-runnable script (`scripts/evidence/<session-id>.*`) that produces it.
+    - **UI:** Playwright screenshots of every new or changed screen, saved in `screens/`. Capture desktop and mobile, and Arabic RTL plus English where the screen is localized. PNGs stay ≤ ~300 KB.
+    - **API:** a request/response transcript for every new endpoint, saved in `api/*.md`. Each transcript holds the method, URL, the relevant headers, the status, and the body.
+    - **Rules:**
+      - transcripts and screenshots come from a live server, never hand-written;
+      - tokens, cookies and secrets are redacted;
+      - data is synthetic, never real buyer data.
+    - The PR links the folder.
+15. **Meta-rule.** When the user states a lasting working principle, record it here via a `docs/claude-md-*` PR.
 
 ## 4. Git & GitHub (details in CONTRIBUTING.md)
 - One branch per session; never push to `main`; never force-push. **Working agreement (user, 2026-11-07):** the agent squash-merges its own PR once CI is green; anything that is the user's decision is asked as a multiple-choice question (the user is the decider).
