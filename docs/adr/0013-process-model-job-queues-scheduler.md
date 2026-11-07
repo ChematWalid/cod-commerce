@@ -98,7 +98,7 @@ If the image grows beyond 1.2 GB, split into two build targets from the same Doc
 | `cleanSessionsTask` | default | Vendure built-in |
 
 **Redis roles**:
-- Launch: one DO Managed Valkey with `maxmemory-policy noeviction` (BullMQ requirement). Every non-queue key has a TTL. Memory alert at 70 %.
+- Launch: one self-run Valkey (in the compose stack on the Algerian VPS, ADR 0011) with `maxmemory-policy noeviction` (BullMQ requirement). Every non-queue key has a TTL. Memory alert at 70 %.
 - Growth: split into `valkey-queue` (noeviction, persistence on) and `valkey-cache` (allkeys-lru, persistence off) for Vendure cache, Next cache handler, rate limits and host map.
 - Redis is **not** a system of record. Durable intents go through the Postgres outbox and the durable job rows above (ADR 0016). Losing Redis loses queue state (waiting, delayed and retrying jobs), caches, rate-limit state and live counters; the sweeper re-enqueues un-relayed outbox rows and the `job-reconciler` re-enqueues everything else that has a durable row. (The earlier claim that "the sweeper re-enqueues in-flight work" was wrong: relayed rows are not `pending`, so the sweeper alone never recovers them.)
 - Every container has a memory limit and a Node heap flag (infrastructure.md "Launch node budget"); the worker yields CPU to the api.

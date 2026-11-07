@@ -58,9 +58,11 @@ New items from P0.S2a-3:
 | **Production hosted in Algeria** (Law 18-07 Art. 44); minimum target = one Algerian VPS running the full compose stack, backups (pgBackRest PITR) to a second Algerian provider; no managed services assumed; provider chosen in P3.S5 after a trial benchmark | 0011 | P0.S2b compose must run unchanged on one VPS (MinIO instead of R2 for private objects); P3.S5 deploy (Kamal to Algerian VPS, no DO/DOKS, OpenTofu limited to Cloudflare); P10.S3 (no DOKS; Scale on VMs) |
 | Platform domain is a `.com.dz`; stores at `<store>.<platform>.com.dz` | 0011, 0012 | P1.S1 store subdomains, P8.S9 custom domains |
 | Pre-production legal item: ANPDP declaration/authorisation (Arts. 12, 44), ARPCE SaaS authorisation, Law 18-05 Art. 8; parked by the user | 0011 | add to P10 launch checklist |
-| Private objects (exports, labels, imports) in Algerian object storage, never R2; R2 only for public assets | 0012 | P5 labels, P6 exports, P2.S3 imports |
+| Private objects (exports, labels, imports) in Algerian object storage, never R2; R2 only for public assets | 0012 | P5 labels, P6 exports, P2.S2 imports |
 | Turnstile served from one `challenge.<platform>` host (Free: 10 hostnames per widget) | 0012 | P3.S4 intake |
-| Cloudflare purge: coalesce + batch (Free 5 requests/min); Cache Rule Edge TTL "Respect origin" | 0006, 0012 | P2 storefront publish, P3.S5 |
-| Storefront cache handler = Next repo Redis example, adopted as our code, with deployment-id-prefixed ISR keys | 0006 | P0.S2b `apps/storefront`, P2 storefront |
-| Search: Phase 1 Postgres with `word_similarity` + "ال" stripping (shared TS/SQL normaliser); Vendure `DefaultSearchPlugin` not used for Arabic search; Darija transliteration table | 0014 | P2 storefront search, P4.S2 order search, `packages/shared` normaliser |
+| Cloudflare purge: coalesce + batch (Free 5 requests/min); Cache Rule Edge TTL "Respect origin" | 0006, 0012 | P3.S2 storefront cache/publish, P3.S5 |
+| Storefront cache handler = Next repo Redis example, adopted as our code, with deployment-id-prefixed ISR keys | 0006 | P0.S2b `apps/storefront`, P3.S2 storefront |
+| Search: Phase 1 Postgres with `word_similarity` + "ال" stripping (shared TS/SQL normaliser); Vendure `DefaultSearchPlugin` not used for Arabic search; Darija transliteration table | 0014 | P3.S2 storefront search, P4.S2 order search, `packages/shared` normaliser |
 | Uptime and DB observability: `pg_stat_statements` everywhere, probes on `/readyz` not `/health`, queue gauges per job name | 0015 | P3.S5, P10.S2 |
+
+Applied to the session briefs and architecture docs on 2026-11-07 (roadmap PR `docs/roadmap-adr-impact`), together with the P0.S2a-1 rows above. Wording corrections in ADRs 0012, 0013, 0015 and 0016 (no decision changed) align them with ADR 0011.
