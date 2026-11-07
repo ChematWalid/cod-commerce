@@ -56,7 +56,12 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. All P0.S2a parts are done. Apply the brief-impact rows (roadmap PR), then run **P0.S2b** (#3). The task text is in `docs/roadmap/plans/P0.S2a-plan.md` (Task 5–6 for -2, Task 7–8 for -3, plus Tasks 0, 9, 10, 11). Ownership is in the split table in `docs/roadmap/P0-setup.md`, section P0.S2a. Copy your part's tasks into `docs/roadmap/plans/P0.S2a-<n>-plan.md` and commit `docs(roadmap): plan P0.S2a-<n>` first.
+3. All P0.S2a parts are done and the brief-impact rows are applied (roadmap PR `docs/roadmap-adr-impact`). Run **P0.S2b** (#3).
+4. Open items for later sessions, flagged while applying the ADRs:
+   - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
+   - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
+   - **P10.S1/S2 load targets** still use the old capacity figures (infrastructure §3); re-check them once the Algerian provider is benchmarked.
+   - **The ADR 0006 cache handler** is adopted in P0.S2b and wired into caching in P3.S2; P3.S2 must not redo the adoption. The task text is in `docs/roadmap/plans/P0.S2a-plan.md` (Task 5–6 for -2, Task 7–8 for -3, plus Tasks 0, 9, 10, 11). Ownership is in the split table in `docs/roadmap/P0-setup.md`, section P0.S2a. Copy your part's tasks into `docs/roadmap/plans/P0.S2a-<n>-plan.md` and commit `docs(roadmap): plan P0.S2a-<n>` first.
 4. Then P0.S2b per its brief in `docs/roadmap/P0-setup.md`.
 
 ## Kickoff prompt (paste into the new agent)
