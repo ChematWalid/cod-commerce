@@ -1,0 +1,6 @@
+{
+  "name": "demo",
+  "devDependencies": {
+    "@vendure/testing": "3.8.0"
+  }
+}

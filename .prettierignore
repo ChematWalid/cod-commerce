@@ -1,0 +1,9 @@
+docs/
+*.md
+pnpm-lock.yaml
+.claude/
+apps/server/src/migrations/
+**/src/gql/
+**/dist/
+**/.next/
+**/cache/dist/

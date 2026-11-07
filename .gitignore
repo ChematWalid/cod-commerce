@@ -7,6 +7,7 @@ out/
 .turbo/
 coverage/
 *.log
+.eslintcache
 
 # Environment (only .env.example is committed)
 .env
@@ -31,6 +32,7 @@ Thumbs.db
 
 # Claude Code personal settings (project settings.json is committed)
 .claude/settings.local.json
+.claude/worktrees/
 
 # Superpowers plan-execution scratch
 .superpowers/

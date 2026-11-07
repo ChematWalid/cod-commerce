@@ -1,0 +1,1 @@
+export const passThrough = (value: any): unknown => value;

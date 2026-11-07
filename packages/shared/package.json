@@ -1,0 +1,23 @@
+{
+  "name": "@cod/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Framework-free contracts shared by the server, the plugins and the storefront.",
+  "exports": {
+    ".": {
+      "@cod/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

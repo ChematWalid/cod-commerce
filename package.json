@@ -1,0 +1,32 @@
+{
+  "name": "cod-commerce",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=24.22 <25"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings=0 --cache --cache-location .eslintcache && prettier --check .",
+    "typecheck": "turbo run typecheck --concurrency=2",
+    "test": "turbo run test --concurrency=2",
+    "test:integration": "turbo run test:integration --concurrency=1",
+    "test:arch": "pnpm --filter @cod/config run test:arch",
+    "build": "turbo run build --concurrency=1",
+    "dev": "turbo run dev"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@eslint/js": "9.39.5",
+    "@types/node": "24.19.2",
+    "dependency-cruiser": "18.7.2",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-boundaries": "7.4.2",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

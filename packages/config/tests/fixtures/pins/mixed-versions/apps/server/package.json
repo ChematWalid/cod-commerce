@@ -1,0 +1,6 @@
+{
+  "name": "server",
+  "dependencies": {
+    "@vendure/core": "3.8.1"
+  }
+}
