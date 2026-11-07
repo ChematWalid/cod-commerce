@@ -1,7 +1,7 @@
 # ADR-0010: Merchant dashboard host
 
 **Date**: 2026-11-07
-**Status**: Proposed — the user confirms in the P0.S2a-1 PR review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-1/P0.S2a-2 review
 **Deciders**: architect (draft), user
 
 ## Context

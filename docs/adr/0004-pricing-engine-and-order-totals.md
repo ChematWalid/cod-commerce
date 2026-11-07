@@ -1,7 +1,7 @@
 # ADR-0004: Pricing engine and order totals (signed quote → Vendure order)
 
 **Date**: 2026-11-07
-**Status**: Proposed — spike B evidence below; the user confirms in the P0.S2a-1 PR review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-1/P0.S2a-2 review
 **Deciders**: architect (draft), user
 
 Citation keys: [VN §n] = `docs/architecture/research/vendure-v3.md` section n; [DM] = `docs/research/data-model.md`; [BK] = background knowledge, verify before relying on it.

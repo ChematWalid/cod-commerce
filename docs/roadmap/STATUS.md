@@ -9,17 +9,15 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | Session | Issue | Branch | PR | State |
 |---|---|---|---|---|
 | P0.S1 Repo, GitHub & CI | #1 | — | #66, #68 | **merged** |
-| Roadmap split of P0.S2a into -1/-2/-3 | — | `docs/roadmap-split-p0-s2a` | **#71** (base `main`) | open, waiting for user review/merge |
-| **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | **#72** (stacked, base `docs/roadmap-split-p0-s2a`) | **work done**, open; clean-copy spike re-run not done |
-| **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | **#73** (stacked, base `docs/p0-s2a-adrs`) | **work done**, open; handoff `handoff/P0.S2a-2.md` |
-| **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | — | **not started** (needs Docker) |
+| Roadmap split of P0.S2a into -1/-2/-3 | — | `docs/roadmap-split-p0-s2a` | #71 | **merged** |
+| **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | #72 | **merged**; ADRs accepted 2026-11-07 (0006 still Proposed) |
+| **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | #73 | **merged**; ADRs accepted 2026-11-07 |
+| **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | — | **next**; no Cloudflare zone or probes (user, 2026-11-07): F (f)/(g) and G are recorded as pending |
 | **P0.S2b** Workspace scaffolding | #3 | `feat/p0-s2b-scaffolding` | — | not started (needs all P0.S2a parts merged) |
 
-**Merge order:**
-1. #71.
-2. P0.S2a-1: after #71 is squash-merged, rebase `docs/p0-s2a-adrs` onto `main` and retarget its PR to `main`. Never force-push: rebase locally, then open a fresh branch or ask the user how to proceed, because history rewrites on a pushed branch need the user's OK.
-3. P0.S2a-2 and P0.S2a-3, which can run in parallel.
-4. P0.S2b.
+**Merge order:** #71, #72, #73 were squash-merged on 2026-11-07. Next: P0.S2a-3, then P0.S2b.
+
+**Working agreement (user, 2026-11-07):** the agent merges its own PRs once CI is green and asks the user only for decisions, as multiple-choice questions (the user is the decider). This overrides CLAUDE.md's "never merge" for this user. Decisions so far: P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007); no Cloudflare staging zone or latency probes for P0.S2a-3.
 
 ## Key results so far (details in `docs/adr/`)
 - **ADR 0010:** Option 1, the Vendure React dashboard plus our extensions. Path convention is `plugins/<name>/dashboard/`.
@@ -47,7 +45,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
-2. If #71 is not merged, ask the user to review and merge it. You may still start a P0.S2a-2/-3 branch stacked on `docs/p0-s2a-adrs`, as P0.S2a-1 did; say so in the PR.
+2. Branch from an up-to-date `main` (all earlier PRs are merged).
 3. Run **P0.S2a-3** (P0.S2a-2 is done). The task text is in `docs/roadmap/plans/P0.S2a-plan.md` (Task 5–6 for -2, Task 7–8 for -3, plus Tasks 0, 9, 10, 11). Ownership is in the split table in `docs/roadmap/P0-setup.md`, section P0.S2a. Copy your part's tasks into `docs/roadmap/plans/P0.S2a-<n>-plan.md` and commit `docs(roadmap): plan P0.S2a-<n>` first.
 4. Then P0.S2b per its brief in `docs/roadmap/P0-setup.md`.
 

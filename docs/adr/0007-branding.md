@@ -1,7 +1,7 @@
 # ADR-0007: Branding (own name, no reference-product identity)
 
 **Date**: 2026-11-07
-**Status**: Proposed
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-1/P0.S2a-2 review
 **Deciders**: architect, user (product name)
 
 ## Context
