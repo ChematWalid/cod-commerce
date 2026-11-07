@@ -13,9 +13,10 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | #72 | **merged**; ADRs accepted 2026-11-07 (0006 still Proposed) |
 | **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | #73 | **merged**; ADRs accepted 2026-11-07 |
 | **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | #75 | **merged**; handoff `handoff/P0.S2a-3.md`; F (f)/(g) → P3.S5, G → before P10.S3 |
-| **P0.S2b** Workspace scaffolding | #3 | `feat/p0-s2b-scaffolding` | — | not started (needs all P0.S2a parts merged) |
+| **P0.S2b-1** Foundation: workspace, gates, data services, CI | #3 | `feat/p0-s2b-scaffolding` | see `gh pr list` | **work done**; handoff `handoff/P0.S2b-1.md` |
+| P0.S2b-2 … -6 (server core, server data & image, dashboard, storefront, plugin template) | #79–#83 | per `P0-setup.md` split table | — | not started; plan `plans/P0.S2b-plan.md` |
 
-**Merge order:** #71, #72, #73, #74 were squash-merged on 2026-11-07, then the P0.S2a-3 PR. **Next: a `docs/roadmap-<change>` PR applying the brief-impact rows in `docs/adr/README.md` (Algerian hosting first), then P0.S2b.**
+**Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
 **Working agreement (user, 2026-11-07):** the agent merges its own PRs once CI is green and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. Decisions so far:
 - P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007).
@@ -56,13 +57,13 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. All P0.S2a parts are done and the brief-impact rows are applied (roadmap PR `docs/roadmap-adr-impact`). Run **P0.S2b** (#3).
+3. Run the next unmerged P0.S2b part from `plans/P0.S2b-plan.md` (Part 1 = #3 is done; next: **Part 2 "Server core", #79**). Read the previous part's handoff first (`handoff/P0.S2b-<n>.md`).
 4. Open items for later sessions, flagged while applying the ADRs:
    - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
    - **P10.S1/S2 load targets** still use the old capacity figures (infrastructure §3); re-check them once the Algerian provider is benchmarked.
-   - **The ADR 0006 cache handler** is adopted in P0.S2b and wired into caching in P3.S2; P3.S2 must not redo the adoption. The task text is in `docs/roadmap/plans/P0.S2a-plan.md` (Task 5–6 for -2, Task 7–8 for -3, plus Tasks 0, 9, 10, 11). Ownership is in the split table in `docs/roadmap/P0-setup.md`, section P0.S2a. Copy your part's tasks into `docs/roadmap/plans/P0.S2a-<n>-plan.md` and commit `docs(roadmap): plan P0.S2a-<n>` first.
-4. Then P0.S2b per its brief in `docs/roadmap/P0-setup.md`.
+   - **The ADR 0006 cache handler** is adopted in P0.S2b and wired into caching in P3.S2; P3.S2 must not redo the adoption.
+5. After P0.S2b-6: P1.S1 (tenancy).
 
 ## Kickoff prompt (paste into the new agent)
 ```
