@@ -22,4 +22,14 @@ describe('toPostgresFields', () => {
     expect(failure).not.toThrow(password);
     expect(failure).not.toThrow(url);
   });
+
+  it.each([
+    ['a query string', 'postgresql://cod:s3cret@postgres:5432/cod?sslmode=require'],
+    ['a fragment', 'postgresql://cod:s3cret@postgres:5432/cod#frag'],
+  ])('rejects %s instead of dropping it', (_label, url) => {
+    const failure = (): unknown => toPostgresFields(url);
+
+    expect(failure).toThrow(InvalidDatabaseUrlError);
+    expect(failure).not.toThrow('s3cret');
+  });
 });

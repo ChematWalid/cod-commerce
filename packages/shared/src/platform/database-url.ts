@@ -43,6 +43,19 @@ function requireNonEmpty(value: string, label: string): string {
   return value;
 }
 
+/** Connection options in a query string or a fragment would be dropped by the field split, so neither is accepted. */
+function rejectQueryAndFragment(parsed: URL, url: string): void {
+  // `URL.search` and `URL.hash` are empty for a bare `?` or `#`, so the raw URL is checked as well.
+  if (parsed.search !== '' || url.includes('?')) {
+    throw new InvalidDatabaseUrlError('it has a query string; connection options in the URL are not supported');
+  }
+  if (parsed.hash !== '' || url.includes('#')) {
+    throw new InvalidDatabaseUrlError(
+      'it has a fragment (a reserved character in the password must be percent-encoded)',
+    );
+  }
+}
+
 function readPort(port: string): number {
   if (port === '') {
     return DEFAULT_POSTGRES_PORT;
@@ -56,7 +69,8 @@ function readPort(port: string): number {
 /**
  * Splits a Postgres URL into decoded connection fields, for drivers that take fields rather than a URL.
  * A reserved character left unencoded in the password (`@`, `/`, `#`, `:`) shifts the URL's parts, so
- * such a URL is rejected instead of being read as a different host or database.
+ * such a URL is rejected instead of being read as a different host or database. A query string or a
+ * fragment is rejected too, since the fields could not carry it (e.g. `?sslmode=require`).
  *
  * @throws {InvalidDatabaseUrlError} when the URL is not a well-formed Postgres URL.
  */
@@ -65,6 +79,7 @@ export function toPostgresFields(url: string): PostgresFields {
   if (!POSTGRES_PROTOCOLS.includes(parsed.protocol)) {
     throw new InvalidDatabaseUrlError('the scheme is not postgres or postgresql');
   }
+  rejectQueryAndFragment(parsed, url);
   const database = decode(parsed.pathname.slice(1), 'database name');
   if (!DATABASE_NAME.test(database)) {
     throw new InvalidDatabaseUrlError(
