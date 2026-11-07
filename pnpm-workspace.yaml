@@ -4,6 +4,7 @@ packages:
   - plugins/*
 
 onlyBuiltDependencies:
+  - '@swc/core'
   - esbuild
 
 # optional native accelerators; the pure-JS fallbacks are used
