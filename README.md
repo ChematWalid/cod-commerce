@@ -61,6 +61,10 @@ pnpm --filter @cod/server dev                                           # migrat
 ```
 `dev` runs the `migrate` role once (migrations and the idempotent platform seed), then the `api` and `worker` roles side by side. Each package script sets `ROLE` itself; `pnpm --filter @cod/server dev:api` or `dev:worker` starts one role.
 
+`SUPERADMIN_USERNAME` and `SUPERADMIN_PASSWORD` are read only when Vendure first creates the superadmin on an empty database. Changing them later has no effect on the existing account; password rotation is P3.S5.
+
+`migrate` also re-asserts the platform invariants on every run (currency DZD only, tax-inclusive prices, languages ar, fr, en, zero tax, the Algeria zone), so a dashboard edit to them is reverted by the next deploy until P1.S1 decides create-if-missing.
+
 | Process | Host-run dev | In the container |
 |---|---|---|
 | api (`/livez`, `/readyz`, Admin API, dashboard) | 3100 | 3000 (published on `API_HOST_PORT`, default 3100) |
