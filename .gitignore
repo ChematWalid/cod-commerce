@@ -1,0 +1,36 @@
+# Dependencies & build output
+node_modules/
+dist/
+build/
+.next/
+out/
+.turbo/
+coverage/
+*.log
+
+# Environment (only .env.example is committed)
+.env
+.env.*
+!.env.example
+
+# Local assets / uploads
+static/assets/
+uploads/
+
+# Infrastructure state
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Claude Code personal settings (project settings.json is committed)
+.claude/settings.local.json
+
+# Superpowers plan-execution scratch
+.superpowers/
