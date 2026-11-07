@@ -2,7 +2,7 @@
 
 Nygard format (Status, Context, Options, Decision, Consequences, plus **Evidence** for spike-backed ADRs). Drafts that fed these ADRs stay in [drafts/](drafts/). Spike definitions and the full session plan: [../roadmap/plans/P0.S2a-plan.md](../roadmap/plans/P0.S2a-plan.md).
 
-Status `Proposed` until the user approves in PR review; then the session flips it to `Accepted (date)` (shared plan, Task 11). 0001–0005, 0007–0010, 0013 and 0016 were accepted on 2026-11-07; the product name stays the placeholder "CodShop" (ADR 0007) until the user picks one.
+Status `Proposed` until the user approves in PR review; then the session flips it to `Accepted (date)` (shared plan, Task 11). 0001–0016 were all accepted on 2026-11-07; the product name stays the placeholder "CodShop" (ADR 0007) until the user picks one.
 
 | ADR | Title | Status | Gating spike | Spike result | Written in |
 |---|---|---|---|---|---|
@@ -11,16 +11,16 @@ Status `Proposed` until the user approves in PR review; then the session flips i
 | [0003](0003-ids.md) | Ids: Vendure defaults for core, snowflake strings for ours | Accepted (2026-11-07) | — | — | P0.S2a-1 |
 | [0004](0004-pricing-engine-and-order-totals.md) | Pricing engine and order totals (signed quote) | Accepted (2026-11-07) | B order totals | pass (total 9 100 DZD exact, precision 0) | P0.S2a-1 |
 | [0005](0005-i18n.md) | i18n: dashboard ar/en RTL, storefront ar/fr/en | Accepted (2026-11-07) | — | — | P0.S2a-1 |
-| [0006](0006-storefront-architecture.md) | Storefront: Next.js 16 multi-tenant by host | Proposed — user confirms | F shared cache handler | pass (a–e, h) with the Next repo Redis example + deployment-id key prefix; (f)/(g) pending P3.S5 | P0.S2a-1, evidence P0.S2a-3 |
+| [0006](0006-storefront-architecture.md) | Storefront: Next.js 16 multi-tenant by host | Accepted (2026-11-07) | F shared cache handler | pass (a–e, h) with the Next repo Redis example + deployment-id key prefix; (f)/(g) pending P3.S5 | P0.S2a-1, evidence P0.S2a-3 |
 | [0007](0007-branding.md) | Branding: neutral placeholder, banned reference names | Accepted (2026-11-07) | — | — | P0.S2a-1 |
 | [0008](0008-auth.md) | Authentication and authorization surfaces | Accepted (2026-11-07) | A (token type) | pass (dashboard sends Bearer with `['cookie','bearer']`) | P0.S2a-1 |
 | [0009](0009-order-lifecycle.md) | COD order lifecycle on Vendure | Accepted (2026-11-07) | B order process | pass (Pending/Confirmed/Scheduled/Returned; settle on Delivered) | P0.S2a-1 |
 | [0010](0010-merchant-dashboard-host.md) | Merchant dashboard host | Accepted (2026-11-07) | A dashboard extensions | pass → Option 1 (RTL partial, CSS-fixable) | P0.S2a-1 |
-| [0011](0011-hosting-and-regions.md) | Hosting location, provider and regions | Proposed — user confirms | G latency | **Algeria required** (Law 18-07); single-VPS minimum; provider chosen in P3.S5; G pending before P10.S3 | P0.S2a-3 |
-| [0012](0012-edge-tls-custom-domains.md) | Edge, TLS and custom domains | Proposed — user confirms | — (Cloudflare facts verified in docs) | Cloudflare for SaaS; Turnstile from one challenge host; purge rate limits | P0.S2a-3 |
+| [0011](0011-hosting-and-regions.md) | Hosting location, provider and regions | Accepted (2026-11-07) | G latency | **Algeria required** (Law 18-07); single-VPS minimum; provider chosen in P3.S5; G pending before P10.S3 | P0.S2a-3 |
+| [0012](0012-edge-tls-custom-domains.md) | Edge, TLS and custom domains | Accepted (2026-11-07) | — (Cloudflare facts verified in docs) | Cloudflare for SaaS; Turnstile from one challenge host; purge rate limits | P0.S2a-3 |
 | [0013](0013-process-model-job-queues-scheduler.md) | Process model, job queues and scheduler | Accepted (2026-11-07) | D PgBouncer | pass (scheduler exactly-once, BullMQ ×1 000, sessions in Valkey); first boot must be single-process; `TZ=UTC` | P0.S2a-2 |
-| [0014](0014-search.md) | Search | Proposed — user confirms | E Arabic search | pass: Phase 1 Postgres recall@5 0.878 (0.947 with the chosen variant) vs Meilisearch 0.881; Vendure search 0.244 | P0.S2a-3 |
-| [0015](0015-observability.md) | Observability | Proposed — user confirms | — | — | P0.S2a-3 |
+| [0014](0014-search.md) | Search | Accepted (2026-11-07) | E Arabic search | pass: Phase 1 Postgres recall@5 0.878 (0.947 with the chosen variant) vs Meilisearch 0.881; Vendure search 0.244 | P0.S2a-3 |
+| [0015](0015-observability.md) | Observability | Accepted (2026-11-07) | — | — | P0.S2a-3 |
 | [0016](0016-data-lifecycle-outbox-partitioning.md) | Data lifecycle, outbox, partitioning, pooling | Accepted (2026-11-07) | D PgBouncer | pass → PgBouncer transaction mode for api/worker; direct for migrate and test DB setup | P0.S2a-2 |
 
 All P0.S2a-1 spikes ran on **SQLite** (Docker unavailable on the machine: Windows "Virtual Machine Platform" off). Spikes A/B test extension APIs and order math, which are database-independent; Postgres-specific behaviour (order-number counter under concurrency) was re-checked in P0.S2a-2 on Postgres 17: gapless and duplicate-free, see the ADR 0009 addendum.

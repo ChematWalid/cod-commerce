@@ -1,7 +1,7 @@
 # ADR-0015: Observability
 
 **Date**: 2026-11-07
-**Status**: Proposed — no gating spike; P0.S2a spike findings folded in (Evidence); the user confirms in review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-3 review; pending items stay listed as follow-ups
 **Deciders**: architect (draft), user
 
 ## Context
