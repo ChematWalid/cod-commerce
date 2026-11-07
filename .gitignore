@@ -36,3 +36,6 @@ Thumbs.db
 
 # Superpowers plan-execution scratch
 .superpowers/
+
+# Test fixture whose built output is part of the fixture
+!packages/config/tests/fixtures/conditions/pkg/dist/

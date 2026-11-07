@@ -112,14 +112,34 @@ describe('ci.yml', () => {
     }
   });
 
-  it('sets every work job up through the composite action, except data-services', () => {
-    for (const name of ['lint', 'typecheck', 'unit', 'build']) {
+  it('sets every work job up through the composite action', () => {
+    for (const name of ['lint', 'typecheck', 'unit', 'build', 'data-services']) {
       expect(
         jobOf(ci, name).steps?.map((step) => step.uses),
         name,
       ).toContain('./.github/actions/setup');
     }
-    expect(jobOf(ci, 'data-services').steps?.map((step) => step.uses)).not.toContain('./.github/actions/setup');
+  });
+
+  it('installs dependencies before the data-services check scripts run', () => {
+    const steps = jobOf(ci, 'data-services').steps ?? [];
+    const setup = steps.findIndex((step) => step.uses === './.github/actions/setup');
+    const check = steps.findIndex((step) => step.run?.includes('check-data-services.sh'));
+
+    expect(setup).toBeGreaterThanOrEqual(0);
+    expect(setup).toBeLessThan(check);
+  });
+
+  it('prints compose state and logs on failure, before the teardown', () => {
+    const steps = jobOf(ci, 'data-services').steps ?? [];
+    const logs = steps.findIndex((step) => step.run?.includes('docker compose logs'));
+    const teardown = steps.findIndex((step) => step.run?.includes('down -v'));
+
+    expect(logs).toBeGreaterThanOrEqual(0);
+    expect(steps[logs]?.if).toBe('failure()');
+    expect(steps[logs]?.run).toMatch(/docker compose ps/);
+    expect(steps[logs]?.run).toMatch(/docker compose logs --no-color --tail=200/);
+    expect(logs).toBeLessThan(teardown);
   });
 
   it('always tears the data services down', () => {

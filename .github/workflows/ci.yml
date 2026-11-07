@@ -61,6 +61,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The object-storage check imports @aws-sdk/client-s3, so dependencies must be installed.
+      - uses: ./.github/actions/setup
       # Placeholders only; no credentials are involved.
       - run: cp .env.example .env
       - run: docker compose up -d --wait
@@ -70,6 +72,11 @@ jobs:
         run: |
           set -o pipefail
           docker compose config --format json | node scripts/check-compose-portability.mjs
+      - name: Show compose state and logs
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --no-color --tail=200
       - name: Tear down
         if: always()
         run: docker compose down -v
