@@ -130,8 +130,8 @@ link and stop without merging.
 3. Undispatch (adapter cancel, order back to confirmed, `canUndispatch`), validate (single/bulk), refresh via adapter `getStatuses` → commit `feat(tracking): undispatch and validate`
 4. Dashboard: tracking list (columns Order Number, Dispatched, Products, Customer, Shipment, Tracking Status, Total), filters, deep-link params (`late=1`, `view`, `payout`, `carrier`, `dateFrom/dateTo`), parcel drawer with stepper and Update Status → commit `feat(tracking): tracking list and parcel drawer`
 5. Label statuses (kind=label) on tracking; courier notes captured into parcel Notes (`hasNotes`, `notesHistory`) → commit `feat(tracking): label statuses and courier notes`
-6. Late-parcel detection BullMQ job (per-stage thresholds as shared constants) and export (Everything / Follow-up list / Cash reconciliation; xlsx/csv) → commit `feat(tracking): late detection and export`
-7. Label PDF generation in our own layout (order no., barcode, recipient, wilaya/commune, COD amount, items; bulk print; use carrier label when the adapter provides one) → commit `feat(tracking): label pdf generation`
+6. Late-parcel detection BullMQ job (per-stage thresholds as shared constants) and export (Everything / Follow-up list / Cash reconciliation; xlsx/csv; files written to the private bucket in Algerian object storage, presigned download, never R2, ADR 0011/0012) → commit `feat(tracking): late detection and export`
+7. Label PDF generation in our own layout with `pdf-lib` (order no., barcode, recipient, wilaya/commune, COD amount, items; bulk print; use carrier label when the adapter provides one). Labels and delivery sheets contain buyer names, phones and addresses, so generated and fetched PDFs are stored only in the private bucket in Algerian object storage (MinIO), never R2 (ADR 0011/0012) → commit `feat(tracking): label pdf generation`
 
 **Deliverables**
 - Plugin `plugins/tracking` (server + dashboard), late-parcel job, export service, label renderer, events in `packages/shared/events`.
@@ -143,7 +143,7 @@ link and stop without merging.
 - [ ] Each transition appends history with duration and emits `ParcelStatusChanged`; delivered emits `OrderDelivered`, returned emits `OrderReturned`, each once (idempotent).
 - [ ] Undispatch only when `canUndispatch`; order returns to confirmed, the carrier cancel is called, the parcel leaves tracking.
 - [ ] Late job flags parcels stuck beyond their stage threshold; `?late=1` lists them.
-- [ ] Export yields valid xlsx and csv for all three modes; label PDF shows correct order data, bulk prints one page per parcel.
+- [ ] Export yields valid xlsx and csv for all three modes; label PDF shows correct order data, bulk prints one page per parcel; export and label files are written only to the private Algerian bucket (no R2 write in the test's storage mock).
 - [ ] Courier notes arriving from an adapter are stored and visible under Notes.
 
 **Verification**

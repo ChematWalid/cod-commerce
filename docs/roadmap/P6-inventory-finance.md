@@ -9,7 +9,7 @@
 **Conventions for all P6 sessions**
 - Inventory and finance only SUBSCRIBE to domain events from `packages/shared/events` on the Vendure EventBus (`OrderDispatched`, `ReturnProcessed`, `OrderReturned`, `OrderDelivered`, `StockMovementRecorded`, `CarrierCollectionRecorded`); delivery code never calls them. `StockMovementRecorded` is defined by P6.S1, `CarrierCollectionRecorded` by P6.S3.
 - Subscribers are idempotent (dedupe on event id + order id) so a replayed event never double-moves stock or money.
-- Every entity carries `businessId` (+ `storeId` when store-scoped); every endpoint passes the tenant guard. Money is stored as integer minor-safe decimals in the wallet currency; DZD is the reporting currency.
+- Every entity carries `businessId` (+ `storeId` when store-scoped); every endpoint passes the tenant guard. Money is stored as integer minor-safe decimals in the wallet currency; DZD amounts use the precision 0 money strategy (ADR 0004: 9 100 DZD stored as 9100); DZD is the reporting currency.
 - Plan gates call `requireFeature('<feature>')` from `packages/shared` (a no-op until P9.S1): tracked-items limit in inventory, full finance in finance.
 - Own branding only: never use the name "Tassyir", its logo or copy.
 
@@ -47,7 +47,7 @@
 2. `POST /inventory/batch`, `/inventory/add/:id`, `/inventory/adjust/:id` (reasons list), `/inventory/summary`, untrack; low/out status → commit `feat(inventory): add and adjust stock endpoints`
 3. Subscribers: `OrderDispatched` → out (`order_dispatched`) and freeze buy price on the order line; `ReturnProcessed` → in (restock), damaged bucket, missing stays at-carrier; at-carrier quantity computed; real `StockAvailability` provider for dispatch preflight (`stockShort`) → commit `feat(inventory): dispatch and return subscribers`
 4. Dashboard Inventory page: KPI tiles (Sellable qty + value, At carrier, Low stock, Damaged), Products tab with expandable variants, filters, Add Stock dialog (product picker, per-variant buy price/quantity/low alert, "Apply to all variants", empty = skip, 0 = start counting), Adjust stock dialog → commit `feat(inventory): inventory dashboard and add/adjust dialogs`
-5. Movements tab (history with order links) and `GET /inventory/history`; stock sheet import (preview, xlsx/csv) and export → commit `feat(inventory): movements history and import/export`
+5. Movements tab (history with order links) and `GET /inventory/history`; stock sheet import (preview, xlsx/csv) and export (uploaded and generated files in the private bucket in Algerian object storage, never R2, ADR 0011/0012) → commit `feat(inventory): movements history and import/export`
 6. Stock warning on confirm: `GET /orders/:id/stock` + "In stock · N available" per line in order detail, and a `PreConfirmCheck` provider registered in P4.S1's registry returning `warn` (never `block`) when a line is short → commit `feat(inventory): stock warning on confirm`
 
 **Deliverables**

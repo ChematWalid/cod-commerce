@@ -106,7 +106,7 @@ link and stop without merging.
 3. Public endpoint abuse: rate limits and body-size caps on order intake, quotes, abandoned checkout, visitors/beacon, login/reset/OTP, webhooks; quote-token tamper/replay tests; input validation (zod/class-validator) and output encoding → commit `fix(security): rate limits and validation on public endpoints`
 4. Secrets/PII: encryption-at-rest check for all provider tokens, log redaction (phones, tokens), masked phone never in exports/logs/webhook payloads, CSP and security headers on storefront and dashboard, cookie flags, CSRF, SSRF guard for product-link scraping and webhooks → commit `fix(security): secrets, pii and headers`
 5. Dependency and OWASP pass: `npm audit`/OSV, secret scanning, OWASP Top 10 checklist with results; findings fixed or filed as issues labelled `security` → commit `chore(security): dependency audit and owasp checklist`
-6. Performance: index review from `EXPLAIN` on orders list, tracking, analytics and finance queries; fix N+1 (dataloaders); cache/pre-aggregate heavy analytics; storefront ISR/caching of products and themes with revalidation on publish → commit `perf(db): indexes, n+1 fixes and analytics caching`
+6. Performance: index review from `EXPLAIN` and `pg_stat_statements` (enabled on every environment, ADR 0015) on orders list, tracking, analytics and finance queries; confirm every probe and uptime check uses `/readyz`/`/livez`, never Vendure's `/health` (it does not check dependencies), and queue dashboards/alerts group by job name (one BullMQ queue, ADR 0015); fix N+1 (dataloaders); cache/pre-aggregate heavy analytics; storefront ISR/caching of products and themes with revalidation on publish → commit `perf(db): indexes, n+1 fixes and analytics caching`
 7. Load test the storefront order path (k6: product page → cart-quote → order submit) against targets from docs/architecture/infrastructure.md §3 for the Growth tier spike: 140 rps quotes (p95 < 250 ms), 18 rps intake (p95 < 600 ms), 63 rps storefront origin HTML, 113 rps dashboard list queries (p95 < 500 ms) on a 5 M-order seed; storefront traffic generated through Cloudflare with a unique fbclid per virtual user (edge hit ratio ≥ 85 %), and intake traffic from a small set of IPs to prove CGNAT-shared buyers are held, not rejected; before/after numbers in `docs/performance/` → commit `test(perf): storefront order path load test`
 
 **Deliverables:** fixes across plugins, `docs/security/*`, `docs/performance/*`, `load/` scripts, new automated guard tests wired into CI, filed issues for anything not fixed.
@@ -151,29 +151,30 @@ link and stop without merging.
 
 | Field | Value |
 |---|---|
-| **Goal** | Deploy production from the P3.S5 pipeline and modules (OpenTofu env prod, Kamal deploy/prod.yml) with Cloudflare for SaaS custom domains, backups and a restore drill, monitoring, and a gated release workflow. |
+| **Goal** | Deploy production in Algeria (ADR 0011) from the P3.S5 pipeline, runbook and modules (servers by runbook/Ansible, OpenTofu env prod for Cloudflare/DNS, Kamal deploy/prod.yml) with Cloudflare for SaaS custom domains, backups and a restore drill, monitoring, and a gated release workflow. |
 | **Branch** | `chore/p10-s3-deploy` |
 | **GitHub issue** | `P10.S3 Production deployment` (label `phase-10`, milestone `P10 Hardening & launch`) |
-| **Prerequisites** | P10.S2 merged (P3.S5 staging and P8.S9 domains are merged transitively). |
+| **Prerequisites** | P10.S2 merged (P3.S5 staging and P8.S9 domains are merged transitively). **Spike G** (RTT from Algerian mobile and fixed networks to the chosen provider, ADR 0011) recorded before this session starts. The **pre-production legal checklist** (step 7) is answered before production takes real buyer data. |
 | **Parallel-safe** | No. Owns `infra/envs/prod/**`, `deploy/prod.yml`, `.github/workflows/deploy-prod.yml`, production sections of `docs/ops/**`; may extend (not fork) the P3.S5 modules in `infra/modules/**`. |
 | **Model / size** | Opus · M |
-| **External needs** | 🔑 production DigitalOcean resources (FRA1, or Scaleway fr-par if the ADR 0011 latency gate chose it), production root domain on Cloudflare, Cloudflare for SaaS enabled, GitHub environment secrets. The session builds everything reproducibly and stops at a clear "needs you" checklist for what only the user can provision. |
+| **External needs** | 🔑 production VPS(s) at the Algerian provider chosen in P3.S5 and backup storage at the second Algerian provider (ADR 0011), the `.com.dz` platform domain on Cloudflare, Cloudflare for SaaS enabled, GitHub environment secrets; the user's answers to the legal checklist (step 7). The session builds everything reproducibly and stops at a clear "needs you" checklist for what only the user can provision. |
 
 **Inventory rows covered** (exercised): Free subdomain; Custom domains (Custom domain connect → DNS → verify) on real infrastructure.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
-- `docs/roadmap/CONTRIBUTING.md`; `handoff/P10.S2.md`, P3.S5 (pipeline, modules, runbook), P8.S9 (domains, Cloudflare client), P0.S2b (compose, env conventions); `docs/adr/` 0011 (incl. spike G latency gate), 0012, 0013, 0015.
-- `docs/architecture/infrastructure.md` §1.1 (Launch topology), §2, §5.1; `docs/architecture/system-design.md` §5 (backups), §9 (environments and delivery), §10 (reliability).
+- `docs/roadmap/CONTRIBUTING.md`; `handoff/P10.S2.md`, P3.S5 (pipeline, modules, runbook), P8.S9 (domains, Cloudflare client), P0.S2b (compose, env conventions); `docs/adr/` 0011 (hosting in Algeria, spike G, open legal questions), 0012, 0013, 0015, 0016.
+- `docs/architecture/infrastructure.md` §1.1 (Launch topology), §2, §6 (migration path; §5 costs are superseded); `docs/architecture/system-design.md` §5 (backups), §9 (environments and delivery), §10 (reliability).
 - `docs/research/dashboard-captures.md` → "Store settings" (Domains: subdomain Change, Connect domain); `api-surface.md` → "Catalog & store" (`/domains`, `/verify`).
 
 **High-level plan**
-1. infra/envs/prod via the P3.S5 modules (managed PG 17 with PITR, Valkey noeviction, LB, Cloudflare zone rules, R2) → commit `chore(infra): production environment`
+1. Production servers from the P3.S5 runbook/Ansible on the chosen Algerian provider (no managed services, no provider API, no Kubernetes; ADR 0011): at minimum one VPS running the full compose stack (Postgres 17 with `pg_stat_statements`, PgBouncer transaction mode, Valkey noeviction, MinIO for private objects), sized from the P3.S5 trial; `infra/envs/prod` (OpenTofu) covers Cloudflare/DNS and R2 for public assets only → commit `chore(infra): production environment`
 2. Cloudflare: wildcard *.<root>, app/api/cdn hosts, fallback origin and stores.<root> CNAME target for custom hostnames (ADR 0012), WAF/rate-limit rules → commit `feat(deploy): production edge and custom hostnames`
 3. Migrations on deploy: reuse the P3.S5 `migrate` pre-deploy hook for production (backward-compatible expand/contract, rollback note; the M.S1 old-image check or maintenance window with the intake spool for core migrations), seed of plans only → commit `chore(deploy): migrations on deploy`
-4. Backups and restore drill: PITR on managed Postgres, nightly `pg_dump` to R2 `private-prod` (14 daily + 3 monthly, bucket lock), erasure ledger replayed after restore, documented and executed restore into staging → commit `docs(ops): backups and restore drill`
+4. Backups and restore drill: pgBackRest with WAL archiving (PITR) plus a nightly encrypted `pg_dump`, both to the **second Algerian provider** (14 daily + 3 monthly, object lock where available; never R2), MinIO objects replicated there too, the monthly automated restore test scheduled, erasure ledger replayed after restore, documented and executed restore into staging; the PG standby (manual, rehearsed promotion) is a Growth step unless the user asks for it now → commit `docs(ops): backups and restore drill`
 5. Observability for production: extend the P3.S5 baseline (separate Grafana/Sentry environments, page/notify alert levels per ADR 0015, business alerts such as intake silence and `intake_spool_length`, external uptime checks) → commit `chore(ops): production monitoring and alerting`
 6. GitHub Actions deploy workflow: production via workflow_dispatch restricted to maintainers and a production environment limited to main (required reviewers on private repos need GitHub Enterprise [verify]); Kamal lock; post-deploy smoke and warm-up; rollback command; release tag `v0.10.0` + GitHub release notes → commit `ci(deploy): gated deploy workflow and release`
+7. Pre-production legal checklist in `docs/ops/legal-checklist.md` (ADR 0011 Decision 8; parked by the user until now, not legal advice): (a) ANPDP declaration/authorisation for our processing under Law 18-07 Arts. 12 and 44, including whether Cloudflare edge TLS termination and EU processors (Sentry, Grafana Cloud, email/SMS, AI APIs) count as transfers; (b) whether the SaaS needs its own ARPCE cloud authorisation and an Algerian legal entity; (c) how Law 18-05 Art. 8 (`.com.dz`, hosted in Algeria) applies to multi-tenant storefronts and merchants' custom domains. Each item records the user's answer or an explicit decision to launch without it → commit `docs(ops): pre-production legal checklist`
 
 **Deliverables:** `infra/envs/prod`, `deploy/prod.yml`, production Cloudflare config, `deploy-prod.yml` workflow, production sections of `docs/ops/runbook.md` (deploy, rollback, restore, on-call alerts), a "you must provision" checklist, release tag.
 
@@ -181,7 +182,8 @@ link and stop without merging.
 - [ ] Production is reachable; a store at `<sub>.<root-domain>` serves over valid TLS through Cloudflare, and an order placed there appears in the dashboard.
 - [ ] A custom domain verified in the dashboard is active at Cloudflare and served over HTTPS; an unverified domain is never created at Cloudflare and returns 404 by host.
 - [ ] Production deploy can only be started by a maintainer from `main` (or requires a reviewer where the plan supports it; the handoff records which); a failed smoke test blocks promotion and the rollback command restores the previous image.
-- [ ] Nightly pg_dump to R2 exists and a PITR restore into staging passes the E2E smoke (evidence).
+- [ ] pgBackRest PITR and the nightly dump land at the second Algerian provider (nothing in R2 but public assets), and a PITR restore into staging passes the E2E smoke (evidence).
+- [ ] Spike G results are recorded in ADR 0011, and the legal checklist (step 7) has an answer or an explicit user decision for every item before production takes real orders.
 - [ ] Restore drill executed: a backup restored to staging and the E2E smoke passes against it (evidence in handoff).
 - [ ] Alerts fire in a staged failure test (stop the worker; queue-stuck alert triggers).
 - [ ] No secrets in repo, images or logs (secret-scan job green).
@@ -191,7 +193,7 @@ link and stop without merging.
 - Browser: dashboard login, storefront on wildcard subdomain, custom-domain flow vs `dashboard-captures.md` "Store settings → Domains".
 - Multi-tenant: in production, two businesses' subdomains and custom domains never serve each other's catalog; host-header spoof test returns the default/404 page.
 
-**Out of scope:** new features; scaling beyond the initial single-region setup; multi-region.
+**Out of scope:** new features; scaling beyond the initial Algerian setup (Growth: PG standby, Valkey VM; Scale: more VMs with Kamal; no Kubernetes); multi-provider failover beyond the second-provider backups.
 
 **Kickoff prompt**
 ```
