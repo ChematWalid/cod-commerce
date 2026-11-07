@@ -8,10 +8,10 @@ export {
   PROBE_TIMEOUT_MS,
   type ProbeName,
 } from './domain/constants';
+export { RedisConfigUnavailableError, RedisEvictionPolicyError } from './domain/eviction-policy';
 export type { ReadinessProbe, ReadinessReport } from './domain/readiness';
 export { ProbeTimeoutError } from './domain/with-timeout';
 export { PendingMigrationsError } from './infrastructure/migrations.probe';
-export { RedisEvictionPolicyError } from './infrastructure/redis-eviction.guard';
 export {
   startWorkerHealthServer,
   type WorkerHealthServer,

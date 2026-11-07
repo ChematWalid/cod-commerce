@@ -1,24 +1,17 @@
-import { DomainError } from '@cod/shared';
-import { REQUIRED_REDIS_EVICTION_POLICY } from '../domain/constants';
+import { RedisConfigUnavailableError } from '../domain/eviction-policy';
+import type { EvictionPolicyReader } from '../domain/ports';
+import { ensureConnected, type ConnectableClient } from './redis.probe';
 
-/** Valkey may evict keys, which silently drops BullMQ jobs and locks. */
-export class RedisEvictionPolicyError extends DomainError {
-  readonly code = 'platform-health.redis-eviction-policy';
-
-  constructor(readonly policy: string) {
-    super(
-      `Valkey maxmemory-policy is "${policy}"; it must be "${REQUIRED_REDIS_EVICTION_POLICY}" so that queued jobs are never evicted`,
-    );
-  }
-}
-
-/** What the guard needs from a connected Valkey client: `CONFIG GET`. */
-export interface RedisConfigReader {
+/** What the reader needs from a Valkey client: connecting and `CONFIG GET`. */
+export interface RedisConfigClient extends ConnectableClient {
   config(subcommand: 'GET', parameter: string): Promise<unknown>;
 }
 
 const POLICY_PARAMETER = 'maxmemory-policy';
 const UNKNOWN_POLICY = 'unknown';
+
+/** Replies of a Valkey that disabled `CONFIG` (renamed command) or denies it through an ACL. */
+const CONFIG_REFUSED_REPLY = /^(ERR unknown command|NOPERM)/i;
 
 /** `CONFIG GET` answers a flat `[name, value]` list. */
 const policyOf = (reply: unknown): string => {
@@ -29,14 +22,22 @@ const policyOf = (reply: unknown): string => {
   return typeof value === 'string' ? value : UNKNOWN_POLICY;
 };
 
-/**
- * Fails boot unless Valkey's `maxmemory-policy` is `noeviction`.
- *
- * @throws {RedisEvictionPolicyError} for any other policy, or when the policy cannot be read.
- */
-export async function assertNoEviction(redis: RedisConfigReader): Promise<void> {
-  const policy = policyOf(await redis.config('GET', POLICY_PARAMETER));
-  if (policy !== REQUIRED_REDIS_EVICTION_POLICY) {
-    throw new RedisEvictionPolicyError(policy);
+const isConfigRefused = (error: unknown): boolean => error instanceof Error && CONFIG_REFUSED_REPLY.test(error.message);
+
+/** Reads `maxmemory-policy` with `CONFIG GET` over the probe client. */
+export class RedisEvictionPolicyReader implements EvictionPolicyReader {
+  constructor(private readonly client: RedisConfigClient) {}
+
+  /** @throws {RedisConfigUnavailableError} when Valkey refuses `CONFIG GET`; connection errors propagate. */
+  async readEvictionPolicy(): Promise<string> {
+    await ensureConnected(this.client);
+    try {
+      return policyOf(await this.client.config('GET', POLICY_PARAMETER));
+    } catch (error) {
+      if (isConfigRefused(error)) {
+        throw new RedisConfigUnavailableError();
+      }
+      throw error;
+    }
   }
 }

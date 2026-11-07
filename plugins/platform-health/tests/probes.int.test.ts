@@ -5,8 +5,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ReadinessService } from '../application/readiness.service';
 import type { ReadinessProbe } from '../domain/readiness';
 import { PostgresProbe } from '../infrastructure/postgres.probe';
-import { assertNoEviction, RedisEvictionPolicyError } from '../infrastructure/redis-eviction.guard';
-import { createProbeRedisClient, ensureConnected, RedisProbe } from '../infrastructure/redis.probe';
+import { EvictionPolicyVerifier } from '../application/eviction-policy.verifier';
+import { RedisEvictionPolicyError } from '../domain/eviction-policy';
+import { MigrationsProbe, PendingMigrationsError } from '../infrastructure/migrations.probe';
+import { RedisEvictionPolicyReader } from '../infrastructure/redis-eviction.guard';
+import { createProbeRedisClient, RedisProbe } from '../infrastructure/redis.probe';
 
 /** A port nothing listens on, so connections are refused. */
 const CLOSED_PORT_REDIS_URL = 'redis://127.0.0.1:1';
@@ -43,6 +46,10 @@ const pool = (connectionString: string): Pool => {
   return created;
 };
 
+/** A verifier over the real eviction-policy reader of `client`. */
+const verifierOf = (client: Redis): EvictionPolicyVerifier =>
+  new EvictionPolicyVerifier(new RedisEvictionPolicyReader(client), silentLogger);
+
 const redis = (url: string): Redis => {
   const client = createProbeRedisClient(url, silentLogger);
   cleanups.push(() => {
@@ -50,6 +57,11 @@ const redis = (url: string): Redis => {
     return Promise.resolve();
   });
   return client;
+};
+
+const redisProbe = (url: string): RedisProbe => {
+  const client = redis(url);
+  return new RedisProbe(client, verifierOf(client));
 };
 
 afterEach(async () => {
@@ -77,7 +89,7 @@ describe('PostgresProbe', () => {
 
 describe('RedisProbe', () => {
   it('passes against REDIS_URL', async () => {
-    const probe = new RedisProbe(redis(requireEnv('REDIS_URL')));
+    const probe = redisProbe(requireEnv('REDIS_URL'));
 
     const result = await runProbe(probe);
 
@@ -85,7 +97,7 @@ describe('RedisProbe', () => {
   });
 
   it('fails within its budget against redis://127.0.0.1:1', async () => {
-    const probe = new RedisProbe(redis(CLOSED_PORT_REDIS_URL));
+    const probe = redisProbe(CLOSED_PORT_REDIS_URL);
 
     const result = await runProbe(probe);
 
@@ -94,16 +106,43 @@ describe('RedisProbe', () => {
   });
 });
 
-describe('assertNoEviction', () => {
-  it('accepts the compose Valkey and rejects allkeys-lru', async () => {
-    const valkey = redis(requireEnv('REDIS_URL'));
-    await ensureConnected(valkey);
-    const evicting = { config: () => Promise.resolve(['maxmemory-policy', 'allkeys-lru']) };
+describe('EvictionPolicyVerifier', () => {
+  it('accepts the compose Valkey at boot and rejects allkeys-lru', async () => {
+    const verifier = verifierOf(redis(requireEnv('REDIS_URL')));
+    const evicting = new EvictionPolicyVerifier(
+      { readEvictionPolicy: () => Promise.resolve('allkeys-lru') },
+      silentLogger,
+    );
 
-    const accepted = await outcomeOf(assertNoEviction(valkey));
-    const rejected = await outcomeOf(assertNoEviction(evicting));
+    const accepted = await outcomeOf(verifier.verifyAtBoot());
+    const rejected = await outcomeOf(evicting.verifyAtBoot());
 
     expect(accepted).toBe('accepted');
+    expect(verifier.verified).toBe(true);
     expect(rejected).toBeInstanceOf(RedisEvictionPolicyError);
+  });
+
+  it('lets boot continue when Valkey is unreachable', async () => {
+    const verifier = verifierOf(redis(CLOSED_PORT_REDIS_URL));
+
+    const outcome = await outcomeOf(verifier.verifyAtBoot());
+
+    expect(outcome).toBe('accepted');
+    expect(verifier.verified).toBe(false);
+  });
+});
+
+describe('MigrationsProbe', () => {
+  it('reports pending when the migrations table does not exist', async () => {
+    const db = pool(requireEnv('DATABASE_URL_DIRECT'));
+    const source = {
+      options: { migrationsTableName: 'cod_probe_missing_migrations' },
+      migrations: [],
+      query: async (sql: string): Promise<unknown> => (await db.query(sql)).rows,
+    };
+
+    const outcome = await outcomeOf(new MigrationsProbe(source).check());
+
+    expect(outcome).toBeInstanceOf(PendingMigrationsError);
   });
 });

@@ -5,17 +5,18 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { PluginCommonModule, TransactionalConnection, VendurePlugin } from '@vendure/core';
+import { Logger, PluginCommonModule, TransactionalConnection, VendurePlugin } from '@vendure/core';
 import type { Redis } from 'ioredis';
 import { HealthMiddleware } from './api/health.middleware';
+import { EvictionPolicyVerifier } from './application/eviction-policy.verifier';
 import { LivenessService } from './application/liveness.service';
 import { ReadinessService } from './application/readiness.service';
 import { HEALTH_PATHS } from './domain/constants';
 import { EventLoopLagMonitor } from './infrastructure/event-loop-lag.monitor';
 import { MigrationsProbe } from './infrastructure/migrations.probe';
 import { PostgresProbe } from './infrastructure/postgres.probe';
-import { assertNoEviction } from './infrastructure/redis-eviction.guard';
-import { createProbeRedisClient, ensureConnected, RedisProbe } from './infrastructure/redis.probe';
+import { RedisEvictionPolicyReader } from './infrastructure/redis-eviction.guard';
+import { createProbeRedisClient, RedisProbe } from './infrastructure/redis.probe';
 import { startWorkerHealthServer, type WorkerHealthServer } from './infrastructure/worker-health-server';
 
 /** How the server configures {@link PlatformHealthPlugin}. */
@@ -26,7 +27,18 @@ export interface PlatformHealthOptions {
   readonly serveWorkerHealth: boolean;
 }
 
-const PROBE_REDIS_CLIENT = Symbol('PlatformHealthProbeRedisClient');
+/** The probes' Valkey client, with the eviction-policy verifier bound to it (they share its verified state). */
+interface ProbeRedis {
+  readonly client: Redis;
+  readonly evictionPolicy: EvictionPolicyVerifier;
+}
+
+const PROBE_REDIS = Symbol('PlatformHealthProbeRedis');
+
+function createProbeRedis(): ProbeRedis {
+  const client = createProbeRedisClient(requireOptions().redisUrl);
+  return { client, evictionPolicy: new EvictionPolicyVerifier(new RedisEvictionPolicyReader(client), Logger) };
+}
 
 /** Nest route paths have no leading slash. */
 const HEALTH_ROUTES = [HEALTH_PATHS.live, HEALTH_PATHS.ready].map((path) => path.slice(1));
@@ -39,24 +51,24 @@ function requireOptions(): PlatformHealthOptions {
   return options;
 }
 
-const createReadiness = (connection: TransactionalConnection, redis: Redis): ReadinessService =>
+const createReadiness = (connection: TransactionalConnection, redis: ProbeRedis): ReadinessService =>
   new ReadinessService([
     new PostgresProbe(connection.rawConnection),
-    new RedisProbe(redis),
+    new RedisProbe(redis.client, redis.evictionPolicy),
     new MigrationsProbe(connection.rawConnection),
   ]);
 
 /**
  * Readiness (`/readyz`: Postgres, Valkey, pending migrations) and liveness (`/livez`: event-loop lag) probes.
  * The api role answers them on its own port; the worker role on `workerHealthPort`. Every role refuses to
- * boot when Valkey may evict keys.
+ * boot when Valkey may evict keys; an unreachable Valkey only logs a warning and keeps `/readyz` not ready.
  */
 @VendurePlugin({
   imports: [PluginCommonModule],
   providers: [
     EventLoopLagMonitor,
-    { provide: PROBE_REDIS_CLIENT, useFactory: () => createProbeRedisClient(requireOptions().redisUrl) },
-    { provide: ReadinessService, useFactory: createReadiness, inject: [TransactionalConnection, PROBE_REDIS_CLIENT] },
+    { provide: PROBE_REDIS, useFactory: createProbeRedis },
+    { provide: ReadinessService, useFactory: createReadiness, inject: [TransactionalConnection, PROBE_REDIS] },
     {
       provide: LivenessService,
       useFactory: (monitor: EventLoopLagMonitor) => new LivenessService(() => monitor.sample()),
@@ -70,7 +82,7 @@ export class PlatformHealthPlugin implements NestModule, OnApplicationBootstrap,
   private workerHealthServer: WorkerHealthServer | undefined;
 
   constructor(
-    @Inject(PROBE_REDIS_CLIENT) private readonly redis: Redis,
+    @Inject(PROBE_REDIS) private readonly redis: ProbeRedis,
     private readonly readiness: ReadinessService,
     private readonly liveness: LivenessService,
     private readonly lagMonitor: EventLoopLagMonitor,
@@ -86,10 +98,9 @@ export class PlatformHealthPlugin implements NestModule, OnApplicationBootstrap,
     consumer.apply(HealthMiddleware).forRoutes(...HEALTH_ROUTES);
   }
 
-  /** @throws {RedisEvictionPolicyError} when Valkey may evict keys, which fails boot. */
+  /** @throws {RedisEvictionPolicyError} or {RedisConfigUnavailableError} when Valkey may evict keys, which fails boot. */
   async onApplicationBootstrap(): Promise<void> {
-    await ensureConnected(this.redis);
-    await assertNoEviction(this.redis);
+    await this.redis.evictionPolicy.verifyAtBoot();
     this.lagMonitor.start();
     const { serveWorkerHealth, workerHealthPort } = requireOptions();
     if (serveWorkerHealth) {
@@ -104,6 +115,6 @@ export class PlatformHealthPlugin implements NestModule, OnApplicationBootstrap,
   async onApplicationShutdown(): Promise<void> {
     await this.workerHealthServer?.close();
     this.lagMonitor.stop();
-    this.redis.disconnect();
+    this.redis.client.disconnect();
   }
 }

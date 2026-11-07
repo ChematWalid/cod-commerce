@@ -22,9 +22,11 @@ const hanging = (name: ProbeName): ReadinessProbe => ({
   check: () => new Promise<void>(() => undefined),
 });
 
-/** A migration source whose answer the test changes between checks. */
-const migrationSource = (pending: boolean[]): { showMigrations: () => Promise<boolean> } => ({
-  showMigrations: () => Promise.resolve(pending.shift() ?? false),
+/** A data source whose code knows migration `M1`, and whose migrations table holds `executed`. */
+const migrationSource = (executed: string[]) => ({
+  options: {},
+  migrations: [{ name: 'M1' }],
+  query: () => Promise.resolve(executed.map((name) => ({ name }))),
 });
 
 describe('ReadinessService', () => {
@@ -71,7 +73,7 @@ describe('ReadinessService', () => {
   });
 
   it('is not ready while migrations are pending', async () => {
-    const migrations = new MigrationsProbe(migrationSource([true]));
+    const migrations = new MigrationsProbe(migrationSource([]));
     const service = new ReadinessService([passing('postgres'), passing('redis'), migrations]);
 
     const response = toHealthResponse(await service.check());
@@ -81,15 +83,15 @@ describe('ReadinessService', () => {
   });
 
   it('stops asking for migrations once none are pending', async () => {
-    const source = migrationSource([false]);
-    const showMigrations = vi.spyOn(source, 'showMigrations');
+    const source = migrationSource(['M1']);
+    const query = vi.spyOn(source, 'query');
     const service = new ReadinessService([passing('postgres'), passing('redis'), new MigrationsProbe(source)]);
 
     await service.check();
     const second = await service.check();
 
     expect(second.status).toBe('ready');
-    expect(showMigrations).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledTimes(1);
   });
 });
 

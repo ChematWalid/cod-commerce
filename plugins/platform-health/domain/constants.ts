@@ -33,6 +33,9 @@ export const HTTP_INTERNAL_ERROR = 500;
 /** BullMQ loses jobs when Valkey evicts keys, so this is the only accepted `maxmemory-policy`. */
 export const REQUIRED_REDIS_EVICTION_POLICY = 'noeviction';
 
+/** How long the eviction-policy check may take; past it, Valkey counts as unreachable. */
+export const REDIS_EVICTION_GUARD_TIMEOUT_MS = 2000;
+
 /** While Valkey is unreachable, its client logs at most one warning per interval instead of one per retry. */
 export const REDIS_ERROR_LOG_INTERVAL_MS = 30_000;
 
