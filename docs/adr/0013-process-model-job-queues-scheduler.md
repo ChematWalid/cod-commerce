@@ -148,3 +148,38 @@ Spike D, 2026-11-07, P0.S2a-2: the same stack and scratch app as ADR 0016 Eviden
 - After one process had seeded the database, all three started cleanly.
 - Hence the `migrate` role seeds before replicas start (Decision table).
 
+
+## Addendum (2026-11-07): activeQueues with Vendure's BullMQ plugin
+
+**Finding.** In `@vendure/job-queue-plugin` 3.8.1:
+- `BullMQJobQueueStrategy` puts every Vendure queue into one BullMQ queue (`<prefix>:vendure-job-queue`), with the job name set to the Vendure queue name.
+- A worker creates a BullMQ `Worker` on that queue as soon as any one of its queues starts.
+- Its processor then looks up the job name among the queues **this** process started. For a job of a queue that `jobQueueOptions.activeQueues` excludes, it throws `No processor defined for the queue "<name>"`.
+
+The job therefore **fails** and uses up an attempt. It is not left waiting for a worker of another pool.
+
+**Evidence (P0.S2b-3, Task 10).** Run on 2026-11-07, `apps/server/tests/e2e/active-queues.e2e.test.ts` (`activeQueues: ['probe-critical']`, BullMQ 5.81.5 on Valkey 8.1.11). Written first as a plain test, the desired behaviour failed with:
+
+```
+FAIL  |e2e| tests/e2e/active-queues.e2e.test.ts > worker activeQueues with the BullMQ job queue > a worker leaves jobs of inactive queues for another pool
+AssertionError: expected 'failed' to be 'waiting' // Object.is equality
+```
+
+With the desired-behaviour test marked `it.fails` and the limitation asserted (`state` `failed`, `failedReason` `No processor defined for the queue "probe-bulk"`), the Vitest output is:
+
+```
+✓ |e2e| tests/e2e/active-queues.e2e.test.ts > worker activeQueues with the BullMQ job queue > a worker processes jobs of its active queue 112ms
+✓ |e2e| tests/e2e/active-queues.e2e.test.ts > worker activeQueues with the BullMQ job queue > a worker leaves jobs of inactive queues for another pool 3022ms
+✓ |e2e| tests/e2e/active-queues.e2e.test.ts > worker activeQueues with the BullMQ job queue > known limitation: stock BullMQ strategy fails jobs of inactive queues 156ms
+Tests  11 passed | 1 expected fail (12)
+```
+
+**Decision.**
+1. **At Launch, every worker runs all queues.** `WORKER_ACTIVE_QUEUES` stays empty. The desired-behaviour test stays as `it.fails`, so an upstream fix shows up as a failing test.
+2. **The critical/bulk pool split belongs to P1.S6** (queue registry). The options to evaluate:
+   - (a) a `JobQueueStrategy` that gives each pool its own BullMQ queue;
+   - (b) an upstream change that keeps jobs of inactive queues waiting;
+   - (c) a separate Redis prefix per pool.
+
+   The selection criteria: no lost or failed jobs, a working dashboard job list, and unchanged semaphore and priority rules.
+3. **Until P1.S6, nothing may set `activeQueues`.** P1.S6 adds a boot assertion that fails fast when `WORKER_ACTIVE_QUEUES` is non-empty while the stock strategy is in use.
