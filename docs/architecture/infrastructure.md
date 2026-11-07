@@ -9,66 +9,55 @@ Source tags:
 
 Decisions: ADR 0011 (hosting), 0012 (edge), 0013 (process model), 0016 (data).
 
+> **Update 2026-11-07 (ADR 0011 accepted):** production is hosted **in Algeria** on self-run VPSs (Law 18-07 Art. 44). There is no DigitalOcean, no DOKS, no managed Postgres/Valkey and no provider API (OpenTofu covers Cloudflare/DNS only). The minimum target is **one Algerian VPS** running the full compose stack (`api`, `worker`, `storefront`, `migrate`, Postgres 17, PgBouncer, Valkey, MinIO) with pgBackRest PITR backups to a **second Algerian provider**; Growth adds a PG primary + async standby (manual, rehearsed promotion; no Patroni) and Valkey on its own VM; Scale adds VMs with Kamal (no Kubernetes). The provider is chosen in P3.S5 after a 1-month trial benchmark (CPU steal, `fsync` latency, RTT from Algerian ISPs; spike G pending before P10.S3). Private objects live in Algerian object storage (MinIO), R2 holds public assets only (ADR 0012). The topology sections below are updated; the capacity math (§3) still holds; the cost tables (§5) are the earlier EU estimates, kept for reference only, because the user set budget aside.
+
 ## 1. Topology per tier
 
-### 1.1 Launch (≈100 stores, 5k orders/day): DigitalOcean FRA1 + Cloudflare
+### 1.1 Launch (≈100 stores, 5k orders/day): one Algerian VPS (minimum) + Cloudflare
 
 ```mermaid
 flowchart TB
   subgraph Edge["Cloudflare - Free plan"]
-    DNS["DNS ourdomain, wildcard, custom hostnames"]
+    DNS["DNS platform .com.dz, wildcard, custom hostnames"]
     CDN["CDN and HTML cache, WAF free ruleset, 1 rate-limit rule, Turnstile"]
-    R2[("R2 assets-prod public, private-prod for exports, documents, backups")]
+    R2[("R2 assets-prod, public assets only")]
   end
-  subgraph FRA1["DigitalOcean FRA1 VPC"]
-    LB["DO Load Balancer, Origin CA cert, Cloudflare IPs only"]
-    subgraph N1["Droplet 1 - 2 vCPU 4 GB"]
-      KP1["kamal-proxy"]
+  subgraph DZ["Algerian provider, chosen in P3.S5"]
+    subgraph N1["VPS 1 - full compose stack"]
+      KP1["kamal-proxy, Origin CA cert, Cloudflare IPs only"]
       API1["api"]
       SF1["storefront"]
       WK1["worker all queues and scheduler"]
       OT1["otel-collector"]
+      PGB["PgBouncer, transaction mode"]
+      PG[("PostgreSQL 17, pgBackRest WAL archiving")]
+      VK[("Valkey, noeviction")]
+      MIO[("MinIO, private objects: exports, labels, imports")]
     end
-    subgraph N2["Droplet 2 - 2 vCPU 4 GB"]
-      KP2["kamal-proxy"]
-      API2["api"]
-      SF2["storefront"]
-      WK2["worker all queues and scheduler"]
-      OT2["otel-collector"]
-      BK2["backup accessory, nightly pg_dump"]
-    end
-    PG[("Managed PostgreSQL 17, 1 vCPU 2 GB, PITR, PgBouncer pool")]
-    VK[("Managed Valkey 1 GB, noeviction")]
   end
-  STG["Staging droplet 2 vCPU 4 GB, all roles plus PG and Valkey containers"]
-  OBS["Grafana Cloud Free and Sentry Developer"]
-  DNS --> CDN --> LB
+  BKP[("Second Algerian provider: pgBackRest repo and object backups")]
+  STG["Staging VPS, same compose stack"]
+  OBS["Grafana Cloud Free and Sentry Developer, PII scrubbed"]
+  DNS --> CDN --> KP1
   CDN --- R2
-  LB --> KP1
-  LB --> KP2
   KP1 --> API1
   KP1 --> SF1
-  KP2 --> API2
-  KP2 --> SF2
-  API1 --> PG
-  API2 --> PG
-  WK1 --> PG
-  WK2 --> PG
+  API1 --> PGB
+  WK1 --> PGB
+  PGB --> PG
   API1 --> VK
-  API2 --> VK
   SF1 --> VK
-  SF2 --> VK
   WK1 --> VK
-  WK2 --> VK
+  WK1 --> MIO
+  API1 --> MIO
   OT1 --> OBS
-  OT2 --> OBS
-  BK2 --> PG
-  BK2 --> R2
+  PG -.->|WAL and full backups| BKP
+  MIO -.->|replication| BKP
 ```
 
-**One-line Launch topology**: Cloudflare (DNS, CDN/HTML cache, WAF, Turnstile, custom hostnames, R2) → DO LB (FRA1) → 2 droplets each running kamal-proxy + api + storefront + worker + otel-collector containers from one image (plus a `backup` cron accessory on node 2) → DO Managed PostgreSQL 17 (PITR, PgBouncer) + DO Managed Valkey. Plus one staging droplet; Grafana Cloud Free + Sentry Developer (EU regions).
+**One-line Launch topology** (ADR 0011 minimum): Cloudflare (DNS, CDN/HTML cache, WAF, Turnstile, custom hostnames, R2 for public assets) → one Algerian VPS running the P0.S2b compose stack (kamal-proxy + api + storefront + worker + migrate + otel-collector from one image, plus Postgres 17, PgBouncer, Valkey and MinIO) → pgBackRest PITR backups to a second Algerian provider. A second app VPS behind kamal-proxy/HAProxy is optional at Launch (budget is not a constraint; sized in P3.S5). Plus one staging VPS; Grafana Cloud Free + Sentry Developer (EU regions, PII scrubbed per ADR 0015).
 
-**Launch node budget** (per 2 vCPU / 4 GB shared-CPU droplet). RSS figures are [BK est] for a Vendure 3.8 app with ~20 plugins and a Next 16 standalone server; P3.S5 measures them on staging and replaces this table.
+**Launch node budget** (app containers on a 2 vCPU / 4 GB node, the earlier droplet sizing). RSS figures are [BK est] for a Vendure 3.8 app with ~20 plugins and a Next 16 standalone server; P3.S5 measures them on staging and replaces this table. On the single-VPS minimum (ADR 0011) the same host also runs Postgres, PgBouncer, Valkey and MinIO, so P3.S5 sizes that VPS from the trial benchmark and adds their limits here.
 | Container | Typical RSS | Hard limit (`--memory`) | Node heap flag | CPU |
 |---|---|---|---|---|
 | OS, Docker, journald | ~400 MB | — | — | — |
@@ -80,7 +69,7 @@ flowchart TB
 | backup (node 2, 03:30 only) | ~50 MB | 256 MB | — | `nice` |
 | **Total** | **≈ 1.9 GB steady** (≈ 2.4 GB while Kamal swaps one role) | 3.2 GB of limits | | |
 
-A 2 GB swap file is the OOM buffer. Kamal swaps roles one at a time per host, so the transient extra is one container (≤ 1 GB). If steady memory exceeds 80 % or worker CPU starves api latency (quote p95 > 250 ms while worker CPU is saturated), the trigger in §4 moves the worker to its own droplet (+$24/month). The design forbids headless browsers in any role at Launch for this reason.
+A 2 GB swap file is the OOM buffer. Kamal swaps roles one at a time per host, so the transient extra is one container (≤ 1 GB). If steady memory exceeds 80 % or worker CPU starves api latency (quote p95 > 250 ms while worker CPU is saturated), the trigger in §4 moves the worker to its own VM. The design forbids headless browsers in any role at Launch for this reason.
 
 ### 1.2 Growth (≈1,000 stores, 50k orders/day)
 
@@ -90,22 +79,24 @@ flowchart TB
     CDN["CDN, WAF managed rules, rate-limit rules, Turnstile, custom hostnames"]
     R2[("R2")]
   end
-  subgraph FRA1["DigitalOcean FRA1 VPC"]
-    LB["DO Load Balancer, 2 nodes"]
-    subgraph WEB["3 web droplets - 4 vCPU 8 GB"]
+  subgraph DZ["Algerian provider, private network"]
+    LB["kamal-proxy or HAProxy LB, 2 nodes"]
+    subgraph WEB["3 web VMs - 4 vCPU 8 GB"]
       W1["kamal-proxy, api, storefront, otel"]
     end
-    subgraph WRK["2 worker droplets - 2 vCPU 4 GB"]
+    subgraph WRK["2 worker VMs - 2 vCPU 4 GB"]
       C1["worker pool critical"]
       B1["worker pool bulk"]
     end
     PGP[("PG primary 4 vCPU 8 GB")]
-    PGS[("PG hot standby")]
-    PGR[("PG read-only node for reports, exports, AI queries")]
-    VQ[("Valkey queue 2 GB noeviction")]
+    PGS[("PG async standby, manual rehearsed promotion, no Patroni")]
+    PGR[("PG read-only replica for reports, exports, AI queries")]
+    VQ[("Valkey queue VM 2 GB noeviction")]
     VC[("Valkey cache 4 GB allkeys-lru")]
-    MS[("Meilisearch droplet, only if search trigger fires")]
+    MIO[("MinIO private objects")]
+    MS[("Meilisearch VM, only if search trigger fires")]
   end
+  BKP[("Second Algerian provider: pgBackRest repo, object backups")]
   CDN --> LB --> W1
   W1 --> PGP
   W1 --> VC
@@ -117,10 +108,11 @@ flowchart TB
   B1 --> VQ
   PGP -.->|replication| PGS
   PGP -.->|replication| PGR
+  PGP -.->|WAL and full backups| BKP
   W1 --> MS
 ```
 
-### 1.3 Scale (≈5,000 stores, 200k orders/day): DOKS (managed Kubernetes)
+### 1.3 Scale (≈5,000 stores, 200k orders/day): more VMs with Kamal (no Kubernetes, ADR 0011)
 
 ```mermaid
 flowchart TB
@@ -129,20 +121,20 @@ flowchart TB
     CFW["Workers: visitor beacon ingest"]
     R2[("R2")]
   end
-  subgraph FRA1["DigitalOcean FRA1"]
-    LB["DO LB via ingress"]
-    subgraph K8S["DOKS cluster, HA control plane"]
-      ING["Ingress, host routing"]
-      APIP["api pods, HPA 6 to 20"]
-      SFP["storefront pods, HPA 6 to 20"]
-      WCP["worker critical pods, KEDA"]
-      WBP["worker bulk pods, KEDA"]
-      OTC["otel collector daemonset"]
+  subgraph DZ["Algerian provider(s)"]
+    LB["kamal-proxy or HAProxy LB pair"]
+    subgraph VMS["App VMs deployed with Kamal"]
+      ING["kamal-proxy host routing per VM"]
+      APIP["api containers, 6 to 20, added by alert-driven runbook"]
+      SFP["storefront containers, 6 to 20"]
+      WCP["worker critical VMs"]
+      WBP["worker bulk VMs"]
+      OTC["otel collector per VM"]
     end
     PGP[("PG primary 16 vCPU 64 GB")]
     PGS[("PG standby")]
     PGR1[("PG read-only 1")]
-    PGR2[("PG read-only 2, cross-region optional")]
+    PGR2[("PG read-only 2, at the second Algerian provider")]
     VQ[("Valkey queue")]
     VC[("Valkey cache")]
     MS[("Meilisearch x2")]
@@ -169,10 +161,10 @@ flowchart TB
 | Hop | Algorithm / config | Health check | Notes |
 |---|---|---|---|
 | Cloudflare → origin | proxied DNS to LB IP; Full (strict) TLS | n/a | `Host` preserved, including custom hostnames (Cloudflare for SaaS fallback origin `fallback.ourdomain`) [EH §2] |
-| DO LB → droplets | round robin, HTTP/2 to origin off, idle timeout 120 s, firewall: Cloudflare IP ranges only | `GET /api/readyz` every 10 s, 3 failures = out, 2 successes = in. The LB probe carries no store host, so kamal-proxy sends it to the **default (storefront)** route; that endpoint returns 200 only if the storefront is up **and the node-local api `/readyz` answers within 300 ms**, so it is a node-level check | Origin CA wildcard certificate; no sticky sessions |
+| origin LB (kamal-proxy/HAProxy on the VPS or an LB VM, ADR 0011/0012) → VMs | round robin, HTTP/2 to origin off, idle timeout 120 s, firewall: Cloudflare IP ranges only | `GET /api/readyz` every 10 s, 3 failures = out, 2 successes = in. The LB probe carries no store host, so kamal-proxy sends it to the **default (storefront)** route; that endpoint returns 200 only if the storefront is up **and the node-local api `/readyz` answers within 300 ms**, so it is a node-level check | Origin CA wildcard certificate; no sticky sessions |
 | kamal-proxy → containers | host rules: `app.ourdomain`, `api.ourdomain`, `api.internal` → api; default → storefront | per-container check before traffic switch (api `/readyz`, storefront `/api/healthz`); drain 30 s | zero-downtime swaps per container [BK, verify default-host/wildcard behaviour in P3.S5] |
-| storefront → api (internal) | local kamal-proxy with Host `api.internal` (Launch/Growth); K8s Service (Scale) | — | HMAC `x-internal-sig` |
-| Scale: ingress | DOKS ingress-nginx (or Gateway API) with the same host rules | readiness probes per pod | HPA on CPU; KEDA on BullMQ wait-list length |
+| storefront → api (internal) | local kamal-proxy with Host `api.internal` (all tiers) | — | HMAC `x-internal-sig` |
+| Scale: more VMs | the same LB layer and kamal-proxy host rules on more VMs (no Kubernetes, ADR 0011) | `/readyz` per container | scaled manually from alerts (CPU, BullMQ wait-list age) |
 
 ## 3. Capacity math
 
@@ -230,20 +222,22 @@ Review notes on the capacity math (arithmetic re-checked; all rows are consisten
 
 | Trigger (sustained 7 days unless noted) | Action |
 |---|---|
-| Droplet CPU p95 > 60 % at peak, or memory > 80 %, or quote p95 > 250 ms while worker CPU is saturated | move the worker to its own droplet (+$24) first, then add a web droplet (OpenTofu + `kamal deploy`) |
-| PG CPU p95 > 70 % at peak / storage > 75 % / buffer cache hit < 99 % | resize PG one step (DO resize; short failover [BK]) |
-| > 50 paying stores, or any PG incident | add the PG standby (Launch-HA, +~$30) |
-| Reports/exports > 20 % of PG CPU | add a read-only node; route reports, exports and AI queries there |
-| Valkey memory > 60 % for 1 day (cache writes being skipped) or > 70 % at any time | split into `valkey-queue` + `valkey-cache` (+~$15–30) |
-| Oldest waiting job on critical queues > 30 s at peak | dedicated worker droplets, pools via `activeQueues` |
+| VM CPU p95 > 60 % at peak, or memory > 80 %, or quote p95 > 250 ms while worker CPU is saturated | move the worker (then Postgres, then Valkey) off the single VPS to its own VM first, then add a web VM (provisioned by runbook/Ansible + `kamal deploy`) |
+| PG CPU p95 > 70 % at peak / storage > 75 % / buffer cache hit < 99 % | resize the PG VM one step at the provider (planned switchover to the standby once one exists) |
+| > 50 paying stores, or any PG incident | add the PG async standby on its own VM (rehearsed manual promotion) |
+| Reports/exports > 20 % of PG CPU | add a read-only replica VM; route reports, exports and AI queries there |
+| Valkey memory > 60 % for 1 day (cache writes being skipped) or > 70 % at any time | split into `valkey-queue` + `valkey-cache` on their own VM(s) |
+| Oldest waiting job on critical queues > 30 s at peak | dedicated worker VMs, pools via `activeQueues` |
 | Search trigger (ADR 0014) | deploy Meilisearch |
-| > 8 web nodes, or need for autoscaling, or > 120 k orders/day | move compute to DOKS (Scale) |
-| PG needs > 16 vCPU/64 GB, or replica lag > 30 s p95 | ADR 0011 data-tier gate (AWS eu-west-3 or Scaleway fr-par, with compute) |
+| > 8 web nodes, or > 120 k orders/day | Scale tier: more VMs with Kamal, LB pair (no Kubernetes, ADR 0011) |
+| PG needs > 16 vCPU/64 GB, or replica lag > 30 s p95 | dedicated server for PG at an Algerian provider; re-open ADR 0011 if no provider can host it |
 | Beacon rps > 2,000 | move visitor ingest to a Cloudflare Worker → Queue → ClickHouse / batch insert |
 
 ## 5. Monthly cost per tier (USD, ex-VAT, estimates 2026-11-07)
 
-### 5.1 Launch: target < $150
+> **Superseded (2026-11-07, ADR 0011):** the tables below are the earlier EU (DigitalOcean) estimates and no longer describe the target. Hosting is on Algerian VPSs billed in DZD, and the user set budget aside for now, so there is no Launch cost target; P3.S5 records the chosen provider's actual prices. The ADR 0011 Evidence has a rough Algerian Launch sketch. The observability volume budget and the pass-through notes below still apply.
+
+### 5.1 Launch (EU estimate, superseded)
 | Line item | Spec | $/mo | Source |
 |---|---|---|---|
 | Production compute | 2 × DO Basic droplet 2 vCPU/4 GB | 48 | [V] EH §4 |
@@ -271,7 +265,7 @@ Review notes on the capacity math (arithmetic re-checked; all rows are consisten
 
 Pass-through costs billed to merchants, not infrastructure: WhatsApp messages (≈ $0.004–0.027/msg [3P EH §7]), SMS ($0.273/segment to DZ [V EH §7]; Arabic text is UCS-2, 70 characters per segment, so a typical Arabic message is 2–3 segments ≈ $0.55–0.80), Claude API tokens (via AI credits), payment fees (Chargily 0 % for the first 300 tx then 1.5–4.5 % [V EH §8]). **They are only pass-through if metered and prepaid**: WhatsApp/SMS use a per-business prepaid message balance and stop at zero; LLM usage is reserved and committed per call (system-design §4). Unmetered, WhatsApp alone could reach ≈ $7 k/month at Growth (50 k orders/day × 1 utility message × $0.0048 × 30).
 
-### 5.2 Growth: ≈ $970/month
+### 5.2 Growth (EU estimate, superseded): ≈ $970/month
 | Line item | Spec | $/mo | Source |
 |---|---|---|---|
 | Web compute | 3 × DO 4 vCPU/8 GB | 144 | [V] |
@@ -293,7 +287,7 @@ Pass-through costs billed to merchants, not infrastructure: WhatsApp messages (�
 | Email | SES ~150 k/mo (per-order email opt-in) | ~15 | [3P] |
 | **Total** | | **≈ $966** (range $850–1,150) | |
 
-### 5.3 Scale: ≈ $5,000–8,000/month
+### 5.3 Scale (EU estimate, superseded): ≈ $5,000–8,000/month
 | Line item | Spec | $/mo | Source |
 |---|---|---|---|
 | DOKS control plane (HA) | | ~40 | [BK est] |
@@ -318,18 +312,18 @@ Sanity check (assumption): at Scale, ≈ 3,750 businesses on a 1,900–9,900 DZD
 ## 6. Migration path
 
 **Launch → Growth** (trigger table §4; each step is independent and reversible):
-1. Add the PG standby (DO console/OpenTofu; no app change).
-2. Resize PG to 4 vCPU/8 GB (short failover window off-peak).
+1. Move Postgres off the single VPS to its own VM and add the async standby (pgBackRest restore + streaming replication; scripted, rehearsed manual promotion; no app change, ADR 0011).
+2. Resize the PG VM to 4 vCPU/8 GB (planned switchover off-peak).
 3. Split Valkey: create `valkey-cache`, set `REDIS_CACHE_URL` (Vendure cache, Next handler, rate limits, host map) and keep `REDIS_QUEUE_URL` on the old instance (switch eviction policies accordingly). Deploy. Old cache keys expire.
-4. Dedicated worker droplets: Kamal role `worker` with `ACTIVE_QUEUES=critical|bulk` env per host group.
+4. Dedicated worker VMs: Kamal role `worker` with `ACTIVE_QUEUES=critical|bulk` env per host group.
 5. Read-only node: add `DATABASE_REPLICA_URL` and route report/export/AI repositories to it.
 6. Cloudflare Pro: add rate-limit rules (quotes, login, webhooks) and managed WAF rules.
 7. Meilisearch if the ADR 0014 trigger fires (index backfill from Postgres, then a flag flip `search.meili.enabled`).
 
 **Growth → Scale**:
-1. OpenTofu creates DOKS + node pools in the same VPC. Manifests (kustomize) per role reuse the same image, env and `/readyz`/`/livez` probes. KEDA ScaledObjects on BullMQ wait lists (Redis list scaler) [BK].
-2. Run DOKS in parallel against the same PG/Valkey, shift traffic by changing the Cloudflare origin (LB IP) for a canary set of store hosts, then all. Roll back by switching the origin back.
+1. More app and worker VMs (provisioned by runbook/Ansible; no provider API) deployed with Kamal from the same image, env and `/readyz`/`/livez` checks, behind an LB pair. No Kubernetes (ADR 0011: no managed offer in Algeria, self-run K8s out of scope).
+2. New VMs join behind the LB by host group; shift traffic by changing the Cloudflare origin for a canary set of store hosts if the LB layer changes. Roll back by switching the origin back.
 3. Visitor ingest moves to a Cloudflare Worker → Cloudflare Queue → batch insert / ClickHouse. ClickHouse takes visitor events and funnels; Postgres rollups remain for KPIs.
-4. Data-tier gate (ADR 0011): if DO PG limits are reached, migrate PG plus compute to AWS eu-west-3 (RDS/Aurora) or Scaleway fr-par by logical replication with a read-only cutover window of about 15 min.
+4. Data tier: a dedicated PG server at an Algerian provider, moved by logical replication with a read-only cutover window of about 15 min.
 
-**Paris instead of Frankfurt** (any time before production, ADR 0011 gate): the same OpenTofu modules with a Scaleway provider; container and app config unchanged.
+**EU fallback** (ADR 0011 Decision 9): only if the ANPDP authorises transfers to the EU or the law changes; only `infra/` and the deploy config change.

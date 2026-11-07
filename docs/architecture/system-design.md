@@ -2,6 +2,8 @@
 
 Status: proposed architecture, 2026-11-07. Decisions are recorded in `docs/adr/drafts/` (ADR-xxxx). Citation keys: [VN §n] = `research/vendure-v3.md`, [EH §n] = `research/edge-hosting-costs.md`, [DM] = `../research/data-model.md`, [BK] = background knowledge to verify. Product name and root domain are placeholders ("Platform", `ourdomain`). The reference product's names, logos and theme names are never used (ADR 0007).
 
+> **Update 2026-11-07:** the ADRs are accepted in `docs/adr/`. **ADR 0011 hosts production in Algeria** on self-run VPSs (no DigitalOcean, no managed Postgres/Valkey, no Kubernetes; minimum = one VPS running the full compose stack, pgBackRest PITR to a second Algerian provider; Growth = PG primary + async standby with manual, rehearsed promotion and Valkey on its own VM; Scale = more VMs with Kamal). The platform domain is a `.com.dz` (stores at `<store>.<platform>.com.dz`). Private objects (exports, labels, imports, backups, archives) live in Algerian object storage (MinIO), never R2; R2 holds public assets only (ADR 0012). The hosting-specific sentences below are updated; where an older EU figure remains, ADR 0011 wins.
+
 Contents: 1 Component view · 2 Request flows · 3 Load balancing & edge · 4 Scaling · 5 Data · 6 Integrations · 7 Security · 8 Observability · 9 Environments & delivery · 10 Reliability
 
 ---
@@ -47,18 +49,19 @@ C4Container
   Person(buyer, "Buyer")
   Person(merchant, "Merchant and team")
   System_Ext(cf, "Cloudflare edge", "DNS, CDN, WAF, rate limit, Turnstile, custom hostnames")
-  System_Boundary(p, "Platform, DigitalOcean FRA1 VPC") {
-    Container(lb, "Load balancer", "DO LB", "TLS with Cloudflare Origin CA, health checks")
+  System_Boundary(p, "Platform, Algerian VPS provider (ADR 0011)") {
+    Container(lb, "Load balancer", "kamal-proxy or HAProxy (Launch: on the VPS)", "TLS with Cloudflare Origin CA, health checks")
     Container(proxy, "kamal-proxy", "per node", "Host-based routing, zero-downtime swaps")
     Container(sf, "Storefront", "Next.js 16 standalone", "Host to store resolution, storefront pages, builder preview, sign-up pages, same-origin store API proxy")
     Container(api, "API server", "Vendure 3.8 on NestJS", "Admin API GraphQL, dashboard, public REST v1, store REST, webhook gateway, MCP server")
     Container(worker, "Workers", "Vendure worker", "BullMQ processors, scheduler, outbox relay, carrier polling")
     Container(otel, "OTel Collector", "per node", "Traces, metrics, logs export")
-    ContainerDb(pg, "PostgreSQL 17", "DO Managed PG + PgBouncer pool", "System of record, outbox, read model, partitions")
-    ContainerDb(redis, "Valkey", "DO Managed Valkey", "BullMQ, sessions and caches, Next cache handler, rate limits, host map")
+    ContainerDb(pg, "PostgreSQL 17", "self-run PG + PgBouncer (transaction mode), pgBackRest", "System of record, outbox, read model, partitions")
+    ContainerDb(redis, "Valkey", "self-run Valkey", "BullMQ, sessions and caches, Next cache handler, rate limits, host map")
+    ContainerDb(minio, "Object storage", "MinIO (S3-compatible), in Algeria", "Private objects: exports, labels, imports, backups, archives")
     ContainerDb(search, "Meilisearch", "optional, Growth", "Storefront search if triggered")
   }
-  ContainerDb_Ext(r2, "Cloudflare R2", "Object storage", "Assets, image presets, Next static, backups, archives")
+  ContainerDb_Ext(r2, "Cloudflare R2", "Object storage", "Public assets only: image presets, Next static, catalog feeds")
   System_Ext(ext, "External APIs", "Carriers, Meta, TikTok, Snap, Chargily, SlickPay, Stripe, Google, WhatsApp, SES, Claude API")
   System_Ext(obs, "Grafana Cloud and Sentry", "Observability")
   Rel(buyer, cf, "HTTPS")
@@ -92,9 +95,10 @@ C4Container
 | Storefront (`ROLE=storefront`) | `proxy.ts` host→store, buyer-agnostic cached pages, preview, marketing + sign-up/reset pages, same-origin `/api/store/*` proxy, internal revalidate endpoint | yes | 0006 |
 | API (`ROLE=api`) | Vendure Admin API + DashboardPlugin (`app.ourdomain`), our plugins' GraphQL/REST, store REST (internal only), public REST v1 + webhooks gateway + MCP + OAuth (`api.ourdomain`), readiness. **The Vendure Shop API, `/store/*` and `/_internal/*` are internal-only on every host** (`InternalOnlyGuard`, §7) | yes | 0008, 0010, 0013 |
 | Worker (`ROLE=worker`) | BullMQ processors by pool, scheduler tasks, outbox relay + sweeper, **job reconciler** (re-enqueues durable job rows after Valkey loss), carrier polling, CAPI, notifications, integrations, AI jobs, image presets, documents (PDF labels, xlsx exports), catalog feeds, visitor-event flush | yes | 0013, 0016 |
-| PostgreSQL 17 | Vendure core schema + plugin tables, `cod_order` read model, outbox, partitions, rollups. PITR | no | 0016 |
+| PostgreSQL 17 | Vendure core schema + plugin tables, `cod_order` read model, outbox, partitions, rollups. Self-run, PITR via pgBackRest to a second Algerian provider (ADR 0011) | no | 0011, 0016 |
 | Valkey | BullMQ (noeviction), Vendure CacheService/sessions, Next cache handler, rate-limit buckets, host map, pub/sub invalidation, live-visitor counters, visitor-event buffer (capped stream). **Not a system of record**: every job whose loss matters has a durable Postgres row (ADR 0013 "Job durability") | rebuildable | 0013 |
-| R2 | `assets-prod` (public via `cdn.ourdomain`): media originals + presets (`b/{businessId}/s/{storeId}/...`), `sf/_next/static/*`, catalog feeds. `private-prod` (never public; an R2 custom domain exposes a whole bucket, so private data cannot share it): exports, documents, uploads, `backups/`, `archive/` (Parquet) | n/a | 0006, 0016 |
+| R2 | `assets-prod` (public via `cdn.ourdomain`): media originals + presets (`b/{businessId}/s/{storeId}/...`), `sf/_next/static/*`, catalog feeds. **Public data only** (ADR 0012) | n/a | 0006, 0012 |
+| Object storage in Algeria (MinIO) | private bucket: exports, documents (labels, delivery sheets), uploads (imports), `archive/` (Parquet); presigned URLs only; replicated to the second Algerian provider | n/a | 0011, 0012, 0016 |
 | Meilisearch (optional) | Storefront search index per environment, `storeId` filter + tenant tokens | rebuildable | 0014 |
 | OTel Collector | Tail sampling, attribute scrubbing, export to Grafana Cloud | yes | 0015 |
 
@@ -109,7 +113,7 @@ sequenceDiagram
   autonumber
   participant B as Buyer browser
   participant CF as Cloudflare Algiers PoP
-  participant LB as DO LB and kamal-proxy
+  participant LB as Origin LB and kamal-proxy
   participant SF as Storefront Next.js
   participant R as Valkey
   participant API as API server
@@ -359,8 +363,8 @@ sequenceDiagram
 The edge block is defence in depth only. `app.ourdomain` and `api.ourdomain` both reach the same api container, and the LB accepts any `Host` that arrives through Cloudflare (including from other Cloudflare zones pointing at our LB IP), so the **api role itself** rejects the Shop API, `/store/*` and `/_internal/*` unless the request carries a valid internal HMAC (`InternalOnlyGuard`, §7). The `api.internal` kamal-proxy route has no meaning outside the node and is protected by the same HMAC.
 
 **LB and proxy settings**:
-- DO LB: round robin, node-level health check `GET /api/readyz` every 10 s (no store host, so kamal-proxy's default route sends it to the storefront, which also checks the node-local api `/readyz`), unhealthy after 3 failures. One node carries the Launch spike, so removing a node whose api is broken is safe. Idle timeout 120 s (SSE for the AI assistant sends a heartbeat every 15 s; Cloudflare's proxied origin-response limit is about 100 s [BK]).
-- kamal-proxy: `response_timeout` 30 s (api) / 15 s (storefront), body limit 10 MB (imports go to R2 by presigned upload), buffering disabled on SSE routes.
+- Origin LB (kamal-proxy/HAProxy, ADR 0011/0012): round robin, node-level health check `GET /api/readyz` every 10 s (no store host, so kamal-proxy's default route sends it to the storefront, which also checks the node-local api `/readyz`), unhealthy after 3 failures. One node carries the Launch spike, so removing a node whose api is broken is safe. Idle timeout 120 s (SSE for the AI assistant sends a heartbeat every 15 s; Cloudflare's proxied origin-response limit is about 100 s [BK]).
+- kamal-proxy: `response_timeout` 30 s (api) / 15 s (storefront), body limit 10 MB (imports go to Algerian object storage by presigned upload), buffering disabled on SSE routes.
 
 **No sticky sessions**: sessions are in Redis/PG, the Next cache is in Redis, the quote token is self-contained, and the device id lives in the browser.
 
@@ -382,7 +386,7 @@ The edge block is defence in depth only. `app.ourdomain` and `api.ourdomain` bot
 | Valkey | vertical, then split | memory > 70 % | ops latency p99 > 5 ms | 1 GB → queue 2 GB + cache 4 GB → 4 GB + 16 GB |
 | Cloudflare | plan | WAF/rate-rule needs | — | Free → Pro → Pro/Business |
 
-At Launch/Growth scaling is **manual from alerts**: add a droplet in OpenTofu and run `kamal deploy`, about 10 min. Autoscaling (HPA on CPU, KEDA on BullMQ wait-list length) arrives with DOKS at Scale.
+Scaling is **manual from alerts** at every tier: provision a VM (runbook/Ansible; Algerian providers have no API, ADR 0011) and run `kamal deploy`. There is no Kubernetes, HPA or KEDA (ADR 0011); the "HPA"/"KEDA" counts in the table above become VM/container counts.
 
 **Ad-spike playbook** (10× for minutes): edge cache absorbs page views (60 s TTL, SWR 600 s) **only because click-id query strings are excluded from the cache key** (§2.1 notes). Quotes are cache-only and CPU-bound on the API. Intake is the uncached path: about 1.8 / 18 / 72 rps of Vendure order-creation transactions at the Launch / Growth / Scale spike, which is the real Postgres load of a spike. Pre-warming is not needed. The capacity math in `infrastructure.md` sizes the API for the spike at about 50 % CPU headroom. If a merchant's ad points to an A/B-tested page, that page's views reach the origin (Next cache hits).
 
@@ -404,17 +408,17 @@ At Launch/Growth scaling is **manual from alerts**: add a droplet in OpenTofu an
 
 ## 5. Data
 
-**PostgreSQL 17** (DO Managed). Pinned major version; 18 is evaluated at Growth once Vendure's CI lists it [VN §9: supported PG versions not documented]. UTC [VN §9].
-- Extensions: `pg_trgm`, `btree_gin`, `unaccent`, `pg_stat_statements` (availability on DO to verify in P3.S5).
+**PostgreSQL 17** (self-run on the Algerian VPS/VM, ADR 0011). Pinned major version; 18 is evaluated at Growth once Vendure's CI lists it [VN §9: supported PG versions not documented]. UTC [VN §9].
+- Extensions: `pg_trgm`, `btree_gin`, `unaccent`, `pg_stat_statements` (enabled on every environment, ADR 0015).
 - Settings: `idle_in_transaction_session_timeout=30s`, role-specific `statement_timeout`, `log_min_duration_statement=500ms`.
 
 **Pooling** (ADR 0016 §6):
-- DO managed PgBouncer pool. Transaction mode only after spike D passes, otherwise session mode.
+- Self-run PgBouncer in **transaction mode** (spike D passed, ADR 0016 §6): api/worker use the pooled `DATABASE_URL`; per-request state only via `SET LOCAL`/`set_config(…, true)`; no session advisory locks or `LISTEN`.
 - Client pools: api 10, worker 5 per process.
 - Connection math: Launch 2×10 + 2×5 = 30 clients; Growth 3×15 + 4×8 = 77 clients → 40 server connections; Scale ≈ 400 clients → 100 server connections.
-- The migrate job connects directly.
+- The migrate job and test-DB setup connect directly (`DATABASE_URL_DIRECT`).
 
-**Read replica** (Growth): a DO read-only node serves analytics reports, exports, the AI order Q&A and the read-model consistency check. Routing goes through Vendure replication mode or a second DataSource [VN §9, API UNVERIFIED]. Reads that need read-your-writes stay on the primary.
+**Read replica** (Growth): a self-run read-only replica serves analytics reports, exports, the AI order Q&A and the read-model consistency check. Routing goes through Vendure replication mode or a second DataSource [VN §9, API UNVERIFIED]. Reads that need read-your-writes stay on the primary.
 
 **Schema ownership**:
 - Vendure core tables are untouched except custom fields (Order: `businessId`, `storeId`, `orderNumber`, `quoteDiscounts`, `quotedShipping`; OrderLine: `quotedUnitPrice`, `originalPrice`, `discounts`).
@@ -445,16 +449,17 @@ At Launch/Growth scaling is **manual from alerts**: add a droplet in OpenTofu an
 
 **Outbox and inbound gateway**: ADR 0016 §1–2. Durable intent always lives in Postgres, Redis only accelerates.
 
-**Search**: Postgres normalised `search_text` + `pg_trgm` at Launch. Meilisearch on triggers (ADR 0014).
+**Search**: Postgres normalised `search_text` + `pg_trgm` at Launch, matching with `word_similarity` and "ال" stripping, one TS/SQL normaliser in `packages/shared`, a Darija transliteration table; Vendure's `DefaultSearchPlugin` is not used for Arabic search. Meilisearch on triggers (ADR 0014).
 
 **Analytics**: rollup tables first, then the read replica (Growth), then ClickHouse for visitor/funnel data (Scale) (ADR 0016 §7).
 
-**Object storage layout** (two R2 buckets: `assets-prod` public through the `cdn.ourdomain` custom domain, and `private-prod` never public): `assets-prod/b/{businessId}/s/{storeId}/assets/{assetId}/{orig|w160|w320|w640|w960|w1280}.webp`, `assets-prod/sf/_next/static/...`, `assets-prod/feeds/{storeId}/{feedToken}.{xml|csv}` (catalog feeds, regenerated on `product.changed`, debounced 10 min), `private-prod/exports/b/{businessId}/...` and `private-prod/documents/b/{businessId}/...` (labels PDF, presigned GET, **1 h**, re-issued from the dashboard), `private-prod/uploads/b/{businessId}/...` (presigned PUT for imports, receipts and media originals before derivation), `private-prod/backups/pg/{date}.dump.age`, `private-prod/archive/{table}/{yyyy-mm}.parquet`. Only product/theme media is public; merchant documents (receipts, labels, exports, imports) never go to the public bucket. Vendure's `AssetServerPlugin` route is not exposed for on-the-fly transforms; presets come from the `asset-derivatives` job (ADR 0006).
+**Object storage layout** (R2 `assets-prod`, public through the `cdn.ourdomain` custom domain; and a private bucket in **Algerian object storage** (MinIO), written `private-prod` below, never in R2, ADR 0011/0012): `assets-prod/b/{businessId}/s/{storeId}/assets/{assetId}/{orig|w160|w320|w640|w960|w1280}.webp`, `assets-prod/sf/_next/static/...`, `assets-prod/feeds/{storeId}/{feedToken}.{xml|csv}` (catalog feeds, regenerated on `product.changed`, debounced 10 min), `private-prod/exports/b/{businessId}/...` and `private-prod/documents/b/{businessId}/...` (labels PDF, presigned GET, **1 h**, re-issued from the dashboard), `private-prod/uploads/b/{businessId}/...` (presigned PUT for imports, receipts and media originals before derivation), `private-prod/backups/pg/{date}.dump.age`, `private-prod/archive/{table}/{yyyy-mm}.parquet`. Only product/theme media is public; merchant documents (receipts, labels, exports, imports) never go to the public bucket. Vendure's `AssetServerPlugin` route is not exposed for on-the-fly transforms; presets come from the `asset-derivatives` job (ADR 0006).
 
 **Backups**:
-- DO managed daily backups + PITR within 7 days [BK, verify window].
-- Launch: a nightly logical `pg_dump -Fc` (Kamal accessory `backup`: a cron container with `pg_dump`, `age` and an S3 client, on node 2 at 03:30 Africa/Algiers) to R2 (different provider), encrypted with age (private key offline, held by two people). Retention **14 daily + 3 monthly** (≤ 90 days), via an R2 lifecycle rule, with an R2 bucket lock on `backups/` [BK, verify].
-- Growth: the nightly dump stops being practical above ~100 GB. Switch to a **weekly** dump taken from the read-only node (4 weekly + 3 monthly) and rely on DO PITR for the 7-day window.
+- **pgBackRest** with continuous WAL archiving (PITR) to a repository at a **second Algerian provider** (ADR 0011), encrypted; full + differential backups. Backups contain buyer PII and therefore never go to R2.
+- Launch: additionally a nightly logical `pg_dump -Fc` encrypted with age (private key offline, held by two people) to the same second-provider storage. Retention **14 daily + 3 monthly** (≤ 90 days), with object lock where the provider supports it.
+- Growth: the nightly dump stops being practical above ~100 GB. Switch to a **weekly** dump taken from the standby/replica (4 weekly + 3 monthly) and rely on pgBackRest PITR for the 7-day window.
+- A monthly automated restore test is mandatory (ADR 0011).
 - **R2 has no S3 object versioning** [BK, verify]. Accidental asset deletion is covered by soft delete instead: deleted assets move to `trash/` with a 30-day lifecycle rule.
 - **Erasure ledger**: business-deletion and buyer-erasure requests are recorded in `erasure_log` (ids only). After any restore, the ledger is replayed before traffic is allowed, so a restore never resurrects erased PII. PII in backups therefore disappears within 90 days of a request (statement for the privacy policy).
 - Secrets needed for a restore (age key, KEK for `tenant_secret`, quote HMAC keys) are escrowed offline. Losing the KEK means every merchant re-enters carrier and CAPI credentials.
@@ -515,7 +520,7 @@ LLM data handling: prompts contain business data. Buyer phone numbers and names 
 - Sentry scrubbing on. Grafana Cloud and Sentry stacks are created in their **EU regions** (data stays in the EU like the origin; still a cross-border transfer from Algeria, see Law 18-07 below).
 - CAPI uses SHA-256 of normalised values.
 - Retention: abandoned 90 d, spam holds 30 d, raw visitor events 30 d, inbound payloads 14 d. A business deletion request purges its PII after a 30 d grace period; backups age out within 90 d and the erasure ledger is replayed after any restore (§5).
-- **Legal (open questions, not legal advice)**: Algerian Law 18-07 (personal data, authority ANPDP) may require a declaration or authorisation for processing and for transferring buyers' data abroad [BK]. Sub-processors that would receive buyer or merchant personal data: DigitalOcean (EU region), Cloudflare (edge, R2), Amazon SES, Grafana Cloud and Sentry (EU, scrubbed), Meta/TikTok/Snap (hashed CAPI identifiers, merchant-controlled), WhatsApp, Anthropic (masked prompts), Google (Sheets, merchant-initiated). Counsel should confirm the list, the legal basis and the privacy-policy wording before production (README open question 2).
+- **Legal (open questions, not legal advice)**: Algerian Law 18-07 (personal data, authority ANPDP) may require a declaration or authorisation for processing and for transferring buyers' data abroad [BK]. Hosting is in Algeria (ADR 0011); the pre-production legal item (ANPDP declaration/authorisation under Arts. 12/44, ARPCE SaaS authorisation, Law 18-05 Art. 8) is in P10. Sub-processors that would receive buyer or merchant personal data: the Algerian VPS providers, Cloudflare (edge TLS termination; R2 holds public assets only), Amazon SES, Grafana Cloud and Sentry (EU, scrubbed), Meta/TikTok/Snap (hashed CAPI identifiers, merchant-controlled), WhatsApp, Anthropic (masked prompts), Google (Sheets, merchant-initiated). Counsel should confirm the list, the legal basis and the privacy-policy wording before production (README open question 2).
 
 **Per-tenant secrets** (carrier tokens, CAPI tokens, OAuth refresh tokens, webhook secrets): envelope encryption.
 - Table `tenant_secret(business_id, provider, ref, dek_wrapped, kid, iv, ciphertext, tag, rotated_at)`.
@@ -530,7 +535,7 @@ LLM data handling: prompts contain business data. Buyer phone numbers and names 
 - (2) Schema test: every plugin entity extends `TenantEntity`.
 - (3) Host-header spoofing and `x-store-id` injection tests on the storefront and API (the API rejects `x-store-id` without a valid HMAC); `/_t/<other store>` requested on a store host returns 404; `/shop-api` returns 403/404 on `app.`, `api.` and a forged `Host`; a guest order for the same phone in two businesses yields two `Customer` rows.
 - (4) Job payload assertion tests.
-- (5) Cache-key and R2-key prefix lint; a test that no private key prefix (`exports/`, `documents/`, `uploads/`, `backups/`) is ever written to the public bucket.
+- (5) Cache-key and object-key prefix lint; a test that no private key prefix (`exports/`, `documents/`, `uploads/`, `backups/`) is ever written to R2 (private objects go to Algerian object storage only).
 - (6) RLS on high-risk tables at Growth (ADR 0002).
 - (7) Quarterly manual pen-test checklist.
 
@@ -577,10 +582,10 @@ Plus infrastructure and SLO burn-rate alerts (§10): fast burn pages, slow burn 
 
 | Environment | Where | Data | Purpose |
 |---|---|---|---|
-| local | docker compose (Postgres 17, Valkey, Mailpit, MinIO or R2 dev bucket) | seeds | development |
+| local | docker compose (Postgres 17, PgBouncer, Valkey, MinIO, Mailpit; the same file runs on a single VPS) | seeds | development |
 | CI | GitHub Actions services | fixtures | lint, typecheck, unit, integration, E2E |
-| staging | DO FRA1, 1 droplet (Launch) / 2 (Growth), own PG/Valkey containers or smallest managed | synthetic + anonymised snapshot (phones scrambled) | carrier webhooks, Cloudflare for SaaS tests, release soak |
-| production | DO FRA1 (ADR 0011) | real | — |
+| staging | one Algerian VPS (provider chosen in P3.S5) running the full compose stack | synthetic + anonymised snapshot (phones scrambled) | carrier webhooks, Cloudflare for SaaS tests, release soak, restore drills |
+| production | Algerian VPS(s), single VPS minimum (ADR 0011) | real | — |
 
 **Pipeline** (GitHub Actions + Kamal 2; ADR 0013):
 
@@ -611,7 +616,7 @@ flowchart LR
   - Kill switches: `carrier.<system>.enabled`, `capi.enabled`, `ai.enabled`, `whatsapp.enabled`, `intake.turnstile.enforce`, `search.meili.enabled`.
   - Plan entitlements stay in `requireFeature()` (P9.S1); flags are operational.
 - **Release cadence**: staging continuously; production 1–3 times a week off-peak (avoid 18:00–23:00 Africa/Algiers ad peak). Vendure minors go through M.S1 with ≥ 48 h of staging soak.
-- **IaC**: OpenTofu for DO (droplets, LB, VPC, firewalls, PG, Valkey) and Cloudflare (DNS, rules, R2 buckets, Turnstile widgets). State in an R2 S3 backend. Kamal for app deploys (`deploy/`). Introduced in new session P3.S5 (roadmap-impact.md). **Launch scope stops there**: Grafana dashboards/alerts, Sentry projects and the GitHub repo settings are configured by hand and documented in the runbook (exported JSON committed), not managed as code until Growth.
+- **IaC**: OpenTofu for Cloudflare/DNS only (DNS, rules, R2 buckets, Turnstile widgets); Algerian providers have no API or Terraform provider, so servers are provisioned by hand or with Ansible/cloud-init and documented runbooks (ADR 0011). State in an R2 S3 backend (no PII). Kamal for app deploys (`deploy/`). Introduced in new session P3.S5 (roadmap-impact.md). **Launch scope stops there**: Grafana dashboards/alerts, Sentry projects and the GitHub repo settings are configured by hand and documented in the runbook (exported JSON committed), not managed as code until Growth.
 
 ---
 
@@ -656,23 +661,23 @@ Alerting is multi-window burn rate (fast: 14× over 1 h; slow: 6× over 6 h).
 | Component | Launch | Impact if lost | Mitigation / stance |
 |---|---|---|---|
 | Cloudflare (DNS, CDN, WAF, TLS, custom hostnames, R2) | single vendor | all storefronts, dashboard and webhooks down; assets unavailable | **accepted risk**. DNS-only runbook (ADR 0012): subdomains back in ~30 min with a Let's Encrypt wildcard on the LB; custom domains and R2-served assets stay down until Cloudflare returns |
-| DO Load Balancer | 1 node (managed by DO; node failover behaviour [BK]) | origin unreachable; edge serves cached HTML (stale up to 10 min via SWR), intake fails | accepted at Launch; 2 nodes at Growth |
-| Droplet | 2 nodes, all roles on both | one node lost: half capacity, LB health check removes it in 30 s | sized so one node carries Launch peak (not a full 10× spike); replace via OpenTofu + `kamal deploy` (~10 min) |
-| PostgreSQL | **single node, no standby** | dashboard, intake, webhooks, jobs stop; RTO ≤ 2 h (restore to a new cluster) | **accepted risk** (README open question 5); intake spool keeps accepting orders for up to ~50 k submits; standby trigger "> 50 paying stores or any PG incident" (+~$30) |
-| Valkey | single node (persistence/standby options [BK]) | queues stall, caches cold, rate limits fail open, live visitors lost; intake still works (sessions and pricing snapshot fall back to PG with higher latency) | **accepted risk**; durable job rows + reconciler (above); evaluate a standby for `valkey-queue` at Growth if DO offers one (price [BK], not in the Growth estimate) |
+| Origin LB | kamal-proxy on the single VPS (Launch) | origin unreachable; edge serves cached HTML (stale up to 10 min via SWR), intake fails | accepted at Launch; LB pair at Growth |
+| VPS | **single VPS** at the minimum target (all roles and the data tier) | full origin outage until rebuilt and restored from the second provider | **accepted risk** at the minimum (ADR 0011); runbook rebuild + pgBackRest restore; a second app VPS and the PG standby from Growth |
+| PostgreSQL | **single node, no standby** | dashboard, intake, webhooks, jobs stop; RTO ≤ 2 h (pgBackRest restore to a new VM) | **accepted risk** (ADR 0011); intake spool keeps accepting orders for up to ~50 k submits; async standby (rehearsed manual promotion) at Growth or on "> 50 paying stores or any PG incident" |
+| Valkey | single node (persistence/standby options [BK]) | queues stall, caches cold, rate limits fail open, live visitors lost; intake still works (sessions and pricing snapshot fall back to PG with higher latency) | **accepted risk**; durable job rows + reconciler (above); Valkey on its own VM at Growth (ADR 0011) |
 | Workers / scheduler | worker on both nodes; scheduler lock in PG | if both die: no side effects, polling, sweeps; intake unaffected | catch-up tasks, "Scheduler stalled" page, outbox and job rows are durable |
 | Outbox relay | afterCommit in api + 1-min sweeper on workers | delayed side effects only | sweeper; outbox lag alert |
 | GHCR / GitHub Actions | external | no deploys (running system unaffected) | accepted; emergency `kamal deploy` from a laptop with a locally built image |
-| Region FRA1 | single region | full outage | accepted until Scale; RTO ≤ 8 h from R2 dumps in AMS3 |
+| Provider / data centre | single Algerian provider for compute | full outage | accepted; RTO ≤ 8 h by rebuilding at the second Algerian provider from its pgBackRest repository |
 
 **Backups, PITR, RPO/RTO**:
 | Tier | Mechanism | RPO | RTO (node failure) | RTO (region / provider loss) |
 |---|---|---|---|---|
-| Launch | DO PITR (7 d) + nightly `pg_dump` to R2 | ≤ 5 min (PITR); 24 h (region) | ≤ 2 h (restore to new cluster, repoint) | ≤ 8 h (OpenTofu in AMS3 + restore dump) |
-| Growth | + hot standby (automatic failover); weekly dump from the read-only node | ≤ 1 min | ≤ 5 min | ≤ 8 h, RPO up to 7 d from dumps (or the cross-region node at Scale): **accepted risk**, revisit when the first enterprise customer asks |
-| Scale | + cross-region read-only node [BK, verify] | ≤ 1 min | ≤ 5 min | ≤ 1 h (promote), RPO minutes |
+| Launch | pgBackRest PITR + nightly `pg_dump`, both at a second Algerian provider | ≤ 5 min (PITR, WAL archiving) | ≤ 2 h (restore to a new VM, repoint) | ≤ 8 h (rebuild at the second provider + restore) |
+| Growth | + async standby (scripted, rehearsed manual promotion; no Patroni); weekly dump from the replica | ≤ 1 min | ≤ 15 min (manual promotion) | ≤ 8 h, RPO ≤ 5 min from the second provider's WAL archive from dumps (or the cross-region node at Scale): **accepted risk**, revisit when the first enterprise customer asks |
+| Scale | + replica at the second Algerian provider | ≤ 1 min | ≤ 5 min | ≤ 1 h (promote), RPO minutes |
 
-Restore drills: quarterly (P10.S3 first run); evidence in `docs/ops/`. At Launch the target is the staging droplet (80 GB disk fits a ≤ 30 GB database). From Growth the drill restores PITR into a temporary managed cluster created by OpenTofu for a few hours (cost a few dollars), because the database no longer fits staging. The drill includes replaying the erasure ledger and decrypting one `tenant_secret` with the escrowed KEK.
+Restore drills: quarterly (P10.S3 first run); evidence in `docs/ops/`. Restore tests run monthly (automated) and the full drill quarterly (ADR 0011). At Launch the target is the staging VPS. From Growth the drill restores PITR from the second provider into a temporary VM provisioned by runbook for a few hours, because the database no longer fits staging. The drill includes replaying the erasure ledger and decrypting one `tenant_secret` with the escrowed KEK.
 
 **Graceful degradation**:
 | Dependency down | Behaviour |

@@ -2,15 +2,17 @@
 
 Status: **proposed** (architecture pass, 2026-11-07). It is input to roadmap session P0.S2a, which runs the spikes and turns the drafts in `../adr/drafts/` into accepted ADRs. Product name and root domain are placeholders ("Platform", `ourdomain`). The reference product's name, logo and theme names are never used (ADR 0007).
 
+> **Update 2026-11-07:** ADRs 0001–0016 are accepted in [`../adr/`](../adr/README.md) and win over this document where they differ. The largest change is **ADR 0011: production is hosted in Algeria** on self-run VPSs (Law 18-07 Art. 44): no DigitalOcean, no managed PG/Valkey, no Kubernetes, no provider API; minimum target one Algerian VPS running the full compose stack with pgBackRest PITR to a second Algerian provider; platform domain `.com.dz`; private objects in Algerian object storage, R2 for public assets only (ADR 0012); budget is not a constraint for now (user decision). Assumptions A3–A5, the hosting and cost paragraphs, and open questions 2, 4, 5 and 6 are updated below; the review log is kept as written.
+
 ## Assumptions (stated explicitly)
 
 | # | Assumption |
 |---|---|
 | A1 | **Scale tiers**: Launch ≈ 100 stores / 5k orders/day; Growth ≈ 1,000 stores / 50k orders/day; Scale ≈ 5,000 stores / 200k orders/day. |
 | A2 | Storefront traffic comes from ads and **spikes 10× for minutes**. Design point: 10× the peak-hour rate (peak hour = 10 % of daily orders) for ≤ 15 min. |
-| A3 | Buyers are mostly **mobile in Algeria**, so latency matters. Origin in an EU region close to Algeria (Paris/Frankfurt), plus Cloudflare's edge, which has an Algiers PoP [EH §3]. |
-| A4 | **MVP budget < ~$150/month** for production + staging infrastructure. Pass-through costs (WhatsApp, SMS, LLM tokens, payment fees) are billed to merchants and excluded. |
-| A5 | **Small team**: managed services preferred; **no self-run Kubernetes before the Scale tier**. |
+| A3 | Buyers are mostly **mobile in Algeria**, so latency matters. Origin **in Algeria** (ADR 0011; earlier draft: EU region), plus Cloudflare's edge, which has PoPs in Algiers, Annaba, Constantine and Oran. In-country hosting does not guarantee low latency (domestic routing unverified; spike G before P10.S3). |
+| A4 | ~~MVP budget < ~$150/month~~ **Budget is not a constraint at this stage** (user, 2026-11-07, ADR 0011); the worst case is a single Algerian VPS. Pass-through costs (WhatsApp, SMS, LLM tokens, payment fees) are billed to merchants and excluded. |
+| A5 | **Small team**: no managed services exist in Algeria, so we run Postgres, PgBouncer, Valkey, MinIO and backups ourselves (ADR 0011); **no Kubernetes at any tier** (Scale = more VMs with Kamal). |
 | A6 | Traffic shape per order: 30 storefront HTML views, 10 quote calls, 1.3 intake submits, 75 visitor/beacon writes, 6 CAPI events, 8 carrier status events per dispatched parcel (60 % dispatched). Dashboard: 1.5 concurrent users per business at peak, 0.1 rps each. These are planning numbers; P10.S2 measures the real ones. |
 | A7 | Base: Vendure 3.8 (NestJS, GraphQL, TypeORM) with every feature as a plugin and core never modified, plus our own Next.js 16 storefront/builder [VN; roadmap README]. |
 | A8 | All prices are **estimates as of 2026-11-07**, in USD, excluding VAT, and must be re-verified at provisioning. |
@@ -41,15 +43,15 @@ We build on **published, exactly pinned `@vendure/*` 3.8 packages in a clean pri
 - HTML is buyer-agnostic and cached at the Cloudflare edge (60 s plus stale-while-revalidate, via `Cloudflare-CDN-Cache-Control`) and in a shared Redis cache handler. The edge cache key ignores the query string on product/landing/home paths, because every ad click carries a unique `fbclid`/`ttclid`; without that, ad spikes would bypass the edge entirely.
 - A/B-tested pages are served `no-store` at the edge and split in `proxy.ts` by a sticky cookie.
 - Publish triggers `revalidateTag` plus a purge by hostname.
-- Static chunks are served from R2 for skew-free rolling deploys.
+- Static chunks are served from R2 (public assets only) for skew-free rolling deploys.
 - Image presets are generated at upload.
 - Browser calls to the API are same-origin and proxied (ADR 0006).
 
 **Edge**: Cloudflare in front of everything (DNS, CDN, WAF, Turnstile on order submit with fail-open into the spam engine; Bot Fight Mode off at Launch because it cannot be scoped on Free; CGNAT-safe per-IP limits). **Cloudflare for SaaS** handles custom domains (100 free, then $0.10/hostname/month), replacing the Caddy on-demand TLS plan. Apex domains use CNAME flattening or forwarding to `www` (ADR 0012).
 
-**Hosting**: **DigitalOcean FRA1** for Launch and Growth. It has the most verified prices and offers managed Postgres (PITR, standby, read-only nodes, PgBouncer pools) and Valkey. Kamal 2 deploys containers to droplets with zero downtime, and DOKS (managed Kubernetes) is the Scale path. **Scaleway Paris** replaces it if a measured latency gate (≥ 25 ms better p50 from Algerian networks) passes within budget (ADR 0011).
+**Hosting** (ADR 0011, accepted): **Algerian VPSs**, self-run data tier. Minimum: one VPS running the full compose stack (`api`, `worker`, `storefront`, `migrate`, Postgres 17, PgBouncer, Valkey, MinIO) with pgBackRest PITR backups to a second Algerian provider. Growth: PG primary + async standby (scripted, rehearsed manual promotion; no Patroni) and Valkey on its own VM. Scale: more VMs with Kamal 2; no Kubernetes. The provider is chosen in P3.S5 after a 1-month trial (CPU steal, `fsync` latency, RTT from Algerian ISPs). *(Earlier draft: DigitalOcean FRA1 with managed PG/Valkey and DOKS at Scale; now only the ADR 0011 fallback.)*
 
-**Estimated costs** (estimates, 2026-11-07): Launch ≈ **$133–140/month** (2 × 2 vCPU/4 GB droplets with an explicit per-container memory budget), Growth ≈ **$970/month**, Scale ≈ **$5,000–8,000/month** (infrastructure.md). WhatsApp, SMS and LLM costs are pass-through only because they are prepaid and metered per business.
+**Estimated costs**: the earlier EU estimates (Launch ≈ $133–140/month, Growth ≈ $970, Scale ≈ $5,000–8,000; infrastructure.md §5) are **superseded** by ADR 0011 and budget is not a constraint for now; P3.S5 records the chosen Algerian provider's prices. WhatsApp, SMS and LLM costs are pass-through only because they are prepaid and metered per business.
 
 **Search** starts in Postgres (Arabic/French normalisation + `pg_trgm`), with Meilisearch on measured triggers (ADR 0014). **Analytics** uses rollups, then a read replica, then ClickHouse at Scale. **Observability** is OpenTelemetry → Grafana Cloud Free + Sentry, with business alerts on dispatch failures, webhook backlog, outbox lag, quote mismatches and spam spikes (ADR 0015).
 
@@ -66,7 +68,7 @@ We build on **published, exactly pinned `@vendure/*` 3.8 packages in a clean pri
 | Auth | Vendure sessions for humans (+ TOTP for staff); hashed scoped API keys; MCP OAuth 2.1; signed webhooks; internal HMAC | [0008](../adr/drafts/0008-auth.md) |
 | COD order lifecycle | Extend the default process (Pending/Confirmed/Scheduled/Returned); dispatch = Fulfillment; settle on delivery; `cod_order` read model | [0009](../adr/drafts/0009-order-lifecycle.md) |
 | Merchant dashboard | Vendure React dashboard extensions on `app.ourdomain`; unauthenticated flows in Next.js; own admin app as fallback | [0010](../adr/drafts/0010-merchant-dashboard-host.md) |
-| Hosting and regions | DigitalOcean FRA1 (Launch/Growth), DOKS at Scale; Scaleway Paris under a latency gate; data-tier gate at Scale | [0011](../adr/drafts/0011-hosting-and-regions.md) |
+| Hosting and regions | Algeria (Law 18-07); single Algerian VPS minimum, self-run data tier, backups at a second Algerian provider; provider chosen in P3.S5; Kamal on VMs, no Kubernetes; `.com.dz` platform domain | [0011](../adr/0011-hosting-and-regions.md) |
 | Edge, TLS, custom domains | Cloudflare everywhere; Cloudflare for SaaS custom hostnames; Origin CA; Turnstile fail-open | [0012](../adr/drafts/0012-edge-tls-custom-domains.md) |
 | Process model, queues, scheduler | One image, roles; BullMQ pools; semaphores; durable job rows + `job-reconciler`; catch-up scheduler tasks on workers; `/readyz` | [0013](../adr/drafts/0013-process-model-job-queues-scheduler.md) |
 | Search | Postgres normalisation + trigram first; Meilisearch on triggers | [0014](../adr/drafts/0014-search.md) |
@@ -100,16 +102,16 @@ ADRs 0003 (ids), 0005 (i18n) and 0007 (branding) are written by P0.S2a and have 
 
 ## Facts to verify (marked [BK])
 
-1. DigitalOcean Managed PG: exact plan prices above the $15.15 entry, standby and read-only node pricing, built-in PgBouncer pool modes and version, PITR window, available extensions (`pg_trgm`, `btree_gin`, `unaccent`), cross-region read-only nodes.
-2. DO Managed Valkey prices above 1 GB and a configurable `maxmemory-policy` (must be `noeviction` for BullMQ).
+1. *(Obsolete after ADR 0011: no DigitalOcean.)* DigitalOcean Managed PG: exact plan prices above the $15.15 entry, standby and read-only node pricing, built-in PgBouncer pool modes and version, PITR window, available extensions (`pg_trgm`, `btree_gin`, `unaccent`), cross-region read-only nodes.
+2. *(Obsolete after ADR 0011.)* DO Managed Valkey prices above 1 GB and a configurable `maxmemory-policy` (must be `noeviction` for BullMQ).
 3. Cloudflare: purge-by-hostname on Free/Pro; apex proxying for custom hostnames being Enterprise-only; Turnstile free limits; the ~100 s proxied origin-response limit (SSE heartbeats).
 4. GitHub: environment "required reviewers" on private repos requiring Enterprise (affects the production approval gate).
 5. Node 24 LTS support in Vendure 3.8; Postgres 17/18 support in Vendure CI.
 6. Kamal 2 / kamal-proxy: default-host (catch-all) routing for wildcard and custom hostnames; OpenTofu S3-backend native locking on R2.
-7. Algerian Law 18-07 (personal data; ANPDP) obligations for hosting buyer data outside Algeria.
+7. Algerian Law 18-07 (personal data; ANPDP) obligations: answered for hosting by ADR 0011 (Algeria); the remaining legal items (Arts. 12/44, ARPCE, Law 18-05 Art. 8) are a P10 pre-production checklist item.
 8. Cloudflare Free/Pro: Bot Fight Mode being zone-wide and not skippable; cache-key "ignore query string" in Cache Rules (else Page Rule or Worker); honouring `Cloudflare-CDN-Cache-Control` and `stale-while-revalidate`; rate-limit rule period and counting on Free; purge API rate limits.
 9. R2: no S3 object versioning; bucket locks; that an R2 custom domain exposes the whole bucket.
-10. BullMQ (version shipped with `@vendure/job-queue-plugin` 3.8) on Valkey 8; DO Valkey persistence and standby options; DO PG connection limits per plan.
+10. BullMQ (version shipped with `@vendure/job-queue-plugin` 3.8) on Valkey 8 (P0.S2b pins it and tests `activeQueues` with Vendure's single BullMQ queue, ADR 0013).
 11. Vendure: customer lookup by email across channels (drives the business-scoped synthetic email); the scheduler's behaviour for missed ticks; whether the Shop API can be unmounted rather than guarded.
 12. Kamal 2: `kamal app exec --version` for the migrate hook; whether non-proxied roles overlap old and new containers during deploy (memory budget).
 13. Typical RSS of a Vendure 3.8 api/worker with ~20 plugins and of a Next 16 standalone server (Launch node budget).
@@ -118,11 +120,11 @@ ADRs 0003 (ids), 0005 (i18n) and 0007 (branding) are written by P0.S2a and have 
 ## Open questions for the user
 
 1. **Confirm ADR 0001** (published packages, clean repo): this changes P0.S1, CONTRIBUTING and M.S1 (roadmap-impact.md §1–3, §18).
-2. **Data protection / residency**: are you prepared to get legal advice on Law 18-07 (declaration/authorisation for processing Algerian buyers' data on EU servers, and for the sub-processors listed in system-design §7)? If local hosting is mandatory, ADR 0011 changes. This is an open question, not legal advice.
+2. *(Answered 2026-11-07, ADR 0011: production in Algeria; the remaining legal items are parked until a P10 pre-production checklist.)* **Data protection / residency**: are you prepared to get legal advice on Law 18-07 (declaration/authorisation for processing Algerian buyers' data on EU servers, and for the sub-processors listed in system-design §7)? If local hosting is mandatory, ADR 0011 changes. This is an open question, not legal advice.
 3. **Legal entities and payment rails**: Chargily/SlickPay need an Algerian entity, and Stripe needs a supported-country entity. Which entities exist or are planned? Can you pay a foreign cloud provider (card/FX) from the entity that will own the infrastructure?
-4. **Provider account**: OK to open DigitalOcean (FRA1) and Cloudflare accounts, or do you prefer Scaleway (EUR billing, Paris) even before the latency gate?
-5. **Launch HA**: accept a single-node Postgres at Launch (RTO ≈ 2 h on node loss, intake spooled meanwhile, ~$133–140/month), or pay ~$30/month more for a standby from day one?
-6. **Root domain**: `.com` or `.dz` (`.dz` registration requires a local entity [BK])? And must merchant **apex** domains work at launch, or is "connect `www`/`shop.`" acceptable initially?
+4. *(Answered, ADR 0011: Algerian provider chosen in P3.S5 after a trial; Cloudflare in front of everything.)* **Provider account**: OK to open DigitalOcean (FRA1) and Cloudflare accounts, or do you prefer Scaleway (EUR billing, Paris) even before the latency gate?
+5. *(Answered, ADR 0011: the minimum is a single VPS; standby from Growth; budget not a constraint.)* **Launch HA**: accept a single-node Postgres at Launch (RTO ≈ 2 h on node loss, intake spooled meanwhile, ~$133–140/month), or pay ~$30/month more for a standby from day one?
+6. *(Partly answered, ADR 0011/0012: the platform domain is a `.com.dz`.)* **Root domain**: `.com` or `.dz` (`.dz` registration requires a local entity [BK])? And must merchant **apex** domains work at launch, or is "connect `www`/`shop.`" acceptable initially?
 7. **GitHub plan**: Free, Pro or Team? This decides branch protection (P0.S1) and the production approval mechanism.
 8. **LLM data**: OK to send business data (with buyer PII masked) to the Claude API, under Anthropic's commercial terms?
 9. **SMS**: confirm SMS is not needed at launch (WhatsApp + email + in-app only, SMS as a paid add-on later).
