@@ -15,7 +15,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | #75 | **merged**; handoff `handoff/P0.S2a-3.md`; F (f)/(g) → P3.S5, G → before P10.S3 |
 | **P0.S2b-1** Foundation: workspace, gates, data services, CI | #3 | `feat/p0-s2b-scaffolding` | #85 | **merged**; handoff `handoff/P0.S2b-1.md` |
 | **P0.S2b-2** Server core: typed env, health probes, Vendure config per role, `integration` CI job | #79 | `feat/p0-s2b2-server-core` | #86 | **merged**; handoff `handoff/P0.S2b-2.md` |
-| **P0.S2b-3** Server data & image: migrate role and seed, entry points, e2e, single image, `stack` CI job | #80 | `feat/p0-s2b3-server-data-image` | see `gh pr list` | **work done**; handoff `handoff/P0.S2b-3.md`; ADR 0013 addendum (activeQueues) accepted 2026-11-07; evidence `docs/evidence/P0.S2b-3/` |
+| **P0.S2b-3** Server data & image: migrate role and seed, entry points, e2e, single image, `stack` CI job | #80 | `feat/p0-s2b3-server-data-image` | #88 | **merged**; handoff `handoff/P0.S2b-3.md`; ADR 0013 addendum (activeQueues) accepted 2026-11-07; evidence `docs/evidence/P0.S2b-3/` |
 | P0.S2b-4 … -6 (dashboard, storefront, plugin template) | #81–#83 | per `P0-setup.md` split table | — | not started; plan `plans/P0.S2b-plan.md` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
