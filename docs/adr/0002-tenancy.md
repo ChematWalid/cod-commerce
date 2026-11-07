@@ -1,7 +1,7 @@
 # ADR-0002: Tenancy (Business → Stores on Vendure Channels)
 
 **Date**: 2026-11-07
-**Status**: Proposed — evidence pending P0.S2a-2 (spike C channels at scale)
+**Status**: Proposed — spike C evidence below (P0.S2a-2); the user confirms in PR review
 **Deciders**: architect (draft), user
 
 Citation keys: [VN §n] = `docs/architecture/research/vendure-v3.md` section n; [DM] = `docs/research/data-model.md`; [BK] = background knowledge, verify before relying on it.
@@ -60,6 +60,10 @@ Option 4.
 
 Pass: (b) and (c) under 150 ms p95 cold at the DB, (e) under 200 MB, (f) under 2 s with no table-level locks that block orders. On failure, the fallback is to keep Channel per Store but move hot paths (storefront catalog, order lists) onto our own `businessId`-keyed read models (`cod_order`, `storefront_product_cache`) so Vendure channel joins leave the request path. That fallback is designed in already (ADR 0009/0016).
 
+**Spike C outcome (P0.S2a-2, Evidence below):** Channel per Store holds at 5 000 channels for channel resolution, catalog reads, login, cache memory and channel creation. **The order list fails for a large store**: Vendure's channel-joined `orders` query sorts and counts every matching order of the channel. On the hottest store (791 k orders, 237 k `Pending`), page 2 costs 2.6 s cold and 0.87 s warm at the DB. Therefore:
+- **Mandatory, not optional:** every merchant-facing order list, tab count, filter and export reads `cod_order` with keyset pagination and `order_counter` (ADR 0009 §9, ADR 0016 §4), never Vendure's `orders` list query. Vendure's own dashboard order list is hidden from merchants (ADR 0010 nav) and kept for platform staff only.
+- Catalog lists stay on Vendure's channel-scoped queries for the dashboard. The Admin API product list issues one variant query per product (N+1: 65–76 statements for 20 products); still 46 ms p95 cold at the DB. The storefront reads its own cache (ADR 0006), not this query.
+
 ## Testing (P1.S1 implements, P10.S2 extends)
 
 - **Two-business suite**: fixtures create business A (stores A1, A2) and business B (store B1), each with an owner, a member with a role on one store only, products, an asset, a customer and orders — including the **same buyer phone in A and B**. The suite is generated from the resolver/route registry, so every Admin API resolver, REST route and MCP tool runs as A's member against B's ids and must return "not found" (or an empty list), never B's data. A new resolver without a registry entry fails the suite.
@@ -78,7 +82,7 @@ Pass: (b) and (c) under 150 ms p95 cold at the DB, (e) under 200 MB, (f) under 2
 - Defence in depth: guard + helper + tests now, RLS later.
 
 ### Negative
-- The scaling behaviour of thousands of channels is unproven, which is why spike C is a hard gate.
+- Spike C measured 5 000 channels: catalog, login, channel creation and cache memory scale. Vendure's channel-joined order list does not scale with a store's order count, so the `cod_order` read model is mandatory for merchant order lists (Decision).
 - Default-channel join tables grow without bound, so channel joins need explicit index review.
 - Business-wide queries over Vendure entities need `channelId IN (...)` lists.
 - Channel changes take up to 30 s to reach other instances; tenant status checks must not rely on the channel cache.
@@ -89,4 +93,57 @@ Pass: (b) and (c) under 150 ms p95 cold at the DB, (e) under 200 MB, (f) under 2
 
 ## Evidence
 
-Pending P0.S2a-2 (spike C).
+Spike C, 2026-11-07, P0.S2a-2. Scratch app outside the repo (`@vendure/create@3.8.1` scaffold switched to Postgres), never committed.
+
+**Environment**: Arch Linux, native Docker 29.9.1, 8 CPU threads, 11.6 GB RAM shared with unrelated containers. `postgres:17` (17.11, `sha256:ff87138949ad…`) with `shared_buffers=1GB`, `work_mem=4MB`, `random_page_cost=4`, `effective_cache_size=4GB`, `pg_stat_statements`. Node 24.22.1, `@vendure/core` 3.8.1. The data directory sits on a **SATA SSD**. The first cold trial ran on the machine's 7 200 rpm HDD (Docker's default root) and cost 1 570 ms for a 20-product list (≈ 7 ms per random read). Production Postgres is SSD/NVMe, so the volume was copied to the SSD and every cold number below is from the SSD.
+
+**Data** (generators written against `\d` of the real Vendure 3.8.1 tables, loaded with `generate_series`; non-PK indexes dropped and rebuilt around the big loads; load 2 333 s; database 6.1 GB):
+
+| Rows | Count |
+|---|---|
+| channels (+ sellers) | 5 001 (5 000 stores + default) |
+| products / variants | 250 000 / 750 000 (50 × 3 per store), each joined to its channel **and** the default channel, with prices and stock levels |
+| customers | 5 000 000 (1 000 per store), customer–channel rows 10 000 000 (store + default, as `assignToCurrentChannel` does) |
+| orders / order lines | 5 000 000 / 10 000 001, Zipf s = 1.1 over stores (shuffled), state mix 30 % Pending, 15 % Confirmed, 40 % Delivered, 15 % Cancelled; order–channel rows 10 000 000 |
+| hottest stores | 791 421, 369 215, 236 363 orders; median store 145 |
+| role–channel rows | SuperAdmin and Customer roles on every store channel (the 3.8 auto-assignment) |
+
+**Method.** The SQL of each case was captured from TypeORM query logging on real Admin API calls (`products` take 20 with variants, `product(id)`, `orders` filtered `state = Pending`, `skip 20 take 20`, sorted `createdAt DESC`). DB time per request = the sum of `pg_stat_statements.total_exec_time` over **all** statements the request issued (reset before each request), so it covers the real statement set Vendure sends, not a hand-written query.
+- **Cold**: for each of 50 random stores (seeded): `docker restart` Postgres, drop the host page cache (`echo 3 > /proc/sys/vm/drop_caches` in a privileged container), one request. Hottest store: 10 cold runs.
+- **Steady-state session**: one unrelated authed request (`globalSettings`) on the same channel before the measured one, so the measured request is not the first after login. The first request after login reads and updates the `session` row (24 ms cold), which RedisCachePlugin removes in production (ADR 0013 Evidence item 4).
+- **Warm**: a warm-up pass over the 50 stores, then 200 requests round-robin.
+
+**Results** (DB time unless marked API):
+
+| Case | Cold p95 | Warm p95 | Threshold | Result |
+|---|---|---|---|---|
+| (b) product list, 20 products with variants | 46.3 ms (p50 39.9; 65 statements) | 63.1 ms | < 150 ms cold | **pass** |
+| (b) product detail | 97.9 ms (p50 53.9; 19 statements)¹ | 48.5 ms | < 150 ms cold | **pass** |
+| (c) order list, random store | 109.4 ms (p50 50.6; 15 statements)¹ | 57.1 ms | < 150 ms cold | **pass** |
+| (c) order list, **hottest store** (237 087 Pending) | **2 623.6 ms** (p50 2 360; 176 901 blocks read) | **867.6 ms** | < 150 ms cold | **fail** → `cod_order` read model (Decision, above) |
+| (a) first request with an unseen channel token | DB p50 36.2 / p95 52.3 ms; API p95 264 ms (cached token: API p95 253 ms; after the 30 s TTL: 277 ms) | — | recorded | resolution is not on the critical path |
+| (d) login, administrator with a role on 5 stores | DB p50 1.8 / p95 2.9 ms; API p95 254 ms | — | recorded | — |
+| (e) channel cache memory, all 5 001 tokens resolved in one process | +7.1 MB heap (heapUsed 91.4 → 98.9 MB, RSS 343 → 362 MB vs a 1-channel DB) | — | < 200 MB | **pass** |
+| (f) `createChannel` ×10 at 5 000 channels during an order-insert loop | max 358 ms (261–358) | inserts p95 22.1 ms during vs 25.6 ms baseline; **0** `still waiting for` lock lines (`log_lock_waits=on`, `deadlock_timeout=10ms`) | < 2 s, no blocking | **pass**; each new channel was joined to `__super_admin_role__` and `__customer_role__` (10 + 10 rows) |
+
+¹ These two cold sets ran before the steady-state-session fix and include the first-request session read and update; their true steady-state values are lower. The cold product list was re-run with the fix (the numbers in the table); before the fix it was p95 167.9 ms.
+
+API times include ~220 ms of fixed per-request overhead from this dev server (`ts-node`, a shared busy host); they are recorded, not judged. Warm (b) is higher than steady-state cold (b) because the warm loop switches channel on every request, which updates the session's active channel each time.
+
+**Leak check through Vendure** (scratch COD app on database `spikeb`: businesses A = `store-101` and B = `store-202` with intake orders from ADR 0009's addendum). Steps: superadmin uploads an asset in B and creates role `b-staff` on B; then role `a-staff` (ReadOrder, ReadCustomer, ReadCatalog, ReadAsset, ReadAdministrator) on channel A only, and administrator `a-only` with it. As `a-only` with `vendure-token: store-101`:
+
+| Query | A's admin sees | B's rows visible to A |
+|---|---|---|
+| `orders` | 204 | **0** of 76 |
+| `assets` | 0 | **0** of 1 |
+| `roles` | `a-staff` only | `b-staff` not visible |
+| `customers` | 202 | **1** of 77: the deliberate unscoped-email contrast customer (`213555123456@buyers.invalid`, joined to both stores by Vendure's email lookup) |
+
+- The business-scoped customers for the same phone `+213555123456` (`…101@` and `…202@buyers.invalid`) appear only in their own business.
+- The same administrator with `vendure-token: store-202` gets `FORBIDDEN`.
+- **Conclusion:** channel scoping isolates orders, assets and roles. Customers are isolated **only** with the business-scoped synthetic email (ADR 0009 §7). With an unscoped email, the merged row is visible to the other business's staff through the Admin API, not only in the database. P1.S1's two-business suite keeps this case as a regression test.
+
+**Gotchas**
+- Channels whose `defaultLanguageCode` is not in `GlobalSettings.availableLanguages` cannot be created (`LANGUAGE_NOT_AVAILABLE_ERROR`); P1.S1 seeds `availableLanguages: [ar, fr, en]`.
+- The channel cache in 3.8.1 is a lazy per-token `Map` (`tokenCache`) filled as tokens are seen, not an all-channels list loaded at boot; (e) measured the worst case (every token resolved).
+- Vendure's own `orders` list cost grows with the channel's order count (sort plus `COUNT(DISTINCT)` over the channel join), not with the number of channels. Small stores stay fast at 5 000 channels.
