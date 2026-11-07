@@ -1,7 +1,7 @@
 # ADR-0001: Repo layout and upstream (build from source vs published `@vendure/*` packages)
 
 **Date**: 2026-11-07
-**Status**: Proposed — the user confirms in the P0.S2a-1 PR review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-1/P0.S2a-2 review
 **Deciders**: architect (draft), user (confirmation)
 
 Citation keys: [VN §n] = `docs/architecture/research/vendure-v3.md` section n; [EH §n] = `docs/architecture/research/edge-hosting-costs.md` section n; [BK] = background knowledge, verify before relying on it.

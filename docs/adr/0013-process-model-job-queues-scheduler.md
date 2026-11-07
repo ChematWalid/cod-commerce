@@ -1,7 +1,7 @@
 # ADR-0013: Process model, job queues and scheduler
 
 **Date**: 2026-11-07
-**Status**: Proposed — spike D evidence below (P0.S2a-2); the user confirms in PR review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-1/P0.S2a-2 review
 **Deciders**: architect (draft), user
 
 ## Context
