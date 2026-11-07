@@ -44,6 +44,13 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     to: { path: '^plugins/[^/]+/', pathNot: '^plugins/$1/' },
   },
   {
+    name: 'apps-no-plugin-internals',
+    comment: 'An app imports a plugin through its entry point, never from its layers.',
+    severity: 'error',
+    from: { path: '^apps/' },
+    to: { path: '^plugins/[^/]+/(domain|application|infrastructure|api|dashboard)/' },
+  },
+  {
     name: 'shared-is-pure',
     comment: '@cod/shared holds framework-free contracts.',
     severity: 'error',

@@ -21,6 +21,16 @@ describe('architecture rules', () => {
     });
   });
 
+  it('reports an app that imports a plugin layer directly', async () => {
+    const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['apps/bad'] });
+
+    expect(bad.violations).toContainEqual({
+      rule: 'apps-no-plugin-internals',
+      from: 'apps/bad/uses-plugin-internals.ts',
+      to: 'plugins/good/infrastructure/repo.ts',
+    });
+  });
+
   it('accepts a plugin that follows the dependency direction', async () => {
     const good = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins/good'] });
 
@@ -29,10 +39,14 @@ describe('architecture rules', () => {
   });
 
   it('finds no violation in the workspace', async () => {
-    const real = await checkArchitecture({ baseDir: repoRoot, roots: ['packages', 'plugins'].filter(existsInRepo) });
+    const real = await checkArchitecture({
+      baseDir: repoRoot,
+      roots: ['apps', 'packages', 'plugins'].filter(existsInRepo),
+    });
 
     expect(real.violations).toEqual([]);
     expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
+    expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);
   });
 
   it('fails loudly when a root does not exist', async () => {

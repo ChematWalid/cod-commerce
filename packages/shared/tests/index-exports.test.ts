@@ -20,6 +20,8 @@ const RUNTIME_EXPORTS = [
   'PLATFORM_CURRENCY_CODE',
   'PLATFORM_LANGUAGE_CODES',
   'isPlatformLanguageCode',
+  'InvalidDatabaseUrlError',
+  'toPostgresFields',
 ] as const;
 
 describe('@cod/shared entry point', () => {
