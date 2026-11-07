@@ -86,6 +86,6 @@ while IFS='|' read -r _ id title _rest; do
 Rules: CLAUDE.md and docs/roadmap/CONTRIBUTING.md"
   run gh issue create --repo "$REPO" --title "$full" --body "$body" --label "$lbl" --milestone "$ms" >/dev/null
   created=$((created+1))
-done < <(awk '/^## Session list/{f=1;next} /^## /{f=0} f' "$README" | grep -E '^\| (P[0-9]+\.S[0-9]+[ab]?|M\.S1) \|')
+done < <(awk '/^## Session list/{f=1;next} /^## /{f=0} f' "$README" | grep -E '^\| (P[0-9]+\.S[0-9]+[ab]?(-[0-9]+)?|M\.S1) \|')
 
 echo "labels=$labels_created milestones=$ms_total (created=$ms_created) issues_total=$total created=$created skipped=$skipped dry_run=$DRY_RUN"
