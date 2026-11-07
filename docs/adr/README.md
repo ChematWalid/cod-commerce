@@ -11,16 +11,16 @@ Status `Proposed` until the user approves in PR review; then the session flips i
 | [0003](0003-ids.md) | Ids: Vendure defaults for core, snowflake strings for ours | Accepted (2026-11-07) | — | — | P0.S2a-1 |
 | [0004](0004-pricing-engine-and-order-totals.md) | Pricing engine and order totals (signed quote) | Accepted (2026-11-07) | B order totals | pass (total 9 100 DZD exact, precision 0) | P0.S2a-1 |
 | [0005](0005-i18n.md) | i18n: dashboard ar/en RTL, storefront ar/fr/en | Accepted (2026-11-07) | — | — | P0.S2a-1 |
-| [0006](0006-storefront-architecture.md) | Storefront: Next.js 16 multi-tenant by host | Proposed — evidence pending | F shared cache handler | **pending P0.S2a-3** | P0.S2a-1 (pre-spike) |
+| [0006](0006-storefront-architecture.md) | Storefront: Next.js 16 multi-tenant by host | Proposed — user confirms | F shared cache handler | pass (a–e, h) with the Next repo Redis example + deployment-id key prefix; (f)/(g) pending P3.S5 | P0.S2a-1, evidence P0.S2a-3 |
 | [0007](0007-branding.md) | Branding: neutral placeholder, banned reference names | Accepted (2026-11-07) | — | — | P0.S2a-1 |
 | [0008](0008-auth.md) | Authentication and authorization surfaces | Accepted (2026-11-07) | A (token type) | pass (dashboard sends Bearer with `['cookie','bearer']`) | P0.S2a-1 |
 | [0009](0009-order-lifecycle.md) | COD order lifecycle on Vendure | Accepted (2026-11-07) | B order process | pass (Pending/Confirmed/Scheduled/Returned; settle on Delivered) | P0.S2a-1 |
 | [0010](0010-merchant-dashboard-host.md) | Merchant dashboard host | Accepted (2026-11-07) | A dashboard extensions | pass → Option 1 (RTL partial, CSS-fixable) | P0.S2a-1 |
-| 0011 | Hosting provider and regions | not written | G latency | pending P0.S2a-3 | P0.S2a-3 |
-| 0012 | Edge, TLS and custom domains | not written | — | — | P0.S2a-3 |
+| [0011](0011-hosting-and-regions.md) | Hosting location, provider and regions | Proposed — user confirms | G latency | **Algeria required** (Law 18-07); single-VPS minimum; provider chosen in P3.S5; G pending before P10.S3 | P0.S2a-3 |
+| [0012](0012-edge-tls-custom-domains.md) | Edge, TLS and custom domains | Proposed — user confirms | — (Cloudflare facts verified in docs) | Cloudflare for SaaS; Turnstile from one challenge host; purge rate limits | P0.S2a-3 |
 | [0013](0013-process-model-job-queues-scheduler.md) | Process model, job queues and scheduler | Accepted (2026-11-07) | D PgBouncer | pass (scheduler exactly-once, BullMQ ×1 000, sessions in Valkey); first boot must be single-process; `TZ=UTC` | P0.S2a-2 |
-| 0014 | Search | not written | E Arabic search | pending P0.S2a-3 | P0.S2a-3 |
-| 0015 | Observability | not written | — | — | P0.S2a-3 |
+| [0014](0014-search.md) | Search | Proposed — user confirms | E Arabic search | pass: Phase 1 Postgres recall@5 0.878 (0.947 with the chosen variant) vs Meilisearch 0.881; Vendure search 0.244 | P0.S2a-3 |
+| [0015](0015-observability.md) | Observability | Proposed — user confirms | — | — | P0.S2a-3 |
 | [0016](0016-data-lifecycle-outbox-partitioning.md) | Data lifecycle, outbox, partitioning, pooling | Accepted (2026-11-07) | D PgBouncer | pass → PgBouncer transaction mode for api/worker; direct for migrate and test DB setup | P0.S2a-2 |
 
 All P0.S2a-1 spikes ran on **SQLite** (Docker unavailable on the machine: Windows "Virtual Machine Platform" off). Spikes A/B test extension APIs and order math, which are database-independent; Postgres-specific behaviour (order-number counter under concurrency) was re-checked in P0.S2a-2 on Postgres 17: gapless and duplicate-free, see the ADR 0009 addendum.
@@ -50,3 +50,17 @@ New items from P0.S2a-2:
 | Seed `GlobalSettings.availableLanguages = [ar, fr, en]` before creating stores (`LANGUAGE_NOT_AVAILABLE_ERROR` otherwise) | 0002 | P1.S1 store creation |
 | One business's intake burst on a hot product serialises on Vendure's stock-level row lock (not the order-number counter): keep the intake transaction short, number + allocation last; flash-sale load test | 0009 addendum | P3.S4 intake, P3.S5 load test (k6) |
 | TypeORM pool `extra.max` sized to job concurrency for bulk-intake workers (node-postgres default 10 was too small for 25 parallel intakes) | 0016 §6 | P0.S2b server config, P9 platform-sync briefs |
+
+New items from P0.S2a-3:
+
+| Decision | ADR | Brief / section to edit |
+|---|---|---|
+| **Production hosted in Algeria** (Law 18-07 Art. 44); minimum target = one Algerian VPS running the full compose stack, backups (pgBackRest PITR) to a second Algerian provider; no managed services assumed; provider chosen in P3.S5 after a trial benchmark | 0011 | P0.S2b compose must run unchanged on one VPS (MinIO instead of R2 for private objects); P3.S5 deploy (Kamal to Algerian VPS, no DO/DOKS, OpenTofu limited to Cloudflare); P10.S3 (no DOKS; Scale on VMs) |
+| Platform domain is a `.com.dz`; stores at `<store>.<platform>.com.dz` | 0011, 0012 | P1.S1 store subdomains, P8.S9 custom domains |
+| Pre-production legal item: ANPDP declaration/authorisation (Arts. 12, 44), ARPCE SaaS authorisation, Law 18-05 Art. 8; parked by the user | 0011 | add to P10 launch checklist |
+| Private objects (exports, labels, imports) in Algerian object storage, never R2; R2 only for public assets | 0012 | P5 labels, P6 exports, P2.S3 imports |
+| Turnstile served from one `challenge.<platform>` host (Free: 10 hostnames per widget) | 0012 | P3.S4 intake |
+| Cloudflare purge: coalesce + batch (Free 5 requests/min); Cache Rule Edge TTL "Respect origin" | 0006, 0012 | P2 storefront publish, P3.S5 |
+| Storefront cache handler = Next repo Redis example, adopted as our code, with deployment-id-prefixed ISR keys | 0006 | P0.S2b `apps/storefront`, P2 storefront |
+| Search: Phase 1 Postgres with `word_similarity` + "ال" stripping (shared TS/SQL normaliser); Vendure `DefaultSearchPlugin` not used for Arabic search; Darija transliteration table | 0014 | P2 storefront search, P4.S2 order search, `packages/shared` normaliser |
+| Uptime and DB observability: `pg_stat_statements` everywhere, probes on `/readyz` not `/health`, queue gauges per job name | 0015 | P3.S5, P10.S2 |

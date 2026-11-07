@@ -1,4 +1,4 @@
-# Where we stopped: onboarding for the next agent (2026-11-07, after P0.S2a-2)
+# Where we stopped: onboarding for the next agent (2026-11-07, after P0.S2a-3)
 
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
@@ -12,12 +12,17 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | Roadmap split of P0.S2a into -1/-2/-3 | — | `docs/roadmap-split-p0-s2a` | #71 | **merged** |
 | **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | #72 | **merged**; ADRs accepted 2026-11-07 (0006 still Proposed) |
 | **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | #73 | **merged**; ADRs accepted 2026-11-07 |
-| **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | — | **next**; no Cloudflare zone or probes (user, 2026-11-07): F (f)/(g) and G are recorded as pending |
+| **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | #75 | **merged**; handoff `handoff/P0.S2a-3.md`; F (f)/(g) → P3.S5, G → before P10.S3 |
 | **P0.S2b** Workspace scaffolding | #3 | `feat/p0-s2b-scaffolding` | — | not started (needs all P0.S2a parts merged) |
 
-**Merge order:** #71, #72, #73 were squash-merged on 2026-11-07. Next: P0.S2a-3, then P0.S2b.
+**Merge order:** #71, #72, #73, #74 were squash-merged on 2026-11-07, then the P0.S2a-3 PR. **Next: a `docs/roadmap-<change>` PR applying the brief-impact rows in `docs/adr/README.md` (Algerian hosting first), then P0.S2b.**
 
-**Working agreement (user, 2026-11-07):** the agent merges its own PRs once CI is green and asks the user only for decisions, as multiple-choice questions (the user is the decider). This overrides CLAUDE.md's "never merge" for this user. Decisions so far: P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007); no Cloudflare staging zone or latency probes for P0.S2a-3.
+**Working agreement (user, 2026-11-07):** the agent merges its own PRs once CI is green and asks the user only for decisions, as multiple-choice questions (the user is the decider). This overrides CLAUDE.md's "never merge" for this user. Decisions so far:
+- P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007).
+- No Cloudflare staging zone or latency probes for P0.S2a-3.
+- **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5.
+- Platform domain `.com.dz`; everything through Cloudflare.
+- Legal questions parked until before production (ADR 0011 §8).
 
 ## Key results so far (details in `docs/adr/`)
 - **ADR 0010:** Option 1, the Vendure React dashboard plus our extensions. Path convention is `plugins/<name>/dashboard/`.
@@ -34,6 +39,10 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 - **ADR 0013 (spike D):** scheduler exactly-once across 2 workers; `migrate` seeds before replicas start; `TZ=UTC`.
 - **ADR 0009 addendum:** on Postgres the per-business order-number counter is gapless under concurrency.
 
+- **ADR 0014 (spike E):** Phase 1 Postgres search (normaliser + `pg_trgm` `word_similarity`, recall@5 0.947) accepted; Vendure's search is unusable for Arabic (0.244).
+- **ADR 0006 (spike F):** shared Next cache = the Next repo Redis example with deployment-id-prefixed ISR keys; revalidation reaches the other instance in < 0.11 s.
+- **ADR 0011:** hosting in Algeria on self-run VPSs (no managed PG/Redis/K8s exists there); single-VPS compose is the minimum target.
+
 ## Blockers and environment notes
 - **Machine change (2026-11-07):** P0.S2a-2 ran on an **Arch Linux** machine (native Docker 29, works). The original Windows machine still has Docker disabled. On Linux, check the disk under Docker's root: cold DB numbers on an HDD are ~20× SSD (P0.S2a-2 put the Postgres data on the SSD with a bind mount). The scratch stacks of P0.S2a-2 use ports 5433/6432/6380/3100; P0.S2a-3 must use other ports (for example Postgres 5434, Valkey 6381, Meilisearch 7700, Next 3301/3302, proxy 8181).
 - **Docker** on the original Windows machine failed with `HCS_E_HYPERV_NOT_INSTALLED`, because the "Virtual Machine Platform" feature was off. Spikes A/B therefore ran on **SQLite**. Spikes C–F need Docker: Postgres 17, Valkey 8.1, PgBouncer ≥ 1.21 and Meilisearch 1.x. The pinned images are in the shared plan, Task 0.
@@ -46,7 +55,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. Run **P0.S2a-3** (P0.S2a-2 is done). The task text is in `docs/roadmap/plans/P0.S2a-plan.md` (Task 5–6 for -2, Task 7–8 for -3, plus Tasks 0, 9, 10, 11). Ownership is in the split table in `docs/roadmap/P0-setup.md`, section P0.S2a. Copy your part's tasks into `docs/roadmap/plans/P0.S2a-<n>-plan.md` and commit `docs(roadmap): plan P0.S2a-<n>` first.
+3. All P0.S2a parts are done. Apply the brief-impact rows (roadmap PR), then run **P0.S2b** (#3). The task text is in `docs/roadmap/plans/P0.S2a-plan.md` (Task 5–6 for -2, Task 7–8 for -3, plus Tasks 0, 9, 10, 11). Ownership is in the split table in `docs/roadmap/P0-setup.md`, section P0.S2a. Copy your part's tasks into `docs/roadmap/plans/P0.S2a-<n>-plan.md` and commit `docs(roadmap): plan P0.S2a-<n>` first.
 4. Then P0.S2b per its brief in `docs/roadmap/P0-setup.md`.
 
 ## Kickoff prompt (paste into the new agent)
