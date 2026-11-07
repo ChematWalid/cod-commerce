@@ -12,7 +12,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | Roadmap split of P0.S2a into -1/-2/-3 | — | `docs/roadmap-split-p0-s2a` | #71 | **merged** |
 | **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | #72 | **merged**; ADRs accepted 2026-11-07 (0006 still Proposed) |
 | **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | #73 | **merged**; ADRs accepted 2026-11-07 |
-| **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | see `gh pr list` | **work done**; handoff `handoff/P0.S2a-3.md`; F (f)/(g) → P3.S5, G → before P10.S3 |
+| **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | #75 | **merged**; handoff `handoff/P0.S2a-3.md`; F (f)/(g) → P3.S5, G → before P10.S3 |
 | **P0.S2b** Workspace scaffolding | #3 | `feat/p0-s2b-scaffolding` | — | not started (needs all P0.S2a parts merged) |
 
 **Merge order:** #71, #72, #73, #74 were squash-merged on 2026-11-07, then the P0.S2a-3 PR. **Next: a `docs/roadmap-<change>` PR applying the brief-impact rows in `docs/adr/README.md` (Algerian hosting first), then P0.S2b.**
