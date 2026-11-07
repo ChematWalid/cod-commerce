@@ -6,8 +6,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
+    "dev": "pnpm run migrate && pnpm run --parallel \"/^dev:(api|worker)$/\"",
+    "dev:api": "ROLE=api node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-api.ts",
+    "dev:worker": "ROLE=worker node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-worker.ts",
     "test": "vitest run --configLoader runner --project unit",
-    "test:integration": "vitest run --configLoader runner --project e2e --passWithNoTests",
+    "test:integration": "vitest run --configLoader runner --project e2e",
     "migrate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-migrate.ts",
     "migration:generate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/scripts/generate-migration.ts"
   },
@@ -30,6 +33,7 @@
     "@swc/core": "1.16.22",
     "@types/pg": "8.23.1",
     "@vendure/testing": "3.8.1",
+    "graphql-tag": "2.12.7",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
     "unplugin-swc": "2.0.0",
