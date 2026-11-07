@@ -4,7 +4,9 @@
 name: ${COMPOSE_PROJECT_NAME:-cod}
 
 # The server roles share one image and one environment; no env_file, so nothing leaks in unlisted.
-# APP_ENV defaults to production, where loadEnv refuses the .env.example placeholders.
+# APP_ENV comes from .env (development when copied from .env.example); without it, it falls back to
+# production, where loadEnv refuses the placeholders and needs real secrets. P3.S5 decides how a
+# production .env is produced.
 x-app: &app
   build: .
   image: ${APP_IMAGE:-cod-platform:local}
