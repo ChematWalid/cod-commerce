@@ -1,6 +1,50 @@
-# Local and single-VPS data stack. Every published port binds to DATA_BIND_ADDR
-# (127.0.0.1 by default). Needs Docker Compose >= 2.23.1 for `configs.content`.
+# Local and single-VPS stack: data services plus the server roles of one image. The api's published
+# port binds to API_BIND_ADDR, every other one to DATA_BIND_ADDR (both 127.0.0.1 by default).
+# Needs Docker Compose >= 2.23.1 for `configs.content`.
 name: ${COMPOSE_PROJECT_NAME:-cod}
+
+# The server roles share one image and one environment; no env_file, so nothing leaks in unlisted.
+# APP_ENV comes from .env (development when copied from .env.example); without it, it falls back to
+# production, where loadEnv refuses the placeholders and needs real secrets. P3.S5 decides how a
+# production .env is produced.
+x-app: &app
+  build: .
+  image: ${APP_IMAGE:-cod-platform:local}
+  environment: &app-env
+    TZ: UTC
+    APP_ENV: ${APP_ENV:-production}
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
+    DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    REDIS_URL: redis://valkey:6379
+    S3_ENDPOINT: http://garage:3900
+    S3_REGION: ${S3_REGION:-garage}
+    S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+    S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+    S3_SECRET_KEY: ${S3_SECRET_KEY}
+    S3_BUCKET_PRIVATE: ${S3_BUCKET_PRIVATE}
+    COOKIE_SECRET: ${COOKIE_SECRET}
+    CORS_ORIGINS: ${CORS_ORIGINS:-}
+    SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME}
+    SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+    API_PORT: '3000'
+    WORKER_HEALTH_PORT: '3020'
+
+x-app-healthcheck: &app-healthcheck
+  test: ['CMD', 'node', 'apps/server/dist/healthcheck.js']
+  interval: 10s
+  timeout: 3s
+  retries: 6
+  start_period: 30s
+
+x-app-depends-on: &app-depends-on
+  migrate:
+    condition: service_completed_successfully
+  pgbouncer:
+    condition: service_healthy
+  valkey:
+    condition: service_healthy
+  garage:
+    condition: service_healthy
 
 services:
   postgres:
@@ -16,7 +60,9 @@ services:
     ports:
       - '${DATA_BIND_ADDR:-127.0.0.1}:${POSTGRES_HOST_PORT:-5433}:5432'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      # Over TCP: the image's first-boot initdb server listens on the unix socket only, so a socket check
+      # would report healthy before clients on the network can connect.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 12
@@ -104,6 +150,43 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+
+  # Runs pending migrations and the idempotent platform seed, then exits; api and worker wait for it.
+  migrate:
+    <<: *app
+    environment:
+      <<: *app-env
+      ROLE: migrate
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    environment:
+      <<: *app-env
+      ROLE: api
+    depends_on: *app-depends-on
+    ports:
+      - '${API_BIND_ADDR:-127.0.0.1}:${API_HOST_PORT:-3100}:3000'
+    healthcheck: *app-healthcheck
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    environment:
+      <<: *app-env
+      ROLE: worker
+      # Empty: the worker consumes every queue (ADR 0013 addendum).
+      WORKER_ACTIVE_QUEUES: ${WORKER_ACTIVE_QUEUES:-}
+    depends_on: *app-depends-on
+    ports:
+      - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:3020'
+    healthcheck: *app-healthcheck
+    restart: unless-stopped
 
 configs:
   garage_toml:

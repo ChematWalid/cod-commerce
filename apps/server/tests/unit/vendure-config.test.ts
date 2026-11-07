@@ -62,6 +62,12 @@ describe('buildVendureConfig', () => {
     expect(migrate.dbConnectionOptions).toMatchObject({ host: 'postgres', extra: { max: 2 } });
   });
 
+  it('migrate logs errors, schema and migrations but never queries; other roles keep the default', () => {
+    expect(configFor('migrate').dbConnectionOptions.logging).toEqual(['error', 'schema', 'migration']);
+    expect(configFor('api').dbConnectionOptions.logging).toBeUndefined();
+    expect(configFor('worker').dbConnectionOptions.logging).toBeUndefined();
+  });
+
   it('registers the platform plugins', () => {
     const api = configFor('api');
 

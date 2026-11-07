@@ -1,4 +1,4 @@
-# Where we stopped: onboarding for the next agent (2026-11-07, after P0.S2b-2)
+# Where we stopped: onboarding for the next agent (2026-11-07, after P0.S2b-3)
 
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
@@ -14,8 +14,9 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | #73 | **merged**; ADRs accepted 2026-11-07 |
 | **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | #75 | **merged**; handoff `handoff/P0.S2a-3.md`; F (f)/(g) → P3.S5, G → before P10.S3 |
 | **P0.S2b-1** Foundation: workspace, gates, data services, CI | #3 | `feat/p0-s2b-scaffolding` | #85 | **merged**; handoff `handoff/P0.S2b-1.md` |
-| **P0.S2b-2** Server core: typed env, health probes, Vendure config per role, `integration` CI job | #79 | `feat/p0-s2b2-server-core` | see `gh pr list` | **work done**; handoff `handoff/P0.S2b-2.md` (the server cannot boot until Part 3) |
-| P0.S2b-3 … -6 (server data & image, dashboard, storefront, plugin template) | #80–#83 | per `P0-setup.md` split table | — | not started; plan `plans/P0.S2b-plan.md` |
+| **P0.S2b-2** Server core: typed env, health probes, Vendure config per role, `integration` CI job | #79 | `feat/p0-s2b2-server-core` | #86 | **merged**; handoff `handoff/P0.S2b-2.md` |
+| **P0.S2b-3** Server data & image: migrate role and seed, entry points, e2e, single image, `stack` CI job | #80 | `feat/p0-s2b3-server-data-image` | #88 | **merged**; handoff `handoff/P0.S2b-3.md`; ADR 0013 addendum (activeQueues) accepted 2026-11-07; evidence `docs/evidence/P0.S2b-3/` |
+| P0.S2b-4 … -6 (dashboard, storefront, plugin template) | #81–#83 | per `P0-setup.md` split table | — | not started; plan `plans/P0.S2b-plan.md` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
@@ -26,6 +27,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 - Platform domain `.com.dz`; everything through Cloudflare.
 - Legal questions parked until before production (ADR 0011 §8).
 - P0.S2a-3 ADRs (0006, 0011, 0012, 0014, 0015) accepted; **all 16 ADRs are Accepted**.
+- ADR 0013 addendum (activeQueues with the stock BullMQ strategy: every worker runs all queues until P1.S6) accepted as written.
 
 ## Key results so far (details in `docs/adr/`)
 - **ADR 0010:** Option 1, the Vendure React dashboard plus our extensions. Path convention is `plugins/<name>/dashboard/`.
@@ -58,7 +60,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. Run the next unmerged P0.S2b part from `plans/P0.S2b-plan.md` (Parts 1 = #3 and 2 = #79 are done; next: **Part 3 "Server data & image", #80**). Read the previous part's handoff first (`handoff/P0.S2b-<n>.md`); Part 2's lists what Part 3's e2e must prove.
+3. Run the next unmerged P0.S2b part from `plans/P0.S2b-plan.md` (Parts 1 = #3, 2 = #79 and 3 = #80 are done; next: **Part 4 "Dashboard RTL", #81**, branch `feat/p0-s2b4-dashboard`). Read the previous part's handoff first (`handoff/P0.S2b-3.md`): the server now boots (`pnpm --filter @cod/server dev`, api on 3100), and its follow-ups include Part 2's `CORS_ORIGINS` note for the Vite dev server.
 4. Open items for later sessions, flagged while applying the ADRs:
    - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.

@@ -65,7 +65,8 @@ jobs:
       - uses: ./.github/actions/setup
       # Placeholders only; no credentials are involved.
       - run: cp .env.example .env
-      - run: docker compose up -d --wait
+      # Only the data services: the server image is built and checked by scripts/verify-stack.sh.
+      - run: docker compose up -d --wait postgres pgbouncer valkey garage mailpit
       - run: scripts/check-data-services.sh
       - name: Check compose portability
         shell: bash
@@ -96,7 +97,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U cod -d cod"
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U cod -d cod"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -129,12 +130,27 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm test:integration
 
+  # Builds the single app image and runs the whole single-VPS stack (migrate, api, worker behind PgBouncer),
+  # then the URL-reserved-password variant (RF5). verify-stack.sh tears its compose project down on exit.
+  stack:
+    name: stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # verify-stack.sh runs node on the host, and its object-storage check imports @aws-sdk/client-s3.
+      - uses: ./.github/actions/setup
+      # Placeholders only; no credentials are involved.
+      - run: cp .env.example .env
+      - run: scripts/verify-stack.sh
+      - run: scripts/verify-stack.sh --bad-password
+
   # Required status check (branch protection): green only when every job above succeeded.
   build-test:
     name: build-test
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [lint, typecheck, unit, build, data-services, integration]
+    needs: [lint, typecheck, unit, build, data-services, integration, stack]
     if: always()
     permissions:
       actions: read
