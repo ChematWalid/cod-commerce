@@ -93,8 +93,8 @@ link and stop without merging. Never handle GitHub tokens: ask me to run `gh aut
 > | Part | Title | Branch | Issue | Prerequisites | Plan tasks | Acceptance criteria owned (list below) |
 > |---|---|---|---|---|---|---|
 > | **P0.S2a-1** | ADRs 0001–0010 & spikes A/B | `docs/p0-s2a-adrs` | #2 (renamed) | P0.S1 | 0–4, partial 9 (index lists 0011–0016 as pending), 10, 11 | ADRs 0001, 0003–0005, 0007–0010 written; 0002 and 0006 written as `Proposed` (gated on spikes C/F); 0001 confirmation; 0010 answers (a)–(e) + path; 0004/0009 intake order evidence; docs-only diff |
-> | **P0.S2a-2** | Scale spikes C/D (ADRs 0002, 0013, 0016) | `docs/p0-s2a2-scale-spikes` | new | P0.S2a-1 | 0, 5, 6, 9, 10, 11 | 0002 names entities + mechanism with spike C numbers; spikes C and D recorded with pass/fail and fallbacks; 0013, 0016 written; docs-only diff |
-> | **P0.S2a-3** | Search, cache & latency spikes E/F/G | `docs/p0-s2a3-search-cache-spikes` | new | P0.S2a-1 | 0, 7, 8, 9, 10, 11 | spikes E and F recorded with pass/fail and fallbacks (F f/g and G pending if access is missing); 0006 evidence; 0011, 0012, 0014, 0015 written; docs-only diff |
+> | **P0.S2a-2** | Scale spikes C/D (ADRs 0002, 0013, 0016) | `docs/p0-s2a2-scale-spikes` | #69 | P0.S2a-1 | 0, 5, 6, 9, 10, 11 | 0002 names entities + mechanism with spike C numbers; spikes C and D recorded with pass/fail and fallbacks; 0013, 0016 written; docs-only diff |
+> | **P0.S2a-3** | Search, cache & latency spikes E/F/G | `docs/p0-s2a3-search-cache-spikes` | #70 | P0.S2a-1 | 0, 7, 8, 9, 10, 11 | spikes E and F recorded with pass/fail and fallbacks (F f/g and G pending if access is missing); 0006 evidence; 0011, 0012, 0014, 0015 written; docs-only diff |
 >
 > P0.S2a-2 and P0.S2a-3 may run in parallel: they own different ADR files and only both append rows to `docs/adr/README.md` (keep both on conflict); they must use separate scratch folders and host ports. "P0.S2a" elsewhere in the docs means all three parts. Kickoff: use the prompt at the end of this section with the part's ID, branch and plan file.
 
