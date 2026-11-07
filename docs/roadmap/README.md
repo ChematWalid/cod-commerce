@@ -1,7 +1,7 @@
 # Roadmap — Tassyir-style COD commerce SaaS on Vendure
 
 **Objective:** a functional clone of Tassyir (multi-store, cash-on-delivery e-commerce SaaS for Algeria) with our own name and branding.
-**Base:** a clean private repository whose workspace consumes the **published `@vendure/*` packages pinned to one exact version** (ADR 0001; Vendure source is read from a reference clone outside the repo) — TypeScript · NestJS · GraphQL · React dashboard. **Vendure core is never modified**; every feature lives in a plugin; an emergency fix is only possible as a reviewed `pnpm patch` (ADR 0001). Merchant screens: Vendure React dashboard extensions (ADR 0010, subject to spike A). Storefront + builder runtime: our own Next.js 16 app, multi-tenant by host (ADR 0006). Postgres 17, Valkey, Cloudflare; hosting per ADR 0011. Architecture: [../architecture/README.md](../architecture/README.md).
+**Base:** a clean private repository whose workspace consumes the **published `@vendure/*` packages pinned to one exact version** (ADR 0001; Vendure source is read from a reference clone outside the repo) — TypeScript · NestJS · GraphQL · React dashboard. **Vendure core is never modified**; every feature lives in a plugin; an emergency fix is only possible as a reviewed `pnpm patch` (ADR 0001). Merchant screens: Vendure React dashboard extensions (ADR 0010, subject to spike A). Storefront + builder runtime: our own Next.js 16 app, multi-tenant by host (ADR 0006). Postgres 17, Valkey, Cloudflare; hosting per ADR 0011: **in Algeria** on self-run VPSs (single-VPS compose minimum, backups at a second Algerian provider, no managed services or Kubernetes), platform domain `.com.dz`. Architecture: [../architecture/README.md](../architecture/README.md).
 **Architecture reference (binding for every session):** [../architecture/README.md](../architecture/README.md) with `system-design.md`, `infrastructure.md`, `tech-stack.md`, and the ADRs in [../adr/](../adr/) (drafts in `../adr/drafts/` until P0.S2a accepts them). Every brief's "Read first" names the sections it relies on.
 **Rules for every session:** [CONTRIBUTING.md](CONTRIBUTING.md). **Brief format:** [_session-template.md](_session-template.md). **Handoff notes:** `handoff/P{n}.S{m}.md`.
 **Source of truth:** [../feature-inventory.md](../feature-inventory.md) and [../research/](../research/) — sessions never re-research Tassyir.
@@ -56,7 +56,7 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | P3.S2 | Multi-tenant storefront skeleton | `feat/p3-s2-storefront-skeleton` | P2.S1, P1.S6 | P2.S4, P2.S5, P3.S1 | O | L | |
 | P3.S3 | Product page, COD form, cart & checkout | `feat/p3-s3-cod-checkout` | P3.S1, P3.S2, P2.S4 | P2.S5, P3.S5 | S | L | |
 | P3.S4 | Order intake & abandoned checkouts | `feat/p3-s4-order-intake` | P3.S3, P1.S6 | P3.S5 | O | L | 🔑 Turnstile keys (Cloudflare test keys) |
-| P3.S5 | Staging environment, IaC & observability baseline | `chore/p3-s5-staging` | P3.S2, P1.S6 | P2.*, P3.S3, P3.S4 | O | L | 🔑 DigitalOcean + Cloudflare accounts, staging domain |
+| P3.S5 | Staging environment, IaC & observability baseline | `chore/p3-s5-staging` | P3.S2, P1.S6 | P2.*, P3.S3, P3.S4 | O | L | 🔑 Algerian VPS trials + chosen provider, second provider for backups, Cloudflare account, staging zone |
 | P4.S1 | Order state machine & actions | `feat/p4-s1-order-states` | P3.S4 | P4.S5 | O | L | |
 | P4.S2 | Orders list, filters, bulk & export | `feat/p4-s2-orders-list` | P4.S1 | P4.S3, P4.S4, P4.S5, P4.S7 | S | L | |
 | P4.S3 | Order detail, create/edit & agent upsell | `feat/p4-s3-order-detail` | P4.S1, P2.S5 | P4.S2, P4.S4, P4.S5, P4.S7 | S | L | |
@@ -101,7 +101,7 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | P9.S9 | Sourcing requests | `feat/p9-s9-sourcing` | P1.S5 | any | S | S | |
 | P10.S1 | End-to-end test suite | `test/p10-s1-e2e` | every P1–P9 session (the leaves: P2.S3, P4.S3, P4.S6, P4.S7, P5.S4–S7, P6.S2, P6.S5, P7.S2, P7.S3, P8.S6, P8.S8, P8.S9, P9.S4–S6, P9.S7b, P9.S8b, P9.S9) | — | S | L | |
 | P10.S2 | Security & performance hardening | `fix/p10-s2-hardening` | P10.S1 | — | O | L | |
-| P10.S3 | Production deployment | `chore/p10-s3-deploy` | P10.S2 | — | O | M | 🔑 production DigitalOcean (or Scaleway), root domain on Cloudflare, Cloudflare for SaaS |
+| P10.S3 | Production deployment | `chore/p10-s3-deploy` | P10.S2 | — | O | M | 🔑 production Algerian VPS(s), `.com.dz` domain on Cloudflare, Cloudflare for SaaS; spike G and legal checklist answered |
 | M.S1 | Upstream Vendure sync (repeatable) | `chore/upstream-sync-<version>` | P0.S2b | — | S | S | |
 
 GitHub issue title = `P{n}.S{m} <Title>` (e.g. `P1.S1 Business→Stores tenancy`), label `phase-{n}`, milestone `P{n} <phase name>`.
@@ -257,8 +257,9 @@ These are the cross-session seams; the owning session defines them, later sessio
 | COD read model `cod_order` / `cod_order_item` / `order_counter` (same-transaction projection) | P3.S4 (create) → P4.S1 (transitions) → P4.S2 (indexes) | P4.*, P5.*, P7.S1, P9.S5 |
 | Intake spool (degraded mode): Valkey stream `{env}:intake:spool`, `202` answer, `intake-spool-replay` task, `intake_spool_length` metric | P3.S4 | P3.S5 (chaos check, alert), P10.S3 (alert), M.S1 (maintenance window) |
 | Shared `applyParcelEvent` (dedupe, ordering, read-model update, outbox) | P5.S2 | P5.S4–S7 (webhooks and polling) |
-| `/readyz` + `/livez` (api, worker, storefront) | P0.S2b | P3.S5, P10.S3 |
-| Deploy pipeline, `ROLE` image, Kamal config, OpenTofu modules | P3.S5 | P8.S9, P10.S3, M.S1 |
+| `/readyz` + `/livez` (api, worker, storefront); probes never use Vendure's `/health` (ADR 0015) | P0.S2b | P3.S5, P10.S3 |
+| Compose stack that runs unchanged on one VPS; `DATABASE_URL` (PgBouncer) + `DATABASE_URL_DIRECT`; `migrate` before api/worker; `TZ=UTC` (ADR 0011, 0013, 0016) | P0.S2b | P3.S5, P10.S3, every session's tests |
+| Deploy pipeline, `ROLE` image, Kamal config, server runbook/Ansible, OpenTofu modules (Cloudflare/DNS only, ADR 0011) | P3.S5 | P8.S9, P10.S3, M.S1 |
 
 ## Rows split across sessions
 When a coverage row lists several sessions, each brief states which part it does. **Tick the checkbox only in the session that completes the last remaining part of the row** — for parallel sessions sharing a row (e.g. P5.S4–S7), whichever merges last, after checking the others' handoffs; the other sessions note their part in the handoff and the PR body.
@@ -272,7 +273,7 @@ When a coverage row lists several sessions, each brief states which part it does
 | P1.S2 | Google & Facebook OAuth apps | Mocked OAuth provider in tests; buttons hidden behind a flag |
 | P1.S4, P7.S3 | SMTP for real email | Mailpit in docker-compose |
 | P3.S4 | Cloudflare Turnstile site/secret key | Cloudflare's published Turnstile test keys (always-pass / always-fail) |
-| P3.S5 | DigitalOcean account (FRA1), Cloudflare account with the root domain, GitHub environment secrets | — (session stops at a "needs you" checklist) |
+| P3.S5 | Trial VPSs at the shortlisted Algerian providers, an account at the chosen one and at a second Algerian provider (backups), Cloudflare account with the `.com.dz` domain (staging zone), GitHub environment secrets (ADR 0011) | — (session stops at a "needs you" checklist) |
 | P5.S4–S7 | Carrier API credentials (Yalidine, Ecotrack, ZR, NOEST, Maystro, Elogistia, Ecom Delivery, Zimou, Osen) | Contract-test mock servers per carrier (recorded request/response fixtures) |
 | P8.S9 | The P3.S5 staging environment and a Cloudflare API token scoped to custom hostnames on the staging zone | `*.localhost` + manual DNS verification stub + mocked Cloudflare client |
 | P9.S2 | Chargily, SlickPay, Stripe sandbox keys | Fake payment provider that auto-confirms |
@@ -281,7 +282,7 @@ When a coverage row lists several sessions, each brief states which part it does
 | P9.S6 | Shopify partner app, YouCan/Woo/Ayor/Order Dz accounts | Fixture webhooks |
 | P9.S7a, P9.S7b | Anthropic API key (Claude); for P9.S7b also an image background-removal provider (an LLM cannot edit images) | Stubbed LLM responses in tests; image clean-up returns the input image |
 | P10.S2 | Approval to scale staging for the load-test window (if a Growth-spike target needs it) | Load test on staging as provisioned; size recorded with the results |
-| P10.S3 | Production DigitalOcean resources (FRA1, or Scaleway fr-par per the ADR 0011 latency gate), production root domain on Cloudflare, Cloudflare for SaaS enabled, GitHub environment secrets | — (session stops at a "needs you" checklist) |
+| P10.S3 | Production VPS(s) at the Algerian provider chosen in P3.S5 and backup storage at the second provider, the `.com.dz` platform domain on Cloudflare, Cloudflare for SaaS enabled, GitHub environment secrets; spike G probes; answers to the pre-production legal checklist (ANPDP, ARPCE, Law 18-05; ADR 0011) | — (session stops at a "needs you" checklist) |
 
 ## Coverage table (inventory row → session)
 Rows refer to [../feature-inventory.md](../feature-inventory.md). Inventory text mentions "Tassyir"/"Tassya" because it describes the reference product; our product uses its own names (ADR 0007), e.g. the default delivery table is seeded as "Platform default prices". Section numbers match the inventory; "X" = the "Added from the second pass" table. Out of scope for v1: section 15 (mobile app, Chrome extension) and Tassyir staff back-office.

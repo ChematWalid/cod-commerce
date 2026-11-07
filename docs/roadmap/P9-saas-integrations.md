@@ -391,7 +391,7 @@ link and stop without merging.
 
 **High-level plan**
 1. `PlatformAdapter` interface (connect, listProducts, listOrders, verifyWebhook, mapOrder/mapProduct) + `PlatformConnection` entity (encrypted creds, store mapping) + `FakePlatform` → commit `feat(platform-sync): adapter interface and connections`
-2. Import pipeline: map external order → internal intake service (spam check, assignment, numbering, phone normalisation) with `source=<platform>`, idempotency on external id → commit `feat(platform-sync): imported orders enter intake pipeline`
+2. Import pipeline: map external order → internal intake service (spam check, assignment, numbering, phone normalisation) with `source=<platform>`, idempotency on external id; the bulk-intake worker's TypeORM pool (`extra.max`) is sized to its job concurrency, since node-postgres's default 10 is too small for parallel intakes (ADR 0016 §6) → commit `feat(platform-sync): imported orders enter intake pipeline`
 3. Shopify: OAuth install, up to 10 shops per business, product sync with status, order webhooks (HMAC verified) → commit `feat(platform-sync): shopify`
 4. YouCan and Ayor: link / sync orders / sync products / unlink → commit `feat(platform-sync): youcan and ayor`
 5. WooCommerce: plugin authorize and install-link endpoints, signed order webhooks, product sync → commit `feat(platform-sync): woocommerce`

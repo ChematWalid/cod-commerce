@@ -58,7 +58,7 @@ Native declarative range partitioning by `created_at`. The PK includes `created_
 
 | Table | Partition | Hot retention | After |
 |---|---|---|---|
-| `order_event` (timeline, status history, audit diffs) | monthly | 24 months | export Parquet to R2 `archive/`, drop |
+| `order_event` (timeline, status history, audit diffs) | monthly | 24 months | export Parquet to the Algerian object storage `archive/` (it can contain personal data; never R2, ADR 0011/0012), drop |
 | `parcel_event` (normalised carrier events) | monthly | 18 months | archive, drop |
 | `stock_movement` | monthly | 36 months (finance) | archive, drop |
 | `wallet_transaction` | monthly | never dropped (ledger) | — |

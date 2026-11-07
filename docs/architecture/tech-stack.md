@@ -2,6 +2,8 @@
 
 Status: proposed, 2026-11-07.
 
+> **Update 2026-11-07 (ADR 0011 accepted):** hosting is on self-run **Algerian VPSs** (no DigitalOcean, no managed PG/Valkey, no Kubernetes, no provider API); private objects live in Algerian object storage (MinIO), R2 holds public assets only (ADR 0012). The rows below that named DigitalOcean are updated.
+
 **Version policy (applies everywhere)**:
 - Exact pins in `package.json` (no `^`/`~`). Lockfile committed. Renovate proposes, humans merge.
 - `@vendure/*` versions move only through M.S1 (ADR 0001).
@@ -53,36 +55,36 @@ Citation keys: [VN] vendure-v3.md, [EH] edge-hosting-costs.md, [BK] background k
 ## Database
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| RDBMS | PostgreSQL 17 (DO Managed; PITR) | major pinned; 18 evaluated at Growth | Vendure-supported engine, FTS + trigram, partitioning | MySQL/MariaDB (weaker partial/GIN indexing for our filters) |
+| RDBMS | PostgreSQL 17 (self-run on Algerian VPS/VM; pgBackRest PITR to a second Algerian provider, ADR 0011) | major pinned; 18 evaluated at Growth | Vendure-supported engine, FTS + trigram, partitioning | MySQL/MariaDB (weaker partial/GIN indexing for our filters) |
 | Extensions | `pg_trgm`, `btree_gin`, `unaccent`, `pg_stat_statements` | provider-supported | search and observability (ADR 0014/0016) | pg_partman (availability unverified; native partitioning + our task instead) |
-| Read scaling | DO read-only node (Growth) | — | reports, exports, AI queries off the primary | app-level caching only |
+| Read scaling | self-run streaming replica (Growth) | — | reports, exports, AI queries off the primary | app-level caching only |
 | Analytics store (Scale) | ClickHouse Cloud | latest | funnels and visitor events at volume [EH §11] | TimescaleDB (not researched), BigQuery (egress, latency) |
 
 ## Connection pooling
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| Pooler | DO managed PgBouncer pool; transaction mode only if spike D passes, else session mode; direct connection for migrations | provider | fewer server connections; no self-run pooler | self-hosted PgBouncer/Odyssey (ops), unpooled at Growth (connection limits) |
+| Pooler | self-run PgBouncer ≥ 1.21 in **transaction mode** (spike D passed, ADR 0016 §6): pooled `DATABASE_URL` for api/worker, `DATABASE_URL_DIRECT` for migrate and test-DB setup; TypeORM `extra.max` per role | pin minor | fewer server connections | Odyssey, unpooled at Growth (connection limits) |
 
 ## Cache and ephemeral state
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| Key-value store | Valkey 8 (DO Managed): one instance at Launch (noeviction), split queue/cache at Growth | provider major | BullMQ + `RedisCachePlugin` + Next handler + rate limits (ADR 0013) | self-run Redis on droplets (ops), Upstash (per-request pricing bad for BullMQ polling [BK]) |
+| Key-value store | Valkey 8 (self-run): one instance at Launch (noeviction, on the single VPS), own VM and split queue/cache at Growth (ADR 0011) | pin major | BullMQ + `RedisCachePlugin` + Next handler + rate limits (ADR 0013) | Upstash (per-request pricing bad for BullMQ polling [BK]; outside Algeria) |
 | Vendure cache | `RedisCachePlugin` (sessions via `DefaultSessionCacheStrategy`) [VN §3] | follows Vendure | multi-instance sessions | `DefaultCachePlugin` (DB-backed, more PG load) |
 | Client | ioredis (BullMQ default) | follows BullMQ | — | — |
 
 ## Search
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| Phase 1 | Postgres normalised `search_text` + `pg_trgm` (ADR 0014) | — | no extra service; tenant-safe | Vendure DefaultSearchPlugin for storefront (Arabic unverified) |
+| Phase 1 | Postgres normalised `search_text` + `pg_trgm`, `word_similarity` with "ال" stripping; one TS/SQL normaliser in `packages/shared`; Darija transliteration table (ADR 0014) | — | no extra service; tenant-safe; spike E recall@5 0.947 | Vendure DefaultSearchPlugin for Arabic search (spike E recall@5 0.244) |
 | Phase 2 (trigger) | Meilisearch 1.x self-hosted (Charabia Arabic normalisation [EH §10]) | pin minor | Arabic quality, typo tolerance | Typesense (paid Vendure plugin, Arabic unconfirmed), Elasticsearch/OpenSearch (heavy; Scale-only option) |
 
 ## Storage and CDN
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| Object storage | Cloudflare R2 via `AssetServerPlugin` + `configureS3AssetStorage` [VN §4] | — | $0.015/GB-mo, zero egress [EH §6] | DO Spaces (egress fees), Hetzner/Scaleway object storage |
+| Object storage | public assets: Cloudflare R2 via `AssetServerPlugin` + `configureS3AssetStorage` [VN §4]; private objects (exports, labels, imports, backups, archives): S3-compatible storage **in Algeria** (MinIO, or a provider's S3) (ADR 0011/0012) | — | R2: zero egress for public media [EH §6]; private: buyer PII stays in Algeria | private objects in R2 (foreign storage of PII) |
 | CDN | Cloudflare (Algiers PoP [EH §3]) | — | same vendor as DNS/WAF/TLS; local edge | Bunny ($0.06/GB for Africa, Algeria PoP unknown [EH §6]) |
 | Asset naming | custom `AssetNamingStrategy`: tenant-prefixed keys | — | per-tenant isolation in storage [VN §4] | default naming (not tenant-prefixed) |
-| Buckets | `assets-prod` (public via `cdn.ourdomain`) and `private-prod` (exports, documents, uploads, backups, archive; presigned only) | — | an R2 custom domain exposes the whole bucket, so private data needs its own bucket | one bucket with a `public/` prefix |
+| Buckets | R2 `assets-prod` (public via `cdn.ourdomain`) and a private bucket in Algerian object storage (exports, documents, uploads, archive; presigned only) | — | an R2 custom domain exposes the whole bucket; PII must stay in Algeria | one bucket with a `public/` prefix |
 | Deletion safety | soft delete to `trash/` (30-day lifecycle) + bucket lock on backups | — | R2 has no S3 object versioning [BK, verify] | relying on object versioning |
 
 ## Edge, TLS and routing
@@ -90,7 +92,7 @@ Citation keys: [VN] vendure-v3.md, [EH] edge-hosting-costs.md, [BK] background k
 |---|---|---|---|---|
 | DNS / WAF / rate limiting / bot | Cloudflare Free → Pro (Growth) → Pro/Business (Scale) | plan | Algiers PoP, cheap, WAF + Turnstile [EH §3] | AWS CloudFront + WAF (cost, complexity) |
 | Custom domains + TLS | Cloudflare for SaaS custom hostnames (100 free, then $0.10/host) [EH §2] | — | no ACME operations; WAF on custom domains (ADR 0012) | Caddy on-demand TLS (apex fallback only), Vercel Domains |
-| Origin TLS | Cloudflare Origin CA wildcard on DO LB; Full (strict) | 15-year cert, rotated every 2 years | simple, strict | Let's Encrypt on nodes (only in the DNS-only fallback) |
+| Origin TLS | Cloudflare Origin CA wildcard on the origin LB (kamal-proxy/HAProxy); Full (strict) | 15-year cert, rotated every 2 years | simple, strict | Let's Encrypt on nodes (only in the DNS-only fallback) |
 | L7 routing / zero downtime | kamal-proxy (via Kamal 2) | pin minor | host routing + zero-downtime swaps without Kubernetes | Caddy/Traefik hand-configured, nginx |
 | Bot challenge | Cloudflare Turnstile on COD submit and sign-up (fail-open into spam engine); Bot Fight Mode **off** at Launch (zone-wide on Free, would challenge webhooks and API clients [BK]); Super Bot Fight Mode with skip rules at Pro | — | free, invisible; webview-tolerant policy | reCAPTCHA (privacy, UX), hCaptcha |
 | HTML edge TTL | `Cloudflare-CDN-Cache-Control` set by `proxy.ts`; cache key ignores query strings on product/landing/home paths | — | independent of Next's own `Cache-Control`; immune to ad click ids (ADR 0006) | edge TTL from `Cache-Control` only |
@@ -134,22 +136,22 @@ Citation keys: [VN] vendure-v3.md, [EH] edge-hosting-costs.md, [BK] background k
 | CI | GitHub Actions; Turborepo cache | actions pinned by SHA | repo already on GitHub (P0.S1) | CircleCI, GitLab |
 | Package manager | pnpm 10 workspaces (fallback: hoisted linker → npm + patch-package) | `packageManager` pinned | speed, `pnpm patch` (ADR 0001) | yarn |
 | Image | one multi-stage Dockerfile → `ghcr.io/<org>/platform:<sha>` (roles via `ROLE`) | base pinned by digest | atomic deploys (ADR 0013) | an image per app |
-| Registry | GHCR | — | free with GitHub | DO Container Registry |
-| Deploy (Launch/Growth) | Kamal 2 (rolling, one host at a time; pre-deploy hook runs the `migrate` job via `kamal app exec --version=<sha>`; `backup` accessory for the nightly dump; container memory limits per role) | pin minor | zero-downtime on VMs without K8s | docker compose over SSH (no zero-downtime), Coolify/Dokku (another control plane) |
-| Deploy (Scale) | DOKS + kustomize + KEDA | — | autoscaling | self-run K8s (forbidden before Scale) |
+| Registry | GHCR | — | free with GitHub | provider registries |
+| Deploy (Launch/Growth) | Kamal 2 (rolling, one host at a time; pre-deploy hook runs the `migrate` job via `kamal app exec --version=<sha>`; pgBackRest and the nightly dump to a second Algerian provider; container memory limits per role) | pin minor | zero-downtime on VMs without K8s | docker compose over SSH (no zero-downtime), Coolify/Dokku (another control plane) |
+| Deploy (Scale) | Kamal 2 on more VMs (ADR 0011) | pin minor | no managed Kubernetes in Algeria; self-run K8s out of scope for the team size | Kubernetes (DOKS or self-run) |
 | Security scans | Trivy (image), OSV/pnpm audit, GitHub secret scanning, SBOM (syft) | latest | supply chain | — |
 | Feature flags | in-house `feature_flag` table + OpenFeature-style API (system-design §9) | — | free, tenant-scoped, kill switches | PostHog/LaunchDarkly at Launch (cost, PII to a third party) |
 
 ## Hosting
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| Primary | DigitalOcean FRA1 (droplets, LB, Managed PG, Managed Valkey; DOKS at Scale) | — | verified prices, all-managed, simple (ADR 0011) | Hetzner (no managed DB), OVH (unverified), Vercel |
-| Runner-up | Scaleway fr-par (Paris), chosen if the latency gate passes and the verified bill ≤ $150 | — | closest region [EH §5] | — |
+| Primary | Algerian VPS provider chosen in P3.S5 after a 1-month trial benchmark (CPU steal, `fsync` latency, RTT from Algerian ISPs, ARPCE authorisation, DZD invoicing); shortlist ICOSNET, ISSAL, Algérie Télécom, ADEX (ADR 0011) | — | Law 18-07 Art. 44 (buyer data stays in Algeria) | DigitalOcean FRA1 / Scaleway fr-par (EU; kept only as the ADR 0011 fallback) |
+| Backups | a second Algerian provider (pgBackRest repository, object backups) | — | provider-loss recovery | backups at the primary provider only |
 
 ## Infrastructure as code
 | Component | Choice | Version policy | Why | Rejected |
 |---|---|---|---|---|
-| Cloud resources | OpenTofu 1.x with DigitalOcean + Cloudflare providers; state in an R2 S3 backend (native S3 locking [BK, verify]) | providers pinned | reproducible staging and prod from day one; open licence | Terraform (BSL licence), none (manual console drift), Pulumi (extra runtime) |
+| Cloud resources | OpenTofu 1.x with the Cloudflare provider only (DNS, rules, R2, Turnstile); state in an R2 S3 backend (native S3 locking [BK, verify]). Servers: runbooks + Ansible/cloud-init (Algerian providers have no API, ADR 0011) | providers pinned | reproducible edge config; open licence | Terraform (BSL licence), Pulumi (extra runtime) |
 | App deploy config | Kamal `deploy/*.yml` per environment; secrets from GitHub Environments | — | one source of truth for roles and hosts | Ansible |
 
 ## Testing

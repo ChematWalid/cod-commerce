@@ -1,5 +1,7 @@
 # Roadmap impact (proposed edits; roadmap files NOT modified)
 
+> **Note 2026-11-07 (historical document):** these edits were applied to the roadmap before the ADRs were accepted. The accepted **ADR 0011** later moved production hosting to **Algeria** (self-run VPSs, single-VPS minimum, no DigitalOcean/DOKS/managed PG or Valkey, OpenTofu for Cloudflare/DNS only, provider chosen in P3.S5), so every DigitalOcean, droplet, DOKS, Scaleway and "$150" reference below is superseded. The current brief changes are listed in [`../adr/README.md`](../adr/README.md) "Decisions that change later briefs" and applied in the `docs/roadmap-adr-impact` change. This file is kept as written.
+
 Status: proposal, 2026-11-07. Apply through a `docs/roadmap-architecture` PR per the plan mutation protocol (roadmap README). Each item gives the file, the location and the **exact text** to add or replace. "Replace" quotes the current text, followed by its replacement.
 
 ## 0. Summary

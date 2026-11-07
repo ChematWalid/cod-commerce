@@ -141,7 +141,7 @@ link and stop without merging. Never handle GitHub tokens: ask me to run `gh aut
    - Spike D, PgBouncer transaction mode (ADR 0016): run the Vendure e2e smoke, DefaultSchedulerPlugin locking with 2 workers, BullMQ jobs that open DB transactions, RedisCachePlugin sessions, a TypeORM migration, and a SET LOCAL helper through PgBouncer (docker image, transaction mode, version recorded incl. max_prepared_statements); pass/fail per item; decide transaction vs session mode.
    - Spike E, Arabic search (ADR 0014): 300 product names (Arabic with/without diacritics and hamza variants, French, Latin-script Darija) in 3 stores, 60 queries with expected hits; compare DefaultSearchPlugin, the Postgres normalisation + pg_trgm approach, and Meilisearch locally; record recall@5, MRR, p95; accept Phase 1 if recall@5 ≥ 0.85 and within 0.1 of Meilisearch.
    - Spike F, Next.js shared cache handler (ADR 0006): two `next start` instances (Next 16, cacheComponents) behind a local proxy and one Redis; prove cross-instance 'use cache' hits, revalidateTag propagation < 1 s, tenant param in cache keys, rolling restart with a new deploymentId plus assetPrefix serving old chunks, Redis size for 1,000 product pages, Cloudflare stores a tenant page with the TTL from Cloudflare-CDN-Cache-Control (staging zone), two URLs differing only by fbclid share one edge entry on the plan we will buy, /_t/<other store> on a store host returns 404; pick the handler.
-   - Spike G, latency (ADR 0011, may finish before P10.S3): RTT from Algerian mobile and fixed networks to DigitalOcean FRA1 and Scaleway fr-par (Globalping/RIPE Atlas probes or volunteer devices); apply the ADR 0011 gate.
+   - Spike G, latency (ADR 0011, may finish before P10.S3): RTT from Algerian mobile and fixed networks to DigitalOcean FRA1 and Scaleway fr-par (Globalping/RIPE Atlas probes or volunteer devices); apply the ADR 0011 gate. *(Superseded 2026-11-07: ADR 0011 hosts production in Algeria; spike G now measures RTT from Algerian ISPs to the shortlisted Algerian providers, as part of the P3.S5 trial, and is pending before P10.S3.)*
 5. `docs/adr/README.md` index + a "Decisions that change later briefs" section (start from docs/architecture/roadmap-impact.md) listing every brief assumption the ADRs overturn (e.g. dashboard paths, JWT wording, M.S1 procedure) so the user can open a `docs/roadmap-<change>` PR; keep `docs/adr/drafts/` (the architecture docs link to it) and add a line to its README pointing each draft to its accepted `docs/adr/NNNN-*.md` → commit `docs(adr): index and roadmap impact list`.
 
 **Deliverables**
@@ -196,7 +196,7 @@ link and stop without merging.
 | **Prerequisites** | P0.S2a-1, P0.S2a-2 and P0.S2a-3 merged (ADRs accepted by the user). |
 | **Parallel-safe** | No. Owns `apps/server`, `apps/storefront`, the dashboard app/extension root chosen in ADR 0010, `plugins/_template`, `packages/shared`, root workspace config, `docker-compose.yml`, root README. |
 | **Model / size** | Opus · L |
-| **External needs** | Docker Desktop for Postgres, Redis, Mailpit. No credentials. |
+| **External needs** | Docker (Compose v2) for Postgres 17, PgBouncer, Valkey, MinIO, Mailpit. No credentials. |
 
 **Inventory rows covered:** none directly (foundation).
 
@@ -204,12 +204,18 @@ link and stop without merging.
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P0.S2a-1.md`, `P0.S2a-2.md`, `P0.S2a-3.md`, all of `docs/adr/` (0001 layout, 0002 tenancy, 0004/0009 order totals and lifecycle, 0006 storefront, 0010 dashboard host, 0013 process model are binding), `docs/roadmap/README.md` (parallel-safe rule: shared registration files).
 - `docs/architecture/system-design.md` §1.2 (containers), §9 (environments); `docs/architecture/tech-stack.md` (versions per layer).
+- ADR 0011 Decision 2 (the compose file is the single-VPS production minimum), ADR 0013 "Runtime environment" and Risks (first boot, `TZ=UTC`, one BullMQ queue), ADR 0016 §6 (pooling), ADR 0006 Decision 4 (cache handler).
 
 **High-level plan**
-1. Workspace skeleton per ADR 0001: root workspace config, TS config base, eslint/prettier, test runner, scripts `lint`, `typecheck`, `test`, `build`, `dev` scoped to **our** packages only (never upstream's test suites); `packages/shared` with 58-wilaya constant stub (codes + AR/FR names for a few, full list in P3.S1), order/tracking status constants, domain-event names stub in `packages/shared/src/events/`, `requireFeature('<feature>')` as a documented no-op → commit `feat(shared): workspace, constants stub and requireFeature no-op`.
-2. `docker-compose.yml` (Postgres 17, Valkey/Redis, Mailpit) + `.env.example` additions; `apps/server` boots Vendure with separate api / worker / migrate entry points (ADR 0013), BullMQJobQueuePlugin, RedisCachePlugin, DefaultSchedulerPlugin, HardenPlugin, systemOptions.healthChecks: [], a platform-health plugin exposing /livez and /readyz (Postgres, Redis, pending migrations), zero-tax zone + DZD default channel per ADR 0004, against Postgres with one smoke e2e → commit `feat(server): vendure bootstrap on postgres with compose`.
+1. Workspace skeleton per ADR 0001: root workspace config, TS config base, eslint/prettier, test runner, scripts `lint`, `typecheck`, `test`, `build`, `dev` scoped to **our** packages only (never upstream's test suites); `packages/shared` with 58-wilaya constant stub (codes + AR/FR names for a few, full list in P3.S1), order/tracking status constants, domain-event names stub in `packages/shared/src/events/`, `requireFeature('<feature>')` as a documented no-op; pnpm 10 `onlyBuiltDependencies` (bcrypt, better-sqlite3/pg natives, esbuild, sharp, re2) and an explicit `typeorm` dependency (ADR 0001) → commit `feat(shared): workspace, constants stub and requireFeature no-op`.
+2. `docker-compose.yml` (Postgres 17, PgBouncer in **transaction mode** (≥ 1.21, `max_prepared_statements` > 0), Valkey (`noeviction`), MinIO for private objects (exports, labels, imports; never R2, ADR 0012), Mailpit) + `.env.example` additions; `apps/server` boots Vendure with separate api / worker / migrate entry points (ADR 0013), BullMQJobQueuePlugin, RedisCachePlugin, DefaultSchedulerPlugin, HardenPlugin, systemOptions.healthChecks: [], a platform-health plugin exposing /livez and /readyz (Postgres, Redis, pending migrations), zero-tax zone + DZD default channel per ADR 0004, against Postgres with one smoke e2e → commit `feat(server): vendure bootstrap on postgres with compose`.
+   - **Single-VPS target (ADR 0011):** the same compose file, with only `.env` changed, must run the full stack on one Linux VPS: the role services `migrate`, `api`, `worker`, `storefront` (one image, `ROLE` entry point; a minimal Dockerfile here, hardened in P3.S5) next to the data services, with named volumes, no host-specific bind mounts and no managed-service assumption.
+   - **Two database URLs (ADR 0016 §6):** `DATABASE_URL` (through PgBouncer) for `api` and `worker`; `DATABASE_URL_DIRECT` (straight to Postgres) for `migrate` and test-DB setup/teardown. TypeORM `extra.max` per role from env (api 10, worker 5; a worker that runs bulk intake gets a pool sized to its job concurrency).
+   - **First boot (ADR 0013):** the `migrate` service runs migrations and then seeds Vendure's defaults (one-shot `bootstrap`), and `api`/`worker` declare `depends_on: migrate: condition: service_completed_successfully` (a concurrent first boot fails on `__default_channel__`). The seed also sets `GlobalSettings.availableLanguages = [ar, fr, en]` (ADR 0002) and the default channel's tax and shipping zones.
+   - **`TZ=UTC`** in the environment of every role (ADR 0013).
+   - **BullMQ (ADR 0013 Risks):** pin `bullmq` exactly (the version `@vendure/job-queue-plugin` ships with); a test proves that `activeQueues` filters correctly with Vendure's single BullMQ queue (`bull:vendure-job-queue`, job name = Vendure queue name), so the critical/bulk pools of P1.S6 work.
 3. Dashboard host per ADR 0010 (Vendure dashboard with our extension root, or `apps/admin`) showing a login page and one empty extension page, Arabic RTL switch proven on that page → commit `feat(dashboard): dashboard host skeleton with rtl`.
-4. `apps/storefront` Next.js 16 App Router hello page; proxy.ts (Next 16) resolves store by host and rewrites to /_t/[storeId]/... (`<sub>.localhost`) via a stub resolver, returns 404 page for unknown host; `/livez` and `/readyz` route handlers → commit `feat(storefront): host-resolved hello page`.
+4. `apps/storefront` Next.js 16 App Router hello page; proxy.ts (Next 16) resolves store by host and rewrites to /_t/[storeId]/... (`<sub>.localhost`) via a stub resolver, returns 404 page for unknown host; `/livez` and `/readyz` route handlers; the shared cache handler per ADR 0006 Decision 4: the Next repo Redis example adopted as our code under `apps/storefront/cache/`, with ISR/App Shell keys prefixed by the deployment id (`next:{deploymentId}:`) and the `redis` client pinned exactly → commit `feat(storefront): host-resolved hello page`.
 5. `plugins/_template`: Vendure plugin (entity with `businessId`, service, GraphQL extension, permission definition), dashboard page at the ADR 0010 path, unit + integration test, README "how to create a plugin" → commit `feat(plugins): plugin template with dashboard page and tests`.
 6. Make CI real (replace `--if-present` guards, Postgres service, cache), root README (setup, scripts, ports, `git config core.hooksPath .githooks`) → commit `chore(ci): real lint typecheck test build pipeline`.
 
@@ -217,11 +223,14 @@ link and stop without merging.
 - Workspace config; `apps/server`; dashboard host; `apps/storefront`; `plugins/_template`; `packages/shared`; `docker-compose.yml`; green CI within the ADR 0001 time budget; root README.
 
 **Acceptance criteria**
-- [ ] `docker compose up -d` starts Postgres, Redis, Mailpit; `<pm> run dev` serves the Vendure admin API and the dashboard host; the dashboard login page loads and the template page renders in AR with `dir="rtl"`.
+- [ ] `docker compose up -d` starts Postgres, PgBouncer, Valkey, MinIO, Mailpit; `<pm> run dev` serves the Vendure admin API and the dashboard host; the dashboard login page loads and the template page renders in AR with `dir="rtl"`.
 - [ ] `http://demo.localhost:3000` renders the storefront hello page with the resolved (stub) store name; an unknown host returns the not-found page.
 - [ ] `plugins/_template` is registered in `apps/server`, its GraphQL query returns data, its dashboard page renders, its tests pass.
 - [ ] `lint`, `typecheck`, `test`, `build` pass locally and in CI on the PR within the ADR 0001 time budget; every @vendure/* dependency is pinned to the same exact version and patches/ is empty (ADR 0001).
 - [ ] GET /readyz on api and the worker health port returns 503 when Postgres or Redis is stopped and 200 when both are up.
+- [ ] On an empty database, `docker compose up` with the role services runs `migrate` to completion (defaults seeded, `availableLanguages = [ar, fr, en]`, default channel zones set) before `api`/`worker` start; a second `up` is a no-op for `migrate`. The same compose file and `.env.example` contain no localhost-only or managed-service assumption (ADR 0011).
+- [ ] `api`/`worker` connect through PgBouncer (`DATABASE_URL`), `migrate` and the test-DB setup through `DATABASE_URL_DIRECT`; every role runs with `TZ=UTC`; `bullmq` is pinned exactly and the `activeQueues` test passes.
+- [ ] The storefront cache handler lives under `apps/storefront/cache/` and its ISR keys carry the deployment id (unit test).
 - [ ] `packages/shared` exports wilaya list stub, status constants and `requireFeature` (no-op), importable from server, dashboard and storefront.
 - [ ] A grep for "Tassyir" in `apps/`, `plugins/`, `packages/shared` returns nothing.
 
@@ -231,7 +240,7 @@ link and stop without merging.
 - Multi-tenant check: the host resolver test shows two hosts resolving to two different stub stores; the template entity's query filters by `businessId`.
 
 **Out of scope**
-- Real Business/Store entities (P1.S1), real host resolver (P1.S1), real auth (P1.S2), full wilaya data (P3.S1), real `requireFeature` (P9.S1), outbox/webhook gateway/queue registry/secrets/flags (P1.S6), Dockerfile, IaC and deploy pipeline (P3.S5).
+- Real Business/Store entities (P1.S1), real host resolver (P1.S1), real auth (P1.S2), full wilaya data (P3.S1), real `requireFeature` (P9.S1), outbox/webhook gateway/queue registry/secrets/flags (P1.S6), the hardened production Dockerfile (multi-stage, non-root, OTel, Trivy), IaC and deploy pipeline (P3.S5).
 
 **Kickoff prompt**
 ```
