@@ -247,3 +247,19 @@ describe('ci.yml', () => {
     expect(jobOf(attribution, 'attribution-check').name).toBe('attribution-check');
   });
 });
+
+describe('Dockerfile', () => {
+  const dockerfile = read('Dockerfile');
+  const rootPackage = JSON.parse(read('package.json')) as { packageManager: string };
+
+  it('activates the packageManager pnpm before copying the source', () => {
+    const prepare = dockerfile.indexOf(`corepack prepare ${rootPackage.packageManager} --activate`);
+
+    expect(prepare).toBeGreaterThan(-1);
+    expect(prepare).toBeLessThan(dockerfile.indexOf('COPY . .'));
+  });
+
+  it('installs only the server closure', () => {
+    expect(dockerfile).toContain('pnpm install --frozen-lockfile --filter "@cod/server..."');
+  });
+});

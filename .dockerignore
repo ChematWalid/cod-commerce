@@ -11,3 +11,9 @@ docs
 **/.next
 .claude
 .superpowers
+.eslintcache
+**/coverage
+*.log
+**/*.log
+.vscode
+.idea
