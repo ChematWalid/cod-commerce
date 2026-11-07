@@ -10,8 +10,9 @@ export const DB_CONNECTION_TIMEOUT_MS = 5000;
 const MIGRATIONS_GLOB = join(__dirname, '../migrations/*.+(js|ts)');
 
 /**
- * The TypeORM connection of a role. `migrate` connects to Postgres directly (DDL and advisory locks do not
- * survive PgBouncer's transaction pooling); the api and worker go through the pooler.
+ * The TypeORM connection of a role. `migrate` connects to Postgres directly (DDL is not run through
+ * PgBouncer's transaction pooling; the migrate advisory lock lives on a separate direct connection, see
+ * `migrate.role.ts`); the api and worker go through the pooler.
  */
 export function buildDbConfig(env: AppEnv, role: ServerRole): PostgresConnectionOptions {
   const url = role === 'migrate' ? env.DATABASE_URL_DIRECT : env.DATABASE_URL;
