@@ -21,3 +21,5 @@ Every draft uses the Nygard format: Status, Context, Options, Decision, Conseque
 | [0016](0016-data-lifecycle-outbox-partitioning.md) | Data lifecycle: outbox, inbound webhooks, partitioning, indexes, migrations, pooling | proposed | D PgBouncer |
 
 Spike definitions: `../../architecture/roadmap-impact.md` → "P0.S2a".
+
+**Written from these drafts (P0.S2a-1):** 0001 → [../0001-repo-layout-and-upstream.md](../0001-repo-layout-and-upstream.md), 0002 → [../0002-tenancy.md](../0002-tenancy.md) (pre-spike C), 0004 → [../0004-pricing-engine-and-order-totals.md](../0004-pricing-engine-and-order-totals.md), 0006 → [../0006-storefront-architecture.md](../0006-storefront-architecture.md) (pre-spike F), 0008 → [../0008-auth.md](../0008-auth.md), 0009 → [../0009-order-lifecycle.md](../0009-order-lifecycle.md), 0010 → [../0010-merchant-dashboard-host.md](../0010-merchant-dashboard-host.md). 0011–0016 are still drafts here (P0.S2a-2 / P0.S2a-3). Index: [../README.md](../README.md).
