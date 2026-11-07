@@ -7,11 +7,15 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run --configLoader runner --project unit",
-    "test:integration": "vitest run --configLoader runner --project e2e --passWithNoTests"
+    "test:integration": "vitest run --configLoader runner --project e2e --passWithNoTests",
+    "migrate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-migrate.ts",
+    "migration:generate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/scripts/generate-migration.ts"
   },
   "dependencies": {
     "@cod/plugin-platform-health": "workspace:*",
     "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@nestjs/core": "12.4.0",
     "@vendure/core": "3.8.1",
     "@vendure/harden-plugin": "3.8.1",
     "@vendure/job-queue-plugin": "3.8.1",

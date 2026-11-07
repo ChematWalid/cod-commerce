@@ -11,6 +11,7 @@ const DOMAIN_FILES = ['**/plugins/*/domain/**', 'packages/shared/src/**'];
 const MAGIC_NUMBER_FILES = ['**/plugins/*/domain/**', '**/plugins/*/application/**', 'packages/shared/src/**'];
 const MAGIC_NUMBER_EXEMPT = ['**/constants.ts', 'packages/shared/src/wilayas/**', 'packages/shared/src/platform/**'];
 const TEST_FILES = ['**/*.test.ts', '**/tests/**'];
+const MIGRATION_FILES = ['apps/server/src/migrations/**'];
 const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];
 const FRAMEWORK_MODULES = ['@nestjs/*', '@vendure/*', 'typeorm', 'typeorm/*'];
 const DOMAIN_PURITY_MESSAGE = 'domain/ and @cod/shared stay framework-free (CLAUDE.md §3a.1)';
@@ -131,6 +132,12 @@ export function codEslintConfig({ tsconfigRootDir }) {
       {
         files: TEST_FILES,
         rules: { 'max-lines-per-function': 'off', '@typescript-eslint/no-magic-numbers': 'off' },
+      },
+      {
+        // 2026-11-07 (P0.S2b-3, Task 9): migrations are generated SQL, one statement per line; the size limits of
+        // CLAUDE.md §3a.3 would split a generated file by hand. Prettier ignores the folder for the same reason.
+        files: MIGRATION_FILES,
+        rules: { 'max-lines': 'off', 'max-lines-per-function': 'off' },
       },
       prettierConfig,
     )
