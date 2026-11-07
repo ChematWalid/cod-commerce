@@ -1,7 +1,7 @@
 # ADR-0011: Hosting location, provider and regions
 
 **Date**: 2026-11-07
-**Status**: Proposed — user decisions of 2026-11-07 recorded; the provider is chosen in P3.S5; spike G (latency) is pending until before P10.S3; the user confirms in review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-3 review; pending items stay listed as follow-ups
 **Deciders**: architect (draft), user (account owner, decider)
 
 Citation keys: [EH §n] = `docs/architecture/research/` hosting notes used by the draft; "verified" = checked against the official page on 2026-11-07 (URLs in Evidence).

@@ -1,7 +1,7 @@
 # ADR-0006: Storefront (Next.js 16 multi-tenant by host)
 
 **Date**: 2026-11-07
-**Status**: Proposed — spike F evidence below (P0.S2a-3; items (f)/(g) pending until P3.S5); the user confirms in review
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-3 review; pending items stay listed as follow-ups
 **Deciders**: architect (draft), user
 
 Citation keys: [EH §n] = `docs/architecture/research/edge-hosting-costs.md` section n; [BK] = background knowledge, verify before relying on it.

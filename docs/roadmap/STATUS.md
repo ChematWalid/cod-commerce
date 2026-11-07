@@ -23,6 +23,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 - **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5.
 - Platform domain `.com.dz`; everything through Cloudflare.
 - Legal questions parked until before production (ADR 0011 §8).
+- P0.S2a-3 ADRs (0006, 0011, 0012, 0014, 0015) accepted; **all 16 ADRs are Accepted**.
 
 ## Key results so far (details in `docs/adr/`)
 - **ADR 0010:** Option 1, the Vendure React dashboard plus our extensions. Path convention is `plugins/<name>/dashboard/`.

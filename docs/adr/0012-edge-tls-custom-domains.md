@@ -1,7 +1,7 @@
 # ADR-0012: Edge, TLS and custom domains
 
 **Date**: 2026-11-07
-**Status**: Proposed — Cloudflare facts verified 2026-11-07 (Evidence); origin location follows ADR 0011 (Algeria, provider pending); the user confirms in review. Supersedes the Caddy on-demand TLS plan in P8.S9/P10.S3 briefs.
+**Status**: Accepted (2026-11-07), approved by the user after P0.S2a-3 review; pending items stay listed as follow-ups
 **Deciders**: architect (draft), user
 
 ## Context
