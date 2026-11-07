@@ -41,9 +41,12 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | P0.S2a-2 | Scale spikes C/D (ADRs 0002, 0013, 0016) | `docs/p0-s2a2-scale-spikes` | P0.S2a-1 | P0.S2a-3 | O | L | |
 | P0.S2a-3 | Search, cache & latency spikes E/F/G | `docs/p0-s2a3-search-cache-spikes` | P0.S2a-1 | P0.S2a-2 | O | L | (spike F/G: Cloudflare staging zone, latency probes; pending until provided) |
 | P0.S2b-1 | Foundation: workspace, quality gates, data services, CI | `feat/p0-s2b-scaffolding` | P0.S2a-1, P0.S2a-2, P0.S2a-3 | — | O | L | |
-| P0.S2b-2 | Server runtime: Vendure roles, health, seed, Dockerfile | `feat/p0-s2b2-server-runtime` | P0.S2b-1 | — | O | L | |
-| P0.S2b-3 | UI & template: dashboard RTL, storefront, plugin template | `feat/p0-s2b3-ui-template` | P0.S2b-2 | — | O | L | |
-| P1.S1 | Business→Stores tenancy | `feat/p1-s1-tenancy` | P0.S2b-3 | — | O | L | |
+| P0.S2b-2 | Server core: env, config, health probes | `feat/p0-s2b2-server-core` | P0.S2b-1 | — | O | L | |
+| P0.S2b-3 | Server data & image: migrate, seed, e2e, Dockerfile, roles | `feat/p0-s2b3-server-data-image` | P0.S2b-2 | — | O | L | |
+| P0.S2b-4 | Dashboard RTL: merchant-shell dashboard host | `feat/p0-s2b4-dashboard` | P0.S2b-3 | — | O | L | |
+| P0.S2b-5 | Storefront: host-resolved storefront and shared cache | `feat/p0-s2b5-storefront` | P0.S2b-4 | — | O | L | |
+| P0.S2b-6 | Plugin template: reference implementation of the principles | `feat/p0-s2b6-plugin-template` | P0.S2b-5 | — | O | M | |
+| P1.S1 | Business→Stores tenancy | `feat/p1-s1-tenancy` | P0.S2b-6 | — | O | L | |
 | P1.S2 | Accounts & auth | `feat/p1-s2-auth` | P1.S1 | P1.S3, P1.S5, P1.S6 | S | M | 🔑 Google/Facebook OAuth (mock) |
 | P1.S3 | Permissions catalog & roles | `feat/p1-s3-rbac` | P1.S1 | P1.S2, P1.S5, P1.S6 | O | L | |
 | P1.S4 | Team members & invitations | `feat/p1-s4-team` | P1.S2, P1.S3 | P1.S5, P1.S6 | S | M | SMTP (Mailpit locally) |
@@ -104,7 +107,7 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | P10.S1 | End-to-end test suite | `test/p10-s1-e2e` | every P1–P9 session (the leaves: P2.S3, P4.S3, P4.S6, P4.S7, P5.S4–S7, P6.S2, P6.S5, P7.S2, P7.S3, P8.S6, P8.S8, P8.S9, P9.S4–S6, P9.S7b, P9.S8b, P9.S9) | — | S | L | |
 | P10.S2 | Security & performance hardening | `fix/p10-s2-hardening` | P10.S1 | — | O | L | |
 | P10.S3 | Production deployment | `chore/p10-s3-deploy` | P10.S2 | — | O | M | 🔑 production Algerian VPS(s), `.com.dz` domain on Cloudflare, Cloudflare for SaaS; spike G and legal checklist answered |
-| M.S1 | Upstream Vendure sync (repeatable) | `chore/upstream-sync-<version>` | P0.S2b-3 | — | S | S | |
+| M.S1 | Upstream Vendure sync (repeatable) | `chore/upstream-sync-<version>` | P0.S2b-6 | — | S | S | |
 
 GitHub issue title = `P{n}.S{m} <Title>` (e.g. `P1.S1 Business→Stores tenancy`), label `phase-{n}`, milestone `P{n} <phase name>`.
 
@@ -116,9 +119,10 @@ flowchart LR
     P0S1[P0.S1 repo] --> P0S2a1[P0.S2a-1 ADRs+spikes A/B]
     P0S2a1 --> P0S2a2[P0.S2a-2 spikes C/D] --> P0S2b[P0.S2b-1 foundation]
     P0S2a1 --> P0S2a3[P0.S2a-3 spikes E/F/G] --> P0S2b
-    P0S2b --> P0S2b2[P0.S2b-2 server runtime] --> P0S2b3[P0.S2b-3 UI & template]
+    P0S2b --> P0S2b2[P0.S2b-2 server core] --> P0S2b3[P0.S2b-3 server data & image]
+    P0S2b3 --> P0S2b4[P0.S2b-4 dashboard] --> P0S2b5[P0.S2b-5 storefront] --> P0S2b6[P0.S2b-6 plugin template]
   end
-  P0S2b --> P1S1[P1.S1 tenancy]
+  P0S2b6 --> P1S1[P1.S1 tenancy]
   P1S1 --> P1S2[P1.S2 auth]
   P1S1 --> P1S3[P1.S3 RBAC]
   P1S1 --> P1S5[P1.S5 admin shell]
@@ -215,7 +219,7 @@ flowchart LR
   P10S2 --> P10S3[P10.S3 deploy]
 ```
 
-**Critical path (core COD loop, 17 sessions):** P0.S1 → P0.S2a-1 → P0.S2a-2 → P0.S2b-1 → P0.S2b-2 → P0.S2b-3 → P1.S1 → P1.S5 → P2.S1 → P2.S4 → P3.S3 → P3.S4 → P4.S1 → P5.S1 → P5.S2 → P5.S3 → P6.S1 → P6.S3 → P6.S4 (profit). The launch path then runs P6.S3 → P7.S1 → P9.S7a → P9.S7b → P10.S1 → P10.S2 → P10.S3 (the AI lane is the longest tail; start P9.S1/P9.S2 early). The two infrastructure sessions are off the critical path but gate it: **P1.S6** (platform plumbing) must merge before P3.S2, P3.S4 and P5.S1 — start it right after P1.S1, in parallel with P1.S2–S5 (P1.S1 → P1.S6 is one L session against P1.S5 → P2.S1 on the critical path, so it has about one session of slack); **P3.S5** (staging) must merge before P8.S9 and, through P10.S1, before P10.S3 — start it right after P3.S2. P0.S2a (now L, then split into three L sessions because its plan measured ≈ 13.7 h; P0.S2a-3 runs in parallel with P0.S2a-2) and P3.S4 (now L) lengthen the critical path by about 5.5 h. After P3.S4 the work fans out widely (P4, P5 carriers, P8 builder, P9 integrations all run in parallel lanes). P10 starts only when every P1–P9 session is merged.
+**Critical path (core COD loop, 17 sessions):** P0.S1 → P0.S2a-1 → P0.S2a-2 → P0.S2b-1 → P0.S2b-2 → P0.S2b-3 → P0.S2b-4 → P0.S2b-5 → P0.S2b-6 → P1.S1 → P1.S5 → P2.S1 → P2.S4 → P3.S3 → P3.S4 → P4.S1 → P5.S1 → P5.S2 → P5.S3 → P6.S1 → P6.S3 → P6.S4 (profit). The launch path then runs P6.S3 → P7.S1 → P9.S7a → P9.S7b → P10.S1 → P10.S2 → P10.S3 (the AI lane is the longest tail; start P9.S1/P9.S2 early). The two infrastructure sessions are off the critical path but gate it: **P1.S6** (platform plumbing) must merge before P3.S2, P3.S4 and P5.S1 — start it right after P1.S1, in parallel with P1.S2–S5 (P1.S1 → P1.S6 is one L session against P1.S5 → P2.S1 on the critical path, so it has about one session of slack); **P3.S5** (staging) must merge before P8.S9 and, through P10.S1, before P10.S3 — start it right after P3.S2. P0.S2a (now L, then split into three L sessions because its plan measured ≈ 13.7 h; P0.S2a-3 runs in parallel with P0.S2a-2) and P3.S4 (now L) lengthen the critical path by about 5.5 h. After P3.S4 the work fans out widely (P4, P5 carriers, P8 builder, P9 integrations all run in parallel lanes). P10 starts only when every P1–P9 session is merged.
 
 **Parallel-safe rule:** two sessions may run at once only if each owns separate plugin folders/app routes listed in its brief and neither modifies a shared file (root `vendure-config.ts`, shared types package) beyond appending its own registration line. Merge conflicts on those registration lines are expected and trivial; resolve by keeping both lines.
 
