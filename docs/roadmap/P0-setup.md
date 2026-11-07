@@ -4,7 +4,7 @@
 
 **Exit criteria (from README):** Repo builds; CI green on a PR; ADRs merged; `apps/server` + `apps/storefront` + plugin template run locally; all issues/milestones exist.
 
-**Session order:** strictly serial. P0.S1 → P0.S2a → P0.S2b. No parallel lanes. P0.S1's own PR is the first PR in the repo and doubles as the test of the branch-protection rules. P0.S2a (decisions + throw-away spikes) is reviewed and merged **before** any scaffolding is written, so a wrong base decision costs one small PR, not the whole skeleton.
+**Session order:** P0.S1 → P0.S2a-1 → (P0.S2a-2 ∥ P0.S2a-3) → P0.S2b. The only parallel lane is P0.S2a-2 with P0.S2a-3. P0.S1's own PR is the first PR in the repo and doubles as the test of the branch-protection rules. P0.S2a (decisions + throw-away spikes) is reviewed and merged **before** any scaffolding is written, so a wrong base decision costs one small PR, not the whole skeleton.
 
 Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -88,13 +88,23 @@ link and stop without merging. Never handle GitHub tokens: ask me to run `gh aut
 
 ## P0.S2a — Architecture ADRs & spikes
 
+> **Split into three sessions** (roadmap mutation, 2026-11-07): the executable plan `plans/P0.S2a-plan.md` measured ≈ 13.7 h against an L budget. This section stays the **shared spec** for all three; each part does the plan tasks listed below, writes its own plan `plans/P0.S2a-<n>-plan.md` (copying those tasks from `plans/P0.S2a-plan.md`), its own handoff `handoff/P0.S2a-<n>.md` and one PR.
+>
+> | Part | Title | Branch | Issue | Prerequisites | Plan tasks | Acceptance criteria owned (list below) |
+> |---|---|---|---|---|---|---|
+> | **P0.S2a-1** | ADRs 0001–0010 & spikes A/B | `docs/p0-s2a-adrs` | #2 (renamed) | P0.S1 | 0–4, partial 9 (index lists 0011–0016 as pending), 10, 11 | ADRs 0001, 0003–0005, 0007–0010 written; 0002 and 0006 written as `Proposed` (gated on spikes C/F); 0001 confirmation; 0010 answers (a)–(e) + path; 0004/0009 intake order evidence; docs-only diff |
+> | **P0.S2a-2** | Scale spikes C/D (ADRs 0002, 0013, 0016) | `docs/p0-s2a2-scale-spikes` | new | P0.S2a-1 | 0, 5, 6, 9, 10, 11 | 0002 names entities + mechanism with spike C numbers; spikes C and D recorded with pass/fail and fallbacks; 0013, 0016 written; docs-only diff |
+> | **P0.S2a-3** | Search, cache & latency spikes E/F/G | `docs/p0-s2a3-search-cache-spikes` | new | P0.S2a-1 | 0, 7, 8, 9, 10, 11 | spikes E and F recorded with pass/fail and fallbacks (F f/g and G pending if access is missing); 0006 evidence; 0011, 0012, 0014, 0015 written; docs-only diff |
+>
+> P0.S2a-2 and P0.S2a-3 may run in parallel: they own different ADR files and only both append rows to `docs/adr/README.md` (keep both on conflict); they must use separate scratch folders and host ports. "P0.S2a" elsewhere in the docs means all three parts. Kickoff: use the prompt at the end of this section with the part's ID, branch and plan file.
+
 | Field | Value |
 |---|---|
 | **Goal** | Sixteen ADRs that settle the base decisions (repo layout, tenancy, ids, pricing→order totals, i18n, storefront, branding, auth, order lifecycle, dashboard host, hosting, edge/TLS, process model and queues, search, observability, data lifecycle), each backed where risky by a throw-away spike, merged before any scaffolding. |
-| **Branch** | `docs/p0-s2a-adrs` |
-| **GitHub issue** | `P0.S2a Architecture ADRs & spikes` (label `phase-0`, milestone `P0 Setup`) |
-| **Prerequisites** | P0.S1 merged. |
-| **Parallel-safe** | No. Owns `docs/adr/` only. Spike code lives in a scratch folder **outside** the repo and is never committed. |
+| **Branch** | per part (table above) |
+| **GitHub issue** | per part: `P0.S2a-1 ADRs 0001–0010 & spikes A/B`, `P0.S2a-2 Scale spikes C/D (ADRs 0002, 0013, 0016)`, `P0.S2a-3 Search, cache & latency spikes E/F/G` (label `phase-0`, milestone `P0 Setup`) |
+| **Prerequisites** | per part (table above). |
+| **Parallel-safe** | Only P0.S2a-2 with P0.S2a-3. Owns `docs/adr/` only. Spike code lives in a scratch folder **outside** the repo and is never committed. |
 | **Model / size** | Opus · L |
 | **External needs** | Docker Desktop (Postgres, Valkey/Redis, PgBouncer, Meilisearch images for the spikes). Spike F's Cloudflare checks need a staging zone on the user's Cloudflare account and spike G needs probe access (Globalping/RIPE Atlas or volunteer devices); until provided, record those items as "pending" in the ADR and re-run them in P3.S5 (F) or before P10.S3 (G). No other credentials. |
 
@@ -153,12 +163,14 @@ link and stop without merging. Never handle GitHub tokens: ask me to run `gh aut
 
 **Kickoff prompt**
 ```
-You are running session P0.S2a "Architecture ADRs & spikes" of the roadmap in docs/roadmap/.
+You are running session <P0.S2a-1|P0.S2a-2|P0.S2a-3> "<part title>" of the roadmap in docs/roadmap/
+(one part of P0.S2a "Architecture ADRs & spikes"; see the split table at the top of section P0.S2a).
 Follow CLAUDE.md at the repo root for every step. First write your plan with the writing-plans
-skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
+skill, save it to docs/roadmap/plans/<this session ID>-plan.md by copying your part's tasks from
+docs/roadmap/plans/P0.S2a-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P0-setup.md (section P0.S2a), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch docs/p0-s2a-adrs from an up-to-date main, small Conventional Commits after each step,
+branch <your part's branch> from an up-to-date main, small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Spikes run in a scratch folder outside the repo and are never committed.
@@ -167,7 +179,7 @@ Finish with the end-of-session checklist in CONTRIBUTING.md
 link and stop without merging.
 ```
 
-**Ends with** (from CONTRIBUTING.md): tick inventory rows → write `docs/roadmap/handoff/P0.S2a.md` → commit → push → `gh pr create` → report PR link → stop.
+**Ends with** (from CONTRIBUTING.md): tick inventory rows → write `docs/roadmap/handoff/P0.S2a-<n>.md` → commit → push → `gh pr create` → report PR link → stop.
 
 ---
 
@@ -178,7 +190,7 @@ link and stop without merging.
 | **Goal** | A runnable skeleton per the merged ADRs (server, storefront, dashboard extension path, plugin template, shared package, docker compose, CI green) that every later session builds on. |
 | **Branch** | `feat/p0-s2b-scaffolding` |
 | **GitHub issue** | `P0.S2b Workspace scaffolding` (label `phase-0`, milestone `P0 Setup`) |
-| **Prerequisites** | P0.S2a merged (ADRs accepted by the user). |
+| **Prerequisites** | P0.S2a-1, P0.S2a-2 and P0.S2a-3 merged (ADRs accepted by the user). |
 | **Parallel-safe** | No. Owns `apps/server`, `apps/storefront`, the dashboard app/extension root chosen in ADR 0010, `plugins/_template`, `packages/shared`, root workspace config, `docker-compose.yml`, root README. |
 | **Model / size** | Opus · L |
 | **External needs** | Docker Desktop for Postgres, Redis, Mailpit. No credentials. |
@@ -187,7 +199,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
-- `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P0.S2a.md`, all of `docs/adr/` (0001 layout, 0002 tenancy, 0004/0009 order totals and lifecycle, 0006 storefront, 0010 dashboard host, 0013 process model are binding), `docs/roadmap/README.md` (parallel-safe rule: shared registration files).
+- `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P0.S2a-1.md`, `P0.S2a-2.md`, `P0.S2a-3.md`, all of `docs/adr/` (0001 layout, 0002 tenancy, 0004/0009 order totals and lifecycle, 0006 storefront, 0010 dashboard host, 0013 process model are binding), `docs/roadmap/README.md` (parallel-safe rule: shared registration files).
 - `docs/architecture/system-design.md` §1.2 (containers), §9 (environments); `docs/architecture/tech-stack.md` (versions per layer).
 
 **High-level plan**
