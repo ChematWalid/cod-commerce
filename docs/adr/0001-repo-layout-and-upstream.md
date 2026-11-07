@@ -85,6 +85,7 @@ We adopt **Option C**.
 pnpm smoke: see Evidence, added by the spike run.
 
 - [ ] pnpm install + dev boot on Node 24 (P0.S2a-1 Task 3)
+- [x] Vendure 3.8.1 boots on Node 24 (spike A, 2026-11-07): `node -v` → `v24.22.1`, npm `11.14.1`; `npx @vendure/create@3.8.1 spike --ci --db sqlite`, then `npm run dev` (`vendure dev all`) → `Vendure server (v3.8.1) now running on port 3000`, worker ready, Vite dashboard dev server at `http://localhost:5173/dashboard` with one plugin dashboard extension compiled. npm scaffold, not pnpm (the pnpm item above stays open). SQLite instead of Postgres because Docker was unavailable.
 
 ## Roadmap impact (see `docs/architecture/roadmap-impact.md`)
 - README "Base" paragraph, CONTRIBUTING "Repository" bullets, P0.S1 (already applied), P0.S2b acceptance (`git diff <upstream tag> -- packages/` no longer applies), M.S1 (procedure and acceptance) follow Decision 7.
