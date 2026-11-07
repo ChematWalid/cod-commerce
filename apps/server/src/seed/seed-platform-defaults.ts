@@ -35,6 +35,10 @@ async function superadminContext(app: INestApplicationContext): Promise<RequestC
 /**
  * Brings the platform rows (zone, zero tax, default channel, languages) to their defaults in one
  * transaction. Each step reads first and writes only on a difference, so a second run changes nothing.
+ *
+ * It converges platform invariants on every `migrate`: currency DZD only, prices including tax, languages
+ * exactly ar, fr, en, the zero tax rate and the Algeria zones. A dashboard edit to any of them is reverted
+ * by the next deploy. P1.S1 decides whether these become create-if-missing.
  */
 export async function seedPlatformDefaults(app: INestApplicationContext): Promise<SeedReport> {
   const injector = new Injector(app.get(ModuleRef));
