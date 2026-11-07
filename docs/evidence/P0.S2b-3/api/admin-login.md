@@ -18,6 +18,7 @@ content-type: application/json
 
 HTTP/1.1 200 OK
 vendure-auth-token: [REDACTED]
+cache-control: no-store
 content-type: application/json; charset=utf-8
 set-cookie: session=[REDACTED]; path=/; samesite=lax; httponly
 set-cookie: session.sig=[REDACTED]; path=/; samesite=lax; httponly

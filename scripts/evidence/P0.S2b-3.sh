@@ -64,60 +64,27 @@ wait_healthy() {
   fail "not healthy after 180s:$pending"
 }
 
-# Appends one transcript section to a file.
+# Appends one transcript section to a file (formatting and redaction: scripts/evidence/transcript.mjs).
 #   record <file> <title> <method> <url> <request-body|-> <request-header>...
 # Each request header is "<sent>|<shown>": the first part goes on the wire, the second into the
-# transcript (so a bearer token is shown redacted). Response secrets are redacted below.
+# transcript (so a bearer token is shown redacted). Set DISPLAY_BODY to print a different request
+# body than the one sent (the login password). A connection failure (status 000) aborts the run.
+# Leaves the raw response in $work/h and $work/b.
 record() {
   local file=$1 title=$2 method=$3 url=$4 body=$5
   shift 5
   local -a curl_args=(-sS -X "$method" -D "$work/h" -o "$work/b" --max-time 20)
   local -a shown=()
-  local hdr
+  local hdr status
   for hdr in "$@"; do
-    # "real|shown": the first part goes on the wire, the second into the transcript.
     curl_args+=(-H "${hdr%%|*}")
     shown+=("${hdr#*|}")
   done
   [[ "$body" != - ]] && curl_args+=(--data "$body")
-  local status
   status=$(curl "${curl_args[@]}" -w '%{http_code}' "$url") || status=000
-  SHOWN_HEADERS=$(printf '%s\n' "${shown[@]+"${shown[@]}"}") REQ_BODY=$body TITLE=$title METHOD=$method URL=$url \
-    node -e '
-const fs = require("fs");
-const e = process.env;
-const raw = fs.readFileSync(process.argv[1], "utf8").split(/\r?\n/);
-// The last header block (curl -D appends one per redirect/100-continue).
-const blocks = raw.join("\n").trim().split(/\n\n/);
-const lines = blocks[blocks.length - 1].split("\n");
-const statusLine = lines[0].trim();
-const keep = new Set(["content-type", "cache-control", "vendure-auth-token", "set-cookie", "retry-after"]);
-const headers = [];
-for (const l of lines.slice(1)) {
-  const i = l.indexOf(":");
-  if (i < 0) continue;
-  const name = l.slice(0, i).trim().toLowerCase();
-  let value = l.slice(i + 1).trim();
-  if (!keep.has(name)) continue;
-  if (name === "vendure-auth-token") value = "[REDACTED]";
-  if (name === "set-cookie") value = value.replace(/^([^=;]+)=[^;]*/, "$1=[REDACTED]");
-  headers.push(name + ": " + value);
-}
-let body = fs.readFileSync(process.argv[2], "utf8").trim();
-try {
-  // Per-check durations vary run to run; the evidence is the ok flag and the error.
-  body = JSON.stringify(JSON.parse(body), (k, v) => (k === "durationMs" ? undefined : v), 2);
-} catch {}
-const reqLines = [e.METHOD + " " + e.URL, ...e.SHOWN_HEADERS.split("\n").filter(Boolean)];
-if (e.REQ_BODY !== "-") {
-  let rb = e.REQ_BODY;
-  try { rb = JSON.stringify(JSON.parse(rb), null, 2); } catch {}
-  reqLines.push("", rb);
-}
-const text = "### " + e.TITLE + "\n\n```http\n" + reqLines.join("\n") + "\n\n" + statusLine + "\n" + headers.join("\n") + (body ? "\n\n" + body : "") + "\n```\n\n";
-fs.appendFileSync(process.argv[3], text);
-' "$work/h" "$work/b" "$file"
-  LAST_STATUS=$status
+  [[ "$status" != 000 ]] || fail "$title: no HTTP answer from $url"
+  SHOWN_HEADERS=$(printf '%s\n' "${shown[@]+"${shown[@]}"}") SHOWN_BODY=${DISPLAY_BODY:-$body} \
+    TITLE=$title METHOD=$method URL=$url node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$file"
 }
 
 begin() { # begin <file> <heading> <intro>
@@ -135,20 +102,13 @@ wait_healthy api worker
 
 # --- migrate.md ---------------------------------------------------------------------------
 # Only the migrate.done line: the surrounding lines carry timestamps and driver warnings that change per run.
-excerpt() { # excerpt [docker compose logs args...]
-  docker compose logs --no-color --no-log-prefix "$@" migrate >"$work/mlog"
-  node -e '
-const fs = require("fs");
-const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean);
-const i = lines.map((l) => l.includes("\"event\":\"migrate.done\"")).lastIndexOf(true);
-if (i < 0) process.exit(1);
-const norm = (l) => {
-  try { const o = JSON.parse(l); return JSON.stringify(o, null, 2); } catch { return l; }
-};
-process.stdout.write(norm(lines[i]) + "\n");
-' "$work/mlog"
+done_line() { # done_line [docker compose logs args...]: the last raw migrate.done JSON line
+  docker compose logs --no-color --no-log-prefix "$@" migrate | command grep '"event":"migrate.done"' | command tail -1
 }
-first_excerpt=$(excerpt) || fail "first migrate run logged no migrate.done line"
+pretty_json() { node -e 'console.log(JSON.stringify(JSON.parse(process.argv[1]), null, 2))' "$1"; }
+first_line=$(done_line) || true
+[[ -n "$first_line" ]] || fail "first migrate run logged no migrate.done line"
+first_excerpt=$(pretty_json "$first_line")
 first_code=$(exit_code migrate)
 
 first_start=$(started_at migrate)
@@ -157,12 +117,13 @@ since=$(date -u +%FT%TZ)
 docker compose up -d
 wait_healthy api worker
 [[ $(started_at migrate) != "$first_start" ]] || fail "second up did not run migrate again"
-second_excerpt=$(excerpt --since "$since") || fail "second migrate run logged no migrate.done line"
+second_line=$(done_line --since "$since") || true
+[[ -n "$second_line" ]] || fail "second migrate run logged no migrate.done line"
+second_excerpt=$(pretty_json "$second_line")
 second_code=$(exit_code migrate)
 [[ $first_code == 0 && $second_code == 0 ]] || fail "migrate exit codes $first_code / $second_code"
-node -e 'const r=JSON.parse(process.argv[1]); process.exit(r.migrationsRun.length===0 && r.seed.changes.length===0 ? 0 : 1)' \
-  "$(printf '%s\n' "$second_excerpt" | node -e 'const s=require("fs").readFileSync(0,"utf8"); const i=s.lastIndexOf("\n{\n"); console.log(JSON.stringify(JSON.parse(s.slice(i>=0?i+1:0))))')" ||
-  fail "second migrate run was not a no-op"
+node -e 'const r=JSON.parse(process.argv[1]); process.exit(r.migrationsRun.length===0 && r.seed.changes.length===0 ? 0 : 1)' "$second_line" ||
+  fail "second migrate run was not a no-op: $second_line"
 
 {
   printf '# migrate\n\nThe one-shot `migrate` service runs migrations and the seed before api and worker start. The `migrate.done` line of its container log (the rest is migration SQL and timestamped framework output) and its exit code, taken with `docker inspect`.\n\n'
@@ -196,40 +157,14 @@ json='Content-Type: application/json'
 login_query='mutation Login($username: String!, $password: String!) { login(username: $username, password: $password) { __typename ... on CurrentUser { identifier channels { code } } ... on ErrorResult { errorCode message } } }'
 login_body=$(Q="$login_query" U="$SUPERADMIN_USERNAME" P="$SUPERADMIN_PASSWORD" node -e 'console.log(JSON.stringify({query:process.env.Q,variables:{username:process.env.U,password:process.env.P}}))')
 begin "$out/api/admin-login.md" "Admin API login" "Superadmin login with the \`login\` mutation on \`POST /admin-api\`. The server accepts the session as a cookie or as a bearer token; the token, cookie value and password are redacted by the evidence script."
-# The raw body goes on the wire; the transcript shows the password redacted.
 shown_body=$(Q="$login_query" U="$SUPERADMIN_USERNAME" node -e 'console.log(JSON.stringify({query:process.env.Q,variables:{username:process.env.U,password:"[REDACTED]"}}))')
-{
-  # record() prints the request body it is given, so run the wire request first without a transcript.
-  curl -sS -X POST -D "$work/login.h" -o "$work/login.b" -H "$json" --data "$login_body" "$api/admin-api?languageCode=en" >/dev/null
-}
+# The real body (with the password) goes on the wire; the transcript prints the redacted one.
+DISPLAY_BODY=$shown_body record "$out/api/admin-login.md" "POST /admin-api: login mutation" POST "$api/admin-api?languageCode=en" "$login_body" \
+  "$json|content-type: application/json"
+cp "$work/h" "$work/login.h"
+cp "$work/b" "$work/login.b"
 token=$(command grep -i '^vendure-auth-token:' "$work/login.h" | command head -1 | node -e 'console.log(require("fs").readFileSync(0,"utf8").split(":")[1].trim())')
 [[ -n "$token" ]] || fail "login returned no vendure-auth-token header"
-# Transcript request: the same request again, but with the password redacted in the displayed body.
-# (The shown request would be rejected, so the response section below comes from the real call.)
-cp "$work/login.h" "$work/h"
-cp "$work/login.b" "$work/b"
-SHOWN_HEADERS=$json REQ_BODY=$shown_body TITLE="POST /admin-api: login mutation" METHOD=POST URL="$api/admin-api?languageCode=en" \
-  node -e '
-const fs = require("fs");
-const e = process.env;
-const raw = fs.readFileSync(process.argv[1], "utf8").trim().split(/\n\n/);
-const lines = raw[raw.length - 1].split(/\r?\n/);
-const keep = new Set(["content-type", "vendure-auth-token", "set-cookie"]);
-const headers = [];
-for (const l of lines.slice(1)) {
-  const i = l.indexOf(":");
-  if (i < 0) continue;
-  const name = l.slice(0, i).trim().toLowerCase();
-  let value = l.slice(i + 1).trim();
-  if (!keep.has(name)) continue;
-  if (name === "vendure-auth-token") value = "[REDACTED]";
-  if (name === "set-cookie") value = value.replace(/^([^=;]+)=[^;]*/, "$1=[REDACTED]");
-  headers.push(name + ": " + value);
-}
-const body = JSON.stringify(JSON.parse(fs.readFileSync(process.argv[2], "utf8")), null, 2);
-const reqBody = JSON.stringify(JSON.parse(e.REQ_BODY), null, 2);
-fs.appendFileSync(process.argv[3], "### " + e.TITLE + "\n\n```http\n" + e.METHOD + " " + e.URL + "\ncontent-type: application/json\n\n" + reqBody + "\n\n" + lines[0].trim() + "\n" + headers.join("\n") + "\n\n" + body + "\n```\n\n");
-' "$work/login.h" "$work/login.b" "$out/api/admin-login.md"
 command grep -q '"CurrentUser"' "$work/login.b" || fail "login did not return CurrentUser"
 
 # --- seeded data -------------------------------------------------------------------------
@@ -275,10 +210,13 @@ secret or a token value appears in any output file.
 README
 
 # --- redaction check ---------------------------------------------------------------------
-cookie_secret=${COOKIE_SECRET:-}
 cookies=$(command grep -i '^set-cookie:' "$work/login.h" | node -e 'for (const l of require("fs").readFileSync(0,"utf8").split("\n")) { const m = /^set-cookie:\s*[^=]+=([^;\s]+)/i.exec(l); if (m) console.log(m[1]); }')
-for secret in "$SUPERADMIN_PASSWORD" "$token" "$cookie_secret" $cookies; do
-  [[ -z "$secret" ]] && continue
+# Every secret must be non-empty (an empty needle matches nothing and would pass silently).
+[[ -n "${SUPERADMIN_PASSWORD:-}" ]] || fail "SUPERADMIN_PASSWORD is empty; the redaction check would be vacuous"
+[[ -n "${COOKIE_SECRET:-}" ]] || fail "COOKIE_SECRET is empty; the redaction check would be vacuous"
+[[ -n "$token" ]] || fail "login token is empty; the redaction check would be vacuous"
+[[ -n "$cookies" ]] || fail "login returned no Set-Cookie values; the redaction check would be vacuous"
+for secret in "$SUPERADMIN_PASSWORD" "$COOKIE_SECRET" "$token" $cookies; do
   if command grep -rqF -- "$secret" "$out"; then
     fail "a raw secret appears in $out"
   fi
