@@ -103,6 +103,12 @@ describe('ci.yml', () => {
     );
   });
 
+  it('starts only the data services by name, never the server image', () => {
+    expect(stepsRun(jobOf(ci, 'data-services'))).toContain(
+      'docker compose up -d --wait postgres pgbouncer valkey garage mailpit',
+    );
+  });
+
   it('fails the gate unless every needed job succeeded', () => {
     expect(gateScript(ci)).toMatch(/!= "success"/);
   });

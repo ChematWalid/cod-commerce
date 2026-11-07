@@ -65,7 +65,8 @@ jobs:
       - uses: ./.github/actions/setup
       # Placeholders only; no credentials are involved.
       - run: cp .env.example .env
-      - run: docker compose up -d --wait
+      # Only the data services: the server image is built and checked by scripts/verify-stack.sh.
+      - run: docker compose up -d --wait postgres pgbouncer valkey garage mailpit
       - run: scripts/check-data-services.sh
       - name: Check compose portability
         shell: bash

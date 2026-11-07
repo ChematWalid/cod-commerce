@@ -19,7 +19,7 @@ Every session follows [CLAUDE.md](CLAUDE.md): plan first and save it under `docs
 ```bash
 git config core.hooksPath .githooks   # local hooks: block AI attribution in commits and direct pushes to main
 cp .env.example .env                  # placeholders only; never commit real values
-docker compose up -d --wait           # data services
+docker compose up -d --wait postgres pgbouncer valkey garage mailpit   # data services only
 pnpm install
 ```
 
@@ -36,10 +36,11 @@ Run from the repo root.
 | `pnpm build` | Builds every package (via turbo, one at a time) |
 | `pnpm dev` | Runs the dev tasks |
 | `scripts/check-data-services.sh` | Verifies the running data services end to end |
+| `scripts/verify-stack.sh` | Builds the server image and verifies the whole stack under project `cod-verify` (`--bad-password` checks the env failure path) |
 | `scripts/ci/ci-duration.sh` | Prints the p90 of recent CI runs on `main` (needs `gh`) |
 
 ## Data services
-`docker compose up -d` starts them. Every published port binds to `127.0.0.1` unless `DATA_BIND_ADDR` says otherwise.
+`docker compose up -d --wait postgres pgbouncer valkey garage mailpit` starts them (a bare `docker compose up -d` also builds the server image and starts `migrate`, `api` and `worker`). Every published port binds to `127.0.0.1` unless `DATA_BIND_ADDR` (or `API_BIND_ADDR` for the api) says otherwise.
 
 | Service | Host port |
 |---|---|
