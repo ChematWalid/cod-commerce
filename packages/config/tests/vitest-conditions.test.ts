@@ -1,6 +1,6 @@
 import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, matchesGlob, resolve } from 'node:path';
 import { createVitest } from 'vitest/node';
 import { afterAll, describe, expect, it } from 'vitest';
 import { unitPreset } from '../vitest/unit';
@@ -55,5 +55,22 @@ describe('vendure preset export conditions', () => {
     expect(serverConditions?.[0]).toBe('@cod/source');
     expect(serverConditions).toEqual(unitPreset.ssr?.resolve?.conditions?.filter((c) => c !== 'module'));
     expect(serverConditions).not.toContain('module');
+  });
+});
+
+describe('unit preset test files', () => {
+  const include = unitPreset.test?.include ?? [];
+  const exclude = unitPreset.test?.exclude ?? [];
+  const runsAsUnit = (file: string): boolean =>
+    include.some((glob) => matchesGlob(file, glob)) && !exclude.some((glob) => matchesGlob(file, glob));
+
+  it.each(['tests/rule.test.ts', 'tests/dashboard/page.test.tsx'])('runs %s as a unit test', (file) => {
+    expect(runsAsUnit(file)).toBe(true);
+  });
+
+  it.each(
+    ['int', 'e2e', 'browser', 'smoke'].flatMap((suffix) => [`tests/x.${suffix}.test.ts`, `tests/x.${suffix}.test.tsx`]),
+  )('leaves %s to its own runner', (file) => {
+    expect(runsAsUnit(file)).toBe(false);
   });
 });

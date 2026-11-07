@@ -1,0 +1,5 @@
+// no-floating-promises needs type information: it is only reported when the project service found a tsconfig.
+export const Page = (): null => {
+  Promise.resolve(1);
+  return null;
+};
