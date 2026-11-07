@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: build-test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No package.json yet (P0.S2b adds it)
+        if: hashFiles('package.json') == ''
+        run: echo "Skipping Node steps until P0.S2b"
+
+      - uses: actions/setup-node@v4
+        if: hashFiles('package.json') != ''
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        if: hashFiles('package.json') != ''
+        run: corepack enable
+
+      - name: Install
+        if: hashFiles('package.json') != ''
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        if: hashFiles('package.json') != ''
+        run: pnpm run --if-present lint
+
+      - name: Typecheck
+        if: hashFiles('package.json') != ''
+        run: pnpm run --if-present typecheck
+
+      - name: Test
+        if: hashFiles('package.json') != ''
+        run: pnpm run --if-present test
+
+      - name: Build
+        if: hashFiles('package.json') != ''
+        run: pnpm run --if-present build
+
+  attribution-check:
+    name: attribution-check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject AI attribution in commits, PR title and body
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pattern='co-authored-by:.*(claude|anthropic)|generated with .*claude'
+          found=0
+          if git log --format=%B "$BASE_SHA..$HEAD_SHA" | grep -iE "$pattern"; then
+            echo "::error::AI attribution found in commit messages"
+            found=1
+          fi
+          if printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | grep -iE "$pattern"; then
+            echo "::error::AI attribution found in the PR title or body"
+            found=1
+          fi
+          exit $found
