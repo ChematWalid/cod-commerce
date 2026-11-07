@@ -12,55 +12,93 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+
+# Every job stays well inside the ADR 0001 §6 budget (whole pipeline <= 10 minutes).
 jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+      # Whole-repo architecture and pin checks, run directly so turbo never replays a cached pass.
+      - run: pnpm run test:arch
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm typecheck
+
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm test
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: NODE_OPTIONS=--max-old-space-size=2048 pnpm build
+
+  data-services:
+    name: data-services
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Placeholders only; CI uses no secrets.
+      - run: cp .env.example .env
+      - run: docker compose up -d --wait
+      - run: scripts/check-data-services.sh
+      - run: docker compose config --format json | node scripts/check-compose-portability.mjs
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  # Required status check (branch protection): green only when every job above succeeded.
   build-test:
     name: build-test
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_HOST_AUTH_METHOD: trust # throwaway CI database, no password
-          POSTGRES_DB: app_test
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres" --health-interval 5s
-          --health-timeout 5s --health-retries 10
+    timeout-minutes: 2
+    needs: [lint, typecheck, unit, build, data-services]
+    if: always()
+    permissions:
+      actions: read
+      contents: read
     env:
-      DATABASE_URL: postgres://postgres@localhost:5432/app_test
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: No package.json yet (P0.S2b adds it)
-        if: hashFiles('package.json') == ''
-        run: echo "Skipping Node steps until P0.S2b"
-
-      - uses: actions/setup-node@v4
-        if: hashFiles('package.json') != ''
-        with:
-          node-version: 24
-
-      - name: Enable corepack
-        if: hashFiles('package.json') != ''
-        run: corepack enable
-
-      - name: Install
-        if: hashFiles('package.json') != ''
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        if: hashFiles('package.json') != ''
-        run: pnpm run --if-present lint
-
-      - name: Typecheck
-        if: hashFiles('package.json') != ''
-        run: pnpm run --if-present typecheck
-
-      - name: Test
-        if: hashFiles('package.json') != ''
-        run: pnpm run --if-present test
-
-      - name: Build
-        if: hashFiles('package.json') != ''
-        run: pnpm run --if-present build
+      - name: Require every job to have succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "A required job finished with: $result" >&2
+              exit 1
+            fi
+          done
+      - name: Report wall-clock time
+        if: always()
+        run: |
+          started=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .run_started_at)
+          seconds=$(( $(date +%s) - $(date -d "$started" +%s) ))
+          echo "CI wall-clock: ${seconds}s (budget 600s)" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$seconds" -gt 600 ]; then
+            echo "::warning::CI took ${seconds}s, above the 600s budget (ADR 0001)"
+          fi
