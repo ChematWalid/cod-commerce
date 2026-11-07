@@ -51,13 +51,14 @@ const stepsRun = (job: Job): string[] =>
 const gateScript = (workflow: Workflow): string => stepsRun(jobOf(workflow, 'build-test')).join('\n');
 
 describe('ci.yml', () => {
-  it('has the six work jobs and the build-test gate', () => {
+  it('has the seven work jobs and the build-test gate', () => {
     expect(Object.keys(ci.jobs).sort()).toEqual([
       'build',
       'build-test',
       'data-services',
       'integration',
       'lint',
+      'stack',
       'typecheck',
       'unit',
     ]);
@@ -72,6 +73,7 @@ describe('ci.yml', () => {
       'data-services',
       'integration',
       'lint',
+      'stack',
       'typecheck',
       'unit',
     ]);
@@ -109,6 +111,20 @@ describe('ci.yml', () => {
     );
   });
 
+  it('builds the image and checks the single-VPS stack, then the bad-password variant', () => {
+    const stack = jobOf(ci, 'stack');
+    const runs = stepsRun(stack);
+
+    expect(stack['timeout-minutes']).toBeLessThanOrEqual(10);
+    expect(runs).toContain('cp .env.example .env');
+    expect(runs).toContain('scripts/verify-stack.sh');
+    expect(runs).toContain('scripts/verify-stack.sh --bad-password');
+    expect(runs.indexOf('cp .env.example .env')).toBeLessThan(runs.indexOf('scripts/verify-stack.sh'));
+    expect(runs.indexOf('scripts/verify-stack.sh')).toBeLessThan(
+      runs.indexOf('scripts/verify-stack.sh --bad-password'),
+    );
+  });
+
   it('fails the gate unless every needed job succeeded', () => {
     expect(gateScript(ci)).toMatch(/!= "success"/);
   });
@@ -135,7 +151,7 @@ describe('ci.yml', () => {
   });
 
   it('sets every work job up through the composite action', () => {
-    for (const name of ['lint', 'typecheck', 'unit', 'build', 'data-services', 'integration']) {
+    for (const name of ['lint', 'typecheck', 'unit', 'build', 'data-services', 'integration', 'stack']) {
       expect(
         jobOf(ci, name).steps?.map((step) => step.uses),
         name,
