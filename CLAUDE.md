@@ -46,8 +46,37 @@ These rules are mandatory and override defaults. If a rule conflicts with a requ
 - Use **`superpowers:verification-before-completion`**: never claim something works without running it and showing the output.
 - If the session will clearly not fit, stop at a clean commit, write the handoff, and propose a split (`P{n}.S{m}a/b`) per the roadmap's mutation protocol.
 
+## 3a. Engineering principles (user, 2026-11-07)
+Goal: adding or changing a feature touches one place and stays easy. These rules bind every session and are enforced by lint and tests where noted.
+1. **Feature = plugin.** Each feature lives in `plugins/<name>/` with a fixed layout, copied from `plugins/_template`:
+   - `domain/`: pure logic and types, no Nest, TypeORM or Vendure imports;
+   - `application/`: use-case services;
+   - `infrastructure/`: TypeORM, HTTP, queue and carrier adapters;
+   - `api/`: GraphQL resolvers, REST controllers, DTOs;
+   - `dashboard/`: the ADR 0010 path;
+   - `tests/`.
+2. **Dependency direction.** `api` → `application` → `domain`. `infrastructure` implements ports (interfaces) declared in `domain`/`application`. A plugin never imports another plugin's internals; it uses `packages/shared` contracts (types, event names, queue names) or domain events.
+3. **Small, single-purpose units.** One reason to change per module; functions ≤ ~40 lines; files ≤ ~300 lines; early returns over nesting; no `utils`/`helpers` dumping grounds; no god services.
+4. **Names over comments.** Comments explain *why* (business rule, workaround), never *what*. Public functions and endpoints get TSDoc.
+5. **No magic values.** Constants live in `packages/shared` or the plugin's `domain/constants.ts`. Config is typed and schema-validated at boot, failing fast.
+6. **Strong types.** No `any` (use `unknown` + narrowing). DTOs and types are named and reusable, not inline shapes. Immutable updates by default.
+7. **Open for extension.** New carriers, payment methods, offer kinds, notification channels and spam rules are new adapters behind an existing port or registry, never a new branch in a shared `switch`.
+8. **Errors are never silent.** No empty `catch`. Log with context through the structured logger, or rethrow a typed domain error. One error mapping per API surface.
+9. **Tenant safety by construction.** Only `TenantRepository` / `tenantQuery` touch tenant tables (ADR 0002).
+10. **Tests.**
+    - Domain logic is unit-tested without Nest or the DB.
+    - Every endpoint has an integration test.
+    - Every entity or endpoint has a two-business isolation test.
+    - Tests are named by behaviour and follow Arrange, Act, Assert.
+11. **Enforced, not just written.** ESLint layer and boundary rules (`eslint-plugin-boundaries` or `import/no-restricted-paths`), `complexity`, `max-lines` and `max-lines-per-function`, plus an architecture test, all fail CI.
+12. **Deviations are explicit.** Any exception to these rules needs an ADR or a dated note in the handoff, never a silent one.
+13. **Workflow.**
+    - Use subagents for independent work: research, parallel drafting, reviews.
+    - A fresh agent reviews every plan before it is committed.
+14. **Meta-rule.** When the user states a lasting working principle, record it here via a `docs/claude-md-*` PR.
+
 ## 4. Git & GitHub (details in CONTRIBUTING.md)
-- One branch per session; never push to `main`; never force-push; never merge PRs — **the user reviews and squash-merges**.
+- One branch per session; never push to `main`; never force-push. **Working agreement (user, 2026-11-07):** the agent squash-merges its own PR once CI is green; anything that is the user's decision is asked as a multiple-choice question (the user is the decider).
 - PRs via `gh pr create` using `.github/pull_request_template.md`, title in Conventional Commits form, body with `Closes #<session issue>`.
 - **No Claude attribution, ever:** no `Co-Authored-By: Claude …` trailer, no "Generated with Claude Code" line in commits, PR titles or bodies; never add Claude as a collaborator. (Enforced by `.claude/settings.json`, `.githooks/commit-msg`, and the CI `attribution-check`.) Don't bypass hooks (`--no-verify`).
 - Commits are authored by the user's identity (`ChematWalid`).
@@ -64,12 +93,13 @@ These rules are mandatory and override defaults. If a rule conflicts with a requ
 3. Make sure the plan file reflects what was actually done (tick its checkboxes).
 4. Commit `docs(roadmap): handoff P{n}.S{m}` → `git push -u origin <branch>` → `gh pr create`.
 5. Wait for CI (`gh pr checks --watch`); fix failures with new commits.
-6. Report the PR link and a short summary to the user, then **stop. Do not merge.**
+6. Squash-merge once CI is green (working agreement, §4), then report the PR link and a short summary to the user. Ask the user (multiple choice) to accept any new ADRs.
 
 ## 7. Environment
-- Windows 11; PowerShell and Git Bash. Bash scripts and hooks must use **LF** line endings and be committed with the exec bit (`git update-index --chmod=+x`).
-- Node 24; package manager and scripts are defined in P0.S2b (see root `README.md`).
-- Use `gh … --jq` instead of `jq`. After installing tools with `winget`, open a new terminal.
+- Arch Linux, zsh, native Docker (moved from Windows 11 on 2026-11-07). The interactive shell aliases `sed`, `cut`, `tr`, `grep`, `cat` and `ls` to other tools: in agent commands use `command <tool>` or a `bash` script. Never `pkill -f`/`kill $(pgrep -f …)` with a pattern that appears in your own command line.
+- Bash scripts and hooks use **LF** line endings and are committed with the exec bit (`git update-index --chmod=+x`).
+- Node 24 (`~/.mise/installs/node/24.22.1/bin`; the host default is Node 26); package manager and scripts are defined in P0.S2b (see root `README.md`).
+- Use `gh … --jq` instead of `jq`.
 
 ## 8. Changing the roadmap or these rules
 - Roadmap changes (split/insert/skip sessions, dependency changes) go through their own PR on a `docs/roadmap-<change>` branch.

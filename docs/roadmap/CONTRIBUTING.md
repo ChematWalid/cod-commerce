@@ -55,7 +55,7 @@
   - **How it was verified**: tests run (with counts), browser checks, screenshots
   - **Follow-ups**: anything deferred, with the session that should take it
   - **Handoff**: link to `docs/roadmap/handoff/P{n}.S{m}.md`
-- The session **does not merge**. The user reviews; merge only when CI is green and the user approves; **squash merge**; delete the branch after merge.
+- **Working agreement (user, 2026-11-07):** the session squash-merges its own PR once CI is green and deletes the branch; the user decides scope, ADR acceptance, accounts and money through multiple-choice questions (CLAUDE.md §4).
 
 ## CI
 GitHub Actions on every PR: install → lint → typecheck → unit/integration tests (Postgres service container) → build, plus the `attribution-check` job. From P3.S5, a merge to `main` also builds the image and deploys staging. E2E (Playwright) is added in P10.S1.
@@ -71,7 +71,7 @@ GitHub Actions on every PR: install → lint → typecheck → unit/integration 
 3. Commit (`docs(roadmap): handoff P{n}.S{m}`).
 4. `git push -u origin <branch>`.
 5. `gh pr create` with the template.
-6. Report the PR link to the user and **stop** (no merge).
+6. Squash-merge once CI is green (working agreement), report the PR link to the user, and stop.
 
 ## Verification standard
 - Unit tests for services and pure logic (pricing, spam rules, quotas, ledger) — required.
