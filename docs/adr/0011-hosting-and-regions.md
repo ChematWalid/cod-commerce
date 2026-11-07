@@ -95,6 +95,8 @@ Sources: docs.digitalocean.com/products/databases/postgresql/ (limits, pricing, 
 
 ## Addendum (2026-11-07): Garage replaces MinIO
 
+**Status:** Accepted (2026-11-07), approved by the user in the P0.S2b-1 review.
+
 **Decision (user, 2026-11-07).** Private objects are stored in **Garage** (Deuxfleurs; S3-compatible, self-hosted), not in MinIO. This covers exports, documents and labels, imports, and `archive/`. It changes Decision 2 ("S3-compatible storage (MinIO)"); everything else in this ADR stays as it is. MinIO is dropped everywhere: in dev, CI and production.
 
 **Why.**
