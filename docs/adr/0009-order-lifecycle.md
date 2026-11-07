@@ -147,3 +147,24 @@ UNSCOPED email contrast {"idInA":3,"idInB":3,"same":true,"nameNow":"Y B","channe
 Two distinct Customer rows with the business-scoped email; one shared, overwritten row with the unscoped one. (Every Customer is also joined to the default channel, as Vendure does for all channel-aware entities.)
 
 **Not verified here**: `Modifying` round trips, `PartiallyShipped`/`PartiallyDelivered` with two fulfilments, concurrency of the order-number counter on Postgres, behaviour through the Admin API resolvers (the script calls services directly).
+
+### Addendum: P0.S2a-2 re-run on Postgres (2026-11-07)
+
+Spike B was rebuilt from the excerpts above (the original code was never committed) and re-run on **Postgres 17** (Arch Linux, native Docker, Node 24.22.1, `@vendure/core` 3.8.1, `pg` 8.23.1), database `spikeb`, scratch app outside the repo. The order-number counter is the per-business row of Decision 6 (`business_order_sequence(business_id PK, last)`, `UPDATE … SET last = last + 1 WHERE business_id = $1 RETURNING last` inside the intake transaction), not the per-channel custom field of the SQLite run.
+
+- **Happy path:** identical to the SQLite run: `state=Pending`, `totalWithTax 9100` (raw DB value 9100, precision 0), tax 0, `orderPlacedAt` set, stock 10/2 and 10/1, proration −278/−222, `orderNumber #00000001`.
+- **Transition table:** every row above reproduced, including the final stock 6/2 8/1 and the `CANCEL_CHECK=on` block. Two details:
+  - `getNextOrderStates('Shipped')` returns `Delivered` twice (Vendure 3.8.1 merges our `Shipped → [Delivered, Returned]` with the default without de-duplicating). P4.S2 lists only `Returned` as our addition for `Shipped`, and the M.S1 snapshot test de-duplicates.
+  - After Vendure's `cancelOrder()` (lines at quantity 0, stock already released by Vendure), our `→ Cancelled` hook must skip zero-quantity lines so stock is never released twice.
+- **Same phone, two businesses:** two Customer rows with the business-scoped email, one shared and renamed row with the unscoped one, as in the SQLite run.
+- **Counter concurrency (new):** business A ran 200 intakes plus 20 that throw after taking a number (20 in parallel), and business B ran 25 intakes (5 in parallel) alone, during A's load and after it. TypeORM pool `extra.max = 30`, because 25 concurrent transactions exceed node-postgres's default of 10. Same result in 3 runs: per business the numbers are exactly 1..N, with 0 duplicates and 0 gaps. Rolled-back intakes burned no number; there were 0 deadlocks, 0 serialization errors and 0 retries. A sample from the last run: business 101 numbered 1..204, business 202 numbered 1..76.
+- **Where one business's burst actually waits:** Postgres session sampling, one sample per second during A's load:
+
+  | Count | Wait | Statement |
+  |---|---|---|
+  | 890 | `Lock/tuple` | Vendure `StockLevelService` `SELECT … FOR UPDATE` on the stock row |
+  | 114 | `Lock/transactionid` | the same statement |
+  | 16 | `IO/WalSync` | `COMMIT` |
+  | 0 | — | any wait on `business_order_sequence` |
+
+  So intakes of one business buying the **same variant** serialise on Vendure's stock-level row lock, which is taken at `ArrangingPayment → PaymentAuthorized` and held until commit. Decision 6's "serialise on that row only" is true for the counter but not the first queue a hot product hits. Intakes of different businesses never waited on each other's rows (B's latency rose only from shared CPU and disk). On a loaded single-disk dev host, A's p95 was 14–144 s under a 20-way burst on one variant, so absolute numbers are not representative. **Consequence for P3.S4:** keep the intake transaction short; take the order number and do the stock allocation last, just before commit; and load-test a single-product flash sale in P3.S5.
