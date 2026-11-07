@@ -97,7 +97,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U cod -d cod"
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U cod -d cod"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12

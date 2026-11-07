@@ -58,7 +58,9 @@ services:
     ports:
       - '${DATA_BIND_ADDR:-127.0.0.1}:${POSTGRES_HOST_PORT:-5433}:5432'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      # Over TCP: the image's first-boot initdb server listens on the unix socket only, so a socket check
+      # would report healthy before clients on the network can connect.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 12

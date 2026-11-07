@@ -230,6 +230,17 @@ describe('ci.yml', () => {
     expect(services['valkey']?.image).toBe(compose.services['valkey']?.image);
   });
 
+  // A unix-socket check passes while the image's first-boot initdb server runs without TCP (R3-10).
+  it('checks postgres health over TCP in compose and in the CI service container', () => {
+    const compose = parse(read('docker-compose.yml')) as {
+      services: Record<string, { healthcheck?: { test?: string[] } }>;
+    };
+    const services = jobOf(ci, 'integration').services as Record<string, { options?: string }> | undefined;
+
+    expect(compose.services['postgres']?.healthcheck?.test?.join(' ')).toContain('pg_isready -h 127.0.0.1 -p 5432 ');
+    expect(services?.['postgres']?.options).toContain('pg_isready -h 127.0.0.1 -p 5432 ');
+  });
+
   it('leaves the attribution check unchanged', () => {
     const attribution = parse(read('.github/workflows/attribution.yml')) as Workflow;
 
