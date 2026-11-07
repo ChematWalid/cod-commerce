@@ -10,7 +10,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 |---|---|---|---|---|
 | P0.S1 Repo, GitHub & CI | #1 | — | #66, #68 | **merged** |
 | Roadmap split of P0.S2a into -1/-2/-3 | — | `docs/roadmap-split-p0-s2a` | **#71** (base `main`) | open, waiting for user review/merge |
-| **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | stacked PR (base `docs/roadmap-split-p0-s2a`) | **work done**, open; clean-copy spike re-run not done |
+| **P0.S2a-1** ADRs 0001–0010 & spikes A/B | #2 | `docs/p0-s2a-adrs` | **#72** (stacked, base `docs/roadmap-split-p0-s2a`) | **work done**, open; clean-copy spike re-run not done |
 | **P0.S2a-2** Scale spikes C/D (ADRs 0002 evidence, 0013, 0016) | #69 | `docs/p0-s2a2-scale-spikes` | — | **not started** (needs Docker) |
 | **P0.S2a-3** Search/cache/latency spikes E/F/G (ADRs 0006 evidence, 0011, 0012, 0014, 0015) | #70 | `docs/p0-s2a3-search-cache-spikes` | — | **not started** (needs Docker) |
 | **P0.S2b** Workspace scaffolding | #3 | `feat/p0-s2b-scaffolding` | — | not started (needs all P0.S2a parts merged) |
