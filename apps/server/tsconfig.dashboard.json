@@ -1,0 +1,15 @@
+// Path aliases of the dashboard build. The Vite plugin uses the first tsconfig*.json with `paths` above
+// src/vendure-config.ts; each plugin's dashboard/tsconfig.json carries the same aliases for its own files.
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "paths": {
+      "@/gql": ["./src/gql/graphql.ts"],
+      "@/vdb/*": ["./node_modules/@vendure/dashboard/src/lib/*"]
+    }
+  },
+  "include": ["src/gql/**/*.ts"]
+}

@@ -4,5 +4,5 @@
     "noEmit": true
   },
   "include": ["**/*.ts", "**/*.mts"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", "src/gql", "tests/browser"]
 }

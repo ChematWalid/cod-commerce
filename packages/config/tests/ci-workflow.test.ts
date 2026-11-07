@@ -262,4 +262,11 @@ describe('Dockerfile', () => {
   it('installs only the server closure', () => {
     expect(dockerfile).toContain('pnpm install --frozen-lockfile --filter "@cod/server..."');
   });
+
+  it('builds the dashboard after the server, with placeholders the image does not keep (M5)', () => {
+    const envLines = dockerfile.split('\n').filter((line) => line.startsWith('ENV '));
+
+    expect(dockerfile.indexOf('run build:dashboard')).toBeGreaterThan(dockerfile.indexOf('run build\n'));
+    expect(envLines.join('\n')).not.toMatch(/DASHBOARD_BUILD_|change-me|DATABASE_URL|SECRET/);
+  });
 });
