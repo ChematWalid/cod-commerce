@@ -64,6 +64,11 @@ describe('loadEnv', () => {
     expect(issuePaths(failureOf({ TZ: 'Europe/Paris' }))).toContain('TZ');
   });
 
+  it('accepts only the log levels Vendure knows', () => {
+    expect(loadEnv({ ...valid, LOG_LEVEL: 'debug' }).LOG_LEVEL).toBe('debug');
+    expect(issuePaths(failureOf({ LOG_LEVEL: 'trace' }))).toContain('LOG_LEVEL');
+  });
+
   it('rejects ROLE=storefront and a missing DATABASE_URL_DIRECT', () => {
     const paths = issuePaths(failureOf({ ROLE: 'storefront', DATABASE_URL_DIRECT: undefined }));
 

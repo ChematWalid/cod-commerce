@@ -10,6 +10,12 @@ export type ServerRole = (typeof SERVER_ROLES)[number];
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
+/** The log levels `LOG_LEVEL` accepts, mapped one to one onto Vendure's. */
+export const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const;
+
+/** One of the {@link LOG_LEVELS}. */
+export type LogLevelName = (typeof LOG_LEVELS)[number];
+
 /** Environments in which a placeholder secret is a misconfiguration. */
 const PLACEHOLDER_FORBIDDEN_ENVS: readonly string[] = ['staging', 'production'];
 
@@ -29,7 +35,7 @@ const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const sat
 const MAX_PORT = 65535;
 const MIN_COOKIE_SECRET_LENGTH = 32;
 const MIN_SUPERADMIN_PASSWORD_LENGTH = 8;
-const DEFAULT_LOG_LEVEL = 'info';
+const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
 const DEFAULT_S3_REGION = 'garage';
 
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
@@ -87,7 +93,7 @@ const baseSchema = z.object({
     .default('true')
     .transform((value) => value === 'true'),
   CORS_ORIGINS: csvList,
-  LOG_LEVEL: z.string().min(1).default(DEFAULT_LOG_LEVEL),
+  LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;

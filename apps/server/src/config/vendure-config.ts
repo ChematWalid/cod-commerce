@@ -1,0 +1,41 @@
+import { DefaultLogger, LogLevel, type VendureConfig } from '@vendure/core';
+import { buildAuthConfig } from './auth.config';
+import { buildDbConfig } from './db.config';
+import { DzdMoneyStrategy } from './dzd-money-strategy';
+import type { AppEnv, LogLevelName, ServerRole } from './env';
+import { buildJobQueueConfig } from './job-queue.config';
+import { buildPlugins } from './plugins.config';
+
+/** The api sits behind exactly one reverse proxy, whose `X-Forwarded-For` hop it trusts. */
+const TRUSTED_PROXY_HOPS = 1;
+
+const VENDURE_LOG_LEVELS: Record<LogLevelName, LogLevel> = {
+  error: LogLevel.Error,
+  warn: LogLevel.Warn,
+  info: LogLevel.Info,
+  verbose: LogLevel.Verbose,
+  debug: LogLevel.Debug,
+};
+
+/**
+ * The Vendure config of one server role. It only composes the per-concern builders. The built-in health
+ * checks stay empty because `PlatformHealthPlugin` serves the probes (ADR 0013).
+ */
+export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig {
+  return {
+    apiOptions: {
+      port: env.API_PORT,
+      trustProxy: TRUSTED_PROXY_HOPS,
+      cors: { origin: env.CORS_ORIGINS, credentials: true },
+    },
+    authOptions: buildAuthConfig(env),
+    // Payment handlers arrive with their plugins; Vendure requires the list.
+    paymentOptions: { paymentMethodHandlers: [] },
+    dbConnectionOptions: buildDbConfig(env, role),
+    entityOptions: { moneyStrategy: new DzdMoneyStrategy() },
+    jobQueueOptions: buildJobQueueConfig(env, role),
+    systemOptions: { healthChecks: [] },
+    logger: new DefaultLogger({ level: VENDURE_LOG_LEVELS[env.LOG_LEVEL] }),
+    plugins: buildPlugins(env, role),
+  };
+}
