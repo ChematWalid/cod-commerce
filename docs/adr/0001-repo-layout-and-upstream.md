@@ -82,9 +82,10 @@ We adopt **Option C**.
 
 ## Evidence
 
-pnpm smoke: see Evidence, added by the spike run.
-
-- [ ] pnpm install + dev boot on Node 24 (P0.S2a-1 Task 3)
+- [x] pnpm install + dev boot on Node 24 (P0.S2a-1, 2026-11-07): copied the spike B scratch app (fresh `@vendure/create@3.8.1 --ci --db sqlite` scaffold + one plugin) to `%TEMP%\p0s2a\spike-pnpm` without `node_modules` (`tar --exclude=node_modules`), deleted `package-lock.json`, `npx -y pnpm@10 install` → pnpm `10.34.9`, Node `v24.22.1`, 1 193 packages resolved, `Done in 2m 6.2s`. Two problems, both fixed in `package.json` only:
+  1. **Build scripts blocked by default** (pnpm 10): `Ignored build scripts: @apollo/protobufjs, bcrypt, better-sqlite3, esbuild (0.25.12, 0.28.2), re2`; the first boot failed with `Could not locate the bindings file` for `better_sqlite3.node`. The scaffold's npm-only `"allowScripts"` field is ignored by pnpm. Fix: `"pnpm": { "onlyBuiltDependencies": ["@apollo/protobufjs", "bcrypt", "better-sqlite3", "esbuild", "re2", "sharp"] }`, then `pnpm install` ran the scripts (`Done in 7.6s`). In the monorepo this list goes in `pnpm-workspace.yaml` (`onlyBuiltDependencies`).
+  2. **Undeclared dependency hidden by npm hoisting**: `vendure dev server` type-checks and failed with `src/migrations/1794020409139-init.ts(1,47): error TS2307: Cannot find module 'typeorm'` (the generated migration imports `typeorm`, which is only a transitive dependency of `@vendure/core`). Fix: `pnpm add typeorm@0.3.31` (the version `@vendure/core@3.8.1` resolved). No `shamefully-hoist`/`public-hoist-pattern` needed.
+  - Then `npx pnpm@10 exec vendure dev server` with `VENDURE_SERVER_PORT=3200` → `Vendure server (v3.8.1) now running on port 3200`; an unauthenticated Admin API query answered `FORBIDDEN` (server up). Stopped afterwards. One non-blocking warning: unmet peer `cssnano@^8.0.0` (found 7.1.9) under `@vendure/email-plugin > mjml > htmlnano`. SQLite instead of Postgres (Docker unavailable); the `pg` driver was not installed in this smoke.
 - [x] Vendure 3.8.1 boots on Node 24 (spike A, 2026-11-07): `node -v` → `v24.22.1`, npm `11.14.1`; `npx @vendure/create@3.8.1 spike --ci --db sqlite`, then `npm run dev` (`vendure dev all`) → `Vendure server (v3.8.1) now running on port 3000`, worker ready, Vite dashboard dev server at `http://localhost:5173/dashboard` with one plugin dashboard extension compiled. npm scaffold, not pnpm (the pnpm item above stays open). SQLite instead of Postgres because Docker was unavailable.
 
 ## Roadmap impact (see `docs/architecture/roadmap-impact.md`)
