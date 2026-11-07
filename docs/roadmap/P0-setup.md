@@ -113,6 +113,7 @@ link and stop without merging. Never handle GitHub tokens: ask me to run `gh aut
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - docs/roadmap/plans/P0.S2a-plan.md (executable plan)
+- docs/roadmap/plans/P0.S2a-2-plan.md (executable plan, part 2)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P0.S1.md` (recorded Vendure version, plan/protection outcome), `docs/roadmap/README.md` ("Shared contracts", parallel-safe rule).
 - docs/architecture/README.md, system-design.md, infrastructure.md and the drafts in docs/adr/drafts/ (start from them: verify, edit with spike evidence, move to docs/adr/NNNN-*.md). Drafts exist for 0001, 0002, 0004, 0006 and 0008–0016; 0003, 0005 and 0007 are written fresh. `docs/architecture/roadmap-impact.md` lists the spike definitions and the roadmap edits already applied.
 - `docs/repo-evaluation.md` "Recommendation: Vendure" (extension points: `PaymentMethodHandler`, `FulfillmentHandler`, `ShippingCalculator`, custom `OrderProcess`) and "Builder plan whatever the base".
