@@ -7,7 +7,12 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
 
-# optional native accelerators; the pure-JS fallbacks are used
+# Reviewed native install scripts that must not run:
+# - optional accelerators whose pure-JS fallbacks are used (@apollo/protobufjs, msgpackr-extract);
+# - bcrypt 6 ships N-API prebuilds that node-gyp-build loads at runtime, so its install step is not needed;
+# - re2 is optional and only used by @vendure/core's SQLite REGEXP helper (we run Postgres).
 ignoredBuiltDependencies:
   - '@apollo/protobufjs'
+  - bcrypt
   - msgpackr-extract
+  - re2
