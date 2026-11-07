@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { createVitest } from 'vitest/node';
 import { afterAll, describe, expect, it } from 'vitest';
 import { unitPreset } from '../vitest/unit';
+import { vendurePreset } from '../vitest/vendure';
 
 const fixtures = resolve(__dirname, 'fixtures/conditions');
 const scratch = mkdtempSync(join(tmpdir(), 'cod-vitest-conditions-'));
@@ -44,4 +45,15 @@ describe('unit preset export conditions', () => {
     expect(result.failures).toEqual([]);
     expect(result.passed).toBe(true);
   }, 60_000);
+});
+
+describe('vendure preset export conditions', () => {
+  it('keeps the unit preset source conditions first, without the bundler-only module condition', () => {
+    const serverConditions = vendurePreset.ssr?.resolve?.conditions;
+
+    expect(vendurePreset.resolve?.conditions).toEqual(unitPreset.resolve?.conditions);
+    expect(serverConditions?.[0]).toBe('@cod/source');
+    expect(serverConditions).toEqual(unitPreset.ssr?.resolve?.conditions?.filter((c) => c !== 'module'));
+    expect(serverConditions).not.toContain('module');
+  });
 });

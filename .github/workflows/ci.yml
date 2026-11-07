@@ -81,12 +81,60 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Same images as docker-compose.yml (a test pins them equal). Valkey's default eviction policy is already noeviction.
+    services:
+      postgres:
+        image: postgres:17.11@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f
+        env:
+          POSTGRES_USER: cod
+          POSTGRES_PASSWORD: change-me-pg
+          POSTGRES_DB: cod
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cod -d cod"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      valkey:
+        image: valkey/valkey:8.1.11@sha256:8f836008e0986c36adf50da714c7060cf689dbb335f61fe077939d90fa650809
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    # Non-secret placeholders only; no PgBouncer in CI, so both database URLs point at Postgres.
+    env:
+      DATABASE_URL: postgres://cod:change-me-pg@localhost:5432/cod
+      DATABASE_URL_DIRECT: postgres://cod:change-me-pg@localhost:5432/cod
+      REDIS_URL: redis://localhost:6379
+      TZ: UTC
+      APP_ENV: test
+      ROLE: api
+      COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
+      SUPERADMIN_USERNAME: superadmin
+      SUPERADMIN_PASSWORD: change-me-admin
+      S3_ENDPOINT: http://localhost:3900
+      S3_BUCKET_PRIVATE: cod-private
+      S3_ACCESS_KEY: GK000000000000000000000000
+      S3_SECRET_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm test:integration
+
   # Required status check (branch protection): green only when every job above succeeded.
   build-test:
     name: build-test
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [lint, typecheck, unit, build, data-services]
+    needs: [lint, typecheck, unit, build, data-services, integration]
     if: always()
     permissions:
       actions: read

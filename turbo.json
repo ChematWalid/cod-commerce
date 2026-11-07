@@ -8,7 +8,25 @@
     "typecheck": {},
     "test": {},
     "test:integration": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": [
+        "APP_ENV",
+        "ROLE",
+        "TZ",
+        "DATABASE_URL",
+        "DATABASE_URL_DIRECT",
+        "DB_POOL_MAX",
+        "REDIS_URL",
+        "WORKER_ACTIVE_QUEUES",
+        "API_PORT",
+        "WORKER_HEALTH_PORT",
+        "COOKIE_SECRET",
+        "SUPERADMIN_USERNAME",
+        "SUPERADMIN_PASSWORD",
+        "S3_*",
+        "CORS_ORIGINS",
+        "LOG_LEVEL"
+      ]
     },
     "dev": {
       "persistent": true,

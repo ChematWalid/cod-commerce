@@ -4,7 +4,10 @@ packages:
   - plugins/*
 
 onlyBuiltDependencies:
+  - '@swc/core'
+  - bcrypt
   - esbuild
+  - re2
 
 # optional native accelerators; the pure-JS fallbacks are used
 ignoredBuiltDependencies:

@@ -2,6 +2,8 @@ export * from './errors/domain-error';
 export * from './events/domain-event-names';
 export * from './features/feature-keys';
 export * from './features/require-feature';
+export * from './platform/database-url';
+export * from './platform/health';
 export * from './platform/platform-defaults';
 export * from './statuses/order-statuses';
 export * from './statuses/tracking-statuses';

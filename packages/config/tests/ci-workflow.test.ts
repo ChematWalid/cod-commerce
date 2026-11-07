@@ -18,6 +18,7 @@ interface Job {
   needs?: string[];
   if?: string;
   env?: Record<string, string>;
+  services?: Record<string, { image?: string }>;
   'timeout-minutes'?: number;
   steps?: Step[];
 }
@@ -50,15 +51,30 @@ const stepsRun = (job: Job): string[] =>
 const gateScript = (workflow: Workflow): string => stepsRun(jobOf(workflow, 'build-test')).join('\n');
 
 describe('ci.yml', () => {
-  it('has the five work jobs and the build-test gate', () => {
-    expect(Object.keys(ci.jobs).sort()).toEqual(['build', 'build-test', 'data-services', 'lint', 'typecheck', 'unit']);
+  it('has the six work jobs and the build-test gate', () => {
+    expect(Object.keys(ci.jobs).sort()).toEqual([
+      'build',
+      'build-test',
+      'data-services',
+      'integration',
+      'lint',
+      'typecheck',
+      'unit',
+    ]);
   });
 
   it('keeps build-test as the required status check, depending on every other job', () => {
     const gate = jobOf(ci, 'build-test');
 
     expect(gate.name).toBe('build-test');
-    expect([...(gate.needs ?? [])].sort()).toEqual(['build', 'data-services', 'lint', 'typecheck', 'unit']);
+    expect([...(gate.needs ?? [])].sort()).toEqual([
+      'build',
+      'data-services',
+      'integration',
+      'lint',
+      'typecheck',
+      'unit',
+    ]);
     expect(gate.if).toBe('always()');
     expect(gate.env?.['GH_TOKEN']).toBe('${{ github.token }}');
   });
@@ -113,7 +129,7 @@ describe('ci.yml', () => {
   });
 
   it('sets every work job up through the composite action', () => {
-    for (const name of ['lint', 'typecheck', 'unit', 'build', 'data-services']) {
+    for (const name of ['lint', 'typecheck', 'unit', 'build', 'data-services', 'integration']) {
       expect(
         jobOf(ci, name).steps?.map((step) => step.uses),
         name,
@@ -173,6 +189,23 @@ describe('ci.yml', () => {
     const timing = (jobOf(ci, 'build-test').steps ?? []).find((step) => step.run?.includes('GITHUB_STEP_SUMMARY'));
 
     expect(timing?.['continue-on-error']).toBe(true);
+  });
+
+  it('runs the integration tests against postgres and valkey service containers', () => {
+    const integration = jobOf(ci, 'integration');
+    const postgres = integration.services?.['postgres']?.image ?? '';
+
+    expect(Object.keys(integration.services ?? {}).sort()).toEqual(['postgres', 'valkey']);
+    expect(postgres).toMatch(/^postgres:17\.\d+@sha256:[0-9a-f]{64}$/);
+    expect(stepsRun(integration)).toContain('pnpm test:integration');
+  });
+
+  it('uses the compose images for the CI service containers', () => {
+    const compose = parse(read('docker-compose.yml')) as { services: Record<string, { image: string }> };
+    const services = jobOf(ci, 'integration').services ?? {};
+
+    expect(services['postgres']?.image).toBe(compose.services['postgres']?.image);
+    expect(services['valkey']?.image).toBe(compose.services['valkey']?.image);
   });
 
   it('leaves the attribution check unchanged', () => {
