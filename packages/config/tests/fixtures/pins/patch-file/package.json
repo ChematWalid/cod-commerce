@@ -1,0 +1,6 @@
+{
+  "name": "patched",
+  "dependencies": {
+    "@vendure/core": "3.8.1"
+  }
+}

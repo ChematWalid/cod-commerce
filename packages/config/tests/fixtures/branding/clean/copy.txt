@@ -1,0 +1,1 @@
+A neutral storefront for cash-on-delivery stores.

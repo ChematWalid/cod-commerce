@@ -92,3 +92,59 @@ None offers managed PostgreSQL, Redis/Valkey or Kubernetes; none documents an AP
 Sources: docs.digitalocean.com/products/databases/postgresql/ (limits, pricing, connection pools, features), digitalocean.com/pricing/managed-databases, docs.digitalocean.com/products/databases/valkey/, api.scaleway.com product catalog.
 
 **Connectivity**: Cloudflare PoPs in Algiers, Annaba, Constantine and Oran (cloudflare.com/network). IPv6 adoption in Algeria under 1 % (ISOC Pulse, 3P). Which ISPs reach the local PoPs, and domestic routing, are unverified (spike G).
+
+## Addendum (2026-11-07): Garage replaces MinIO
+
+**Status:** Accepted (2026-11-07), approved by the user in the P0.S2b-1 review.
+
+**Decision (user, 2026-11-07).** Private objects are stored in **Garage** (Deuxfleurs; S3-compatible, self-hosted), not in MinIO. This covers exports, documents and labels, imports, and `archive/`. It changes Decision 2 ("S3-compatible storage (MinIO)"); everything else in this ADR stays as it is. MinIO is dropped everywhere: in dev, CI and production.
+
+**Why.**
+- **MinIO can no longer be pulled.** On 2026-11-07, `docker manifest inspect minio/minio:<tag>` answered `denied: requested access to the resource is denied`, and quay.io has no current tags. Running MinIO would mean building it from source or buying a third-party image.
+- **Garage is actively maintained.** v2.5.0 is current on Docker Hub as `dxflrs/garage`. It is designed for self-hosting on small, heterogeneous nodes across sites. That matches both the single-Algerian-VPS minimum and the second-provider requirement.
+
+**How it runs (P0.S2b).**
+- **Image and config:** `dxflrs/garage:v2.5.0`, pinned by digest; `replication_factor = 1`; `db_engine = "sqlite"`; the S3 API on port 3900; `s3_region = "garage"`; path-style addressing.
+- **Secrets and data:** secrets come from env (`GARAGE_RPC_SECRET`, `GARAGE_ADMIN_TOKEN`). Data and metadata live on named volumes.
+- **First boot:** `garage server --single-node --default-bucket` creates the layout, the app key (`GARAGE_DEFAULT_ACCESS_KEY`/`_SECRET_KEY`) and the private bucket. It is idempotent across restarts (verified on 2026-11-07).
+- **App settings:** `S3_ENDPOINT`, `S3_ACCESS_KEY` (`GK` + 24 hex), `S3_SECRET_KEY` (64 hex), `S3_BUCKET_PRIVATE`, `S3_REGION=garage`, `S3_FORCE_PATH_STYLE=true`.
+- **Verified** with `@aws-sdk/client-s3` 3.1164.0 and the default checksum settings: PUT, GET and a presigned GET return 200; an anonymous GET returns 403.
+
+**Features we rely on**
+
+| Need | Garage v2.5.0 | Source |
+|---|---|---|
+| Presigned URLs | **Supported** | [S3 compatibility](https://garagehq.deuxfleurs.fr/documentation/reference-manual/s3-compatibility/); trial 2026-11-07 |
+| Multipart upload | **Supported** | same page |
+| CORS | **Supported** | same page |
+| Path-style and vhost-style | **Supported**; we use path-style | same page |
+| SSE-C | **Supported**; bucket-default encryption is **not** | same page |
+| Bucket policies | **Not supported** | same page |
+| ACLs | **Not supported** | same page |
+| Object lock | **Not supported** | same page |
+| Versioning | **Not supported** | same page |
+| Lifecycle rules | **Partial**: only `Expiration` and `AbortIncompleteMultipartUpload`, with the prefix inside `Filter` | same page |
+
+**Consequences.**
+- **Access control is per key and per bucket,** not through policies or ACLs. Buckets are private by default.
+  - Prefix-level rules (for example, per-tenant prefixes) are enforced in our code and when we issue presigned URLs.
+  - Least privilege means one key per bucket and per role, set up in P3.S5. P0 uses a single app key with `RWO` on the private bucket.
+- **Retention:** use lifecycle `Expiration` with a `Filter` prefix, or delete in our own code. Set `AbortIncompleteMultipartUpload` on the private bucket (P3.S5).
+- **No object lock and no versioning.** A deleted or overwritten object is gone from every replica. Backups that must survive ransomware or operator error therefore rely on the second provider's controls: pgBackRest writes to a repository there, or copies are pulled from there using credentials the primary does not hold. This is decided in P3.S5.
+- **Growth:**
+  - Garage places each copy in a **different zone**. The recommended minimum is 3 nodes, and usable capacity is bounded by the smallest zone ([real-world cookbook](https://garagehq.deuxfleurs.fr/documentation/cookbook/real-world/)).
+  - Every node must reach every other node on the RPC port, either over public IPv6 or over a mesh VPN.
+  - Replication is not a backup.
+  - Leaving the single-node layout means dropping `--single-node` and running `layout assign` and `apply` by hand.
+  - Changing `replication_factor` on a live cluster has **not been verified**; the P3.S5 runbook tests it on staging.
+- **Manual setup.** This runbook, from `--help` of v2.5.0, is also the Task 2 fallback:
+  ```bash
+  garage status
+  garage layout assign -z <zone> -c <capacity> <node-id>
+  garage layout apply --version <n+1>
+  garage key import -n cod-app --yes <GK…> <secret>
+  garage bucket create cod-private
+  garage bucket allow --read --write --owner cod-private --key cod-app
+  ```
+- **Consistency:** the default `consistency_mode = "consistent"` gives read-after-write. Keep it.
+- **Upgrades:** pin by digest, and read the Garage release notes on each bump, as for Vendure in M.S1.

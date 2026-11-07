@@ -1,0 +1,3 @@
+import { Injectable } from '@vendure/core';
+
+export const decorator = Injectable;

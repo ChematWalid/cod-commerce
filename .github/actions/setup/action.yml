@@ -1,0 +1,39 @@
+name: Setup
+description: Node, pnpm, a frozen install, the ignored-builds check and the turbo cache.
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      # Reads the version from the root package.json `packageManager`.
+
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Install
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Fail on ignored dependency builds
+      shell: bash
+      # pnpm 10 records skipped lifecycle scripts in node_modules/.modules.yaml (JSON syntax). An unreviewed
+      # build script must be allow-listed or ignored explicitly in pnpm-workspace.yaml.
+      run: |
+        node -e '
+          const modules = JSON.parse(require("node:fs").readFileSync("node_modules/.modules.yaml", "utf8"));
+          const pending = modules.pendingBuilds ?? [];
+          const ignored = modules.ignoredBuilds ?? [];
+          if (pending.length > 0 || ignored.length > 0) {
+            console.error("Unreviewed dependency builds:", [...pending, ...ignored].join(", "));
+            process.exit(1);
+          }
+        '
+
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .turbo
+        key: turbo-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+        restore-keys: |
+          turbo-${{ runner.os }}-${{ github.job }}-
