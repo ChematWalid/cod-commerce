@@ -126,7 +126,7 @@ node -e 'const r=JSON.parse(process.argv[1]); process.exit(r.migrationsRun.lengt
   fail "second migrate run was not a no-op: $second_line"
 
 {
-  printf '# migrate\n\nThe one-shot `migrate` service runs migrations and the seed before api and worker start. The `migrate.done` line of its container log (the rest is migration SQL and timestamped framework output) and its exit code, taken with `docker inspect`.\n\n'
+  printf '# migrate\n\nThe one-shot `migrate` service runs migrations and the seed before api and worker start. The `migrate.done` line of its container log (the rest is timestamped framework output and migration progress; queries are no longer logged) and its exit code, taken with `docker inspect`.\n\n'
   printf '### First start (empty database)\n\n```text\n%s\n```\n\nContainer exit code (`docker inspect -f {{.State.ExitCode}}`): `%s`\n\n' "$first_excerpt" "$first_code"
   printf '### Second start (`docker compose up -d` again)\n\nNothing left to do: `migrationsRun` and `seed.changes` are empty.\n\n```text\n%s\n```\n\nContainer exit code: `%s`\n\n' "$second_excerpt" "$second_code"
 } >"$out/api/migrate.md"

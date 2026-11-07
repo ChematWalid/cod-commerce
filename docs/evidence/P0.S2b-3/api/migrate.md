@@ -1,6 +1,6 @@
 # migrate
 
-The one-shot `migrate` service runs migrations and the seed before api and worker start. The `migrate.done` line of its container log (the rest is migration SQL and timestamped framework output) and its exit code, taken with `docker inspect`.
+The one-shot `migrate` service runs migrations and the seed before api and worker start. The `migrate.done` line of its container log (the rest is timestamped framework output and migration progress; queries are no longer logged) and its exit code, taken with `docker inspect`.
 
 ### First start (empty database)
 
