@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Reject AI attribution in commit messages (see docs/roadmap/CONTRIBUTING.md).
+# Same pattern as the CI attribution-check job.
+msg_file="$1"
+pattern='co-authored-by:.*(claude|anthropic)|generated with .*claude'
+if grep -iqE "$pattern" "$msg_file"; then
+  echo "Commit rejected: AI attribution is not allowed (see docs/roadmap/CONTRIBUTING.md)." >&2
+  exit 1
+fi
+exit 0
