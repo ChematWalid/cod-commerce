@@ -28,7 +28,7 @@
 | [P10 Hardening & launch](P10-hardening.md) | E2E suite, security and performance, deployment | E2E COD loop green in CI; tenant-isolation and authz tests pass; production deploy with wildcard subdomains + TLS | 3 |
 | Maintenance | Bump the pinned `@vendure/*` version (migrations, patches, changelog review) | Runs whenever a Vendure minor is released | M.S1 (repeatable) |
 
-**Total: 64 sessions + repeatable upstream sync.**
+**Total: 66 sessions + repeatable upstream sync.**
 
 ## Session list
 
@@ -37,8 +37,10 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | ID | Title | Branch | Depends on | Parallel-safe with | Model | Size | 🔑 |
 |---|---|---|---|---|---|---|---|
 | P0.S1 | Repo, GitHub & CI setup | `chore/p0-s1-repo-setup` | — | — | S | M | gh auth (you) |
-| P0.S2a | Architecture ADRs & spikes | `docs/p0-s2a-adrs` | P0.S1 | — | O | L | (spike F/G: Cloudflare staging zone, latency probes; pending until provided) |
-| P0.S2b | Workspace scaffolding | `feat/p0-s2b-scaffolding` | P0.S2a | — | O | L | |
+| P0.S2a-1 | ADRs 0001–0010 & spikes A/B | `docs/p0-s2a-adrs` | P0.S1 | — | O | L | |
+| P0.S2a-2 | Scale spikes C/D (ADRs 0002, 0013, 0016) | `docs/p0-s2a2-scale-spikes` | P0.S2a-1 | P0.S2a-3 | O | L | |
+| P0.S2a-3 | Search, cache & latency spikes E/F/G | `docs/p0-s2a3-search-cache-spikes` | P0.S2a-1 | P0.S2a-2 | O | L | (spike F/G: Cloudflare staging zone, latency probes; pending until provided) |
+| P0.S2b | Workspace scaffolding | `feat/p0-s2b-scaffolding` | P0.S2a-1, P0.S2a-2, P0.S2a-3 | — | O | L | |
 | P1.S1 | Business→Stores tenancy | `feat/p1-s1-tenancy` | P0.S2b | — | O | L | |
 | P1.S2 | Accounts & auth | `feat/p1-s2-auth` | P1.S1 | P1.S3, P1.S5, P1.S6 | S | M | 🔑 Google/Facebook OAuth (mock) |
 | P1.S3 | Permissions catalog & roles | `feat/p1-s3-rbac` | P1.S1 | P1.S2, P1.S5, P1.S6 | O | L | |
@@ -109,7 +111,9 @@ GitHub issue title = `P{n}.S{m} <Title>` (e.g. `P1.S1 Business→Stores tenancy`
 ```mermaid
 flowchart LR
   subgraph P0
-    P0S1[P0.S1 repo] --> P0S2a[P0.S2a ADRs+spikes] --> P0S2b[P0.S2b scaffolding]
+    P0S1[P0.S1 repo] --> P0S2a1[P0.S2a-1 ADRs+spikes A/B]
+    P0S2a1 --> P0S2a2[P0.S2a-2 spikes C/D] --> P0S2b[P0.S2b scaffolding]
+    P0S2a1 --> P0S2a3[P0.S2a-3 spikes E/F/G] --> P0S2b
   end
   P0S2b --> P1S1[P1.S1 tenancy]
   P1S1 --> P1S2[P1.S2 auth]
@@ -208,13 +212,13 @@ flowchart LR
   P10S2 --> P10S3[P10.S3 deploy]
 ```
 
-**Critical path (core COD loop, 16 sessions):** P0.S1 → P0.S2a → P0.S2b → P1.S1 → P1.S5 → P2.S1 → P2.S4 → P3.S3 → P3.S4 → P4.S1 → P5.S1 → P5.S2 → P5.S3 → P6.S1 → P6.S3 → P6.S4 (profit). The launch path then runs P6.S3 → P7.S1 → P9.S7a → P9.S7b → P10.S1 → P10.S2 → P10.S3 (the AI lane is the longest tail; start P9.S1/P9.S2 early). The two infrastructure sessions are off the critical path but gate it: **P1.S6** (platform plumbing) must merge before P3.S2, P3.S4 and P5.S1 — start it right after P1.S1, in parallel with P1.S2–S5 (P1.S1 → P1.S6 is one L session against P1.S5 → P2.S1 on the critical path, so it has about one session of slack); **P3.S5** (staging) must merge before P8.S9 and, through P10.S1, before P10.S3 — start it right after P3.S2. P0.S2a (now L) and P3.S4 (now L) lengthen the critical path by about 2 h. After P3.S4 the work fans out widely (P4, P5 carriers, P8 builder, P9 integrations all run in parallel lanes). P10 starts only when every P1–P9 session is merged.
+**Critical path (core COD loop, 17 sessions):** P0.S1 → P0.S2a-1 → P0.S2a-2 → P0.S2b → P1.S1 → P1.S5 → P2.S1 → P2.S4 → P3.S3 → P3.S4 → P4.S1 → P5.S1 → P5.S2 → P5.S3 → P6.S1 → P6.S3 → P6.S4 (profit). The launch path then runs P6.S3 → P7.S1 → P9.S7a → P9.S7b → P10.S1 → P10.S2 → P10.S3 (the AI lane is the longest tail; start P9.S1/P9.S2 early). The two infrastructure sessions are off the critical path but gate it: **P1.S6** (platform plumbing) must merge before P3.S2, P3.S4 and P5.S1 — start it right after P1.S1, in parallel with P1.S2–S5 (P1.S1 → P1.S6 is one L session against P1.S5 → P2.S1 on the critical path, so it has about one session of slack); **P3.S5** (staging) must merge before P8.S9 and, through P10.S1, before P10.S3 — start it right after P3.S2. P0.S2a (now L, then split into three L sessions because its plan measured ≈ 13.7 h; P0.S2a-3 runs in parallel with P0.S2a-2) and P3.S4 (now L) lengthen the critical path by about 5.5 h. After P3.S4 the work fans out widely (P4, P5 carriers, P8 builder, P9 integrations all run in parallel lanes). P10 starts only when every P1–P9 session is merged.
 
 **Parallel-safe rule:** two sessions may run at once only if each owns separate plugin folders/app routes listed in its brief and neither modifies a shared file (root `vendure-config.ts`, shared types package) beyond appending its own registration line. Merge conflicts on those registration lines are expected and trivial; resolve by keeping both lines.
 
 ## Estimate
-- 64 sessions = 3 S + 23 M + 38 L ≈ **195 hours of agent work** at S 1.5 h, M 2.5 h, L 3.5 h (range **≈ 163–227 h** with S 1–2 h, M 2–3 h, L 3–4 h; M.S1 extra, ~1 h each time). Changes since the 62-session plan: P0.S2a M → L (spikes C–G), P3.S4 M → L (Turnstile, read model, outbox, intake spool), new P1.S6 (L) and P3.S5 (L).
-- At 2–3 sessions per day (5-hour usage windows, plus your reviews) and running parallel lanes after P1.S1 and P3: **about 7–10 weeks calendar** (P1.S6 and P3.S5 run in parallel lanes). The core COD loop (through P6.S4) is 16 serial sessions (3 M + 13 L ≈ 53 h) ≈ **3–4 weeks**.
+- 66 sessions = 3 S + 23 M + 40 L ≈ **202 hours of agent work** at S 1.5 h, M 2.5 h, L 3.5 h (range **≈ 169–235 h** with S 1–2 h, M 2–3 h, L 3–4 h; M.S1 extra, ~1 h each time). Changes since the 62-session plan: P0.S2a M → L (spikes C–G), then split into P0.S2a-1/-2/-3 (L each; its executable plan measured ≈ 13.7 h, see `plans/P0.S2a-plan.md`), P3.S4 M → L (Turnstile, read model, outbox, intake spool), new P1.S6 (L) and P3.S5 (L).
+- At 2–3 sessions per day (5-hour usage windows, plus your reviews) and running parallel lanes after P1.S1 and P3: **about 7–10 weeks calendar** (P1.S6 and P3.S5 run in parallel lanes). The core COD loop (through P6.S4) is 17 serial sessions (3 M + 14 L ≈ 57 h) ≈ **3–4 weeks**.
 
 ## Shared contracts (who owns what across sessions)
 These are the cross-session seams; the owning session defines them, later sessions only consume or register.
@@ -222,7 +226,7 @@ These are the cross-session seams; the owning session defines them, later sessio
 |---|---|---|
 | Per-business order number sequence service | P1.S1 | P3.S4 assigns at acceptance; P4.S5 assigns on spam release |
 | `requireFeature()` / limit checks (no-op until P9.S1) | P0.S2b (stub) → P9.S1 (real) | Every gated session calls it when it builds the feature (finance, tracked items, team seats, landing pages per product, active offers). P9.S1 wires gates for sessions already merged; later sessions call it themselves |
-| Repo layout, dashboard code path (`plugins/<name>/dashboard/` or the ADR 0010 mapping), order lifecycle and quote→order-total strategy | P0.S2a (ADR 0001, 0010, 0009, 0004) | every session; P3.S4 (pending state, totals), P4.S1 (full process) |
+| Repo layout, dashboard code path (`plugins/<name>/dashboard/` or the ADR 0010 mapping), order lifecycle and quote→order-total strategy | P0.S2a-1 (ADR 0001, 0010, 0009, 0004) | every session; P3.S4 (pending state, totals), P4.S1 (full process) |
 | Pricing/quote engine + HMAC quote token (`PricingService.quote()`, `verifyQuote()`) | P2.S4 | P3.S3 endpoints, P3.S4 verify, P4.S3 upsell/reprice, P8.S7 order-form block |
 | `UnitPriceResolver` port (default: variant price) | P2.S4 | P2.S2 registers the pack resolver; whichever of the two merges second wires the registration line |
 | Shipping-quote function | P3.S1 | P2.S4 (injected), P3.S3 |
@@ -264,7 +268,7 @@ When a coverage row lists several sessions, each brief states which part it does
 | Session | What you need to provide | Mock used until then |
 |---|---|---|
 | P0.S1 | `gh auth login --scopes workflow` (you run it); GitHub Pro (or Team) if you want real branch protection on a private repo | Free plan: pre-push hook + "never push to main" rule (P0.S1 step 7) |
-| P0.S2a | Cloudflare staging zone (spike F edge items); latency probes from Algerian networks (spike G) | Items recorded as "pending" in ADR 0006/0011; re-run in P3.S5 (F) and before P10.S3 (G) |
+| P0.S2a-3 | Cloudflare staging zone (spike F edge items); latency probes from Algerian networks (spike G) | Items recorded as "pending" in ADR 0006/0011; re-run in P3.S5 (F) and before P10.S3 (G) |
 | P1.S2 | Google & Facebook OAuth apps | Mocked OAuth provider in tests; buttons hidden behind a flag |
 | P1.S4, P7.S3 | SMTP for real email | Mailpit in docker-compose |
 | P3.S4 | Cloudflare Turnstile site/secret key | Cloudflare's published Turnstile test keys (always-pass / always-fail) |
