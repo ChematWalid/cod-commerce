@@ -18,6 +18,9 @@ export class MigrationFailedError extends Error {
   }
 }
 
+/** Read through a call: TypeScript would otherwise keep the narrowing of the last assignment across an await. */
+const currentExitCode = (): typeof process.exitCode => process.exitCode;
+
 /**
  * Vendure's `runMigrations` reports a failed migration only by setting `process.exitCode`, and drift only
  * through a diagnostic, so both are turned into an error here instead of letting the seed run on a bad schema.
@@ -25,9 +28,12 @@ export class MigrationFailedError extends Error {
 async function runMigrationsOrThrow(config: ReturnType<typeof buildVendureConfig>): Promise<string[]> {
   const diagnostics: MigrationDiagnostic[] = [];
   const exitCodeBefore = process.exitCode;
+  // Cleared first, so a failure is seen even when an earlier error already left exitCode at 1.
+  process.exitCode = undefined;
   const migrationsRun = await runMigrations(config, { onDiagnostic: (diagnostic) => diagnostics.push(diagnostic) });
-  if (process.exitCode !== exitCodeBefore) {
-    process.exitCode = exitCodeBefore;
+  const failed = currentExitCode() === 1;
+  process.exitCode = exitCodeBefore;
+  if (failed) {
     throw new MigrationFailedError('a migration threw; see the log above');
   }
   if (diagnostics.length > 0) {
