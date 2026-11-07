@@ -7,7 +7,7 @@ Status `Proposed` until the user approves in PR review; then the session flips i
 | ADR | Title | Status | Gating spike | Spike result | Written in |
 |---|---|---|---|---|---|
 | [0001](0001-repo-layout-and-upstream.md) | Repo layout and upstream (published `@vendure/*`, clean repo) | Proposed — user confirms | — (Node 24 + pnpm smoke) | pass (Node 24.22.1 boot; pnpm 10 needs `onlyBuiltDependencies` + explicit `typeorm`) | P0.S2a-1 |
-| [0002](0002-tenancy.md) | Tenancy: Business → Stores on Vendure Channels | Proposed — evidence pending | C channels at scale | **pending P0.S2a-2** | P0.S2a-1 (pre-spike) |
+| [0002](0002-tenancy.md) | Tenancy: Business → Stores on Vendure Channels | Proposed — user confirms | C channels at scale | pass except (c) on a large store (2.6 s cold) → `cod_order` read model mandatory for order lists | P0.S2a-1, evidence P0.S2a-2 |
 | [0003](0003-ids.md) | Ids: Vendure defaults for core, snowflake strings for ours | Proposed | — | — | P0.S2a-1 |
 | [0004](0004-pricing-engine-and-order-totals.md) | Pricing engine and order totals (signed quote) | Proposed | B order totals | pass (total 9 100 DZD exact, precision 0) | P0.S2a-1 |
 | [0005](0005-i18n.md) | i18n: dashboard ar/en RTL, storefront ar/fr/en | Proposed | — | — | P0.S2a-1 |
@@ -18,12 +18,12 @@ Status `Proposed` until the user approves in PR review; then the session flips i
 | [0010](0010-merchant-dashboard-host.md) | Merchant dashboard host | Proposed — user confirms | A dashboard extensions | pass → Option 1 (RTL partial, CSS-fixable) | P0.S2a-1 |
 | 0011 | Hosting provider and regions | not written | G latency | pending P0.S2a-3 | P0.S2a-3 |
 | 0012 | Edge, TLS and custom domains | not written | — | — | P0.S2a-3 |
-| 0013 | Process model, job queues and scheduler | not written | D PgBouncer | pending P0.S2a-2 | P0.S2a-2 |
+| [0013](0013-process-model-job-queues-scheduler.md) | Process model, job queues and scheduler | Proposed — user confirms | D PgBouncer | pass (scheduler exactly-once, BullMQ ×1 000, sessions in Valkey); first boot must be single-process; `TZ=UTC` | P0.S2a-2 |
 | 0014 | Search | not written | E Arabic search | pending P0.S2a-3 | P0.S2a-3 |
 | 0015 | Observability | not written | — | — | P0.S2a-3 |
-| 0016 | Data lifecycle, outbox, partitioning, pooling | not written | D PgBouncer | pending P0.S2a-2 | P0.S2a-2 |
+| [0016](0016-data-lifecycle-outbox-partitioning.md) | Data lifecycle, outbox, partitioning, pooling | Proposed — user confirms | D PgBouncer | pass → PgBouncer transaction mode for api/worker; direct for migrate and test DB setup | P0.S2a-2 |
 
-All P0.S2a-1 spikes ran on **SQLite** (Docker unavailable on the machine: Windows "Virtual Machine Platform" off). Spikes A/B test extension APIs and order math, which are database-independent; Postgres-specific behaviour (order-number counter under concurrency) is re-checked in P0.S2a-2.
+All P0.S2a-1 spikes ran on **SQLite** (Docker unavailable on the machine: Windows "Virtual Machine Platform" off). Spikes A/B test extension APIs and order math, which are database-independent; Postgres-specific behaviour (order-number counter under concurrency) was re-checked in P0.S2a-2 on Postgres 17: gapless and duplicate-free, see the ADR 0009 addendum.
 
 ## Decisions that change later briefs
 
@@ -38,3 +38,15 @@ Start from [../architecture/roadmap-impact.md](../architecture/roadmap-impact.md
 | pnpm 10: `onlyBuiltDependencies` (bcrypt, better-sqlite3/pg natives, esbuild, sharp, re2) + explicit `typeorm` dependency | 0001 | P0.S2b step 1 |
 | Dashboard nav per user via 3.8 per-user visibility (`ctx.hasPermissions`), custom `PlatformStaff` permission | 0010 | P1.S5 admin shell |
 | Dashboard auth: Vendure session token, `tokenMethod: ['cookie','bearer']` (no custom JWT) | 0008 | P1.S2 auth brief "JWT" wording |
+
+New items from P0.S2a-2:
+
+| Decision | ADR | Brief / section to edit |
+|---|---|---|
+| Merchant order lists, tab counts, filters and exports read `cod_order` + `order_counter` only (keyset pagination); Vendure's `orders` list is staff-only. Spike C: 2.6 s cold on a 791 k-order store | 0002, 0009 §9 | P3.S4 (read model lands), P4.S1 orders list, P4.S2 filters, P1.S5 nav (hide built-in order list for merchants) |
+| PgBouncer **transaction mode** for api/worker; no session `SET`, session advisory locks or `LISTEN` through the pooler; `migrate`, test-DB setup and admin sessions connect directly | 0016 §6 | P0.S2b compose/env (`DATABASE_URL` pooled + `DATABASE_URL_DIRECT`), P1.S1 tenant helper (`set_config(…, true)` only), P3.S5 deploy |
+| `migrate` job seeds Vendure's defaults and must finish before any api/worker starts (concurrent first boot fails on `__default_channel__`) | 0013 | P0.S2b docker-compose (`depends_on: condition: service_completed_successfully`), P3.S5 Kamal release hook |
+| All roles run with `TZ=UTC` (scheduler writes local time into `timestamp without time zone`) | 0013 | P0.S2b Dockerfile/compose env |
+| Seed `GlobalSettings.availableLanguages = [ar, fr, en]` before creating stores (`LANGUAGE_NOT_AVAILABLE_ERROR` otherwise) | 0002 | P1.S1 store creation |
+| One business's intake burst on a hot product serialises on Vendure's stock-level row lock (not the order-number counter): keep the intake transaction short, number + allocation last; flash-sale load test | 0009 addendum | P3.S4 intake, P3.S5 load test (k6) |
+| TypeORM pool `extra.max` sized to job concurrency for bulk-intake workers (node-postgres default 10 was too small for 25 parallel intakes) | 0016 §6 | P0.S2b server config, P9 platform-sync briefs |
