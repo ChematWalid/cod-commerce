@@ -94,6 +94,20 @@ describe('loadEnv', () => {
     expect(error.message).not.toContain('p@ss');
   });
 
+  it.each(['redis://:s3cret@valkey:6379/abc', 'redis://:s3cret@valkey:6379/-1', 'redis://:s3cret@valkey:6379/0/1'])(
+    'rejects a REDIS_URL whose path is not a database index (%s)',
+    (url) => {
+      const error = failureOf({ REDIS_URL: url });
+
+      expect(issuePaths(error)).toContain('REDIS_URL');
+      expect(error.message).not.toContain('s3cret');
+    },
+  );
+
+  it('accepts a REDIS_URL with a database index', () => {
+    expect(loadEnv({ ...valid, REDIS_URL: 'redis://valkey:6379/2' }).REDIS_URL).toBe('redis://valkey:6379/2');
+  });
+
   it.each(['staging', 'production'])('rejects placeholder secrets in %s (M4)', (appEnv) => {
     const placeholders = {
       COOKIE_SECRET: `${PLACEHOLDER_SECRET_MARKER}-${'0'.repeat(54)}`,

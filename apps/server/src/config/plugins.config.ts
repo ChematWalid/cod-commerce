@@ -8,6 +8,9 @@ import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
 /** One entry of `VendureConfig.plugins`: a plugin class or the module its `init` returns. */
 export type VendurePluginEntry = NonNullable<VendureConfig['plugins']>[number];
 
+/** The Valkey key prefix of Vendure's cache, which also holds the sessions; `APP_ENV` is appended to it. */
+export const CACHE_NAMESPACE_PREFIX = 'vendure-cache';
+
 /** The GraphQL query cost above which the api rejects a query. */
 export const HARDEN_MAX_QUERY_COMPLEXITY = 1000;
 
@@ -25,7 +28,11 @@ const hardenPlugin = (env: AppEnv): VendurePluginEntry =>
 export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[] {
   const everyRole: VendurePluginEntry[] = [
     BullMQJobQueuePlugin.init(bullMqOptions(env)),
-    RedisCachePlugin.init({ redisOptions: redisOptionsFromUrl(env.REDIS_URL) }),
+    // Sessions live in this cache, so environments sharing a Valkey must never read each other's keys.
+    RedisCachePlugin.init({
+      redisOptions: redisOptionsFromUrl(env.REDIS_URL),
+      namespace: `${CACHE_NAMESPACE_PREFIX}:${env.APP_ENV}`,
+    }),
     DefaultSchedulerPlugin.init(),
     PlatformHealthPlugin.init({
       redisUrl: env.REDIS_URL,

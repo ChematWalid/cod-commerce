@@ -1,7 +1,8 @@
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
-import { getEntitiesFromPlugins, type VendureConfig } from '@vendure/core';
+import { getEntitiesFromPlugins, RedisCachePlugin, type VendureConfig } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { loadEnv, type ServerRole } from '../../src/config/env';
+import { CACHE_NAMESPACE_PREFIX } from '../../src/config/plugins.config';
 import { bullMqOptions } from '../../src/config/redis.config';
 import { buildVendureConfig } from '../../src/config/vendure-config';
 
@@ -73,6 +74,23 @@ describe('buildVendureConfig', () => {
         'PlatformHealthPlugin',
       ]),
     );
+  });
+
+  it('registers HardenPlugin for the api only', () => {
+    const [api, worker, migrate] = ROLES.map((role) => pluginNamesOf(configFor(role)));
+
+    expect(api).toContain('HardenPlugin');
+    expect(worker).not.toContain('HardenPlugin');
+    expect(migrate).not.toContain('HardenPlugin');
+  });
+
+  it('scopes the cache and session namespace by APP_ENV', () => {
+    const namespaces = ['staging', 'production'].map((appEnv) => {
+      configFor('api', { APP_ENV: appEnv });
+      return RedisCachePlugin.options.namespace;
+    });
+
+    expect(namespaces).toEqual([`${CACHE_NAMESPACE_PREFIX}:staging`, `${CACHE_NAMESPACE_PREFIX}:production`]);
   });
 
   it('every role registers the same entity set (B1)', () => {

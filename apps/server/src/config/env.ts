@@ -1,6 +1,7 @@
 import { InvalidDatabaseUrlError, toPostgresFields } from '@cod/shared';
 import { z } from 'zod';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT } from './ports';
+import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 
 /** The process roles of the one server image. */
 export const SERVER_ROLES = ['api', 'worker', 'migrate'] as const;
@@ -39,7 +40,6 @@ const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
 const DEFAULT_S3_REGION = 'garage';
 
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
-const REDIS_URL_SCHEME = /^rediss?:\/\//;
 const GARAGE_ACCESS_KEY = /^GK[0-9a-f]{24}$/;
 const GARAGE_SECRET_KEY = /^[0-9a-f]{64}$/;
 
@@ -54,20 +54,30 @@ const splitCsv = (value: string): string[] =>
 
 const csvList = z.string().default('').transform(splitCsv);
 
-/** The message never repeats the URL: it can hold the password. */
-const databaseUrl = z
-  .string()
-  .regex(POSTGRES_URL_SCHEME, 'must be a postgres:// or postgresql:// URL')
-  .superRefine((url, context) => {
+/** A refinement that reports `parse`'s typed error as an issue; any other error is a bug and propagates. */
+function parsedBy(
+  parse: (url: string) => unknown,
+  errorType: new (reason: string) => Error,
+): (url: string, context: z.RefinementCtx) => void {
+  return (url, context) => {
     try {
-      toPostgresFields(url);
+      parse(url);
     } catch (error) {
-      if (!(error instanceof InvalidDatabaseUrlError)) {
+      if (!(error instanceof errorType)) {
         throw error;
       }
       context.addIssue({ code: 'custom', message: error.message });
     }
-  });
+  };
+}
+
+/** The messages never repeat the URL: it can hold the password. */
+const databaseUrl = z
+  .string()
+  .regex(POSTGRES_URL_SCHEME, 'must be a postgres:// or postgresql:// URL')
+  .superRefine(parsedBy(toPostgresFields, InvalidDatabaseUrlError));
+
+const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRedisUrlError));
 
 const baseSchema = z.object({
   APP_ENV: z.enum(APP_ENVS).default('development'),
@@ -76,7 +86,7 @@ const baseSchema = z.object({
   DATABASE_URL: databaseUrl,
   DATABASE_URL_DIRECT: databaseUrl,
   DB_POOL_MAX: z.coerce.number().int().min(1).optional(),
-  REDIS_URL: z.string().regex(REDIS_URL_SCHEME, 'must be a redis:// or rediss:// URL'),
+  REDIS_URL: redisUrl,
   WORKER_ACTIVE_QUEUES: csvList,
   API_PORT: port(DEFAULT_API_PORT),
   WORKER_HEALTH_PORT: port(DEFAULT_WORKER_HEALTH_PORT),
