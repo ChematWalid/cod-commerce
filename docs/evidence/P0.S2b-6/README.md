@@ -5,8 +5,8 @@ platform image (CLAUDE.md §3a.14). Produced by `scripts/evidence/P0.S2b-6.sh`; 
 synthetic: two generated businesses (channels `business-a`, `business-b`) and the placeholders from `.env.example`.
 
 - Image: `cod-platform:local`, built by that run (`docker compose build migrate`) from a working tree with no uncommitted
-  change outside the evidence folders, whose last image-relevant commit is `fb0321cd3e4ffc163c6a40f2e163a0656826831a`.
-- `NEXT_DEPLOYMENT_ID` of the running `api` container: `fb0321c`, the short id of that commit. The script asserts that
+  change outside the evidence folders, whose last image-relevant commit is `1a9ad464304ab8682d7a403237392243b116a69d`.
+- `NEXT_DEPLOYMENT_ID` of the running `api` container: `1a9ad46`, the short id of that commit. The script asserts that
   it and the container's image id are the ones just built. Stack: compose project `cod-evidence`, `api` on host port 23100.
 
 ## API transcripts (Admin API, `POST /admin-api`)
