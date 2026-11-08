@@ -1,15 +1,22 @@
-/** The document languages of the merchant dashboard: Arabic right-to-left and the English default. */
-export const DASHBOARD_LANGUAGES = ['en', 'ar'] as const;
+import { PLATFORM_LANGUAGE_CODES, type PlatformLanguageCode } from '@cod/shared';
+
+/** The document languages of the merchant dashboard: the platform languages (ADR 0005), which the dashboard ships. */
+export const DASHBOARD_LANGUAGES = PLATFORM_LANGUAGE_CODES;
 
 /** The `html[lang]` value the dashboard document carries: one of the {@link DASHBOARD_LANGUAGES}. */
-export type DocumentLang = (typeof DASHBOARD_LANGUAGES)[number];
+export type DocumentLang = PlatformLanguageCode;
 
-const ARABIC_PREFIX = 'ar';
+/** The dashboard default, used for any display locale that is not a platform language. */
+const DEFAULT_DOCUMENT_LANG: DocumentLang = 'en';
+
+/** Separates the language from the region in a BCP 47 tag (`fr-DZ`). */
+const SUBTAG_SEPARATOR = '-';
 
 /**
- * Maps the dashboard display locale (a BCP 47 tag such as `ar`, `ar-DZ` or `en-GB`) to the document
- * language. Any Arabic tag is `ar`; everything else falls back to `en`, the dashboard default.
+ * Maps the dashboard display locale (a BCP 47 tag such as `ar`, `fr-DZ` or `en-GB`) to the document
+ * language: the base language when it is a platform language, otherwise `en`, the dashboard default.
  */
 export function toDocumentLang(displayLocale: string): DocumentLang {
-  return displayLocale.toLowerCase().startsWith(ARABIC_PREFIX) ? 'ar' : 'en';
+  const base = displayLocale.toLowerCase().split(SUBTAG_SEPARATOR)[0] ?? '';
+  return DASHBOARD_LANGUAGES.find((language) => language === base) ?? DEFAULT_DOCUMENT_LANG;
 }

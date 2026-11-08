@@ -14,7 +14,12 @@ describe('toDocumentLang', () => {
     expect(toDocumentLang('en')).toBe('en');
   });
 
+  it('maps French and its regional tags to fr', () => {
+    expect(toDocumentLang('fr')).toBe('fr');
+    expect(toDocumentLang('fr-FR')).toBe('fr');
+  });
+
   it('falls back to en for a locale the dashboard does not offer', () => {
-    expect(toDocumentLang('fr')).toBe('en');
+    expect(toDocumentLang('de')).toBe('en');
   });
 });
