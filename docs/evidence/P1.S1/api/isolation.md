@@ -83,7 +83,7 @@ content-type: application/json; charset=utf-8
       "locations": [
         {
           "line": 1,
-          "column": 5<ADMIN_C_ID>
+          "column": 54
         }
       ],
       "path": [
@@ -166,7 +166,7 @@ content-type: application/json; charset=utf-8
       "locations": [
         {
           "line": 1,
-          "column": <ADMIN_C_ID>8
+          "column": 48
         }
       ],
       "path": [

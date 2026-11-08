@@ -76,13 +76,13 @@ content-type: application/json; charset=utf-8
 ```http
 GET http://127.0.0.1:23100/store/resolve?host=demo2.localhost
 
-HTTP/1.1 <ADMIN_C_ID>0<ADMIN_C_ID> Not Found
+HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
 
 {
-  "statusCode": <ADMIN_C_ID>0<ADMIN_C_ID>,
+  "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:0<ADMIN_C_ID>:17.280Z",
+  "timestamp": "2026-11-08T23:33:13.228Z",
   "path": "/store/resolve?host=demo2.localhost"
 }
 ```
@@ -111,13 +111,13 @@ content-type: application/json; charset=utf-8
 ```http
 GET http://127.0.0.1:23101/store/resolve?host=demo2.localhost
 
-HTTP/1.1 <ADMIN_C_ID>0<ADMIN_C_ID> Not Found
+HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
 
 {
-  "statusCode": <ADMIN_C_ID>0<ADMIN_C_ID>,
+  "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:0<ADMIN_C_ID>:17.<ADMIN_C_ID>35Z",
+  "timestamp": "2026-11-08T23:33:13.381Z",
   "path": "/store/resolve?host=demo2.localhost"
 }
 ```

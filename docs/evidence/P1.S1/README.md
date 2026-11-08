@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P1.S1.sh`. Data is synthetic
 (demo seed, placeholders from `.env.example`). Image built from a tree with no uncommitted change outside the evidence
-folders, last image-relevant commit `833fada845a545540a486ed31800e40865efdd1f`. Compose project `cod-evidence`, with a second api container on port 23101.
+folders, last image-relevant commit `4886c38e29da1a17d51a73550f232b970bfcb23a`. Compose project `cod-evidence`, with a second api container on port 23101.
 The demo seed ran twice; the second run created nothing.
 
 ## API transcripts
@@ -58,5 +58,7 @@ Dashboard, signed in as the demo owner on the Arabic store:
 | `dashboard-content-language-ar-desktop.png` | Switcher open in Arabic: content language row reads "المحتوى: العربية", which is the D7 result. **Flags:** three channels listed by hex code, cut off at the menu's left edge; the third is the store archived earlier in this run, so an archived store stays in the owner's switcher. |
 
 No error, alert or toast on any dashboard shot. No third-party name on any of these shots. The dashboard's login page, which carries the licence-required footer (ADR 0001), is not among them. The notes bodies "evidence" are the synthetic data of the script, not an untranslated UI string.
+
+The hex channel code and the archived store in the switcher are deferred to P1.S5, which owns the switcher.
 
 Outside the shots, on a host-run api with the same owner: the landing page (Insights, an empty widget message in Arabic) and the merchant shell render with no alert or toast. The only refused query after sign-in is the dashboard's own `channels` (A1), which falls back to the owner's channels from `me`.

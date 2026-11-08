@@ -119,7 +119,7 @@ content-type: application/json; charset=utf-8
       "locations": [
         {
           "line": 1,
-          "column": <ADMIN_C_ID>6
+          "column": 46
         }
       ],
       "path": [

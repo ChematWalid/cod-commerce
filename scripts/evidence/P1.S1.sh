@@ -82,9 +82,7 @@ image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
 NEXT_DEPLOYMENT_ID="$(git rev-parse --short "$image_commit")"
 export NEXT_DEPLOYMENT_ID
 docker compose down -v --remove-orphans
-# EVIDENCE_REUSE_IMAGE=1 skips the rebuild while iterating on this script: scripts/evidence is in the build context,
-# so every edit here would rebuild an image whose inputs did not change.
-[[ "${EVIDENCE_REUSE_IMAGE:-}" == 1 ]] || docker compose build migrate
+docker compose build migrate
 docker compose up -d api worker storefront
 wait_healthy api worker storefront
 wait_http 200 "$api/readyz" 120 || fail "api /readyz"
@@ -113,7 +111,13 @@ assert_js() { [[ "$(js "$2" "$3")" == true ]] || fail "$1: '$2' is not true for 
 
 # Literal generated values -> placeholder, longest first so a token never leaves a fragment behind.
 declare -A PLACEHOLDERS=()
-remember() { [[ -n "$2" && "$2" != undefined ]] || fail "remember $1: empty"; PLACEHOLDERS[$2]=$1; }
+# Values are replaced anywhere in a transcript, so a short one would corrupt status codes and other digits.
+MIN_PLACEHOLDER_VALUE_LENGTH=16
+remember() {
+  [[ -n "$2" && "$2" != undefined ]] || fail "remember $1: empty"
+  ((${#2} >= MIN_PLACEHOLDER_VALUE_LENGTH)) || fail "remember $1: '$2' is too short to replace safely"
+  PLACEHOLDERS[$2]=$1
+}
 remember_id() { [[ "$2" =~ $SNOWFLAKE_RE ]] || fail "$1: '$2' is not a snowflake id"; remember "$1" "$2"; }
 normalise_file() {
   local map=""
@@ -220,7 +224,8 @@ gql "$Q_PROVISION" "$real" "$super" -
 assert_js provision '!b.errors && b.data.provisionBusiness.store.subdomain==="third"' "$work/b"
 remember_id BUSINESS_C_ID "$(js 'b.data.provisionBusiness.business.id' "$work/b")"
 remember_id STORE_C_ID "$(js 'b.data.provisionBusiness.store.id' "$work/b")"
-remember ADMIN_C_ID "$(js 'b.data.provisionBusiness.administratorId' "$work/b")"
+ADMIN_C_ID=$(js 'b.data.provisionBusiness.administratorId' "$work/b")
+[[ "$ADMIN_C_ID" =~ ^[0-9]+$ ]] || fail "administratorId '$ADMIN_C_ID' is not numeric"
 emit "$f" "Superadmin provisions a business" "$Q_PROVISION" "$shown" "$super" -
 
 # --- business.md -----------------------------------------------------------------------------
@@ -319,7 +324,7 @@ refused "A: archiveStore on B's store" "$Q_ARCHIVE" "$(vars "{id:'$STORE_B'}")" 
 refused "A: changeStoreSubdomain on B's store" "$Q_CHANGE" "$(vars "{id:'$STORE_B',subdomain:'stolen'}")" '{"id":"<STORE_B_ID>","subdomain":"stolen"}'
 gql "$Q_NOTES" '{}' "$owner_a" "$TOKEN_A"
 assert_js "A's notes" "!JSON.stringify(b).includes(\"B's private\") && b.data.templateNotes.length===2" "$work/b"
-remember NOTE_A2_ID "$(js 'b.data.templateNotes[0].id' "$work/b")"; remember NOTE_A1_ID "$(js 'b.data.templateNotes[1].id' "$work/b")"
+remember_id NOTE_A2_ID "$(js 'b.data.templateNotes[0].id' "$work/b")"; remember_id NOTE_A1_ID "$(js 'b.data.templateNotes[1].id' "$work/b")"
 emit "$f" "A: templateNotes lists A's notes only" "$Q_NOTES" '{}' "$owner_a" "$TOKEN_A"
 
 # --- forbidden.md -----------------------------------------------------------------------------
@@ -425,6 +430,10 @@ README
 
 # --- placeholders, sizes and redaction ------------------------------------------------------------
 for t in "$out"/api/*.md; do normalise_file "$t"; done
+# The engine's own id is a small integer: only this JSON field is replaced.
+command sed -i -E 's/"administratorId": "[0-9]+"/"administratorId": "<ADMIN_C_ID>"/' "$out/api/provision.md"
+command grep -q '"administratorId": "<ADMIN_C_ID>"' "$out/api/provision.md" || fail "administratorId placeholder missing"
+if command grep -rqE '^HTTP/1\.1 [^0-9]' "$out/api"; then fail "a placeholder corrupted a status line"; fi
 for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done

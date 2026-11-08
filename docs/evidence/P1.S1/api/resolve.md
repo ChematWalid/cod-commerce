@@ -1,6 +1,6 @@
 # Store resolution (public REST)
 
-What the storefront asks on each request. Only public fields leave; an unknown host is a <ADMIN_C_ID>0<ADMIN_C_ID>, never a 500.
+What the storefront asks on each request. Only public fields leave; an unknown host is a 404, never a 500.
 
 ### resolve demo.localhost
 
@@ -45,13 +45,13 @@ content-type: application/json; charset=utf-8
 ```http
 GET http://127.0.0.1:23100/store/resolve?host=nope.localhost
 
-HTTP/1.1 <ADMIN_C_ID>0<ADMIN_C_ID> Not Found
+HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
 
 {
-  "statusCode": <ADMIN_C_ID>0<ADMIN_C_ID>,
+  "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:0<ADMIN_C_ID>:13.929Z",
+  "timestamp": "2026-11-08T23:33:09.992Z",
   "path": "/store/resolve?host=nope.localhost"
 }
 ```
@@ -80,13 +80,13 @@ content-type: application/json; charset=utf-8
 ```http
 GET http://127.0.0.1:23100/store/by-id/1
 
-HTTP/1.1 <ADMIN_C_ID>0<ADMIN_C_ID> Not Found
+HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
 
 {
-  "statusCode": <ADMIN_C_ID>0<ADMIN_C_ID>,
+  "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:0<ADMIN_C_ID>:1<ADMIN_C_ID>.059Z",
+  "timestamp": "2026-11-08T23:33:10.170Z",
   "path": "/store/by-id/1"
 }
 ```
