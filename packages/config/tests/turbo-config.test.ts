@@ -12,13 +12,13 @@ describe('turbo build cache outputs', () => {
   it('root build outputs carry no negation (a negation applies to every package)', () => {
     // A root-wide `!dist/dashboard/**` dropped plugins/merchant-shell's
     // dist/dashboard/constants.js from the cache (CI run 42434692656).
-    const outputs = readJson('turbo.json').tasks.build?.outputs ?? [];
+    const outputs = readJson('turbo.json').tasks['build']?.outputs ?? [];
     expect(outputs).toContain('dist/**');
     expect(outputs.filter((o) => o.startsWith('!'))).toEqual([]);
   });
 
   it('the dashboard exclusion is scoped to the server package', () => {
-    const outputs = readJson('apps/server/turbo.json').tasks.build?.outputs ?? [];
+    const outputs = readJson('apps/server/turbo.json').tasks['build']?.outputs ?? [];
     expect(outputs).toEqual(expect.arrayContaining(['dist/**', '!dist/dashboard/**']));
   });
 });
