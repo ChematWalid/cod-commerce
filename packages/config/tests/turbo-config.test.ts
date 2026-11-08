@@ -28,7 +28,13 @@ describe('turbo build cache outputs', () => {
     // incomplete build); .next/cache is Next's own build cache, large and not needed to run.
     const config = readJson('apps/storefront/turbo.json');
     expect(config.extends).toEqual(['//']);
-    expect(config.tasks['build']?.outputs).toEqual(['.next/**', '!.next/cache/**', 'cache/dist/**']);
+    // .next/dev is next dev's own output, written into the same folder.
+    expect(config.tasks['build']?.outputs).toEqual(['.next/**', '!.next/cache/**', '!.next/dev/**', 'cache/dist/**']);
+  });
+
+  it('the storefront build hash includes its git-ignored .env files', () => {
+    // next build loads apps/storefront/.env*, which $TURBO_DEFAULT$ skips as git-ignored.
+    expect(readJson('apps/storefront/turbo.json').tasks['build']?.inputs).toEqual(['$TURBO_DEFAULT$', '.env*']);
   });
 
   it('the storefront build hash includes NEXT_DEPLOYMENT_ID', () => {
