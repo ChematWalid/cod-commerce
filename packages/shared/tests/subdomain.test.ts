@@ -19,6 +19,8 @@ describe('classifySubdomain', () => {
     ['underscore', 'a_b'],
     ['non-ASCII', 'أ'],
     ['empty', ''],
+    ['punycode prefix', 'xn--mnchen-3ya'],
+    ['uppercase punycode prefix', 'XN--abc'],
   ])('marks %s as invalid with a reason', (_label, raw) => {
     const result = classifySubdomain(raw);
     expect(result.status).toBe('invalid');

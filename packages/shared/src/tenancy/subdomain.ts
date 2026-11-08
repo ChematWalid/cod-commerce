@@ -31,6 +31,8 @@ export interface SubdomainAvailability {
 }
 
 const SUBDOMAIN_FORMAT = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+/** The IDNA A-label prefix: a punycode name can render as a lookalike of another store's name. */
+const PUNYCODE_PREFIX = 'xn--';
 
 function result(subdomain: string, status: SubdomainStatus, reason: string | null): SubdomainAvailability {
   return { subdomain, status, reason };
@@ -55,6 +57,9 @@ export function classifySubdomain(raw: string): SubdomainAvailability {
       'invalid',
       'Use only lowercase letters, digits and hyphens, with no hyphen at the start or end',
     );
+  }
+  if (subdomain.startsWith(PUNYCODE_PREFIX)) {
+    return result(subdomain, 'invalid', `Names starting with ${PUNYCODE_PREFIX} are not allowed`);
   }
   if (RESERVED_SUBDOMAINS.includes(subdomain)) {
     return result(subdomain, 'reserved', 'This name is reserved by the platform');

@@ -259,6 +259,7 @@ describe('Store Admin API', () => {
     ['ALPHA', 'taken'],
     ['www', 'reserved'],
     ['a', 'invalid'],
+    ['xn--mnchen-3ya', 'invalid'],
   ])('reports %s as %s over GraphQL, even anonymously', async (subdomain, status) => {
     // Arrange
     await adminClient.asAnonymousUser();
