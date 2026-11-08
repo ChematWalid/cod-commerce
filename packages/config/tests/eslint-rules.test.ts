@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ESLint } from 'eslint';
 import tseslint from 'typescript-eslint';
@@ -16,6 +16,15 @@ const PLUGIN_LAYER_FILES = [
   `${PLUGIN}/api/x.ts`,
   `${PLUGIN}/tests/x.ts`,
   DASHBOARD_PAGE,
+] as const;
+/** RF2: the same check on the real reference plugin, so a glob or ignore can never skip a real layer. */
+const TEMPLATE_PLUGIN_FILES = [
+  'plugins/_template/domain/note.ts',
+  'plugins/_template/application/create-note.service.ts',
+  'plugins/_template/infrastructure/typeorm-note.repository.ts',
+  'plugins/_template/api/template-note.resolver.ts',
+  'plugins/_template/dashboard/routes/notes-page.tsx',
+  'plugins/_template/tests/unit/note-title.test.ts',
 ] as const;
 
 const typeCheckOff = tseslint.configs.disableTypeChecked;
@@ -75,12 +84,16 @@ describe('root ESLint config', () => {
     expect(await lint('explicit-any.ts.txt', `${PLUGIN}/domain/x.ts`)).toContain('@typescript-eslint/no-explicit-any');
   });
 
-  it.each(PLUGIN_LAYER_FILES)('lints every layer of a plugin: %s', async (path) => {
+  it.each([...PLUGIN_LAYER_FILES, ...TEMPLATE_PLUGIN_FILES])('lints every layer of a plugin: %s', async (path) => {
     const absolute = join(repoRoot, path);
     const config = (await eslintAsCi.calculateConfigForFile(absolute)) as { rules?: Record<string, unknown> };
 
     expect(await eslintAsCi.isPathIgnored(absolute)).toBe(false);
     expect(config.rules?.['max-lines']).toBeDefined();
+  });
+
+  it.each(TEMPLATE_PLUGIN_FILES)('lints the real template plugin file %s', (path) => {
+    expect(existsSync(join(repoRoot, path))).toBe(true);
   });
 
   it('lints every layer of a plugin: limits apply to dashboard .tsx files', async () => {

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type AppEnv, loadEnv, type ServerRole } from '../../src/config/env';
 import { buildVendureConfig } from '../../src/config/vendure-config';
 import { runMigrate } from '../../src/roles/migrate.role';
+import { COMMITTED_MIGRATION_COUNT } from './support/committed-migrations';
 import { connectTo, createDatabase, dropDatabase } from './support/test-database';
 
 const DATABASE_NAME = `cod_migrate_${String(process.pid)}`;
@@ -93,7 +94,8 @@ describe('migrate role', () => {
   it('migrates and seeds an empty database', async () => {
     const report = await runMigrate(env);
 
-    expect(report.migrationsRun).toHaveLength(1);
+    expect(COMMITTED_MIGRATION_COUNT).toBeGreaterThan(0);
+    expect(report.migrationsRun).toHaveLength(COMMITTED_MIGRATION_COUNT);
     expect(report.seed.changes).toEqual(
       expect.arrayContaining([
         'country:DZ',

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type AppEnv, loadEnv } from '../../src/config/env';
 import { runMigrate } from '../../src/roles/migrate.role';
+import { COMMITTED_MIGRATION_COUNT } from './support/committed-migrations';
 import { connectTo, createDatabase, dropDatabase } from './support/test-database';
 
 const DATABASE_NAME = `cod_migrate_lock_${String(process.pid)}`;
@@ -18,15 +19,15 @@ describe('migrate role under concurrency', () => {
     await dropDatabase(DATABASE_NAME);
   });
 
-  it('two concurrent runs on an empty database both succeed and apply Init once', async () => {
+  it('two concurrent runs on an empty database both succeed and apply each migration once', async () => {
     const reports = await Promise.all([runMigrate(env), runMigrate(env)]);
 
     const applied = reports.map((report) => report.migrationsRun.length).sort();
-    expect(applied).toEqual([0, 1]);
+    expect(applied).toEqual([0, COMMITTED_MIGRATION_COUNT]);
     const client = await connectTo(url);
     try {
       const { rows } = await client.query<{ count: string }>('SELECT count(*) AS count FROM migrations');
-      expect(rows[0]?.count).toBe('1');
+      expect(rows[0]?.count).toBe(String(COMMITTED_MIGRATION_COUNT));
     } finally {
       await client.end();
     }
