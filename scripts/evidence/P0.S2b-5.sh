@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+# Proof-of-working evidence for P0.S2b-5 (CLAUDE.md §3a.14): runs the storefront role of the real compose stack
+# under its own project (cod-evidence, every *_HOST_PORT shifted by 20000), screenshots the host-resolved hello
+# page in Chromium on desktop and mobile, records live API transcripts (/livez, /readyz with Valkey stopped,
+# host routing) into docs/evidence/P0.S2b-5/, and tears the stack down. Never touches `cod` or `cod-verify`.
+#
+#   scripts/evidence/P0.S2b-5.sh   # always rebuilds cod-platform:local first (the layer cache keeps that cheap)
+#
+# The browser work is scripts/evidence/storefront-screens.mjs; transcripts are formatted by transcript.mjs.
+# Data is synthetic (.env placeholders, the storefront's stub stores).
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+# shellcheck source=../lib/wait-http.sh
+. scripts/lib/wait-http.sh
+
+if [[ ! -f .env ]]; then
+  echo "evidence: .env is missing; copy .env.example to .env first (cp .env.example .env)" >&2
+  exit 1
+fi
+set -a
+. ./.env
+set +a
+export COMPOSE_PROJECT_NAME=cod-evidence
+export POSTGRES_HOST_PORT=25433 PGBOUNCER_HOST_PORT=26432 VALKEY_HOST_PORT=26380 GARAGE_S3_HOST_PORT=23900
+export MAILPIT_SMTP_HOST_PORT=21026 MAILPIT_UI_HOST_PORT=28026 API_HOST_PORT=23100 WORKER_HEALTH_HOST_PORT=23020
+export STOREFRONT_HOST_PORT=23001
+export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
+
+out=docs/evidence/P0.S2b-5
+site="http://127.0.0.1:$STOREFRONT_HOST_PORT"
+work=$(mktemp -d)
+
+fail() {
+  echo "EVIDENCE FAILED: $*" >&2
+  exit 1
+}
+
+on_exit() {
+  local status=$?
+  if ((status != 0)); then
+    docker compose ps -a >&2 || true
+    docker compose logs --no-color --tail=60 storefront valkey >&2 || true
+  fi
+  docker compose down -v --remove-orphans >/dev/null 2>&1 || true
+  rm -rf "$work"
+  exit "$status"
+}
+trap on_exit EXIT
+
+container_of() { docker compose ps -aq "$1"; }
+
+wait_healthy() {
+  local deadline=$((SECONDS + 180)) svc pending
+  while ((SECONDS < deadline)); do
+    pending=""
+    for svc in "$@"; do
+      [[ $(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$(container_of "$svc")" 2>/dev/null) == healthy ]] ||
+        pending+=" $svc"
+    done
+    [[ -z "$pending" ]] && return 0
+    sleep 2
+  done
+  fail "not healthy after 180s:$pending"
+}
+
+# Secrets from .env that must not appear in any output file; the two the checks rely on must be set.
+[[ -n "${SUPERADMIN_PASSWORD:-}" ]] || fail "SUPERADMIN_PASSWORD is empty; the redaction check would be vacuous"
+[[ -n "${COOKIE_SECRET:-}" ]] || fail "COOKIE_SECRET is empty; the redaction check would be vacuous"
+secret_values=()
+while IFS='=' read -r name value; do
+  value=${value%\"}
+  value=${value#\"}
+  [[ -n "$value" ]] && secret_values+=("$value")
+done < <(command grep -E '^[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|_KEY)=' .env)
+((${#secret_values[@]} >= 2)) || fail "found fewer than 2 non-empty secret values in .env"
+
+# The README states which commit the image was built from, so the image is always built here, from a tree
+# that matches that commit everywhere except the evidence folders and the SDD notes (which the image does
+# not need). The commit is the last one that touched anything else.
+image_inputs=(. ':!docs/evidence' ':!scripts/evidence' ':!.superpowers')
+dirty=$(git status --porcelain -- "${image_inputs[@]}")
+[[ -z "$dirty" ]] || fail "uncommitted changes outside the evidence folders; commit or stash them first:
+$dirty"
+image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
+[[ -n "$image_commit" ]] || fail "no commit touches the image inputs; nothing to attribute the image to"
+head_before=$(git rev-parse HEAD)
+
+docker compose down -v --remove-orphans
+started=$SECONDS
+docker compose build migrate
+echo "image built in $((SECONDS - started))s"
+
+# The build takes minutes: the image must still match the commit the README names.
+[[ "$(git rev-parse HEAD)" == "$head_before" ]] || fail "HEAD moved during the image build"
+dirty=$(git status --porcelain -- "${image_inputs[@]}")
+[[ -z "$dirty" ]] || fail "the tree changed during the image build:
+$dirty"
+
+# Only the storefront and the Valkey it depends on are needed.
+docker compose up -d storefront
+wait_healthy storefront
+wait_http 200 "$site/livez" 60 || fail "storefront /livez"
+wait_http 200 "$site/readyz" 60 || fail "storefront /readyz"
+deployment_id=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(container_of storefront)" | command grep '^NEXT_DEPLOYMENT_ID=' | command cut -d= -f2-)
+[[ -n "$deployment_id" ]] || fail "the storefront container has no NEXT_DEPLOYMENT_ID"
+
+rm -rf "$out/api"
+mkdir -p "$out/api"
+
+# --- API transcripts ---------------------------------------------------------------------
+# record <file> <title> <path> <status> <must-contain|-> <must-not-contain|-> <trim-pattern|-> <header>...
+# GET <path> on the storefront with the given request headers (each "Name: value", sent and shown as is).
+# Fails unless the status matches and the body contains / lacks the given text. With a trim pattern (a grep -E
+# expression) the transcript shows only the matching part of the body, so large HTML pages show the one
+# element that proves the point; the checks always run on the whole body. A connection failure aborts the run.
+record() {
+  local file=$1 title=$2 path=$3 want_status=$4 contains=$5 absent=$6 trim=$7
+  shift 7
+  local -a curl_args=(-sS -X GET -D "$work/h" -o "$work/b" --max-time 20)
+  local hdr status
+  for hdr in "$@"; do curl_args+=(-H "$hdr"); done
+  status=$(curl "${curl_args[@]}" -w '%{http_code}' "$site$path") || status=000
+  [[ "$status" != 000 ]] || fail "$title: no HTTP answer from $site$path"
+  [[ "$status" == "$want_status" ]] || fail "$title: status $status, expected $want_status"
+  if [[ "$contains" != - ]]; then
+    command grep -qF -- "$contains" "$work/b" || fail "$title: body lacks '$contains'"
+  fi
+  if [[ "$absent" != - ]]; then
+    ! command grep -qF -- "$absent" "$work/b" || fail "$title: body contains '$absent'"
+  fi
+  if [[ "$trim" != - ]]; then
+    command grep -oE -- "$trim" "$work/b" >"$work/b.trim" || fail "$title: body has nothing matching '$trim'"
+    command mv "$work/b.trim" "$work/b"
+  fi
+  SHOWN_HEADERS=$(printf '%s\n' "$@") SHOWN_BODY=- \
+    TITLE=$title METHOD=GET URL="$site$path" node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$file"
+}
+
+begin() { # begin <file> <heading> <intro>
+  printf '# %s\n\n%s\n\n' "$2" "$3" >"$1"
+}
+
+store_h1='<h1 data-testid="store-name">[^<]*</h1>'
+not_found_main='<main data-testid="not-found">[^<]*</main>'
+
+begin "$out/api/livez.md" "Storefront liveness" "\`GET /livez\` on the storefront role (container port 3001, published on \`$STOREFRONT_HOST_PORT\`) with a host that belongs to no store: liveness does not depend on the Host header."
+record "$out/api/livez.md" "GET /livez with Host: 10.0.0.5:3001" /livez 200 - - - "Host: 10.0.0.5:3001"
+
+begin "$out/api/readyz.md" "Storefront readiness" "\`GET /readyz\` is always 200 and carries the Valkey check in the body (the shared cache is an optimisation: with Valkey down the storefront serves uncached). \`cache-control: no-store\`. Per-check \`durationMs\` values are dropped by the transcript script so re-runs regenerate identical files."
+readyz_nostore() { command grep -qi '^cache-control: no-store' "$work/h" || fail "/readyz lacks cache-control: no-store"; }
+record "$out/api/readyz.md" "Valkey running: GET /readyz" /readyz 200 '"ok":true' '"ok":false' - "Host: 10.0.0.5:3001"
+readyz_nostore
+docker compose stop valkey
+until_redis() { # until_redis <true|false>: polls /readyz until checks.redis.ok has that value
+  local deadline=$((SECONDS + 60))
+  while ((SECONDS < deadline)); do
+    curl -s --max-time 5 "$site/readyz" | command grep -qF "\"ok\":$1" && return 0
+    sleep 1
+  done
+  return 1
+}
+until_redis false || fail "/readyz never reported redis.ok false with Valkey stopped"
+record "$out/api/readyz.md" "Valkey stopped: GET /readyz (still 200)" /readyz 200 '"ok":false' '"ok":true' - "Host: 10.0.0.5:3001"
+readyz_nostore
+docker compose start valkey
+until_redis true || fail "/readyz never recovered to redis.ok true after Valkey started"
+record "$out/api/readyz.md" "Valkey started again: GET /readyz" /readyz 200 '"ok":true' '"ok":false' - "Host: 10.0.0.5:3001"
+readyz_nostore
+
+begin "$out/api/host-routing.md" "Storefront host routing" "\`GET /\` on the storefront, the store chosen only by the \`Host\` header (the proxy rewrites to the internal \`/_t/{storeId}/{locale}\` route). Each body is trimmed by the script to the one element that identifies the page (the store heading or the not-found marker); the status and the absence of the other store's name are checked on the whole body."
+record "$out/api/host-routing.md" "Host: demo.localhost" / 200 'Demo Store' 'Second Store' "$store_h1" "Host: demo.localhost"
+record "$out/api/host-routing.md" "Host: second.localhost" / 200 'Second Store' 'Demo Store' "$store_h1" "Host: second.localhost"
+record "$out/api/host-routing.md" "Host: nope.localhost (unknown host)" / 404 'Page not found' - "$not_found_main" "Host: nope.localhost"
+record "$out/api/host-routing.md" "Host: demo.localhost, path /_t/second/fr (internal path, not reachable directly)" /_t/second/fr 404 'Page not found' 'Second Store' "$not_found_main" "Host: demo.localhost"
+record "$out/api/host-routing.md" "Host: nope.localhost with X-Forwarded-Host: demo.localhost (the forwarded header is ignored)" / 404 'Page not found' 'Demo Store' "$not_found_main" "Host: nope.localhost" "X-Forwarded-Host: demo.localhost"
+
+# --- screenshots -------------------------------------------------------------------------
+started=$SECONDS
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/storefront-screens.mjs "$STOREFRONT_HOST_PORT" "$out/screens" "$work/screens-table.md"
+echo "screenshots taken in $((SECONDS - started))s"
+
+# --- README ------------------------------------------------------------------------------
+cat >"$out/README.md" <<README
+# Evidence for P0.S2b-5 (storefront)
+
+Screenshots and request/response transcripts of the real storefront (Next.js 16, \`apps/storefront\`) running as the
+\`storefront\` role of the compose stack (CLAUDE.md §3a.14). Produced by \`scripts/evidence/P0.S2b-5.sh\`; nothing here is
+hand-written. Data is synthetic: the storefront's two stub stores (placeholders from \`.env.example\` for the rest).
+
+- Image: \`cod-platform:local\`, built by that run (\`docker compose build migrate\`) from a working tree with no uncommitted
+  change outside the evidence folders, whose last image-relevant commit is \`$image_commit\`.
+- \`NEXT_DEPLOYMENT_ID\` of the running container: \`$deployment_id\` (it namespaces the shared cache keys and the assets).
+- Stack: compose project \`cod-evidence\`; only \`storefront\` and the \`valkey\` it depends on are started. Host port
+  \`$STOREFRONT_HOST_PORT\` (container port 3001).
+
+## Screenshots
+
+Viewport screenshots (not full page), \`reducedMotion: reduce\`, taken after the page loaded and two animation frames. Chromium
+resolves \`*.localhost\` to the loopback address, so the store is chosen by the \`Host\` header the browser sends. Before each
+shot the script asserts the status of the main document, that the marker element is visible with the expected text and that
+the other stores' names are absent from the page.
+
+| File | URL | Viewport | Status | Asserted |
+| --- | --- | --- | --- | --- |
+$(command cat "$work/screens-table.md")
+
+The pages are intentionally bare: P0 only proves that the store is resolved from the host. The store locale (\`ar\` for the
+demo store, \`fr\` for the second) is data of the store; the P0 page does not translate or mirror yet (the document is
+\`lang="en"\`).
+
+## API transcripts
+
+| File | Shows |
+| --- | --- |
+| [\`api/livez.md\`](api/livez.md) | \`GET /livez\` with an arbitrary Host: 200 |
+| [\`api/readyz.md\`](api/readyz.md) | \`GET /readyz\`: Valkey running (200, \`checks.redis.ok: true\`), Valkey stopped (still 200, \`ok: false\`), Valkey started again (200, \`ok: true\`); \`cache-control: no-store\` each time |
+| [\`api/host-routing.md\`](api/host-routing.md) | \`GET /\` by Host: demo.localhost, second.localhost (200, own heading), nope.localhost (404), the internal \`/_t/second/fr\` path on demo.localhost (404), and \`X-Forwarded-Host\` ignored (404) |
+
+Only the headers \`content-type\`, \`cache-control\` and the ones the script shows are printed (so no \`date\` or request id), the
+per-check \`durationMs\` is dropped, and HTML bodies are cut to the identifying element by the script; the checks run on the whole
+body. The same input therefore regenerates the same files.
+
+## Checks (the script fails otherwise)
+
+- Every transcript's status and body text as listed above; \`/readyz\` carries \`cache-control: no-store\` in all three states.
+- Exactly 6 PNGs, each at most 300 KB.
+- No value of a password, secret, token or key from \`.env\` appears anywhere in this folder.
+
+## Re-run
+
+\`\`\`bash
+cp .env.example .env   # once; the script needs the root .env
+scripts/evidence/P0.S2b-5.sh
+\`\`\`
+
+It uses its own compose project (\`cod-evidence\`, host ports shifted by 20000), always rebuilds the image first (the layer
+cache keeps that cheap), refuses to run on a working tree with uncommitted changes outside the evidence folders, and removes the
+stack and its volumes on exit.
+README
+
+# --- size and redaction checks -----------------------------------------------------------
+for f in "$out"/screens/*.png; do
+  (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
+done
+for secret in "${secret_values[@]}"; do
+  if command grep -rqaF -- "$secret" "$out"; then
+    fail "a raw .env secret value appears in $out"
+  fi
+done
+echo "redaction check: none of ${#secret_values[@]} .env secret values in $out"
+echo "EVIDENCE-OK"
