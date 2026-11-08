@@ -12,8 +12,19 @@ describe('architecture rules', () => {
     const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins'] });
 
     expect(bad.violations.map((violation) => violation.rule).sort()).toEqual(
-      ['application-no-concretes', 'domain-is-pure', 'domain-no-outer-layers', 'no-cross-plugin-internals'].sort(),
+      [
+        'application-no-concretes',
+        'domain-is-pure',
+        'domain-no-outer-layers',
+        'no-cross-plugin-internals',
+        'plugin-core-no-tenancy-entry',
+      ].sort(),
     );
+    expect(bad.violations).toContainEqual({
+      rule: 'plugin-core-no-tenancy-entry',
+      from: 'plugins/bad/application/uses-tenancy-entry.ts',
+      to: 'plugins/tenancy/index.ts',
+    });
     expect(bad.violations).toContainEqual({
       rule: 'domain-is-pure',
       from: 'plugins/bad/domain/uses-vendure.ts',

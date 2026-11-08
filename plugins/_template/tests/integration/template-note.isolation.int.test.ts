@@ -17,11 +17,25 @@ import { adminApiSchema } from '../../api/schema';
 import { TemplatePlugin } from '../../template.plugin';
 import { CREATE_NOTE, NOTE_BY_ID, type NoteResult, NOTES, TEST_REDIS_URL } from './template-note-operations';
 
+type NoteIdsOf = (value: unknown) => readonly string[];
+
+/** What A's call must come to; it is never B's data. */
+type NoteOutcome = { readonly kind: 'null' } | { readonly kind: 'callerOwned'; readonly noteIdsOf: NoteIdsOf };
+
+/** Proves an attack aimed at something real, so `null` cannot come from a wrong id. */
+type NoteControl = { readonly kind: 'readAsB'; readonly noteIdsOf: NoteIdsOf } | { readonly kind: 'noForeignTarget' };
+
+/** One Admin API operation, its call from A against B, and the result it must have. */
 interface NoteEntry {
   readonly operation: string;
   readonly document: GraphQlDocument;
   readonly variables: () => Record<string, unknown>;
+  readonly outcome: NoteOutcome;
+  readonly control: NoteControl;
 }
+
+const idOfNote: NoteIdsOf = (value) => [(value as NoteResult).id];
+const idsOfNotes: NoteIdsOf = (value) => (value as NoteResult[]).map((note) => note.id);
 
 describe('TemplateNote isolation between two businesses', () => {
   const { server, adminClient } = createPluginTestEnvironment({
@@ -36,14 +50,33 @@ describe('TemplateNote isolation between two businesses', () => {
   let noteOfB: NoteResult;
 
   const REGISTRY: readonly NoteEntry[] = [
-    { operation: 'templateNote', document: NOTE_BY_ID, variables: () => ({ id: noteOfB.id }) },
-    { operation: 'templateNotes', document: NOTES, variables: () => ({}) },
+    {
+      operation: 'templateNote',
+      document: NOTE_BY_ID,
+      variables: () => ({ id: noteOfB.id }),
+      outcome: { kind: 'null' },
+      control: { kind: 'readAsB', noteIdsOf: idOfNote },
+    },
+    {
+      operation: 'templateNotes',
+      document: NOTES,
+      variables: () => ({}),
+      outcome: { kind: 'callerOwned', noteIdsOf: idsOfNotes },
+      control: { kind: 'readAsB', noteIdsOf: idsOfNotes },
+    },
     {
       operation: 'createTemplateNote',
       document: CREATE_NOTE,
       variables: () => ({ input: { title: "A's own", body: '' } }),
+      outcome: { kind: 'callerOwned', noteIdsOf: idOfNote },
+      control: { kind: 'noForeignTarget' },
     },
   ];
+
+  async function callOperation(entry: NoteEntry): Promise<unknown> {
+    const data = await adminClient.query<Record<string, unknown>>(entry.document, entry.variables());
+    return data[entry.operation];
+  }
 
   async function asOwner(business: BusinessFixture, store = business.stores[0]): Promise<void> {
     adminClient.setChannelToken(store.channelToken);
@@ -128,24 +161,47 @@ describe('TemplateNote isolation between two businesses', () => {
     expect(listedForB).not.toContain(created.id);
   });
 
-  it.each(['templateNote', 'templateNotes', 'createTemplateNote'])(
-    "%s is FORBIDDEN for A's owner on B's channel",
-    async (operation) => {
-      // Arrange
-      const entry = REGISTRY.find((candidate) => candidate.operation === operation) as NoteEntry;
-      await asOwner(fixtures.a);
+  it.each(REGISTRY)("$operation run by A never returns B's notes", async (entry) => {
+    // Arrange
+    await asOwner(fixtures.a);
 
-      // Act
-      const failure = await failureOf(
-        asChannel(adminClient, fixtures.b.stores[0].channelToken, () =>
-          adminClient.query(entry.document, entry.variables()),
-        ),
-      );
+    // Act
+    const value = await callOperation(entry);
 
-      // Assert
-      expect(failure.codes).toEqual(['FORBIDDEN']);
-    },
-  );
+    // Assert
+    if (entry.outcome.kind === 'null') {
+      expect(value).toBeNull();
+    } else {
+      expect(entry.outcome.noteIdsOf(value)).not.toContain(noteOfB.id);
+      expect(entry.outcome.noteIdsOf(value).length).toBeGreaterThan(0);
+    }
+    await asOwner(fixtures.b);
+    expect(await noteIds()).toEqual([noteOfB.id]);
+  });
+
+  // The attack above must aim at a real note: without this, a wrong id would also come back null.
+  it.each(REGISTRY)('$operation run by B returns B\'s note', async (entry) => {
+    // Arrange
+    await asOwner(fixtures.b);
+
+    // Act and Assert
+    if (entry.control.kind === 'readAsB') {
+      expect(entry.control.noteIdsOf(await callOperation(entry))).toEqual([noteOfB.id]);
+    }
+  });
+
+  it.each(REGISTRY)("$operation is FORBIDDEN for A's owner on B's channel", async ({ document, variables }) => {
+    // Arrange
+    await asOwner(fixtures.a);
+
+    // Act
+    const failure = await failureOf(
+      asChannel(adminClient, fixtures.b.stores[0].channelToken, () => adminClient.query(document, variables())),
+    );
+
+    // Assert
+    expect(failure.codes).toEqual(['FORBIDDEN']);
+  });
 
   it('is FORBIDDEN on the default channel, which belongs to no business', async () => {
     // Act

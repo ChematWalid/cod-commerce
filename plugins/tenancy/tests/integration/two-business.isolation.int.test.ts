@@ -32,7 +32,10 @@ import {
 import {
   type AdminApiEntry,
   ADMIN_API_REGISTRY,
+  ATTACK_CASES,
   declaredRoutes,
+  GUARDED_ENTRIES,
+  leaksOf,
   type Probe,
   REST_ROUTE_REGISTRY,
 } from './endpoint-registry';
@@ -68,15 +71,6 @@ describe('two-business isolation', () => {
     return { business: activeBusiness, stores: [...stores].sort((l, r) => l.id.localeCompare(r.id)) };
   }
 
-  /** B's identifiers in a response, except a subdomain a public check was asked about. */
-  function leaksOfB(value: unknown): string[] {
-    const text = JSON.stringify(value);
-    const { businessId, stores } = fixtures.b;
-    return [businessId, ...stores.flatMap((store) => [store.id, store.channelToken, store.subdomain])].filter((secret) =>
-      text.includes(secret),
-    );
-  }
-
   const queryAs = async (entry: AdminApiEntry, probe: Probe): Promise<unknown> => {
     const data = await adminClient.query<Record<string, unknown>>(entry.document, entry.variables(probe));
     return data[entry.operation];
@@ -94,7 +88,7 @@ describe('two-business isolation', () => {
       expect(value).toBeNull();
     } else if (outcome.kind === 'callerOwned') {
       expect(new Set(outcome.businessIdsOf(value))).toEqual(new Set([fixtures.a.businessId]));
-      expect(leaksOfB(value)).toEqual([]);
+      expect(leaksOf(value, fixtures.b)).toEqual([]);
     } else {
       await asOwner(fixtures.b);
       expect(await queryAs(entry, probe)).toEqual(value);
@@ -103,11 +97,6 @@ describe('two-business isolation', () => {
 
   const victims = (): readonly StoreFixture[] => fixtures.b.stores;
   const probeOf = (victimIndex: number): Probe => ({ ...fixtures, victim: victims()[victimIndex] as StoreFixture });
-  const attackCases = ADMIN_API_REGISTRY.flatMap((entry) => [
-    { name: `${entry.operation} against B1`, entry, victimIndex: 0 },
-    { name: `${entry.operation} against B2`, entry, victimIndex: 1 },
-  ]);
-  const guardedEntries = ADMIN_API_REGISTRY.filter((entry) => entry.outcome.kind !== 'sameForEveryCaller');
 
   beforeAll(async () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
@@ -156,7 +145,7 @@ describe('two-business isolation', () => {
   });
 
   describe("A's owner with B's ids", () => {
-    it.each(attackCases)('$name never reaches B', async ({ entry, victimIndex }) => {
+    it.each(ATTACK_CASES)('$name never reaches B', async ({ entry, victimIndex }) => {
       // Arrange
       await asOwner(fixtures.a);
 
@@ -166,8 +155,25 @@ describe('two-business isolation', () => {
     });
   });
 
+  describe('positive controls: each attack aims at something real', () => {
+    it.each(ATTACK_CASES)('$name has a real target in B', async ({ entry, victimIndex }) => {
+      // Arrange
+      const probe = probeOf(victimIndex);
+      const { control } = entry;
+
+      // Act and Assert
+      if (control.kind === 'readAsB') {
+        await asOwner(fixtures.b);
+        expect(new Set(control.idsOf(await queryAs(entry, probe)))).toEqual(new Set([control.expected(probe)]));
+      } else if (control.kind === 'targetExistsInB') {
+        const { business, stores } = baselineOfB;
+        expect([business.id, ...stores.flatMap((store) => [store.id, store.subdomain])]).toContain(control.target(probe));
+      }
+    });
+  });
+
   describe("A's owner on B's channel", () => {
-    it.each(guardedEntries)('$operation is FORBIDDEN', async ({ document, variables }) => {
+    it.each(GUARDED_ENTRIES)('$operation is FORBIDDEN', async ({ document, variables }) => {
       // Arrange
       await asOwner(fixtures.a);
       const [victim] = fixtures.b.stores;

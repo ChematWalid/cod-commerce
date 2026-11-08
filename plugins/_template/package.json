@@ -2,7 +2,7 @@
   "name": "@cod/plugin-template",
   "version": "0.0.0",
   "private": true,
-  "description": "The reference plugin of CLAUDE.md \u00a73a: tenant-scoped notes with every layer and every test kind.",
+  "description": "The reference plugin of CLAUDE.md §3a: tenant-scoped notes with every layer and every test kind.",
   "exports": {
     ".": {
       "@cod/source": "./index.ts",

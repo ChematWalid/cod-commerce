@@ -147,6 +147,7 @@ describe('plugin layer boundaries', () => {
       [
         'bad/api/uses-other-plugin.ts',
         'bad/application/uses-infrastructure.ts',
+        'bad/application/uses-tenancy-entry.ts',
         'bad/domain/uses-application.ts',
       ].sort(),
     );

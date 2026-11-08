@@ -13,10 +13,12 @@ const BUSINESS_ID_COLUMN = 'businessId';
 /** Rows of the tenant root, not owned by one: a business has no business, its sequence is keyed by it. */
 const NOT_TENANT_OWNED = ['BusinessEntity', 'BusinessOrderSequenceEntity'];
 
+/** A plugin's `entities` metadata, an array or the function form `entities: () => [...]`. */
 const declaredEntities = (candidate: unknown): EntityClass[] => {
   if (typeof candidate !== 'function') return [];
-  const entities = Reflect.getMetadata(ENTITIES_METADATA, candidate) as unknown;
-  return Array.isArray(entities) ? (entities as EntityClass[]) : [];
+  const entities = Reflect.getMetadata(ENTITIES_METADATA, candidate) as EntityClass[] | (() => EntityClass[]) | undefined;
+  const resolved = typeof entities === 'function' ? entities() : entities;
+  return resolved ?? [];
 };
 
 /** The entities of every `@cod/plugin-*` the server depends on, so a new plugin is covered without an edit here. */

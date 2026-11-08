@@ -37,6 +37,13 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     to: { path: '^plugins/$1/infrastructure/' },
   },
   {
+    name: 'plugin-core-no-tenancy-entry',
+    comment: 'domain/ and application/ stay framework-free: the tenancy entry point exports TypeORM and Vendure classes.',
+    severity: 'error',
+    from: { path: '^plugins/[^/]+/(domain|application)/' },
+    to: { path: '^plugins/tenancy/index[.]ts$' },
+  },
+  {
     name: 'no-cross-plugin-internals',
     comment: 'A plugin never imports another plugin, except the tenancy entry point (D10); it uses @cod/shared contracts or domain events.',
     severity: 'error',
