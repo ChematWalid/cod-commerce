@@ -38,6 +38,7 @@ Run from the repo root.
 | `scripts/check-data-services.sh` | Verifies the running data services end to end |
 | `scripts/verify-stack.sh` | Builds the server image and verifies the whole stack under project `cod-verify` (`--bad-password` checks the env failure path) |
 | `scripts/evidence/P0.S2b-3.sh` | Re-runs the P0.S2b-3 api transcripts against a live stack (project `cod-evidence`) into `docs/evidence/P0.S2b-3/` |
+| `scripts/evidence/P0.S2b-4.sh` | Re-runs the P0.S2b-4 dashboard transcripts and screenshots against a live stack into `docs/evidence/P0.S2b-4/` |
 | `scripts/ci/ci-duration.sh` | Prints the p90 of recent CI runs on `main` (needs `gh`) |
 
 ## Data services
@@ -76,5 +77,23 @@ The single app image (`Dockerfile`) runs one role per container (`ROLE=api|worke
 
 `scripts/evidence/P0.S2b-3.sh` produces the session's committed evidence (`docs/evidence/P0.S2b-3/`): migrate, health, superadmin login and seeded-data transcripts, with secrets redacted by the script.
 
+## Dashboard (Arabic RTL)
+The Vendure dashboard is served by the api at `http://localhost:3100/dashboard`, with the `plugins/merchant-shell` customisations (Arabic RTL by default). Sign in with `SUPERADMIN_USERNAME` and `SUPERADMIN_PASSWORD`.
+
+```bash
+pnpm --filter @cod/server build:dashboard   # builds the dashboard; needs the server env, run after pnpm build
+CORS_ORIGINS=http://localhost:5173 pnpm --filter @cod/server dev:dashboard   # Vite dev server on 5173
+```
+The api serves the built dashboard, so run `build:dashboard` before opening the URL above. The Vite dev server on port 5173 talks to the api on 3100 from another origin, so the api must be started with `CORS_ORIGINS=http://localhost:5173`.
+
+Browser tests (Playwright, headless Chromium) run against a live api and the built dashboard:
+```bash
+pnpm --filter @cod/server exec playwright-core install chromium-headless-shell   # once; add --with-deps on a fresh Linux CI image
+pnpm --filter @cod/server test:browser   # DASHBOARD_URL overrides the default http://localhost:3100/dashboard
+```
+Screenshots go to `apps/server/test-results/`. `scripts/evidence/P0.S2b-4.sh` regenerates the committed evidence in `docs/evidence/P0.S2b-4/`.
+
 ## CI
 `.github/workflows/ci.yml` runs `lint`, `typecheck`, `unit`, `build`, `data-services`, `integration` (Postgres and Valkey service containers) and `stack` (builds the image and runs `scripts/verify-stack.sh`, then `--bad-password`) in parallel. The `build-test` job gates them all and is the required status check, next to `attribution-check`. The whole pipeline must finish in 10 minutes or less (ADR 0001); `build-test` writes the wall-clock time to the run summary, and `scripts/ci/ci-duration.sh` reports the p90 over the last 20 runs on `main`.
+
+`.github/workflows/browser.yml` (job `browser`) runs the browser tests against the built api on Postgres and Valkey service containers. It is not part of the pull-request pipeline (ADR 0001 section 6): it runs on every push to `main`, nightly at 02:00 UTC, and on demand (`gh workflow run browser.yml`), and uploads the screenshots as an artifact. The `build` job also builds the dashboard.
