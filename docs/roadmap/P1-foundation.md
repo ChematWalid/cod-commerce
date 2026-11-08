@@ -36,6 +36,7 @@ Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUT
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P1.S1-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P0.S2b.md` (and `P0.S2a-1.md`–`P0.S2a-3.md` for the ADR impact list), `docs/adr/0002-*` (tenancy, incl. spike C outcome), `0003-*` (ids), `0006-*` (host map), `0008-*` (auth), `0010-*` (dashboard host).
 - `docs/architecture/system-design.md` §2.1 (host resolution on a page view), §5 (data: host map keys), §7 (tenant isolation).
 - `docs/research/dashboard-captures.md` "Store settings → Profile" and "Business settings"; `docs/research/data-model.md` intro (businessId/storeId on every row) and "Order" (`orderNumber` "#00000001", per-business sequence); `docs/research/second-pass.md` "Onboarding (new account)" (store address `<sub>.platform` with live availability check).
