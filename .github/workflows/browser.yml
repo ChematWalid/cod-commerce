@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: browser-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   TURBO_TELEMETRY_DISABLED: '1'
@@ -90,5 +90,5 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browser-screenshots
-          path: '**/test-results/*.png'
+          path: 'apps/server/test-results/*.png'
           if-no-files-found: ignore

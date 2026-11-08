@@ -12,8 +12,8 @@ RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile --filt
  && pnpm --filter "@cod/server..." run build
 # The dashboard's Vite plugin loads src/vendure-config.ts, whose loadEnv() needs a full env. It reads the
 # config only to find the plugin dashboards and the Admin API schema (no connection is made), so the
-# .env.example placeholders are enough. They are ARGs set on this RUN line only: no ENV, so neither the
-# image nor the containers keep them.
+# .env.example placeholders are enough. They are ARGs for this RUN line only (no ENV, so the containers
+# never see them), but a RUN-passed ARG is visible in `docker history`: placeholders only, never pass real values.
 ARG DASHBOARD_BUILD_DATABASE_URL=postgresql://cod:change-me-pg@localhost:6432/cod
 ARG DASHBOARD_BUILD_REDIS_URL=redis://localhost:6380
 ARG DASHBOARD_BUILD_S3_ENDPOINT=http://localhost:3900

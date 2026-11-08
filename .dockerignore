@@ -20,3 +20,4 @@ docs
 apps/server/src/gql
 **/test-results
 apps/server/.vendure
+.vendure/

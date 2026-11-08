@@ -99,7 +99,7 @@ describe('browser.yml', () => {
 
     expect(upload?.uses).toBe('actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
     expect(upload?.if).toBe('always()');
-    expect(JSON.stringify(upload)).toContain('**/test-results/*.png');
+    expect(JSON.stringify(upload)).toContain('apps/server/test-results/*.png');
   });
 
   it('pins every action by commit SHA and uses no secrets', () => {

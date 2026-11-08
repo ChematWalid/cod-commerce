@@ -283,7 +283,13 @@ describe('Dockerfile', () => {
   it('builds the dashboard after the server, with placeholders the image does not keep (M5)', () => {
     const envLines = dockerfile.split('\n').filter((line) => line.startsWith('ENV '));
 
-    expect(dockerfile.indexOf('run build:dashboard')).toBeGreaterThan(dockerfile.indexOf('run build\n'));
+    const lines = dockerfile.split('\n');
+    const serverBuild = lines.findIndex((line) => /\bpnpm\b.*\brun build$/.test(line.trim()));
+    const dashboardBuild = lines.findIndex((line) => line.includes('run build:dashboard'));
+
+    expect(serverBuild).toBeGreaterThanOrEqual(0);
+    expect(dashboardBuild).toBeGreaterThanOrEqual(0);
+    expect(dashboardBuild).toBeGreaterThan(serverBuild);
     expect(envLines.join('\n')).not.toMatch(/DASHBOARD_BUILD_|change-me|DATABASE_URL|SECRET/);
   });
 });

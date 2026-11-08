@@ -47,3 +47,6 @@ Thumbs.db
 
 # Test fixture whose built output is part of the fixture
 !packages/config/tests/fixtures/conditions/pkg/dist/
+
+# Vendure telemetry directory (created at the cwd of a host-run api)
+.vendure/
