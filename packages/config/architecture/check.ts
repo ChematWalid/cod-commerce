@@ -17,7 +17,8 @@ export interface ArchitectureReport {
 
 /** tsconfig whose compiler options drive the TypeScript pre-compilation dependency scan. */
 const TS_CONFIG_FILE = join(__dirname, '../tsconfig.base.json');
-const EXCLUDED_PATHS = 'node_modules|dist|\\.test\\.ts$';
+// .next/ holds the storefront's generated build output, not sources.
+const EXCLUDED_PATHS = 'node_modules|dist|\\.next/|\\.test\\.ts$';
 
 const toViolation = (violation: IViolation): ArchitectureViolation => ({
   rule: violation.rule.name,

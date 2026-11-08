@@ -16,6 +16,9 @@ apps/server/src/gql/
 .playwright-mcp/
 # Vendure core's telemetry installation id, written by a host-run server
 apps/server/.vendure/
+# Storefront build output and its compiled cache handlers
+apps/storefront/.next/
+apps/storefront/cache/dist/
 
 # Environment (only .env.example is committed)
 .env

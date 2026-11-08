@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ESLint } from 'eslint';
 import tseslint from 'typescript-eslint';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const repoRoot = resolve(__dirname, '../../..');
 const lintFixtures = join(__dirname, 'fixtures/lint');
@@ -24,6 +24,9 @@ const eslint = new ESLint({ cwd: repoRoot, ignore: false, overrideConfig: typeCh
 /** Lints exactly as `pnpm lint` does, ignore patterns included. */
 const eslintAsCi = new ESLint({ cwd: repoRoot, overrideConfig: typeCheckOff });
 
+/** Loading the root config imports eslint-config-next and its plugins, which takes seconds on a busy machine. */
+const CONFIG_LOAD_TIMEOUT_MS = 30_000;
+
 const read = (fixture: string): string => readFileSync(join(lintFixtures, fixture), 'utf8');
 
 const ruleIds = (results: ESLint.LintResult[]): (string | null)[] =>
@@ -36,6 +39,25 @@ const lint = (fixture: string, virtualPath: string): Promise<(string | null)[]> 
   lintWith(eslint, fixture, virtualPath);
 
 describe('root ESLint config', () => {
+  beforeAll(async () => {
+    await eslint.calculateConfigForFile(join(repoRoot, `${PLUGIN}/domain/x.ts`));
+  }, CONFIG_LOAD_TIMEOUT_MS);
+
+  it('applies the Next.js rules to the storefront only', async () => {
+    // Arrange
+    const nextRule = '@next/next/no-html-link-for-pages';
+    // Act
+    const storefront = (await eslint.calculateConfigForFile(join(repoRoot, 'apps/storefront/app/layout.tsx'))) as {
+      rules: Record<string, unknown>;
+    };
+    const plugin = (await eslint.calculateConfigForFile(join(repoRoot, DASHBOARD_PAGE))) as {
+      rules: Record<string, unknown>;
+    };
+    // Assert
+    expect(storefront.rules).toHaveProperty(nextRule);
+    expect(plugin.rules).not.toHaveProperty(nextRule);
+  });
+
   it('keeps domain code free of framework imports, type imports included', async () => {
     expect(await lint('vendure-in-domain.ts.txt', `${PLUGIN}/domain/rule.ts`)).toContain('no-restricted-imports');
     expect(await lint('type-import-in-domain.ts.txt', `${PLUGIN}/domain/rule.ts`)).toContain('no-restricted-imports');

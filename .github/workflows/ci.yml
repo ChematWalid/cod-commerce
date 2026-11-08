@@ -53,7 +53,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
+      # The storefront's next build needs a deployment id outside development (no .env in CI); turbo hashes it.
       - run: NODE_OPTIONS=--max-old-space-size=2048 pnpm build
+        env:
+          NEXT_DEPLOYMENT_ID: ci-${{ github.sha }}
       # The dashboard's Vite plugin loads src/vendure-config.ts, whose loadEnv() needs a full env. It reads the
       # config only to find the plugin dashboards and the Admin API schema (no connection is made), so the
       # same non-secret placeholders as the Dockerfile are enough.

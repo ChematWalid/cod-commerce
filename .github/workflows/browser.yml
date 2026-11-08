@@ -68,8 +68,11 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Install the browser
         run: pnpm --filter @cod/server exec playwright-core install --with-deps chromium-headless-shell
+      # The storefront's next build needs a deployment id: turbo's strict env mode hides APP_ENV from it.
       - name: Build
         run: pnpm build
+        env:
+          NEXT_DEPLOYMENT_ID: ci-${{ github.sha }}
       - name: Build the dashboard
         run: ROLE=api pnpm --filter @cod/server build:dashboard
       - name: Migrate
