@@ -157,3 +157,12 @@ export class TenantScopeMissingError extends DomainError {
     super('A tenant scope must carry a business id');
   }
 }
+
+/** An order number asked for outside a transaction: it would survive the rollback of the order it numbers. */
+export class TransactionRequiredError extends DomainError {
+  readonly code = 'tenancy.transaction-required';
+
+  constructor() {
+    super('An order number must be taken inside the order transaction');
+  }
+}

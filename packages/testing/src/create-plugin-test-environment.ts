@@ -14,6 +14,8 @@ export interface PluginTestEnvironmentOptions {
   /** The plugins under test (classes, or the modules their `init` returns), added to Vendure's `testConfig`. */
   readonly plugins: NonNullable<VendureConfig['plugins']>;
   readonly db: PluginTestDbConfig;
+  /** The most connections the server's pool opens; the driver's default (10) when omitted. */
+  readonly poolSize?: number;
 }
 
 /** The currency of the channels a plugin test creates: the platform's (ADR 0004). */
@@ -53,6 +55,7 @@ export function createPluginTestEnvironment(
       ...toPostgresFields(options.db.databaseUrl),
       synchronize: true,
       logging: false,
+      ...(options.poolSize === undefined ? {} : { extra: { max: options.poolSize } }),
     },
     plugins: [...testConfig.plugins, ...options.plugins],
   };

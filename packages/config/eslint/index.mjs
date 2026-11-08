@@ -24,13 +24,14 @@ const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', 
 const INFRASTRUCTURE_FILES = ['**/plugins/*/infrastructure/**'];
 /**
  * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
- * `platform-store-lookup` is the unscoped read path and `tenant-transaction` runs only `set_config`. The template's
+ * `platform-store-lookup` is the unscoped read path and `tenant-transaction` runs only `set_config`. `order-number.service` updates the sequence row, which is keyed by the business itself. The template's
  * repository is a stub until P1.S1 Task 7 moves it onto `TenantRepository`, which removes its entry.
  */
 const RAW_DATA_ACCESS_FILES = [
   '**/plugins/tenancy/infrastructure/tenant-repository.ts',
   '**/plugins/tenancy/infrastructure/platform-store-lookup.ts',
   '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
+  '**/plugins/tenancy/infrastructure/order-number.service.ts',
   '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
   '**/plugins/_template/infrastructure/typeorm-note.repository.ts',
 ];

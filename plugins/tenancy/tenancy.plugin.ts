@@ -44,6 +44,7 @@ import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
 import { hostResolutionProviders } from './infrastructure/host-resolution.providers';
 import { StoreEntity } from './infrastructure/store.entity';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
+import { OrderNumberService } from './infrastructure/order-number.service';
 import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
 import { TenantStoresAdapter } from './infrastructure/tenant-stores.adapter';
 import { TenantTransaction } from './infrastructure/tenant-transaction';
@@ -127,6 +128,7 @@ const STORE_USE_CASES = [
     { provide: TENANT_CONTEXT_RESOLVER, useExisting: TenantContextResolver },
     TenantGuard,
     TenantRepositoryFactory,
+    OrderNumberService,
     TenantTransaction,
     { provide: TRANSACTION, useClass: VendureTransaction },
     { provide: ID_GENERATOR, useFactory: createIdGenerator },
@@ -168,6 +170,7 @@ const STORE_USE_CASES = [
   ],
   exports: [
     CreateStoreService,
+    OrderNumberService,
     ProvisionBusinessService,
     TenantContextResolver,
     TENANT_CONTEXT_RESOLVER,

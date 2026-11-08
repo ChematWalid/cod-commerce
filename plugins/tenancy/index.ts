@@ -13,6 +13,7 @@ export type { Business, BusinessStatus } from './domain/business';
 export * from './domain/errors';
 export { asOperationContext, type OperationContext } from './domain/ports/operation-context';
 export type { CreateStoreInput, SoldOutBehavior, Store, StoreStatus } from './domain/store';
+export { OrderNumberService } from './infrastructure/order-number.service';
 export { RequestTenantScope, requestContextOf } from './infrastructure/request-tenant-scope';
 export { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 export { TenantRepository, TenantRepositoryFactory, tenantQuery } from './infrastructure/tenant-repository';
