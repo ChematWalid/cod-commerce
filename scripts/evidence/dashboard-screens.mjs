@@ -222,10 +222,10 @@ function tableRows(rows) {
   return lines.join('\n');
 }
 
-/** Everything in the README is derived from this run; the shell script formats it with the repo's Prettier,
- * and the text carries no date, size or font-face count, so a re-run on the same tree rewrites it unchanged. */
+/** Everything in the README is derived from this run; the text carries no date, size or font-face count,
+ * so the output is deterministic and a re-run on the same tree rewrites it unchanged. */
 function readmeText(rows) {
-  const commit = process.env.IMAGE_COMMIT ?? fail('IMAGE_COMMIT is not set');
+  const commit = process.env.IMAGE_COMMIT || fail('IMAGE_COMMIT is not set');
   return `# Evidence for P0.S2b-4 (dashboard with RTL)
 
 Screenshots of the real merchant dashboard (\`@vendure/dashboard\` 3.8.1 with the \`plugins/merchant-shell\` extension,

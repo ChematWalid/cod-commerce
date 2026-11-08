@@ -69,10 +69,18 @@ image_inputs=(. ':!docs/evidence' ':!scripts/evidence' ':!.superpowers')
 dirty=$(git status --porcelain -- "${image_inputs[@]}")
 [[ -z "$dirty" ]] || fail "uncommitted changes outside the evidence folders; commit or stash them first:
 $dirty"
-image_commit=$(git log -1 --format=%h -- "${image_inputs[@]}")
+image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
+[[ -n "$image_commit" ]] || fail "no commit touches the image inputs; nothing to attribute the image to"
+head_before=$(git rev-parse HEAD)
 
 docker compose down -v --remove-orphans
 docker compose build migrate
+
+# The build takes minutes: the image must still match the commit the README names.
+[[ "$(git rev-parse HEAD)" == "$head_before" ]] || fail "HEAD moved during the image build"
+dirty=$(git status --porcelain -- "${image_inputs[@]}")
+[[ -z "$dirty" ]] || fail "the tree changed during the image build:
+$dirty"
 docker compose up -d
 wait_healthy api worker
 wait_http 200 "$api/readyz" 60 || fail "api /readyz"
@@ -83,10 +91,6 @@ IMAGE_COMMIT=$image_commit \
   REGEN_COMMAND="scripts/evidence/P0.S2b-4.sh" \
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/dashboard-screens.mjs "$api/dashboard" "$out/screens"
 echo "screenshots taken in $((SECONDS - started))s"
-
-# The README is generated, then formatted by the repo's Prettier so that a re-run leaves the tree unchanged.
-node_modules/.bin/prettier --write "$out/README.md" >/dev/null
-node_modules/.bin/prettier --check "$out/README.md" >/dev/null || fail "README is not Prettier-formatted"
 
 # --- redaction check ---------------------------------------------------------------------
 for secret in "$SUPERADMIN_PASSWORD" "$COOKIE_SECRET"; do
