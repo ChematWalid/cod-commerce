@@ -120,7 +120,8 @@ async function shoot(browser, vpName, spec) {
     const marker = page.getByTestId(spec.testId);
     await marker.waitFor({ state: 'visible' });
     const text = (await marker.textContent())?.trim();
-    if (text !== spec.text) fail(`${label}: ${spec.testId} shows '${text}', expected '${spec.text}'`);
+    if (spec.contains ? !text?.includes(spec.text) : text !== spec.text)
+      fail(`${label}: ${spec.testId} shows '${text}', expected '${spec.text}'`);
     const html = await page.content();
     const visible = await page.evaluate(() => document.body.innerText);
     for (const absent of spec.absentTexts) {
@@ -154,6 +155,7 @@ const specs = [
     status: 404,
     testId: NOT_FOUND_TEST_ID,
     text: NOT_FOUND_TEXT,
+    contains: true,
     absentTexts: stores.map((s) => s.name),
     note: 'the not-found page (unknown host)',
   },

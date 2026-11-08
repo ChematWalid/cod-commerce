@@ -29,6 +29,13 @@ const LOGIN_PATH = '/login';
 const ADMIN_API_PATH = '/admin-api';
 const LOGOUT_MUTATION = 'mutation { logout { success } }';
 const PHONE_MAX_WIDTH = 768;
+/** The session this run documents; P0.S2c-polish.sh sets it, P0.S2b-4.sh keeps the default. */
+const SESSION_ID = process.env.SESSION_ID ?? 'P0.S2b-4';
+/** Per viewport and language: login and shell; the phone adds the opened sidebar. */
+const EXPECTED_PNGS = 12;
+/** The dashboard's sidebar toggle and its phone drawer. */
+const SIDEBAR_TRIGGER = '[data-sidebar="trigger"]';
+const SIDEBAR_DRAWER = '[data-sidebar="sidebar"][data-mobile="true"]';
 
 /** A phone screenshot went over the size budget at its device scale; the caller retries at scale 1. */
 class ScaleBudgetError extends Error {}
@@ -120,6 +127,17 @@ async function shootShell(page, lang, vpName) {
   return capture(page, join(outDir, `merchant-shell-${lang}-${vpName}.png`));
 }
 
+/** Opens the phone sidebar over the shell page and captures it, then closes it again. */
+async function shootMobileSidebar(page, lang) {
+  await page.locator(SIDEBAR_TRIGGER).first().click();
+  const drawer = page.locator(SIDEBAR_DRAWER);
+  await drawer.waitFor({ state: 'visible' });
+  await settle(page);
+  await capture(page, join(outDir, `merchant-shell-sidebar-${lang}-mobile.png`));
+  await page.keyboard.press('Escape');
+  await drawer.waitFor({ state: 'hidden' });
+}
+
 /** Signs out with the dashboard's own `logout` mutation. Dropping cookies alone is not enough: the dashboard
  * also keeps a session token in localStorage and would stay signed in. The display language stays in
  * localStorage, which is how the login page opens in it (3.8.1 has no language picker there). */
@@ -159,6 +177,7 @@ async function shootPair(browser, vpName, lang, deviceScaleFactor) {
   try {
     const page = await context.newPage();
     await shootShell(page, lang, vpName);
+    if (vpName === 'mobile') await shootMobileSidebar(page, lang);
     await shootLogin(page, lang, vpName);
     return deviceScaleFactor;
   } finally {
@@ -195,7 +214,7 @@ function checkOutputs() {
   const files = readdirSync(outDir)
     .filter((f) => f.endsWith('.png'))
     .sort();
-  if (files.length !== 8) fail(`expected 8 PNGs, found ${files.length}`);
+  if (files.length !== EXPECTED_PNGS) fail(`expected ${EXPECTED_PNGS} PNGs, found ${files.length}`);
   for (const f of files) {
     const size = statSync(join(outDir, f)).size;
     if (size > MAX_BYTES) fail(`${f} is ${size} bytes, over ${MAX_BYTES}`);
@@ -218,6 +237,12 @@ function tableRows(rows) {
     lines.push(
       `| [\`${shell}\`](screens/${shell}) | \`/dashboard${SHELL_PLACEHOLDER_PATH}\` | ${vp} | ${r.lang} | ${asserted} |`,
     );
+    if (r.vpName === 'mobile') {
+      const sidebar = `merchant-shell-sidebar-${r.lang}-mobile.png`;
+      lines.push(
+        `| [\`${sidebar}\`](screens/${sidebar}) | \`/dashboard${SHELL_PLACEHOLDER_PATH}\` (sidebar open) | ${vp} | ${r.lang} | ${asserted} |`,
+      );
+    }
   }
   return lines.join('\n');
 }
@@ -226,11 +251,11 @@ function tableRows(rows) {
  * so the output is deterministic and a re-run on the same tree rewrites it unchanged. */
 function readmeText(rows) {
   const commit = process.env.IMAGE_COMMIT || fail('IMAGE_COMMIT is not set');
-  return `# Evidence for P0.S2b-4 (dashboard with RTL)
+  return `# Evidence for ${SESSION_ID} (dashboard with RTL)
 
 Screenshots of the real merchant dashboard (\`@vendure/dashboard\` 3.8.1 with the \`plugins/merchant-shell\` extension,
 ADR 0010) served by a live run of the compose stack (CLAUDE.md §3a.14). Produced by
-\`scripts/evidence/P0.S2b-4.sh\`; nothing here is hand-written. Data is synthetic (placeholders from \`.env.example\`).
+\`scripts/evidence/${SESSION_ID}.sh\`; nothing here is hand-written. Data is synthetic (placeholders from \`.env.example\`).
 
 - Image: \`cod-platform:local\`, built by that run (\`docker compose build migrate\`) from a working tree with no uncommitted
   change outside the evidence folders, whose last image-relevant commit is \`${commit}\`.
@@ -246,7 +271,7 @@ ${tableRows(rows)}
 - Every page, login and shell: \`document.documentElement.dir\` is \`rtl\` for Arabic and \`ltr\` for English, and \`lang\` is \`ar\` / \`en\`.
 - Shell pages: the \`${SHELL_PLACEHOLDER_TEST_ID}\` marker is present.
 - Arabic shell pages: the \`${ARABIC_FONT_FAMILY}\` FontFace is \`loaded\`, and the body font family contains it.
-- Every PNG is at most 300 KB (the 8 files must all exist); no password or cookie secret appears in this folder.
+- Every PNG is at most 300 KB (the ${EXPECTED_PNGS} files must all exist); no password or cookie secret appears in this folder.
 
 ## How the language is chosen
 
@@ -263,15 +288,16 @@ ${tableRows(rows)}
 - **Mobile sessions:** on a phone-width viewport the user menu is inside the collapsed sidebar, so the sign-in and the language
   switch run in a desktop-sized context. Its storage state (session cookies and \`localStorage\`) opens the 390x844 context that
   takes the shots; the mobile pages are loaded in the language chosen there.
-- **Untranslated strings:** the \`Merchant shell\` page title and the \`Administration\` sidebar label stay English in the Arabic
-  shots. The placeholder page has no translation catalog in P0 (no \`.po\` files), and the sidebar section label is not
-  translated by the dashboard.
+- **Untranslated string:** the \`Administration\` sidebar label stays English in the Arabic shots. It is a literal in
+  \`@vendure/dashboard\` 3.8.1 with no translation wrapper, so a plugin catalogue cannot reach it.
+- **Footer:** \`Vendure v3.8.1\` stays on the login page: its source marks it as a licensing requirement, and the user
+  decided to keep it until counsel answers (ADR 0001 section 8).
 
 ## Re-run
 
 \`\`\`bash
 cp .env.example .env   # once; the script needs the root .env
-${process.env.REGEN_COMMAND ?? 'scripts/evidence/P0.S2b-4.sh'}
+${process.env.REGEN_COMMAND ?? `scripts/evidence/${SESSION_ID}.sh`}
 \`\`\`
 
 It uses its own compose project (\`cod-evidence\`, host ports shifted by 20000), always rebuilds the image first (the layer
