@@ -11,6 +11,7 @@ interface Step {
   run?: string;
   if?: string;
   shell?: string;
+  env?: Record<string, string>;
   'continue-on-error'?: boolean;
 }
 interface Job {
@@ -250,6 +251,12 @@ describe('ci.yml', () => {
     expect(dashboard).toBeGreaterThan(build);
     expect(runs[dashboard]).toContain('max-old-space-size=2048');
     expect(jobOf(ci, 'build')['timeout-minutes']).toBeLessThanOrEqual(10);
+  });
+
+  it('gives the build step a commit-derived NEXT_DEPLOYMENT_ID, since pnpm build now runs next build', () => {
+    const step = (jobOf(ci, 'build').steps ?? []).find((candidate) => /\bpnpm build\b/.test(candidate.run ?? ''));
+
+    expect(step?.env?.['NEXT_DEPLOYMENT_ID']).toBe('ci-${{ github.sha }}');
   });
 
   it('keeps the browser job out of ci.yml and out of the gate', () => {

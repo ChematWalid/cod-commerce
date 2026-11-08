@@ -10,8 +10,12 @@ interface Step {
   uses?: string;
   run?: string;
   if?: string;
+  name?: string;
+  env?: Record<string, string>;
+  with?: Record<string, string>;
 }
 interface Job {
+  env?: Record<string, string>;
   needs?: string[];
   services?: Record<string, { image?: string }>;
   'timeout-minutes'?: number;
@@ -80,6 +84,8 @@ describe('browser.yml', () => {
       index('setsid'),
       index('wait_http 200 http://localhost:3100/readyz'),
       index('pnpm --filter @cod/server test:browser'),
+      index('pnpm --filter @cod/storefront test:smoke'),
+      index('pnpm --filter @cod/storefront test:browser'),
     ];
 
     expect(order.every((position) => position >= 0)).toBe(true);
@@ -94,12 +100,42 @@ describe('browser.yml', () => {
     expect(runs.join('\n')).toMatch(/wait_http 200 http:\/\/localhost:3100\/dashboard\//);
   });
 
+  it('starts the storefront detached on 3001 after the api, and waits for its /livez before testing it', () => {
+    const start = index('@cod/storefront start');
+    const wait = index('wait_http 200 http://127.0.0.1:3001/livez');
+
+    expect(start).toBeGreaterThan(index('setsid node'));
+    expect(runs.join('\n')).toMatch(/setsid pnpm --filter @cod\/storefront start > storefront\.log 2>&1 &/);
+    expect(wait).toBeGreaterThanOrEqual(start);
+    expect(wait).toBeLessThan(index('pnpm --filter @cod/storefront test:smoke'));
+  });
+
+  it('gives the storefront the job valkey, the build deployment id and a non-secret environment', () => {
+    const step = (job.steps ?? []).find((candidate) => candidate.run?.includes('@cod/storefront start'));
+    const env = { ...job.env, ...step?.env };
+
+    expect(env['REDIS_URL']).toBe('redis://localhost:6379');
+    expect(env['APP_ENV']).toBe('development');
+    expect(env['NEXT_DEPLOYMENT_ID']).toBe('ci-${{ github.sha }}');
+    expect(env['NEXT_DEPLOYMENT_ID']).toBe(
+      (job.steps ?? []).find((candidate) => candidate.run === 'pnpm build')?.env?.['NEXT_DEPLOYMENT_ID'],
+    );
+  });
+
+  it('shows both server logs when a step fails', () => {
+    const show = (job.steps ?? []).find((step) => step.if === 'failure()' && step.run?.includes('storefront.log'));
+
+    expect(show?.run).toContain('tail -n 200 api.log');
+    expect(show?.run).toContain('tail -n 200 storefront.log');
+  });
+
   it('uploads the screenshots even when the tests fail, by an action pinned by SHA', () => {
     const upload = (job.steps ?? []).find((step) => step.uses?.startsWith('actions/upload-artifact@'));
 
     expect(upload?.uses).toBe('actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
     expect(upload?.if).toBe('always()');
-    expect(JSON.stringify(upload)).toContain('apps/server/test-results/*.png');
+    expect(upload?.with?.['path']).toContain('apps/server/test-results/*.png');
+    expect(upload?.with?.['path']).toContain('apps/storefront/test-results/*.png');
   });
 
   it('pins every action by commit SHA and uses no secrets', () => {
