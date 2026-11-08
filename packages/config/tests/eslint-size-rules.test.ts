@@ -32,6 +32,8 @@ describe('size and complexity rules fire on plugin files', () => {
     ['complexity', OVER.complexity, AT_LIMIT.complexity],
     ['max-depth', OVER.depth, AT_LIMIT.depth],
     ['max-params', OVER.params, AT_LIMIT.params],
+    ['max-lines', OVER.lines, AT_LIMIT.lines],
+    ['max-lines-per-function', OVER.functionLines, AT_LIMIT.functionLines],
   ])('%s fails over the limit and passes at it', async (rule, over, atLimit) => {
     expect(await lintSource(over, PLUGIN_FILE)).toContain(rule);
     expect(await lintSource(atLimit, PLUGIN_FILE)).not.toContain(rule);

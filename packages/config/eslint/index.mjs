@@ -16,10 +16,8 @@ const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];
 const FRAMEWORK_MODULES = ['@nestjs/*', '@vendure/*', 'typeorm', 'typeorm/*'];
 const DOMAIN_PURITY_MESSAGE = 'domain/ and @cod/shared stay framework-free (CLAUDE.md §3a.1)';
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
-/**
- * boundaries 7 deprecates `mode: 'file'` (still working in 7.4.2), but no non-deprecated descriptor classifies a single
- * file; revisit on the next major. The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
-const PLUGIN_ROOT_FILES = ['plugins/*/index.ts', 'plugins/*/*.plugin.ts', 'plugins/*/*.config.{ts,mts}'];
+/** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
+const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', '**/plugins/*/*.config.{ts,mts}'];
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
 
 /** Layers each layer may import, inside its own plugin (CLAUDE.md §3a.2). */
@@ -29,24 +27,45 @@ const ALLOWED_LAYER_IMPORTS = {
   infrastructure: ['infrastructure', 'application', 'domain'],
   api: ['api', 'application', 'domain'],
   dashboard: ['dashboard', 'domain'],
-  'plugin-root': ['plugin-root', ...PLUGIN_LAYERS],
-  tests: ['plugin-root', ...PLUGIN_LAYERS],
+  tests: PLUGIN_LAYERS,
 };
 
 /**
- * Elements are folders matched by path suffix, so the architecture fixtures under `tests/fixtures` are
- * classified like real plugins. The `plugin-root` element is file-based and lists the few files a plugin keeps
- * beside its layers; any other file under a plugin is unknown and fails `boundaries/no-unknown-files`.
+ * Layers are folder elements matched against the full path (`partialMatch: false`; the leading `**` also classifies
+ * the architecture fixtures under `tests/fixtures` like real plugins). The few files a plugin keeps beside its layers
+ * are a `plugin-root` file category; any other file under a plugin is unknown and fails `boundaries/no-unknown-files`.
  */
 const boundaryElements = [
-  ...PLUGIN_LAYERS.map((layer) => ({ type: layer, pattern: `plugins/*/${layer}`, capture: ['plugin'] })),
-  { type: 'plugin-root', mode: 'file', pattern: PLUGIN_ROOT_FILES, capture: ['plugin'] },
+  ...PLUGIN_LAYERS.map((layer) => ({
+    type: layer,
+    pattern: `**/plugins/*/${layer}`,
+    partialMatch: false,
+    capture: ['root', 'plugin'],
+  })),
 ];
 
-const boundaryPolicies = Object.entries(ALLOWED_LAYER_IMPORTS).map(([from, targets]) => ({
-  from: { element: { type: from } },
-  allow: { to: { element: { type: targets, captured: { plugin: SAME_PLUGIN } } } },
-}));
+const boundaryFiles = [{ pattern: PLUGIN_ROOT_FILES, category: 'plugin-root', capture: ['root', 'plugin'] }];
+
+const SAME_ROOT_PLUGIN = '{{ from.file.captured.plugin }}';
+const ROOT_FILE = { categories: 'plugin-root', captured: { plugin: SAME_ROOT_PLUGIN } };
+
+const boundaryPolicies = [
+  ...Object.entries(ALLOWED_LAYER_IMPORTS).map(([from, targets]) => ({
+    from: { element: { type: from } },
+    allow: { to: { element: { type: targets, captured: { plugin: SAME_PLUGIN } } } },
+  })),
+  // Tests may import the plugin's root files.
+  {
+    from: { element: { type: 'tests' } },
+    allow: { to: { file: { categories: 'plugin-root', captured: { plugin: SAME_PLUGIN } } } },
+  },
+  // Root files (entry, Nest module, tool configs) may import every layer and each other, inside their own plugin.
+  {
+    from: { file: { categories: 'plugin-root' } },
+    allow: { to: { element: { type: PLUGIN_LAYERS, captured: { plugin: SAME_ROOT_PLUGIN } } } },
+  },
+  { from: { file: { categories: 'plugin-root' } }, allow: { to: { file: ROOT_FILE } } },
+];
 
 /**
  * The workspace ESLint flat config: type-checked TypeScript rules, the size limits of CLAUDE.md §3a.3,
@@ -127,6 +146,7 @@ export function codEslintConfig({ tsconfigRootDir }) {
         settings: {
           'import/resolver': { node: { extensions: ['.ts', '.tsx', '.mts', '.js'] } },
           'boundaries/elements': boundaryElements,
+          'boundaries/files': boundaryFiles,
         },
         rules: {
           'boundaries/dependencies': [2, { default: 'disallow', policies: boundaryPolicies }],
