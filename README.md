@@ -108,7 +108,7 @@ pnpm --filter @cod/storefront test:browser    # headless Chromium; screenshots g
 
 In the single image the storefront is the `storefront` role (`ROLE=storefront`, standalone server on 3001 inside the container, published on `STOREFRONT_HOST_PORT`, default 3001, bound by `STOREFRONT_BIND_ADDR`). It needs only `REDIS_URL`, no database or S3 settings.
 
-`NEXT_DEPLOYMENT_ID` names the build and prefixes every cache key, so a new deployment never reads the previous one's entries. Build the image with `NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) docker compose build` (host: `NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) pnpm build`, and use the same value for `next start`). A bare rebuild without it reuses `local`, so flush the old entries first: `docker compose exec valkey valkey-cli --scan --pattern 'next:*' | xargs -r docker compose exec -T valkey valkey-cli del` (or `docker compose down -v`).
+`NEXT_DEPLOYMENT_ID` names the build and prefixes every cache key, so a new deployment never reads the previous one's entries. Build the image with `NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) docker compose build` (host: `NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) pnpm build`, and use the same value for `next start`). A bare rebuild without it reuses `local`, so flush the old entries first: `docker compose exec -T valkey valkey-cli --scan --pattern 'next:*' | xargs -r docker compose exec -T valkey valkey-cli del` (or `docker compose down -v`).
 
 `scripts/evidence/P0.S2b-5.sh` regenerates the committed evidence in `docs/evidence/P0.S2b-5/`.
 
