@@ -106,6 +106,7 @@ const baseSchema = z.object({
   CORS_ORIGINS: csvList,
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   PLATFORM_DOMAIN: z.string().min(1).optional(),
+  DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
 });
 
@@ -129,6 +130,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
   return [
     ['COOKIE_SECRET', env.COOKIE_SECRET],
     ['SUPERADMIN_PASSWORD', env.SUPERADMIN_PASSWORD],
+    ['DEMO_OWNER_PASSWORD', env.DEMO_OWNER_PASSWORD],
     ['S3_SECRET_KEY', env.S3_SECRET_KEY],
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],

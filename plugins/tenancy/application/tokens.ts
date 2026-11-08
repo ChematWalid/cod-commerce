@@ -27,3 +27,9 @@ export const STORE_ADMIN_PORTS: unique symbol = Symbol('TenancyStoreAdminPorts')
 
 /** Injection token of the `TenantContextResolverPort` adapter. */
 export const TENANT_CONTEXT_RESOLVER: unique symbol = Symbol('TenancyTenantContextResolver');
+
+/** Injection token of the process-local `HostCachePort`. */
+export const HOST_LOCAL_CACHE: unique symbol = Symbol('TenancyHostLocalCache');
+
+/** Injection token of the Valkey-backed `HostCachePort`. */
+export const HOST_SHARED_CACHE: unique symbol = Symbol('TenancyHostSharedCache');

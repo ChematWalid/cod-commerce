@@ -1,19 +1,31 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { STUB_STORES } from '../../src/tenancy/stub-store-resolver';
 import { httpGetWithHost, STOREFRONT_URL, waitForHttp } from '../support/http-get-with-host';
 
 const STARTUP_TIMEOUT_MS = 30_000;
-const [demo, second] = STUB_STORES;
-if (!demo || !second) throw new Error('the smoke tests need the two stub stores');
-/** The second store's internal route, which only a rewrite from its own host may reach. */
-const secondInternalPath = `/_t/${second.storeId}/${second.defaultLocale}`;
-/** The same path with `_` percent-encoded (%5F), the literal name of the app folder. */
-const secondEncodedInternalPath = `/%5Ft/${second.storeId}/${second.defaultLocale}`;
+/** The demo seed's stores (`pnpm --filter @cod/server seed:demo`). */
+const demo = { name: 'Demo Store', primaryHost: 'demo.localhost' };
+const second = { name: 'Second Store', primaryHost: 'second.localhost', defaultLocale: 'fr' };
+const API_URL = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3100';
 const url = (path: string): string => new URL(path, STOREFRONT_URL).toString();
 
+/** The second store's id, as the API knows it: its internal path needs a real id. */
+async function secondStoreId(): Promise<string> {
+  const response = await fetch(`${API_URL}/store/resolve?host=${second.primaryHost}`);
+  if (!response.ok) throw new Error(`the demo seed has not run: ${String(response.status)}`);
+  return ((await response.json()) as { storeId: string }).storeId;
+}
+
 describe('storefront host routing (against next start)', () => {
+  /** The second store's internal route, which only a rewrite from its own host may reach. */
+  let secondInternalPath: string;
+  /** The same path with `_` percent-encoded (%5F), the literal name of the app folder. */
+  let secondEncodedInternalPath: string;
+
   beforeAll(async () => {
     await waitForHttp(url('/livez'), 200, STARTUP_TIMEOUT_MS);
+    const storeId = await secondStoreId();
+    secondInternalPath = `/_t/${storeId}/${second.defaultLocale}`;
+    secondEncodedInternalPath = `/%5Ft/${storeId}/${second.defaultLocale}`;
   });
 
   it('renders the demo store hello page', async () => {

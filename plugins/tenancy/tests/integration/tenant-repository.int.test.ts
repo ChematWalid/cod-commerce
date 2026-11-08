@@ -12,14 +12,14 @@ import {
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { type TenantRepository, tenantQuery, TenantRepositoryFactory } from '../../infrastructure/tenant-repository';
 import { TenancyPlugin } from '../../tenancy.plugin';
-import { provisionBusiness, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const UNUSED_CHANNEL_ID = 987_654;
 const NO_BUSINESS = {} as TenantScope;
 
 describe('Tenant data access', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: 'redis://unused', platformDomain: 'localhost', snowflakeWorkerId: 1002 })],
+    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1002 })],
     db: loadPluginTestDbConfig(process.env),
   });
 

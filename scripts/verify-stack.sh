@@ -33,6 +33,8 @@ export COMPOSE_PROJECT_NAME=cod-verify
 export POSTGRES_HOST_PORT=15433 PGBOUNCER_HOST_PORT=16432 VALKEY_HOST_PORT=16380 GARAGE_S3_HOST_PORT=13900
 export MAILPIT_SMTP_HOST_PORT=11026 MAILPIT_UI_HOST_PORT=18026 API_HOST_PORT=13100 WORKER_HEALTH_HOST_PORT=13020
 export STOREFRONT_HOST_PORT=13001
+# The stores below are checked on *.localhost; compose's own default is deliberately unusable.
+export PLATFORM_DOMAIN=localhost
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
 # The storefront's deployment id (its cache-key namespace and asset id) is the commit, so a rebuilt image never
 # reads the App Shell of another build from Valkey; an uncommitted tree is marked dirty.
@@ -145,6 +147,15 @@ wait_http 200 "$api_readyz" 60 || fail "api /readyz"
 wait_http 200 "$worker_readyz" 60 || fail "worker /readyz"
 wait_http 200 "http://127.0.0.1:$API_HOST_PORT/dashboard/" 60 || fail "api /dashboard/"
 wait_http 200 "http://127.0.0.1:$STOREFRONT_HOST_PORT/readyz" 60 || fail "storefront /readyz"
+# The image's entry point runs a role, so the seed replaces it. DEMO_OWNER_PASSWORD comes from .env.
+seed_demo() {
+  docker compose run --rm --no-deps -T -e ROLE=migrate -e DEMO_OWNER_PASSWORD --entrypoint node migrate \
+    --enable-source-maps apps/server/dist/main-seed-demo.js
+}
+seed_demo >/dev/null || fail "demo seed"
+seeded_again=$(seed_demo) || fail "second demo seed"
+command grep -qF '"created":[]' <<<"$seeded_again" || fail "second demo seed was not a no-op: $seeded_again"
+phase "demo businesses seeded"
 expect_store demo.localhost 200 'Demo Store'
 expect_store second.localhost 200 'Second Store'
 expect_store nope.localhost 404
@@ -187,5 +198,8 @@ done
 [[ $(restart_count storefront) == 0 ]] || fail "storefront restarted $(restart_count storefront) times"
 
 phase "outage loop done"
+# The gate checks the committed default, not the localhost this script runs on. Set, not unset: compose would
+# otherwise read a local .env's value.
+export PLATFORM_DOMAIN=platform.invalid
 docker compose config --format json | node scripts/check-compose-portability.mjs
 echo "VERIFY-STACK-OK"

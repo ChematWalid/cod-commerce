@@ -204,6 +204,8 @@ services:
       ROLE: storefront
       APP_ENV: ${APP_ENV:-production}
       REDIS_URL: redis://valkey:6379
+      # Read by the proxy on each request to find the store behind a host (D12).
+      INTERNAL_API_URL: http://api:3000
       # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
       # always match the deployment the assets were built for.
     depends_on:

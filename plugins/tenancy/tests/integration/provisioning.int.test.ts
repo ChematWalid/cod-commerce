@@ -9,6 +9,7 @@ import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { TenancyPlugin } from '../../tenancy.plugin';
 import { failureOf } from './graphql-outcome';
+import { TEST_REDIS_URL } from './tenant-fixtures';
 
 const SUPER_ADMIN_ROLE = '__super_admin_role__';
 const CUSTOMER_ROLE = '__customer_role__';
@@ -123,7 +124,7 @@ const commandFor = (slug: string, language = 'ar'): ProvisionBusinessCommand => 
 
 describe('Business provisioning', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: 'redis://unused', platformDomain: 'localhost', snowflakeWorkerId: 1000 })],
+    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1000 })],
     db: loadPluginTestDbConfig(process.env),
   });
 

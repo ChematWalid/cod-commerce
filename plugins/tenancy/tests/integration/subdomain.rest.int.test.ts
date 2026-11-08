@@ -3,11 +3,11 @@ import type { AddressInfo } from 'node:net';
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TenancyPlugin } from '../../tenancy.plugin';
-import { provisionBusiness, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 describe('GET /stores/subdomain-availability', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: 'redis://unused', platformDomain: 'localhost', snowflakeWorkerId: 1002 })],
+    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1002 })],
     db: loadPluginTestDbConfig(process.env),
   });
 

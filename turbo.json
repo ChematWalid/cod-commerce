@@ -18,6 +18,8 @@
         "DB_POOL_MAX",
         "REDIS_URL",
         "PLATFORM_DOMAIN",
+        "INTERNAL_API_URL",
+        "DEMO_OWNER_PASSWORD",
         "SNOWFLAKE_WORKER_ID",
         "WORKER_ACTIVE_QUEUES",
         "API_PORT",

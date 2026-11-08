@@ -16,11 +16,11 @@ import {
 } from './admin-api-operations';
 import { actAsOwner } from './admin-api-session';
 import { failureOf } from './graphql-outcome';
-import { OWNER_PASSWORD, provisionBusiness, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { OWNER_PASSWORD, provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 describe('Business Admin API', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: 'redis://unused', platformDomain: 'localhost', snowflakeWorkerId: 1001 })],
+    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1001 })],
     db: loadPluginTestDbConfig(process.env),
   });
   let alpha: ProvisionedBusiness;

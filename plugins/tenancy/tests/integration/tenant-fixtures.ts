@@ -4,6 +4,9 @@ import gql from 'graphql-tag';
 import { type ProvisionedBusiness, ProvisionBusinessService } from '../../application/provision-business.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 
+/** The Valkey the plugin's host cache talks to in these tests. */
+export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
+
 /** The password of every owner these tests provision. */
 export const OWNER_PASSWORD = 'synthetic-owner-password';
 

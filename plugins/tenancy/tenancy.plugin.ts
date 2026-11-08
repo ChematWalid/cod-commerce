@@ -5,6 +5,7 @@ import { TenantGuard } from './api/tenant.guard';
 import { BusinessResolver } from './api/business.resolver';
 import { adminApiSchema } from './api/schema';
 import { StoreFieldsResolver, StoreMutationResolver, StoreQueryResolver } from './api/store.resolver';
+import { StoreResolveController } from './api/store-resolve.controller';
 import { SubdomainController } from './api/subdomain.controller';
 import { ArchiveStoreService } from './application/archive-store.service';
 import { ChangeSubdomainService } from './application/change-subdomain.service';
@@ -40,7 +41,7 @@ import { BusinessOrderSequenceEntity } from './infrastructure/business-order-seq
 import { BusinessEntity } from './infrastructure/business.entity';
 import { CustomDomainEntity } from './infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
-import { NoopStoreHostInvalidator } from './infrastructure/noop-store-host-invalidator';
+import { hostResolutionProviders } from './infrastructure/host-resolution.providers';
 import { StoreEntity } from './infrastructure/store.entity';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
@@ -148,7 +149,7 @@ const STORE_USE_CASES = [
       inject: [TENANCY_PORTS],
     },
     { provide: TENANT_STORES, useClass: TenantStoresAdapter },
-    { provide: STORE_HOST_INVALIDATOR, useClass: NoopStoreHostInvalidator },
+    ...hostResolutionProviders(() => requireOptions()),
     {
       provide: STORE_ADMIN_PORTS,
       useFactory: (
@@ -178,7 +179,7 @@ const STORE_USE_CASES = [
     schema: adminApiSchema,
     resolvers: [BusinessResolver, StoreQueryResolver, StoreMutationResolver, StoreFieldsResolver],
   },
-  controllers: [SubdomainController],
+  controllers: [SubdomainController, StoreResolveController],
   configuration: configure,
   compatibility: '^3.8.0',
 })

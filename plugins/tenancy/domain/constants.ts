@@ -33,3 +33,18 @@ export const PLATFORM_ONLY_CUSTOM_PERMISSIONS: readonly string[] = [
   'ReadDashboardGlobalViews',
   'WriteDashboardGlobalViews',
 ];
+
+/** How many hosts each process keeps in memory. */
+export const HOST_LRU_MAX_ENTRIES = 10_000;
+
+/** How long a process trusts its in-memory entry: the bound on staleness if an invalidation message is lost. */
+export const HOST_LRU_TTL_MS = 60_000;
+
+/** How long after an invalidation the hosts are deleted again, for a resolver that read before the commit. */
+export const HOST_REDELETE_DELAY_MS = 500;
+
+/** The Valkey channel that tells every process to drop hosts from memory. */
+export const HOST_INVALIDATE_CHANNEL = 'host-invalidate';
+
+/** The Valkey key of a host's cached store. It has no TTL: invalidation removes it. */
+export const hostCacheKey = (host: string): string => `host:${host}`;

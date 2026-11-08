@@ -9,7 +9,7 @@ import { StoreEntity } from '../../infrastructure/store.entity';
 import { TenancyPlugin } from '../../tenancy.plugin';
 import { failureOf } from './graphql-outcome';
 import { TenantProbePlugin } from './tenant-probe.plugin';
-import { OWNER_PASSWORD, provisionBusiness, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { OWNER_PASSWORD, provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const DEFAULT_CHANNEL = '__default_channel__';
 
@@ -22,7 +22,7 @@ const WITH_TRANSACTION_PROBE = gql`query { tenantProbeWithTransaction { ${PROBE_
 describe('Tenant context', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
-      TenancyPlugin.init({ redisUrl: 'redis://unused', platformDomain: 'localhost', snowflakeWorkerId: 1001 }),
+      TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1001 }),
       TenantProbePlugin,
     ],
     db: loadPluginTestDbConfig(process.env),
