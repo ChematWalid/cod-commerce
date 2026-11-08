@@ -9,7 +9,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   return rewriteToTenantPath(request, store);
 }
 
-// API routes, the health probes and static assets answer for any host, without a store.
+// API routes, the health probes and static assets answer for any host, without a store. The probes and the
+// favicon are matched as whole segments, so a page such as /livez-sale still goes through the proxy.
 export const config = {
-  matcher: ['/((?!api/|livez|readyz|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/|livez(?:/|$)|readyz(?:/|$)|_next/static|_next/image|favicon\\.ico(?:/|$)).*)'],
 };

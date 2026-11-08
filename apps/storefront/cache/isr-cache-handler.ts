@@ -55,13 +55,15 @@ async function readEntry(deps: CacheHandlerDeps, key: string): Promise<StoredIsr
   }
 }
 
+// SADD and EXPIRE in one transaction: the index never exists without its TTL. Refreshed on every write, so
+// the index outlives every entry it lists (entries are capped too).
 async function indexUnderTag(client: CacheRedisClient, tag: string, entryKey: string): Promise<void> {
   const tagKey = isrTagKey(tag);
-  await client.sAdd(tagKey, entryKey);
-  // Refreshed on every write: the index outlives every entry it lists, since entries are capped too.
-  await client.expire(tagKey, CACHE_ENTRY_MAX_TTL_SECONDS);
+  await client.multi().sAdd(tagKey, entryKey).expire(tagKey, CACHE_ENTRY_MAX_TTL_SECONDS).exec();
 }
 
+// The tags are indexed before the entry is written: if indexing fails the entry is not written, so a tag
+// revalidation can never miss a stored entry.
 async function writeEntry(deps: CacheHandlerDeps, key: string, data: unknown, ctx?: IsrSetContext): Promise<void> {
   const client = await deps.getClient();
   if (!client || !data) return;
@@ -69,8 +71,8 @@ async function writeEntry(deps: CacheHandlerDeps, key: string, data: unknown, ct
   const entryKey = isrEntryKey(deps.deploymentId, key);
   const value = serializeIsrEntry({ value: data, lastModified: Date.now(), tags });
   try {
+    for (const tag of tags) await indexUnderTag(client, tag, entryKey);
     await client.set(entryKey, value, cacheSetOptions(ctx?.cacheControl?.expire));
-    await Promise.all(tags.map((tag) => indexUnderTag(client, tag, entryKey)));
   } catch (error) {
     logCacheWarning('isr_set_failed', error);
   }

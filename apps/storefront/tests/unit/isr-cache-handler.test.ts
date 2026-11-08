@@ -93,4 +93,30 @@ describe('ISR cache handler', () => {
       expect(Math.max(...expires.map(({ seconds }) => seconds))).toBeLessThanOrEqual(CACHE_ENTRY_MAX_TTL_SECONDS);
     }
   });
+
+  it('writes the tag index, SADD and EXPIRE in one transaction, before the entry', async () => {
+    // Arrange
+    const redis = new FakeCacheRedis();
+    const handler = handlerFor(redis, 'v1');
+    // Act
+    await handler.set(PAGE_KEY, appPageEntry('one'));
+    // Assert: a crash between the two writes can leave an unindexed tag, never an entry revalidation misses.
+    expect(redis.operations).toEqual([
+      'multi[sAdd next:tag:store:demo, expire next:tag:store:demo]',
+      'multi[sAdd next:tag:_N_T_/layout, expire next:tag:_N_T_/layout]',
+      `set next:v1:isr:${PAGE_KEY}`,
+    ]);
+  });
+
+  it('does not write the entry when its tags cannot be indexed', async () => {
+    // Arrange
+    const redis = new FakeCacheRedis();
+    redis.failTransactions = true;
+    const handler = handlerFor(redis, 'v1');
+    // Act
+    await handler.set(PAGE_KEY, appPageEntry('one'));
+    // Assert
+    await expect(handler.get(PAGE_KEY)).resolves.toBeNull();
+    expect(redis.recordedSets).toEqual([]);
+  });
 });

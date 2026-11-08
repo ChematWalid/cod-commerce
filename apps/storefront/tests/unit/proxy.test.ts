@@ -51,11 +51,17 @@ describe('storefront proxy', () => {
     await expect(rewrittenPath('/', { host: 'DEMO.localhost.:3001' })).resolves.toBe('/_t/demo/ar');
   });
 
-  it.each(['/api/store/cart', '/livez', '/readyz', '/_next/static/x.js'])('does not run on %s', (path) => {
-    expect(unstable_doesMiddlewareMatch({ config, url: path })).toBe(false);
-  });
+  it.each(['/api/store/cart', '/livez', '/readyz', '/favicon.ico', '/_next/static/x.js', '/_next/image'])(
+    'does not run on %s',
+    (path) => {
+      expect(unstable_doesMiddlewareMatch({ config, url: path })).toBe(false);
+    },
+  );
 
-  it('runs on a storefront page', () => {
-    expect(unstable_doesMiddlewareMatch({ config, url: '/p/shoe' })).toBe(true);
-  });
+  it.each(['/p/shoe', '/livez-sale', '/readyz-x', '/favicon.icox', '/apiary'])(
+    'runs on the storefront page %s',
+    (path) => {
+      expect(unstable_doesMiddlewareMatch({ config, url: path })).toBe(true);
+    },
+  );
 });
