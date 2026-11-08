@@ -1,0 +1,16 @@
+{
+  "extends": "@cod/config/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": false,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "customConditions": []
+  },
+  "include": ["*.ts"],
+  "exclude": ["dist"]
+}

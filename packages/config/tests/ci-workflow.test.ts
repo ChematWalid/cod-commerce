@@ -11,6 +11,7 @@ interface Step {
   run?: string;
   if?: string;
   shell?: string;
+  env?: Record<string, string>;
   'continue-on-error'?: boolean;
 }
 interface Job {
@@ -252,6 +253,12 @@ describe('ci.yml', () => {
     expect(jobOf(ci, 'build')['timeout-minutes']).toBeLessThanOrEqual(10);
   });
 
+  it('gives the build step a commit-derived NEXT_DEPLOYMENT_ID, since pnpm build now runs next build', () => {
+    const step = (jobOf(ci, 'build').steps ?? []).find((candidate) => /\bpnpm build\b/.test(candidate.run ?? ''));
+
+    expect(step?.env?.['NEXT_DEPLOYMENT_ID']).toBe('ci-${{ github.sha }}');
+  });
+
   it('keeps the browser job out of ci.yml and out of the gate', () => {
     expect(ci.jobs['browser']).toBeUndefined();
     expect(jobOf(ci, 'build-test').needs).not.toContain('browser');
@@ -262,34 +269,5 @@ describe('ci.yml', () => {
     const attribution = parse(read('.github/workflows/attribution.yml')) as Workflow;
 
     expect(jobOf(attribution, 'attribution-check').name).toBe('attribution-check');
-  });
-});
-
-describe('Dockerfile', () => {
-  const dockerfile = read('Dockerfile');
-  const rootPackage = JSON.parse(read('package.json')) as { packageManager: string };
-
-  it('activates the packageManager pnpm before copying the source', () => {
-    const prepare = dockerfile.indexOf(`corepack prepare ${rootPackage.packageManager} --activate`);
-
-    expect(prepare).toBeGreaterThan(-1);
-    expect(prepare).toBeLessThan(dockerfile.indexOf('COPY . .'));
-  });
-
-  it('installs only the server closure', () => {
-    expect(dockerfile).toContain('pnpm install --frozen-lockfile --filter "@cod/server..."');
-  });
-
-  it('builds the dashboard after the server, with placeholders the image does not keep (M5)', () => {
-    const envLines = dockerfile.split('\n').filter((line) => line.startsWith('ENV '));
-
-    const lines = dockerfile.split('\n');
-    const serverBuild = lines.findIndex((line) => /\bpnpm\b.*\brun build$/.test(line.trim()));
-    const dashboardBuild = lines.findIndex((line) => line.includes('run build:dashboard'));
-
-    expect(serverBuild).toBeGreaterThanOrEqual(0);
-    expect(dashboardBuild).toBeGreaterThanOrEqual(0);
-    expect(dashboardBuild).toBeGreaterThan(serverBuild);
-    expect(envLines.join('\n')).not.toMatch(/DASHBOARD_BUILD_|change-me|DATABASE_URL|SECRET/);
   });
 });

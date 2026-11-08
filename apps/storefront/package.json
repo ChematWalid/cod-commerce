@@ -1,0 +1,35 @@
+{
+  "name": "@cod/storefront",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Next.js storefront: resolves the store from the Host header and renders it (ADR 0006).",
+  "scripts": {
+    "build:cache": "tsc -p cache/tsconfig.json",
+    "predev": "pnpm run build:cache",
+    "dev": "next dev --port ${STOREFRONT_PORT:-3001}",
+    "prebuild": "pnpm run build:cache",
+    "build": "next build",
+    "start": "next start --port ${STOREFRONT_PORT:-3001}",
+    "test": "vitest run",
+    "test:smoke": "vitest run -c vitest.smoke.config.ts",
+    "test:browser": "vitest run -c vitest.browser.config.ts",
+    "typecheck": "pnpm run build:cache && APP_ENV=development next typegen && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cod/shared": "workspace:*",
+    "next": "16.4.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "redis": "6.3.1"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "playwright-core": "1.65.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

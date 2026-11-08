@@ -34,11 +34,12 @@ Run from the repo root.
 | `pnpm test:arch` | Whole-repo gates: architecture rules, Vendure pin, CI workflow, branding |
 | `pnpm test:integration` | Integration tests that need the data services |
 | `pnpm build` | Builds every package (via turbo, one at a time) |
-| `pnpm dev` | Runs the dev tasks |
+| `pnpm dev` | Runs every package's dev task: migrate, then the api (3100) and worker, and the storefront (3001) |
 | `scripts/check-data-services.sh` | Verifies the running data services end to end |
 | `scripts/verify-stack.sh` | Builds the server image and verifies the whole stack under project `cod-verify` (`--bad-password` checks the env failure path) |
 | `scripts/evidence/P0.S2b-3.sh` | Re-runs the P0.S2b-3 api transcripts against a live stack (project `cod-evidence`) into `docs/evidence/P0.S2b-3/` |
 | `scripts/evidence/P0.S2b-4.sh` | Re-runs the P0.S2b-4 dashboard transcripts and screenshots against a live stack into `docs/evidence/P0.S2b-4/` |
+| `scripts/evidence/P0.S2b-5.sh` | Re-runs the P0.S2b-5 storefront transcripts and screenshots against a live stack into `docs/evidence/P0.S2b-5/` |
 | `scripts/ci/ci-duration.sh` | Prints the p90 of recent CI runs on `main` (needs `gh`) |
 
 ## Data services
@@ -73,7 +74,7 @@ pnpm --filter @cod/server dev                                           # migrat
 
 The containerised api and a host-run `dev:api` both default to host port 3100, so run one at a time.
 
-The single app image (`Dockerfile`) runs one role per container (`ROLE=api|worker|migrate`). `scripts/verify-stack.sh` builds it once and checks the whole single-VPS stack in its own compose project `cod-verify` (host ports shifted by 10000): `migrate` gates `api` and `worker`, both answer `/readyz` through PgBouncer, a second `up` is a migrate no-op, and Postgres or Valkey outages turn `/readyz` 503 then back to 200. `--bad-password` proves a URL-reserved database password fails `migrate` without leaking it. It always tears its project down.
+The single app image (`Dockerfile`) runs one role per container (`ROLE=api|worker|migrate|storefront`). `scripts/verify-stack.sh` builds it once and checks the whole single-VPS stack in its own compose project `cod-verify` (host ports shifted by 10000): `migrate` gates `api` and `worker`, both answer `/readyz` through PgBouncer, a second `up` is a migrate no-op, and Postgres or Valkey outages turn `/readyz` 503 then back to 200. `--bad-password` proves a URL-reserved database password fails `migrate` without leaking it. It always tears its project down.
 
 `scripts/evidence/P0.S2b-3.sh` produces the session's committed evidence (`docs/evidence/P0.S2b-3/`): migrate, health, superadmin login and seeded-data transcripts, with secrets redacted by the script.
 
@@ -93,7 +94,25 @@ pnpm --filter @cod/server test:browser   # DASHBOARD_URL overrides the default h
 ```
 Screenshots go to `apps/server/test-results/`. `scripts/evidence/P0.S2b-4.sh` regenerates the committed evidence in `docs/evidence/P0.S2b-4/`.
 
+## Storefront
+The Next.js storefront (`apps/storefront`) resolves the store from the `Host` header and renders it: `http://demo.localhost:3001` is Demo Store and `http://second.localhost:3001` is Second Store (`*.localhost` resolves to loopback in browsers and curl; the stores are stubs until P1.S1). It serves `/livez` and `/readyz` and keeps its `use cache` and ISR entries in Valkey (ADR 0006).
+
+```bash
+docker compose up -d --wait postgres pgbouncer valkey garage mailpit   # data services by name
+cp -n apps/storefront/.env.example apps/storefront/.env                 # host-run env: STOREFRONT_PORT, REDIS_URL, NEXT_DEPLOYMENT_ID, APP_ENV
+pnpm dev                                                                # api (3100), worker and storefront (3001) together
+pnpm --filter @cod/storefront test:smoke      # host routing against a running storefront (STOREFRONT_URL overrides http://127.0.0.1:3001)
+pnpm --filter @cod/storefront test:browser    # headless Chromium; screenshots go to apps/storefront/test-results/
+```
+`pnpm --filter @cod/storefront dev` starts the storefront alone. Outside development `REDIS_URL` is required (the cache handlers refuse to load without it), except during `next build`.
+
+In the single image the storefront is the `storefront` role (`ROLE=storefront`, standalone server on 3001 inside the container, published on `STOREFRONT_HOST_PORT`, default 3001, bound by `STOREFRONT_BIND_ADDR`). It needs only `REDIS_URL`, no database or S3 settings.
+
+`NEXT_DEPLOYMENT_ID` names the build and prefixes every cache key, so a new deployment never reads the previous one's entries. Build the image with `NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) docker compose build` (host: `NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) pnpm build`, and use the same value for `next start`). A bare rebuild without it reuses `local`, so flush the old entries first: `docker compose exec -T valkey valkey-cli --scan --pattern 'next:*' | xargs -r docker compose exec -T valkey valkey-cli del` (or `docker compose down -v`).
+
+`scripts/evidence/P0.S2b-5.sh` regenerates the committed evidence in `docs/evidence/P0.S2b-5/`.
+
 ## CI
 `.github/workflows/ci.yml` runs `lint`, `typecheck`, `unit`, `build`, `data-services`, `integration` (Postgres and Valkey service containers) and `stack` (builds the image and runs `scripts/verify-stack.sh`, then `--bad-password`) in parallel. The `build-test` job gates them all and is the required status check, next to `attribution-check`. The whole pipeline must finish in 10 minutes or less (ADR 0001); `build-test` writes the wall-clock time to the run summary, and `scripts/ci/ci-duration.sh` reports the p90 over the last 20 runs on `main`.
 
-`.github/workflows/browser.yml` (job `browser`) runs the browser tests against the built api on Postgres and Valkey service containers. It is not part of the pull-request pipeline (ADR 0001 section 6): it runs on every push to `main`, nightly at 02:00 UTC, and on demand (`gh workflow run browser.yml`), and uploads the screenshots as an artifact. The `build` job also builds the dashboard.
+`.github/workflows/browser.yml` (job `browser`) runs the dashboard browser tests against the built api, then the storefront smoke and browser tests against the built storefront (`next start` on 3001, cache in the Valkey service container), on Postgres and Valkey service containers. It is not part of the pull-request pipeline (ADR 0001 section 6): it runs on every push to `main`, nightly at 02:00 UTC, and on demand (`gh workflow run browser.yml`), and uploads both sets of screenshots as an artifact. The `build` job also builds the dashboard and, through `pnpm build`, the storefront (with `NEXT_DEPLOYMENT_ID=ci-<sha>`).

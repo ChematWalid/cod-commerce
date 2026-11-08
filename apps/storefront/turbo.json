@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "cache/dist/**"],
+      "env": ["NEXT_DEPLOYMENT_ID"]
+    },
+    "dev": {
+      "dependsOn": ["^build"]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 name: browser
 
-# Browser tests of the dashboard (Playwright against the built api). Not part of the pull-request pipeline:
+# Browser tests of the dashboard and the storefront (Playwright against the built api and storefront). Not part of the pull-request pipeline:
 # ADR 0001 section 6 keeps CI at 10 minutes or less, so this runs on main, nightly and on demand.
 on:
   push:
@@ -68,8 +68,11 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Install the browser
         run: pnpm --filter @cod/server exec playwright-core install --with-deps chromium-headless-shell
+      # The storefront's next build needs a deployment id: turbo's strict env mode hides APP_ENV from it.
       - name: Build
         run: pnpm build
+        env:
+          NEXT_DEPLOYMENT_ID: ci-${{ github.sha }}
       - name: Build the dashboard
         run: ROLE=api pnpm --filter @cod/server build:dashboard
       - name: Migrate
@@ -80,15 +83,32 @@ jobs:
           source scripts/lib/wait-http.sh
           wait_http 200 http://localhost:3100/readyz 120
           wait_http 200 http://localhost:3100/dashboard/ 60
+      # next start re-reads next.config.ts, so it needs the build's deployment id; REDIS_URL (the job env) is the
+      # service container the cache handlers use. The storefront has no database and no S3 settings.
+      - name: Start the storefront
+        env:
+          NEXT_DEPLOYMENT_ID: ci-${{ github.sha }}
+        run: |
+          setsid pnpm --filter @cod/storefront start > storefront.log 2>&1 &
+          source scripts/lib/wait-http.sh
+          wait_http 200 http://127.0.0.1:3001/livez 60
       - name: Browser tests
         run: pnpm --filter @cod/server test:browser
-      - name: Show the api log
+      - name: Storefront smoke tests
+        run: pnpm --filter @cod/storefront test:smoke
+      - name: Storefront browser tests
+        run: pnpm --filter @cod/storefront test:browser
+      - name: Show the server logs
         if: failure()
-        run: tail -n 200 api.log
+        run: |
+          tail -n 200 api.log
+          tail -n 200 storefront.log
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browser-screenshots
-          path: 'apps/server/test-results/*.png'
+          path: |
+            apps/server/test-results/*.png
+            apps/storefront/test-results/*.png
           if-no-files-found: ignore

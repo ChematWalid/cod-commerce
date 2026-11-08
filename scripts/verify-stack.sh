@@ -2,8 +2,9 @@
 # Builds the server image and runs the whole compose stack end to end under its own project
 # (cod-verify, every *_HOST_PORT shifted by 10000), then tears it down. Never touches project `cod`.
 #
-#   scripts/verify-stack.sh                  migrate -> api + worker healthy, dashboard served, idempotent re-run,
-#                                            /readyz 503 and back to 200 when postgres or valkey stops
+#   scripts/verify-stack.sh                  migrate -> api + worker + storefront healthy, dashboard served,
+#                                            stores resolved by Host, idempotent re-run, /readyz 503 and back
+#                                            to 200 when postgres or valkey stops (the storefront stays 200)
 #   scripts/verify-stack.sh --bad-password   a POSTGRES_PASSWORD that is not URL-safe stops at migrate,
 #                                            names the variable and never prints the password
 set -euo pipefail
@@ -31,12 +32,19 @@ set +a
 export COMPOSE_PROJECT_NAME=cod-verify
 export POSTGRES_HOST_PORT=15433 PGBOUNCER_HOST_PORT=16432 VALKEY_HOST_PORT=16380 GARAGE_S3_HOST_PORT=13900
 export MAILPIT_SMTP_HOST_PORT=11026 MAILPIT_UI_HOST_PORT=18026 API_HOST_PORT=13100 WORKER_HEALTH_HOST_PORT=13020
+export STOREFRONT_HOST_PORT=13001
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
+# The storefront's deployment id (its cache-key namespace and asset id) is the commit, so a rebuilt image never
+# reads the App Shell of another build from Valkey; an uncommitted tree is marked dirty.
+NEXT_DEPLOYMENT_ID="$(git rev-parse --short HEAD)"
+[[ -z "$(git status --porcelain)" ]] || NEXT_DEPLOYMENT_ID+="-dirty"
+export NEXT_DEPLOYMENT_ID
 bad_password='p@ss/w:rd'
 [[ "$mode" == --bad-password ]] && export POSTGRES_PASSWORD="$bad_password"
 
 api_readyz="http://127.0.0.1:$API_HOST_PORT/readyz"
 worker_readyz="http://127.0.0.1:$WORKER_HEALTH_HOST_PORT/readyz"
+storefront_url="http://127.0.0.1:$STOREFRONT_HOST_PORT"
 
 # Elapsed seconds per phase, so a slow CI run shows where the time went.
 phase() { echo "verify-stack: $1 (${SECONDS}s)"; }
@@ -50,7 +58,7 @@ on_exit() {
   local status=$?
   if ((status != 0)); then
     docker compose ps -a >&2 || true
-    docker compose logs --no-color --tail=80 migrate api worker >&2 || true
+    docker compose logs --no-color --tail=80 migrate api worker storefront >&2 || true
   fi
   docker compose down -v --remove-orphans >/dev/null 2>&1 || true
   exit "$status"
@@ -75,6 +83,20 @@ wait_healthy() {
     sleep 2
   done
   fail "not healthy after 180s:$pending"
+}
+
+# http_get_with_host <url> <host>: the response body, then the status code on its own last line.
+http_get_with_host() {
+  curl -s --max-time 10 -H "Host: $2" -w '\n%{http_code}' "$1" || true
+}
+
+# expect_store <host> <status> [text]: GET / with that Host answers the status (and contains the text).
+expect_store() {
+  local response status
+  response=$(http_get_with_host "$storefront_url/" "$1")
+  status=$(command tail -n1 <<<"$response")
+  [[ "$status" == "$2" ]] || fail "storefront / for Host $1 answered $status, wanted $2"
+  [[ -z "${3:-}" ]] || command grep -qF -- "$3" <<<"$response" || fail "storefront / for Host $1 lacks '$3'"
 }
 
 # The migrate.done line logged by the migrate container, optionally only after a timestamp.
@@ -112,8 +134,8 @@ fi
 
 build_image
 docker compose up -d
-wait_healthy api worker
-phase "api and worker healthy"
+wait_healthy api worker storefront
+phase "api, worker and storefront healthy"
 [[ $(exit_code migrate) == 0 ]] || fail "migrate exited $(exit_code migrate)"
 first=$(migrate_done_line)
 [[ -n "$first" ]] || fail "first migrate run logged no migrate.done line"
@@ -122,6 +144,10 @@ node -e 'const r=JSON.parse(process.argv[1]); process.exit(r.migrationsRun.lengt
 wait_http 200 "$api_readyz" 60 || fail "api /readyz"
 wait_http 200 "$worker_readyz" 60 || fail "worker /readyz"
 wait_http 200 "http://127.0.0.1:$API_HOST_PORT/dashboard/" 60 || fail "api /dashboard/"
+wait_http 200 "http://127.0.0.1:$STOREFRONT_HOST_PORT/readyz" 60 || fail "storefront /readyz"
+expect_store demo.localhost 200 'Demo Store'
+expect_store second.localhost 200 'Second Store'
+expect_store nope.localhost 404
 S3_ENDPOINT="http://127.0.0.1:$GARAGE_S3_HOST_PORT" node scripts/check-object-storage.mjs || fail "object storage"
 
 phase "first run checked"
@@ -131,7 +157,7 @@ first_start=$(started_at migrate)
 sleep 1 # `logs --since` has one-second resolution
 since=$(date -u +%FT%TZ)
 docker compose up -d
-wait_healthy api worker
+wait_healthy api worker storefront
 [[ $(started_at migrate) != "$first_start" ]] || fail "second up did not run migrate again"
 [[ $(exit_code migrate) == 0 ]] || fail "second migrate run exited $(exit_code migrate)"
 second=$(migrate_done_line --since "$since")
@@ -146,12 +172,19 @@ for svc in postgres valkey; do
   docker compose stop "$svc"
   wait_http 503 "$api_readyz" 15 || fail "api /readyz with $svc stopped"
   wait_http 503 "$worker_readyz" 15 || fail "worker /readyz with $svc stopped"
+  # The storefront serves uncached without Valkey: it stays ready and reports the check (plan deviation 15).
+  storefront_ready=$(http_get_with_host "$storefront_url/readyz" storefront)
+  [[ $(command tail -n1 <<<"$storefront_ready") == 200 ]] || fail "storefront /readyz with $svc stopped: $storefront_ready"
+  if [[ "$svc" == valkey ]]; then
+    command grep -qF '"ok":false' <<<"$storefront_ready" || fail "storefront /readyz hid the valkey outage: $storefront_ready"
+  fi
   docker compose start "$svc"
   wait_http 200 "$api_readyz" 60 || fail "api /readyz after $svc came back"
   wait_http 200 "$worker_readyz" 60 || fail "worker /readyz after $svc came back"
 done
 [[ $(restart_count api) == 0 ]] || fail "api restarted $(restart_count api) times"
 [[ $(restart_count worker) == 0 ]] || fail "worker restarted $(restart_count worker) times"
+[[ $(restart_count storefront) == 0 ]] || fail "storefront restarted $(restart_count storefront) times"
 
 phase "outage loop done"
 docker compose config --format json | node scripts/check-compose-portability.mjs
