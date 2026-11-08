@@ -98,6 +98,18 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
     await this.injector.get(RoleService).assignRoleToChannel(await this.asSuperadmin(ctx), roleId, channelId);
   }
 
+  async updateChannelLanguage(ctx: OperationContext, channelId: number, language: string): Promise<void> {
+    const languageCode = LanguageCode[language as keyof typeof LanguageCode];
+    const updated = await this.injector.get(ChannelService).update(await this.asSuperadmin(ctx), {
+      id: channelId,
+      defaultLanguageCode: languageCode,
+      availableLanguageCodes: [languageCode],
+    });
+    if (isGraphQlErrorResult(updated)) {
+      throw new UnsupportedStoreLanguageError(language);
+    }
+  }
+
   async createAdministrator(ctx: OperationContext, request: AdministratorRequest): Promise<number> {
     const { businessId, roleId, ...identity } = request;
     const administrator = await this.injector.get(AdministratorService).create(await this.asSuperadmin(ctx), {

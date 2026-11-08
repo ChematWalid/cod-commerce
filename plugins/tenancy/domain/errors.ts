@@ -32,6 +32,42 @@ export class SubdomainTakenError extends DomainError {
   }
 }
 
+/** A business or store name that is blank or too long. */
+export class NameInvalidError extends DomainError {
+  readonly code = 'tenancy.name-invalid';
+
+  constructor() {
+    super('A name must not be blank or too long');
+  }
+}
+
+/** No store with this id is visible to the caller: it does not exist or belongs to someone else. */
+export class StoreNotFoundError extends DomainError {
+  readonly code = 'tenancy.store-not-found';
+
+  constructor() {
+    super('The store does not exist');
+  }
+}
+
+/** An archived store cannot change: its subdomain stays reserved (D4). */
+export class StoreArchivedError extends DomainError {
+  readonly code = 'tenancy.store-archived';
+
+  constructor() {
+    super('The store is archived');
+  }
+}
+
+/** Archiving would leave the business with no active store. */
+export class LastStoreError extends DomainError {
+  readonly code = 'tenancy.last-store';
+
+  constructor() {
+    super('A business must keep at least one active store');
+  }
+}
+
 /** No business has this id. */
 export class BusinessNotFoundError extends DomainError {
   readonly code = 'tenancy.business-not-found';

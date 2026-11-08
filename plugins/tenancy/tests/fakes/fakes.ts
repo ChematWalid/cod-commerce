@@ -61,6 +61,11 @@ export class FakeChannelProvisioner implements ChannelProvisionerPort {
     return Promise.resolve();
   }
 
+  updateChannelLanguage(): Promise<void> {
+    this.calls += 1;
+    return Promise.resolve();
+  }
+
   createAdministrator(_ctx: OperationContext, request: AdministratorRequest): Promise<number> {
     this.calls += 1;
     this.administrators.push(request);
@@ -88,6 +93,14 @@ export class InMemoryPlatformStore implements PlatformStorePort {
     if (business !== undefined) {
       this.businesses.set(id, { ...business, ...patch });
     }
+    return Promise.resolve();
+  }
+
+  updateBusiness(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  lockBusiness(): Promise<void> {
     return Promise.resolve();
   }
 

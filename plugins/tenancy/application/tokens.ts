@@ -13,5 +13,14 @@ export const TRANSACTION: unique symbol = Symbol('TenancyTransaction');
 /** Injection token of the {@link TenancyPorts} bundle the use cases take. */
 export const TENANCY_PORTS: unique symbol = Symbol('TenancyPorts');
 
+/** Injection token of the `TenantStoresPort` adapter. */
+export const TENANT_STORES: unique symbol = Symbol('TenancyTenantStores');
+
+/** Injection token of the `StoreHostInvalidatorPort` adapter. */
+export const STORE_HOST_INVALIDATOR: unique symbol = Symbol('TenancyStoreHostInvalidator');
+
+/** Injection token of the {@link StoreAdminPorts} bundle the store use cases take. */
+export const STORE_ADMIN_PORTS: unique symbol = Symbol('TenancyStoreAdminPorts');
+
 /** Injection token of the `TenantContextResolverPort` adapter. */
 export const TENANT_CONTEXT_RESOLVER: unique symbol = Symbol('TenancyTenantContextResolver');

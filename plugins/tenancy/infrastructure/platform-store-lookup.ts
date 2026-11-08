@@ -5,12 +5,13 @@ import type { ObjectLiteral, ObjectType, Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import type { Business } from '../domain/business';
 import type { OperationContext } from '../domain/ports/operation-context';
-import type { BusinessOwnerPatch, PlatformStorePort } from '../domain/ports/platform-store.port';
+import type { BusinessOwnerPatch, BusinessPatch, PlatformStorePort } from '../domain/ports/platform-store.port';
 import type { Store, StoreAccess } from '../domain/store';
 import { BusinessOrderSequenceEntity } from './business-order-sequence.entity';
 import { BusinessEntity } from './business.entity';
 import { toRequestContext } from './operation-context.adapter';
 import { StoreEntity } from './store.entity';
+import { translateSubdomainConflict } from './subdomain-conflict';
 
 function toBusiness(row: BusinessEntity): Business {
   return {
@@ -48,12 +49,24 @@ export class PlatformStoreLookup implements PlatformStorePort {
     await this.repository(ctx, BusinessEntity).update({ id }, patch);
   }
 
+  async updateBusiness(ctx: OperationContext, id: Snowflake, patch: BusinessPatch): Promise<void> {
+    await this.repository(ctx, BusinessEntity).update({ id }, patch);
+  }
+
+  async lockBusiness(ctx: OperationContext, id: Snowflake): Promise<void> {
+    await this.repository(ctx, BusinessEntity).findOne({
+      where: { id },
+      select: { id: true },
+      lock: { mode: 'pessimistic_write' },
+    });
+  }
+
   async createOrderSequence(ctx: OperationContext, businessId: Snowflake): Promise<void> {
     await this.repository(ctx, BusinessOrderSequenceEntity).insert({ businessId });
   }
 
   async saveStore(ctx: OperationContext, store: Store): Promise<void> {
-    await this.repository(ctx, StoreEntity).insert({ ...store });
+    await translateSubdomainConflict(this.repository(ctx, StoreEntity).insert({ ...store }));
   }
 
   async isSubdomainTaken(ctx: OperationContext, subdomain: string): Promise<boolean> {

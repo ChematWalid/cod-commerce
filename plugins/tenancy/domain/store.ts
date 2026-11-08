@@ -1,4 +1,4 @@
-import type { Snowflake, StoreId } from '@cod/shared';
+import type { BusinessId, Snowflake, StoreId } from '@cod/shared';
 
 /** The statuses a store can have. */
 export const STORE_STATUSES = ['active', 'archived'] as const;
@@ -43,6 +43,21 @@ export interface CreateStoreInput {
   readonly logoAssetId?: number;
 }
 
+/** What a merchant can change on a store, apart from its subdomain. Absent keys stay as they are. */
+export type StorePatch = Partial<
+  Pick<
+    Store,
+    | 'name'
+    | 'description'
+    | 'logoAssetId'
+    | 'language'
+    | 'defaultDeliveryFeeGroupId'
+    | 'defaultCarrierId'
+    | 'showAddressField'
+    | 'soldOutBehavior'
+  >
+>;
+
 /** The facts only the use case knows about a new store. */
 export interface NewStore {
   readonly id: StoreId;
@@ -77,6 +92,12 @@ export function newStore({ id, businessId, channelId, sellerId, subdomain, input
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/** Who is acting on stores: their business, and the channels on which they hold the permission in question. */
+export interface StoreActor {
+  readonly businessId: BusinessId;
+  readonly channelIds: readonly number[];
 }
 
 /** The part of a store that decides who may act on it. */

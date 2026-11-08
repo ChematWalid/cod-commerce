@@ -27,5 +27,11 @@ export interface ChannelProvisionerPort {
   /** @throws {UnsupportedStoreLanguageError} when the engine refuses the language. */
   createChannel(ctx: OperationContext, request: ChannelRequest): Promise<number>;
   assignRoleToChannel(ctx: OperationContext, roleId: number, channelId: number): Promise<void>;
+  /**
+   * Makes `language` the channel's only language (D7).
+   *
+   * @throws {UnsupportedStoreLanguageError} when the engine refuses the language.
+   */
+  updateChannelLanguage(ctx: OperationContext, channelId: number, language: string): Promise<void>;
   createAdministrator(ctx: OperationContext, request: AdministratorRequest): Promise<number>;
 }

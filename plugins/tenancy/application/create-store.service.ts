@@ -14,6 +14,7 @@ import {
   SubdomainTakenError,
   UnsupportedStoreLanguageError,
 } from '../domain/errors';
+import { assertValidName } from '../domain/name';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { type CreateStoreInput, newStore, type Store } from '../domain/store';
 import type { TenancyPorts } from './tenancy-ports';
@@ -25,9 +26,10 @@ export class CreateStoreService {
   /**
    * Checks what can be checked without writing anything, and returns the normalised subdomain.
    *
-   * @throws {SubdomainInvalidError}, {UnsupportedStoreLanguageError} or {LanguagesNotConfiguredError}.
+   * @throws {NameInvalidError}, {SubdomainInvalidError}, {UnsupportedStoreLanguageError} or {LanguagesNotConfiguredError}.
    */
   async assertCreatable(ctx: OperationContext, input: CreateStoreInput): Promise<string> {
+    assertValidName(input.name);
     const { status, subdomain, reason } = classifySubdomain(input.subdomain);
     if (status !== 'available') {
       throw new SubdomainInvalidError(reason ?? status);

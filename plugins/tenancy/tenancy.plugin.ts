@@ -2,28 +2,47 @@ import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } 
 import { Redis } from 'ioredis';
 import { tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
+import { BusinessResolver } from './api/business.resolver';
+import { adminApiSchema } from './api/schema';
+import { StoreFieldsResolver, StoreMutationResolver, StoreQueryResolver } from './api/store.resolver';
+import { SubdomainController } from './api/subdomain.controller';
+import { ArchiveStoreService } from './application/archive-store.service';
+import { ChangeSubdomainService } from './application/change-subdomain.service';
+import { CheckSubdomainService } from './application/check-subdomain.service';
 import { CreateStoreService } from './application/create-store.service';
+import { GetBusinessService } from './application/get-business.service';
+import { GetStoresService } from './application/get-stores.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
+import type { StoreAdminPorts } from './application/store-admin-ports';
 import type { TenancyPorts } from './application/tenancy-ports';
+import { UpdateBusinessService } from './application/update-business.service';
+import { UpdateStoreService } from './application/update-store.service';
 import {
   CHANNEL_PROVISIONER,
   ID_GENERATOR,
   PLATFORM_STORE,
+  STORE_ADMIN_PORTS,
+  STORE_HOST_INVALIDATOR,
   TENANCY_PORTS,
   TENANT_CONTEXT_RESOLVER,
+  TENANT_STORES,
   TRANSACTION,
 } from './application/tokens';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { PlatformStorePort } from './domain/ports/platform-store.port';
+import type { StoreHostInvalidatorPort } from './domain/ports/store-host-invalidator.port';
+import type { TenantStoresPort } from './domain/ports/tenant-stores.port';
 import type { TransactionPort } from './domain/ports/transaction.port';
 import { BusinessOrderSequenceEntity } from './infrastructure/business-order-sequence.entity';
 import { BusinessEntity } from './infrastructure/business.entity';
 import { CustomDomainEntity } from './infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
+import { NoopStoreHostInvalidator } from './infrastructure/noop-store-host-invalidator';
 import { StoreEntity } from './infrastructure/store.entity';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
+import { TenantStoresAdapter } from './infrastructure/tenant-stores.adapter';
 import { TenantTransaction } from './infrastructure/tenant-transaction';
 import { ValkeySnowflakeGenerator } from './infrastructure/valkey-snowflake.generator';
 import { VendureChannelProvisioner } from './infrastructure/vendure-channel-provisioner';
@@ -76,6 +95,21 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
   return config;
 }
 
+/** The use cases built on {@link StoreAdminPorts}. */
+const STORE_USE_CASES = [
+  GetBusinessService,
+  UpdateBusinessService,
+  GetStoresService,
+  UpdateStoreService,
+  ArchiveStoreService,
+  ChangeSubdomainService,
+  CheckSubdomainService,
+].map((useCase) => ({
+  provide: useCase,
+  useFactory: (ports: StoreAdminPorts) => new useCase(ports),
+  inject: [STORE_ADMIN_PORTS],
+}));
+
 /** Businesses and stores over Vendure's sellers and channels. This module only wires the layers. */
 @VendurePlugin({
   imports: [PluginCommonModule],
@@ -106,6 +140,18 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
       useFactory: (ports: TenancyPorts) => new CreateStoreService(ports),
       inject: [TENANCY_PORTS],
     },
+    { provide: TENANT_STORES, useClass: TenantStoresAdapter },
+    { provide: STORE_HOST_INVALIDATOR, useClass: NoopStoreHostInvalidator },
+    {
+      provide: STORE_ADMIN_PORTS,
+      useFactory: (
+        ports: TenancyPorts,
+        stores: TenantStoresPort,
+        hosts: StoreHostInvalidatorPort,
+      ): StoreAdminPorts => ({ ...ports, stores, hosts }),
+      inject: [TENANCY_PORTS, TENANT_STORES, STORE_HOST_INVALIDATOR],
+    },
+    ...STORE_USE_CASES,
     {
       provide: ProvisionBusinessService,
       useFactory: (ports: TenancyPorts, stores: CreateStoreService) => new ProvisionBusinessService(ports, stores),
@@ -121,6 +167,11 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     TenantRepositoryFactory,
     TenantTransaction,
   ],
+  adminApiExtensions: {
+    schema: adminApiSchema,
+    resolvers: [BusinessResolver, StoreQueryResolver, StoreMutationResolver, StoreFieldsResolver],
+  },
+  controllers: [SubdomainController],
   configuration: configure,
   compatibility: '^3.8.0',
 })

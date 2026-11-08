@@ -1,4 +1,5 @@
 import { type Business, newBusiness } from '../domain/business';
+import { assertValidName } from '../domain/name';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { CreateStoreInput, Store } from '../domain/store';
 import type { CreateStoreService } from './create-store.service';
@@ -39,6 +40,7 @@ export class ProvisionBusinessService {
    * @throws what {@link CreateStoreService.create} throws, before anything is written when the input is invalid.
    */
   async provision(ctx: OperationContext, command: ProvisionBusinessCommand): Promise<ProvisionedBusiness> {
+    assertValidName(command.name);
     await this.stores.assertCreatable(ctx, command.store);
     return this.ports.transaction.run(ctx, (transactional) => this.provisionIn(transactional, command));
   }
