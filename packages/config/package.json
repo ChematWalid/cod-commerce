@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "description": "Shared TypeScript, ESLint, Vitest and architecture configuration. Never built: consumers read the source.",
+  "bin": {
+    "cod-typecheck-own": "./typecheck/cod-typecheck-own.mts"
+  },
   "exports": {
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./tsconfig.vendure.json": "./tsconfig.vendure.json",
@@ -15,7 +18,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "test:arch": "vitest run tests/architecture.test.ts tests/vendure-pins.test.ts tests/ci-workflow.test.ts tests/branding.test.ts",
+    "test:arch": "vitest run tests/architecture.test.ts tests/vendure-pins.test.ts tests/ci-workflow.test.ts tests/ci-dashboard-env.test.ts tests/browser-workflow.test.ts tests/turbo-config.test.ts tests/branding.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

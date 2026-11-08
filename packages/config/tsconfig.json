@@ -1,7 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // The typecheck bin runs under Node type stripping, which needs the real `.mts` import paths.
+    "allowImportingTsExtensions": true
   },
   "include": ["**/*.ts", "**/*.mts"],
   "exclude": ["dist", "node_modules", "tests/fixtures"]

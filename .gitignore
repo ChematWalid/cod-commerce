@@ -9,6 +9,14 @@ coverage/
 *.log
 .eslintcache
 
+# Dashboard build output, the GraphQL types its Vite plugin generates, and browser-test artefacts
+apps/server/dist/dashboard/
+apps/server/src/gql/
+**/test-results/
+.playwright-mcp/
+# Vendure core's telemetry installation id, written by a host-run server
+apps/server/.vendure/
+
 # Environment (only .env.example is committed)
 .env
 .env.*
@@ -39,3 +47,6 @@ Thumbs.db
 
 # Test fixture whose built output is part of the fixture
 !packages/config/tests/fixtures/conditions/pkg/dist/
+
+# Vendure telemetry directory (created at the cwd of a host-run api)
+.vendure/

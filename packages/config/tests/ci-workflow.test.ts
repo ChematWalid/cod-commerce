@@ -241,6 +241,23 @@ describe('ci.yml', () => {
     expect(services?.['postgres']?.options).toContain('pg_isready -h 127.0.0.1 -p 5432 ');
   });
 
+  it('builds the dashboard in the build job, after the server build, with the placeholder env', () => {
+    const runs = stepsRun(jobOf(ci, 'build'));
+    const build = runs.findIndex((run) => /\bpnpm build\b/.test(run));
+    const dashboard = runs.findIndex((run) => run.includes('pnpm --filter @cod/server build:dashboard'));
+
+    expect(build).toBeGreaterThanOrEqual(0);
+    expect(dashboard).toBeGreaterThan(build);
+    expect(runs[dashboard]).toContain('max-old-space-size=2048');
+    expect(jobOf(ci, 'build')['timeout-minutes']).toBeLessThanOrEqual(10);
+  });
+
+  it('keeps the browser job out of ci.yml and out of the gate', () => {
+    expect(ci.jobs['browser']).toBeUndefined();
+    expect(jobOf(ci, 'build-test').needs).not.toContain('browser');
+    expect(read('.github/workflows/ci.yml')).not.toMatch(/test:browser|playwright/);
+  });
+
   it('leaves the attribution check unchanged', () => {
     const attribution = parse(read('.github/workflows/attribution.yml')) as Workflow;
 
@@ -261,5 +278,18 @@ describe('Dockerfile', () => {
 
   it('installs only the server closure', () => {
     expect(dockerfile).toContain('pnpm install --frozen-lockfile --filter "@cod/server..."');
+  });
+
+  it('builds the dashboard after the server, with placeholders the image does not keep (M5)', () => {
+    const envLines = dockerfile.split('\n').filter((line) => line.startsWith('ENV '));
+
+    const lines = dockerfile.split('\n');
+    const serverBuild = lines.findIndex((line) => /\bpnpm\b.*\brun build$/.test(line.trim()));
+    const dashboardBuild = lines.findIndex((line) => line.includes('run build:dashboard'));
+
+    expect(serverBuild).toBeGreaterThanOrEqual(0);
+    expect(dashboardBuild).toBeGreaterThanOrEqual(0);
+    expect(dashboardBuild).toBeGreaterThan(serverBuild);
+    expect(envLines.join('\n')).not.toMatch(/DASHBOARD_BUILD_|change-me|DATABASE_URL|SECRET/);
   });
 });

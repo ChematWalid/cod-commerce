@@ -17,3 +17,7 @@ docs
 **/*.log
 .vscode
 .idea
+apps/server/src/gql
+**/test-results
+apps/server/.vendure
+.vendure/

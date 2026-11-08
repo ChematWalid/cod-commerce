@@ -1,0 +1,32 @@
+{
+  "name": "@cod/plugin-merchant-shell",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The merchant dashboard shell (ADR 0010): Arabic font, html[lang] sync, RTL overrides.",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && cod-typecheck-own dashboard/tsconfig.json",
+    "test": "vitest run --configLoader runner"
+  },
+  "dependencies": {
+    "@cod/shared": "workspace:*",
+    "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "@vendure/core": "3.8.1",
+    "@vendure/dashboard": "3.8.1",
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

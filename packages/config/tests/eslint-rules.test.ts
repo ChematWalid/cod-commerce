@@ -93,3 +93,17 @@ describe('plugin layer boundaries', () => {
     expect(results.flatMap((result) => result.messages)).toEqual([]);
   });
 });
+
+describe('type-aware lint of plugin dashboards', () => {
+  /** Type-aware, as `pnpm lint` runs, but without ignores: the fixtures are ignored by `pnpm lint`. */
+  const typeAware = new ESLint({ cwd: repoRoot, ignore: false });
+  const dashboardPage = join(archFixtures, 'good/dashboard/page.tsx');
+
+  it('lints a dashboard .tsx with the types of its plugin dashboard tsconfig', async () => {
+    const results = await typeAware.lintText(read('floating-promise.tsx.txt'), { filePath: dashboardPage });
+    const messages = results.flatMap((result) => result.messages);
+
+    expect(messages.filter((message) => message.fatal)).toEqual([]);
+    expect(messages.map((message) => message.ruleId)).toContain('@typescript-eslint/no-floating-promises');
+  });
+});

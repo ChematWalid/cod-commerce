@@ -1,0 +1,21 @@
+/* The merchant shell's RTL stylesheet (ADR 0010). Logical properties only. */
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/500.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
+
+html[lang='ar'] body {
+  font-family: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Evidence (c): lucide chevrons without an `rtl:` variant keep pointing the LTR way. */
+html[dir='rtl'] svg.lucide-chevron-right:not([class*='rtl:']),
+html[dir='rtl'] svg.lucide-chevron-left:not([class*='rtl:']) {
+  scale: -1 1;
+}
+
+/* Evidence (c): LTR runs (rich text, "0 / 100" stock cells, inputs) are reordered by the RTL paragraph. */
+html[dir='rtl'] .ProseMirror p,
+html[dir='rtl'] td,
+html[dir='rtl'] input {
+  unicode-bidi: plaintext;
+}

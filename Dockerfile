@@ -10,5 +10,23 @@ COPY . .
 # Only the server and the workspace packages it depends on: nothing else is built or run in this image.
 RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile --filter "@cod/server..." \
  && pnpm --filter "@cod/server..." run build
+# The dashboard's Vite plugin loads src/vendure-config.ts, whose loadEnv() needs a full env. It reads the
+# config only to find the plugin dashboards and the Admin API schema (no connection is made), so the
+# .env.example placeholders are enough. They are ARGs for this RUN line only (no ENV, so the containers
+# never see them), but a RUN-passed ARG is visible in `docker history`: placeholders only, never pass real values.
+ARG DASHBOARD_BUILD_DATABASE_URL=postgresql://cod:change-me-pg@localhost:6432/cod
+ARG DASHBOARD_BUILD_REDIS_URL=redis://localhost:6380
+ARG DASHBOARD_BUILD_S3_ENDPOINT=http://localhost:3900
+ARG DASHBOARD_BUILD_S3_ACCESS_KEY=GK000000000000000000000000
+ARG DASHBOARD_BUILD_S3_SECRET_KEY=0000000000000000000000000000000000000000000000000000000000000000
+ARG DASHBOARD_BUILD_COOKIE_SECRET=change-me-000000000000000000000000000000000000000000000000000000
+ARG DASHBOARD_BUILD_SUPERADMIN_PASSWORD=change-me-admin
+RUN APP_ENV=development ROLE=api \
+    DATABASE_URL="$DASHBOARD_BUILD_DATABASE_URL" DATABASE_URL_DIRECT="$DASHBOARD_BUILD_DATABASE_URL" \
+    REDIS_URL="$DASHBOARD_BUILD_REDIS_URL" S3_ENDPOINT="$DASHBOARD_BUILD_S3_ENDPOINT" S3_BUCKET_PRIVATE=cod-private \
+    S3_ACCESS_KEY="$DASHBOARD_BUILD_S3_ACCESS_KEY" S3_SECRET_KEY="$DASHBOARD_BUILD_S3_SECRET_KEY" \
+    COOKIE_SECRET="$DASHBOARD_BUILD_COOKIE_SECRET" SUPERADMIN_USERNAME=superadmin \
+    SUPERADMIN_PASSWORD="$DASHBOARD_BUILD_SUPERADMIN_PASSWORD" \
+    NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server run build:dashboard
 ENV NODE_ENV=production
 ENTRYPOINT ["sh","/app/scripts/docker-entrypoint.sh"]

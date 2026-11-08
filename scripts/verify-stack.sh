@@ -2,7 +2,7 @@
 # Builds the server image and runs the whole compose stack end to end under its own project
 # (cod-verify, every *_HOST_PORT shifted by 10000), then tears it down. Never touches project `cod`.
 #
-#   scripts/verify-stack.sh                  migrate -> api + worker healthy, idempotent re-run,
+#   scripts/verify-stack.sh                  migrate -> api + worker healthy, dashboard served, idempotent re-run,
 #                                            /readyz 503 and back to 200 when postgres or valkey stops
 #   scripts/verify-stack.sh --bad-password   a POSTGRES_PASSWORD that is not URL-safe stops at migrate,
 #                                            names the variable and never prints the password
@@ -121,6 +121,7 @@ node -e 'const r=JSON.parse(process.argv[1]); process.exit(r.migrationsRun.lengt
   fail "first migrate run did not migrate and seed: $first"
 wait_http 200 "$api_readyz" 60 || fail "api /readyz"
 wait_http 200 "$worker_readyz" 60 || fail "worker /readyz"
+wait_http 200 "http://127.0.0.1:$API_HOST_PORT/dashboard/" 60 || fail "api /dashboard/"
 S3_ENDPOINT="http://127.0.0.1:$GARAGE_S3_HOST_PORT" node scripts/check-object-storage.mjs || fail "object storage"
 
 phase "first run checked"

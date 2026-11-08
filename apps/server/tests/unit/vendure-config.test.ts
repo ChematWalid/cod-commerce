@@ -90,6 +90,16 @@ describe('buildVendureConfig', () => {
     expect(migrate).not.toContain('HardenPlugin');
   });
 
+  it('serves the dashboard with the merchant shell from the api only (ADR 0010)', () => {
+    const [api, worker, migrate] = ROLES.map((role) => pluginNamesOf(configFor(role)));
+
+    expect(api).toEqual(expect.arrayContaining(['DashboardPlugin', 'MerchantShellPlugin']));
+    for (const other of [worker, migrate]) {
+      expect(other).not.toContain('DashboardPlugin');
+      expect(other).not.toContain('MerchantShellPlugin');
+    }
+  });
+
   it('scopes the cache and session namespace by APP_ENV', () => {
     const namespaces = ['staging', 'production'].map((appEnv) => {
       configFor('api', { APP_ENV: appEnv });
