@@ -28,8 +28,10 @@ RUN APP_ENV=development ROLE=api \
     COOKIE_SECRET="$DASHBOARD_BUILD_COOKIE_SECRET" SUPERADMIN_USERNAME=superadmin \
     SUPERADMIN_PASSWORD="$DASHBOARD_BUILD_SUPERADMIN_PASSWORD" \
     NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server run build:dashboard
-# The storefront's deployment id namespaces its cache keys and assets (ADR 0006); the standalone server reads
-# it at start too, so it stays in the image. Declared here so a new id does not rebuild the layers above.
+# The storefront's deployment id namespaces its cache keys and assets (ADR 0006). next build embeds it, and the
+# standalone server sets process.env.NEXT_DEPLOYMENT_ID to that embedded id at start whatever the environment
+# says; the ENV stays for the cache handlers' process.env read, which then sees the same value. Declared here
+# so a new id does not rebuild the layers above.
 # Compose passes the caller's NEXT_DEPLOYMENT_ID (the commit id; verify-stack exports it) or `local`.
 # One build at a time: next build and the dashboard build are both memory-heavy. The standalone output
 # does not include .next/static, so it is copied in.
