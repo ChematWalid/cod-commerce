@@ -19,3 +19,8 @@ html[dir='rtl'] td,
 html[dir='rtl'] input {
   unicode-bidi: plaintext;
 }
+
+/* The input-group control keeps the eye-icon inset on its text side in RTL: restore the 10px of a plain input. */
+html[dir='rtl'] [data-slot='input-group-control'] {
+  padding-inline: 0.625rem 0.375rem;
+}

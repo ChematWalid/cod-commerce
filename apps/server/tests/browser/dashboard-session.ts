@@ -70,3 +70,20 @@ export async function setDisplayLanguage(page: Page, language: DocumentLang): Pr
   await saved;
   await page.keyboard.press('Escape');
 }
+
+/**
+ * Signs out with the dashboard's own `logout` mutation. Clearing cookies alone leaves the token in
+ * `localStorage`; the display language stays there, which is how the login page opens in it.
+ */
+export async function signOut(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await fetch('/admin-api', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query: 'mutation { logout { success } }' }),
+    });
+    localStorage.removeItem('vendure-session-token');
+  });
+  await page.context().clearCookies();
+}
