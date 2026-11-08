@@ -1,10 +1,18 @@
 import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import { Redis } from 'ioredis';
 import { tenantBusinessPermission, tenantStorePermission } from './api/permissions';
+import { TenantGuard } from './api/tenant.guard';
 import { CreateStoreService } from './application/create-store.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
 import type { TenancyPorts } from './application/tenancy-ports';
-import { CHANNEL_PROVISIONER, ID_GENERATOR, PLATFORM_STORE, TENANCY_PORTS, TRANSACTION } from './application/tokens';
+import {
+  CHANNEL_PROVISIONER,
+  ID_GENERATOR,
+  PLATFORM_STORE,
+  TENANCY_PORTS,
+  TENANT_CONTEXT_RESOLVER,
+  TRANSACTION,
+} from './application/tokens';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { PlatformStorePort } from './domain/ports/platform-store.port';
@@ -14,6 +22,9 @@ import { BusinessEntity } from './infrastructure/business.entity';
 import { CustomDomainEntity } from './infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
 import { StoreEntity } from './infrastructure/store.entity';
+import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
+import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
+import { TenantTransaction } from './infrastructure/tenant-transaction';
 import { ValkeySnowflakeGenerator } from './infrastructure/valkey-snowflake.generator';
 import { VendureChannelProvisioner } from './infrastructure/vendure-channel-provisioner';
 import { VendureTransaction } from './infrastructure/vendure-transaction';
@@ -71,7 +82,13 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
   entities: [BusinessEntity, StoreEntity, CustomDomainEntity, BusinessOrderSequenceEntity],
   providers: [
     { provide: CHANNEL_PROVISIONER, useClass: VendureChannelProvisioner },
-    { provide: PLATFORM_STORE, useClass: PlatformStoreLookup },
+    PlatformStoreLookup,
+    { provide: PLATFORM_STORE, useExisting: PlatformStoreLookup },
+    TenantContextResolver,
+    { provide: TENANT_CONTEXT_RESOLVER, useExisting: TenantContextResolver },
+    TenantGuard,
+    TenantRepositoryFactory,
+    TenantTransaction,
     { provide: TRANSACTION, useClass: VendureTransaction },
     { provide: ID_GENERATOR, useFactory: createIdGenerator },
     {
@@ -95,7 +112,15 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
       inject: [TENANCY_PORTS, CreateStoreService],
     },
   ],
-  exports: [CreateStoreService, ProvisionBusinessService],
+  exports: [
+    CreateStoreService,
+    ProvisionBusinessService,
+    TenantContextResolver,
+    TENANT_CONTEXT_RESOLVER,
+    TenantGuard,
+    TenantRepositoryFactory,
+    TenantTransaction,
+  ],
   configuration: configure,
   compatibility: '^3.8.0',
 })

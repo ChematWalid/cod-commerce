@@ -82,6 +82,21 @@ describe('root ESLint config', () => {
     },
   );
 
+  it.each(['get-repository.ts.txt', 'raw-connection.ts.txt'])(
+    'bans direct data access in infrastructure: %s',
+    async (fixture) => {
+      expect(await lint(fixture, `${PLUGIN}/infrastructure/adapter.ts`)).toContain('no-restricted-syntax');
+    },
+  );
+
+  it.each([
+    'plugins/tenancy/infrastructure/tenant-repository.ts',
+    'plugins/tenancy/infrastructure/platform-store-lookup.ts',
+    'plugins/tenancy/infrastructure/tenant-transaction.ts',
+  ])('allows direct data access in %s', async (path) => {
+    expect(await lint('get-repository.ts.txt', path)).not.toContain('no-restricted-syntax');
+  });
+
   it('lets clean application code through', async () => {
     expect(await lint('clean-application.ts.txt', `${PLUGIN}/application/use-case.ts`)).not.toContain(
       'no-restricted-imports',

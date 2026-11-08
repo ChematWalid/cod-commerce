@@ -76,3 +76,12 @@ export class NoWorkerIdAvailableError extends DomainError {
     super('Every snowflake worker id is leased');
   }
 }
+
+/** An `orWhere` on a tenant query, which would widen it past the business filter (ADR 0002). */
+export class TenantQueryWidenedError extends DomainError {
+  readonly code = 'tenancy.tenant-query-widened';
+
+  constructor() {
+    super('A tenant query cannot widen its filter with orWhere: put the alternatives in Brackets inside andWhere');
+  }
+}

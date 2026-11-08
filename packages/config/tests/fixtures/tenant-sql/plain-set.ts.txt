@@ -1,0 +1,1 @@
+export const sql = 'SET app.business_id = 1';

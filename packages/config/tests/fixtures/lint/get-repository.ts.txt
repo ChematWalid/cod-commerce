@@ -1,0 +1,2 @@
+export const find = (connection: { getRepository(name: string): unknown }): unknown =>
+  connection.getRepository('store');

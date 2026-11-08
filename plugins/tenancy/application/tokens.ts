@@ -12,3 +12,6 @@ export const TRANSACTION: unique symbol = Symbol('TenancyTransaction');
 
 /** Injection token of the {@link TenancyPorts} bundle the use cases take. */
 export const TENANCY_PORTS: unique symbol = Symbol('TenancyPorts');
+
+/** Injection token of the `TenantContextResolverPort` adapter. */
+export const TENANT_CONTEXT_RESOLVER: unique symbol = Symbol('TenancyTenantContextResolver');

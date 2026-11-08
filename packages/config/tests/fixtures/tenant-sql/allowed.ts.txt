@@ -1,0 +1,8 @@
+export const local = "SET LOCAL app.business_id = '1'";
+export const tx = 'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE';
+export const config = "SELECT set_config('app.business_id', $1, true)";
+export const update = 'UPDATE store SET name = $1';
+export const fk = 'ALTER TABLE a ADD CONSTRAINT b FOREIGN KEY (c) REFERENCES d (e) ON DELETE SET NULL';
+export const xact = 'SELECT pg_advisory_xact_lock(42)';
+export const ui = 'Set your subdomain';
+export const listen = 'Listen to the carrier webhook';

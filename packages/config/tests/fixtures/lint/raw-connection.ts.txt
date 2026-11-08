@@ -1,0 +1,1 @@
+export const raw = (connection: { rawConnection: unknown }): unknown => connection.rawConnection;

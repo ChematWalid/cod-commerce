@@ -1,4 +1,4 @@
-import { type Snowflake, toSnowflake } from '@cod/shared';
+import { type BusinessId, type Snowflake, toSnowflake, toStoreId } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { TransactionalConnection } from '@vendure/core';
 import type { ObjectLiteral, ObjectType, Repository } from 'typeorm';
@@ -6,7 +6,7 @@ import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialE
 import type { Business } from '../domain/business';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { BusinessOwnerPatch, PlatformStorePort } from '../domain/ports/platform-store.port';
-import type { Store } from '../domain/store';
+import type { Store, StoreAccess } from '../domain/store';
 import { BusinessOrderSequenceEntity } from './business-order-sequence.entity';
 import { BusinessEntity } from './business.entity';
 import { toRequestContext } from './operation-context.adapter';
@@ -58,6 +58,15 @@ export class PlatformStoreLookup implements PlatformStorePort {
 
   async isSubdomainTaken(ctx: OperationContext, subdomain: string): Promise<boolean> {
     return this.repository(ctx, StoreEntity).existsBy({ subdomain });
+  }
+
+  /** Every store of the business, whatever its status: the resolver decides what counts. */
+  async findStoreAccess(ctx: OperationContext, businessId: BusinessId): Promise<readonly StoreAccess[]> {
+    const rows = await this.repository(ctx, StoreEntity).find({
+      where: { businessId },
+      select: { id: true, channelId: true, status: true },
+    });
+    return rows.map((row) => ({ id: toStoreId(row.id), channelId: row.channelId, status: row.status }));
   }
 
   private repository<T extends ObjectLiteral>(ctx: OperationContext, entity: ObjectType<T>): Repository<T> {

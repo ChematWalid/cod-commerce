@@ -78,3 +78,10 @@ export function newStore({ id, businessId, channelId, sellerId, subdomain, input
     updatedAt: now,
   };
 }
+
+/** The part of a store that decides who may act on it. */
+export interface StoreAccess {
+  readonly id: StoreId;
+  readonly channelId: number;
+  readonly status: StoreStatus;
+}

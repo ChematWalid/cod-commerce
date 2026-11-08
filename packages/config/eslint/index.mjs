@@ -21,6 +21,20 @@ const APPLICATION_PURITY_MESSAGE =
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
 /** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
 const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', '**/plugins/*/*.config.{ts,mts}'];
+const INFRASTRUCTURE_FILES = ['**/plugins/*/infrastructure/**'];
+/**
+ * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
+ * `platform-store-lookup` is the unscoped read path and `tenant-transaction` runs only `set_config`. The template's
+ * repository is a stub until P1.S1 Task 7 moves it onto `TenantRepository`, which removes its entry.
+ */
+const RAW_DATA_ACCESS_FILES = [
+  '**/plugins/tenancy/infrastructure/tenant-repository.ts',
+  '**/plugins/tenancy/infrastructure/platform-store-lookup.ts',
+  '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
+  '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
+  '**/plugins/_template/infrastructure/typeorm-note.repository.ts',
+];
+const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
 
 /** Layers each layer may import, inside its own plugin (CLAUDE.md §3a.2). */
@@ -161,6 +175,17 @@ export function codEslintConfig({ tsconfigRootDir }) {
           'boundaries/dependencies': [2, { default: 'disallow', policies: boundaryPolicies }],
           'boundaries/external': 'off',
           'boundaries/no-unknown-files': 'error',
+        },
+      },
+      {
+        files: INFRASTRUCTURE_FILES,
+        ignores: RAW_DATA_ACCESS_FILES,
+        rules: {
+          'no-restricted-syntax': [
+            'error',
+            { selector: "MemberExpression[property.name='getRepository']", message: RAW_DATA_ACCESS_MESSAGE },
+            { selector: "MemberExpression[property.name='rawConnection']", message: RAW_DATA_ACCESS_MESSAGE },
+          ],
         },
       },
       {

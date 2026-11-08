@@ -2,7 +2,7 @@ import { defaultClientConditions, defaultServerConditions } from 'vite';
 import type { ViteUserConfig } from 'vitest/config';
 
 /** Suffixes of test files that need infrastructure or a running app; `pnpm test` never runs them. */
-const NON_UNIT_SUFFIXES = ['int', 'e2e', 'browser', 'smoke'] as const;
+const NON_UNIT_SUFFIXES = ['int', 'e2e', 'browser', 'smoke', 'pgbouncer'] as const;
 
 /** Test files are TypeScript, with JSX for the plugin dashboards' components. */
 const TEST_EXTENSIONS = '{ts,tsx}';
