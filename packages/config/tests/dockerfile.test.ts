@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 const repoRoot = resolve(__dirname, '../../..');
 const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8');
@@ -54,5 +55,36 @@ describe('Dockerfile', () => {
     expect(dashboardBuild).toBeGreaterThanOrEqual(0);
     expect(dashboardBuild).toBeGreaterThan(serverBuild);
     expect(envLines.join('\n')).not.toMatch(/DASHBOARD_BUILD_|change-me|DATABASE_URL|SECRET/);
+  });
+});
+
+interface ComposeService {
+  build?: { args?: Record<string, string> };
+  environment?: Record<string, string>;
+}
+
+describe('storefront deployment id (one source: the image)', () => {
+  const compose = parse(read('docker-compose.yml'), { merge: true }) as { services: Record<string, ComposeService> };
+  const storefront = compose.services['storefront'];
+
+  it('passes NEXT_DEPLOYMENT_ID to the image build only', () => {
+    expect(storefront?.build?.args?.['NEXT_DEPLOYMENT_ID']).toBe('${NEXT_DEPLOYMENT_ID:-local}');
+    // A runtime value could differ from the one the assets were built with; the image ENV is the only source.
+    expect(Object.keys(storefront?.environment ?? {})).not.toContain('NEXT_DEPLOYMENT_ID');
+  });
+
+  it('keeps a constant deployment id out of the root .env.example', () => {
+    // A constant id makes a rebuilt storefront read the previous build's App Shell from the persistent Valkey.
+    expect(read('.env.example')).not.toMatch(/^NEXT_DEPLOYMENT_ID=/m);
+  });
+
+  it('builds the verify-stack image with the commit id, marked dirty for an uncommitted tree', () => {
+    const script = read('scripts/verify-stack.sh');
+    const exportLine = script.search(/^export NEXT_DEPLOYMENT_ID\b/m);
+
+    expect(exportLine).toBeGreaterThan(-1);
+    expect(script).toContain('git rev-parse --short HEAD');
+    expect(script).toContain('git status --porcelain');
+    expect(exportLine).toBeLessThan(script.indexOf('docker compose build'));
   });
 });

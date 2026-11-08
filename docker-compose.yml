@@ -12,7 +12,8 @@ x-app: &app
   build:
     context: .
     args:
-      # Namespaces the storefront's cache keys and assets; set it to the commit when building a release.
+      # Namespaces the storefront's cache keys and assets: export the commit id before building
+      # (verify-stack does). A bare rebuild reuses `local` and must flush the `next:*` keys in Valkey.
       NEXT_DEPLOYMENT_ID: ${NEXT_DEPLOYMENT_ID:-local}
   image: ${APP_IMAGE:-cod-platform:local}
   environment: &app-env
@@ -202,7 +203,8 @@ services:
       ROLE: storefront
       APP_ENV: ${APP_ENV:-production}
       REDIS_URL: redis://valkey:6379
-      NEXT_DEPLOYMENT_ID: ${NEXT_DEPLOYMENT_ID:-local}
+      # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
+      # always match the deployment the assets were built for.
     depends_on:
       valkey:
         condition: service_healthy

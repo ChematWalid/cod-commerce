@@ -30,7 +30,7 @@ RUN APP_ENV=development ROLE=api \
     NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server run build:dashboard
 # The storefront's deployment id namespaces its cache keys and assets (ADR 0006); the standalone server reads
 # it at start too, so it stays in the image. Declared here so a new id does not rebuild the layers above.
-# Compose passes NEXT_DEPLOYMENT_ID from .env (set it to the commit for a release) or `local`.
+# Compose passes the caller's NEXT_DEPLOYMENT_ID (the commit id; verify-stack exports it) or `local`.
 # One build at a time: next build and the dashboard build are both memory-heavy. The standalone output
 # does not include .next/static, so it is copied in.
 ARG NEXT_DEPLOYMENT_ID=local

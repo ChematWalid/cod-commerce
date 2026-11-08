@@ -34,6 +34,11 @@ export POSTGRES_HOST_PORT=15433 PGBOUNCER_HOST_PORT=16432 VALKEY_HOST_PORT=16380
 export MAILPIT_SMTP_HOST_PORT=11026 MAILPIT_UI_HOST_PORT=18026 API_HOST_PORT=13100 WORKER_HEALTH_HOST_PORT=13020
 export STOREFRONT_HOST_PORT=13001
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
+# The storefront's deployment id (its cache-key namespace and asset id) is the commit, so a rebuilt image never
+# reads the App Shell of another build from Valkey; an uncommitted tree is marked dirty.
+NEXT_DEPLOYMENT_ID="$(git rev-parse --short HEAD)"
+[[ -z "$(git status --porcelain)" ]] || NEXT_DEPLOYMENT_ID+="-dirty"
+export NEXT_DEPLOYMENT_ID
 bad_password='p@ss/w:rd'
 [[ "$mode" == --bad-password ]] && export POSTGRES_PASSWORD="$bad_password"
 
