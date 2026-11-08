@@ -82,14 +82,20 @@ image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
 NEXT_DEPLOYMENT_ID="$(git rev-parse --short "$image_commit")"
 export NEXT_DEPLOYMENT_ID
 docker compose down -v --remove-orphans
-docker compose build migrate
+# EVIDENCE_REUSE_IMAGE=1 skips the rebuild while iterating on this script: scripts/evidence is in the build context,
+# so every edit here would rebuild an image whose inputs did not change.
+[[ "${EVIDENCE_REUSE_IMAGE:-}" == 1 ]] || docker compose build migrate
 docker compose up -d api worker storefront
 wait_healthy api worker storefront
 wait_http 200 "$api/readyz" 120 || fail "api /readyz"
 wait_http 200 "$api/dashboard/" 60 || fail "api /dashboard/"
 
 # --- demo seed, twice: the second run changes nothing -----------------------------------------
-seed() { docker compose run --rm --no-deps -e DEMO_OWNER_PASSWORD migrate node apps/server/dist/main-seed-demo.js 2>/dev/null | command grep '"seed-demo.done"'; }
+seed() {
+  docker compose run --rm --no-deps -e DEMO_OWNER_PASSWORD --entrypoint node migrate apps/server/dist/main-seed-demo.js >"$work/seed.log" 2>&1 ||
+    fail "the demo seed failed: $(command tail -20 "$work/seed.log")"
+  command grep '"seed-demo.done"' "$work/seed.log" || fail "the demo seed printed no result: $(command tail -20 "$work/seed.log")"
+}
 first=$(seed); second=$(seed)
 [[ "$first" == '{"event":"seed-demo.done","created":["demo","demo2","second","second2"]}' ]] || fail "first seed: $first"
 [[ "$second" == '{"event":"seed-demo.done","created":[]}' ]] || fail "second seed: $second"
@@ -182,12 +188,16 @@ login "$OWNER_B" "$DEMO_OWNER_PASSWORD"; owner_b=$LAST_TOKEN
 store_of() { # store_of <json-file> <subdomain> <field>
   js "b.data.stores.find(s=>s.subdomain==='$2').$3" "$1"
 }
-gql "$Q_STORES" '{}' "$owner_a" -
+Q_ME='query { me { channels { token } } }'
+# The owner holds no default-channel role, so the first tenant request needs one of the owner's own channel tokens.
+own_token() { gql "$Q_ME" '{}' "$1" -; js 'b.data.me.channels[0].token' "$work/b"; }
+gql_stores_of() { local token; token=$(own_token "$1"); gql "$Q_STORES" '{}' "$1" "$token"; }
+gql_stores_of "$owner_a"
 assert_js "A's stores" 'b.data.stores.length===2' "$work/b"
 command cp "$work/b" "$work/a-stores"
 TOKEN_A=$(store_of "$work/a-stores" demo channelToken); TOKEN_A2=$(store_of "$work/a-stores" demo2 channelToken)
 STORE_A=$(store_of "$work/a-stores" demo id); STORE_A2=$(store_of "$work/a-stores" demo2 id); BUSINESS_A=$(store_of "$work/a-stores" demo businessId)
-gql "$Q_STORES" '{}' "$owner_b" -
+gql_stores_of "$owner_b"
 command cp "$work/b" "$work/b-stores"
 TOKEN_B=$(store_of "$work/b-stores" second channelToken); STORE_B=$(store_of "$work/b-stores" second id); BUSINESS_B=$(store_of "$work/b-stores" second businessId)
 remember CHANNEL_TOKEN_A "$TOKEN_A"; remember CHANNEL_TOKEN_A2 "$TOKEN_A2"; remember CHANNEL_TOKEN_B "$TOKEN_B"
@@ -301,7 +311,7 @@ assert_js "store of B" 'b.data.store===null && !b.errors' "$work/b"
 emit "$f" "A: store(id of B's store) is null" "$Q_STORE" '{"id":"<STORE_B_ID>"}' "$owner_a" "$TOKEN_A"
 refused() { # refused <title> <query> <real-vars> <shown-vars>
   gql "$2" "$3" "$owner_a" "$TOKEN_A"
-  assert_js "$1" "b.errors.length===1 && !b.data && !JSON.stringify(b).includes('Second') && /NOT_FOUND/i.test(b.errors[0].extensions.code)" "$work/b"
+  assert_js "$1" "b.errors.length===1 && !b.data && !JSON.stringify(b).includes('Second') && /not.found/i.test(b.errors[0].extensions.code)" "$work/b"
   emit "$f" "$1" "$2" "$4" "$owner_a" "$TOKEN_A"
 }
 refused "A: updateStore on B's store" "$Q_UPDATE_STORE" "$(vars "{id:'$STORE_B',input:{description:'x'}}")" '{"id":"<STORE_B_ID>","input":{"description":"x"}}'

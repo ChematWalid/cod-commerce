@@ -89,9 +89,11 @@ describe('Per-business order numbers', () => {
     const ctx = await anonymousContext();
 
     // Act
-    const attempt = server.app.get(TransactionalConnection).withTransaction(ctx, (txCtx) =>
-      server.app.get(OrderNumberService).nextOrderNumber(txCtx, '999999999999' as BusinessId),
-    );
+    const attempt = server.app
+      .get(TransactionalConnection)
+      .withTransaction(ctx, (txCtx) =>
+        server.app.get(OrderNumberService).nextOrderNumber(txCtx, '999999999999' as BusinessId),
+      );
 
     // Assert
     await expect(attempt).rejects.toBeInstanceOf(BusinessNotFoundError);

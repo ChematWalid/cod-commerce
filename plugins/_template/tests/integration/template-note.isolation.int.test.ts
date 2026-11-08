@@ -180,7 +180,7 @@ describe('TemplateNote isolation between two businesses', () => {
   });
 
   // The attack above must aim at a real note: without this, a wrong id would also come back null.
-  it.each(REGISTRY)('$operation run by B returns B\'s note', async (entry) => {
+  it.each(REGISTRY)("$operation run by B returns B's note", async (entry) => {
     // Arrange
     await asOwner(fixtures.b);
 

@@ -16,7 +16,8 @@ const NOT_TENANT_OWNED = ['BusinessEntity', 'BusinessOrderSequenceEntity'];
 /** A plugin's `entities` metadata, an array or the function form `entities: () => [...]`. */
 const declaredEntities = (candidate: unknown): EntityClass[] => {
   if (typeof candidate !== 'function') return [];
-  const entities = Reflect.getMetadata(ENTITIES_METADATA, candidate) as EntityClass[] | (() => EntityClass[]) | undefined;
+  const entities = Reflect.getMetadata(ENTITIES_METADATA, candidate) as
+    EntityClass[] | (() => EntityClass[]) | undefined;
   const resolved = typeof entities === 'function' ? entities() : entities;
   return resolved ?? [];
 };

@@ -20,6 +20,7 @@ import { adminApiSchema } from '../../api/schema';
 import { TenancyPlugin } from '../../tenancy.plugin';
 import {
   ACTIVE_BUSINESS,
+  type BusinessSnapshot,
   type BusinessView,
   CREATE_CUSTOMER,
   CUSTOMERS,
@@ -42,11 +43,6 @@ import {
 import { TEST_REDIS_URL } from './tenant-fixtures';
 
 const SAME_PHONE = '+213555000111';
-
-interface BusinessSnapshot {
-  readonly business: BusinessView;
-  readonly stores: readonly StoreView[];
-}
 
 describe('two-business isolation', () => {
   const { server, adminClient } = createPluginTestEnvironment({
@@ -167,7 +163,8 @@ describe('two-business isolation', () => {
         expect(new Set(control.idsOf(await queryAs(entry, probe)))).toEqual(new Set([control.expected(probe)]));
       } else if (control.kind === 'targetExistsInB') {
         const { business, stores } = baselineOfB;
-        expect([business.id, ...stores.flatMap((store) => [store.id, store.subdomain])]).toContain(control.target(probe));
+        const ownedByB = [business.id, ...stores.flatMap((store) => [store.id, store.subdomain])];
+        expect(ownedByB).toContain(control.target(probe));
       }
     });
   });
@@ -242,7 +239,10 @@ describe('two-business isolation', () => {
       return { status: response.status, body: await response.json() };
     }
 
-    async function callerHeaders(credentials: CredentialsFixture, store: StoreFixture): Promise<Record<string, string>> {
+    async function callerHeaders(
+      credentials: CredentialsFixture,
+      store: StoreFixture,
+    ): Promise<Record<string, string>> {
       await signIn(credentials, store);
       return { authorization: `Bearer ${adminClient.getAuthToken()}`, 'vendure-token': store.channelToken };
     }

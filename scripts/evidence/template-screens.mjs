@@ -33,12 +33,16 @@ const {
 } = process.env;
 const noteTitles = (process.env.NOTE_TITLES ?? '').split('|').filter(Boolean);
 if (!channelToken || !CHANNEL_CODE_A || !OWNER_EMAIL_A || !OWNER_EMAIL_B || !otherBusinessTitle || !noteTitles.length) {
-  throw new Error('CHANNEL_CODE_A, CHANNEL_TOKEN_A, OWNER_EMAIL_A, OWNER_EMAIL_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set');
+  throw new Error(
+    'CHANNEL_CODE_A, CHANNEL_TOKEN_A, OWNER_EMAIL_A, OWNER_EMAIL_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set',
+  );
 }
 const MAX_BYTES = 300 * 1024;
 const PHONE_MAX_WIDTH = 768;
 /** The dashboard's localStorage key of the selected channel token (`@vendure/dashboard` storage-keys.ts). */
 const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
+/** The dashboard's localStorage key of the user settings, the content language among them. */
+const USER_SETTINGS_KEY = 'vendure-user-settings';
 
 /** A phone screenshot went over the size budget at its device scale; the caller retries at scale 1. */
 class ScaleBudgetError extends Error {}
@@ -98,7 +102,7 @@ async function capture(page, file) {
  * is overwritten by the dashboard's own channel state. */
 async function selectChannel(page, code, token) {
   await page.locator('[data-sidebar="sidebar"] button').first().click();
-  await page.getByRole('menuitem', { name: code, exact: true }).click();
+  await page.getByRole('menuitem', { name: code }).click();
   await page.waitForFunction(([key, value]) => localStorage.getItem(key) === value, [SELECTED_CHANNEL_KEY, token]);
 }
 
@@ -176,6 +180,28 @@ async function shootNotes(browser, vpName, lang, deviceScaleFactor) {
   }
 }
 
+/** Arabic store: the dashboard's content language must follow the store (D7). The switcher menu is open in the shot. */
+async function shootContentLanguage(browser) {
+  const storageState = await prepareStorageState(browser, 'ar');
+  const context = await browser.newContext({ ...VIEWPORTS.desktop.options, storageState, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${base}${TEMPLATE_NOTES_PATH}`);
+    await page.getByTestId(TEMPLATE_NOTES_TEST_ID).getByText(noteTitles[0], { exact: false }).first().waitFor();
+    await settle(page);
+    const language = await page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) ?? '{}').contentLanguage,
+      USER_SETTINGS_KEY,
+    );
+    if (language !== 'ar') fail(`the Arabic store's content language is ${language}`);
+    await page.locator('[data-sidebar="sidebar"] button').first().click();
+    await page.getByRole('menuitem', { name: CHANNEL_CODE_A }).waitFor();
+    await capture(page, join(outDir, 'dashboard-content-language-ar-desktop.png'));
+  } finally {
+    await context.close();
+  }
+}
+
 async function shootWithinBudget(browser, vpName, lang) {
   const scale = VIEWPORTS[vpName].options.deviceScaleFactor;
   try {
@@ -195,6 +221,7 @@ try {
   for (const vpName of Object.keys(VIEWPORTS)) {
     for (const lang of Object.keys(LANG_DIRS)) rows.push(await shootWithinBudget(browser, vpName, lang));
   }
+  await shootContentLanguage(browser);
 } finally {
   await browser.close();
 }
@@ -202,7 +229,7 @@ try {
 const files = readdirSync(outDir)
   .filter((f) => f.endsWith('.png'))
   .sort();
-if (files.length !== 4) fail(`expected 4 PNGs, found ${files.length}`);
+if (files.length !== 5) fail(`expected 5 PNGs, found ${files.length}`);
 for (const f of files) {
   const size = statSync(join(outDir, f)).size;
   if (size > MAX_BYTES) fail(`${f} is ${size} bytes, over ${MAX_BYTES}`);

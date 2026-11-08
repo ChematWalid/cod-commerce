@@ -186,3 +186,9 @@ export const CUSTOMERS = gql`
     }
   }
 `;
+
+/** A business and its stores, read to prove a refused call changed nothing. */
+export interface BusinessSnapshot {
+  readonly business: BusinessView;
+  readonly stores: readonly StoreView[];
+}
