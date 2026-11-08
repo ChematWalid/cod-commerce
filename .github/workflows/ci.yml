@@ -59,6 +59,7 @@ jobs:
       # same non-secret placeholders as the Dockerfile are enough.
       - name: Build the dashboard
         env:
+          TZ: UTC
           APP_ENV: development
           ROLE: api
           DATABASE_URL: postgresql://cod:change-me-pg@localhost:6432/cod
