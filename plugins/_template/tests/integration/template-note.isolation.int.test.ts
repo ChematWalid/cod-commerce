@@ -19,6 +19,8 @@ interface NoteRef {
   readonly id: string;
 }
 
+type CreateChannelResult = { readonly id: string } | { readonly errorCode: string; readonly message: string };
+
 interface ChannelRef {
   readonly id: string;
   readonly code: string;
@@ -42,6 +44,7 @@ const CREATE_CHANNEL = gql`
       }
       ... on ErrorResult {
         errorCode
+        message
       }
     }
   }
@@ -99,7 +102,7 @@ describe('TemplateNote isolation between two businesses', () => {
   }
 
   async function createBusinessChannel(code: string, token: string, zoneId: string): Promise<void> {
-    await adminClient.query(CREATE_CHANNEL, {
+    const { createChannel } = await adminClient.query<{ createChannel: CreateChannelResult }>(CREATE_CHANNEL, {
       input: {
         code,
         token,
@@ -110,6 +113,9 @@ describe('TemplateNote isolation between two businesses', () => {
         defaultShippingZoneId: zoneId,
       },
     });
+    if ('errorCode' in createChannel) {
+      throw new Error(`createChannel ${code} failed: ${createChannel.errorCode} ${createChannel.message}`);
+    }
   }
 
   const createNote = (token: string, title: string): Promise<NoteRef> =>
@@ -136,7 +142,11 @@ describe('TemplateNote isolation between two businesses', () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
     await adminClient.asSuperAdmin();
     const { zones } = await adminClient.query<{ zones: { items: { id: string }[] } }>(ZONES);
-    const zoneId = zones.items[0]?.id ?? '';
+    const [zone] = zones.items;
+    if (zone === undefined) {
+      throw new Error('The test server has no zone: PLUGIN_TEST_INITIAL_DATA must create Algeria');
+    }
+    const zoneId = zone.id;
     await createBusinessChannel('business-a', TOKEN_A, zoneId);
     await createBusinessChannel('business-b', TOKEN_B, zoneId);
     noteOfA = await createNote(TOKEN_A, "A's note");

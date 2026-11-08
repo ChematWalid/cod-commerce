@@ -24,6 +24,15 @@ export interface NewNoteInput {
   readonly now: Date;
 }
 
+/** A note as it was stored: trusted values, read back from the adapter's storage. */
+export interface StoredNote {
+  readonly id: string;
+  readonly businessId: string;
+  readonly title: string;
+  readonly body: string;
+  readonly createdAt: Date;
+}
+
 /**
  * Validates and brands a note id.
  *
@@ -48,4 +57,18 @@ export function createNote(input: NewNoteInput): Note {
     throw new NoteBodyTooLongError();
   }
   return { id: input.id, businessId: input.scope.businessId, title, body: input.body, createdAt: input.now };
+}
+
+/**
+ * Rebuilds a stored note without re-validating it: only {@link createNote} validates, and only new input.
+ * A row that breaks a rule added later stays readable instead of failing every read as a client error.
+ */
+export function restoreNote(stored: StoredNote): Note {
+  return {
+    id: stored.id as NoteId,
+    businessId: stored.businessId as BusinessId,
+    title: NoteTitle.restore(stored.title),
+    body: stored.body,
+    createdAt: stored.createdAt,
+  };
 }

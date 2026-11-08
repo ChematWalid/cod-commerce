@@ -1,8 +1,8 @@
-import { type TenantScope, toBusinessId } from '@cod/shared';
+import type { TenantScope } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { TransactionalConnection } from '@vendure/core';
 import type { Repository } from 'typeorm';
-import { createNote, type Note, type NoteId, toNoteId } from '../domain/note';
+import { type Note, type NoteId, restoreNote } from '../domain/note';
 import type { NotePage, NoteRepositoryPort } from '../domain/ports/note-repository.port';
 import { NoteEntity } from './note.entity';
 import { requestContextOf } from './request-tenant-scope';
@@ -19,8 +19,7 @@ function toRow(scope: TenantScope, note: Note): NoteEntity {
 }
 
 function toNote(row: NoteEntity): Note {
-  const scope = { businessId: toBusinessId(row.businessId) };
-  return createNote({ id: toNoteId(row.id), scope, title: row.title, body: row.body, now: row.createdAt });
+  return restoreNote(row);
 }
 
 /**
@@ -31,15 +30,18 @@ function toNote(row: NoteEntity): Note {
 export class TypeOrmNoteRepository implements NoteRepositoryPort {
   constructor(private readonly connection: TransactionalConnection) {}
 
+  /** Inserts the note under the scope's business; rejects (unique violation) when the id exists. */
   async save(scope: TenantScope, note: Note): Promise<void> {
     await this.repository(scope).insert(toRow(scope, note));
   }
 
+  /** The note `id` of the scope's business, or `undefined` (also when another business owns it). */
   async findById(scope: TenantScope, id: NoteId): Promise<Note | undefined> {
     const row = await this.repository(scope).findOne({ where: { businessId: scope.businessId, id } });
     return row === null ? undefined : toNote(row);
   }
 
+  /** One page of the scope's business's notes, newest first, then by id descending. */
   async list(scope: TenantScope, page: NotePage): Promise<readonly Note[]> {
     const rows = await this.repository(scope).find({
       where: { businessId: scope.businessId },

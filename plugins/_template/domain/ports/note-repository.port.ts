@@ -12,8 +12,15 @@ export interface NotePage {
  * `scope.businessId`, so a note of another business is never found, listed or overwritten.
  */
 export interface NoteRepositoryPort {
+  /**
+   * Stores a new note under `scope.businessId` (the scope wins over `note.businessId`).
+   * Rejects when a note with the same id exists, in any business: a save never overwrites.
+   */
   save(scope: TenantScope, note: Note): Promise<void>;
+
+  /** The note `id` of the scope's business, or `undefined` when it has none: another business's note is never found. */
   findById(scope: TenantScope, id: NoteId): Promise<Note | undefined>;
-  /** Newest first. */
+
+  /** At most `page.take` notes of the scope's business after skipping `page.skip`, newest first, then by id descending. */
   list(scope: TenantScope, page: NotePage): Promise<readonly Note[]>;
 }

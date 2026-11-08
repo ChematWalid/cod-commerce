@@ -92,9 +92,12 @@ describe('root ESLint config', () => {
     expect(config.rules?.['max-lines']).toBeDefined();
   });
 
-  it.each(TEMPLATE_PLUGIN_FILES)('lints the real template plugin file %s', (path) => {
-    expect(existsSync(join(repoRoot, path))).toBe(true);
-  });
+  it.each(TEMPLATE_PLUGIN_FILES)(
+    'keeps the RF2 template file %s in the repo, so the check above is not vacuous',
+    (path) => {
+      expect(existsSync(join(repoRoot, path))).toBe(true);
+    },
+  );
 
   it('lints every layer of a plugin: limits apply to dashboard .tsx files', async () => {
     expect(await lintWith(eslintAsCi, 'long-function.ts.txt', DASHBOARD_PAGE)).toContain('max-lines-per-function');

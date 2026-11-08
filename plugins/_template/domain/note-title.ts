@@ -17,4 +17,12 @@ export class NoteTitle {
     }
     return new NoteTitle(value);
   }
+
+  /**
+   * Rebuilds a title that was valid when it was stored. It is not re-validated: a later, stricter rule must
+   * never make existing notes unreadable (a stored value is data, not caller input).
+   */
+  static restore(stored: string): NoteTitle {
+    return new NoteTitle(stored);
+  }
 }

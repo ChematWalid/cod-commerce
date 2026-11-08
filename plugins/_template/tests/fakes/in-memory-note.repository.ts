@@ -15,7 +15,11 @@ function newestFirst(left: Note, right: Note): number {
 export class InMemoryNoteRepository implements NoteRepositoryPort {
   private notes: readonly Note[] = [];
 
+  /** Rejects a duplicate id in any business, like the primary key of the TypeORM adapter's insert. */
   save(scope: TenantScope, note: Note): Promise<void> {
+    if (this.notes.some((existing) => existing.id === note.id)) {
+      return Promise.reject(new Error(`Duplicate note id ${note.id}`));
+    }
     this.notes = [...this.notes, { ...note, businessId: scope.businessId }];
     return Promise.resolve();
   }

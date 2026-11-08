@@ -62,6 +62,24 @@ export function describeNoteRepositoryContract(name: string, makeRepo: () => Pro
       expect(listedForB).toEqual([noteOfB]);
     });
 
+    it('rejects a second save of the same id, in the same or another business', async () => {
+      // Arrange
+      const repo = await makeRepo();
+      const note = noteOf(scopeA, 'Original');
+      await repo.save(scopeA, note);
+      const sameId = { ...noteOf(scopeA, 'Replacement'), id: note.id };
+
+      // Act
+      const again = repo.save(scopeA, sameId);
+      const fromB = repo.save(scopeB, sameId);
+
+      // Assert
+      await expect(again).rejects.toThrow();
+      await expect(fromB).rejects.toThrow();
+      await expect(repo.findById(scopeA, note.id)).resolves.toEqual(note);
+      await expect(repo.findById(scopeB, note.id)).resolves.toBeUndefined();
+    });
+
     it('honours take and skip, newest first', async () => {
       // Arrange
       const repo = await makeRepo();

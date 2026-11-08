@@ -19,9 +19,15 @@ export interface TemplateNotesArgs {
   readonly skip?: number | null;
 }
 
+/** The GraphQL `CreateTemplateNoteInput`: no `businessId`, the business is the caller's. */
+export interface CreateTemplateNoteInput {
+  readonly title: string;
+  readonly body: string;
+}
+
 /** The arguments of `createTemplateNote`. */
 export interface CreateTemplateNoteArgs {
-  readonly input: { readonly title: string; readonly body: string };
+  readonly input: CreateTemplateNoteInput;
 }
 
 /** Maps a domain note to its API shape. */

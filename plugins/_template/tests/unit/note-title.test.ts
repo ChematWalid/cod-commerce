@@ -2,7 +2,7 @@ import { type TenantScope, toBusinessId } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { NOTE_BODY_MAX_LENGTH, NOTE_TITLE_MAX_LENGTH } from '../../domain/constants';
 import { InvalidNoteTitleError, NoteBodyTooLongError } from '../../domain/errors';
-import { createNote, toNoteId } from '../../domain/note';
+import { createNote, restoreNote, toNoteId } from '../../domain/note';
 import { NoteTitle } from '../../domain/note-title';
 
 const scope: TenantScope = { businessId: toBusinessId('7') };
@@ -37,6 +37,20 @@ describe('NoteTitle', () => {
     expect(NOTE_TITLE_MAX_LENGTH).toBe(120);
     expect(accepted.value).toHaveLength(120);
     expect(tooLong).toThrow(InvalidNoteTitleError);
+  });
+});
+
+describe('restoreNote', () => {
+  it("restores a stored title longer than today's limit without re-validating it", () => {
+    // Arrange
+    const storedTitle = 't'.repeat(NOTE_TITLE_MAX_LENGTH + 1);
+
+    // Act
+    const note = restoreNote({ id: '42', businessId: '7', title: storedTitle, body: '', createdAt: NOW });
+
+    // Assert
+    expect(note.title.value).toBe(storedTitle);
+    expect(note).toMatchObject({ id: '42', businessId: '7', createdAt: NOW });
   });
 });
 

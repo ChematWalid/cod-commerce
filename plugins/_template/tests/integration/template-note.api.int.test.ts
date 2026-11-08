@@ -125,17 +125,20 @@ describe('TemplateNote Admin API', () => {
   it('requires the ReadTemplateNote permission', async () => {
     // Arrange
     await adminClient.asSuperAdmin();
+    const { createTemplateNote: own } = await adminClient.query<{ createTemplateNote: NoteResult }>(CREATE_NOTE, {
+      input: { title: 'Readable by a note reader', body: '' },
+    });
     await signInWith('catalog-reader', ['ReadCatalog']);
 
     // Act
     const failure = await failureOf(adminClient.query(NOTES));
     await adminClient.asSuperAdmin();
     await signInWith('note-reader', ['ReadTemplateNote']);
-    const allowed = await adminClient.query<{ templateNotes: NoteResult[] }>(NOTES);
+    const allowed = await adminClient.query<{ templateNote: NoteResult | null }>(NOTE_BY_ID, { id: own.id });
 
     // Assert
     expect(failure.codes).toEqual(['FORBIDDEN']);
-    expect(allowed.templateNotes.length).toBeGreaterThan(0);
+    expect(allowed.templateNote).toEqual(own);
   });
 
   it('has no businessId input', async () => {
