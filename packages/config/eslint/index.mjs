@@ -21,7 +21,7 @@ const APPLICATION_PURITY_MESSAGE =
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
 /** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
 const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', '**/plugins/*/*.config.{ts,mts}'];
-const INFRASTRUCTURE_FILES = ['**/plugins/*/infrastructure/**'];
+const RAW_DATA_GUARDED_FILES = ['**/plugins/*/infrastructure/**', '**/plugins/*/api/**'];
 /**
  * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
  * `platform-store-lookup` is the unscoped read path and `tenant-transaction` runs only `set_config`. `order-number.service` updates the sequence row, which is keyed by the business itself.
@@ -177,7 +177,7 @@ export function codEslintConfig({ tsconfigRootDir }) {
         },
       },
       {
-        files: INFRASTRUCTURE_FILES,
+        files: RAW_DATA_GUARDED_FILES,
         ignores: RAW_DATA_ACCESS_FILES,
         rules: {
           'no-restricted-syntax': [

@@ -89,6 +89,13 @@ describe('root ESLint config', () => {
     },
   );
 
+  it.each(['get-repository.ts.txt', 'get-repository-with-context.ts.txt', 'raw-connection.ts.txt'])(
+    'bans direct data access in api: %s',
+    async (fixture) => {
+      expect(await lint(fixture, `${PLUGIN}/api/x.resolver.ts`)).toContain('no-restricted-syntax');
+    },
+  );
+
   it.each([
     'plugins/tenancy/infrastructure/tenant-repository.ts',
     'plugins/tenancy/infrastructure/platform-store-lookup.ts',
