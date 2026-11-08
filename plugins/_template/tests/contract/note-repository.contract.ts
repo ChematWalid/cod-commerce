@@ -69,13 +69,9 @@ export function describeNoteRepositoryContract(name: string, makeRepo: () => Pro
       await repo.save(scopeA, note);
       const sameId = { ...noteOf(scopeA, 'Replacement'), id: note.id };
 
-      // Act
-      const again = repo.save(scopeA, sameId);
-      const fromB = repo.save(scopeB, sameId);
-
-      // Assert
-      await expect(again).rejects.toThrow();
-      await expect(fromB).rejects.toThrow();
+      // Act and assert: awaited one by one, so neither rejection is ever left unhandled
+      await expect(repo.save(scopeA, sameId)).rejects.toThrow();
+      await expect(repo.save(scopeB, sameId)).rejects.toThrow();
       await expect(repo.findById(scopeA, note.id)).resolves.toEqual(note);
       await expect(repo.findById(scopeB, note.id)).resolves.toBeUndefined();
     });

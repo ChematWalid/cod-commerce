@@ -141,6 +141,29 @@ describe('TemplateNote Admin API', () => {
     expect(allowed.templateNote).toEqual(own);
   });
 
+  // Vendure runs a handler without `@Allow` for anyone, so every handler is checked, with a role that holds
+  // the plugin's other permission: a handler guarded by the wrong permission fails too.
+  it.each([
+    { handler: 'templateNote', document: NOTE_BY_ID, variables: { id: '1' }, granted: 'CreateTemplateNote' },
+    { handler: 'templateNotes', document: NOTES, variables: {}, granted: 'CreateTemplateNote' },
+    {
+      handler: 'createTemplateNote',
+      document: CREATE_NOTE,
+      variables: { input: { title: 'Not allowed', body: '' } },
+      granted: 'ReadTemplateNote',
+    },
+  ])('refuses $handler without its permission', async ({ handler, document, variables, granted }) => {
+    // Arrange
+    await adminClient.asSuperAdmin();
+    await signInWith(`lacks-${handler.toLowerCase()}`, [granted]);
+
+    // Act
+    const failure = await failureOf(adminClient.query(document, variables));
+
+    // Assert
+    expect(failure.codes).toEqual(['FORBIDDEN']);
+  });
+
   it('has no businessId input', async () => {
     // Arrange
     await adminClient.asSuperAdmin();
