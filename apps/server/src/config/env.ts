@@ -43,6 +43,9 @@ const DEFAULT_PLATFORM_DOMAIN = 'localhost';
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
 const GARAGE_ACCESS_KEY = /^GK[0-9a-f]{24}$/;
 const GARAGE_SECRET_KEY = /^[0-9a-f]{64}$/;
+/** Lowercase DNS labels of 1-63 characters, dot-separated: no port, no trailing dot. */
+const DNS_NAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+const DNS_NAME_MAX_LENGTH = 253;
 
 const port = (fallback: number): z.ZodDefault<z.ZodCoercedNumber> =>
   z.coerce.number().int().min(1).max(MAX_PORT).default(fallback);
@@ -105,7 +108,7 @@ const baseSchema = z.object({
     .transform((value) => value === 'true'),
   CORS_ORIGINS: csvList,
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
-  PLATFORM_DOMAIN: z.string().min(1).optional(),
+  PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
 });

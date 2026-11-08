@@ -139,6 +139,34 @@ describe('loadEnv', () => {
     expect(issuePaths(failureOf({ APP_ENV: appEnv, PLATFORM_DOMAIN: undefined }))).toEqual(['PLATFORM_DOMAIN']);
   });
 
+  it.each([
+    'localhost',
+    'app.localhost',
+    'platform.invalid',
+    'example.test',
+    'souk-1.example.dz',
+    `${'a'.repeat(63)}.example.test`,
+  ])('accepts %s as PLATFORM_DOMAIN', (domain) => {
+    expect(loadEnv({ ...valid, PLATFORM_DOMAIN: domain }).PLATFORM_DOMAIN).toBe(domain);
+  });
+
+  it.each([
+    ['uppercase', 'Example.test'],
+    ['port', 'example.test:3000'],
+    ['trailing dot', 'example.test.'],
+    ['leading dot', '.example.test'],
+    ['empty label', 'example..test'],
+    ['label starting with a hyphen', '-a.example.test'],
+    ['label ending with a hyphen', 'a-.example.test'],
+    ['label over 63 characters', `${'a'.repeat(64)}.example.test`],
+    ['name over 253 characters', Array.from({ length: 64 }, () => 'abc').join('.') + '.example.test'],
+    ['scheme', 'https://example.test'],
+    ['wildcard', '*.localhost'],
+    ['underscore', 'a_b.example.test'],
+  ])('rejects PLATFORM_DOMAIN with %s', (_label, domain) => {
+    expect(issuePaths(failureOf({ PLATFORM_DOMAIN: domain }))).toEqual(['PLATFORM_DOMAIN']);
+  });
+
   it('defaults PLATFORM_DOMAIN to localhost in development', () => {
     expect(loadEnv({ ...valid, APP_ENV: 'development', PLATFORM_DOMAIN: undefined }).PLATFORM_DOMAIN).toBe('localhost');
   });
