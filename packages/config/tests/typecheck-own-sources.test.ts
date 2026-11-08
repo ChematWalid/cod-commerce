@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 // An ES module (it runs as a bin); this CommonJS test file can only load it dynamically.
@@ -38,5 +39,26 @@ describe('ownDiagnostics', () => {
     const diagnostics = await ownDiagnostics(writeProject("export const broken: number = 'x';\n"));
 
     expect(diagnostics.map((diagnostic) => diagnostic.file?.fileName.endsWith('own.ts'))).toEqual([true]);
+  });
+});
+
+describe('cod-typecheck-own bin', () => {
+  /** Runs the bin through a symlink, the way pnpm's node_modules/.bin reaches it. */
+  const runBin = (tsconfigPath: string): { status: number | null; stderr: string } => {
+    const link = join(mkdtempSync(join(scratch, 'bin-')), 'cod-typecheck-own');
+    symlinkSync(resolve(__dirname, '../typecheck/cod-typecheck-own.mts'), link);
+    const result = spawnSync(process.execPath, [link, tsconfigPath], { encoding: 'utf8' });
+    return { status: result.status, stderr: result.stderr };
+  };
+
+  it('exits 1 and names the file when the project has a type error', () => {
+    const { status, stderr } = runBin(writeProject("export const broken: number = 'x';\n"));
+
+    expect(status).toBe(1);
+    expect(stderr).toContain('own.ts');
+  });
+
+  it('exits 0 when only a dependency has type errors', () => {
+    expect(runBin(writeProject('')).status).toBe(0);
   });
 });

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Shared TypeScript, ESLint, Vitest and architecture configuration. Never built: consumers read the source.",
   "bin": {
-    "cod-typecheck-own": "./typecheck/own-sources.mts"
+    "cod-typecheck-own": "./typecheck/cod-typecheck-own.mts"
   },
   "exports": {
     "./tsconfig.base.json": "./tsconfig.base.json",
