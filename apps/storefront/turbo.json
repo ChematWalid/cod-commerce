@@ -5,6 +5,9 @@
     "build": {
       "outputs": [".next/**", "!.next/cache/**", "cache/dist/**"],
       "env": ["NEXT_DEPLOYMENT_ID"]
+    },
+    "dev": {
+      "dependsOn": ["^build"]
     }
   }
 }

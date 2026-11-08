@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const repoRoot = resolve(__dirname, '../../..');
 interface TurboConfig {
   extends?: string[];
-  tasks: Record<string, { outputs?: string[]; env?: string[] }>;
+  tasks: Record<string, { outputs?: string[]; env?: string[]; inputs?: string[]; dependsOn?: string[] }>;
 }
 const readJson = (path: string): TurboConfig => JSON.parse(readFileSync(join(repoRoot, path), 'utf8')) as TurboConfig;
 
@@ -34,5 +34,11 @@ describe('turbo build cache outputs', () => {
   it('the storefront build hash includes NEXT_DEPLOYMENT_ID', () => {
     // Strict env mode: without it a cache hit would replay a build made for another deployment id.
     expect(readJson('apps/storefront/turbo.json').tasks['build']?.env).toContain('NEXT_DEPLOYMENT_ID');
+  });
+
+  it('the storefront dev task builds its workspace dependencies first', () => {
+    // Turbopack bundles @cod/shared from its dist (it ignores the @cod/source condition), so a fresh clone's
+    // root `pnpm dev` failed until packages/shared was built.
+    expect(readJson('apps/storefront/turbo.json').tasks['dev']?.dependsOn).toEqual(['^build']);
   });
 });
