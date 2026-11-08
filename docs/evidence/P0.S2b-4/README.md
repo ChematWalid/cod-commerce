@@ -5,7 +5,7 @@ ADR 0010) served by a live run of the compose stack (CLAUDE.md §3a.14). Produce
 `scripts/evidence/P0.S2b-4.sh`; nothing here is hand-written. Data is synthetic (placeholders from `.env.example`).
 
 - Image: `cod-platform:local`, built by that run (`docker compose build migrate`) from a working tree with no uncommitted
-  change outside the evidence folders, whose last image-relevant commit is `0136f21`.
+  change outside the evidence folders, whose last image-relevant commit is `c78fcacd35418db2277e3d3c4150a1475009c63a`.
 - Base URL: `http://127.0.0.1:23100/dashboard` (compose project `cod-evidence`, host port 23100).
 - Viewport screenshots (not full page), `reducedMotion: reduce`, taken after `networkidle` and `document.fonts.ready`.
 
