@@ -2,6 +2,8 @@ import { storeCacheTag } from '@cod/shared';
 import { cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
+import { StoreDocumentLang } from '../../../../src/i18n/store-document-lang';
+import { toStoreLocale } from '../../../../src/tenancy/store-locale';
 import { storeResolver } from '../../../../src/tenancy/store-resolver-instance';
 import { STUB_STORES } from '../../../../src/tenancy/stub-store-resolver';
 
@@ -34,14 +36,19 @@ async function StoreName({ storeId }: StoreNameProps): Promise<ReactNode> {
 
 // params is awaited inside the Suspense boundary: awaiting it at the top of the page fails the build.
 async function StoreGreeting({ params }: TenantPageProps): Promise<ReactNode> {
-  const { storeId } = await params;
-  return <StoreName storeId={storeId} />;
+  const { storeId, locale } = await params;
+  return (
+    <>
+      <StoreDocumentLang locale={toStoreLocale(locale)} />
+      <StoreName storeId={storeId} />
+    </>
+  );
 }
 
 /** A store's hello page, reached only through the proxy's rewrite to `/_t/{storeId}/{locale}`. */
 export default function TenantPage({ params }: TenantPageProps): ReactNode {
   return (
-    <main>
+    <main className="stub-page">
       <Suspense fallback={null}>
         <StoreGreeting params={params} />
       </Suspense>

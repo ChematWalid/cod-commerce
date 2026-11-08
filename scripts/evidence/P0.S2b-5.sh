@@ -167,7 +167,7 @@ begin() { # begin <file> <heading> <intro>
 }
 
 store_h1="<h1 data-testid=\"$STORE_NAME_TEST_ID\">[^<]*</h1>"
-not_found_main="<main data-testid=\"$NOT_FOUND_TEST_ID\">[^<]*</main>"
+not_found_main="<main data-testid=\"$NOT_FOUND_TEST_ID\""
 second_internal_path="/_t/$SECOND_STORE_ID/$SECOND_STORE_LOCALE"
 second_encoded_internal_path="/%5Ft/$SECOND_STORE_ID/$SECOND_STORE_LOCALE"
 # RF3: the host is matched case-insensitively, without a trailing dot and port (DEMO.localhost.:3001).

@@ -81,9 +81,10 @@ function readStores() {
   if (JSON.stringify(stores) !== parsed)
     fail(`P0.S2b-5.sh's stores ${JSON.stringify(stores)} differ from STUB_STORES ${parsed}`);
   if (stores.some((s) => s.host === UNKNOWN_HOST)) fail(`${UNKNOWN_HOST} belongs to a store`);
-  const notFound = readFileSync(join(root, 'apps/storefront/app/not-found.tsx'), 'utf8');
-  if (!notFound.includes(`data-testid="${NOT_FOUND_TEST_ID}">${NOT_FOUND_TEXT}<`))
-    fail(`app/not-found.tsx no longer renders data-testid="${NOT_FOUND_TEST_ID}" with '${NOT_FOUND_TEXT}'`);
+  const notFoundCopy = readFileSync(join(root, 'apps/storefront/src/i18n/storefront-locale-copy.ts'), 'utf8');
+  const notFoundContent = readFileSync(join(root, 'apps/storefront/src/i18n/not-found-content.tsx'), 'utf8');
+  if (!notFoundCopy.includes(NOT_FOUND_TEXT) || !notFoundContent.includes(`data-testid="${NOT_FOUND_TEST_ID}"`))
+    fail(`the not-found page no longer renders data-testid="${NOT_FOUND_TEST_ID}" with '${NOT_FOUND_TEXT}'`);
   const tenantPage = readFileSync(join(root, 'apps/storefront/app/%5Ft/[storeId]/[locale]/page.tsx'), 'utf8');
   if (!tenantPage.includes(`data-testid="${STORE_NAME_TEST_ID}"`))
     fail(`the tenant page no longer renders data-testid="${STORE_NAME_TEST_ID}"`);
