@@ -1,4 +1,4 @@
-import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
+import { createPluginTestEnvironment, failureOf, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { RequestContextService, TransactionalConnection, User, type RequestContext } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -8,7 +8,6 @@ import { BusinessOrderSequenceEntity } from '../../infrastructure/business-order
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { TenancyPlugin } from '../../tenancy.plugin';
-import { failureOf } from './graphql-outcome';
 import { TEST_REDIS_URL } from './tenant-fixtures';
 
 const SUPER_ADMIN_ROLE = '__super_admin_role__';

@@ -38,10 +38,10 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   },
   {
     name: 'no-cross-plugin-internals',
-    comment: 'A plugin never imports another plugin; it uses @cod/shared contracts or domain events.',
+    comment: 'A plugin never imports another plugin, except the tenancy entry point (D10); it uses @cod/shared contracts or domain events.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/' },
-    to: { path: '^plugins/[^/]+/', pathNot: '^plugins/$1/' },
+    to: { path: '^plugins/[^/]+/', pathNot: ['^plugins/$1/', '^plugins/tenancy/index[.]ts$'] },
   },
   {
     name: 'apps-no-plugin-internals',

@@ -9,7 +9,7 @@ import {
   UPDATE_STORE,
 } from './admin-api-operations';
 import { actAsMember, actAsOwner, createMember } from './admin-api-session';
-import { failureOf } from './graphql-outcome';
+import { failureOf } from '@cod/testing';
 import { useStoreApi } from './store-api-harness';
 import { provisionBusiness } from './tenant-fixtures';
 

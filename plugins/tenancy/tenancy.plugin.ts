@@ -170,6 +170,7 @@ const STORE_USE_CASES = [
   ],
   exports: [
     CreateStoreService,
+    ID_GENERATOR,
     OrderNumberService,
     ProvisionBusinessService,
     TenantContextResolver,

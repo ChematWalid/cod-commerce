@@ -154,3 +154,35 @@ export const SUBDOMAIN_AVAILABILITY = gql`
     }
   }
 `;
+
+export const ME_CHANNELS = gql`
+  query {
+    me {
+      channels {
+        token
+      }
+    }
+  }
+`;
+
+export const CREATE_CUSTOMER = gql`
+  mutation ($input: CreateCustomerInput!) {
+    createCustomer(input: $input) {
+      ... on Customer {
+        id
+      }
+    }
+  }
+`;
+
+export const CUSTOMERS = gql`
+  query {
+    customers {
+      items {
+        id
+        emailAddress
+        phoneNumber
+      }
+    }
+  }
+`;

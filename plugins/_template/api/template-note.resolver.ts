@@ -1,11 +1,9 @@
-import { Inject } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { RequestTenantScope, TenantScoped, tenantOf } from '@cod/plugin-tenancy';
 import type { TenantScope } from '@cod/shared';
 import { Allow, Ctx, type RequestContext, Transaction } from '@vendure/core';
 import { CreateNoteService } from '../application/create-note.service';
 import { GetNotesService } from '../application/get-notes.service';
-import type { TenantScopeResolver } from '../application/ports/tenant-scope-resolver.port';
-import { TENANT_SCOPE_RESOLVER } from '../application/tokens';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../domain/constants';
 import { toNoteId } from '../domain/note';
 import type { NotePage } from '../domain/ports/note-repository.port';
@@ -27,11 +25,11 @@ function toPage(args: TemplateNotesArgs): NotePage {
 
 /** The Admin API of the template notes; each handler runs in the caller's tenant scope. */
 @Resolver()
+@TenantScoped()
 export class TemplateNoteResolver {
   constructor(
     private readonly createNote: CreateNoteService,
     private readonly getNotes: GetNotesService,
-    @Inject(TENANT_SCOPE_RESOLVER) private readonly scopes: TenantScopeResolver<RequestContext>,
   ) {}
 
   /** A note of the caller's business by id, or `null` (another business's note is never found). */
@@ -62,10 +60,10 @@ export class TemplateNoteResolver {
     return this.inScope(ctx, async (scope) => toTemplateNoteDto(await this.createNote.execute(scope, args.input)));
   }
 
-  /** Resolves the caller's scope and runs `work` in it; a domain error leaves through the one error mapping. */
+  /** Builds the caller's scope and runs `work` in it; a domain error leaves through the one error mapping. */
   private async inScope<T>(ctx: RequestContext, work: (scope: TenantScope) => Promise<T>): Promise<T> {
     try {
-      return await work(this.scopes.resolve(ctx));
+      return await work(new RequestTenantScope(ctx, tenantOf(ctx).businessId));
     } catch (error) {
       mapDomainError(error);
     }

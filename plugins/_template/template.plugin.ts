@@ -1,15 +1,15 @@
+import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
 import { PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import { templateNotePermission } from './api/permissions';
 import { adminApiSchema } from './api/schema';
 import { TemplateNoteResolver } from './api/template-note.resolver';
 import { CreateNoteService } from './application/create-note.service';
 import { GetNotesService } from './application/get-notes.service';
-import { ID_GENERATOR, NOTE_REPOSITORY, TENANT_SCOPE_RESOLVER } from './application/tokens';
+import { ID_GENERATOR, NOTE_REPOSITORY } from './application/tokens';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { NoteRepositoryPort } from './domain/ports/note-repository.port';
-import { ChannelTenantScopeResolver } from './infrastructure/channel-tenant-scope.resolver';
 import { NoteEntity } from './infrastructure/note.entity';
-import { RandomBigintIdGenerator } from './infrastructure/random-bigint-id.generator';
+import { SnowflakeNoteIdGenerator } from './infrastructure/snowflake-note-id.generator';
 import { TypeOrmNoteRepository } from './infrastructure/typeorm-note.repository';
 
 const systemClock = (): Date => new Date();
@@ -25,12 +25,16 @@ function addPermission(config: RuntimeVendureConfig): RuntimeVendureConfig {
  * `README.md` says how.
  */
 @VendurePlugin({
-  imports: [PluginCommonModule],
+  // A6: `@TenantScoped()` resolves its guard here, through the plugin's exports.
+  imports: [PluginCommonModule, TenancyPlugin],
   entities: [NoteEntity],
   providers: [
     { provide: NOTE_REPOSITORY, useClass: TypeOrmNoteRepository },
-    { provide: ID_GENERATOR, useClass: RandomBigintIdGenerator },
-    { provide: TENANT_SCOPE_RESOLVER, useClass: ChannelTenantScopeResolver },
+    {
+      provide: ID_GENERATOR,
+      useFactory: (ids: SnowflakeIdGeneratorPort) => new SnowflakeNoteIdGenerator(ids),
+      inject: [SNOWFLAKE_ID_GENERATOR],
+    },
     {
       provide: CreateNoteService,
       useFactory: (notes: NoteRepositoryPort, ids: IdGeneratorPort) => new CreateNoteService(notes, ids, systemClock),

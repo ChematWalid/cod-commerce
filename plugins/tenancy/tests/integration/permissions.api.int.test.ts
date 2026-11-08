@@ -12,7 +12,7 @@ import {
   UPDATE_STORE,
 } from './admin-api-operations';
 import { actAsMember, createMember } from './admin-api-session';
-import { failureOf } from './graphql-outcome';
+import { failureOf } from '@cod/testing';
 import { type StoreApi, useStoreApi } from './store-api-harness';
 
 type Variables = (api: StoreApi) => Record<string, unknown>;

@@ -1,4 +1,4 @@
-import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
+import { createPluginTestEnvironment, failureOf, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import type { TenantContext } from '@cod/shared';
 import { Channel, TransactionalConnection } from '@vendure/core';
 import gql from 'graphql-tag';
@@ -7,7 +7,6 @@ import type { ProvisionedBusiness } from '../../application/provision-business.s
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { TenancyPlugin } from '../../tenancy.plugin';
-import { failureOf } from './graphql-outcome';
 import { TenantProbePlugin } from './tenant-probe.plugin';
 import { OWNER_PASSWORD, provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 

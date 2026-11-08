@@ -2,7 +2,7 @@
   "name": "@cod/testing",
   "version": "0.0.0",
   "private": true,
-  "description": "Test helpers for plugin integration tests: the test database config and a Vendure test environment.",
+  "description": "Test helpers for plugin integration tests: the test database config, a Vendure test environment and the two-business fixtures.",
   "exports": {
     ".": {
       "@cod/source": "./src/index.ts",
@@ -17,7 +17,8 @@
   "dependencies": {
     "@cod/shared": "workspace:*",
     "@vendure/core": "3.8.1",
-    "@vendure/testing": "3.8.1"
+    "@vendure/testing": "3.8.1",
+    "graphql-tag": "2.12.7"
   },
   "devDependencies": {
     "@cod/config": "workspace:*",

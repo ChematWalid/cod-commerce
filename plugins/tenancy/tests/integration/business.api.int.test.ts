@@ -1,5 +1,6 @@
 import {
   createPluginTestEnvironment,
+  failureOf,
   loadPluginTestDbConfig,
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
   PLUGIN_TEST_INITIAL_DATA,
@@ -15,7 +16,6 @@ import {
   UPDATE_BUSINESS,
 } from './admin-api-operations';
 import { actAsOwner } from './admin-api-session';
-import { failureOf } from './graphql-outcome';
 import { OWNER_PASSWORD, provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 describe('Business Admin API', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { type BusinessView, CREATE_STORE, type StoreView, UPDATE_BUSINESS, UPDATE_STORE } from './admin-api-operations';
 import { seedAsset } from './admin-api-session';
-import { failureOf } from './graphql-outcome';
+import { failureOf } from '@cod/testing';
 import { useStoreApi } from './store-api-harness';
 
 const ASSET_NOT_AVAILABLE = 'tenancy.asset-not-available';

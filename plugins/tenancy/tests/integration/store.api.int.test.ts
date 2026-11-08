@@ -1,4 +1,4 @@
-import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
+import { failureOf, PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
 import {
@@ -12,7 +12,6 @@ import {
   UPDATE_STORE,
 } from './admin-api-operations';
 import { channelTokenOf, seedAsset } from './admin-api-session';
-import { failureOf } from './graphql-outcome';
 import { useStoreApi } from './store-api-harness';
 
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
