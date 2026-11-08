@@ -3,7 +3,7 @@
 //
 //   node scripts/evidence/dashboard-screens.mjs <dashboard-url> <out-dir>
 //
-// Env: SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD (read by the session helper), IMAGE_ID, GIT_COMMIT, REGEN_COMMAND.
+// Env: SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD (read by the session helper), IMAGE_COMMIT (the commit the image was built from), REGEN_COMMAND.
 // Node 24 strips the types of the imported .ts/.mts files; nothing here needs a build step.
 /* global process, console, URL, fetch, document, getComputedStyle -- Node globals, and browser globals inside page.evaluate callbacks */
 import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -24,6 +24,14 @@ const [baseArg, outDir] = process.argv.slice(2);
 if (!baseArg || !outDir) throw new Error('usage: dashboard-screens.mjs <dashboard-url> <out-dir>');
 const base = baseArg.replace(/\/$/, '');
 const MAX_BYTES = 300 * 1024;
+const LOGIN_PATH = '/login';
+/** The dashboard's own sign-out: the mutation its "Log out" menu item sends, on the Admin API. */
+const ADMIN_API_PATH = '/admin-api';
+const LOGOUT_MUTATION = 'mutation { logout { success } }';
+const PHONE_MAX_WIDTH = 768;
+
+/** A phone screenshot went over the size budget at its device scale; the caller retries at scale 1. */
+class ScaleBudgetError extends Error {}
 
 const VIEWPORTS = {
   desktop: {
@@ -35,11 +43,12 @@ const VIEWPORTS = {
     options: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   },
 };
-const LANGS = { ar: { dir: 'rtl' }, en: { dir: 'ltr' } };
+const LANG_DIRS = { ar: 'rtl', en: 'ltr' };
 
-const fail = (message) => {
+/** @returns {never} */
+function fail(message) {
   throw new Error(message);
-};
+}
 
 async function documentState(page) {
   return page.evaluate(async (family) => {
@@ -65,141 +74,179 @@ async function settle(page) {
   });
 }
 
-/** Takes a viewport PNG; a mobile one falls back from scale 2 to 1 when it exceeds the budget. */
+/** Takes a viewport PNG; a phone one over budget raises ScaleBudgetError so the caller can drop to scale 1. */
 async function capture(page, file) {
   await page.screenshot({ path: file });
-  if (statSync(file).size > MAX_BYTES && page.viewportSize().width < 768) {
-    fail(`${file} is ${statSync(file).size} bytes at scale 2`);
-  }
-  return statSync(file).size;
+  const size = statSync(file).size;
+  if (size <= MAX_BYTES) return size;
+  if (page.viewportSize().width < PHONE_MAX_WIDTH) throw new ScaleBudgetError(`${file} is ${size} bytes`);
+  return fail(`${file} is ${size} bytes, over ${MAX_BYTES}`);
 }
 
-rmSync(outDir, { recursive: true, force: true });
-mkdirSync(outDir, { recursive: true });
-const browser = await chromium.launch();
-const rows = [];
-try {
-  for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
-    for (const [lang, { dir }] of Object.entries(LANGS)) {
-      let options = vp.options;
-      for (let attempt = 0; ; attempt += 1) {
-        // The dashboard's user menu sits in the sidebar, which is collapsed on a phone, so the sign-in and the
-        // language switch (the Task 14 helpers) run in a desktop-sized context; its storage state (session
-        // cookies and the persisted display language) then opens the shot context at the target viewport.
-        const prep = await browser.newContext({ ...VIEWPORTS.desktop.options, reducedMotion: 'reduce' });
-        const prepPage = await prep.newPage();
-        let storageState;
-        try {
-          console.error(`context ${vpName}/${lang}`);
-          await loginAsSuperadmin(prepPage, base);
-          await setDisplayLanguage(prepPage, lang);
-          storageState = await prep.storageState();
-        } finally {
-          await prep.close();
-        }
-        const context = await browser.newContext({ ...options, storageState, reducedMotion: 'reduce' });
-        const page = await context.newPage();
-        try {
-          // Authenticated shell page, in the language chosen in the app.
-          await page.goto(`${base}${SHELL_PLACEHOLDER_PATH}`);
-          await page.getByTestId(SHELL_PLACEHOLDER_TEST_ID).waitFor({ state: 'attached' });
-          await settle(page);
-          const shell = await documentState(page);
-          if (shell.dir !== dir) fail(`shell ${lang}/${vpName}: dir ${shell.dir}, expected ${dir}`);
-          if (shell.lang !== lang) fail(`shell ${lang}/${vpName}: lang ${shell.lang}, expected ${lang}`);
-          if (lang === 'ar') {
-            if (shell.arabicFacesLoaded < 1 || shell.arabicFacesMatched < 1)
-              fail(`shell ar/${vpName}: ${ARABIC_FONT_FAMILY} not loaded`);
-            if (!shell.bodyFontFamily.includes(ARABIC_FONT_FAMILY))
-              fail(`shell ar/${vpName}: body font ${shell.bodyFontFamily}`);
-          }
-          const shellFile = join(outDir, `merchant-shell-${lang}-${vpName}.png`);
-          const shellSize = await capture(page, shellFile);
+/** The dashboard's user menu sits in the collapsed sidebar on a phone, so the Task 14 sign-in and language
+ * helpers run in a desktop-sized context; its storage state (session cookies and the persisted display
+ * language) then opens the shot context at the target viewport. */
+async function prepareStorageState(browser, lang) {
+  const context = await browser.newContext({ ...VIEWPORTS.desktop.options, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await loginAsSuperadmin(page, base);
+    await setDisplayLanguage(page, lang);
+    return await context.storageState();
+  } finally {
+    await context.close();
+  }
+}
 
-          // Login page: the real mechanism is the display language the browser persisted (localStorage
-          // `vendure-user-settings`) after the in-app switch above. Signing out with the dashboard's own
-          // `logout` mutation (the one its "Log out" menu item sends) ends the session and keeps that setting,
-          // so the login page opens in the chosen language. Dropping cookies alone is not enough: the
-          // dashboard also keeps a session token in localStorage and would stay signed in.
-          const loggedOut = await page.evaluate(async () => {
-            const response = await fetch('/admin-api', {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ query: 'mutation { logout { success } }' }),
-            });
-            return (await response.json()).data?.logout?.success === true;
-          });
-          if (!loggedOut) fail(`sign-out failed for ${lang}/${vpName}`);
-          await context.clearCookies();
-          await page.goto(`${base}/login`);
-          await page.getByRole('textbox').first().waitFor();
-          await settle(page);
-          const login = await documentState(page);
-          const loginFile = join(outDir, `login-${lang}-${vpName}.png`);
-          const loginSize = await capture(page, loginFile);
-          rows.push({ vpName, lang, dir, scale: options.deviceScaleFactor, shell, shellSize, login, loginSize });
-          break;
-        } catch (error) {
-          if (attempt === 0 && options.deviceScaleFactor === 2 && /bytes at scale 2/.test(String(error))) {
-            options = { ...options, deviceScaleFactor: 1 };
-            continue;
-          }
-          throw error;
-        } finally {
-          await context.close();
-        }
-      }
+/** Fails unless the document says the expected direction and language (and, for Arabic, loaded the font). */
+function assertDocument(state, lang, label) {
+  if (state.dir !== LANG_DIRS[lang]) fail(`${label}: dir ${state.dir}, expected ${LANG_DIRS[lang]}`);
+  if (state.lang !== lang) fail(`${label}: lang ${state.lang}, expected ${lang}`);
+}
+
+function assertArabicFont(state, label) {
+  if (state.arabicFacesLoaded < 1 || state.arabicFacesMatched < 1) fail(`${label}: ${ARABIC_FONT_FAMILY} not loaded`);
+  if (!state.bodyFontFamily.includes(ARABIC_FONT_FAMILY)) fail(`${label}: body font ${state.bodyFontFamily}`);
+}
+
+async function shootShell(page, lang, vpName) {
+  const label = `shell ${lang}/${vpName}`;
+  await page.goto(`${base}${SHELL_PLACEHOLDER_PATH}`);
+  await page.getByTestId(SHELL_PLACEHOLDER_TEST_ID).waitFor({ state: 'attached' });
+  await settle(page);
+  const state = await documentState(page);
+  assertDocument(state, lang, label);
+  if (lang === 'ar') assertArabicFont(state, label);
+  return capture(page, join(outDir, `merchant-shell-${lang}-${vpName}.png`));
+}
+
+/** Signs out with the dashboard's own `logout` mutation. Dropping cookies alone is not enough: the dashboard
+ * also keeps a session token in localStorage and would stay signed in. The display language stays in
+ * localStorage, which is how the login page opens in it (3.8.1 has no language picker there). */
+async function signOut(page, label) {
+  const loggedOut = await page.evaluate(
+    async ([path, query]) => {
+      const response = await fetch(path, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      return (await response.json()).data?.logout?.success === true;
+    },
+    [ADMIN_API_PATH, LOGOUT_MUTATION],
+  );
+  if (!loggedOut) fail(`${label}: sign-out failed`);
+  await page.context().clearCookies();
+}
+
+async function shootLogin(page, lang, vpName) {
+  const label = `login ${lang}/${vpName}`;
+  await signOut(page, label);
+  await page.goto(`${base}${LOGIN_PATH}`);
+  await page.getByRole('textbox').first().waitFor();
+  await settle(page);
+  assertDocument(await documentState(page), lang, label);
+  return capture(page, join(outDir, `login-${lang}-${vpName}.png`));
+}
+
+/** The shell and login shots of one viewport and language, from one prepared session. */
+async function shootPair(browser, vpName, lang, deviceScaleFactor) {
+  console.error(`context ${vpName}/${lang} (scale ${deviceScaleFactor})`);
+  const storageState = await prepareStorageState(browser, lang);
+  const options = { ...VIEWPORTS[vpName].options, deviceScaleFactor, storageState, reducedMotion: 'reduce' };
+  const context = await browser.newContext(options);
+  try {
+    const page = await context.newPage();
+    await shootShell(page, lang, vpName);
+    await shootLogin(page, lang, vpName);
+    return deviceScaleFactor;
+  } finally {
+    await context.close();
+  }
+}
+
+async function shootPairWithinBudget(browser, vpName, lang) {
+  const scale = VIEWPORTS[vpName].options.deviceScaleFactor;
+  try {
+    return { vpName, lang, scale: await shootPair(browser, vpName, lang, scale) };
+  } catch (error) {
+    if (!(error instanceof ScaleBudgetError) || scale === 1) throw error;
+    return { vpName, lang, scale: await shootPair(browser, vpName, lang, 1) };
+  }
+}
+
+async function shootAll() {
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  try {
+    const rows = [];
+    for (const vpName of Object.keys(VIEWPORTS)) {
+      for (const lang of Object.keys(LANG_DIRS)) rows.push(await shootPairWithinBudget(browser, vpName, lang));
     }
+    return rows;
+  } finally {
+    await browser.close();
   }
-} finally {
-  await browser.close();
 }
 
-const files = readdirSync(outDir)
-  .filter((f) => f.endsWith('.png'))
-  .sort();
-if (files.length !== 8) fail(`expected 8 PNGs, found ${files.length}`);
-for (const f of files) {
-  const size = statSync(join(outDir, f)).size;
-  if (size > MAX_BYTES) fail(`${f} is ${size} bytes, over ${MAX_BYTES}`);
-  console.log(`${f}\t${size}`);
+function checkOutputs() {
+  const files = readdirSync(outDir)
+    .filter((f) => f.endsWith('.png'))
+    .sort();
+  if (files.length !== 8) fail(`expected 8 PNGs, found ${files.length}`);
+  for (const f of files) {
+    const size = statSync(join(outDir, f)).size;
+    if (size > MAX_BYTES) fail(`${f} is ${size} bytes, over ${MAX_BYTES}`);
+    console.log(`${f}\t${size}`);
+  }
 }
 
-const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
-const order = ['desktop', 'mobile'].flatMap((v) =>
-  ['ar', 'en'].map((l) => rows.find((r) => r.vpName === v && r.lang === l)),
-);
-const tableRows = [];
-for (const r of order) {
-  const vp = VIEWPORTS[r.vpName].label.replace(/, scale 1$/, '') + (r.scale === 2 ? ', scale 2' : '');
-  tableRows.push(
-    `| [\`login-${r.lang}-${r.vpName}.png\`](screens/login-${r.lang}-${r.vpName}.png) | \`/dashboard/login\` | ${vp} | ${r.lang} | \`${r.login.dir}\` / \`${r.login.lang}\` | ${kb(r.loginSize)} |`,
-  );
-  tableRows.push(
-    `| [\`merchant-shell-${r.lang}-${r.vpName}.png\`](screens/merchant-shell-${r.lang}-${r.vpName}.png) | \`/dashboard${SHELL_PLACEHOLDER_PATH}\` | ${vp} | ${r.lang} | \`${r.shell.dir}\` / \`${r.shell.lang}\` | ${kb(r.shellSize)} |`,
-  );
+function viewportText(row) {
+  return VIEWPORTS[row.vpName].label.replace(/, scale 1$/, '') + `, scale ${row.scale}`;
 }
-const arShell = order.filter((r) => r.lang === 'ar').map((r) => r.shell);
-const readme = `# Evidence for P0.S2b-4 (dashboard with RTL)
+
+function tableRows(rows) {
+  const lines = [];
+  for (const r of rows) {
+    const asserted = `\`${LANG_DIRS[r.lang]}\` / \`${r.lang}\``;
+    const vp = viewportText(r);
+    const login = `login-${r.lang}-${r.vpName}.png`;
+    const shell = `merchant-shell-${r.lang}-${r.vpName}.png`;
+    lines.push(`| [\`${login}\`](screens/${login}) | \`/dashboard${LOGIN_PATH}\` | ${vp} | ${r.lang} | ${asserted} |`);
+    lines.push(
+      `| [\`${shell}\`](screens/${shell}) | \`/dashboard${SHELL_PLACEHOLDER_PATH}\` | ${vp} | ${r.lang} | ${asserted} |`,
+    );
+  }
+  return lines.join('\n');
+}
+
+/** Everything in the README is derived from this run; the shell script formats it with the repo's Prettier,
+ * and the text carries no date, size or font-face count, so a re-run on the same tree rewrites it unchanged. */
+function readmeText(rows) {
+  const commit = process.env.IMAGE_COMMIT ?? fail('IMAGE_COMMIT is not set');
+  return `# Evidence for P0.S2b-4 (dashboard with RTL)
 
 Screenshots of the real merchant dashboard (\`@vendure/dashboard\` 3.8.1 with the \`plugins/merchant-shell\` extension,
-ADR 0010) served by a live run of the compose stack (CLAUDE.md §3a.14). Generated on ${new Date().toISOString().slice(0, 10)} by
+ADR 0010) served by a live run of the compose stack (CLAUDE.md §3a.14). Produced by
 \`scripts/evidence/P0.S2b-4.sh\`; nothing here is hand-written. Data is synthetic (placeholders from \`.env.example\`).
 
-- Image: \`${process.env.IMAGE_ID ?? 'unknown'}\` (\`cod-platform:local\`), built from commit \`${process.env.GIT_COMMIT ?? 'unknown'}\`.
+- Image: \`cod-platform:local\`, built by that run (\`docker compose build migrate\`) from a working tree with no uncommitted
+  change outside the evidence folders, whose last image-relevant commit is \`${commit}\`.
 - Base URL: \`${base}\` (compose project \`cod-evidence\`, host port 23100).
 - Viewport screenshots (not full page), \`reducedMotion: reduce\`, taken after \`networkidle\` and \`document.fonts.ready\`.
 
-| File | URL | Viewport | Language | \`dir\` / \`lang\` observed | Size |
-| --- | --- | --- | --- | --- | --- |
-${tableRows.join('\n')}
+| File | URL | Viewport | Language | \`dir\` / \`lang\` asserted |
+| --- | --- | --- | --- | --- |
+${tableRows(rows)}
 
-## Shell page checks (asserted before each shot, the script fails otherwise)
+## Checks (the script fails otherwise)
 
-- \`document.documentElement.dir\` is \`rtl\` for Arabic and \`ltr\` for English; \`lang\` is \`ar\` / \`en\`.
-- The \`${SHELL_PLACEHOLDER_TEST_ID}\` marker is present.
-- Arabic: the \`${ARABIC_FONT_FAMILY}\` FontFace is \`loaded\` (${arShell.map((s) => `${s.arabicFacesLoaded} loaded face(s)`).join(', ')}), and the body font family contains it.
+- Every page, login and shell: \`document.documentElement.dir\` is \`rtl\` for Arabic and \`ltr\` for English, and \`lang\` is \`ar\` / \`en\`.
+- Shell pages: the \`${SHELL_PLACEHOLDER_TEST_ID}\` marker is present.
+- Arabic shell pages: the \`${ARABIC_FONT_FAMILY}\` FontFace is \`loaded\`, and the body font family contains it.
+- Every PNG is at most 300 KB (the 8 files must all exist); no password or cookie secret appears in this folder.
 
 ## How the language is chosen
 
@@ -208,9 +255,17 @@ ${tableRows.join('\n')}
   \`localStorage\` key \`vendure-user-settings\`.
 - **Login page:** 3.8.1 has no language picker on the login page and the page does not follow the browser locale. It reads the
   display language persisted in \`localStorage\` by an earlier in-app switch. The script therefore signs in, switches the language,
-  shoots the shell page, signs out (the dashboard's \`logout\` mutation) and opens \`/dashboard/login\`, which then renders in the persisted
-  language. For a first-time visitor (empty \`localStorage\`) the login page is always English.
-- The login page \`dir\`/\`lang\` columns are recorded as observed, not asserted.
+  shoots the shell page, signs out (the dashboard's \`logout\` mutation) and opens \`/dashboard${LOGIN_PATH}\`, which then renders in the
+  persisted language. For a first-time visitor (empty \`localStorage\`) the login page is always English.
+
+## Notes
+
+- **Mobile sessions:** on a phone-width viewport the user menu is inside the collapsed sidebar, so the sign-in and the language
+  switch run in a desktop-sized context. Its storage state (session cookies and \`localStorage\`) opens the 390x844 context that
+  takes the shots; the mobile pages are loaded in the language chosen there.
+- **Untranslated strings:** the \`Merchant shell\` page title and the \`Administration\` sidebar label stay English in the Arabic
+  shots. The placeholder page has no translation catalog in P0 (no \`.po\` files), and the sidebar section label is not
+  translated by the dashboard.
 
 ## Re-run
 
@@ -219,8 +274,12 @@ cp .env.example .env   # once; the script needs the root .env
 ${process.env.REGEN_COMMAND ?? 'scripts/evidence/P0.S2b-4.sh'}
 \`\`\`
 
-It uses its own compose project (\`cod-evidence\`, host ports shifted by 20000), reuses the \`\${APP_IMAGE:-cod-platform:local}\`
-image (building it only when absent), and removes the stack and its volumes on exit. It fails if a PNG is over 300 KB, if the
-superadmin password or the cookie secret appears in the output folder, or if any assertion above does not hold.
+It uses its own compose project (\`cod-evidence\`, host ports shifted by 20000), always rebuilds the image first (the layer
+cache keeps that cheap), refuses to run on a working tree with uncommitted changes outside the evidence folders, and removes the
+stack and its volumes on exit.
 `;
-writeFileSync(join(outDir, '..', 'README.md'), readme);
+}
+
+const rows = await shootAll();
+checkOutputs();
+writeFileSync(join(outDir, '..', 'README.md'), readmeText(rows));

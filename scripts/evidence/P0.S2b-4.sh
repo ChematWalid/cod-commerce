@@ -4,8 +4,7 @@
 # shell pages in Arabic and English on desktop and mobile into docs/evidence/P0.S2b-4/, and tears the stack
 # down. Never touches `cod` or `cod-verify`.
 #
-#   scripts/evidence/P0.S2b-4.sh            # reuses the cod-platform:local image, builds it only when absent
-#   REBUILD=1 scripts/evidence/P0.S2b-4.sh  # rebuilds the image first
+#   scripts/evidence/P0.S2b-4.sh   # always rebuilds cod-platform:local first (the layer cache keeps that cheap)
 #
 # The browser work is scripts/evidence/dashboard-screens.mjs. Data is synthetic (.env placeholders).
 set -euo pipefail
@@ -63,21 +62,31 @@ wait_healthy() {
 [[ -n "${SUPERADMIN_PASSWORD:-}" ]] || fail "SUPERADMIN_PASSWORD is empty; the redaction check would be vacuous"
 [[ -n "${COOKIE_SECRET:-}" ]] || fail "COOKIE_SECRET is empty; the redaction check would be vacuous"
 
+# The README states which commit the image was built from, so the image is always built here, from a tree
+# that matches that commit everywhere except the evidence folders and the SDD notes (which the image does
+# not need). The commit is the last one that touched anything else.
+image_inputs=(. ':!docs/evidence' ':!scripts/evidence' ':!.superpowers')
+dirty=$(git status --porcelain -- "${image_inputs[@]}")
+[[ -z "$dirty" ]] || fail "uncommitted changes outside the evidence folders; commit or stash them first:
+$dirty"
+image_commit=$(git log -1 --format=%h -- "${image_inputs[@]}")
+
 docker compose down -v --remove-orphans
-if [[ -n "${REBUILD:-}" ]] || ! docker image inspect "$APP_IMAGE" >/dev/null 2>&1; then
-  docker compose build migrate
-fi
+docker compose build migrate
 docker compose up -d
 wait_healthy api worker
 wait_http 200 "$api/readyz" 60 || fail "api /readyz"
 wait_http 200 "$api/dashboard/" 60 || fail "api /dashboard/"
 
 started=$SECONDS
-IMAGE_ID=$(docker image inspect -f '{{.Id}}' "$APP_IMAGE" | command cut -c1-19) \
-  GIT_COMMIT=$(git rev-parse --short HEAD) \
+IMAGE_COMMIT=$image_commit \
   REGEN_COMMAND="scripts/evidence/P0.S2b-4.sh" \
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/dashboard-screens.mjs "$api/dashboard" "$out/screens"
 echo "screenshots taken in $((SECONDS - started))s"
+
+# The README is generated, then formatted by the repo's Prettier so that a re-run leaves the tree unchanged.
+node_modules/.bin/prettier --write "$out/README.md" >/dev/null
+node_modules/.bin/prettier --check "$out/README.md" >/dev/null || fail "README is not Prettier-formatted"
 
 # --- redaction check ---------------------------------------------------------------------
 for secret in "$SUPERADMIN_PASSWORD" "$COOKIE_SECRET"; do
