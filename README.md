@@ -78,6 +78,9 @@ The single app image (`Dockerfile`) runs one role per container (`ROLE=api|worke
 
 `scripts/evidence/P0.S2b-3.sh` produces the session's committed evidence (`docs/evidence/P0.S2b-3/`): migrate, health, superadmin login and seeded-data transcripts, with secrets redacted by the script.
 
+## How to add a feature
+Copy the reference plugin and follow [`plugins/_template/README.md`](plugins/_template/README.md).
+
 ## Dashboard (Arabic RTL)
 The Vendure dashboard is served by the api at `http://localhost:3100/dashboard`, with the `plugins/merchant-shell` customisations (Arabic RTL by default). Sign in with `SUPERADMIN_USERNAME` and `SUPERADMIN_PASSWORD`.
 
