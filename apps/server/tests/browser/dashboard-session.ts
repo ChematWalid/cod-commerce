@@ -68,9 +68,9 @@ export const loginAsDemoOwner = (page: Page, baseUrl: string): Promise<void> =>
   loginAsOwner(page, baseUrl, DEMO_OWNER_EMAIL);
 
 /** Waits for a page's queries, then fails if the page reports one as failed instead of showing its content. */
-export async function assertNoPageError(page: Page, readyTestId: string): Promise<void> {
+export async function assertNoPageError(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
-  const alerts = page.getByTestId(readyTestId).getByRole('alert');
+  const alerts = page.getByRole('alert');
   if ((await alerts.count()) > 0) throw new Error(`the page shows an error: ${await alerts.first().innerText()}`);
 }
 

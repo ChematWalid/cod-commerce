@@ -45,7 +45,7 @@ describe('dashboard in Arabic', () => {
   it('translates the notes page title', async () => {
     await page.goto(`${DASHBOARD_URL}${TEMPLATE_NOTES_PATH}`);
     await page.getByTestId(TEMPLATE_NOTES_TEST_ID).waitFor({ state: 'attached' });
-    await assertNoPageError(page, TEMPLATE_NOTES_TEST_ID);
+    await assertNoPageError(page);
 
     await expect(page.getByRole('heading', { level: 1 }).textContent()).resolves.toBe('الملاحظات');
   });

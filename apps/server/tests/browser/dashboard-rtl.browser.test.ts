@@ -52,7 +52,7 @@ async function openPage(page: Page, target: DashboardPageUnderTest): Promise<voi
   await page.goto(`${DASHBOARD_URL}${target.path}`);
   // The ready marker may be an empty element, so it is waited for in the DOM rather than on screen.
   await page.getByTestId(target.readyTestId).waitFor({ state: 'attached' });
-  await assertNoPageError(page, target.readyTestId);
+  await assertNoPageError(page);
 }
 
 async function openInLanguage(page: Page, target: DashboardPageUnderTest, language: DocumentLang): Promise<void> {
@@ -116,7 +116,7 @@ describe('merchant dashboard host (ADR 0010)', () => {
     await page.goto(`${DASHBOARD_URL}${TEMPLATE_NOTES_PATH}`);
 
     await page.getByTestId(TEMPLATE_NOTES_TEST_ID).getByText(title).waitFor({ state: 'visible' });
-    await assertNoPageError(page, TEMPLATE_NOTES_TEST_ID);
+    await assertNoPageError(page);
   });
 
   it('renders the platform languages from @cod/shared', async () => {
