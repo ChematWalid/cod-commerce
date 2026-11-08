@@ -75,6 +75,19 @@ describe('root ESLint config', () => {
     );
   });
 
+  it.each(['vendure-in-domain.ts.txt', 'typeorm-in-application.ts.txt', 'nest-in-application.ts.txt'])(
+    'keeps application code free of framework imports: %s',
+    async (fixture) => {
+      expect(await lint(fixture, `${PLUGIN}/application/use-case.ts`)).toContain('no-restricted-imports');
+    },
+  );
+
+  it('lets clean application code through', async () => {
+    expect(await lint('clean-application.ts.txt', `${PLUGIN}/application/use-case.ts`)).not.toContain(
+      'no-restricted-imports',
+    );
+  });
+
   it('limits function length in plugins and in @cod/shared', async () => {
     expect(await lint('long-function.ts.txt', `${PLUGIN}/application/x.ts`)).toContain('max-lines-per-function');
     expect(await lint('long-function.ts.txt', 'packages/shared/src/x.ts')).toContain('max-lines-per-function');

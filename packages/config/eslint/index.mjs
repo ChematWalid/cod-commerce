@@ -15,6 +15,9 @@ const MIGRATION_FILES = ['apps/server/src/migrations/**'];
 const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];
 const FRAMEWORK_MODULES = ['@nestjs/*', '@vendure/*', 'typeorm', 'typeorm/*'];
 const DOMAIN_PURITY_MESSAGE = 'domain/ and @cod/shared stay framework-free (CLAUDE.md §3a.1)';
+const APPLICATION_FILES = ['**/plugins/*/application/**'];
+const APPLICATION_PURITY_MESSAGE =
+  'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM (CLAUDE.md §3a.2)';
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
 /** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
 const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', '**/plugins/*/*.config.{ts,mts}'];
@@ -68,8 +71,25 @@ const boundaryPolicies = [
 ];
 
 /**
+ * Forbids framework imports (type imports and dynamic `import()` included) in `files`.
+ *
+ * @param {string[]} files
+ * @param {string} message
+ */
+const frameworkFree = (files, message) => ({
+  files,
+  rules: {
+    'no-restricted-imports': ['error', { patterns: [{ group: FRAMEWORK_MODULES, allowTypeImports: false, message }] }],
+    'no-restricted-syntax': [
+      'error',
+      { selector: 'ImportExpression', message: `Dynamic import() is not allowed: ${message}` },
+    ],
+  },
+});
+
+/**
  * The workspace ESLint flat config: type-checked TypeScript rules, the size limits of CLAUDE.md §3a.3,
- * domain purity (§3a.1) and plugin layer boundaries (§3a.2).
+ * domain and application purity (§3a.1, §3a.2) and plugin layer boundaries (§3a.2).
  *
  * @param {{ tsconfigRootDir: string }} options
  * @returns {import('eslint').Linter.Config[]}
@@ -127,19 +147,8 @@ export function codEslintConfig({ tsconfigRootDir }) {
           ],
         },
       },
-      {
-        files: DOMAIN_FILES,
-        rules: {
-          'no-restricted-imports': [
-            'error',
-            { patterns: [{ group: FRAMEWORK_MODULES, allowTypeImports: false, message: DOMAIN_PURITY_MESSAGE }] },
-          ],
-          'no-restricted-syntax': [
-            'error',
-            { selector: 'ImportExpression', message: `Dynamic import() is not allowed: ${DOMAIN_PURITY_MESSAGE}` },
-          ],
-        },
-      },
+      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE),
+      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE),
       {
         files: BOUNDARY_FILES,
         plugins: { boundaries },
