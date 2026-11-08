@@ -5,6 +5,7 @@ import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
 import { DefaultSchedulerPlugin, RedisCachePlugin, type VendureConfig } from '@vendure/core';
+import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
 import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
 
@@ -16,9 +17,6 @@ export const CACHE_NAMESPACE_PREFIX = 'vendure-cache';
 
 /** The GraphQL query cost above which the api rejects a query. */
 export const HARDEN_MAX_QUERY_COMPLEXITY = 1000;
-
-/** The merchant dashboard's route on the api (ADR 0010; `app.ourdomain/` from P3.S5). */
-export const DASHBOARD_ROUTE = 'dashboard';
 
 /**
  * The built dashboard (`build:dashboard`). The same relative path holds from `src/config` (host-run) and

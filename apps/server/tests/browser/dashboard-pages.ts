@@ -1,4 +1,6 @@
 import { join } from 'node:path';
+import { DASHBOARD_BASE_PATH } from '../../src/config/dashboard-route';
+import { DEV_API_PORT } from '../../src/config/ports';
 import { SHELL_PLACEHOLDER_PATH, SHELL_PLACEHOLDER_TEST_ID } from '@cod/plugin-merchant-shell';
 
 /** A dashboard page the RTL browser test opens in Arabic and in English. */
@@ -17,7 +19,7 @@ export const DASHBOARD_PAGES_UNDER_TEST: readonly DashboardPageUnderTest[] = [
 ];
 
 /** The dashboard of a host-run api (`pnpm --filter @cod/server dev`). */
-const DEFAULT_DASHBOARD_URL = 'http://localhost:3100/dashboard';
+const DEFAULT_DASHBOARD_URL = `http://localhost:${String(DEV_API_PORT)}${DASHBOARD_BASE_PATH}`;
 
 /** The git-ignored folder of this package that receives the screenshots. */
 const DEFAULT_SCREENSHOT_DIR = join(__dirname, '../../test-results');
