@@ -15,17 +15,32 @@ const SCANNED_ROOTS = ['plugins', 'apps/server/src'];
 /** Generated code, and tests, which set session state on purpose to prove it leaks. */
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', '.turbo', '.vendure', 'tests', 'dashboard']);
 
+type KeywordCase = (keyword: string) => string;
+
+/** A session `SET` in one letter case: the forms without `=`/`TO`, or an assignment that is not `SET LOCAL`. */
+const sessionSetIn = (word: KeywordCase): string => {
+  const keywordForms = [
+    word('SESSION'),
+    word('ROLE'),
+    word('SCHEMA'),
+    word('NAMES'),
+    `${word('TIME')}\\s+${word('ZONE')}`,
+  ];
+  const assignment = `(?!${word('LOCAL')}\\b)[\\w."]+\\s*(?:=|${word('TO')}\\b)`;
+  return `${word('SET')}\\s+(?:(?:${keywordForms.join('|')})\\s|${assignment})`;
+};
+
+const SESSION_SET = new RegExp(
+  `(?:^|;)\\s*(?:${sessionSetIn((keyword) => keyword)}|${sessionSetIn((keyword) => keyword.toLowerCase())})`,
+);
+
 /**
  * PgBouncer hands a backend to the next client between transactions, so session state crosses tenants (ADR 0016
  * §6). Keywords match all upper or all lower case: prose such as "Set your subdomain" is not SQL.
  */
 const FORBIDDEN_SQL: readonly { readonly rule: string; readonly pattern: RegExp }[] = [
-  {
-    rule: 'session-set',
-    pattern:
-      /(?:^|;)\s*(?:SET\s+(?:SESSION\s|(?!LOCAL\b)[\w."]+\s*(?:=|TO\b))|set\s+(?:session\s|(?!local\b)[\w."]+\s*(?:=|to\b)))/,
-  },
-  { rule: 'session-set-config', pattern: /\bset_config\s*\([^)]*,\s*false\s*\)/i },
+  { rule: 'session-set', pattern: SESSION_SET },
+  { rule: 'session-set-config', pattern: /\bset_config\s*\(.*?,\s*false\s*\)/is },
   { rule: 'session-advisory-lock', pattern: /\bpg_(?:try_)?advisory_lock(?:_shared)?\s*\(/i },
   { rule: 'listen', pattern: /(?:^|;)\s*(?:LISTEN|listen)\s+\S/ },
 ];

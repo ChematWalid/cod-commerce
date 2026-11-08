@@ -1,31 +1,17 @@
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
-import type { BusinessId, TenantContext } from '@cod/shared';
-import { toBusinessId } from '@cod/shared';
-import { Channel, RequestContextService, TransactionalConnection } from '@vendure/core';
+import type { TenantContext } from '@cod/shared';
+import { Channel, TransactionalConnection } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { ProvisionBusinessService, type ProvisionedBusiness } from '../../application/provision-business.service';
-import { asOperationContext } from '../../domain/ports/operation-context';
+import type { ProvisionedBusiness } from '../../application/provision-business.service';
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
-import { type TenantRepository, tenantQuery, TenantRepositoryFactory } from '../../infrastructure/tenant-repository';
 import { TenancyPlugin } from '../../tenancy.plugin';
 import { failureOf } from './graphql-outcome';
 import { TenantProbePlugin } from './tenant-probe.plugin';
+import { OWNER_PASSWORD, provisionBusiness, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
-const OWNER_PASSWORD = 'synthetic-owner-password';
-const UNUSED_CHANNEL_ID = 987_654;
 const DEFAULT_CHANNEL = '__default_channel__';
-
-const UPDATE_GLOBAL_LANGUAGES = gql`
-  mutation {
-    updateGlobalSettings(input: { availableLanguages: [ar, fr, en] }) {
-      ... on GlobalSettings {
-        id
-      }
-    }
-  }
-`;
 
 const PROBE_FIELDS = 'businessId storeIds activeStoreId';
 const TENANT_PROBE = gql`query { tenantProbe { ${PROBE_FIELDS} } }`;
@@ -44,24 +30,11 @@ describe('Tenant context', () => {
 
   let alpha: ProvisionedBusiness;
   let bravo: ProvisionedBusiness;
-  let stores: TenantRepository<StoreEntity>;
   let defaultChannelToken: string;
 
   const raw = () => server.app.get(TransactionalConnection).rawConnection;
 
-  async function provision(slug: string): Promise<ProvisionedBusiness> {
-    const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
-    return server.app.get(ProvisionBusinessService).provision(asOperationContext(ctx), {
-      name: `${slug} SARL`,
-      owner: {
-        emailAddress: `${slug}-owner@example.test`,
-        firstName: slug,
-        lastName: 'Owner',
-        password: OWNER_PASSWORD,
-      },
-      store: { name: `${slug} store`, subdomain: slug, language: 'ar' },
-    });
-  }
+  const provision = (slug: string): Promise<ProvisionedBusiness> => provisionBusiness(server.app, slug);
 
   async function useStoreOf(provisioned: ProvisionedBusiness): Promise<void> {
     const { token } = await raw().getRepository(Channel).findOneByOrFail({ id: provisioned.store.channelId });
@@ -73,10 +46,6 @@ describe('Tenant context', () => {
     await adminClient.asUserWithCredentials(`${slug}-owner@example.test`, OWNER_PASSWORD);
     await useStoreOf(provisioned);
   }
-
-  const scopeOf = (provisioned: ProvisionedBusiness): { businessId: BusinessId } => ({
-    businessId: toBusinessId(provisioned.business.id),
-  });
 
   const expectedTenant = (provisioned: ProvisionedBusiness): TenantContext =>
     ({
@@ -92,7 +61,6 @@ describe('Tenant context', () => {
     await adminClient.query(UPDATE_GLOBAL_LANGUAGES);
     alpha = await provision('alpha');
     bravo = await provision('bravo');
-    stores = server.app.get(TenantRepositoryFactory).for(StoreEntity);
   });
 
   afterEach(async () => {
@@ -146,6 +114,19 @@ describe('Tenant context', () => {
       expect(failure.codes).toEqual(['FORBIDDEN']);
     });
 
+    it.each(['bravo', 'default'])(
+      'resolves no tenant for an owner on the %s channel, even on a public handler',
+      async (channel) => {
+        await asOwnerOf(alpha, 'alpha');
+        if (channel === 'bravo') await useStoreOf(bravo);
+        else adminClient.setChannelToken(defaultChannelToken);
+
+        const failure = await failureOf(adminClient.query(PUBLIC_PROBE));
+
+        expect(failure.codes).toEqual(['FORBIDDEN']);
+      },
+    );
+
     it('forbids the owner of a suspended business', async () => {
       await raw().getRepository(BusinessEntity).update({ id: alpha.business.id }, { status: 'suspended' });
       await asOwnerOf(alpha, 'alpha');
@@ -182,84 +163,6 @@ describe('Tenant context', () => {
       );
 
       expect(tenantProbeWithTransaction).toEqual(expectedTenant(alpha));
-    });
-  });
-
-  describe('TenantRepository', () => {
-    it('never finds a row of another business', async () => {
-      const found = await stores.find(scopeOf(alpha), { where: { id: bravo.store.id } });
-      const all = await stores.find(scopeOf(alpha), {});
-      const alternatives = await stores.find(scopeOf(alpha), {
-        where: [{ id: bravo.store.id }, { id: alpha.store.id }],
-      });
-      const one = await stores.findOne(scopeOf(alpha), { id: bravo.store.id });
-
-      expect(found).toEqual([]);
-      expect(all.map((row) => row.businessId)).toEqual([alpha.business.id]);
-      expect(alternatives.map((row) => row.id)).toEqual([alpha.store.id]);
-      expect(one).toBeNull();
-    });
-
-    it('ignores a businessId in the filter', async () => {
-      const found = await stores.find(scopeOf(alpha), { where: { businessId: bravo.business.id } });
-      const counted = await stores.count(scopeOf(alpha), { businessId: bravo.business.id });
-
-      expect(found.map((row) => row.businessId)).toEqual([alpha.business.id]);
-      expect(counted).toBe(1);
-    });
-
-    it('stores the business of the scope, whatever the row says', async () => {
-      const id = '7000000000000000001';
-
-      await stores.insert(scopeOf(alpha), {
-        id,
-        businessId: bravo.business.id,
-        storeId: id,
-        channelId: UNUSED_CHANNEL_ID,
-        sellerId: alpha.business.sellerId,
-        name: 'spoofed',
-        language: 'ar',
-        subdomain: 'spoofed',
-        status: 'archived',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      const row = await raw().getRepository(StoreEntity).findOneByOrFail({ id });
-      expect(row.businessId).toBe(alpha.business.id);
-      await raw().getRepository(StoreEntity).delete({ id });
-    });
-
-    it('updates nothing of another business and cannot move a row to one', async () => {
-      const crossTenant = await stores.update(scopeOf(alpha), { id: bravo.store.id }, { name: 'stolen' });
-      const moved = await stores.update(
-        scopeOf(alpha),
-        { id: alpha.store.id },
-        { businessId: bravo.business.id, description: 'kept' },
-      );
-
-      const bravoRow = await raw().getRepository(StoreEntity).findOneByOrFail({ id: bravo.store.id });
-      const alphaRow = await raw().getRepository(StoreEntity).findOneByOrFail({ id: alpha.store.id });
-      expect(crossTenant).toBe(0);
-      expect(bravoRow.name).toBe('bravo store');
-      expect(moved).toBe(1);
-      expect(alphaRow.businessId).toBe(alpha.business.id);
-    });
-
-    it('scopes a query builder, and a later where cannot replace the filter', async () => {
-      const scoped = await tenantQuery(scopeOf(alpha), stores, 'store').getMany();
-      const replaced = await tenantQuery(scopeOf(alpha), stores, 'store')
-        .where('store.id = :id', { id: bravo.store.id })
-        .getMany();
-
-      expect(scoped.map((row) => row.id)).toEqual([alpha.store.id]);
-      expect(replaced).toEqual([]);
-    });
-
-    it('refuses orWhere on a tenant query, which would widen it', () => {
-      const query = tenantQuery(scopeOf(alpha), stores, 'store');
-
-      expect(() => query.orWhere('store.id = :id', { id: bravo.store.id })).toThrow(/widen/);
     });
   });
 });

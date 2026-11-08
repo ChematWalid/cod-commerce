@@ -3,8 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { TransactionalConnection } from '@vendure/core';
 import type { FindManyOptions, FindOptionsWhere, ObjectType, Repository, SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import { TenantQueryWidenedError } from '../domain/errors';
+import { TenantScopeMissingError } from '../domain/errors';
 import { requestContextOf } from './request-tenant-scope';
+import { lockToTenant, TENANT_BUSINESS_PARAMETER } from './tenant-query-lock';
 import type { TenantEntity } from './tenant.entity';
 
 type Where<T> = FindOptionsWhere<T>;
@@ -15,15 +16,6 @@ const inScope = <T>(scope: TenantScope, where: Where<T> = {}): Where<T> => ({ ..
 function scopedWhere<T>(scope: TenantScope, where?: Where<T> | Where<T>[]): Where<T> | Where<T>[] {
   if (!Array.isArray(where)) return inScope(scope, where);
   return where.length === 0 ? inScope(scope) : where.map((alternative) => inScope(scope, alternative));
-}
-
-/** Makes `where` keep the business filter, and `orWhere` an error: a builder must stay inside its tenant. */
-function lockedToTenant<T extends TenantEntity>(query: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
-  query.where = query.andWhere.bind(query);
-  query.orWhere = () => {
-    throw new TenantQueryWidenedError();
-  };
-  return query;
 }
 
 /** The only way to tenant tables (ADR 0002): every call forces the scope's `businessId`, ignoring any in the input. */
@@ -63,11 +55,12 @@ export class TenantRepository<T extends TenantEntity> {
   query(scope: TenantScope, alias: string): SelectQueryBuilder<T> {
     const query = this.repository(scope)
       .createQueryBuilder(alias)
-      .where(`${alias}.businessId = :tenantBusinessId`, { tenantBusinessId: scope.businessId });
-    return lockedToTenant(query);
+      .where(`${alias}.businessId = :${TENANT_BUSINESS_PARAMETER}`, { [TENANT_BUSINESS_PARAMETER]: scope.businessId });
+    return lockToTenant(query, scope.businessId);
   }
 
   private repository(scope: TenantScope): Repository<T> {
+    if (!scope.businessId) throw new TenantScopeMissingError();
     return this.connection.getRepository(requestContextOf(scope), this.entity);
   }
 }

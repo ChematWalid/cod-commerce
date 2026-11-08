@@ -85,3 +85,30 @@ export class TenantQueryWidenedError extends DomainError {
     super('A tenant query cannot widen its filter with orWhere: put the alternatives in Brackets inside andWhere');
   }
 }
+
+/** A write builder taken from a tenant query, which would not carry its business filter (ADR 0002). */
+export class TenantQueryWriteRefusedError extends DomainError {
+  readonly code = 'tenancy.tenant-query-write-refused';
+
+  constructor() {
+    super('A tenant query is read-only: write through TenantRepository');
+  }
+}
+
+/** A caller's value for the parameter that holds a tenant query's business (ADR 0002). */
+export class TenantQueryParameterReservedError extends DomainError {
+  readonly code = 'tenancy.tenant-query-parameter-reserved';
+
+  constructor() {
+    super('This query parameter name is reserved for the tenant filter');
+  }
+}
+
+/** A tenant scope with no business: TypeORM would drop the undefined filter and match every tenant. */
+export class TenantScopeMissingError extends DomainError {
+  readonly code = 'tenancy.tenant-scope-missing';
+
+  constructor() {
+    super('A tenant scope must carry a business id');
+  }
+}

@@ -15,6 +15,11 @@ describe('tenant SQL gate', () => {
     ['advisory-lock.ts.txt', 'session-advisory-lock'],
     ['listen.ts.txt', 'listen'],
     ['set-config-session.ts.txt', 'session-set-config'],
+    ['set-config-nested-call.ts.txt', 'session-set-config'],
+    ['set-role.ts.txt', 'session-set'],
+    ['set-time-zone.ts.txt', 'session-set'],
+    ['set-schema.ts.txt', 'session-set'],
+    ['set-names.ts.txt', 'session-set'],
   ])('fires on %s', (fixture, rule) => {
     expect(rulesFor(fixture)).toEqual([rule]);
   });
