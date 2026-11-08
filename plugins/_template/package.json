@@ -1,0 +1,38 @@
+{
+  "name": "@cod/plugin-template",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The reference plugin of CLAUDE.md §3a: tenant-scoped notes with every layer and every test kind.",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && cod-typecheck-own dashboard/tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@nestjs/graphql": "14.0.3",
+    "@tanstack/react-query": "5.107.1",
+    "@vendure/core": "3.8.1",
+    "@vendure/dashboard": "3.8.1",
+    "graphql-tag": "2.12.7",
+    "react": "19.3.0",
+    "typeorm": "0.3.31"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,4 +1,4 @@
-# Where we stopped: onboarding for the next agent (2026-11-08, after P0.S2b-5)
+# Where we stopped: onboarding for the next agent (2026-11-08, after P0.S2b-6: P0.S2b complete, P1.S1 unblocked)
 
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
@@ -18,8 +18,8 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P0.S2b-3** Server data & image: migrate role and seed, entry points, e2e, single image, `stack` CI job | #80 | `feat/p0-s2b3-server-data-image` | #88 | **merged**; handoff `handoff/P0.S2b-3.md`; ADR 0013 addendum (activeQueues) accepted 2026-11-07; evidence `docs/evidence/P0.S2b-3/` |
 | **P0.S2b-4** Dashboard RTL: Vendure dashboard at `/dashboard`, `plugins/merchant-shell` (Arabic RTL, IBM Plex Sans Arabic), dashboard build in CI and the image, `browser` workflow | #81 | `feat/p0-s2b4-dashboard` | #89 | **merged** (40ac9ee); handoff `handoff/P0.S2b-4.md`; evidence `docs/evidence/P0.S2b-4/` |
 | Security chore: transitive vulnerability overrides, `.gitguardian.yaml` | — | `chore/deps-security-2026-11-08` | #90 | **merged** (19acd5e); overrides re-checked at M.S1 |
-| **P0.S2b-5** Storefront: host-resolved hello page (two stub stores), shared Redis cache handler, `storefront` role service, storefront checks in `browser.yml` | #82 | `feat/p0-s2b5-storefront` | see `gh pr list` | **merged**; handoff `handoff/P0.S2b-5.md`; evidence `docs/evidence/P0.S2b-5/` |
-| P0.S2b-6 (plugin template) | #83 | `feat/p0-s2b6-plugin-template` | — | not started; plan `plans/P0.S2b-plan.md` |
+| **P0.S2b-5** Storefront: host-resolved hello page (two stub stores), shared Redis cache handler, `storefront` role service, storefront checks in `browser.yml` | #82 | `feat/p0-s2b5-storefront` | #91 | **merged** (6a7d0fe); CI 5m04s; handoff `handoff/P0.S2b-5.md`; evidence `docs/evidence/P0.S2b-5/` |
+| **P0.S2b-6** Plugin template: `plugins/_template` reference implementation, `@cod/testing`, stricter lint (`no-unknown-files`, firing fixtures) | #83 | `feat/p0-s2b6-plugin-template` | see `gh pr list` | **merged**; handoff `handoff/P0.S2b-6.md`; evidence `docs/evidence/P0.S2b-6/` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
@@ -63,13 +63,12 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. Run the next unmerged P0.S2b part from `plans/P0.S2b-plan.md` (Parts 1–5 = #3, #79, #80, #81, #82 are done; next: **Part 6 "Plugin template", #83**, branch `feat/p0-s2b6-plugin-template`). Read `handoff/P0.S2b-5.md` first: the storefront runs on 3001 by host (`demo.localhost`, `second.localhost`); `NEXT_DEPLOYMENT_ID` is commit-derived; Part 6 also takes the Part 1 lint follow-ups (`boundaries/no-unknown-files`, firing fixtures for `complexity`, `max-depth`, `max-params`, `no-magic-numbers`).
+3. Run the next unmerged P0.S2b part from `plans/P0.S2b-plan.md` (all six parts are merged: P0.S2b is complete). Next: **P1.S1 (tenancy)**. Read `handoff/P0.S2b-6.md` first: P1.S1 replaces the template's three tenancy stubs, owns the snowflake id generator, and decides `ID!` versus `String!` for ids (Vendure coerces `ID` arguments to JS numbers).
 4. Open items for later sessions, flagged while applying the ADRs:
    - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
    - **P10.S1/S2 load targets** still use the old capacity figures (infrastructure §3); re-check them once the Algerian provider is benchmarked.
    - **The ADR 0006 cache handler** is adopted in P0.S2b and wired into caching in P3.S2; P3.S2 must not redo the adoption.
-5. After P0.S2b-6: P1.S1 (tenancy).
 
 ## Kickoff prompt (paste into the new agent)
 ```

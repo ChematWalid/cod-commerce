@@ -1,0 +1,4 @@
+import type { TenantScope } from '@cod/shared';
+import type { Note } from '../domain/note';
+
+export type Listed = readonly [TenantScope, Note];

@@ -47,6 +47,12 @@ describe('architecture rules', () => {
     expect(real.violations).toEqual([]);
     expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
     expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);
+    expect(real.cruisedModules).toEqual(
+      expect.arrayContaining([
+        'plugins/_template/domain/note.ts',
+        'plugins/_template/infrastructure/typeorm-note.repository.ts',
+      ]),
+    );
   });
 
   it('fails loudly when a root does not exist', async () => {

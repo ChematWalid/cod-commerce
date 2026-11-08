@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
+import { TemplatePlugin } from '@cod/plugin-template';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -49,6 +50,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       workerHealthPort: env.WORKER_HEALTH_PORT,
       serveWorkerHealth: role === 'worker',
     }),
+    TemplatePlugin,
   ];
   if (role !== 'api') {
     return everyRole;
