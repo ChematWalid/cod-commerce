@@ -19,7 +19,10 @@ export const DASHBOARD_LABELS = {
 /** The GraphQL mutation that stores the user settings, the display language included, on the server. */
 const SAVE_SETTINGS_MUTATION = 'setSettingsStoreValue';
 
-/** The superadmin of `.env` (`SUPERADMIN_*`), the only account in P0. */
+/** The first demo business's owner (`pnpm --filter @cod/server seed:demo`): a merchant, with no platform role. */
+export const DEMO_OWNER_EMAIL = 'owner@demo.example.test';
+
+/** The superadmin of `.env` (`SUPERADMIN_*`), the platform account; it has no tenant on the default channel. */
 function superadminCredentials(): { username: string; password: string } {
   const username = process.env['SUPERADMIN_USERNAME'];
   const password = process.env['SUPERADMIN_PASSWORD'];
@@ -31,19 +34,67 @@ function superadminCredentials(): { username: string; password: string } {
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** The sidebar's user menu trigger, named "<first> <last> <identifier>" (e.g. "Super Admin superadmin"). */
+/** The sidebar's user menu trigger, named "<first> <last> <identifier>" (an owner's e-mail or the superadmin). */
 const userMenuTrigger = (page: Page): Locator =>
-  page.getByRole('button', { name: new RegExp(`${escapeRegExp(superadminCredentials().username)}$`) });
+  page.getByRole('button', {
+    name: new RegExp(`(@[\\w.-]+\\.test|${escapeRegExp(superadminCredentials().username)})$`),
+  });
 
 /** Signs in on the dashboard login page and waits until the app shell has replaced it. */
-export async function loginAsSuperadmin(page: Page, baseUrl: string): Promise<void> {
-  const { username, password } = superadminCredentials();
+async function login(page: Page, baseUrl: string, username: string, password: string): Promise<void> {
   await page.goto(`${baseUrl}/login`);
   await page.getByRole('textbox', { name: DASHBOARD_LABELS.email }).fill(username);
   await page.getByRole('textbox', { name: DASHBOARD_LABELS.password }).fill(password);
   await page.getByRole('button', { name: DASHBOARD_LABELS.signIn }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
   await userMenuTrigger(page).waitFor();
+}
+
+/** Signs in as the platform superadmin. Tenant pages answer FORBIDDEN for it on the default channel. */
+export async function loginAsSuperadmin(page: Page, baseUrl: string): Promise<void> {
+  const { username, password } = superadminCredentials();
+  await login(page, baseUrl, username, password);
+}
+
+/** Signs in as an owner the demo seed created, who lands on one of that business's stores. */
+export async function loginAsOwner(page: Page, baseUrl: string, email: string): Promise<void> {
+  const password = process.env['DEMO_OWNER_PASSWORD'];
+  if (!password) throw new Error('DEMO_OWNER_PASSWORD must be set to the value the demo seed ran with');
+  await login(page, baseUrl, email, password);
+}
+
+/** Signs in as the first demo business's owner. */
+export const loginAsDemoOwner = (page: Page, baseUrl: string): Promise<void> =>
+  loginAsOwner(page, baseUrl, DEMO_OWNER_EMAIL);
+
+/** Waits for a page's queries, then fails if the page reports one as failed instead of showing its content. */
+export async function assertNoPageError(page: Page, readyTestId: string): Promise<void> {
+  await page.waitForLoadState('networkidle');
+  const alerts = page.getByTestId(readyTestId).getByRole('alert');
+  if ((await alerts.count()) > 0) throw new Error(`the page shows an error: ${await alerts.first().innerText()}`);
+}
+
+/** The dashboard's localStorage key of the selected channel token (`@vendure/dashboard` storage-keys.ts). */
+const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
+
+/** Creates a note in the store the dashboard has selected, through the Admin API, with the signed-in session. */
+export async function createNoteInSelectedStore(page: Page, title: string): Promise<void> {
+  const errors = await page.evaluate(
+    async ([key, noteTitle]) => {
+      const response = await fetch('/admin-api', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'vendure-token': localStorage.getItem(key) ?? '' },
+        body: JSON.stringify({
+          query: 'mutation ($input: CreateTemplateNoteInput!) { createTemplateNote(input: $input) { id } }',
+          variables: { input: { title: noteTitle, body: 'browser test' } },
+        }),
+      });
+      return ((await response.json()) as { errors?: unknown }).errors;
+    },
+    [SELECTED_CHANNEL_KEY, title] as const,
+  );
+  if (errors !== undefined) throw new Error(`createTemplateNote failed: ${JSON.stringify(errors)}`);
 }
 
 const isSettingsSave = (response: Response): boolean =>
