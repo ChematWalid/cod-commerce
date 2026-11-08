@@ -32,7 +32,7 @@ const PHONE_MAX_WIDTH = 768;
 /** The session this run documents; P0.S2c-polish.sh sets it, P0.S2b-4.sh keeps the default. */
 const SESSION_ID = process.env.SESSION_ID ?? 'P0.S2b-4';
 /** Per viewport and language: login and shell; the phone adds the opened sidebar. */
-const EXPECTED_PNGS = 12;
+const EXPECTED_PNGS = 10;
 /** The dashboard's sidebar toggle and its phone drawer. */
 const SIDEBAR_TRIGGER = '[data-sidebar="trigger"]';
 const SIDEBAR_DRAWER = '[data-sidebar="sidebar"][data-mobile="true"]';
