@@ -5,6 +5,7 @@ export * from './features/require-feature';
 export * from './platform/database-url';
 export * from './platform/health';
 export * from './platform/platform-defaults';
+export * from './platform/storefront-cache-tags';
 export * from './statuses/order-statuses';
 export * from './statuses/tracking-statuses';
 export * from './tenancy/tenant-scope';

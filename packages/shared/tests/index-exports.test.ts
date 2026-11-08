@@ -22,6 +22,8 @@ const RUNTIME_EXPORTS = [
   'isPlatformLanguageCode',
   'InvalidDatabaseUrlError',
   'toPostgresFields',
+  'STORE_CACHE_TAG_PREFIX',
+  'storeCacheTag',
 ] as const;
 
 describe('@cod/shared entry point', () => {

@@ -1,3 +1,4 @@
+import { storeCacheTag } from '@cod/shared';
 import { cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
@@ -25,7 +26,7 @@ export function generateStaticParams(): TenantPageParams[] {
 // Cached per store and tagged, so a store publish revalidates exactly its own entries (ADR 0006).
 async function StoreName({ storeId }: StoreNameProps): Promise<ReactNode> {
   'use cache';
-  cacheTag(`store:${storeId}`);
+  cacheTag(storeCacheTag(storeId));
   const store = await storeResolver.findById(storeId);
   if (!store) notFound();
   return <h1 data-testid="store-name">{store.name}</h1>;
