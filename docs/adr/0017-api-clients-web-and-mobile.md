@@ -1,7 +1,7 @@
 # ADR-0017: API clients (web and mobile)
 
 **Date**: 2026-11-08
-**Status**: Proposed
+**Status**: Accepted (2026-11-08)
 **Deciders**: architect (draft), user
 
 Citation keys: [BK, verify] = background knowledge about a platform or third party, verify before relying on it. Numbers marked "default" are starting values, tuned by the session that builds the feature.
