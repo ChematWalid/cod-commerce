@@ -4,6 +4,7 @@ import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { type ProvisionBusinessCommand, ProvisionBusinessService } from '../../application/provision-business.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
+import { BusinessOrderSequenceEntity } from '../../infrastructure/business-order-sequence.entity';
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { TenancyPlugin } from '../../tenancy.plugin';
@@ -13,6 +14,9 @@ const SUPER_ADMIN_ROLE = '__super_admin_role__';
 const CUSTOMER_ROLE = '__customer_role__';
 const DEFAULT_CHANNEL = '__default_channel__';
 const OWNER_PASSWORD = 'synthetic-owner-password';
+
+/** Raised by the last provisioning step that writes, so everything before it has to roll back. */
+const DUPLICATE_ADMINISTRATOR_ERROR = 'error.email-address-already-exists-for-administrator';
 
 /** Core ids as the test server sends them (`testConfig`'s id strategy prefixes them). */
 const wireId = (id: number): string => `T_${String(id)}`;
@@ -253,6 +257,9 @@ describe('Business provisioning', () => {
       await connection.getRepository('Seller').count(),
       await connection.getRepository('Role').count(),
       await connection.getRepository(User).count(),
+      await connection.getRepository(BusinessOrderSequenceEntity).count(),
+      await connection.getRepository('Administrator').count(),
+      await connection.getRepository('AuthenticationMethod').count(),
     ];
     const before = await counts();
     const duplicate = { ...commandFor('foxtrot'), store: { ...commandFor('golf').store } };
@@ -262,7 +269,7 @@ describe('Business provisioning', () => {
     const provisioning = server.app.get(ProvisionBusinessService).provision(asOperationContext(ctx), duplicate);
 
     // Assert
-    await expect(provisioning).rejects.toThrow();
+    await expect(provisioning).rejects.toThrow(DUPLICATE_ADMINISTRATOR_ERROR);
     expect(await counts()).toEqual(before);
   });
 });

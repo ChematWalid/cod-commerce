@@ -22,7 +22,7 @@ x-app: &app
     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
     DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     REDIS_URL: redis://valkey:6379
-    PLATFORM_DOMAIN: localhost
+    PLATFORM_DOMAIN: ${PLATFORM_DOMAIN:-localhost}
     S3_ENDPOINT: http://garage:3900
     S3_REGION: ${S3_REGION:-garage}
     S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
