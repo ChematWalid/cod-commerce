@@ -17,7 +17,7 @@ function readBrandableLogin(page: Page): Promise<{ text: string; stockLogos: num
     clone.querySelectorAll(footer).forEach((element) => {
       element.remove();
     });
-    return { text: clone.innerText || (clone.textContent ?? ''), stockLogos: clone.querySelectorAll('svg.text-brand').length };
+    return { text: clone.textContent, stockLogos: clone.querySelectorAll('svg.text-brand').length };
   }, LICENCE_FOOTER);
 }
 
