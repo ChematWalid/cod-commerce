@@ -78,5 +78,4 @@ GitHub Actions on every PR: install → lint → typecheck → unit/integration 
 - Integration tests for every new GraphQL/REST endpoint against a test Postgres — required.
 - Browser check of every new screen against the matching reference-product screen described in `docs/research/` (behaviour and layout only; never copy its name, logo, theme names or copy) — required for UI sessions; attach screenshots to the PR.
 - Multi-tenant check for every new entity or endpoint: data from business A is never returned to business B — required.
-- Frontend boundary check for every client change: the dashboard, storefront and future mobile apps hold no business rules (pricing, offers, eligibility, permissions, status transitions); rules live in plugins behind APIs (ADR 0017) — required.
 - Never claim something works without having run it.

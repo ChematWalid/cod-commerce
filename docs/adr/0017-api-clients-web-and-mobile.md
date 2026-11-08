@@ -39,7 +39,7 @@ Option 2 for both. Every rule below applies when the matching feature is built, 
 - Pricing, offers, eligibility, delivery fees, totals, stock and sold-out policy, spam, plan gates, permissions, order and parcel transitions, wallets and ledgers live in `plugins/<name>/domain` and `application`. The dashboard, the storefront and any mobile app are clients of them.
 - **A client may**: format values with the shared formatter (ADR 0005, whole DZD); validate input for fast feedback using schemas from `packages/shared`, which the server re-runs; sort or filter a list it already holds; show an optimistic state marked pending; hide controls using the server's `effectivePermissions`, `capabilities` and per-object `allowedActions`; queue a scan offline with an idempotency key.
 - **A client may not**: compute or adjust a price, discount, fee, subtotal or total, including quantity × unit price (it shows the quote's fields, ADR 0004); parse the quote token; decide whether an offer applies; decide the next status or whether a scan is valid (the server answers, also for replayed offline scans); evaluate a permission or plan gate as enforcement; hold a tenant id it chose as authority.
-- `packages/shared` holds types, schemas, constants and formatters only. Boundary rules (CLAUDE.md §3a.11) stop `apps/storefront`, `plugins/*/dashboard` and native code from importing any plugin's `domain` or `application`. Verification standard line added in `docs/roadmap/CONTRIBUTING.md`.
+- `packages/shared` holds types, schemas, constants and formatters only. Boundary rules (CLAUDE.md §3a.11) stop `apps/storefront`, `plugins/*/dashboard` and native code from importing any plugin's `domain` or `application`. Recorded as CLAUDE.md §3a.16.
 
 ### 2. Versioning and backward compatibility
 - **Merchant contract**: a plugin `client-api` adds `client*` operations and `Client*` types to the Admin API through `adminApiExtensions`. **Those types never expose or embed a Vendure type.** Native apps use only them, including for login and logout (§3). The facade is a stability boundary, not an authorization boundary: the bearer is still an Admin API session under the member's roles.
@@ -131,7 +131,7 @@ All values are defaults, validated by the P3.S5 k6 profile and about 10 quotes p
 
 No spike. Design only.
 - [x] Vendure 3.8.1 session behaviour in Context, read from `@vendure/core/dist` (`service/services/auth.service.js`, `service/services/session.service.js`, `api/common/extract-session-token.js`, `api/common/set-session-token.js`, `config/default-config.js`), 2026-11-08.
-- [ ] Bearer-only Admin API login with no cookie: `docs/evidence/P0.S2c-polish/api/bearer-client.md`, produced by the test in this PR.
+- [x] Bearer-only Admin API login with no cookie: `apps/server/tests/e2e/bearer-client.e2e.test.ts` and the live transcript `docs/evidence/P0.S2c-polish/api/bearer-client.md`, 2026-11-08.
 - Not tested: every item marked [BK, verify]; native client libraries; provider quotas; Algerian device mix.
 
 ## Open questions for the user

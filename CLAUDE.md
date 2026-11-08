@@ -82,6 +82,10 @@ Goal: adding or changing a feature touches one place and stays easy. These rules
       - data is synthetic, never real buyer data.
     - The PR links the folder.
 15. **Meta-rule.** When the user states a lasting working principle, record it here via a `docs/claude-md-*` PR.
+16. **Several frontends, one backend (user, 2026-11-08).** The website and the mobile apps for merchants and shoppers are clients of the same backend. Frontends hold no business rules; those live in plugins behind APIs (ADR 0017).
+17. **Look at the evidence (user, 2026-11-08).** Before merging, open every new or changed screenshot and check it by eye: visible branding, untranslated strings, RTL alignment, broken layout. A passing script is not enough; report what you saw.
+18. **Own branding is visible-surface work (user, 2026-11-08).** No third-party product name or logo on any screen a merchant or buyer sees, except a licence-required notice recorded in an ADR (currently the dashboard footer, ADR 0001 counsel question).
+19. **Security sweep before every merge (user, 2026-11-08).** Check open Dependabot alerts and GitGuardian/GitHub security notifications. Fix a real leaked secret or a new high/critical alert first, and alert the user.
 
 ## 4. Git & GitHub (details in CONTRIBUTING.md)
 - One branch per session; never push to `main`; never force-push. **Working agreement (user, 2026-11-07):** the agent squash-merges its own PR once CI is green; anything that is the user's decision is asked as a multiple-choice question (the user is the decider).
