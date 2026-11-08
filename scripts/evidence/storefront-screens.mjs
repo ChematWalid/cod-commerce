@@ -4,9 +4,10 @@
 //   node scripts/evidence/storefront-screens.mjs <storefront-port> <out-dir> <table-fragment-file>
 //
 // Chromium resolves every *.localhost name to the loopback address, so the store is picked by the Host header
-// the browser sends, exactly as in production. The stores are read from the storefront's own STUB_STORES
-// source (the module is not importable from plain Node: its imports have no file extensions), so the
-// names, hosts and locales are not duplicated here.
+// the browser sends, exactly as in production. The stores, the unknown host and the page markers come from the
+// constants block of P0.S2b-5.sh (environment variables); they are checked here against the storefront's own
+// source (STUB_STORES and app/not-found.tsx; the modules are not importable from plain Node: their imports have
+// no file extensions), so a drift fails the run instead of screenshotting the wrong thing.
 /* global process, console, URL, document, requestAnimationFrame -- Node globals, and browser globals inside page.evaluate callbacks */
 import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -21,11 +22,26 @@ if (!port || !outDir || !tableFile)
   throw new Error('usage: storefront-screens.mjs <port> <out-dir> <table-fragment-file>');
 
 const MAX_BYTES = 300 * 1024;
+
+/** @returns {string} the environment variable `name`, set by P0.S2b-5.sh's constants block */
+function fromEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set; run this through scripts/evidence/P0.S2b-5.sh`);
+  return value;
+}
+
+const storeFromEnv = (prefix) => ({
+  storeId: fromEnv(`${prefix}_STORE_ID`),
+  name: fromEnv(`${prefix}_STORE_NAME`),
+  locale: fromEnv(`${prefix}_STORE_LOCALE`),
+  host: fromEnv(`${prefix}_STORE_HOST`),
+});
 /** `data-testid` values of apps/storefront/app (the tenant page heading and app/not-found.tsx). */
-const STORE_NAME_TEST_ID = 'store-name';
-const NOT_FOUND_TEST_ID = 'not-found';
+const STORE_NAME_TEST_ID = fromEnv('STORE_NAME_TEST_ID');
+const NOT_FOUND_TEST_ID = fromEnv('NOT_FOUND_TEST_ID');
+const NOT_FOUND_TEXT = fromEnv('NOT_FOUND_TEXT');
 /** A host no store owns. */
-const UNKNOWN_HOST = 'nope.localhost';
+const UNKNOWN_HOST = fromEnv('UNKNOWN_HOST');
 
 const VIEWPORTS = {
   desktop: {
@@ -44,7 +60,7 @@ function fail(message) {
 }
 
 /** The stub stores, parsed from the storefront source. */
-function readStubStores() {
+function parseStubStores() {
   const source = readFileSync(join(root, 'apps/storefront/src/tenancy/stub-store-resolver.ts'), 'utf8');
   const pattern =
     /storeId: '([^']+)',[\s\S]*?name: '([^']+)',\s*defaultLocale: toStoreLocale\('([^']+)'\),\s*primaryHost: '([^']+)'/g;
@@ -55,7 +71,22 @@ function readStubStores() {
     host,
   }));
   if (stores.length !== 2) fail(`expected 2 stub stores in the storefront source, parsed ${stores.length}`);
+  return stores;
+}
+
+/** The stores of the script's constants block, after checking them and the page markers against the source. */
+function readStores() {
+  const stores = [storeFromEnv('DEMO'), storeFromEnv('SECOND')];
+  const parsed = JSON.stringify(parseStubStores());
+  if (JSON.stringify(stores) !== parsed)
+    fail(`P0.S2b-5.sh's stores ${JSON.stringify(stores)} differ from STUB_STORES ${parsed}`);
   if (stores.some((s) => s.host === UNKNOWN_HOST)) fail(`${UNKNOWN_HOST} belongs to a store`);
+  const notFound = readFileSync(join(root, 'apps/storefront/app/not-found.tsx'), 'utf8');
+  if (!notFound.includes(`data-testid="${NOT_FOUND_TEST_ID}">${NOT_FOUND_TEXT}<`))
+    fail(`app/not-found.tsx no longer renders data-testid="${NOT_FOUND_TEST_ID}" with '${NOT_FOUND_TEXT}'`);
+  const tenantPage = readFileSync(join(root, 'apps/storefront/app/%5Ft/[storeId]/[locale]/page.tsx'), 'utf8');
+  if (!tenantPage.includes(`data-testid="${STORE_NAME_TEST_ID}"`))
+    fail(`the tenant page no longer renders data-testid="${STORE_NAME_TEST_ID}"`);
   return stores;
 }
 
@@ -82,6 +113,9 @@ async function shoot(browser, vpName, spec) {
     const response = await page.goto(url, { waitUntil: 'load' });
     if (response?.status() !== spec.status)
       fail(`${label}: ${url} answered ${response?.status()}, expected ${spec.status}`);
+    const redirectedFrom = response.request().redirectedFrom();
+    if (redirectedFrom) fail(`${label}: ${url} was reached through a redirect from ${redirectedFrom.url()}`);
+    if (page.url() !== url) fail(`${label}: the page ended at ${page.url()}, expected ${url}`);
     const marker = page.getByTestId(spec.testId);
     await marker.waitFor({ state: 'visible' });
     const text = (await marker.textContent())?.trim();
@@ -102,7 +136,7 @@ async function shoot(browser, vpName, spec) {
   }
 }
 
-const stores = readStubStores();
+const stores = readStores();
 const specs = [
   ...stores.map((store) => ({
     file: store.storeId,
@@ -118,7 +152,7 @@ const specs = [
     host: UNKNOWN_HOST,
     status: 404,
     testId: NOT_FOUND_TEST_ID,
-    text: 'Page not found',
+    text: NOT_FOUND_TEXT,
     absentTexts: stores.map((s) => s.name),
     note: 'the not-found page (unknown host)',
   },
