@@ -28,6 +28,19 @@ content-type: text/html; charset=utf-8
 <h1 data-testid="store-name">Second Store</h1>
 ```
 
+### Host: DEMO.localhost.:3001 (upper case, trailing dot and port: the same store)
+
+```http
+GET http://127.0.0.1:23001/
+Host: DEMO.localhost.:3001
+
+HTTP/1.1 200 OK
+cache-control: private, no-cache, no-store, max-age=0, must-revalidate
+content-type: text/html; charset=utf-8
+
+<h1 data-testid="store-name">Demo Store</h1>
+```
+
 ### Host: nope.localhost (unknown host)
 
 ```http
@@ -45,6 +58,19 @@ content-type: text/html; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23001/_t/second/fr
+Host: demo.localhost
+
+HTTP/1.1 404 Not Found
+cache-control: private, no-cache, no-store, max-age=0, must-revalidate
+content-type: text/html; charset=utf-8
+
+<main data-testid="not-found">Page not found</main>
+```
+
+### Host: demo.localhost, path /%5Ft/second/fr (the same internal path percent-encoded)
+
+```http
+GET http://127.0.0.1:23001/%5Ft/second/fr
 Host: demo.localhost
 
 HTTP/1.1 404 Not Found
