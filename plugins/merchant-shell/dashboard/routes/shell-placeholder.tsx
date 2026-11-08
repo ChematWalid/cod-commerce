@@ -1,5 +1,6 @@
 import { PLATFORM_LANGUAGE_CODES } from '@cod/shared';
 import { type DashboardRouteDefinition, Page, PageBlock, PageLayout, PageTitle } from '@vendure/dashboard';
+import { useLingui } from '@lingui/react';
 import type { ReactNode } from 'react';
 import { PLATFORM_LANGUAGES_TEST_ID, SHELL_PLACEHOLDER_PATH, SHELL_PLACEHOLDER_TEST_ID } from '../constants';
 
@@ -8,9 +9,10 @@ const LANGUAGE_SEPARATOR = ' · ';
 const LANGUAGES_BLOCK_ID = 'platform-languages';
 
 function ShellPlaceholderPage(): ReactNode {
+  const { i18n } = useLingui();
   return (
     <Page pageId={PAGE_ID}>
-      <PageTitle>Merchant shell</PageTitle>
+      <PageTitle>{i18n._('Merchant shell')}</PageTitle>
       <PageLayout>
         <PageBlock column="main" blockId={LANGUAGES_BLOCK_ID}>
           <div data-testid={SHELL_PLACEHOLDER_TEST_ID} />

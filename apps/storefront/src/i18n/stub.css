@@ -1,0 +1,33 @@
+/* The storefront stub's only styles; P3.S2 replaces them with the real theme. */
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
+
+body {
+  margin: 0;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+html[lang='ar'] body {
+  font-family: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+}
+
+.stub-page {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.stub-page h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+h1[lang='ar'] {
+  font-family: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+}

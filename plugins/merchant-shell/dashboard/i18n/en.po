@@ -1,0 +1,16 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "Merchant shell"
+msgstr "Merchant shell"
+
+#. js-lingui-explicit-id
+msgid "Welcome to {name}"
+msgstr "Welcome to {name}"
+
+#. js-lingui-explicit-id
+msgid "Sign in to manage your store"
+msgstr "Sign in to manage your store"

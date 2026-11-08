@@ -12,3 +12,6 @@ export const PLATFORM_LANGUAGES_TEST_ID = 'platform-languages';
 
 /** The id of the provider that keeps `html[lang]` in step with the display language. */
 export const DOCUMENT_LANG_PROVIDER_ID = 'merchant-shell-document-lang';
+
+/** Marks the product name that replaces the stock logo on the login page. */
+export const LOGIN_BRAND_TEST_ID = 'login-brand';

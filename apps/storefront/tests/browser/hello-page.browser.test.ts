@@ -56,4 +56,31 @@ describe('storefront hello page in a browser', () => {
   it('shows the second store on second.localhost', async () => {
     await expect(storeNameShownOn('second.localhost', 'storefront-second.png')).resolves.toBe('Second Store');
   });
+
+  it.each([
+    { host: 'demo.localhost', lang: 'ar', dir: 'rtl' },
+    { host: 'second.localhost', lang: 'fr', dir: 'ltr' },
+  ])('sets the document language and direction of $host', async ({ host, lang, dir }) => {
+    const page = await browser.newPage();
+    try {
+      await page.goto(storeUrl(host));
+      await page.waitForFunction((expected) => document.documentElement.lang === expected, lang);
+      await expect(page.locator('html').getAttribute('dir')).resolves.toBe(dir);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it('shows the not-found page in every platform language', async () => {
+    const page = await browser.newPage();
+    try {
+      await page.goto(storeUrl('nope.localhost'));
+      const text = await page.getByTestId('not-found').innerText();
+      expect(text).toContain('الصفحة غير موجودة');
+      expect(text).toContain('Page introuvable');
+      expect(text).toContain('Page not found');
+    } finally {
+      await page.close();
+    }
+  });
 });

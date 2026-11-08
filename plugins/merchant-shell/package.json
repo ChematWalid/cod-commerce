@@ -17,6 +17,7 @@
   "dependencies": {
     "@cod/shared": "workspace:*",
     "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "@lingui/react": "5.9.5",
     "@vendure/core": "3.8.1",
     "@vendure/dashboard": "3.8.1",
     "react": "19.3.0"
