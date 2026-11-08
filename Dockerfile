@@ -1,4 +1,4 @@
-# One image for every server role (api, worker, migrate); ROLE picks the entry point.
+# One image for every role (api, worker, migrate, storefront); ROLE picks the entry point.
 # Single stage on purpose: hardening (multi-stage, non-root, pruned dependencies) is P3.S5.
 FROM node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c
 WORKDIR /app
@@ -7,8 +7,8 @@ ENV TZ=UTC COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # to package.json `packageManager` (a test pins it).
 RUN corepack enable && corepack prepare pnpm@10.34.9 --activate
 COPY . .
-# Only the server and the workspace packages it depends on: nothing else is built or run in this image.
-RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile --filter "@cod/server..." \
+# Only the server, the storefront and the workspace packages they depend on: nothing else is built or run here.
+RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile --filter "@cod/server..." --filter "@cod/storefront..." \
  && pnpm --filter "@cod/server..." run build
 # The dashboard's Vite plugin loads src/vendure-config.ts, whose loadEnv() needs a full env. It reads the
 # config only to find the plugin dashboards and the Admin API schema (no connection is made), so the
@@ -28,5 +28,14 @@ RUN APP_ENV=development ROLE=api \
     COOKIE_SECRET="$DASHBOARD_BUILD_COOKIE_SECRET" SUPERADMIN_USERNAME=superadmin \
     SUPERADMIN_PASSWORD="$DASHBOARD_BUILD_SUPERADMIN_PASSWORD" \
     NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server run build:dashboard
+# The storefront's deployment id namespaces its cache keys and assets (ADR 0006); the standalone server reads
+# it at start too, so it stays in the image. Declared here so a new id does not rebuild the layers above.
+# Compose passes NEXT_DEPLOYMENT_ID from .env (set it to the commit for a release) or `local`.
+# One build at a time: next build and the dashboard build are both memory-heavy. The standalone output
+# does not include .next/static, so it is copied in.
+ARG NEXT_DEPLOYMENT_ID=local
+ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
+RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/storefront build \
+ && cp -r apps/storefront/.next/static apps/storefront/.next/standalone/apps/storefront/.next/static
 ENV NODE_ENV=production
 ENTRYPOINT ["sh","/app/scripts/docker-entrypoint.sh"]

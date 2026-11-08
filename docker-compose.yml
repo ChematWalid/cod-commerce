@@ -1,5 +1,6 @@
-# Local and single-VPS stack: data services plus the server roles of one image. The api's published
-# port binds to API_BIND_ADDR, every other one to DATA_BIND_ADDR (both 127.0.0.1 by default).
+# Local and single-VPS stack: data services plus the server and storefront roles of one image. The api's
+# published port binds to API_BIND_ADDR, the storefront's to STOREFRONT_BIND_ADDR, every other one to
+# DATA_BIND_ADDR (all 127.0.0.1 by default).
 # Needs Docker Compose >= 2.23.1 for `configs.content`.
 name: ${COMPOSE_PROJECT_NAME:-cod}
 
@@ -8,7 +9,11 @@ name: ${COMPOSE_PROJECT_NAME:-cod}
 # production, where loadEnv refuses the placeholders and needs real secrets. P3.S5 decides how a
 # production .env is produced.
 x-app: &app
-  build: .
+  build:
+    context: .
+    args:
+      # Namespaces the storefront's cache keys and assets; set it to the commit when building a release.
+      NEXT_DEPLOYMENT_ID: ${NEXT_DEPLOYMENT_ID:-local}
   image: ${APP_IMAGE:-cod-platform:local}
   environment: &app-env
     TZ: UTC
@@ -186,6 +191,35 @@ services:
     ports:
       - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:3020'
     healthcheck: *app-healthcheck
+    restart: unless-stopped
+
+  # The Next.js storefront from the same image. It needs only Valkey (the shared cache); while Valkey is
+  # down it serves uncached and /readyz stays 200 with checks.redis.ok false (plan deviation 15).
+  storefront:
+    <<: *app
+    environment:
+      TZ: UTC
+      ROLE: storefront
+      APP_ENV: ${APP_ENV:-production}
+      REDIS_URL: redis://valkey:6379
+      NEXT_DEPLOYMENT_ID: ${NEXT_DEPLOYMENT_ID:-local}
+    depends_on:
+      valkey:
+        condition: service_healthy
+    ports:
+      - '${STOREFRONT_BIND_ADDR:-127.0.0.1}:${STOREFRONT_HOST_PORT:-3001}:3001'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/readyz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
     restart: unless-stopped
 
 configs:

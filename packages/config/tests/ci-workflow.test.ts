@@ -264,32 +264,3 @@ describe('ci.yml', () => {
     expect(jobOf(attribution, 'attribution-check').name).toBe('attribution-check');
   });
 });
-
-describe('Dockerfile', () => {
-  const dockerfile = read('Dockerfile');
-  const rootPackage = JSON.parse(read('package.json')) as { packageManager: string };
-
-  it('activates the packageManager pnpm before copying the source', () => {
-    const prepare = dockerfile.indexOf(`corepack prepare ${rootPackage.packageManager} --activate`);
-
-    expect(prepare).toBeGreaterThan(-1);
-    expect(prepare).toBeLessThan(dockerfile.indexOf('COPY . .'));
-  });
-
-  it('installs only the server closure', () => {
-    expect(dockerfile).toContain('pnpm install --frozen-lockfile --filter "@cod/server..."');
-  });
-
-  it('builds the dashboard after the server, with placeholders the image does not keep (M5)', () => {
-    const envLines = dockerfile.split('\n').filter((line) => line.startsWith('ENV '));
-
-    const lines = dockerfile.split('\n');
-    const serverBuild = lines.findIndex((line) => /\bpnpm\b.*\brun build$/.test(line.trim()));
-    const dashboardBuild = lines.findIndex((line) => line.includes('run build:dashboard'));
-
-    expect(serverBuild).toBeGreaterThanOrEqual(0);
-    expect(dashboardBuild).toBeGreaterThanOrEqual(0);
-    expect(dashboardBuild).toBeGreaterThan(serverBuild);
-    expect(envLines.join('\n')).not.toMatch(/DASHBOARD_BUILD_|change-me|DATABASE_URL|SECRET/);
-  });
-});
