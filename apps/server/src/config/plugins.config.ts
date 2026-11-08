@@ -2,6 +2,7 @@ import path from 'node:path';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { TemplatePlugin } from '@cod/plugin-template';
+import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -51,6 +52,11 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       serveWorkerHealth: role === 'worker',
     }),
     TemplatePlugin,
+    TenancyPlugin.init({
+      redisUrl: env.REDIS_URL,
+      platformDomain: env.PLATFORM_DOMAIN,
+      snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
+    }),
   ];
   if (role !== 'api') {
     return everyRole;

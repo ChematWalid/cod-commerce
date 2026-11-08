@@ -17,6 +17,8 @@
         "DATABASE_URL_DIRECT",
         "DB_POOL_MAX",
         "REDIS_URL",
+        "PLATFORM_DOMAIN",
+        "SNOWFLAKE_WORKER_ID",
         "WORKER_ACTIVE_QUEUES",
         "API_PORT",
         "WORKER_HEALTH_PORT",

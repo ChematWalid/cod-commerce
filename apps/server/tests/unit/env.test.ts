@@ -15,6 +15,7 @@ const valid = {
   S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
   S3_SECRET_KEY: 'b'.repeat(64),
   S3_BUCKET_PRIVATE: 'cod-private',
+  PLATFORM_DOMAIN: 'example.test',
 };
 
 function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
@@ -132,6 +133,28 @@ describe('loadEnv', () => {
         S3_SECRET_KEY: '0'.repeat(64),
       }),
     ).toMatchObject({ APP_ENV: 'development' });
+  });
+
+  it.each(['staging', 'production'])('requires PLATFORM_DOMAIN in %s', (appEnv) => {
+    expect(issuePaths(failureOf({ APP_ENV: appEnv, PLATFORM_DOMAIN: undefined }))).toEqual(['PLATFORM_DOMAIN']);
+  });
+
+  it('defaults PLATFORM_DOMAIN to localhost in development', () => {
+    expect(loadEnv({ ...valid, APP_ENV: 'development', PLATFORM_DOMAIN: undefined }).PLATFORM_DOMAIN).toBe('localhost');
+  });
+
+  it('accepts a reserved SNOWFLAKE_WORKER_ID when APP_ENV is test', () => {
+    expect(loadEnv({ ...valid, APP_ENV: 'test', SNOWFLAKE_WORKER_ID: '1000' }).SNOWFLAKE_WORKER_ID).toBe(1000);
+  });
+
+  it('rejects SNOWFLAKE_WORKER_ID outside tests', () => {
+    const error = failureOf({ APP_ENV: 'development', SNOWFLAKE_WORKER_ID: '1000' });
+
+    expect(issuePaths(error)).toEqual(['SNOWFLAKE_WORKER_ID']);
+  });
+
+  it('rejects a SNOWFLAKE_WORKER_ID outside the reserved range', () => {
+    expect(issuePaths(failureOf({ APP_ENV: 'test', SNOWFLAKE_WORKER_ID: '999' }))).toEqual(['SNOWFLAKE_WORKER_ID']);
   });
 });
 

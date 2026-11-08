@@ -13,6 +13,15 @@ export const MAX_SNOWFLAKE = 9223372036854775807n;
 const WORKER_BITS = 10n;
 const SEQUENCE_BITS = 12n;
 const MAX_WORKER_ID = (1 << Number(WORKER_BITS)) - 1;
+
+/** The highest worker id a process leases from Valkey (ADR 0003). */
+export const LEASED_WORKER_ID_MAX = 999;
+
+/** The first worker id reserved for tests and scripts (ADR 0003). */
+export const RESERVED_WORKER_ID_MIN = 1000;
+
+/** The last worker id reserved for tests and scripts (ADR 0003). */
+export const RESERVED_WORKER_ID_MAX = 1023;
 const MAX_SEQUENCE = (1 << Number(SEQUENCE_BITS)) - 1;
 /** A clock that steps back by up to this many ms is waited out; more is an error. */
 export const MAX_CLOCK_BACKWARD_WAIT_MS = 5;

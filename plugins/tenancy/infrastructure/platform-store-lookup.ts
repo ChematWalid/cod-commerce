@@ -1,0 +1,66 @@
+import { type Snowflake, toSnowflake } from '@cod/shared';
+import { Injectable } from '@nestjs/common';
+import { TransactionalConnection } from '@vendure/core';
+import type { ObjectLiteral, ObjectType, Repository } from 'typeorm';
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import type { Business } from '../domain/business';
+import type { OperationContext } from '../domain/ports/operation-context';
+import type { BusinessOwnerPatch, PlatformStorePort } from '../domain/ports/platform-store.port';
+import type { Store } from '../domain/store';
+import { BusinessOrderSequenceEntity } from './business-order-sequence.entity';
+import { BusinessEntity } from './business.entity';
+import { toRequestContext } from './operation-context.adapter';
+import { StoreEntity } from './store.entity';
+
+function toBusiness(row: BusinessEntity): Business {
+  return {
+    id: toSnowflake(row.id),
+    name: row.name,
+    logoAssetId: row.logoAssetId,
+    onboardingState: row.onboardingState,
+    ownerAdministratorId: row.ownerAdministratorId,
+    sellerId: row.sellerId,
+    ownerRoleId: row.ownerRoleId,
+    planId: row.planId === null ? null : toSnowflake(row.planId),
+    status: row.status,
+    createdAt: row.createdAt,
+  };
+}
+
+/**
+ * Unscoped reads and writes of `business` and `store` (A7). Provisioning runs before any tenant context exists,
+ * so these cannot go through `TenantRepository`; this file alone is on the lint allow-list for that reason.
+ */
+@Injectable()
+export class PlatformStoreLookup implements PlatformStorePort {
+  constructor(private readonly connection: TransactionalConnection) {}
+
+  async saveBusiness(ctx: OperationContext, business: Business): Promise<void> {
+    await this.repository(ctx, BusinessEntity).insert({ ...business } as QueryDeepPartialEntity<BusinessEntity>);
+  }
+
+  async findBusiness(ctx: OperationContext, id: Snowflake): Promise<Business | undefined> {
+    const row = await this.repository(ctx, BusinessEntity).findOne({ where: { id } });
+    return row === null ? undefined : toBusiness(row);
+  }
+
+  async updateBusinessOwner(ctx: OperationContext, id: Snowflake, patch: BusinessOwnerPatch): Promise<void> {
+    await this.repository(ctx, BusinessEntity).update({ id }, patch);
+  }
+
+  async createOrderSequence(ctx: OperationContext, businessId: Snowflake): Promise<void> {
+    await this.repository(ctx, BusinessOrderSequenceEntity).insert({ businessId });
+  }
+
+  async saveStore(ctx: OperationContext, store: Store): Promise<void> {
+    await this.repository(ctx, StoreEntity).insert({ ...store });
+  }
+
+  async isSubdomainTaken(ctx: OperationContext, subdomain: string): Promise<boolean> {
+    return this.repository(ctx, StoreEntity).existsBy({ subdomain });
+  }
+
+  private repository<T extends ObjectLiteral>(ctx: OperationContext, entity: ObjectType<T>): Repository<T> {
+    return this.connection.getRepository(toRequestContext(ctx), entity);
+  }
+}
