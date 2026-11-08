@@ -1,0 +1,94 @@
+name: browser
+
+# Browser tests of the dashboard (Playwright against the built api). Not part of the pull-request pipeline:
+# ADR 0001 section 6 keeps CI at 10 minutes or less, so this runs on main, nightly and on demand.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  browser:
+    name: browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Same images as ci.yml's integration job and docker-compose.yml (a test pins them equal).
+    services:
+      postgres:
+        image: postgres:17.11@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f
+        env:
+          POSTGRES_USER: cod
+          POSTGRES_PASSWORD: change-me-pg
+          POSTGRES_DB: cod
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U cod -d cod"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      valkey:
+        image: valkey/valkey:8.1.11@sha256:8f836008e0986c36adf50da714c7060cf689dbb335f61fe077939d90fa650809
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    # Non-secret placeholders only; no PgBouncer and no Garage in CI (the api only reads the S3 settings).
+    env:
+      DATABASE_URL: postgres://cod:change-me-pg@localhost:5432/cod
+      DATABASE_URL_DIRECT: postgres://cod:change-me-pg@localhost:5432/cod
+      REDIS_URL: redis://localhost:6379
+      TZ: UTC
+      APP_ENV: development
+      COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
+      SUPERADMIN_USERNAME: superadmin
+      SUPERADMIN_PASSWORD: change-me-admin
+      S3_ENDPOINT: http://localhost:3900
+      S3_BUCKET_PRIVATE: cod-private
+      S3_ACCESS_KEY: GK000000000000000000000000
+      S3_SECRET_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+      NODE_OPTIONS: --max-old-space-size=2048
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Install the browser
+        run: pnpm --filter @cod/server exec playwright-core install --with-deps chromium-headless-shell
+      - name: Build
+        run: pnpm build
+      - name: Build the dashboard
+        run: ROLE=api pnpm --filter @cod/server build:dashboard
+      - name: Migrate
+        run: ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-migrate.js
+      - name: Start the api
+        run: |
+          ROLE=api API_PORT=3100 setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-api.js > api.log 2>&1 &
+          source scripts/lib/wait-http.sh
+          wait_http 200 http://localhost:3100/readyz 120
+          wait_http 200 http://localhost:3100/dashboard/ 60
+      - name: Browser tests
+        run: pnpm --filter @cod/server test:browser
+      - name: Show the api log
+        if: failure()
+        run: tail -n 200 api.log
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-screenshots
+          path: '**/test-results/*.png'
+          if-no-files-found: ignore

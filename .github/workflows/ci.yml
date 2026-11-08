@@ -54,6 +54,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: NODE_OPTIONS=--max-old-space-size=2048 pnpm build
+      # The dashboard's Vite plugin loads src/vendure-config.ts, whose loadEnv() needs a full env. It reads the
+      # config only to find the plugin dashboards and the Admin API schema (no connection is made), so the
+      # same non-secret placeholders as the Dockerfile are enough.
+      - name: Build the dashboard
+        env:
+          APP_ENV: development
+          ROLE: api
+          DATABASE_URL: postgresql://cod:change-me-pg@localhost:6432/cod
+          DATABASE_URL_DIRECT: postgresql://cod:change-me-pg@localhost:6432/cod
+          REDIS_URL: redis://localhost:6380
+          S3_ENDPOINT: http://localhost:3900
+          S3_BUCKET_PRIVATE: cod-private
+          S3_ACCESS_KEY: GK000000000000000000000000
+          S3_SECRET_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+          COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
+          SUPERADMIN_USERNAME: superadmin
+          SUPERADMIN_PASSWORD: change-me-admin
+        run: NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server build:dashboard
 
   data-services:
     name: data-services

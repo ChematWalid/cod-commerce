@@ -18,7 +18,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "test:arch": "vitest run tests/architecture.test.ts tests/vendure-pins.test.ts tests/ci-workflow.test.ts tests/branding.test.ts",
+    "test:arch": "vitest run tests/architecture.test.ts tests/vendure-pins.test.ts tests/ci-workflow.test.ts tests/browser-workflow.test.ts tests/branding.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
