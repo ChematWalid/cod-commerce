@@ -18,6 +18,7 @@ import type { TenancyPorts } from './application/tenancy-ports';
 import { UpdateBusinessService } from './application/update-business.service';
 import { UpdateStoreService } from './application/update-store.service';
 import {
+  ASSET_ACCESS,
   CHANNEL_PROVISIONER,
   ID_GENERATOR,
   PLATFORM_STORE,
@@ -28,6 +29,7 @@ import {
   TENANT_STORES,
   TRANSACTION,
 } from './application/tokens';
+import type { AssetAccessPort } from './domain/ports/asset-access.port';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { PlatformStorePort } from './domain/ports/platform-store.port';
@@ -45,6 +47,7 @@ import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
 import { TenantStoresAdapter } from './infrastructure/tenant-stores.adapter';
 import { TenantTransaction } from './infrastructure/tenant-transaction';
 import { ValkeySnowflakeGenerator } from './infrastructure/valkey-snowflake.generator';
+import { VendureAssetAccess } from './infrastructure/vendure-asset-access';
 import { VendureChannelProvisioner } from './infrastructure/vendure-channel-provisioner';
 import { VendureTransaction } from './infrastructure/vendure-transaction';
 
@@ -116,6 +119,7 @@ const STORE_USE_CASES = [
   entities: [BusinessEntity, StoreEntity, CustomDomainEntity, BusinessOrderSequenceEntity],
   providers: [
     { provide: CHANNEL_PROVISIONER, useClass: VendureChannelProvisioner },
+    { provide: ASSET_ACCESS, useClass: VendureAssetAccess },
     PlatformStoreLookup,
     { provide: PLATFORM_STORE, useExisting: PlatformStoreLookup },
     TenantContextResolver,
@@ -128,12 +132,15 @@ const STORE_USE_CASES = [
     {
       provide: TENANCY_PORTS,
       useFactory: (
-        channels: ChannelProvisionerPort,
-        platform: PlatformStorePort,
-        transaction: TransactionPort,
-        ids: IdGeneratorPort,
-      ): TenancyPorts => ({ channels, platform, transaction, ids, clock: systemClock }),
-      inject: [CHANNEL_PROVISIONER, PLATFORM_STORE, TRANSACTION, ID_GENERATOR],
+        ...[channels, assets, platform, transaction, ids]: [
+          ChannelProvisionerPort,
+          AssetAccessPort,
+          PlatformStorePort,
+          TransactionPort,
+          IdGeneratorPort,
+        ]
+      ): TenancyPorts => ({ channels, assets, platform, transaction, ids, clock: systemClock }),
+      inject: [CHANNEL_PROVISIONER, ASSET_ACCESS, PLATFORM_STORE, TRANSACTION, ID_GENERATOR],
     },
     {
       provide: CreateStoreService,

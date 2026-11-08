@@ -1,7 +1,7 @@
 import type { SubdomainAvailability } from '@cod/shared';
 import { toSnowflake, toStoreId } from '@cod/shared';
 import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { Allow, ChannelService, Ctx, Permission, type RequestContext } from '@vendure/core';
+import { Allow, ChannelService, Ctx, EntityNotFoundError, Permission, type RequestContext } from '@vendure/core';
 import { ArchiveStoreService } from '../application/archive-store.service';
 import { ChangeSubdomainService } from '../application/change-subdomain.service';
 import { CheckSubdomainService } from '../application/check-subdomain.service';
@@ -142,6 +142,7 @@ export class StoreFieldsResolver {
   @ResolveField()
   async channelToken(@Ctx() ctx: RequestContext, @Parent() store: Store): Promise<string> {
     const channel = await this.channels.findOne(ctx, store.channelId);
-    return channel?.token ?? '';
+    if (channel === undefined) throw new EntityNotFoundError('Channel', store.channelId);
+    return channel.token;
   }
 }

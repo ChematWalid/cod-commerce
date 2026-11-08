@@ -1,6 +1,6 @@
-import type { Snowflake } from '@cod/shared';
+import type { BusinessId, Snowflake } from '@cod/shared';
 import type { Business } from '../business';
-import type { Store } from '../store';
+import type { Store, StoreAccess } from '../store';
 import type { OperationContext } from './operation-context';
 
 /** The owner links of a business, set as provisioning makes them. */
@@ -21,6 +21,8 @@ export interface PlatformStorePort {
   /** Holds the business row until the transaction `ctx` carries ends, serialising changes to its set of stores. */
   lockBusiness(ctx: OperationContext, id: Snowflake): Promise<void>;
   createOrderSequence(ctx: OperationContext, businessId: Snowflake): Promise<void>;
+  /** Every store of the business, whatever its status. */
+  findStoreAccess(ctx: OperationContext, businessId: BusinessId): Promise<readonly StoreAccess[]>;
   saveStore(ctx: OperationContext, store: Store): Promise<void>;
   /** True when any store, archived included, holds `subdomain` (D4). */
   isSubdomainTaken(ctx: OperationContext, subdomain: string): Promise<boolean>;

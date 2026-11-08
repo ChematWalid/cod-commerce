@@ -11,7 +11,7 @@ import {
   SUBDOMAIN_AVAILABILITY,
   UPDATE_STORE,
 } from './admin-api-operations';
-import { channelTokenOf } from './admin-api-session';
+import { channelTokenOf, seedAsset } from './admin-api-session';
 import { failureOf } from './graphql-outcome';
 import { useStoreApi } from './store-api-harness';
 
@@ -84,10 +84,11 @@ describe('Store Admin API', () => {
   it('round-trips all eight store settings', async () => {
     // Arrange
     await asAlpha();
+    const logoAssetId = await seedAsset(server.app, api.alpha.store.channelId);
     const settings = {
       name: 'Renamed',
       description: 'A description',
-      logoAssetId: 'T_7',
+      logoAssetId,
       language: 'fr',
       defaultDeliveryFeeGroupId: '9007199254740993',
       defaultCarrierId: '9007199254740995',

@@ -3,6 +3,7 @@ import { UnsupportedStoreLanguageError } from '../domain/errors';
 import { assertValidName } from '../domain/name';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { Store, StoreActor, StorePatch } from '../domain/store';
+import { assertAssetInChannels } from './asset-rules';
 import { requireActiveStore } from './store-access';
 import type { StoreAdminPorts } from './store-admin-ports';
 
@@ -36,11 +37,17 @@ export class UpdateStoreService {
 
   private async apply(ctx: OperationContext, actor: StoreActor, id: StoreId, patch: StorePatch): Promise<Store> {
     const store = await requireActiveStore(this.ports.stores, ctx, actor, id);
+    await this.assertLogoAllowed(ctx, store, patch);
     if (patch.language !== undefined && patch.language !== store.language) {
       await this.ports.channels.updateChannelLanguage(ctx, store.channelId, patch.language);
     }
     const write = { ...patch, updatedAt: this.ports.clock() };
     await this.ports.stores.update(ctx, actor.businessId, id, write);
     return { ...store, ...write };
+  }
+
+  private async assertLogoAllowed(ctx: OperationContext, store: Store, { logoAssetId }: StorePatch): Promise<void> {
+    if (logoAssetId === undefined || logoAssetId === null || logoAssetId === store.logoAssetId) return;
+    await assertAssetInChannels(this.ports.assets, ctx, logoAssetId, [store.channelId]);
   }
 }

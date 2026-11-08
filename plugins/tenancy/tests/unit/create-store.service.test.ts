@@ -13,6 +13,7 @@ import { asOperationContext } from '../../domain/ports/operation-context';
 import {
   FakeChannelProvisioner,
   InMemoryPlatformStore,
+  openAssets,
   inlineTransaction,
   SequentialIdGenerator,
 } from '../fakes/fakes';
@@ -45,6 +46,7 @@ describe('CreateStoreService', () => {
       platform,
       transaction: inlineTransaction,
       ids: new SequentialIdGenerator('500'),
+      assets: openAssets,
       clock: () => NOW,
     });
 

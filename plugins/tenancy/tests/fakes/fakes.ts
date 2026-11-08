@@ -5,11 +5,12 @@ import type {
   ChannelProvisionerPort,
   ChannelRequest,
 } from '../../domain/ports/channel-provisioner.port';
+import type { AssetAccessPort } from '../../domain/ports/asset-access.port';
 import type { IdGeneratorPort } from '../../domain/ports/id-generator.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { BusinessOwnerPatch, PlatformStorePort } from '../../domain/ports/platform-store.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
-import type { Store } from '../../domain/store';
+import type { Store, StoreAccess } from '../../domain/store';
 
 /** Hands out `first`, `first + 1`, …, so a test knows every id in advance. */
 export class SequentialIdGenerator implements IdGeneratorPort {
@@ -114,10 +115,19 @@ export class InMemoryPlatformStore implements PlatformStorePort {
     return Promise.resolve();
   }
 
+  findStoreAccess(_ctx: OperationContext, businessId: string): Promise<readonly StoreAccess[]> {
+    return Promise.resolve(this.stores.filter((store) => store.businessId === businessId));
+  }
+
   isSubdomainTaken(_ctx: OperationContext, subdomain: string): Promise<boolean> {
     return Promise.resolve(this.stores.some((store) => store.subdomain === subdomain));
   }
 }
+
+/** Every asset is available: logo ownership is covered by the integration tests. */
+export const openAssets: AssetAccessPort = {
+  isAssetInChannels: () => Promise.resolve(true),
+};
 
 /** Runs the work in place: unit tests have no database. */
 export const inlineTransaction: TransactionPort = {

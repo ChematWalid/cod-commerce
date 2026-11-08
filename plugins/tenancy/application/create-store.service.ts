@@ -3,6 +3,7 @@ import {
   isPlatformLanguageCode,
   PLATFORM_LANGUAGE_CODES,
   type Snowflake,
+  toBusinessId,
   toStoreId,
 } from '@cod/shared';
 import type { Business } from '../domain/business';
@@ -17,6 +18,7 @@ import {
 import { assertValidName } from '../domain/name';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { type CreateStoreInput, newStore, type Store } from '../domain/store';
+import { assertAssetInChannels, channelsOf } from './asset-rules';
 import type { TenancyPorts } from './tenancy-ports';
 
 /** Opens a store for a business: a channel of its seller, its Owner role on that channel, and the store row. */
@@ -56,6 +58,7 @@ export class CreateStoreService {
       if (await this.ports.platform.isSubdomainTaken(transactional, subdomain)) {
         throw new SubdomainTakenError();
       }
+      await this.assertLogoAllowed(transactional, business, input);
       return this.openStore(transactional, business, subdomain, input);
     });
   }
@@ -66,6 +69,13 @@ export class CreateStoreService {
       throw new BusinessNotFoundError();
     }
     return business;
+  }
+
+  /** The new channel holds nothing yet, so a logo must come from a channel the business already has. */
+  private async assertLogoAllowed(ctx: OperationContext, business: Business, input: CreateStoreInput): Promise<void> {
+    if (input.logoAssetId === undefined) return;
+    const stores = await this.ports.platform.findStoreAccess(ctx, toBusinessId(business.id));
+    await assertAssetInChannels(this.ports.assets, ctx, input.logoAssetId, channelsOf(stores));
   }
 
   private async openStore(

@@ -6,6 +6,7 @@ import { asOperationContext } from '../../domain/ports/operation-context';
 import {
   FakeChannelProvisioner,
   InMemoryPlatformStore,
+  openAssets,
   inlineTransaction,
   SequentialIdGenerator,
 } from '../fakes/fakes';
@@ -27,6 +28,7 @@ function setUp(): {
     platform,
     transaction: inlineTransaction,
     ids: new SequentialIdGenerator('100'),
+    assets: openAssets,
     clock: (): Date => NOW,
   };
   const service = new ProvisionBusinessService(ports, new CreateStoreService(ports));

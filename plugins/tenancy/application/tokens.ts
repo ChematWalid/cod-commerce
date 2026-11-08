@@ -1,6 +1,9 @@
 /** Injection token of the `ChannelProvisionerPort` adapter. */
 export const CHANNEL_PROVISIONER: unique symbol = Symbol('TenancyChannelProvisioner');
 
+/** Injection token of the `AssetAccessPort` adapter. */
+export const ASSET_ACCESS: unique symbol = Symbol('TenancyAssetAccess');
+
 /** Injection token of the `IdGeneratorPort` adapter. */
 export const ID_GENERATOR: unique symbol = Symbol('TenancyIdGenerator');
 

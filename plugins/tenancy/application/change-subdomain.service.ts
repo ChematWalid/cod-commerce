@@ -1,4 +1,4 @@
-import { classifySubdomain, type StoreId } from '@cod/shared';
+import { classifySubdomain, type StoreId, toSnowflake } from '@cod/shared';
 import { SubdomainInvalidError, SubdomainTakenError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { Store, StoreActor } from '../domain/store';
@@ -41,6 +41,8 @@ export class ChangeSubdomainService {
     id: StoreId,
     subdomain: string,
   ): Promise<SubdomainChange> {
+    // Before reading the status: a rename after an archive in progress would release the name (D4).
+    await this.ports.platform.lockBusiness(ctx, toSnowflake(actor.businessId));
     const store = await requireActiveStore(this.ports.stores, ctx, actor, id);
     if (store.subdomain === subdomain) return { store, previous: subdomain };
     if (await this.ports.platform.isSubdomainTaken(ctx, subdomain)) {

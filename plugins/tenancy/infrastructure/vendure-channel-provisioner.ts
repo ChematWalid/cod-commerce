@@ -29,12 +29,11 @@ import type {
 } from '../domain/ports/channel-provisioner.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { toRequestContext } from './operation-context.adapter';
+import { shareTransaction } from './share-transaction';
 
 const CHANNEL_SECRET_BYTES = 16;
 
 const randomChannelValue = (): string => randomBytes(CHANNEL_SECRET_BYTES).toString('hex');
-
-type ContextWithSymbols = RequestContext & Record<symbol, unknown>;
 
 /**
  * Vendure's sellers, channels, roles and administrators. Role and administrator creation check the active user,
@@ -159,12 +158,4 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
       .create({ apiType: 'admin', channelOrToken: caller.channel, user });
     return shareTransaction(caller, superadmin);
   }
-}
-
-/** Vendure keeps the transaction under a symbol it does not export, and that symbol is a context's only one. */
-function shareTransaction(from: RequestContext, to: RequestContext): RequestContext {
-  for (const key of Object.getOwnPropertySymbols(from)) {
-    (to as ContextWithSymbols)[key] = (from as ContextWithSymbols)[key];
-  }
-  return to;
 }

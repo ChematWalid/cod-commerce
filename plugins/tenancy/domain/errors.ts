@@ -59,6 +59,15 @@ export class StoreArchivedError extends DomainError {
   }
 }
 
+/** An asset that does not exist on the channels allowed here, so it cannot be published as this tenant's logo. */
+export class AssetNotAvailableError extends DomainError {
+  readonly code = 'tenancy.asset-not-available';
+
+  constructor() {
+    super('The asset is not available to this store');
+  }
+}
+
 /** Archiving would leave the business with no active store. */
 export class LastStoreError extends DomainError {
   readonly code = 'tenancy.last-store';

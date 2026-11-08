@@ -1,6 +1,3 @@
-import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
-import { Administrator, TransactionalConnection } from '@vendure/core';
-import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
 import {
   ARCHIVE_STORE,
@@ -11,26 +8,10 @@ import {
   SUBDOMAIN_AVAILABILITY,
   UPDATE_STORE,
 } from './admin-api-operations';
-import { actAsOwner, channelTokenOf } from './admin-api-session';
+import { actAsMember, actAsOwner, createMember } from './admin-api-session';
 import { failureOf } from './graphql-outcome';
 import { useStoreApi } from './store-api-harness';
-import { OWNER_PASSWORD, provisionBusiness } from './tenant-fixtures';
-
-const CREATE_ROLE = gql`
-  mutation ($input: CreateRoleInput!) {
-    createRole(input: $input) {
-      id
-    }
-  }
-`;
-
-const CREATE_ADMINISTRATOR = gql`
-  mutation ($input: CreateAdministratorInput!) {
-    createAdministrator(input: $input) {
-      id
-    }
-  }
-`;
+import { provisionBusiness } from './tenant-fixtures';
 
 describe('Store subdomain changes, archiving and member reach', () => {
   const api = useStoreApi(1004);
@@ -155,34 +136,13 @@ describe('Store subdomain changes, archiving and member reach', () => {
     const delta = await provisionBusiness(server.app, 'delta');
     await actAsOwner(server.app, adminClient, 'delta', delta.store.channelId);
     const other = await createStore('delta-two');
-    adminClient.setChannelToken(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
-    await adminClient.asSuperAdmin();
-    const { createRole } = await adminClient.query<{ createRole: { id: string } }>(CREATE_ROLE, {
-      input: {
-        code: 'delta-member',
-        description: 'delta member',
-        permissions: ['Authenticated', 'ReadTenantStore', 'UpdateTenantStore'],
-        channelIds: [`T_${String(delta.store.channelId)}`],
-      },
+    await createMember(server.app, adminClient, {
+      code: 'delta-member',
+      businessId: delta.business.id,
+      channelId: delta.store.channelId,
+      permissions: ['Authenticated', 'ReadTenantStore', 'UpdateTenantStore'],
     });
-    const { createAdministrator } = await adminClient.query<{ createAdministrator: { id: string } }>(
-      CREATE_ADMINISTRATOR,
-      {
-        input: {
-          emailAddress: 'delta-member@example.test',
-          firstName: 'd',
-          lastName: 'm',
-          password: OWNER_PASSWORD,
-          roleIds: [createRole.id],
-        },
-      },
-    );
-    await server.app
-      .get(TransactionalConnection)
-      .rawConnection.getRepository(Administrator)
-      .update(createAdministrator.id.replace('T_', ''), { customFields: { businessId: delta.business.id } });
-    adminClient.setChannelToken(await channelTokenOf(server.app, delta.store.channelId));
-    await adminClient.asUserWithCredentials('delta-member@example.test', OWNER_PASSWORD);
+    await actAsMember(server.app, adminClient, 'delta-member', delta.store.channelId);
 
     // Act
     const { stores } = await adminClient.query<{ stores: StoreView[] }>(STORES);
