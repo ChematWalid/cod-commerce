@@ -19,7 +19,9 @@ export default defineConfig(({ mode }) => {
   const production = mode === 'production';
   return {
     base: '/dashboard',
-    build: { outDir: 'dist/dashboard' },
+    // The plugin moves Vite's root into @vendure/dashboard, so this outDir lies outside it, and Vite only
+    // empties an outDir outside its root when told to: otherwise old hashed assets pile up.
+    build: { outDir: 'dist/dashboard', emptyOutDir: true },
     // The plugin dashboards and the font files live outside this package.
     server: { fs: { allow: [searchForWorkspaceRoot(process.cwd())] } },
     plugins: [

@@ -79,10 +79,13 @@ describe('merchant dashboard host (ADR 0010)', () => {
 
   it('shows the login page', async () => {
     await page.goto(`${DASHBOARD_URL}/login`);
+    // waitFor() is the visibility check: it rejects when the button never becomes visible.
     const signIn = page.getByRole('button', { name: DASHBOARD_LABELS.signIn });
-    await signIn.waitFor();
+    await signIn.waitFor({ state: 'visible' });
 
-    await expect(signIn.isVisible()).resolves.toBe(true);
+    expect(new URL(page.url()).pathname).toBe(new URL(`${DASHBOARD_URL}/login`).pathname);
+    await expect(signIn.isEnabled()).resolves.toBe(true);
+    await expect(page.getByRole('textbox', { name: DASHBOARD_LABELS.email }).isEditable()).resolves.toBe(true);
   });
 
   it.each(DASHBOARD_PAGES_UNDER_TEST)('renders $path in Arabic right-to-left', async (target) => {

@@ -19,7 +19,7 @@
     "@fontsource/ibm-plex-sans-arabic": "5.3.0",
     "@vendure/core": "3.8.1",
     "@vendure/dashboard": "3.8.1",
-    "react": "19.3.1"
+    "react": "19.3.0"
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
