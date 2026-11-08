@@ -5,30 +5,43 @@
 //   node scripts/evidence/template-screens.mjs <dashboard-url> <out-dir> <table-file>
 //
 // Env: SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD (read by the session helper), CHANNEL_CODE_A / CHANNEL_TOKEN_A (the code and
-// token of business A, whose notes the page must list), NOTE_TITLES (the titles that must be on the page,
-// separated by "|"). Node 24 strips the types of the imported .ts files; nothing here needs a build step.
+// token of business A, whose notes the page must list), CHANNEL_CODE_B / CHANNEL_TOKEN_B (the other business),
+// NOTE_TITLES (A's titles that must be on the page, separated by "|"), OTHER_BUSINESS_TITLE (B's note title: never
+// on A's shots, and the page must list it once the channel switcher selects B). Node 24 strips the types of the imported .ts files; nothing here needs a build step.
 /* global process, console, URL, document, localStorage, getComputedStyle -- Node globals, and browser globals inside page.evaluate callbacks */
 import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ARABIC_FONT_FAMILY } from '../../plugins/merchant-shell/dashboard/constants.ts';
-import {
-  TEMPLATE_NOTES_PATH,
-  TEMPLATE_NOTES_TEST_ID,
-} from '../../plugins/_template/dashboard/constants.ts';
+import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '../../plugins/_template/dashboard/constants.ts';
 import { loginAsSuperadmin, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');
 
 const [baseArg, outDir, tableFile] = process.argv.slice(2);
-if (!baseArg || !outDir || !tableFile) throw new Error('usage: template-screens.mjs <dashboard-url> <out-dir> <table-file>');
+if (!baseArg || !outDir || !tableFile)
+  throw new Error('usage: template-screens.mjs <dashboard-url> <out-dir> <table-file>');
 const base = baseArg.replace(/\/$/, '');
 const channelToken = process.env.CHANNEL_TOKEN_A;
 const CHANNEL_CODE_A = process.env.CHANNEL_CODE_A;
+const CHANNEL_CODE_B = process.env.CHANNEL_CODE_B;
+const channelTokenB = process.env.CHANNEL_TOKEN_B;
+const otherBusinessTitle = process.env.OTHER_BUSINESS_TITLE;
 const noteTitles = (process.env.NOTE_TITLES ?? '').split('|').filter(Boolean);
-if (!channelToken || !CHANNEL_CODE_A || noteTitles.length === 0) throw new Error('CHANNEL_TOKEN_A, CHANNEL_CODE_A and NOTE_TITLES must be set');
+if (
+  !channelToken ||
+  !CHANNEL_CODE_A ||
+  !CHANNEL_CODE_B ||
+  !channelTokenB ||
+  !otherBusinessTitle ||
+  noteTitles.length === 0
+) {
+  throw new Error(
+    'CHANNEL_TOKEN_A, CHANNEL_CODE_A, CHANNEL_CODE_B, CHANNEL_TOKEN_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set',
+  );
+}
 const MAX_BYTES = 300 * 1024;
 const PHONE_MAX_WIDTH = 768;
 /** The dashboard's localStorage key of the selected channel token (`@vendure/dashboard` storage-keys.ts). */
@@ -87,13 +100,36 @@ async function capture(page, file) {
   return fail(`${file} is ${size} bytes, over ${MAX_BYTES}`);
 }
 
-/** Selects business A in the dashboard's channel switcher (the first button of the sidebar, a menu of channel
- * codes) as a merchant would, and fails unless the dashboard persisted A's token: writing \`localStorage\` alone
+/** Selects a business in the dashboard's channel switcher (the first button of the sidebar, a menu of channel
+ * codes) as a merchant would, and fails unless the dashboard persisted its token: writing \`localStorage\` alone
  * is overwritten by the dashboard's own channel state. */
-async function selectChannelOfToken(page) {
+async function selectChannel(page, code, token) {
   await page.locator('[data-sidebar="sidebar"] button').first().click();
-  await page.getByRole('menuitem', { name: CHANNEL_CODE_A, exact: true }).click();
-  await page.waitForFunction(([key, token]) => localStorage.getItem(key) === token, [SELECTED_CHANNEL_KEY, channelToken]);
+  await page.getByRole('menuitem', { name: code, exact: true }).click();
+  await page.waitForFunction(([key, value]) => localStorage.getItem(key) === value, [SELECTED_CHANNEL_KEY, token]);
+}
+
+/** On the open notes page, switches the channel from A to B: B's note must replace A's, without a reload. */
+async function assertChannelSwitchReplacesNotes(browser) {
+  const context = await browser.newContext({ ...VIEWPORTS.desktop.options, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await loginAsSuperadmin(page, base);
+    await setDisplayLanguage(page, 'en');
+    await selectChannel(page, CHANNEL_CODE_A, channelToken);
+    await page.goto(`${base}${TEMPLATE_NOTES_PATH}`);
+    const marker = page.getByTestId(TEMPLATE_NOTES_TEST_ID);
+    await marker.getByText(noteTitles[0], { exact: false }).first().waitFor({ state: 'visible' });
+    await selectChannel(page, CHANNEL_CODE_B, channelTokenB);
+    await marker.getByText(otherBusinessTitle, { exact: false }).first().waitFor({ state: 'visible', timeout: 15_000 });
+    for (const title of noteTitles) {
+      const stale = await marker.getByText(title, { exact: false }).count();
+      if (stale > 0) fail(`channel switch: A's note "${title}" is still listed under B`);
+    }
+    console.error("channel switch: the page replaced A's notes by B's");
+  } finally {
+    await context.close();
+  }
 }
 
 /** The dashboard's user menu sits in the collapsed sidebar on a phone, so the sign-in and language helpers run
@@ -106,7 +142,7 @@ async function prepareStorageState(browser, lang) {
     const page = await context.newPage();
     await loginAsSuperadmin(page, base);
     await setDisplayLanguage(page, lang);
-    await selectChannelOfToken(page);
+    await selectChannel(page, CHANNEL_CODE_A, channelToken);
     return await context.storageState();
   } finally {
     await context.close();
@@ -134,11 +170,14 @@ async function shootNotes(browser, vpName, lang, deviceScaleFactor) {
     await page.goto(`${base}${TEMPLATE_NOTES_PATH}`);
     const marker = page.getByTestId(TEMPLATE_NOTES_TEST_ID);
     await marker.waitFor({ state: 'attached' });
-    for (const title of noteTitles) await marker.getByText(title, { exact: false }).first().waitFor({ state: 'visible' });
+    for (const title of noteTitles)
+      await marker.getByText(title, { exact: false }).first().waitFor({ state: 'visible' });
     await settle(page);
     const state = await documentState(page);
     assertDocument(state, lang, label);
     if (lang === 'ar') assertArabicFont(state, label);
+    if ((await marker.getByText(otherBusinessTitle, { exact: false }).count()) > 0)
+      fail(`${label}: shows the other business's note`);
     const alert = await page.getByRole('alert').count();
     if (alert > 0) fail(`${label}: the page shows an alert instead of the notes`);
     await capture(page, join(outDir, `template-notes-${lang}-${vpName}.png`));
@@ -163,6 +202,7 @@ mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
 const rows = [];
 try {
+  await assertChannelSwitchReplacesNotes(browser);
   for (const vpName of Object.keys(VIEWPORTS)) {
     for (const lang of Object.keys(LANG_DIRS)) rows.push(await shootWithinBudget(browser, vpName, lang));
   }

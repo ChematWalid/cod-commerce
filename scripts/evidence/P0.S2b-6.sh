@@ -169,27 +169,18 @@ fs.writeFileSync(file, JSON.stringify(walk(parsed)));
 }
 
 json='Content-Type: application/json'
-# gql <file> <title> <query> <variables-json> <shown-variables-json|-> <session-token|-> <channel-token|->
+# gql <query> <variables-json> <session-token|-> <channel-token|->
 # POST to the Admin API. Leaves the raw response in $work/raw, the normalised one in $work/b.
 gql() {
-  local file=$1 title=$2 query=$3 vars=$4 shown_vars=$5 session=$6 channel=$7
-  local body shown_body
+  local query=$1 vars=$2 session=$3 channel=$4
+  local body
   body=$(Q="$query" V="$vars" node -e 'console.log(JSON.stringify({query:process.env.Q,variables:JSON.parse(process.env.V)}))')
-  [[ "$shown_vars" == - ]] && shown_vars=$vars
-  shown_body=$(Q="$query" V="$shown_vars" node -e 'console.log(JSON.stringify({query:process.env.Q,variables:JSON.parse(process.env.V)}))')
   local -a args=(-sS -X POST -D "$work/h" -o "$work/b" --max-time 30 -H "$json" --data "$body")
-  local -a shown=("$json")
-  if [[ "$session" != - ]]; then
-    args+=(-H "Authorization: Bearer $session")
-    shown+=("Authorization: Bearer [REDACTED]")
-  fi
-  if [[ "$channel" != - ]]; then
-    args+=(-H "vendure-token: $channel")
-    shown+=("vendure-token: $channel")
-  fi
+  [[ "$session" != - ]] && args+=(-H "Authorization: Bearer $session")
+  [[ "$channel" != - ]] && args+=(-H "vendure-token: $channel")
   local status
   status=$(curl "${args[@]}" -w '%{http_code}' "$admin") || status=000
-  [[ "$status" != 000 ]] || fail "$title: no HTTP answer from $admin"
+  [[ "$status" != 000 ]] || fail "no HTTP answer from $admin"
   command cp "$work/b" "$work/raw"
 }
 # emit <file> <title> <shown-vars|-> : normalises $work/b and appends the transcript (the request shows the same
@@ -205,13 +196,7 @@ emit() {
   SHOWN_HEADERS=$(printf '%s\n' "${shown[@]}") SHOWN_BODY=$shown_body \
     TITLE=$title METHOD=POST URL="$admin" node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$file"
 }
-# call <file> <title> <query> <vars> <shown-vars> <session> <channel>: gql + emit in one step. The raw response is
-# kept in $work/raw for assertions made by the caller BEFORE it calls emit_last (so assertions see real ids).
-call() {
-  gql "$@"
-}
 begin() { printf '# %s\n\n%s\n\n' "$2" "$3" >"$1"; }
-# jsq <vars-json-with-ID-placeholder>: variables JSON for a query with the id replaced by its placeholder.
 login_tokens=() cookies=()
 remember_login() { # remember_login: token and cookie values of the last login, for the final redaction check
   local t
@@ -241,18 +226,18 @@ login_vars() { U="$1" P="$2" node -e 'console.log(JSON.stringify({username:proce
 login_shown() { U="$1" node -e 'console.log(JSON.stringify({username:process.env.U,password:"[REDACTED]"}))'; }
 
 # --- superadmin session and the two businesses (setup, not transcripts) -----------------------
-gql x x "$Q_LOGIN" "$(login_vars "$SUPERADMIN_USERNAME" "$SUPERADMIN_PASSWORD")" "$(login_shown "$SUPERADMIN_USERNAME")" - -
+gql "$Q_LOGIN" "$(login_vars "$SUPERADMIN_USERNAME" "$SUPERADMIN_PASSWORD")" - -
 assert_js "superadmin login" 'b.data.login.__typename==="CurrentUser"' "$work/b"
 remember_login
 super=$LAST_TOKEN
-gql x x "$Q_ZONES" '{}' - "$super" -
+gql "$Q_ZONES" '{}' "$super" -
 zone_id=$(js '(b.data.zones.items.find(z=>z.name==="Algeria")||{}).id' "$work/b")
 [[ -n "$zone_id" && "$zone_id" != undefined ]] || fail "no Algeria zone in the seed: $(command cat "$work/b")"
 
 create_channel() { # create_channel <code> <token>
   local vars
   vars=$(Z="$zone_id" C="$1" T="$2" node -e 'console.log(JSON.stringify({input:{code:process.env.C,token:process.env.T,defaultLanguageCode:"en",pricesIncludeTax:true,defaultCurrencyCode:"DZD",defaultTaxZoneId:process.env.Z,defaultShippingZoneId:process.env.Z}}))')
-  gql x x "$Q_CHANNEL" "$vars" - "$super" -
+  gql "$Q_CHANNEL" "$vars" "$super" -
   assert_js "createChannel $1" 'b.data.createTemplateNote===undefined&&b.data.createChannel.__typename==="Channel"' "$work/b"
 }
 create_channel "$CODE_A" "$TOKEN_A"
@@ -263,7 +248,7 @@ begin "$out/api/create-note.md" "createTemplateNote" "\`createTemplateNote\` on 
 create_note() { # create_note <file> <title> <name> <token> <note-title> <note-body>
   local vars
   vars=$(T="$5" B="$6" node -e 'console.log(JSON.stringify({input:{title:process.env.T,body:process.env.B}}))')
-  gql x x "$Q_CREATE" "$vars" - "$super" "$4"
+  gql "$Q_CREATE" "$vars" "$super" "$4"
   assert_js "$2" "!b.errors && b.data.createTemplateNote.title === $(node -e 'console.log(JSON.stringify(process.argv[1]))' "$5") && b.data.createTemplateNote.createdAt.length > 0" "$work/b"
   capture_id "$3" 'b.data.createTemplateNote.id'
   [[ -z "$1" ]] || { emit "$1" "$2" "$Q_CREATE" "$vars" "$super" "$4"; }
@@ -277,62 +262,62 @@ create_note "" "Business B: create a note" NOTE_B1 "$TOKEN_B" "$TITLE_B1" "$BODY
 # --- read-notes.md -----------------------------------------------------------------------
 begin "$out/api/read-notes.md" "templateNote and templateNotes" "Reading business A's notes: \`templateNote(id)\` and the newest-first page \`templateNotes(take, skip)\`, same session and channel as \`create-note.md\`. Ids and timestamps are placeholders (\`<NOTE_A1_ID>\` is the English note, \`<NOTE_A2_ID>\` the Arabic one)."
 id_vars() { ID="$1" node -e 'console.log(JSON.stringify({id:process.env.ID}))' ; }
-gql x x "$Q_NOTE" "$(id_vars "${NOTE_IDS[NOTE_A1]}")" - "$super" "$TOKEN_A"
+gql "$Q_NOTE" "$(id_vars "${NOTE_IDS[NOTE_A1]}")" "$super" "$TOKEN_A"
 assert_js "templateNote in A" "b.data.templateNote.id === '${NOTE_IDS[NOTE_A1]}' && b.data.templateNote.title === '$TITLE_A1'" "$work/b"
 emit "$out/api/read-notes.md" "Business A: templateNote(id) of the English note" "$Q_NOTE" "$(id_vars '<NOTE_A1_ID>')" "$super" "$TOKEN_A"
 page_vars='{"take":10,"skip":0}'
-gql x x "$Q_NOTES" "$page_vars" - "$super" "$TOKEN_A"
+gql "$Q_NOTES" "$page_vars" "$super" "$TOKEN_A"
 assert_js "templateNotes in A" "JSON.stringify(b.data.templateNotes.map(n=>n.id)) === JSON.stringify(['${NOTE_IDS[NOTE_A2]}','${NOTE_IDS[NOTE_A1]}'])" "$work/b"
 emit "$out/api/read-notes.md" "Business A: templateNotes(take: 10, skip: 0), newest first" "$Q_NOTES" "$page_vars" "$super" "$TOKEN_A"
-gql x x "$Q_NOTES" '{"take":1,"skip":1}' - "$super" "$TOKEN_A"
+gql "$Q_NOTES" '{"take":1,"skip":1}' "$super" "$TOKEN_A"
 assert_js "templateNotes skip" "b.data.templateNotes.length === 1 && b.data.templateNotes[0].id === '${NOTE_IDS[NOTE_A1]}'" "$work/b"
 emit "$out/api/read-notes.md" "Business A: templateNotes(take: 1, skip: 1), the second page" "$Q_NOTES" '{"take":1,"skip":1}' "$super" "$TOKEN_A"
 
 # --- typed-error.md ----------------------------------------------------------------------
 begin "$out/api/typed-error.md" "Typed domain error" "\`createTemplateNote\` with a blank title is refused by the domain with a typed error: \`extensions.code\` is \`TEMPLATE_NOTE_INVALID_TITLE\` and no data is returned."
 empty_vars='{"input":{"title":"   ","body":""}}'
-gql x x "$Q_CREATE" "$empty_vars" - "$super" "$TOKEN_A"
+gql "$Q_CREATE" "$empty_vars" "$super" "$TOKEN_A"
 assert_js "typed error" 'b.errors.length===1 && b.errors[0].extensions.code==="TEMPLATE_NOTE_INVALID_TITLE" && !b.data' "$work/b"
 emit "$out/api/typed-error.md" "Business A: createTemplateNote with a blank title" "$Q_CREATE" "$empty_vars" "$super" "$TOKEN_A"
 
 # --- forbidden.md ------------------------------------------------------------------------
 begin "$out/api/forbidden.md" "Permission check" "An administrator whose only role grants \`ReadCatalog\` (plus the implicit \`Authenticated\`; created below through the Admin API, synthetic data) cannot read notes: \`templateNotes\` answers \`FORBIDDEN\`. The password of that account is redacted by the script."
 role_vars=$(C="$READER_CODE" node -e 'console.log(JSON.stringify({input:{code:process.env.C,description:process.env.C,permissions:["ReadCatalog"]}}))')
-gql x x "$Q_ROLE" "$role_vars" - "$super" -
+gql "$Q_ROLE" "$role_vars" "$super" -
 assert_js "createRole" 'b.data.createRole.permissions.includes("ReadCatalog") && !b.data.createRole.permissions.some(p=>/TemplateNote/.test(p))' "$work/b"
 role_id=$(js 'b.data.createRole.id' "$work/b")
 command cp "$work/raw" "$work/role.raw"
 emit "$out/api/forbidden.md" "Superadmin: create a role with only ReadCatalog" "$Q_ROLE" "$role_vars" "$super" -
 admin_vars() { E="$READER_EMAIL" P="$1" R="$role_id" node -e 'console.log(JSON.stringify({input:{firstName:"Catalog",lastName:"Reader",emailAddress:process.env.E,password:process.env.P,roleIds:[process.env.R]}}))'; }
-gql x x "$Q_ADMIN" "$(admin_vars "$READER_PASSWORD")" "$(admin_vars '[REDACTED]')" "$super" -
+gql "$Q_ADMIN" "$(admin_vars "$READER_PASSWORD")" "$super" -
 assert_js "createAdministrator" "b.data.createAdministrator.emailAddress==='$READER_EMAIL'" "$work/b"
 emit "$out/api/forbidden.md" "Superadmin: create an administrator with that role" "$Q_ADMIN" "$(admin_vars '[REDACTED]')" "$super" -
-gql x x "$Q_LOGIN" "$(login_vars "$READER_EMAIL" "$READER_PASSWORD")" "$(login_shown "$READER_EMAIL")" - -
+gql "$Q_LOGIN" "$(login_vars "$READER_EMAIL" "$READER_PASSWORD")" - -
 assert_js "reader login" 'b.data.login.__typename==="CurrentUser"' "$work/b"
 remember_login
 reader=$LAST_TOKEN
 emit "$out/api/forbidden.md" "The catalog reader signs in" "$Q_LOGIN" "$(login_shown "$READER_EMAIL")" - -
-gql x x "$Q_NOTES" '{"take":10,"skip":0}' - "$reader" -
+gql "$Q_NOTES" '{"take":10,"skip":0}' "$reader" -
 assert_js "forbidden" 'b.errors.length===1 && b.errors[0].extensions.code==="FORBIDDEN" && !b.data' "$work/b"
 emit "$out/api/forbidden.md" "The catalog reader: templateNotes" "$Q_NOTES" '{"take":10,"skip":0}' "$reader" -
 
 # --- isolation.md ------------------------------------------------------------------------
 begin "$out/api/isolation.md" "Two-business isolation" "Business A (\`$CODE_A\`, token \`$TOKEN_A\`) and business B (\`$CODE_B\`, token \`$TOKEN_B\`) are two Vendure channels created through the Admin API (ADR 0002: one channel per business; neither is the platform's default channel). Each has notes; the same superadmin session reads from both by switching only the \`vendure-token\` header. A never reads B's note by id nor in its list, and the converse; an unknown channel token is refused instead of falling back to the default channel. Note ids and timestamps are placeholders; the script asserts each result on the real ids."
-gql x x "$Q_ACTIVE" '{}' - "$super" "$TOKEN_A"
+gql "$Q_ACTIVE" '{}' "$super" "$TOKEN_A"
 chan_a=$(js 'b.data.activeChannel.id' "$work/b")
 assert_js "A channel" "b.data.activeChannel.code === '$CODE_A'" "$work/b"
 emit "$out/api/isolation.md" "Token $TOKEN_A resolves to channel $CODE_A" "$Q_ACTIVE" '{}' "$super" "$TOKEN_A"
-gql x x "$Q_ACTIVE" '{}' - "$super" "$TOKEN_B"
+gql "$Q_ACTIVE" '{}' "$super" "$TOKEN_B"
 chan_b=$(js 'b.data.activeChannel.id' "$work/b")
 assert_js "B channel" "b.data.activeChannel.code === '$CODE_B'" "$work/b"
 emit "$out/api/isolation.md" "Token $TOKEN_B resolves to channel $CODE_B" "$Q_ACTIVE" '{}' "$super" "$TOKEN_B"
-gql x x "$Q_ACTIVE" '{}' - "$super" -
+gql "$Q_ACTIVE" '{}' "$super" -
 assert_js "default channel" 'b.data.activeChannel.code==="__default_channel__"' "$work/b"
 [[ "$chan_a" != "$chan_b" ]] || fail "A and B resolved to the same channel"
 emit "$out/api/isolation.md" "No token resolves to the platform's default channel, which is neither A nor B" "$Q_ACTIVE" '{}' "$super" -
 
 read_note() { # read_note <title> <token> <name-for-sent-id> <expect-null:true|false> <expected-title>
-  gql x x "$Q_NOTE" "$(id_vars "${NOTE_IDS[$3]}")" - "$super" "$2"
+  gql "$Q_NOTE" "$(id_vars "${NOTE_IDS[$3]}")" "$super" "$2"
   if [[ "$4" == true ]]; then
     assert_js "$1" 'b.data.templateNote === null && !b.errors' "$work/b"
   else
@@ -341,7 +326,7 @@ read_note() { # read_note <title> <token> <name-for-sent-id> <expect-null:true|f
   emit "$out/api/isolation.md" "$1" "$Q_NOTE" "$(id_vars "<${3}_ID>")" "$super" "$2"
 }
 list_notes() { # list_notes <title> <token> <expected ids JSON array of names>
-  gql x x "$Q_NOTES" '{"take":10,"skip":0}' - "$super" "$2"
+  gql "$Q_NOTES" '{"take":10,"skip":0}' "$super" "$2"
   local expected="" n
   for n in $3; do expected+="'${NOTE_IDS[$n]}',"; done
   assert_js "$1" "JSON.stringify(b.data.templateNotes.map(n=>n.id).sort()) === JSON.stringify([${expected}].sort())" "$work/b"
@@ -354,19 +339,20 @@ read_note "In A: templateNote(id of B's note) is null" "$TOKEN_A" NOTE_B1 true "
 list_notes "In A: templateNotes lists only A's two notes" "$TOKEN_A" "NOTE_A1 NOTE_A2"
 list_notes "On the platform (default channel): templateNotes is empty" - ""
 
-gql x x "$Q_NOTES" '{"take":10,"skip":0}' - "$super" "$UNKNOWN_TOKEN"
+gql "$Q_NOTES" '{"take":10,"skip":0}' "$super" "$UNKNOWN_TOKEN"
 assert_js "unknown token" 'b.errors.length===1 && b.errors[0].extensions.code==="CHANNEL_NOT_FOUND" && !b.data' "$work/b"
 emit "$out/api/isolation.md" "Unknown channel token '$UNKNOWN_TOKEN': refused, no data" "$Q_NOTES" '{"take":10,"skip":0}' "$super" "$UNKNOWN_TOKEN"
 
 # --- input-shape.md ----------------------------------------------------------------------
 begin "$out/api/input-shape.md" "CreateTemplateNoteInput" "Introspection of the mutation's input type: it has \`body\` and \`title\` only. There is no business or channel field, so a caller cannot choose the tenant (it comes from the request's channel)."
-gql x x "$Q_INPUT" '{}' - "$super" -
+gql "$Q_INPUT" '{}' "$super" -
 assert_js "input shape" 'JSON.stringify(b.data.__type.inputFields.map(f=>f.name).sort())==="[\"body\",\"title\"]"' "$work/b"
 emit "$out/api/input-shape.md" "Introspect CreateTemplateNoteInput" "$Q_INPUT" '{}' "$super" -
 
 # --- screenshots -------------------------------------------------------------------------
 started=$SECONDS
-CHANNEL_CODE_A=$CODE_A CHANNEL_TOKEN_A=$TOKEN_A NOTE_TITLES="$TITLE_A1|$TITLE_A2" \
+CHANNEL_CODE_A=$CODE_A CHANNEL_TOKEN_A=$TOKEN_A CHANNEL_CODE_B=$CODE_B CHANNEL_TOKEN_B=$TOKEN_B \
+  NOTE_TITLES="$TITLE_A1|$TITLE_A2" OTHER_BUSINESS_TITLE="$TITLE_B1" \
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/template-screens.mjs "$api/dashboard" "$out/screens" "$work/screens-table.md"
 echo "screenshots taken in $((SECONDS - started))s"
 
