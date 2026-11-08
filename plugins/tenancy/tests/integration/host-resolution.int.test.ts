@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
 import { ResolveHostService } from '../../application/resolve-host.service';
-import { hostCacheKey } from '../../domain/constants';
+import { HOST_CACHE_TTL_SECONDS, hostCacheKey } from '../../domain/constants';
 import { HostInvalidationSubscriber } from '../../infrastructure/host-invalidation.subscriber';
 import { HostInvalidator } from '../../infrastructure/host-invalidator';
 import { LruHostCache } from '../../infrastructure/lru';
@@ -142,6 +142,29 @@ describe('host to store resolution', () => {
     // Assert
     expect(await probe.exists(hostCacheKey('stale.localhost'))).toBe(0);
     await expect(stack.resolver.resolve('stale.localhost')).resolves.toBeNull();
+  });
+
+  it('writes a host key with the backstop TTL', async () => {
+    // Arrange
+    await clearHosts('ttl.localhost');
+    const stack = await startStack();
+
+    // Act
+    await stack.shared.set('ttl.localhost', {
+      storeId: '100',
+      businessId: '200',
+      language: 'ar',
+      name: 'Ttl',
+      logo: null,
+      primaryHost: 'ttl.localhost',
+      status: 'active',
+    });
+
+    // Assert
+    const ttl = await probe.ttl(hostCacheKey('ttl.localhost'));
+    expect(ttl).toBeGreaterThan(0);
+    expect(ttl).toBeLessThanOrEqual(HOST_CACHE_TTL_SECONDS);
+    await clearHosts('ttl.localhost');
   });
 
   it('stops resolving an archived store while its subdomain stays taken', async () => {

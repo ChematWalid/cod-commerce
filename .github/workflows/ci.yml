@@ -146,6 +146,7 @@ jobs:
       DATABASE_URL_DIRECT: postgres://cod:change-me-pg@localhost:5432/cod
       REDIS_URL: redis://localhost:6379
       PLATFORM_DOMAIN: localhost
+      INTERNAL_API_URL: http://localhost:3100
       TZ: UTC
       APP_ENV: test
       ROLE: api

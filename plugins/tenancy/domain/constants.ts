@@ -46,5 +46,17 @@ export const HOST_REDELETE_DELAY_MS = 500;
 /** The Valkey channel that tells every process to drop hosts from memory. */
 export const HOST_INVALIDATE_CHANNEL = 'host-invalidate';
 
-/** The Valkey key of a host's cached store. It has no TTL: invalidation removes it. */
+/** How many more times a failed delete is retried, doubling from {@link HOST_INVALIDATE_RETRY_BASE_MS}: about 30 s. */
+export const HOST_INVALIDATE_RETRIES = 5;
+
+/** The wait before the first retry of a failed delete. */
+export const HOST_INVALIDATE_RETRY_BASE_MS = 1000;
+
+/** The backstop on a cached host: a key whose every delete failed during an outage is gone after a day (D16). */
+export const HOST_CACHE_TTL_SECONDS = 86_400;
+
+/** How long a request waits for Valkey before reading the database instead; well under the storefront's timeout. */
+export const HOST_CACHE_COMMAND_TIMEOUT_MS = 200;
+
+/** The Valkey key of a host's cached store. Invalidation removes it; {@link HOST_CACHE_TTL_SECONDS} is the backstop. */
 export const hostCacheKey = (host: string): string => `host:${host}`;

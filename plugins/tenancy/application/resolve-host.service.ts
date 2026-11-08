@@ -37,7 +37,8 @@ export class ResolveHostService {
     const row = await this.lookUp(host);
     if (row === null) return null;
     const resolution = this.toResolution(row);
-    await this.dependencies.shared.set(host, resolution);
+    // Not awaited: the adapter logs its own failures, and a buyer's request must not wait on the cache write.
+    void this.dependencies.shared.set(host, resolution);
     await this.dependencies.local.set(host, resolution);
     return resolution;
   }

@@ -23,4 +23,7 @@ Later rulings are appended under "Later rulings".
 
 ## Later rulings
 
-(None yet.)
+| # | Decision | Why | Cost if wrong |
+|---|---|---|---|
+| D16 | Host keys in Valkey carry a 24 h TTL (`HOST_CACHE_TTL_SECONDS`), a deviation from ADR 0006's "no TTL". Invalidation stays the normal path; failed deletes are retried for about 30 s (`HOST_INVALIDATE_RETRIES`). | If Valkey is down for every delete, a key with no TTL would serve an old host for ever once Valkey returns. | One database read per host per day; if 24 h is too long, a moved host can stay stale that long after an outage outlasting the retries. |
+| D17 | The storefront's `use cache` store name is not revalidated on rename in P1.S1; revalidation arrives with the publish flow (ADR 0006 §5, P3.S2). | The `storefront-revalidate` path belongs to that flow; host data itself is invalidated now. | A store's page shows its old name for up to the cache life. |

@@ -5,9 +5,9 @@
 //
 // Chromium resolves every *.localhost name to the loopback address, so the store is picked by the Host header
 // the browser sends, exactly as in production. The stores, the unknown host and the page markers come from the
-// constants block of P0.S2b-5.sh (environment variables); they are checked here against the storefront's own
-// source (STUB_STORES and app/not-found.tsx; the modules are not importable from plain Node: their imports have
-// no file extensions), so a drift fails the run instead of screenshotting the wrong thing.
+// constants block of P0.S2b-5.sh (environment variables); they are checked here against the demo seed and the
+// storefront's source (the modules are not importable from plain Node: their imports have no file extensions), so
+// a drift fails the run instead of screenshotting the wrong thing.
 /* global process, console, URL, document, requestAnimationFrame -- Node globals, and browser globals inside page.evaluate callbacks */
 import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -31,7 +31,6 @@ function fromEnv(name) {
 }
 
 const storeFromEnv = (prefix) => ({
-  storeId: fromEnv(`${prefix}_STORE_ID`),
   name: fromEnv(`${prefix}_STORE_NAME`),
   locale: fromEnv(`${prefix}_STORE_LOCALE`),
   host: fromEnv(`${prefix}_STORE_HOST`),
@@ -59,27 +58,18 @@ function fail(message) {
   throw new Error(message);
 }
 
-/** The stub stores, parsed from the storefront source. */
-function parseStubStores() {
-  const source = readFileSync(join(root, 'apps/storefront/src/tenancy/stub-store-resolver.ts'), 'utf8');
-  const pattern =
-    /storeId: '([^']+)',[\s\S]*?name: '([^']+)',\s*defaultLocale: toStoreLocale\('([^']+)'\),\s*primaryHost: '([^']+)'/g;
-  const stores = [...source.matchAll(pattern)].map(([, storeId, name, locale, host]) => ({
-    storeId,
-    name,
-    locale,
-    host,
-  }));
-  if (stores.length !== 2) fail(`expected 2 stub stores in the storefront source, parsed ${stores.length}`);
-  return stores;
+/** Fails unless the demo seed declares this store with this name and language. */
+function assertSeeded(store, seedSource) {
+  const subdomain = store.host.split('.')[0];
+  const declaration = `{ name: '${store.name}', subdomain: '${subdomain}', language: '${store.locale}' }`;
+  if (!seedSource.includes(declaration)) fail(`the demo seed no longer declares ${declaration}`);
 }
 
 /** The stores of the script's constants block, after checking them and the page markers against the source. */
 function readStores() {
   const stores = [storeFromEnv('DEMO'), storeFromEnv('SECOND')];
-  const parsed = JSON.stringify(parseStubStores());
-  if (JSON.stringify(stores) !== parsed)
-    fail(`P0.S2b-5.sh's stores ${JSON.stringify(stores)} differ from STUB_STORES ${parsed}`);
+  const seedSource = readFileSync(join(root, 'apps/server/src/seed/seed-demo-businesses.ts'), 'utf8');
+  stores.forEach((store) => assertSeeded(store, seedSource));
   if (stores.some((s) => s.host === UNKNOWN_HOST)) fail(`${UNKNOWN_HOST} belongs to a store`);
   const notFoundCopy = readFileSync(join(root, 'apps/storefront/src/i18n/storefront-locale-copy.ts'), 'utf8');
   const notFoundContent = readFileSync(join(root, 'apps/storefront/src/i18n/not-found-content.tsx'), 'utf8');
@@ -141,7 +131,7 @@ async function shoot(browser, vpName, spec) {
 const stores = readStores();
 const specs = [
   ...stores.map((store) => ({
-    file: store.storeId,
+    file: store.host.split('.')[0],
     host: store.host,
     status: 200,
     testId: STORE_NAME_TEST_ID,

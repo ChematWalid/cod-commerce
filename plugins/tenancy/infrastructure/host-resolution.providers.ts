@@ -8,7 +8,7 @@ import { HostInvalidationSubscriber } from './host-invalidation.subscriber';
 import { HostInvalidator } from './host-invalidator';
 import { LruHostCache } from './lru';
 import { PlatformStoreLookup } from './platform-store-lookup';
-import { ValkeyHostCache } from './valkey-host-cache';
+import { HOST_CACHE_REDIS_OPTIONS, ValkeyHostCache } from './valkey-host-cache';
 
 const LOG_CONTEXT = 'HostResolution';
 
@@ -28,16 +28,15 @@ function connect(redisUrl: string, options: RedisOptions): Redis {
 
 /**
  * The host resolver's providers. `options` is read when Nest builds them, after `TenancyPlugin.init`.
- * Commands give up after one retry so a Valkey outage falls through to the database; the subscriber retries
- * for ever, so it subscribes whenever Valkey comes back.
+ * Commands fail fast so a Valkey outage falls through to the database; the subscriber retries for ever, so it
+ * subscribes whenever Valkey comes back.
  */
 export function hostResolutionProviders(options: () => HostResolutionOptions): Provider[] {
   return [
     { provide: HOST_LOCAL_CACHE, useFactory: () => new LruHostCache() },
     {
       provide: HOST_SHARED_CACHE,
-      useFactory: () =>
-        new ValkeyHostCache(connect(options().redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 })),
+      useFactory: () => new ValkeyHostCache(connect(options().redisUrl, HOST_CACHE_REDIS_OPTIONS)),
     },
     {
       provide: HostInvalidationSubscriber,

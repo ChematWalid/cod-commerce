@@ -120,6 +120,16 @@ describe('ResolveHostService', () => {
     expect(local.entries.get('demo.localhost')).toEqual(resolution);
   });
 
+  it('answers without waiting for the Valkey write', async () => {
+    // Arrange
+    const { service, shared, lookup } = setup();
+    lookup.bySubdomain.set('demo', row);
+    shared.set = (): Promise<void> => new Promise(() => undefined);
+
+    // Act and Assert
+    await expect(service.resolve('demo.localhost')).resolves.toEqual(resolution);
+  });
+
   it('caches an unknown host nowhere', async () => {
     // Arrange
     const { service, local, shared } = setup();

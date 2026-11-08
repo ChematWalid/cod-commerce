@@ -1,7 +1,7 @@
 import { hostOfSubdomain } from '@cod/shared';
 import type { OnApplicationShutdown } from '@nestjs/common';
 import { Logger } from '@vendure/core';
-import { HOST_REDELETE_DELAY_MS } from '../domain/constants';
+import { HOST_INVALIDATE_RETRIES, HOST_INVALIDATE_RETRY_BASE_MS, HOST_REDELETE_DELAY_MS } from '../domain/constants';
 import type { HostCachePort } from '../domain/ports/host-cache.port';
 import type { HostStoreLookupPort } from '../domain/ports/host-store-lookup.port';
 import type { StoreHostChange, StoreHostInvalidatorPort } from '../domain/ports/store-host-invalidator.port';
@@ -36,12 +36,7 @@ export class HostInvalidator implements StoreHostInvalidatorPort, OnApplicationS
     await this.sweep(hosts);
     // A resolver that read the row before the commit can still write the old value after this sweep. Valkey keeps
     // it forever (no TTL), so a second sweep, once such a read has finished, is what removes it.
-    const timer = setTimeout(() => {
-      this.pending.delete(timer);
-      void this.sweep(hosts);
-    }, HOST_REDELETE_DELAY_MS);
-    timer.unref();
-    this.pending.set(timer, hosts);
+    this.scheduleSweep(hosts, HOST_REDELETE_DELAY_MS, 0);
   }
 
   async onApplicationShutdown(): Promise<void> {
@@ -54,17 +49,40 @@ export class HostInvalidator implements StoreHostInvalidatorPort, OnApplicationS
     this.shared.close();
   }
 
-  private async sweep(hosts: readonly string[]): Promise<void> {
-    await this.attempt('delete from Valkey', hosts, () => this.shared.delete(hosts));
-    await this.attempt('publish the invalidation of', hosts, () => this.shared.publish(hosts));
-    await this.attempt('drop from memory', hosts, () => this.local.delete(hosts));
+  private scheduleSweep(hosts: readonly string[], delayMs: number, retriesUsed: number): void {
+    const timer = setTimeout(() => {
+      this.pending.delete(timer);
+      void this.sweepOrRetry(hosts, retriesUsed);
+    }, delayMs);
+    timer.unref();
+    this.pending.set(timer, hosts);
   }
 
-  private async attempt(action: string, hosts: readonly string[], step: () => Promise<void>): Promise<void> {
+  /** A delete that fails while Valkey is down would leave the old host served, so it is retried for about 30 s. */
+  private async sweepOrRetry(hosts: readonly string[], retriesUsed: number): Promise<void> {
+    if (await this.sweep(hosts)) return;
+    if (retriesUsed >= HOST_INVALIDATE_RETRIES) {
+      Logger.error(`Gave up deleting hosts ${hosts.join(', ')}; they expire with their TTL`, LOG_CONTEXT);
+      return;
+    }
+    this.scheduleSweep(hosts, HOST_INVALIDATE_RETRY_BASE_MS * 2 ** retriesUsed, retriesUsed + 1);
+  }
+
+  /** @returns whether the Valkey delete went through */
+  private async sweep(hosts: readonly string[]): Promise<boolean> {
+    const deleted = await this.attempt('delete from Valkey', hosts, () => this.shared.delete(hosts));
+    await this.attempt('publish the invalidation of', hosts, () => this.shared.publish(hosts));
+    await this.attempt('drop from memory', hosts, () => this.local.delete(hosts));
+    return deleted;
+  }
+
+  private async attempt(action: string, hosts: readonly string[], step: () => Promise<void>): Promise<boolean> {
     try {
       await step();
+      return true;
     } catch (error) {
       Logger.error(`Could not ${action} hosts ${hosts.join(', ')}: ${String(error)}`, LOG_CONTEXT);
+      return false;
     }
   }
 
