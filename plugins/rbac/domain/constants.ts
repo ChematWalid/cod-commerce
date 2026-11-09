@@ -43,5 +43,9 @@ export const REDACTED_VALUE = '[REDACTED]';
 export const DIFF_OMITTED_VALUE = '[OMITTED]';
 /** The deepest nesting of a diff that is kept. */
 export const DIFF_MAX_DEPTH = 12;
+/** How long one cached-session delete may take before it is logged and given up (D55). */
+export const SESSION_CACHE_DELETE_TIMEOUT_MS = 1000;
+/** How long after the first delete the second one runs, for a reader that loaded before the commit (D55). */
+export const SESSION_REDELETE_DELAY_MS = 500;
 /** Largest Vendure administrator id (a Postgres `integer`); a larger one is never a real id (D68). */
 export const MAX_VENDURE_ID = 2147483647;
