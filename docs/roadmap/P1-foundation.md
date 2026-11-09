@@ -110,6 +110,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P1.S2-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S1.md`, ADR 0002 and the auth decision in ADR 0008.
 - `docs/research/second-pass.md` "Onboarding (new account)" (3 steps; step 3 "Name your store": store name, `<sub>` address with live "is available" check, store language "the language your customers shop in, not the dashboard", logo ≤5 MB).
 - `docs/research/api-surface.md` "Auth & account" paths (`/auth/register`, `/auth/login`, `/auth/verify-email/:token`, `/auth/verify-email-otp`, `/auth/change-email-request`, `/auth/confirm-email-change`, `/auth/profile`) and the "Auth:" bullet (JWT claims `id, email, iat, exp`, Bearer; reference only: ADR 0008 uses Vendure session tokens, not JWT).
