@@ -51,6 +51,7 @@ describe('buildPlugins', () => {
       expect(AuthPlugin.options).toEqual({
         tokenSecret: 'y'.repeat(32),
         dashboardUrl: 'http://localhost:3100/dashboard',
+        platformDomain: env.PLATFORM_DOMAIN,
         email: {
           smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
           templates: authEmailTemplates,

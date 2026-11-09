@@ -26,6 +26,7 @@ export const authAdminApiSchema = gql`
     oauthEnabled: Boolean!
     oauthProviders: [String!]!
     challengeUrl: String
+    platformDomain: String!
   }
 
   type ResendResult {

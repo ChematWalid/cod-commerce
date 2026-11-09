@@ -111,6 +111,7 @@ export function useRegisterWizard(onRegistered: OnRegistered): RegisterWizard {
   };
   const set: SetWizardValue = (field, value) => {
     setValues((current) => ({ ...current, [field]: value }));
+    setErrors((current) => Object.fromEntries(Object.entries(current).filter(([name]) => name !== field)));
   };
   const next = (): void => {
     if (validateStep()) setStep(stepAfter(step, 1));

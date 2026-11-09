@@ -1,3 +1,4 @@
+import { TEST_PLATFORM_DOMAIN } from './auth-test-environment';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BOT_CHALLENGE } from '../../application/tokens';
 import type { BotChallengePort } from '../../domain/ports/bot-challenge.port';
@@ -5,7 +6,7 @@ import { AUTH_TOKEN_HEADER } from './login-test-client';
 import { codeOf, createRegisterTestKit, inputFor, uniqueIp } from './register-test-kit';
 
 const REGISTER_IP_LIMIT = 20;
-const PUBLIC_CONFIG = 'query { authPublicConfig { oauthEnabled oauthProviders challengeUrl } }';
+const PUBLIC_CONFIG = 'query { authPublicConfig { oauthEnabled oauthProviders challengeUrl platformDomain } }';
 
 const { server, client, register, counts, administratorsNamed, start } = createRegisterTestKit();
 
@@ -163,7 +164,12 @@ describe('REST and public config', () => {
     const graphql = await client.graphql(PUBLIC_CONFIG);
 
     // Assert
-    const expected = { oauthEnabled: false, oauthProviders: [], challengeUrl: null };
+    const expected = {
+      oauthEnabled: false,
+      oauthProviders: [],
+      challengeUrl: null,
+      platformDomain: TEST_PLATFORM_DOMAIN,
+    };
     expect(await rest.json()).toEqual(expected);
     expect(graphql.data?.['authPublicConfig']).toEqual(expected);
   });

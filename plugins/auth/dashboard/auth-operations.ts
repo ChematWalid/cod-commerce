@@ -7,6 +7,7 @@ import { api } from '@vendure/dashboard';
 export interface AuthPublicConfigDto {
   readonly oauthEnabled: boolean;
   readonly oauthProviders: readonly string[];
+  readonly platformDomain: string;
 }
 
 export interface AccountStatusDto {
@@ -56,7 +57,7 @@ async function mutate<T>(document: string, variables: object = {}): Promise<T> {
 }
 
 export async function fetchAuthPublicConfig(): Promise<AuthPublicConfigDto> {
-  const document = 'query AuthPublicConfig { authPublicConfig { oauthEnabled oauthProviders } }';
+  const document = 'query AuthPublicConfig { authPublicConfig { oauthEnabled oauthProviders platformDomain } }';
   const result = await api.query<{ authPublicConfig: AuthPublicConfigDto }>(document);
   return result.authPublicConfig;
 }

@@ -55,8 +55,8 @@ async function askServer(subdomain: string, signal: AbortSignal): Promise<Answer
 
 /**
  * Checks a subdomain 400 ms after the last change. A check still running for an earlier value is aborted, so a
- * late answer can never mark the current value available. Over the rate limit it stays unavailable and asks
- * again once `Retry-After` has passed.
+ * late answer can never mark the current value available. Over the rate limit or after a failed check it stays
+ * unavailable and asks again later, so Create can recover without editing the value.
  */
 export function useSubdomainAvailability(subdomain: string): SubdomainCheck {
   const [answer, setAnswer] = useState<Answer | null>(null);
@@ -65,19 +65,21 @@ export function useSubdomainAvailability(subdomain: string): SubdomainCheck {
     if (subdomain === '') return undefined;
     const controller = new AbortController();
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRetry = (delayMs: number): void => {
+      retryTimer = setTimeout(() => {
+        setAttempt((count) => count + 1);
+      }, delayMs);
+    };
     const run = async (): Promise<void> => {
       try {
         const result = await askServer(subdomain, controller.signal);
         setAnswer(result);
-        if (result.retryAfterMs !== undefined) {
-          retryTimer = setTimeout(() => {
-            setAttempt((count) => count + 1);
-          }, result.retryAfterMs);
-        }
+        if (result.retryAfterMs !== undefined) scheduleRetry(result.retryAfterMs);
       } catch (error: unknown) {
         if (controller.signal.aborted) return;
         console.error('Subdomain availability check failed', error);
         setAnswer({ subdomain, state: 'unavailable', messageId: SUBDOMAIN_CHECK_FAILED_MESSAGE_ID });
+        scheduleRetry(SUBDOMAIN_RETRY_FALLBACK_SECONDS * MS_PER_SECOND);
       }
     };
     const debounce = setTimeout(() => void run(), SUBDOMAIN_DEBOUNCE_MS);

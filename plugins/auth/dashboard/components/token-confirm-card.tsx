@@ -34,6 +34,8 @@ function useTokenAction(
     setOutcome({ kind: 'pending' });
     try {
       await confirm(spendable);
+      // Spent, but still secret-shaped: keep it out of history and any later Referer.
+      window.history.replaceState(window.history.state, '', window.location.pathname);
       setOutcome({ kind: 'done' });
       void queryClient.invalidateQueries({ queryKey: ACCOUNT_STATUS_QUERY_KEY });
     } catch (error: unknown) {

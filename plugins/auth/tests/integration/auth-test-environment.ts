@@ -15,6 +15,8 @@ const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const SNOWFLAKE_WORKER_ID = 1007;
 const DEFAULT_MAILPIT_SMTP_PORT = 1026;
 const TEST_DASHBOARD_URL = 'https://dash.example.test/dashboard';
+/** The platform domain the test server is configured with. */
+export const TEST_PLATFORM_DOMAIN = 'shops.example.test';
 
 /** The header tests name the client address with, so one process can act as many addresses. */
 export const TEST_CLIENT_IP_HEADER = 'x-test-client-ip';
@@ -77,7 +79,12 @@ export function createAuthTestEnvironment(
         platformDomain: 'localhost',
         snowflakeWorkerId: SNOWFLAKE_WORKER_ID,
       }),
-      AuthPlugin.init({ tokenSecret, email: { smtp, templates }, dashboardUrl: TEST_DASHBOARD_URL }),
+      AuthPlugin.init({
+        tokenSecret,
+        email: { smtp, templates },
+        dashboardUrl: TEST_DASHBOARD_URL,
+        platformDomain: TEST_PLATFORM_DOMAIN,
+      }),
     ],
     db: loadPluginTestDbConfig(process.env),
     ...environment,

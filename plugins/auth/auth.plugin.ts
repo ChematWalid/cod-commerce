@@ -81,6 +81,8 @@ export interface AuthPluginOptions {
   readonly email: AuthEmailOptions;
   /** `AUTH_DASHBOARD_URL`, which account links start with. */
   readonly dashboardUrl: string;
+  /** `PLATFORM_DOMAIN`, which the sign-up wizard shows after the subdomain. */
+  readonly platformDomain: string;
   /** The sign-up challenge; left out while `TURNSTILE_ENABLED` is false (D35). */
   readonly challenge?: AuthChallengeOptions;
   /** OAuth providers on offer; none until the strategies are registered (D36). */
@@ -118,8 +120,13 @@ function createBotChallenge(): BotChallengePort {
 }
 
 function publicConfig(): AuthPublicConfig {
-  const { oauthProviders = [], challenge } = requireOptions();
-  return { oauthEnabled: oauthProviders.length > 0, oauthProviders, challengeUrl: challenge?.challengeUrl ?? null };
+  const { oauthProviders = [], challenge, platformDomain } = requireOptions();
+  return {
+    oauthEnabled: oauthProviders.length > 0,
+    oauthProviders,
+    challengeUrl: challenge?.challengeUrl ?? null,
+    platformDomain,
+  };
 }
 
 /** `internal`: stock Admin inputs cannot write them and the API does not expose them (D23). */
