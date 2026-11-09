@@ -1,3 +1,4 @@
+import { RATE_LIMIT_POLICIES } from '@cod/plugin-rate-limit';
 import { EventBus, PasswordResetEvent } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -16,6 +17,9 @@ const CREATE_CUSTOMER = gql`
     }
   }
 `;
+
+/** Enough beyond the capacity for the bucket to stay empty while it refills. */
+const LIMIT_MARGIN = 5;
 
 const kit = createAccountFlowKit();
 const { client } = kit;
@@ -69,6 +73,23 @@ describe('Shop API requestPasswordReset (D21)', () => {
     expect(administrator.body).toContain('"success":true');
     expect(await stockToken(email)).toBeNull();
     expect(events).toHaveLength(0);
+  });
+
+  it('limits one address once the reset-ip bucket is empty', async () => {
+    // Arrange
+    const ip = uniqueIp();
+    const tries = RATE_LIMIT_POLICIES['reset-ip'].capacity + LIMIT_MARGIN;
+    const send = () => client.rest('/shop-api', { query: FORGOT, variables: { email: uniqueEmail() } }, { ip });
+
+    // Act
+    let last = await send();
+    for (let index = 1; index < tries; index += 1) {
+      last = await send();
+    }
+    const body = (await last.json()) as { errors?: { extensions?: { code?: string } }[] };
+
+    // Assert
+    expect(body.errors?.[0]?.extensions?.code).toBe('RATE_LIMITED');
   });
 
   it('keeps the stock reset for a customer', async () => {

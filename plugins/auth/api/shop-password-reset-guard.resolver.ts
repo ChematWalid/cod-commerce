@@ -1,3 +1,4 @@
+import { RateLimit } from '@cod/plugin-rate-limit';
 import { normalizeEmail } from '@cod/shared';
 import { Inject } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
@@ -28,6 +29,7 @@ export class ShopPasswordResetGuardResolver {
   @Transaction()
   @Mutation()
   @Allow(Permission.Public)
+  @RateLimit('reset-ip')
   async requestPasswordReset(
     @Ctx() ctx: RequestContext,
     @Args('emailAddress') emailAddress: string,
