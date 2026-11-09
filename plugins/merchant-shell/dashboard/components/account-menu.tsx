@@ -16,6 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   MenuBranding,
+  toast,
   useAuth,
   useUiLanguageLoader,
   useUserSettings,
@@ -36,6 +37,7 @@ import {
   accountOptionTestId,
   type AccountMenuTheme,
   LOGIN_PATH,
+  LOGOUT_FAILED_MESSAGE_ID,
 } from '../constants';
 import { useShellAudience } from '../hooks/use-is-merchant';
 
@@ -54,15 +56,29 @@ const THEME_MESSAGE_IDS: Readonly<Record<AccountMenuTheme, string>> = {
 
 const isTheme = (value: string): value is AccountMenuTheme => ACCOUNT_MENU_THEMES.some((theme) => theme === value);
 
-/** Signs out the current session (`logout` ends only that one, D22), then drops cached data and opens the login page. */
+/**
+ * Signs out the current session (`logout` ends only that one, D22), then drops cached data and opens the login page.
+ * The stock `logout` resolves on failure too, and calls its callback only once the server has ended the session, so
+ * the callback is what tells the two apart: on failure the merchant stays put and is told.
+ */
 function useLogout(): () => void {
+  const { i18n } = useLingui();
   const { logout } = useAuth();
   const router = useRouter();
   const navigate = useNavigate();
   return () => {
-    logout()
-      .then(() => router.invalidate())
-      .then(() => navigate({ to: LOGIN_PATH }))
+    let signedOut = false;
+    logout(() => {
+      signedOut = true;
+    })
+      .then(async () => {
+        if (!signedOut) {
+          toast.error(i18n._(LOGOUT_FAILED_MESSAGE_ID));
+          return;
+        }
+        await router.invalidate();
+        await navigate({ to: LOGIN_PATH });
+      })
       .catch((error: unknown) => {
         console.error('Could not sign out', error);
       });
@@ -78,7 +94,9 @@ function LanguageRadios(): ReactNode {
       value={settings.displayLanguage}
       onValueChange={(code: string) => {
         setDisplayLanguage(code);
-        void loadAndActivateLocale(code);
+        loadAndActivateLocale(code).catch((error: unknown) => {
+          console.error(`Could not load the ${code} dashboard messages`, error);
+        });
       }}
     >
       {ACCOUNT_MENU_LANGUAGES.map(({ code, label }) => (

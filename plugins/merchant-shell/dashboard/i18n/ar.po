@@ -332,6 +332,10 @@ msgid "shell.account.logout"
 msgstr "تسجيل الخروج"
 
 #. js-lingui-explicit-id
+msgid "shell.account.logout-failed"
+msgstr "تعذّر تسجيل الخروج. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
 msgid "shell.store.create.name-invalid"
 msgstr "أدخل اسم متجر صالحًا."
 

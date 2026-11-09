@@ -127,6 +127,8 @@ export const accountOptionTestId = (group: string, value: string): string => `${
 export const ACCOUNT_PROFILE_PATH = '/account/profile';
 export const ACCOUNT_SECURITY_PATH = '/account/security';
 export const LOGIN_PATH = '/login';
+/** The toast shown when the server does not end the session; the merchant stays signed in. */
+export const LOGOUT_FAILED_MESSAGE_ID = 'shell.account.logout-failed';
 
 /** The display languages the account menu offers: a subset of the platform languages (ADR 0005, D72). */
 export const ACCOUNT_MENU_LANGUAGES: readonly { readonly code: PlatformLanguageCode; readonly label: string }[] = [

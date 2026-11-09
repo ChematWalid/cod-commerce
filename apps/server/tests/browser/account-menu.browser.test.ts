@@ -38,6 +38,17 @@ const ROW_IDS = [
 /** The stock user menu's trigger in the sidebar footer; the shell hides it from merchants (D79). */
 const STOCK_USER_MENU = '[data-sidebar="footer"] [data-sidebar="menu-button"]';
 const PRICING_LINK = 'a[href*="pricing"]';
+/** The English text of `shell.topbar.coming-soon` and `shell.account.logout-failed`. */
+const COMING_SOON = 'Coming soon';
+const LOGOUT_FAILED = 'Could not sign out. Try again.';
+/** The stock `LogOut` mutation's name, as the dashboard sends it. */
+const LOGOUT_OPERATION = /mutation\s+LogOut\b/;
+/**
+ * How long to watch for a request after clicking the inert placeholders. Nothing can be awaited for a request that
+ * must never be sent, so this is a deliberate quiet period: long enough for a click handler's fetch to start.
+ */
+const NO_REQUEST_QUIET_PERIOD_MS = 500;
+const PLACEHOLDER_IDS = [CREDITS_PLACEHOLDER_TEST_ID, ASSISTANT_PLACEHOLDER_TEST_ID, NOTIFICATIONS_PLACEHOLDER_TEST_ID];
 
 const byTestId = (page: Page, id: string) => page.locator(`[data-testid="${id}"]`);
 const open = (page: Page, path: string) => page.goto(`${DASHBOARD_URL}${path}`, { waitUntil: 'domcontentloaded' });
@@ -176,11 +187,7 @@ describe('top bar and account menu', () => {
       await byTestId(page, TRIAL_BANNER_TEST_ID).waitFor();
       page.on('request', (request) => requests.push(request));
 
-      for (const id of [
-        CREDITS_PLACEHOLDER_TEST_ID,
-        ASSISTANT_PLACEHOLDER_TEST_ID,
-        NOTIFICATIONS_PLACEHOLDER_TEST_ID,
-      ]) {
+      for (const id of PLACEHOLDER_IDS) {
         await expect(byTestId(page, id).isVisible()).resolves.toBe(true);
         await byTestId(page, id).click({ force: true });
       }
@@ -189,8 +196,36 @@ describe('top bar and account menu', () => {
       expect(await byTestId(page, ASSISTANT_PLACEHOLDER_TEST_ID).innerText()).toContain(ASSISTANT_NAME);
       expect(await byTestId(page, TRIAL_BANNER_TEST_ID).innerText()).not.toMatch(/\d/);
       expect(await byTestId(page, CREDITS_PLACEHOLDER_TEST_ID).innerText()).not.toMatch(/\d/);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(NO_REQUEST_QUIET_PERIOD_MS);
       expect(requests.map((request) => request.url())).toEqual([]);
+    });
+
+    it('describes each placeholder as coming soon through a hidden description, not a tooltip title', async () => {
+      for (const id of PLACEHOLDER_IDS) {
+        const placeholder = byTestId(page, id);
+        await placeholder.waitFor({ state: 'attached' });
+        await expect(placeholder.getAttribute('title'), id).resolves.toBeNull();
+        const describedBy = await placeholder.getAttribute('aria-describedby');
+        expect(describedBy, id).toBeTruthy();
+        const description = page.locator(`[id="${describedBy ?? ''}"]`);
+        await expect(description.textContent(), id).resolves.toBe(COMING_SOON);
+        const box = await description.boundingBox();
+        expect(box === null || (box.width <= 1 && box.height <= 1), `${id} description is visually hidden`).toBe(true);
+      }
+    });
+
+    it('stays signed in and says so when the server refuses to sign out', async () => {
+      await page.route('**/admin-api**', async (route) => {
+        if (!LOGOUT_OPERATION.test(route.request().postData() ?? '')) return route.fallback();
+        return route.fulfill({ json: { data: { logout: { success: false } } } });
+      });
+      await openMenu(page);
+
+      await byTestId(page, ACCOUNT_LOGOUT_TEST_ID).click();
+
+      await page.getByText(LOGOUT_FAILED).waitFor();
+      expect(pathOf(page)).toBe(dashboardPath('/home'));
+      await page.unroute('**/admin-api**');
     });
 
     it('orders the top bar credits, assistant, store switcher, bell, account', async () => {
@@ -242,7 +277,7 @@ describe('top bar and account menu', () => {
 
       await expect(page.locator(STOCK_USER_MENU).isVisible()).resolves.toBe(true);
       await expect(byTestId(page, ACCOUNT_MENU_TEST_ID).count()).resolves.toBe(0);
-      await expect(byTestId(page, NOTIFICATIONS_PLACEHOLDER_TEST_ID).count()).resolves.toBe(0);
+      for (const id of PLACEHOLDER_IDS) await expect(byTestId(page, id).count(), id).resolves.toBe(0);
       await expect(byTestId(page, TRIAL_BANNER_TEST_ID).count()).resolves.toBe(0);
     });
   });
