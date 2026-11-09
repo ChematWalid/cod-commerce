@@ -181,6 +181,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P1.S3-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S1.md`, ADR 0002.
 - `docs/research/dashboard-captures.md` "Team" → "New role dialog" (the full 12-area list with sensitive `*` marks, counts: Orders 19, Order tracking 3, Products & catalog 8, Offers 4, Inventory 4, Finance 7, Analytics 2, Team & roles 12, Delivery 8, Store & storefront 15, Apps & integrations 8, Settings 3 = 93) and "Roles: built-in Owner, Manager, Order Manager, Inventory Manager, Accountant, Orders Tracker, Store Manager; table Role, Members, Access, Updated".
 - `docs/research/api-surface.md` "Team" (`/roles/:id`, `/roles/:id/duplicate`, `/permissions`, `/permissions/catalog`).
