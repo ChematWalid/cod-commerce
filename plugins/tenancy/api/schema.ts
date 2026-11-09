@@ -37,6 +37,21 @@ export const adminApiSchema = gql`
     status: String!
   }
 
+  "A store the caller can switch to. It carries no channel token: the dashboard already holds the session's channels."
+  type SwitchableStore {
+    id: String!
+    businessId: String!
+    channelId: String!
+    name: String!
+    subdomain: String!
+    language: String!
+  }
+
+  type SwitchableStores {
+    platformDomain: String!
+    stores: [SwitchableStore!]!
+  }
+
   type SubdomainAvailability {
     subdomain: String!
     status: SubdomainStatus!
@@ -92,6 +107,7 @@ export const adminApiSchema = gql`
     business(id: String!): Business
     stores: [Store!]!
     store(id: String!): Store
+    switchableStores: SwitchableStores!
     subdomainAvailability(subdomain: String!): SubdomainAvailability!
   }
 

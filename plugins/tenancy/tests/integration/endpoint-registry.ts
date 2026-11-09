@@ -9,6 +9,7 @@ import {
   PROVISION_BUSINESS,
   STORE,
   STORES,
+  SWITCHABLE_STORES,
   SUBDOMAIN_AVAILABILITY,
   UPDATE_BUSINESS,
   UPDATE_STORE,
@@ -61,6 +62,8 @@ const TAKEN_MESSAGE = 'This subdomain is already taken';
 const OWNER_INPUT = { emailAddress: 'intruder@example.test', firstName: 'A', lastName: 'B', password: 'synthetic' };
 
 const businessIdOfRow = (value: unknown): string => (value as { businessId: string }).businessId;
+const businessIdsOfSwitchable = (value: unknown): string[] =>
+  (value as { stores: unknown[] }).stores.map(businessIdOfRow);
 const idOfRow = (value: unknown): string => (value as { id: string }).id;
 const hostOf = (store: StoreFixture): string => `${store.subdomain}.${PLATFORM_DOMAIN}`;
 
@@ -97,6 +100,13 @@ export const ADMIN_API_REGISTRY: readonly AdminApiEntry[] = [
     variables: ({ victim }) => ({ id: victim.id }),
     outcome: { kind: 'null' },
     control: { kind: 'readAsB', idsOf: (value) => [idOfRow(value)], expected: ({ victim }) => victim.id },
+  },
+  {
+    operation: 'switchableStores',
+    document: SWITCHABLE_STORES,
+    variables: () => ({}),
+    outcome: { kind: 'callerOwned', businessIdsOf: businessIdsOfSwitchable },
+    control: { kind: 'readAsB', idsOf: businessIdsOfSwitchable, expected: callerBusiness },
   },
   {
     operation: 'subdomainAvailability',

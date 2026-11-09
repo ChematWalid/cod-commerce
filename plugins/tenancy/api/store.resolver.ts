@@ -1,6 +1,7 @@
 import type { SubdomainAvailability } from '@cod/shared';
 import { toSnowflake, toStoreId } from '@cod/shared';
 import { RateLimit } from '@cod/plugin-rate-limit';
+import { Inject } from '@nestjs/common';
 import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { Allow, ChannelService, Ctx, EntityNotFoundError, Permission, type RequestContext } from '@vendure/core';
 import { ArchiveStoreService } from '../application/archive-store.service';
@@ -8,15 +9,41 @@ import { ChangeSubdomainService } from '../application/change-subdomain.service'
 import { CheckSubdomainService } from '../application/check-subdomain.service';
 import { CreateStoreService } from '../application/create-store.service';
 import { GetStoresService } from '../application/get-stores.service';
+import type { TenantContextResolverPort } from '../application/ports/tenant-context-resolver.port';
+import { PLATFORM_DOMAIN, TENANT_CONTEXT_RESOLVER } from '../application/tokens';
 import { UpdateStoreService } from '../application/update-store.service';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { Store } from '../domain/store';
 import { type CreateStoreInputDto, toCreateStoreCommand, toStorePatch, type UpdateStoreInputDto } from './dto';
 import { withApiErrors } from './error-mapping';
 import { tenantStorePermission } from './permissions';
-import { storeActorOf } from './store-actor';
+import { memberActorOf, storeActorOf } from './store-actor';
 import { tenantOf } from './tenant-of';
 import { TenantScoped } from './tenant-scoped.decorator';
+
+/** The part of a store the switcher shows; `channelId` is a decimal string like every id on the wire (D68). */
+interface SwitchableStore {
+  readonly id: string;
+  readonly businessId: string;
+  readonly channelId: string;
+  readonly name: string;
+  readonly subdomain: string;
+  readonly language: string;
+}
+
+interface SwitchableStores {
+  readonly platformDomain: string;
+  readonly stores: readonly SwitchableStore[];
+}
+
+const toSwitchableStore = (store: Store): SwitchableStore => ({
+  id: store.id,
+  businessId: store.businessId,
+  channelId: String(store.channelId),
+  name: store.name,
+  subdomain: store.subdomain,
+  language: store.language,
+});
 
 /** Reads the stores of the caller's business, and subdomain availability. */
 @Resolver()
@@ -24,7 +51,25 @@ export class StoreQueryResolver {
   constructor(
     private readonly getStores: GetStoresService,
     private readonly checkSubdomain: CheckSubdomainService,
+    @Inject(TENANT_CONTEXT_RESOLVER) private readonly tenants: TenantContextResolverPort<RequestContext>,
+    @Inject(PLATFORM_DOMAIN) private readonly platformDomain: string,
   ) {}
+
+  /**
+   * The active stores of the caller's business that the caller holds a role on (D85). Not tenant-scoped, so it
+   * still answers when the active channel is archived. Someone with no active business, such as platform staff
+   * or a suspended business's member, gets none. No channel token is returned.
+   */
+  @Query()
+  @Allow(Permission.Authenticated)
+  async switchableStores(@Ctx() ctx: RequestContext): Promise<SwitchableStores> {
+    const businessId = await this.tenants.activeBusinessOf(ctx);
+    if (businessId === undefined) return { platformDomain: this.platformDomain, stores: [] };
+    const stores = await withApiErrors(() =>
+      this.getStores.listSwitchable(asOperationContext(ctx), memberActorOf(ctx, businessId)),
+    );
+    return { platformDomain: this.platformDomain, stores: stores.map(toSwitchableStore) };
+  }
 
   /** Every store the caller can read, archived ones included. */
   @Query()
