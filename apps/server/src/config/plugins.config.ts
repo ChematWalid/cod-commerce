@@ -9,6 +9,7 @@ import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
 import { DefaultSchedulerPlugin, RedisCachePlugin, type VendureConfig } from '@vendure/core';
+import { authEmailTemplates } from '../email';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
 import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
@@ -33,6 +34,16 @@ const hardenPlugin = (env: AppEnv): VendurePluginEntry =>
   HardenPlugin.init({
     maxQueryComplexity: HARDEN_MAX_QUERY_COMPLEXITY,
     apiMode: env.APP_ENV === 'production' ? 'prod' : 'dev',
+  });
+
+/** The account plugin with its secret and the mail side: SMTP settings and the wording (D32). */
+const authPlugin = (env: AppEnv): VendurePluginEntry =>
+  AuthPlugin.init({
+    tokenSecret: env.AUTH_TOKEN_SECRET,
+    email: {
+      smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
+      templates: authEmailTemplates,
+    },
   });
 
 /**
@@ -62,7 +73,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
     }),
-    AuthPlugin.init({ tokenSecret: env.AUTH_TOKEN_SECRET }),
+    authPlugin(env),
   ];
   if (role !== 'api') {
     return everyRole;

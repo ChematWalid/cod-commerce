@@ -151,4 +151,14 @@ describe('bullMqOptions', () => {
       workerOptions: { prefix: 'bull:test' },
     });
   });
+
+  it('backs the account email queue off for minutes and leaves other queues on the default', () => {
+    // Arrange
+    const { setJobOptions } = bullMqOptions(loadEnv(valid));
+    const job = {} as Parameters<NonNullable<typeof setJobOptions>>[1];
+
+    // Act and assert
+    expect(setJobOptions?.('auth-email', job)).toEqual({ backoff: { type: 'exponential', delay: 30_000 } });
+    expect(setJobOptions?.('send-email', job)).toEqual({});
+  });
 });

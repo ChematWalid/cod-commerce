@@ -373,6 +373,9 @@ importers:
       graphql-tag:
         specifier: 2.12.7
         version: 2.12.7(graphql@16.15.0)
+      nodemailer:
+        specifier: 10.2.1
+        version: 10.2.1
       typeorm:
         specifier: 0.3.31
         version: 0.3.31(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))
@@ -5395,6 +5398,10 @@ packages:
   node-releases@2.0.63:
     resolution: {integrity: sha512-6li2QanLsAXpIH2R6j77MzRyvOyrvdTqlKtO4CgBdHGNvN99ZZfyxszHc5o5+IZBWD5u6Hzwg83JoGXmqZNG9Q==}
     engines: {node: '>=18'}
+
+  nodemailer@10.2.1:
+    resolution: {integrity: sha512-ZrDNsPFoDMwefNs7sJwrYiEJ/CG4ClJWDZv05iNJsEBWa8GRDry1QJHTJxsuTAY9eDDKjX4k+q3SxslXJOao7w==}
+    engines: {node: '>=20.0.0'}
 
   nopt@10.0.1:
     resolution: {integrity: sha512-df3sBr/6ax9hSGuC3CspvLlbnX8cP5L5nZwXF8cGN8l0zSWR6BvzmQ6jPUKjvo6+/xdpkNvEcucBNUdBeeV13g==}
@@ -11804,6 +11811,8 @@ snapshots:
     optional: true
 
   node-releases@2.0.63: {}
+
+  nodemailer@10.2.1: {}
 
   nopt@10.0.1:
     dependencies:

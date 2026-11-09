@@ -21,6 +21,7 @@
     "@nestjs/common": "12.4.0",
     "@vendure/core": "3.8.1",
     "graphql-tag": "2.12.7",
+    "nodemailer": "10.2.1",
     "typeorm": "0.3.31"
   },
   "devDependencies": {

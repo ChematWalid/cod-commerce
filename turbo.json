@@ -27,6 +27,7 @@
         "COOKIE_SECRET",
         "AUTH_*",
         "SMTP_*",
+        "MAILPIT_*",
         "GOOGLE_OAUTH_*",
         "FACEBOOK_OAUTH_*",
         "TURNSTILE_*",

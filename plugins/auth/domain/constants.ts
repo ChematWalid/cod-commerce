@@ -25,3 +25,12 @@ const DAY_MS = 86_400_000;
 
 /** Finished tokens stay this long after expiry or consumption, then the purge removes them (D43). */
 export const ACCOUNT_TOKEN_RETENTION_MS = 7 * DAY_MS;
+
+/** The worker queue of the account emails (D42). P1.S6's queue registry adopts the name. */
+export const AUTH_EMAIL_QUEUE = 'auth-email';
+
+/** Delivery attempts per email: the first try and four retries. */
+export const AUTH_EMAIL_ATTEMPTS = 5;
+
+/** Characters of the recipient hash that appear in logs: enough to correlate, too short to look an address up. */
+export const RECIPIENT_HASH_LENGTH = 16;

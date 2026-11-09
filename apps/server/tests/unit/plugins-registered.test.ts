@@ -3,6 +3,7 @@ import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { describe, expect, it } from 'vitest';
+import { authEmailTemplates } from '../../src/email';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
 import { buildPlugins } from '../../src/config/plugins.config';
 
@@ -35,17 +36,26 @@ describe('buildPlugins', () => {
     expect(plugins).toContain(TemplatePlugin);
   });
 
-  it.each(SERVER_ROLES)('registers AuthPlugin with the token secret for the %s role', (role: ServerRole) => {
-    // Arrange
-    const env = loadEnv({ ...valid, ROLE: role });
+  it.each(SERVER_ROLES)(
+    'registers AuthPlugin with the token secret and mail settings for the %s role',
+    (role: ServerRole) => {
+      // Arrange
+      const env = loadEnv({ ...valid, ROLE: role });
 
-    // Act
-    const plugins = buildPlugins(env, role);
+      // Act
+      const plugins = buildPlugins(env, role);
 
-    // Assert
-    expect(plugins).toContain(AuthPlugin);
-    expect(AuthPlugin.options).toEqual({ tokenSecret: 'y'.repeat(32) });
-  });
+      // Assert
+      expect(plugins).toContain(AuthPlugin);
+      expect(AuthPlugin.options).toEqual({
+        tokenSecret: 'y'.repeat(32),
+        email: {
+          smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
+          templates: authEmailTemplates,
+        },
+      });
+    },
+  );
 
   it.each(SERVER_ROLES)('registers TenancyPlugin for the %s role', (role: ServerRole) => {
     // Arrange

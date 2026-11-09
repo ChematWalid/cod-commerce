@@ -12,4 +12,5 @@ export const E2E_PORTS = {
   /** A worker never listens on its api port; Vendure's config still needs one. */
   workerApiUnused: 3056,
   bearerClient: 3057,
+  authEmail: 3058,
 } as const;
