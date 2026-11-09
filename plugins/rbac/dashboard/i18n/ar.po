@@ -4,10 +4,6 @@ msgstr ""
 "Language: ar\n"
 
 #. js-lingui-explicit-id
-msgid "rbac.nav-team"
-msgstr "الفريق"
-
-#. js-lingui-explicit-id
 msgid "rbac.nav-roles"
 msgstr "الأدوار"
 

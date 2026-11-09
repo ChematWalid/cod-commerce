@@ -16,6 +16,9 @@ export const DASHBOARD_LABELS = {
   languageItem: /^(Language|اللغة)\s/,
 } as const;
 
+/** The `<html>` attribute that keeps the stock sidebar footer visible (node runs this file without path mapping). */
+const PLATFORM_STAFF_ATTRIBUTE = 'data-platform-staff';
+
 /** The GraphQL mutation that stores the user settings, the display language included, on the server. */
 const SAVE_SETTINGS_MUTATION = 'setSettingsStoreValue';
 
@@ -41,6 +44,8 @@ const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/
 const userMenuTrigger = (page: Page): Locator =>
   page.getByRole('button', {
     name: new RegExp(`(@[\\w.-]+\\.test|${escapeRegExp(superadminCredentials().username)})$`),
+    // A role query skips hidden elements, and the shell hides this one from merchants (D79).
+    includeHidden: true,
   });
 
 /** Signs in on the dashboard login page and waits until the app shell has replaced it. */
@@ -50,7 +55,8 @@ async function login(page: Page, baseUrl: string, username: string, password: st
   await page.getByRole('textbox', { name: DASHBOARD_LABELS.password }).fill(password);
   await page.getByRole('button', { name: DASHBOARD_LABELS.signIn }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-  await userMenuTrigger(page).waitFor();
+  // Attached, not visible: the stock user menu is hidden from merchants by the shell (D79).
+  await userMenuTrigger(page).waitFor({ state: 'attached' });
 }
 
 /** Signs in as the platform superadmin. Tenant pages answer FORBIDDEN for it on the default channel. */
@@ -111,6 +117,28 @@ const isSettingsSave = (response: Response): boolean =>
  * ("ar العربية", "en English"), which stays the same in every display language.
  */
 export async function setDisplayLanguage(page: Page, language: DocumentLang): Promise<void> {
+  await withStockUserMenu(page, () => chooseDisplayLanguage(page, language));
+}
+
+/**
+ * Shows the stock user menu for the time of `action`. Merchants have it hidden (D79) until the account menu arrives
+ * with their own language control, which replaces this.
+ */
+async function withStockUserMenu(page: Page, action: () => Promise<void>): Promise<void> {
+  const added = await page.evaluate((attribute) => {
+    if (document.documentElement.hasAttribute(attribute)) return false;
+    document.documentElement.setAttribute(attribute, '');
+    return true;
+  }, PLATFORM_STAFF_ATTRIBUTE);
+  await action();
+  if (added) {
+    await page.evaluate((attribute) => {
+      document.documentElement.removeAttribute(attribute);
+    }, PLATFORM_STAFF_ATTRIBUTE);
+  }
+}
+
+async function chooseDisplayLanguage(page: Page, language: DocumentLang): Promise<void> {
   await userMenuTrigger(page).click();
   await page.getByRole('menu').getByRole('button', { name: DASHBOARD_LABELS.languageItem }).click();
   const displayLanguage = page.getByRole('dialog').getByRole('combobox').first();

@@ -14,3 +14,187 @@ msgstr "Welcome to {name}"
 #. js-lingui-explicit-id
 msgid "Sign in to manage your store"
 msgstr "Sign in to manage your store"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.home"
+msgstr "Home"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders"
+msgstr "Orders"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.all"
+msgstr "All orders"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.customers"
+msgstr "Customers"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.spam"
+msgstr "Spam"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking"
+msgstr "Tracking"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.shipments"
+msgstr "Shipments"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.returns"
+msgstr "Returns"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.all"
+msgstr "All products"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.collections"
+msgstr "Collections"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.offers"
+msgstr "Offers"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.themes"
+msgstr "Themes"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.ab-tests"
+msgstr "A/B testing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics"
+msgstr "Analytics"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.overview"
+msgstr "Overview"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.team"
+msgstr "Team stats"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.marketing"
+msgstr "Marketing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory"
+msgstr "Inventory"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.stock"
+msgstr "Stock"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.packaging"
+msgstr "Packaging"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.movements"
+msgstr "Movements"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance"
+msgstr "Finance"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.report"
+msgstr "Report"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.costs"
+msgstr "Costs"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.products"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wilayas"
+msgstr "Wilayas"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.ads"
+msgstr "Ads"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wallets"
+msgstr "Wallets"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.study"
+msgstr "Product study"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team"
+msgstr "Team"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.members"
+msgstr "Members"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.distribution"
+msgstr "Order distribution"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.roles"
+msgstr "Roles & permissions"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.delivery"
+msgstr "Delivery & shipping"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.apps"
+msgstr "Apps"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.sourcing"
+msgstr "Sourcing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings"
+msgstr "Settings"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.general"
+msgstr "General"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.pixels"
+msgstr "Pixels & tracking"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.domains"
+msgstr "Domains"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.billing"
+msgstr "Plan & billing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.statuses"
+msgstr "Status customization"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.locations"
+msgstr "Stock locations"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.spam"
+msgstr "Spam protection"
+
+#. js-lingui-explicit-id
+msgid "shell.coming-soon"
+msgstr "A page coming soon. It will appear here once it is ready."

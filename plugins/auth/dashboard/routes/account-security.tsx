@@ -14,7 +14,6 @@ import type { ReactNode } from 'react';
 import { changeAccountPassword, fetchAccountStatus, requestEmailChange } from '../auth-operations';
 import { TextField } from '../components/text-field';
 import {
-  ACCOUNT_NAV_SECTION_ID,
   ACCOUNT_SECURITY_PATH,
   ACCOUNT_STATUS_QUERY_KEY,
   PASSWORDS_DIFFER_MESSAGE_ID,
@@ -144,10 +143,4 @@ function AccountSecurityPage(): ReactNode {
 export const accountSecurityRoute: DashboardRouteDefinition = {
   path: ACCOUNT_SECURITY_PATH,
   component: () => <AccountSecurityPage />,
-  navMenuItem: {
-    sectionId: ACCOUNT_NAV_SECTION_ID,
-    id: 'auth-account-security',
-    title: SECURITY_TITLE,
-    url: ACCOUNT_SECURITY_PATH,
-  },
 };

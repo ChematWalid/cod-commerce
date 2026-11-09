@@ -1,9 +1,9 @@
 import { useLingui } from '@lingui/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
   ActionBarItem,
   Button,
-  type DashboardRouteDefinition,
   FullWidthPageBlock,
   Page,
   PageActionBar,
@@ -16,13 +16,13 @@ import { DeleteRoleDialog } from '../components/delete-role-dialog';
 import { RoleDialog } from '../components/role-dialog';
 import { type RoleActions, RolesTable } from '../components/roles-table';
 import {
+  ACTIVITY_LOG_NAV_TITLE,
+  ACTIVITY_LOG_PATH,
   CREATE_ROLE_KEY,
   LOADING_MESSAGE_ID,
   ROLES_NAV_TITLE,
-  ROLES_PATH,
   ROLES_QUERY_KEY,
-  ROLES_VIEW_VENDURE_PERMISSION,
-  TEAM_NAV_SECTION_ID,
+  VIEW_ACTIVITY_LOG_KEY,
 } from '../constants';
 import { errorMessageId } from '../error-messages';
 import { useUiLanguage } from '../labels';
@@ -31,6 +31,7 @@ import { type BusinessRoleDto, duplicateRole, useBusinessRoles, useEffectivePerm
 const PAGE_ID = 'rbac-roles';
 const BLOCK_ID = 'rbac-roles-list';
 const NEW_ROLE_ACTION_ID = 'rbac-new-role';
+const ACTIVITY_LOG_ACTION_ID = 'rbac-activity-log-link';
 const ARABIC = 'ar';
 const ENGLISH = 'en';
 
@@ -68,20 +69,56 @@ function RolesList({ held, onEdit, onDelete, roles, onDuplicate }: RolesListProp
   return <RolesTable roles={roles.data} held={held} onEdit={onEdit} onDuplicate={onDuplicate} onDelete={onDelete} />;
 }
 
-function RolesPage(): ReactNode {
-  const { i18n } = useLingui();
-  const roles = useBusinessRoles();
-  const { held, error: heldError } = useEffectivePermissions();
-  const onDuplicate = useDuplicateRole();
+/** Which role dialogs are open. */
+function useRoleEditors() {
   const [editor, setEditor] = useState<EditorState>({ open: false });
   const [deleting, setDeleting] = useState<BusinessRoleDto | null>(null);
   const openEditor = (role: BusinessRoleDto | null): void => {
     setEditor({ open: true, role });
   };
+  return { editor, setEditor, deleting, setDeleting, openEditor };
+}
+
+interface RoleDialogsProps {
+  readonly roles: readonly BusinessRoleDto[];
+  readonly editor: EditorState;
+  readonly onCloseEditor: (state: EditorState) => void;
+  readonly deleting: BusinessRoleDto | null;
+  readonly onCloseDelete: (role: null) => void;
+}
+
+function RoleDialogs({ roles, editor, onCloseEditor, deleting, onCloseDelete }: RoleDialogsProps): ReactNode {
+  return (
+    <>
+      <RoleDialog
+        open={editor.open}
+        role={editor.open ? editor.role : null}
+        roles={roles}
+        onClose={onCloseEditor.bind(null, { open: false })}
+      />
+      <DeleteRoleDialog role={deleting} onClose={onCloseDelete.bind(null, null)} />
+    </>
+  );
+}
+
+/** The roles of the business and the dialogs that change them, shown by the shell's `team.roles` leaf. */
+export function RolesPage(): ReactNode {
+  const { i18n } = useLingui();
+  const roles = useBusinessRoles();
+  const { held, error: heldError } = useEffectivePermissions();
+  const onDuplicate = useDuplicateRole();
+  const { editor, setEditor, deleting, setDeleting, openEditor } = useRoleEditors();
   return (
     <Page pageId={PAGE_ID}>
       <PageTitle>{i18n._(ROLES_NAV_TITLE)}</PageTitle>
       <PageActionBar>
+        {held.has(VIEW_ACTIVITY_LOG_KEY) && (
+          <ActionBarItem itemId={ACTIVITY_LOG_ACTION_ID}>
+            <Button variant="outline" render={<Link to={ACTIVITY_LOG_PATH} />}>
+              {i18n._(ACTIVITY_LOG_NAV_TITLE)}
+            </Button>
+          </ActionBarItem>
+        )}
         {held.has(CREATE_ROLE_KEY) && (
           <ActionBarItem itemId={NEW_ROLE_ACTION_ID}>
             <Button onClick={openEditor.bind(null, null)}>{i18n._('rbac.new-role')}</Button>
@@ -94,26 +131,13 @@ function RolesPage(): ReactNode {
           <RolesList roles={roles} held={held} onEdit={openEditor} onDuplicate={onDuplicate} onDelete={setDeleting} />
         </FullWidthPageBlock>
       </PageLayout>
-      <RoleDialog
-        open={editor.open}
-        role={editor.open ? editor.role : null}
+      <RoleDialogs
         roles={roles.data ?? []}
-        onClose={setEditor.bind(null, { open: false })}
+        editor={editor}
+        onCloseEditor={setEditor}
+        deleting={deleting}
+        onCloseDelete={setDeleting}
       />
-      <DeleteRoleDialog role={deleting} onClose={setDeleting.bind(null, null)} />
     </Page>
   );
 }
-
-/** The roles of the business, and the dialogs that change them. */
-export const rolesRoute: DashboardRouteDefinition = {
-  path: ROLES_PATH,
-  component: () => <RolesPage />,
-  navMenuItem: {
-    sectionId: TEAM_NAV_SECTION_ID,
-    id: 'rbac-roles',
-    title: ROLES_NAV_TITLE,
-    url: ROLES_PATH,
-    requiresPermission: ROLES_VIEW_VENDURE_PERMISSION,
-  },
-};

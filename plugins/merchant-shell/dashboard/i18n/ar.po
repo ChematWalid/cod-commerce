@@ -14,3 +14,187 @@ msgstr "مرحبًا بك في {name}"
 #. js-lingui-explicit-id
 msgid "Sign in to manage your store"
 msgstr "سجّل الدخول لإدارة متجرك"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.home"
+msgstr "الرئيسية"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders"
+msgstr "الطلبات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.all"
+msgstr "كل الطلبات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.customers"
+msgstr "الزبائن"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.spam"
+msgstr "الطلبات المشبوهة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking"
+msgstr "التتبع"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.shipments"
+msgstr "الشحنات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.returns"
+msgstr "المرتجعات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.all"
+msgstr "كل المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.collections"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.offers"
+msgstr "العروض"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.themes"
+msgstr "القوالب"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.ab-tests"
+msgstr "اختبارات A/B"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics"
+msgstr "التحليلات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.overview"
+msgstr "نظرة عامة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.team"
+msgstr "إحصاءات الفريق"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.marketing"
+msgstr "التسويق"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory"
+msgstr "المخزون"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.stock"
+msgstr "المخزون الحالي"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.packaging"
+msgstr "التغليف"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.movements"
+msgstr "حركات المخزون"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance"
+msgstr "المالية"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.report"
+msgstr "التقرير"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.costs"
+msgstr "التكاليف"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.products"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wilayas"
+msgstr "الولايات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.ads"
+msgstr "الإعلانات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wallets"
+msgstr "المحافظ"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.study"
+msgstr "دراسة المنتج"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team"
+msgstr "الفريق"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.members"
+msgstr "الأعضاء"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.distribution"
+msgstr "توزيع الطلبات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.roles"
+msgstr "الأدوار والصلاحيات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.delivery"
+msgstr "التوصيل والشحن"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.apps"
+msgstr "التطبيقات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.sourcing"
+msgstr "التوريد"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings"
+msgstr "الإعدادات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.general"
+msgstr "عام"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.pixels"
+msgstr "البكسلات والتتبع"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.domains"
+msgstr "النطاقات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.billing"
+msgstr "الخطة والفوترة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.statuses"
+msgstr "تخصيص الحالات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.locations"
+msgstr "مواقع المخزون"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.spam"
+msgstr "الحماية من الطلبات المشبوهة"
+
+#. js-lingui-explicit-id
+msgid "shell.coming-soon"
+msgstr "هذه الصفحة قيد الإعداد وستظهر هنا عند جاهزيتها."

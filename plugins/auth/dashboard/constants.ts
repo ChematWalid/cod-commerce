@@ -10,10 +10,6 @@ export const OAUTH_COMPLETE_PATH = '/oauth-complete';
 export const ACCOUNT_PROFILE_PATH = '/account/profile';
 export const ACCOUNT_SECURITY_PATH = '/account/security';
 
-/** The sidebar section of the account pages (D38). */
-export const ACCOUNT_NAV_SECTION_ID = 'account';
-export const ACCOUNT_NAV_SECTION_ORDER = 900;
-
 /** The id of the provider that shows the verification banner above every authenticated page. */
 export const VERIFY_BANNER_PROVIDER_ID = 'auth-verify-email-banner';
 
