@@ -4,6 +4,7 @@ const POLL_INTERVAL_MS = 300;
 const DEFAULT_WAIT_MS = 30_000;
 const LINK_TOKEN = /[?&]token=([\w-]+)/;
 const OTP = /(?<!\d)\d{6}(?!\d)/;
+const URL_IN_TEXT = /https?:\/\/\S+/g;
 
 export interface MailpitEmail {
   readonly id: string;
@@ -93,6 +94,6 @@ export async function waitForEmail(
 /** The link's token and the six-digit code of an email, when it has them. */
 export function emailSecrets(email: Pick<MailpitEmail, 'text'>): { readonly token?: string; readonly code?: string } {
   const token = LINK_TOKEN.exec(email.text)?.[1];
-  const code = OTP.exec(email.text)?.[0];
+  const code = OTP.exec(email.text.replace(URL_IN_TEXT, ''))?.[0];
   return { ...(token !== undefined && { token }), ...(code !== undefined && { code }) };
 }

@@ -36,13 +36,16 @@ export const settle = (): Promise<void> => new Promise((resolve) => setTimeout(r
 async function side(kit: AccountFlowKit, business: BusinessFixture): Promise<Side> {
   const { email, password } = business.owner;
   const [row] = await kit.sql<{ id: number }>('SELECT "id" FROM "user" WHERE "identifier" = $1', [email]);
+  if (row === undefined) {
+    throw new Error(`no user row for ${email}`);
+  }
   const session = await kit.session(email, password);
   const [store] = business.stores;
   return {
     business,
     email,
     password,
-    userId: row?.id ?? 0,
+    userId: row.id,
     session,
     onStore: { ...session, channelToken: store.channelToken },
   };

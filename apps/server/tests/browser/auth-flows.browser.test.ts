@@ -37,6 +37,7 @@ async function openStoreStep(page: Page, email: string): Promise<void> {
   await page.getByRole('textbox', { name: 'Business name' }).fill('Browser Business');
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByText('Step 3 of 3').waitFor();
+  await expect(page.getByText('Step 4').count()).resolves.toBe(0);
   await page.getByRole('textbox', { name: 'Store name' }).fill('Browser Store');
 }
 

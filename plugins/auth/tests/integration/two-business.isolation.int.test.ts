@@ -127,6 +127,7 @@ describe("A's writes never touch B", () => {
       });
 
       // Assert
+      expect(await kit.status(a.session)).toMatchObject({ pendingEmail: b.email });
       expect(await kit.status(b.session)).toMatchObject({ pendingEmail: null });
     },
   );

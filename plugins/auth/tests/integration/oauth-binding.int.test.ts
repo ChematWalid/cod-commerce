@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AUTH_TOKEN_HEADER } from './login-test-client';
 import { createOAuthTestKit, googleProfile, type OAuthRun } from './oauth-test-kit';
 import { codeOf, inputFor, uniqueEmail, uniqueIp } from './register-test-kit';
 
@@ -166,6 +167,22 @@ describe('the single-use ticket', () => {
     // Assert
     expect(refused.data?.['authenticate']?.['authenticationError']).toBe(INVALID_TOKEN);
     expect(accepted.data?.['authenticate']?.['__typename']).toBe('CurrentUser');
+  });
+
+  it('refuses the sign-in ticket of one user to another signed-in user, and leaves it usable', async () => {
+    // Arrange
+    const owner = await existingAccountRun();
+    const other = await existingAccountRun();
+    const otherAnswer = await authenticate(other.run.ticket ?? '', other.run.browser);
+    const caller = { ...other.run.browser, token: otherAnswer.headers.get(AUTH_TOKEN_HEADER) ?? '' };
+
+    // Act
+    const stolen = await authenticate(owner.run.ticket ?? '', caller);
+    const own = await authenticate(owner.run.ticket ?? '', owner.run.browser);
+
+    // Assert
+    expect(stolen.data?.['authenticate']?.['authenticationError']).toBe(INVALID_TOKEN);
+    expect(own.data?.['authenticate']?.['identifier']).toBe(owner.email);
   });
 
   it('refuses a replayed sign-in ticket', async () => {
