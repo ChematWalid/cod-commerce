@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   PERMISSION_CATALOG,
+  UnknownAreaLevelError,
   UnknownPermissionError,
+  type AreaLevel,
   areaLevelOf,
   expandRolePermissions,
   type PermissionKey,
@@ -61,6 +63,21 @@ describe('expandRolePermissions', () => {
     expect(() => expand({ base: [unknown] })).toThrow(UnknownPermissionError);
     expect(() => expand({ grants: [unknown] })).toThrow(UnknownPermissionError);
     expect(() => expand({ revokes: [unknown] })).toThrow(UnknownPermissionError);
+  });
+});
+
+describe('area level edge cases', () => {
+  it('refuses an unexpected area level instead of granting Full', () => {
+    const bad = 'admin' as AreaLevel;
+
+    expect(() => expand({ areaLevels: [{ area: 'orders', level: bad }] })).toThrow(UnknownAreaLevelError);
+  });
+
+  it('reads Analytics as full and expands View to both keys (D73)', () => {
+    const both = keysOf('analytics');
+
+    expect(areaLevelOf('analytics', both)).toBe('full');
+    expect(expand({ areaLevels: [{ area: 'analytics', level: 'view' }] })).toEqual([...both].sort());
   });
 });
 

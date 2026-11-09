@@ -13,6 +13,15 @@ export class UnknownPermissionError extends DomainError {
   }
 }
 
+/** Thrown when an area level is not `none`, `view` or `full`. */
+export class UnknownAreaLevelError extends DomainError {
+  readonly code = RBAC_ERROR_CODES.UNKNOWN_PERMISSION;
+
+  constructor(readonly level: string) {
+    super(`Unknown area level: ${level}`);
+  }
+}
+
 /** The level chosen for one area. */
 export interface AreaLevelChoice {
   readonly area: PermissionArea;
@@ -37,8 +46,16 @@ const viewKeysOfArea = (area: PermissionArea): PermissionKey[] =>
   );
 
 const keysForLevel = (area: PermissionArea, level: AreaLevel): PermissionKey[] => {
-  if (level === 'none') return [];
-  return level === 'view' ? viewKeysOfArea(area) : keysOfArea(area);
+  switch (level) {
+    case 'none':
+      return [];
+    case 'view':
+      return viewKeysOfArea(area);
+    case 'full':
+      return keysOfArea(area);
+    default:
+      throw new UnknownAreaLevelError(String(level));
+  }
 };
 
 function assertKnown(keys: readonly string[]): void {
