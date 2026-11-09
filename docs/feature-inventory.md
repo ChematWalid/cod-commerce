@@ -16,7 +16,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 |---|---|---|---|
 | [ ] | Register, login, logout, email verification (link + OTP), forgot/reset password, change password, change email | C | `/login`, `/register`, `/forgot-password` |
 | [ ] | Google and Facebook sign-in | I | login page |
-| [ ] | Business profile (logo, name) and onboarding state | C | `/settings` |
+| [x] | Business profile (logo, name) and onboarding state | C | `/settings` |
 | [ ] | Multi-store per business, store switcher with subdomain | C | top bar |
 | [ ] | Plans Starter / Basic / Advanced, monthly or 3/6/12-month prepay (−10/−15/−20%) | C | `S:/store_settings?tab=plan` |
 | [ ] | Plan quotas: orders/month (excl. duplicates, blocked, exchanges), stores, team seats, landing pages per product, stock-tracked items, AI credits | C | quota bar "This month's orders"; 80% warning |
