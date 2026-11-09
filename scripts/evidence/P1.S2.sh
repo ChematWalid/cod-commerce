@@ -170,12 +170,14 @@ rest() { # rest <method> <url> <body|-> <session|-> -> $status, $work/h, $work/b
   local -a args=(-sS -X "$1" -D "$work/h" -o "$work/b" --max-time 30)
   [[ "$3" != - ]] && args+=(-H "$json" --data "$3")
   [[ "$4" != - ]] && args+=(-H "Authorization: Bearer $4")
+  [[ -n "${REST_COOKIE:-}" ]] && args+=(-H "Cookie: $REST_COOKIE")
   status=$(curl "${args[@]}" -w '%{http_code}' "$2") || status=000
   [[ "$status" != 000 ]] || fail "no HTTP answer from $2"
 }
 emit_rest() { # emit_rest <file> <title> <method> <shown-url> <shown-body|-> <session|->
   local headers=""
   [[ "$6" != - ]] && headers="Authorization: Bearer [REDACTED]"
+  [[ -n "${REST_COOKIE:-}" ]] && headers+=$'\nCookie: [REDACTED]'
   SHOWN_HEADERS=$headers SHOWN_BODY=$5 TITLE=$2 METHOD=$3 URL="$4" node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$1"
 }
 expect_status() { [[ "$status" == "$2" ]] || fail "$1: HTTP $status, wanted $2: $(command cat "$work/b")"; }
@@ -497,13 +499,60 @@ rest GET "$api2/auth/oauth/google/start" - -; expect_status "oauth start" 302
 location=$(command grep -i '^location:' "$work/h" | command tr -d '\r' | command awk '{print $2}')
 [[ "$location" == "http://127.0.0.1:$MOCK_PORT/authorize?"* && "$location" == *code_challenge=* && "$location" == *state=* ]] || fail "oauth start location: $location"
 while read -r c; do [[ -n "$c" ]] && cookies+=("$c"); done < <(command grep -i '^set-cookie:' "$work/h" | command sed -E 's/^[^=]+=([^;[:space:]]+).*/\1/')
-emit_rest "$f" "GET /auth/oauth/google/start: 302 to the mock provider, with state and PKCE (asserted, not shown); binding cookie set" GET "$api2/auth/oauth/google/start" - -
+query_param() { node -p 'new URL(process.argv[1]).searchParams.get(process.argv[2]) ?? ""' "$1" "$2"; }
+oauth_state=$(query_param "$location" state)
+remember OAUTH_STATE "$oauth_state"
+remember OAUTH_CODE_CHALLENGE "$(query_param "$location" code_challenge)"
+remember OAUTH_CODE evidence-mock-code
+secret_values+=("$oauth_state")
+binding_cookie=$(command grep -i '^set-cookie:' "$work/h" | command tr -d '\r' | command sed -E 's/^[^:]+:[[:space:]]*([^;]+).*/\1/')
+[[ "$binding_cookie" == *=* ]] || fail "oauth start: no binding cookie"
+emit_rest "$f" "GET /auth/oauth/google/start: 302 to the mock provider, with PKCE; state and challenge are placeholders; binding cookie set" GET "$api2/auth/oauth/google/start" - -
 rest GET "$api2/auth/oauth/google/callback?state=forged&code=forged" - -; expect_status "forged callback" 302
 location=$(command grep -i '^location:' "$work/h" | command tr -d '\r' | command awk '{print $2}')
 [[ "$location" == *"/oauth-complete?error="* && "$location" != *ticket=* ]] || fail "forged callback location: $location"
 emit_rest "$f" "A forged callback with no binding cookie: back to the dashboard with an error code, no ticket (asserted)" GET "$api2/auth/oauth/google/callback?state=forged&code=forged" - -
 rest GET "$api2/auth/oauth/twitter/start" - -; expect_status "unknown provider" 404
 emit_rest "$f" "An unknown provider: 404" GET "$api2/auth/oauth/twitter/start" - -
+callback_url="$api2/auth/oauth/google/callback?state=$oauth_state&code=evidence-mock-code"
+REST_COOKIE=$binding_cookie rest GET "$callback_url" - -; expect_status "oauth callback" 302
+location=$(command grep -i '^location:' "$work/h" | command tr -d '\r' | command awk '{print $2}')
+[[ "$location" == */register?ticket=* ]] || fail "oauth callback location: $location"
+oauth_ticket=$(query_param "$location" ticket)
+remember OAUTH_TICKET "$oauth_ticket"
+secret_values+=("$oauth_ticket")
+REST_COOKIE=$binding_cookie emit_rest "$f" "The callback of the browser that started the flow: a new identity goes to registration with a ticket" GET "$callback_url" - -
+REST_COOKIE=$binding_cookie rest POST "$api2/auth/oauth/ticket" "$(vars "{ticket:'$oauth_ticket'}")" -; expect_status "oauth ticket" 200
+assert_js "oauth ticket" "b.email==='$EV_OAUTH_EMAIL' && b.provider==='google' && b.emailVerified===true" "$work/b"
+REST_COOKIE=$binding_cookie emit_rest "$f" "POST /auth/oauth/ticket: what the ticket holds, for its own browser; spends nothing" POST "$api2/auth/oauth/ticket" "$(vars "{ticket:'$oauth_ticket'}")" -
+rest POST "$api2/auth/oauth/ticket" "$(vars "{ticket:'$oauth_ticket'}")" -; expect_status "oauth ticket, other browser" 400
+emit_rest "$f" "POST /auth/oauth/ticket from a browser without the binding cookie: refused" POST "$api2/auth/oauth/ticket" "$(vars "{ticket:'$oauth_ticket'}")" -
+
+# --- shop-guards.md ---------------------------------------------------------------------------
+Q_SHOP_PASSWORD='mutation ($current: String!, $next: String!) { updateCustomerPassword(currentPassword: $current, newPassword: $next) { __typename } }'
+Q_SHOP_EMAIL='mutation ($password: String!, $email: String!) { requestUpdateCustomerEmailAddress(password: $password, newEmailAddress: $email) { __typename } }'
+Q_SHOP_FORGOT='mutation ($email: String!) { requestPasswordReset(emailAddress: $email) { __typename ... on Success { success } } }'
+f="$out/api/shop-guards.md"
+begin "$f" "The Shop API refuses an administrator" "An administrator's session also works on the Shop API, so its account mutations are shadowed (D21). Passwords redacted."
+reset_limits
+G=shop-guard-$EV_RUN@evidence.example.test
+gql "$Q_REGISTER" "$(as_input "$(reg_input "$G" "shop-guard-$EV_RUN" "$EV_PASSWORD")")" - -
+assert_js "shop guard owner" '(b.errors||[]).length===0' "$work/b"
+login "$G" "$EV_PASSWORD"; shop_session=$LAST_TOKEN
+admin_url=$admin
+admin="$api/shop-api?languageCode=en"
+shown_password="$(vars "{current:'[REDACTED]',next:'[REDACTED]'}")"
+gql "$Q_SHOP_PASSWORD" "$(C="$EV_PASSWORD" N="$EV_NEW_PASSWORD" node -p 'JSON.stringify({current:process.env.C,next:process.env.N})')" "$shop_session" -
+expect_code "shop password" auth.use-account-security
+emit "$f" "updateCustomerPassword as an administrator: refused" "$Q_SHOP_PASSWORD" "$shown_password" "$shop_session" -
+target="$(vars "{password:'[REDACTED]',email:'moved-$EV_RUN@evidence.example.test'}")"
+gql "$Q_SHOP_EMAIL" "$(P="$EV_PASSWORD" E="moved-$EV_RUN@evidence.example.test" node -p 'JSON.stringify({password:process.env.P,email:process.env.E})')" "$shop_session" -
+expect_code "shop email" auth.use-account-security
+emit "$f" "requestUpdateCustomerEmailAddress as an administrator: refused before the password is looked at" "$Q_SHOP_EMAIL" "$target" "$shop_session" -
+gql "$Q_SHOP_FORGOT" "$(vars "{email:'$G'}")" - -
+assert_js "shop forgot" 'b.data.requestPasswordReset.success===true' "$work/b"
+emit "$f" "requestPasswordReset with an administrator's email: the answer an unknown email gets, and no token is stored" "$Q_SHOP_FORGOT" "$(vars "{email:'$G'}")" - -
+admin=$admin_url
 
 # --- screens and the flows the browser proves ---------------------------------------------------
 reset_limits
@@ -548,7 +597,8 @@ image-relevant commit \`$image_commit\`. Compose project \`cod-evidence\`; a sec
 | [\`api/profile.md\`](api/profile.md) | \`accountProfile\`, \`updateAccountProfile\`, REST GET and PATCH, anonymous 403, \`uploadBusinessLogo\` |
 | [\`api/isolation.md\`](api/isolation.md) | Cross-tenant: A's owner on B's channel and B's ids |
 | [\`api/rate-limit.md\`](api/rate-limit.md) | Real 429 with Retry-After, \`RATE_LIMITED\` on GraphQL, login throttle |
-| [\`api/oauth.md\`](api/oauth.md) | Flag on against the mock: providers, 302 with PKCE, forged callback, unknown provider |
+| [\`api/oauth.md\`](api/oauth.md) | Flag on against the mock: providers, 302 with PKCE, forged callback, unknown provider, the success callback issuing a ticket, \`POST /auth/oauth/ticket\` for its browser and refused for another |
+| [\`api/shop-guards.md\`](api/shop-guards.md) | Shop API with an administrator's session: password change and email change refused, forgot-password answers as for an unknown email |
 
 ## Emails
 
@@ -578,7 +628,7 @@ for f in "$out"/screens/*.png; do
 done
 ((${#session_tokens[@]} >= 3 && ${#mail_tokens[@]} >= 3 && ${#otps[@]} >= 3)) || fail "the redaction check would be vacuous"
 for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" "$EV_PASSWORD" "$EV_NEW_PASSWORD" "$EV_RESET_PASSWORD" "$OAUTH_SECRET" \
-  "${session_tokens[@]}" "${cookies[@]}" "${mail_tokens[@]}" wrong-password-value evidence-mock-access-token; do
+  "${session_tokens[@]}" "${cookies[@]}" "${mail_tokens[@]}" wrong-password-value evidence-mock-access-token evidence-mock-code; do
   if command grep -rqaF -- "$secret" "$out"; then fail "a raw secret or token appears in $out"; fi
 done
 for code in "${otps[@]}"; do
