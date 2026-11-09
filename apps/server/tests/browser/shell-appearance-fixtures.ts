@@ -1,5 +1,6 @@
 import { ACCOUNT_MENU_TEST_ID, ACCOUNT_THEME_TEST_ID, accountOptionTestId } from '@cod/plugin-merchant-shell';
 import type { Page } from 'playwright-core';
+import { closeMenus } from './dashboard-session';
 
 /** The account menu's theme choices (`UserSettings.theme`). */
 export type ThemeChoice = 'light' | 'dark' | 'system';
@@ -8,18 +9,8 @@ export type ThemeChoice = 'light' | 'dark' | 'system';
 export const MIN_TEXT_CONTRAST = 4.5;
 
 const SAVE_SETTINGS_MUTATION = 'setSettingsStoreValue';
-const MAX_MENU_LEVELS = 3;
 
 const byTestId = (page: Page, id: string) => page.locator(`[data-testid="${id}"]`);
-
-async function closeMenus(page: Page): Promise<void> {
-  const menus = page.getByRole('menu');
-  for (let level = 0; level < MAX_MENU_LEVELS && (await menus.count()) > 0; level += 1) {
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(150);
-  }
-  await menus.first().waitFor({ state: 'detached' });
-}
 
 /** Picks a theme as a user does: account menu, Theme, the radio. Waits for the server to store it. */
 export async function chooseTheme(page: Page, theme: ThemeChoice): Promise<void> {

@@ -73,11 +73,14 @@ describe('merchant shell appearance', () => {
   afterEach(async () => {
     const [context] = contexts.slice(-1);
     const page = context?.pages()[0];
-    if (page !== undefined) {
-      await chooseTheme(page, 'system');
-      await setDisplayLanguage(page, 'en');
+    try {
+      if (page !== undefined) {
+        await chooseTheme(page, 'system');
+        await setDisplayLanguage(page, 'en');
+      }
+    } finally {
+      await Promise.all(contexts.splice(0).map((each) => each.close()));
     }
-    await Promise.all(contexts.splice(0).map((each) => each.close()));
   });
 
   describe.each(THEMES)('%s system preference', (scheme) => {
@@ -128,17 +131,20 @@ describe('merchant shell appearance', () => {
   );
 
   describe('Arabic right-to-left', () => {
-    it('puts the sidebar on the right and tells an open section from a closed one', async () => {
-      const page = await visit('light');
-      await setDisplayLanguage(page, 'ar');
-      await open(page, NESTED_PAGE);
+    it.each(THEMES)(
+      'puts the sidebar on the right and tells an open section from a closed one (%s)',
+      async (scheme) => {
+        const page = await visit(scheme);
+        await setDisplayLanguage(page, 'ar');
+        await open(page, NESTED_PAGE);
 
-      await expect(page.locator('[data-side]').first().getAttribute('data-side')).resolves.toBe('right');
-      const openRotation = await computedStyle(page, OPEN_CHEVRON, 'rotate');
-      const closed = await computedStyle(page, CLOSED_CHEVRON, 'rotate');
-      expect(openRotation).toBe(OPEN_ROTATION);
-      expect(closed).not.toBe(openRotation);
-    });
+        await expect(page.locator('[data-side]').first().getAttribute('data-side')).resolves.toBe('right');
+        const openRotation = await computedStyle(page, OPEN_CHEVRON, 'rotate');
+        const closed = await computedStyle(page, CLOSED_CHEVRON, 'rotate');
+        expect(openRotation).toBe(OPEN_ROTATION);
+        expect(closed).not.toBe(openRotation);
+      },
+    );
 
     it('draws the active-row marker on the side the text starts, in both directions', async () => {
       const page = await visit('light');
@@ -151,19 +157,22 @@ describe('merchant shell appearance', () => {
       await expect(markerOffsets(page, ACTIVE_LINK)).resolves.toMatchObject({ left: AT_EDGE });
     });
 
-    it('mirrors the breadcrumb separator and the sidebar toggle, and leaves English alone', async () => {
-      const page = await visit('light');
-      await setDisplayLanguage(page, 'ar');
-      await open(page, NESTED_PAGE);
+    it.each(THEMES)(
+      'mirrors the breadcrumb separator and the sidebar toggle, and leaves English alone (%s)',
+      async (scheme) => {
+        const page = await visit(scheme);
+        await setDisplayLanguage(page, 'ar');
+        await open(page, NESTED_PAGE);
 
-      await expect(computedStyle(page, BREADCRUMB_SEPARATOR, 'scale')).resolves.toBe(MIRRORED);
-      await expect(computedStyle(page, 'svg.lucide-panel-left', 'scale')).resolves.toBe(MIRRORED);
+        await expect(computedStyle(page, BREADCRUMB_SEPARATOR, 'scale')).resolves.toBe(MIRRORED);
+        await expect(computedStyle(page, 'svg.lucide-panel-left', 'scale')).resolves.toBe(MIRRORED);
 
-      await setDisplayLanguage(page, 'en');
-      await expect(computedStyle(page, BREADCRUMB_SEPARATOR, 'scale')).resolves.toBe('none');
-      await expect(computedStyle(page, 'svg.lucide-panel-left', 'scale')).resolves.toBe('none');
-      await expect(page.locator('[data-side]').first().getAttribute('data-side')).resolves.toBe('left');
-    });
+        await setDisplayLanguage(page, 'en');
+        await expect(computedStyle(page, BREADCRUMB_SEPARATOR, 'scale')).resolves.toBe('none');
+        await expect(computedStyle(page, 'svg.lucide-panel-left', 'scale')).resolves.toBe('none');
+        await expect(page.locator('[data-side]').first().getAttribute('data-side')).resolves.toBe('left');
+      },
+    );
 
     it('loads the body font from our own origin and no font from a third party', async () => {
       const page = await visit('light');

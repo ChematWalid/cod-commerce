@@ -21,6 +21,11 @@ const PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
 const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
 const SIDEBAR_ENTRIES = '[data-sidebar="content"] [data-sidebar="menu-button"]';
 const VISIBLE_SIDEBAR = '[data-sidebar="sidebar"]';
+const SIDEBAR_HEADER = '[data-sidebar="header"]';
+const SIDEBAR_FOOTER = '[data-sidebar="footer"]';
+/** The framework's name; only the licence notice (`[data-vendure-branding]`) may show it (ADR 0007). */
+const VENDOR_NAME = /vendure/i;
+const LICENCE_NOTICE = '[data-vendure-branding]';
 const EVERY_LEAF_TIMEOUT_MS = 150_000;
 
 const byTestId = (page: Page, id: string) => page.locator(`[data-testid="${id}"]`);
@@ -80,6 +85,21 @@ const watchFor = (page: Page, testId: string): Promise<unknown> =>
     new MutationObserver(seen).observe(document, { childList: true, subtree: true });
   }, testId);
 
+/** The page's rendered text (`innerText`, so hidden parts are left out), without the elements matching `excluded`. */
+const textOutside = (page: Page, excluded: string): Promise<string> =>
+  page.evaluate((selector: string) => {
+    const elements = [...document.querySelectorAll<HTMLElement>(selector)];
+    const displays = elements.map((element) => element.style.display);
+    elements.forEach((element) => {
+      element.style.display = 'none';
+    });
+    const text = document.body.innerText;
+    elements.forEach((element, index) => {
+      element.style.display = displays[index] ?? '';
+    });
+    return text;
+  }, excluded);
+
 const everSeen = (page: Page): Promise<boolean> =>
   page.evaluate(() => (window as unknown as { __seen?: boolean }).__seen === true);
 
@@ -116,8 +136,11 @@ describe('merchant shell navigation', () => {
 
     it('hides the stock sidebar header and footer', async () => {
       await page.locator(SIDEBAR_ENTRIES).first().waitFor();
-      await expect(page.locator('[data-sidebar="header"]').isVisible()).resolves.toBe(false);
-      await expect(page.locator('[data-sidebar="footer"]').isVisible()).resolves.toBe(false);
+      for (const part of [SIDEBAR_HEADER, SIDEBAR_FOOTER]) {
+        // Present first, so a renamed attribute fails here instead of passing as "hidden".
+        await expect(page.locator(part).count(), part).resolves.toBeGreaterThanOrEqual(1);
+        await expect(page.locator(part).first().isVisible(), part).resolves.toBe(false);
+      }
     });
 
     it(
@@ -129,6 +152,7 @@ describe('merchant shell navigation', () => {
           expect(pathOf(page), path).toBe(dashboardPath(path));
           await expect(byTestId(page, MERCHANT_NOT_FOUND_TEST_ID).count(), path).resolves.toBe(0);
           await assertNoPageError(page);
+          expect(await textOutside(page, LICENCE_NOTICE), path).not.toMatch(VENDOR_NAME);
         }
       },
       EVERY_LEAF_TIMEOUT_MS,
@@ -254,7 +278,7 @@ describe('merchant shell navigation', () => {
     it('keeps the stock sections and has no merchant tree', async () => {
       await loginAsSuperadmin(page, DASHBOARD_URL);
       await setDisplayLanguage(page, 'en');
-      await page.locator('[data-sidebar="footer"]').waitFor();
+      await page.locator(SIDEBAR_FOOTER).waitFor();
       const entries = await sidebarEntries(page);
       expect(entries).toContain('Sales');
       await page.getByRole('button', { name: 'Sales' }).click();

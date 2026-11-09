@@ -140,12 +140,20 @@ async function chooseLanguageInAccountMenu(page: Page, language: DocumentLang): 
   await closeMenus(page);
 }
 
-/** Radio rows keep the menu open, and Escape closes one level (the submenu first), so it is pressed until none is left. */
-async function closeMenus(page: Page): Promise<void> {
+/** Menus nest no deeper than the account menu's submenus. */
+const MAX_MENU_LEVELS = 3;
+
+/**
+ * Radio rows keep the menu open, and Escape closes one level (the submenu first), so it is pressed until none is left,
+ * each time waiting until that level has closed.
+ */
+export async function closeMenus(page: Page): Promise<void> {
   const menus = page.getByRole('menu');
-  for (let level = 0; level < 3 && (await menus.count()) > 0; level += 1) {
+  for (let level = 0; level < MAX_MENU_LEVELS; level += 1) {
+    const open = await menus.count();
+    if (open === 0) break;
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(150);
+    await page.waitForFunction((before: number) => document.querySelectorAll('[role="menu"]').length < before, open);
   }
   await menus.first().waitFor({ state: 'detached' });
 }
