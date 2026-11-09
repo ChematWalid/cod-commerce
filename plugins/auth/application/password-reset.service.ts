@@ -20,7 +20,10 @@ import type { AuthEmailService } from './auth-email.service';
 
 /** What {@link PasswordResetService} works with. */
 export interface PasswordResetPorts {
-  readonly identity: Pick<AccountIdentityPort, 'inTransaction' | 'findByEmail' | 'findByUserId' | 'markEmailVerified'>;
+  readonly identity: Pick<
+    AccountIdentityPort,
+    'inTransaction' | 'findByEmail' | 'findByUserId' | 'markEmailVerified' | 'setProviderLinkUnproven'
+  >;
   readonly passwords: Pick<AccountPasswordsPort, 'set'>;
   readonly external: Pick<ExternalIdentityPort, 'unlinkAll'>;
   readonly sessions: AccountSessionsPort;
@@ -106,7 +109,7 @@ export class PasswordResetService {
   }
 
   private async apply(ctx: OperationContext, token: string, password: string): Promise<AppliedReset> {
-    const { identity, passwords, external, terminator, tokens, clock } = this.ports;
+    const { identity, passwords, terminator, tokens } = this.ports;
     const { userId } = await tokens.consume(ctx, 'password-reset', token);
     const account = userId === null ? undefined : await identity.findByUserId(ctx, userId);
     if (account === undefined) {
@@ -114,12 +117,23 @@ export class PasswordResetService {
     }
     await passwords.set(ctx, account.userId, password);
     await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change', 'oauth-ticket']);
-    if (account.emailVerifiedAt === null) {
-      // Nobody had proven this address, so a provider login on it may be whoever pre-registered it with this email.
-      // This reset is the first proof, and only the owner of the mailbox could make it.
+    await this.settleProof(ctx, account);
+    return { account, ended: await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT) };
+  }
+
+  /**
+   * A provider login made on an unproven address may belong to whoever pre-registered it with this email, and the
+   * owner's later verification click says nothing about that login. Only the owner of the mailbox can reset, so the
+   * reset removes it; if the address was still unproven, the reset is also its first proof.
+   */
+  private async settleProof(ctx: OperationContext, account: AccountRecord): Promise<void> {
+    const { identity, external, clock } = this.ports;
+    if (account.emailVerifiedAt === null || account.providerLinkUnproven) {
       await external.unlinkAll(ctx, account.userId);
+      await identity.setProviderLinkUnproven(ctx, account.administratorId, false);
+    }
+    if (account.emailVerifiedAt === null) {
       await identity.markEmailVerified(ctx, account.administratorId, clock.now());
     }
-    return { account, ended: await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT) };
   }
 }

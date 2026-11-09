@@ -23,6 +23,7 @@ const requestContextOf = (ctx: OperationContext): RequestContext => ctx as unkno
 /** The columns `configure` and tenancy add; the compiler does not know plugin custom fields. */
 interface AccountCustomFields {
   readonly emailVerifiedAt: Date | null;
+  readonly providerLinkUnproven: boolean;
   readonly emailLocale: AuthEmailLocale;
   readonly businessId: string | null;
 }
@@ -73,6 +74,11 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
 
   async markEmailVerified(ctx: OperationContext, administratorId: number, at: Date): Promise<void> {
     const change = { customFields: { emailVerifiedAt: at } } as QueryDeepPartialEntity<Administrator>;
+    await this.administrators(ctx).update({ id: administratorId }, change);
+  }
+
+  async setProviderLinkUnproven(ctx: OperationContext, administratorId: number, unproven: boolean): Promise<void> {
+    const change = { customFields: { providerLinkUnproven: unproven } } as QueryDeepPartialEntity<Administrator>;
     await this.administrators(ctx).update({ id: administratorId }, change);
   }
 
@@ -132,7 +138,8 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
     if (administrator === null) {
       return undefined;
     }
-    const { emailVerifiedAt, emailLocale, businessId } = administrator.customFields as unknown as AccountCustomFields;
+    const { emailVerifiedAt, providerLinkUnproven, emailLocale, businessId } =
+      administrator.customFields as unknown as AccountCustomFields;
     return {
       userId: accountUserId(administrator.user.id),
       administratorId: administrator.id as number,
@@ -140,6 +147,7 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
       email: administrator.emailAddress,
       locale: emailLocale,
       emailVerifiedAt,
+      providerLinkUnproven,
       businessId,
     };
   }

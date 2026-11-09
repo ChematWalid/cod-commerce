@@ -34,7 +34,10 @@ export interface PkcePair {
 export interface OAuthSignInPorts {
   readonly providers: Partial<Readonly<Record<OAuthProviderName, OAuthProviderPort>>>;
   readonly state: OAuthStateStorePort;
-  readonly identity: Pick<AccountIdentityPort, 'inTransaction' | 'findByEmail' | 'findByUserId' | 'markEmailVerified'>;
+  readonly identity: Pick<
+    AccountIdentityPort,
+    'inTransaction' | 'findByEmail' | 'findByUserId' | 'markEmailVerified' | 'setProviderLinkUnproven'
+  >;
   readonly external: ExternalIdentityPort;
   readonly claims: EmailClaimPort;
   readonly tokens: Pick<AccountTokenService, 'issue' | 'consumeBound' | 'peekBound'>;
@@ -185,9 +188,9 @@ export class OAuthSignInService {
     const { external, identity, clock } = this.ports;
     const { provider, subject, emailVerified } = redeemed.identity;
     await external.link(ctx, account.userId, provider, subject);
-    if (emailVerified) {
-      await identity.markEmailVerified(ctx, account.administratorId, clock.now());
-    }
+    await (emailVerified
+      ? identity.markEmailVerified(ctx, account.administratorId, clock.now())
+      : identity.setProviderLinkUnproven(ctx, account.administratorId, true));
     return { emailVerified, signInTicket: await this.issue(ctx, account.userId, redeemed.bindingHash) };
   }
 

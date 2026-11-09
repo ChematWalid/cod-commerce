@@ -26,6 +26,7 @@ import { RegisterResolver } from './api/register.resolver';
 import { authAdminApiSchema } from './api/schema';
 import { SessionResolver } from './api/session.resolver';
 import { ShopAccountGuardResolver } from './api/shop-account-guard.resolver';
+import { ShopEmailChangeGuardResolver } from './api/shop-email-change-guard.resolver';
 import { ShopPasswordResetGuardResolver } from './api/shop-password-reset-guard.resolver';
 import { AccountProfileService } from './application/account-profile.service';
 import { AccountTokenService } from './application/account-token.service';
@@ -133,6 +134,7 @@ function publicConfig(): AuthPublicConfig {
 function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
   config.customFields.Administrator.push(
     { name: 'emailVerifiedAt', type: 'datetime', nullable: true, internal: true },
+    { name: 'providerLinkUnproven', type: 'boolean', defaultValue: false, nullable: false, internal: true },
     { name: 'phone', type: 'string', length: ADMINISTRATOR_PHONE_MAX_LENGTH, nullable: true, internal: true },
     {
       name: 'emailLocale',
@@ -244,7 +246,14 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
   },
   // Administrators' sessions also work on the Shop API, whose password mutations have none of the account rules.
   // `SessionResolver` also here: the stock Shop `logout` throws for a session of a strategy only the Admin API has.
-  shopApiExtensions: { resolvers: [ShopAccountGuardResolver, ShopPasswordResetGuardResolver, SessionResolver] },
+  shopApiExtensions: {
+    resolvers: [
+      ShopAccountGuardResolver,
+      ShopEmailChangeGuardResolver,
+      ShopPasswordResetGuardResolver,
+      SessionResolver,
+    ],
+  },
   controllers: [
     AuthLoginController,
     AuthRegisterController,

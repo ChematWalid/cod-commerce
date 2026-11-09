@@ -45,6 +45,7 @@ describe('EmailVerificationService', () => {
       email: 'sara@example.test',
       locale: 'ar',
       emailVerifiedAt: null,
+      providerLinkUnproven: false,
       businessId: '1',
     };
     let ids = 0;

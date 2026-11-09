@@ -9,6 +9,8 @@ export interface AccountRecord {
   readonly email: string;
   readonly locale: AuthEmailLocale;
   readonly emailVerifiedAt: Date | null;
+  /** A provider login was linked while nobody had proven this address; a later verification does not clear it. */
+  readonly providerLinkUnproven: boolean;
   /** Null for a platform administrator, who belongs to no business. */
   readonly businessId: string | null;
 }
@@ -26,6 +28,7 @@ export interface AccountIdentityPort {
   /** The live administrator of this user. */
   findByUserId(ctx: OperationContext, userId: number): Promise<AccountRecord | undefined>;
   markEmailVerified(ctx: OperationContext, administratorId: number, at: Date): Promise<void>;
+  setProviderLinkUnproven(ctx: OperationContext, administratorId: number, unproven: boolean): Promise<void>;
   /** Moves the administrator, the user and the native login to `email` together. */
   changeEmail(ctx: OperationContext, account: AccountRecord, email: string): Promise<void>;
 }

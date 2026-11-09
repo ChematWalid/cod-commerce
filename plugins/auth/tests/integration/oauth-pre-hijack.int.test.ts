@@ -5,12 +5,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccountTokenService } from '../../application/account-token.service';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import { AUTH_TOKEN_HEADER, type Caller } from './login-test-client';
+import { waitForMessages } from './mailpit';
 import { createOAuthTestKit, facebookProfile, googleProfile } from './oauth-test-kit';
 import { inputFor, uniqueEmail, uniqueIp } from './register-test-kit';
 
 const RESET = `mutation ($t: String!, $p: String!) {
   resetPassword(token: $t, password: $p) { __typename ... on CurrentUser { identifier } }
 }`;
+const VERIFY = `mutation ($t: String!) { verifyEmail(token: $t) { success } }`;
 const NEW_PASSWORD = 'synthetic-victim-password';
 
 const kit = createOAuthTestKit();
@@ -64,6 +66,25 @@ describe('an account pre-registered through a provider with someone else`s email
     expect(await methodsOfSubject('facebook', subject)).toHaveLength(0);
     expect(await client.me(attackerSession)).not.toBe(victim);
     expect(pendingAnswer.data?.['authenticate']?.['authenticationError']).toBe('auth.invalid-token');
+    expect(comeback.page).toBe('/dashboard/register');
+    expect((await client.login(victim, NEW_PASSWORD, { ip: uniqueIp() })).code).toBe('OK');
+  });
+
+  it('loses the attacker`s link on a reset made after the owner verified the email', async () => {
+    // Arrange
+    const victim = uniqueEmail();
+    const subject = randomUUID();
+    await signUp(facebookProfile(undefined, subject), 'facebook', victim);
+    const [verification] = await waitForMessages(victim, 1);
+    const token = /token=([\w-]+)/.exec(verification?.Text ?? '')?.[1] ?? '';
+    await client.graphql(VERIFY, { t: token }, { ip: uniqueIp() });
+
+    // Act
+    await resetPasswordOf(victim);
+    const comeback = await signInThrough('facebook', facebookProfile(undefined, subject));
+
+    // Assert
+    expect(await methodsOfSubject('facebook', subject)).toHaveLength(0);
     expect(comeback.page).toBe('/dashboard/register');
     expect((await client.login(victim, NEW_PASSWORD, { ip: uniqueIp() })).code).toBe('OK');
   });
