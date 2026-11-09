@@ -167,6 +167,14 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
       'mutation ($currentPassword: String!, $newPassword: String!) { updateCustomerPassword(currentPassword: $currentPassword, newPassword: $newPassword) { __typename } }',
     variables: PASSWORD_VARIABLES,
   },
+  {
+    api: SHOP,
+    operation: 'requestUpdateCustomerEmailAddress',
+    access: 'owner',
+    document:
+      'mutation ($password: String!, $newEmailAddress: String!) { requestUpdateCustomerEmailAddress(password: $password, newEmailAddress: $newEmailAddress) { __typename } }',
+    variables: { password: 'synthetic-current', newEmailAddress: 'nobody@example.test' },
+  },
 ];
 
 const OAUTH_START = '/auth/oauth/:provider/start';
