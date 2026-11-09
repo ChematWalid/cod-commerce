@@ -24,18 +24,28 @@ export const RESERVED_SUBDOMAINS: readonly string[] = [
 
 export type SubdomainStatus = 'available' | 'taken' | 'reserved' | 'invalid';
 
+/** Machine-readable cause of a status other than `available`, for clients that translate it (D39). */
+export type SubdomainReasonCode = 'length' | 'format' | 'punycode' | 'reserved' | 'taken';
+
 export interface SubdomainAvailability {
   readonly subdomain: string;
   readonly status: SubdomainStatus;
+  /** English text for API users. */
   readonly reason: string | null;
+  readonly reasonCode: SubdomainReasonCode | null;
 }
 
 const SUBDOMAIN_FORMAT = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 /** The IDNA A-label prefix: a punycode name can render as a lookalike of another store's name. */
 const PUNYCODE_PREFIX = 'xn--';
 
-function result(subdomain: string, status: SubdomainStatus, reason: string | null): SubdomainAvailability {
-  return { subdomain, status, reason };
+function result(
+  subdomain: string,
+  status: SubdomainStatus,
+  reasonCode: SubdomainReasonCode | null,
+  reason: string | null,
+): SubdomainAvailability {
+  return { subdomain, status, reason, reasonCode };
 }
 
 /**
@@ -48,6 +58,7 @@ export function classifySubdomain(raw: string): SubdomainAvailability {
     return result(
       subdomain,
       'invalid',
+      'length',
       `Must be ${String(SUBDOMAIN_MIN_LENGTH)} to ${String(SUBDOMAIN_MAX_LENGTH)} characters long`,
     );
   }
@@ -55,14 +66,15 @@ export function classifySubdomain(raw: string): SubdomainAvailability {
     return result(
       subdomain,
       'invalid',
+      'format',
       'Use only lowercase letters, digits and hyphens, with no hyphen at the start or end',
     );
   }
   if (subdomain.startsWith(PUNYCODE_PREFIX)) {
-    return result(subdomain, 'invalid', `Names starting with ${PUNYCODE_PREFIX} are not allowed`);
+    return result(subdomain, 'invalid', 'punycode', `Names starting with ${PUNYCODE_PREFIX} are not allowed`);
   }
   if (RESERVED_SUBDOMAINS.includes(subdomain)) {
-    return result(subdomain, 'reserved', 'This name is reserved by the platform');
+    return result(subdomain, 'reserved', 'reserved', 'This name is reserved by the platform');
   }
-  return result(subdomain, 'available', null);
+  return result(subdomain, 'available', null, null);
 }

@@ -3,7 +3,7 @@ import { RESERVED_SUBDOMAINS, SUBDOMAIN_MAX_LENGTH, SUBDOMAIN_MIN_LENGTH, classi
 
 describe('classifySubdomain', () => {
   it('lowercases and trims, then reports available', () => {
-    expect(classifySubdomain('  DEMO ')).toEqual({ subdomain: 'demo', status: 'available', reason: null });
+    expect(classifySubdomain('  DEMO ')).toEqual({ subdomain: 'demo', status: 'available', reason: null, reasonCode: null });
   });
 
   it('accepts digits and inner hyphens at the length bounds', () => {
@@ -32,5 +32,17 @@ describe('classifySubdomain', () => {
     expect(result).toMatchObject({ subdomain: 'www', status: 'reserved' });
     expect(result.reason).not.toBeNull();
     expect(RESERVED_SUBDOMAINS).toContain('shop');
+  });
+
+  it.each([
+    ['ab', 'length'],
+    ['a'.repeat(SUBDOMAIN_MAX_LENGTH + 1), 'length'],
+    ['a_b', 'format'],
+    ['-ab', 'format'],
+    ['xn--abc', 'punycode'],
+    ['www', 'reserved'],
+    ['free-name', null],
+  ])('gives %s the reason code %s', (raw, code) => {
+    expect(classifySubdomain(raw).reasonCode).toBe(code);
   });
 });

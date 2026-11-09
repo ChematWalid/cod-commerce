@@ -104,3 +104,13 @@ Spike A, 2026-11-07, scratch app outside the repo (`%TEMP%\p0s2a\spike`, never c
 - Limit: no page says in so many words "the extension API is stable"; the evidence is the Dashboard's stable release plus the project-wide SemVer policy.
 
 **ADR 0008 input (token).** With `tokenMethod: ['cookie', 'bearer']`, 20 of the 21 Admin API requests captured around login carried `Authorization: Bearer <token>` (the one without was sent before a session existed), and every request after a reload did, the token was stored in `localStorage['vendure-session-token']`, and the `session`/`session.sig` HttpOnly cookies were sent as well. With `tokenMethod: 'cookie'` the dashboard logged in and listed products with no `Authorization` header and no token in `localStorage`.
+
+## Addendum (2026-11-09): P1.S2 decision D20
+
+**Status**: Accepted (2026-11-09, standing user authorization for P1)
+
+**D20 reverses the first structural choice above.** The sign-up wizard, email verification and email-change confirmation are dashboard routes with `authenticated: false` (`/register`, `/verify-email`, `/confirm-email-change`), added by `plugins/auth/dashboard`. Forgot and reset password stay the dashboard's stock `/forgot-password` and `/reset-password`, which a plugin cannot replace. They are not Next.js `/(platform)/*` pages and do not redirect to `app.ourdomain/login`.
+
+Why: the P1.S2 acceptance needs the merchant to land on Home right after submitting the wizard. The "no token handoff between origins" rule stays intact because the wizard runs on the dashboard origin: `auth.login` there stores the session and the owner (who holds only the new store's channel) lands on the new store. Spike A already proved that `authenticated: false` routes load without the app shell. Invitation acceptance (P1.S3) is not decided here.
+
+Cost if wrong: move three pages to Next.js and accept a login step after sign-up.

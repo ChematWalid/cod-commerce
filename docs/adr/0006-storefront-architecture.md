@@ -112,3 +112,9 @@ Spike F, 2026-11-07, P0.S2a-3. The scratch app is outside the repo and never com
 - The `proxy.ts` matcher must exclude `/api/`, or the revalidate route returns the unknown-host 404 for internal calls.
 - During a rollout, the round-robin balancer mixes versions. Clients then hard-reload once, which is the documented behaviour and not an error.
 - Memory roughly doubles while two deployments are live, because `'use cache'` keys include the deployment id.
+
+## Addendum (2026-11-09): P1.S2 decision D20
+
+**Status**: Accepted (2026-11-09, standing user authorization for P1)
+
+**D20 changes item 11.** Sign-up wizard, email verification and email-change confirmation are served by the dashboard as `authenticated: false` extension routes (ADR 0010 addendum), not by `apps/storefront` under `/(platform)/*`. Forgot and reset password are the dashboard's stock pages. The storefront keeps marketing pages on `ourdomain` and `www`; invitation acceptance stays open for P1.S3.

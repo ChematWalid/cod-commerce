@@ -35,6 +35,12 @@ const RUNTIME_EXPORTS = [
   'normalizeHost',
   'subdomainOfHost',
   'hostOfSubdomain',
+  'PASSWORD_MAX_BYTES',
+  'AUTH_ERROR_CODES',
+  'normalizeEmail',
+  'passwordSchema',
+  'phoneE164Schema',
+  'registerMerchantSchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {
