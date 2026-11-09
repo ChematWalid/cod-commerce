@@ -53,7 +53,8 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       serveWorkerHealth: role === 'worker',
     }),
     TemplatePlugin,
-    // Before tenancy, which would otherwise initialise it without the client address header.
+    // The order is free: tenancy's `init` only fills rate-limit options that are still unset, and this call
+    // replaces them either way.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
     TenancyPlugin.init({
       redisUrl: env.REDIS_URL,

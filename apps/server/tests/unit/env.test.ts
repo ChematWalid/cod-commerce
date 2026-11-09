@@ -118,7 +118,7 @@ describe('loadEnv', () => {
       DATABASE_URL: 'postgresql://cod:change-me-pg@pgbouncer:5432/cod',
       DATABASE_URL_DIRECT: 'postgresql://cod:change-me-pg@postgres:5432/cod',
     };
-    const error = failureOf({ APP_ENV: appEnv, ...placeholders });
+    const error = failureOf({ APP_ENV: appEnv, CLIENT_IP_HEADER: 'cf-connecting-ip', ...placeholders });
 
     expect(issuePaths(error).sort()).toEqual(Object.keys(placeholders).sort());
     expect(error.message).not.toContain('change-me-pg');
@@ -136,7 +136,9 @@ describe('loadEnv', () => {
   });
 
   it.each(['staging', 'production'])('requires PLATFORM_DOMAIN in %s', (appEnv) => {
-    expect(issuePaths(failureOf({ APP_ENV: appEnv, PLATFORM_DOMAIN: undefined }))).toEqual(['PLATFORM_DOMAIN']);
+    expect(
+      issuePaths(failureOf({ APP_ENV: appEnv, PLATFORM_DOMAIN: undefined, CLIENT_IP_HEADER: 'cf-connecting-ip' })),
+    ).toEqual(['PLATFORM_DOMAIN']);
   });
 
   it.each([
@@ -171,6 +173,19 @@ describe('loadEnv', () => {
     expect(loadEnv(valid).CLIENT_IP_HEADER).toBe('');
     expect(loadEnv({ ...valid, CLIENT_IP_HEADER: 'cf-connecting-ip' }).CLIENT_IP_HEADER).toBe('cf-connecting-ip');
     expect(loadEnv({ ...valid, CLIENT_IP_HEADER: '' }).CLIENT_IP_HEADER).toBe('');
+  });
+
+  it('requires CLIENT_IP_HEADER in production only', () => {
+    const production = { APP_ENV: 'production', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+
+    expect(issuePaths(failureOf({ ...production, CLIENT_IP_HEADER: undefined }))).toEqual(['CLIENT_IP_HEADER']);
+    expect(loadEnv({ ...valid, ...production, CLIENT_IP_HEADER: 'cf-connecting-ip' }).CLIENT_IP_HEADER).toBe(
+      'cf-connecting-ip',
+    );
+    expect(
+      loadEnv({ ...valid, APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' })
+        .CLIENT_IP_HEADER,
+    ).toBe('');
   });
 
   it.each(['cf connecting ip', 'x-real-ip: 1.2.3.4', 'a\nb'])('rejects %j as CLIENT_IP_HEADER', (header) => {

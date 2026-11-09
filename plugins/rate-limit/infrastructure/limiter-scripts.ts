@@ -35,13 +35,13 @@ return {allowed, retry}
 /**
  * Starts the next lockout of a key: twice the previous one, 60 s the first time, never above the cap.
  * KEYS[1] the lock (expires when the lockout ends), KEYS[2] the memory of its length.
- * ARGV: initial seconds, max seconds, memory seconds. Returns the length in seconds.
+ * ARGV: initial seconds, max seconds, memory seconds, growth factor. Returns the length in seconds.
  */
 export const LOCKOUT_SCRIPT = `
 local previous = tonumber(redis.call('GET', KEYS[2])) or 0
 local duration = tonumber(ARGV[1])
 if previous > 0 then
-  duration = math.min(previous * 2, tonumber(ARGV[2]))
+  duration = math.min(previous * tonumber(ARGV[4]), tonumber(ARGV[2]))
 end
 redis.call('SET', KEYS[1], '1', 'EX', duration)
 redis.call('SET', KEYS[2], tostring(duration), 'EX', duration + tonumber(ARGV[3]))

@@ -2,6 +2,7 @@ import type { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/comm
 import { Redis } from 'ioredis';
 import {
   KEY_PREFIX,
+  LOCKOUT_GROWTH_FACTOR,
   LOCKOUT_INITIAL_SECONDS,
   LOCKOUT_MAX_SECONDS,
   LOCKOUT_MEMORY_SECONDS,
@@ -30,7 +31,14 @@ const NO_EXPIRY = -1;
 /** The custom commands {@link createLimiterRedis} defines on the client. */
 export interface LimiterRedis extends Redis {
   rlTokenBucket(key: string, capacity: number, windowMs: number, nowMs: number): Promise<[number, number]>;
-  rlLockout(lockKey: string, levelKey: string, initial: number, max: number, memory: number): Promise<number>;
+  rlLockout(
+    lockKey: string,
+    levelKey: string,
+    initial: number,
+    max: number,
+    memory: number,
+    growth: number,
+  ): Promise<number>;
 }
 
 /** Where the limiter reports faults; Vendure's logger in production. */
@@ -99,7 +107,8 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
   }
 
   async onApplicationShutdown(): Promise<void> {
-    await this.redis.quit().catch(() => {
+    await this.redis.quit().catch((error: unknown) => {
+      this.report(error);
       this.redis.disconnect();
     });
   }
@@ -129,6 +138,7 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
         LOCKOUT_INITIAL_SECONDS,
         LOCKOUT_MAX_SECONDS,
         LOCKOUT_MEMORY_SECONDS,
+        LOCKOUT_GROWTH_FACTOR,
       ),
     );
     return seconds === undefined ? this.fallback.lockout(key) : { locked: true, retryAfterSeconds: seconds };

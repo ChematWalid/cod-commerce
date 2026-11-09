@@ -103,7 +103,7 @@ describe('buildVendureConfig', () => {
 
   it('scopes the cache and session namespace by APP_ENV', () => {
     const namespaces = ['staging', 'production'].map((appEnv) => {
-      configFor('api', { APP_ENV: appEnv });
+      configFor('api', { APP_ENV: appEnv, CLIENT_IP_HEADER: 'cf-connecting-ip' });
       return RedisCachePlugin.options.namespace;
     });
 

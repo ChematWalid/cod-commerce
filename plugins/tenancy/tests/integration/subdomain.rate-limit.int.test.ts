@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
@@ -13,7 +13,9 @@ const SUBDOMAIN_IP_CAPACITY = 60;
 const AVAILABILITY_QUERY =
   'query ($s: String!) { subdomainAvailability(subdomain: $s) { subdomain status reasonCode } }';
 
-const freshIp = (): string => `203.0.113.${String(randomInt(1, 255))}`;
+/** A random address in fd00::/8 whose /64 (the unit the limiter keys by) has 48 random bits: no two tests share a bucket. */
+const freshIp = (): string =>
+  `fd00:${randomBytes(2).toString('hex')}:${randomBytes(2).toString('hex')}:${randomBytes(2).toString('hex')}::1`;
 
 interface GraphqlBody {
   readonly data?: { subdomainAvailability: { status: string } } | null;

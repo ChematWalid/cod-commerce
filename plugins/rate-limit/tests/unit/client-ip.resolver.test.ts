@@ -37,7 +37,7 @@ describe('ClientIpResolver', () => {
     const ip = resolver.resolve(request('172.16.0.1', { 'cf-connecting-ip': '2001:DB8::1' }));
 
     // Assert
-    expect(ip).toBe('2001:db8::1');
+    expect(ip).toBe('2001:db8:0:0::/64');
   });
 
   it.each([
@@ -66,6 +66,32 @@ describe('ClientIpResolver', () => {
 
     // Assert
     expect(ip).toBe('203.0.113.5');
+  });
+
+  it.each([
+    ['2001:db8:1:2:aaaa:bbbb:cccc:dddd', '2001:db8:1:2::/64'],
+    ['2001:db8:1:2:1111:2222:3333:4444', '2001:db8:1:2::/64'],
+    ['2001:DB8:1:2::7', '2001:db8:1:2::/64'],
+    ['fe80::1%eth0', 'fe80:0:0:0::/64'],
+    ['::1', '0:0:0:0::/64'],
+    ['::ffff:203.0.113.5', '203.0.113.5'],
+    ['::ffff:cb00:7105', '203.0.113.5'],
+    ['64:ff9b::192.0.2.1', '64:ff9b:0:0::/64'],
+  ])('keys the IPv6 address %s as %s, so addresses of one /64 share a bucket', (address, expected) => {
+    // Arrange
+    const resolver = new ClientIpResolver('');
+
+    // Act
+    const ip = resolver.resolve(request(address));
+
+    // Assert
+    expect(ip).toBe(expected);
+  });
+
+  it('keys different /64 networks apart', () => {
+    const resolver = new ClientIpResolver('');
+
+    expect(resolver.resolve(request('2001:db8:1:2::1'))).not.toBe(resolver.resolve(request('2001:db8:1:3::1')));
   });
 
   it('answers a fixed placeholder when no address is known at all', () => {

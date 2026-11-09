@@ -111,7 +111,8 @@ const baseSchema = z.object({
   CORS_ORIGINS: csvList,
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
-  // The request header that carries the client address behind the edge (`cf-connecting-ip`); blank uses `req.ip`.
+  // The request header that carries the client address behind the edge (`cf-connecting-ip`); blank uses `req.ip`,
+  // which behind the edge is the edge's own address (production must set it).
   CLIENT_IP_HEADER: z.string().max(DNS_NAME_MAX_LENGTH).regex(HEADER_NAME, 'must be an HTTP header name').default(''),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
@@ -156,6 +157,13 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
+/** Behind the edge `req.ip` is the edge's address, so a production limiter without the header has one bucket for everyone. */
+function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
+  if (env.APP_ENV === 'production' && env.CLIENT_IP_HEADER === '') {
+    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in production' });
+  }
+}
+
 /** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
 function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
   if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.PLATFORM_DOMAIN === undefined) {
@@ -173,6 +181,7 @@ function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): vo
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
+  .superRefine(requireClientIpHeader)
   .transform((env) => ({
     ...env,
     PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
