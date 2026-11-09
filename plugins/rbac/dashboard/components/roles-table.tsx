@@ -84,8 +84,8 @@ function RoleRow({ role, ...actions }: RowMenuProps): ReactNode {
   const { formatDate } = useLocalFormat();
   return (
     <TableRow>
-      <TableCell>
-        <span className="flex flex-wrap items-center gap-2 font-medium">
+      <TableCell className="whitespace-normal">
+        <span className="flex flex-wrap items-center gap-2 font-medium [overflow-wrap:anywhere]">
           {roleNameIn(role, language)}
           {role.isBuiltIn && <Badge variant="outline">{i18n._('rbac.built-in')}</Badge>}
         </span>

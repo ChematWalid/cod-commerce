@@ -34,7 +34,14 @@ import { type ActivityLogItemDto, fetchActivityLog } from '../queries';
 
 const PAGE_ID = 'rbac-activity-log';
 const BLOCK_ID = 'rbac-activity-log-list';
-const HEADER_IDS = ['rbac.column-time', 'rbac.column-actor', 'rbac.column-action', 'rbac.column-target'];
+/** Hidden on a phone: the target column holds what matters, and four columns do not fit. */
+const ACTOR_COLUMN_CLASS = 'hidden sm:table-cell';
+const HEADERS = [
+  { id: 'rbac.column-time', className: '' },
+  { id: 'rbac.column-actor', className: ACTOR_COLUMN_CLASS },
+  { id: 'rbac.column-action', className: '' },
+  { id: 'rbac.column-target', className: '' },
+];
 const JSON_INDENT = 2;
 const JSON_STYLE = { direction: 'ltr', textAlign: 'left' } as const;
 const KNOWN_ACTIONS: ReadonlySet<string> = new Set(Object.values(ACTIVITY_ACTIONS));
@@ -76,8 +83,8 @@ function ActivityRow({ item }: { readonly item: ActivityLogItemDto }): ReactNode
       <TableCell className="whitespace-normal">
         {formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}
       </TableCell>
-      <TableCell>{item.actor?.name ?? i18n._('rbac.actor-system')}</TableCell>
-      <TableCell>
+      <TableCell className={ACTOR_COLUMN_CLASS}>{item.actor?.name ?? i18n._('rbac.actor-system')}</TableCell>
+      <TableCell className="whitespace-normal">
         <ActionCell action={item.action} />
       </TableCell>
       <TableCell className="whitespace-normal">
@@ -103,8 +110,8 @@ function ActivityTable({ items }: { readonly items: readonly ActivityLogItemDto[
     <Table>
       <TableHeader>
         <TableRow>
-          {HEADER_IDS.map((id) => (
-            <TableHead key={id} className="text-start">
+          {HEADERS.map(({ id, className }) => (
+            <TableHead key={id} className={`${className} text-start`}>
               {i18n._(id)}
             </TableHead>
           ))}
