@@ -100,6 +100,7 @@ describe('root ESLint config', () => {
     'plugins/tenancy/infrastructure/tenant-repository.ts',
     'plugins/tenancy/infrastructure/platform-store-lookup.ts',
     'plugins/tenancy/infrastructure/tenant-transaction.ts',
+    'plugins/rbac/infrastructure/vendure-actor-directory.ts',
   ])('allows direct data access in %s', async (path) => {
     expect(await lint('get-repository.ts.txt', path)).not.toContain('no-restricted-syntax');
   });

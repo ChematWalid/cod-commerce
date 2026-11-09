@@ -554,6 +554,9 @@ importers:
 
   plugins/rbac:
     dependencies:
+      '@cod/plugin-rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@cod/plugin-tenancy':
         specifier: workspace:*
         version: link:../tenancy

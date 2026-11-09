@@ -30,3 +30,18 @@ export type MemberStoreAccess = 'all' | 'selected';
 
 /** The code of the Vendure Role projecting a business role on `scope`. */
 export const vendureRoleCode = (businessRoleId: string, scope: BindingScope): string => `br-${businessRoleId}-${scope}`;
+
+/** The activity page size when the caller names none (D65). */
+export const ACTIVITY_DEFAULT_PAGE_SIZE = 50;
+/** The most activity rows one page holds. */
+export const ACTIVITY_MAX_PAGE_SIZE = 100;
+/** A diff whose JSON text is longer than this is replaced by `{ truncated: true }` (D66). */
+export const ACTIVITY_DIFF_MAX_BYTES = 16 * 1024;
+/** What replaces the value of a sensitive key in a diff. */
+export const REDACTED_VALUE = '[REDACTED]';
+/** What replaces a branch of a diff nested deeper than {@link DIFF_MAX_DEPTH}, or that refers to itself. */
+export const DIFF_OMITTED_VALUE = '[OMITTED]';
+/** The deepest nesting of a diff that is kept. */
+export const DIFF_MAX_DEPTH = 12;
+/** Largest Vendure administrator id (a Postgres `integer`); a larger one is never a real id (D68). */
+export const MAX_VENDURE_ID = 2147483647;

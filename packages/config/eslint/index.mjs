@@ -51,6 +51,8 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/auth/infrastructure/vendure-account-profile.ts',
   // `authentication_method` and `user` are Vendure's account-level tables (D36).
   '**/plugins/auth/infrastructure/vendure-external-identity.ts',
+  // `administrator` is Vendure's account-level table; only display names leave, for ids a business's own rows hold.
+  '**/plugins/rbac/infrastructure/vendure-actor-directory.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';

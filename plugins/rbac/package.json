@@ -16,6 +16,7 @@
     "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
   },
   "dependencies": {
+    "@cod/plugin-rate-limit": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
