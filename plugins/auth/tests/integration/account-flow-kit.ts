@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { TransactionalConnection } from '@vendure/core';
 import type { Caller, GraphqlAnswer } from './login-test-client';
 import { waitForMessages } from './mailpit';
@@ -14,6 +15,8 @@ export interface TestOwner {
 /** The registration kit plus what the verification, reset and change flow tests share. */
 export interface AccountFlowKit extends RegisterTestKit {
   readonly owner: () => Promise<TestOwner>;
+  /** Starts this file's user ids at a random point; call before creating accounts by any other route. */
+  readonly separateUserIds: () => Promise<void>;
   readonly session: (email: string, password?: string, ip?: string) => Promise<Caller>;
   readonly tokenInMail: (address: string, count?: number) => Promise<string>;
   readonly codeInMail: (address: string, count?: number) => Promise<string>;
@@ -21,6 +24,9 @@ export interface AccountFlowKit extends RegisterTestKit {
   readonly ageTokens: (email: string, minutes: number) => Promise<void>;
   readonly sql: <T>(query: string, parameters?: unknown[]) => Promise<T[]>;
 }
+
+const USER_ID_START_MIN = 1_000_000;
+const USER_ID_START_MAX = 2_000_000_000;
 
 const mailBody = async (address: string, count: number): Promise<string> => {
   const messages = await waitForMessages(address, count);
@@ -39,10 +45,25 @@ export function createAccountFlowKit(environment: { readonly assets?: boolean } 
     if (token === null) {
       throw new Error(`login refused: ${code}`);
     }
-    return { token };
+    return { token, ip };
+  }
+
+  let userIdsSeparated = false;
+
+  /**
+   * Each test file gets a fresh database whose user ids restart, while per-user rate-limit buckets
+   * live on in Valkey: a random start keeps one file's accounts from spending another's.
+   */
+  async function separateUserIds(): Promise<void> {
+    if (userIdsSeparated) {
+      return;
+    }
+    userIdsSeparated = true;
+    await sql(`ALTER SEQUENCE user_id_seq RESTART WITH ${String(randomInt(USER_ID_START_MIN, USER_ID_START_MAX))}`);
   }
 
   async function owner(): Promise<TestOwner> {
+    await separateUserIds();
     const input = inputFor();
     const email = input['email'] as string;
     const answer: GraphqlAnswer = await kit.register(input);
@@ -74,5 +95,5 @@ export function createAccountFlowKit(environment: { readonly assets?: boolean } 
     );
   }
 
-  return { ...kit, owner, session, tokenInMail, codeInMail, status, ageTokens, sql };
+  return { ...kit, owner, separateUserIds, session, tokenInMail, codeInMail, status, ageTokens, sql };
 }

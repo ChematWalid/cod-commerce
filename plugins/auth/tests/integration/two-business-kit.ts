@@ -53,6 +53,7 @@ async function side(kit: AccountFlowKit, business: BusinessFixture): Promise<Sid
 
 /** Provisions businesses A and B through the Admin API and signs both owners in. */
 export async function startTwoBusinesses(kit: AccountFlowKit): Promise<{ a: Side; b: Side }> {
+  await kit.separateUserIds();
   const { a, b } = await createTwoBusinesses(kit.adminClient);
   return { a: await side(kit, a), b: await side(kit, b) };
 }
