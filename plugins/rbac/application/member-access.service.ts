@@ -179,7 +179,7 @@ export class MemberAccessService {
     }));
   }
 
-  /** Invariant first, then who may touch Owner, then what the actor holds (D60.8, .7, .4, .3). */
+  /** Who may touch Owner first, so a non-holder cannot probe who the owner is; then D60.8, .4, .3. */
   private async checkRules(
     ctx: OperationContext,
     command: SetMemberAccessCommand,
@@ -189,13 +189,13 @@ export class MemberAccessService {
     const { actor, target, owner, activeStoreIds, before, roles } = world;
     const ownerBefore = before.find((row) => row.businessRoleId === owner.id);
     const ownerAfter = after.find((row) => row.businessRoleId === owner.id);
+    assertOwnerChangeAllowed(actor, !sameReach(ownerBefore, ownerAfter));
     assertOwnerKept({
       isBusinessOwner: command.administratorId === world.businessOwnerId,
       heldOwner: ownerBefore !== undefined,
       keepsOwnerOnAllStores: ownerAfter?.storeAccess === ALL_STORES_SCOPE,
       otherAllAccessHolders: await this.otherAllAccessOwners(ctx, command, owner.id),
     });
-    assertOwnerChangeAllowed(actor, !sameReach(ownerBefore, ownerAfter));
     assertCanChangeTarget(actor, target);
     assertCanGrantAccess(actor, {
       wantsAllStores: command.storeAccess === ALL_STORES_SCOPE,

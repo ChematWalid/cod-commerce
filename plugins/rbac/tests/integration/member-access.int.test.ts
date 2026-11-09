@@ -75,16 +75,18 @@ describe('setMemberAccess', () => {
     expect(memberAccess).toEqual(setMemberAccess);
   });
 
-  it('refuses a member without team.members.edit with FORBIDDEN', async () => {
+  it('refuses a member without the team permissions with FORBIDDEN, on the write and the read', async () => {
     // Arrange
     const { credentials, id } = await member();
     await actAsInNewSession(adminClient, credentials, businesses.a.stores[0]);
 
     // Act
     const codes = await codeOf({ administratorId: id, roleIds: [], storeAccess: 'all' });
+    const read = await failureOf(adminClient.query(MEMBER_ACCESS, { administratorId: id }));
 
     // Assert
     expect(codes).toEqual(['FORBIDDEN']);
+    expect(read.codes).toEqual(['FORBIDDEN']);
   });
 
   describe('selected bindings', () => {

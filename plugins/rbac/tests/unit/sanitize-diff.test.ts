@@ -38,6 +38,12 @@ describe('sanitizeDiff', () => {
     'otp',
     'otpCode',
     'hash',
+    'apiKeys',
+    'privateKeys',
+    'accessKeys',
+    'hashes',
+    'otps',
+    'sha256hash',
   ])('redacts %s', (key) => {
     // Act
     const clean = sanitizeDiff({ [key]: 'x' });

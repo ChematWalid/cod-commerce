@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { type StoreId, toBusinessId, toStoreId, vendurePermissionName } from '@cod/shared';
+import { type StoreId, toBusinessId, toStoreId } from '@cod/shared';
 import {
   type CredentialsFixture,
   createMember,
@@ -20,13 +20,13 @@ import { actAsInNewSession } from './rbac-kit';
 import { createRbacTestEnvironment } from './rbac-test-environment';
 
 const SNOWFLAKE_WORKER_ID = 1018;
-const VIEW_LOG = vendurePermissionName('settings.activity-log.view');
 
 describe('store-scoped member access', () => {
   const { server, adminClient } = createRbacTestEnvironment(SNOWFLAKE_WORKER_ID);
   let businesses: TwoBusinesses;
   let rows: AccessRows;
   let orderManagerRole: string;
+  let managerRole: string;
   let storeOne: StoreFixture;
   let storeTwo: StoreFixture;
   let counter = 0;
@@ -72,6 +72,7 @@ describe('store-scoped member access', () => {
     businesses = await createTwoBusinesses(adminClient);
     rows = new AccessRows(server.app);
     orderManagerRole = await rows.roleId(businesses.a.businessId, 'order-manager');
+    managerRole = await rows.roleId(businesses.a.businessId, 'manager');
     [storeOne, storeTwo] = businesses.a.stores;
   }, 120_000);
 
@@ -141,13 +142,21 @@ describe('store-scoped member access', () => {
 
   describe('Review Focus 5: an archived store', () => {
     let target: { credentials: CredentialsFixture; id: string };
+    let selectedViewer: { credentials: CredentialsFixture; id: string };
     let archived: StoreFixture;
 
     beforeAll(async () => {
       target = await member();
+      selectedViewer = await member();
       await asOwner();
       archived = await openStore();
       await orderManagerOn(target.id, [storeOne, archived]);
+      await set({
+        administratorId: selectedViewer.id,
+        roleIds: [managerRole],
+        storeAccess: 'selected',
+        storeIds: [storeOne.id, archived.id],
+      });
       await adminClient.query(ARCHIVE_STORE, { id: archived.id });
     });
 
@@ -176,7 +185,6 @@ describe('store-scoped member access', () => {
 
     it('shows its activity rows to an all-stores member and not to a selected one', async () => {
       // Arrange
-      const viewer = await member(['Authenticated', VIEW_LOG]);
       const service = server.app.get(ActivityLogService);
       const ctx = asOperationContext(await server.app.get(RequestContextService).create({ apiType: 'admin' }));
       const storeId: StoreId = toStoreId(archived.id);
@@ -199,7 +207,7 @@ describe('store-scoped member access', () => {
       // Act
       await asOwner();
       const asOwnerCount = await listed();
-      await actAsInNewSession(adminClient, viewer.credentials, storeOne);
+      await actAsInNewSession(adminClient, selectedViewer.credentials, storeOne);
       const asMemberCount = await listed();
 
       // Assert

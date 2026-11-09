@@ -4,7 +4,8 @@ import { ACTIVITY_DIFF_MAX_BYTES, DIFF_MAX_DEPTH, DIFF_OMITTED_VALUE, REDACTED_V
 const SENSITIVE_FRAGMENT = /password|secret|token|authorization|cookie/i;
 
 /** Short or common words: matched whole, so `footprint` is not an `otp` and `hashtag` is not a `hash` (D66). */
-const SENSITIVE_WORD = /\b(?:otp|hash|sessions?|cvv|credentials?|api ?key|private ?key|access ?key)\b/;
+const SENSITIVE_WORD =
+  /\b(?:otps?|(?:[a-z]+\d+)?hash(?:es)?|sessions?|cvv|credentials?|api ?keys?|private ?keys?|access ?keys?)\b/;
 
 /** `API_Key`, `api-key` and `apiKey` all become `api key`. */
 const wordsOf = (key: string): string =>
