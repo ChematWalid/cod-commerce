@@ -6,6 +6,9 @@ const FRAMEWORK_MODULES = '^(@nestjs|@vendure)/|^typeorm(/|$)|node_modules/(@nes
 /** The tenancy entry point that exposes the superadmin context and the unscoped business directory. */
 const TENANCY_PROVISIONING_ENTRY = '^plugins/tenancy/provisioning[.]ts$';
 
+/** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
+const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
+
 /**
  * The dependency rules of CLAUDE.md §3a.1–2, checked by dependency-cruiser.
  * Paths are relative to the cruise `baseDir`; `$1` refers back to the plugin captured in `from`.
@@ -50,13 +53,26 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points; it uses @cod/shared contracts or domain events.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
-    from: { path: '^plugins/([^/]+)/' },
+    from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
       path: '^plugins/[^/]+/',
-      pathNot: ['^plugins/$1/', '^plugins/(tenancy|rate-limit)/index[.]ts$', TENANCY_PROVISIONING_ENTRY],
+      pathNot: [
+        '^plugins/$1/',
+        '^plugins/(tenancy|rate-limit)/index[.]ts$',
+        TENANCY_PROVISIONING_ENTRY,
+        `^plugins/${SHELL_API_FILE}$`,
+      ],
     },
+  },
+  {
+    name: 'dashboard-no-plugin-core',
+    comment:
+      "dashboard/ holds presentation only (ADR 0017, D92): it never imports its plugin's domain, application, infrastructure or api.",
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/dashboard/' },
+    to: { path: '^plugins/$1/(domain|application|infrastructure|api)/' },
   },
   {
     name: 'tenancy-provisioning-entry-restricted',

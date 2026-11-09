@@ -154,16 +154,19 @@ describe('plugin layer boundaries', () => {
     expect(offenders).toEqual(
       [
         'bad/api/uses-other-plugin.ts',
+        'bad/api/uses-shell-api.ts',
         'bad/application/uses-infrastructure.ts',
         'bad/application/uses-rate-limit-entry.ts',
         'bad/application/uses-tenancy-entry.ts',
+        'bad/dashboard/uses-domain.ts',
+        'bad/dashboard/uses-shell-internals.ts',
         'bad/domain/uses-application.ts',
         'bad/infrastructure/uses-provisioning-entry.ts',
       ].sort(),
     );
   });
 
-  it('allows the dependency direction, including dashboard to domain', async () => {
+  it('allows the dependency direction, including a dashboard importing the shell api of another plugin', async () => {
     const results = await lintArch('good/**');
 
     expect(results.length).toBeGreaterThan(0);

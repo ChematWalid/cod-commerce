@@ -7,6 +7,9 @@
     ".": {
       "@cod/source": "./index.ts",
       "default": "./dist/index.js"
+    },
+    "./shell-api": {
+      "@cod/source": "./dashboard/shell-api.ts"
     }
   },
   "scripts": {

@@ -18,8 +18,11 @@ describe('architecture rules', () => {
       expect(bad.violations.map((violation) => violation.rule).sort()).toEqual(
         [
           'application-no-concretes',
+          'dashboard-no-plugin-core',
           'domain-is-pure',
           'domain-no-outer-layers',
+          'no-cross-plugin-internals',
+          'no-cross-plugin-internals',
           'no-cross-plugin-internals',
           'plugin-core-no-tenancy-entry',
           'plugin-core-no-tenancy-entry',
@@ -45,6 +48,24 @@ describe('architecture rules', () => {
         'plugins/rbac/infrastructure/uses-provisioning-entry.ts',
       );
       expect(bad.violations).toContainEqual({
+        rule: 'dashboard-no-plugin-core',
+        from: 'plugins/bad/dashboard/uses-domain.ts',
+        to: 'plugins/bad/domain/clean.ts',
+      });
+      expect(bad.violations).toContainEqual({
+        rule: 'no-cross-plugin-internals',
+        from: 'plugins/bad/api/uses-shell-api.ts',
+        to: 'plugins/merchant-shell/dashboard/shell-api.ts',
+      });
+      expect(bad.violations).toContainEqual({
+        rule: 'no-cross-plugin-internals',
+        from: 'plugins/bad/dashboard/uses-shell-internals.ts',
+        to: 'plugins/merchant-shell/dashboard/internal.ts',
+      });
+      expect(bad.violations.map((violation) => violation.from)).not.toContain(
+        'plugins/good/dashboard/uses-shell-api.ts',
+      );
+      expect(bad.violations).toContainEqual({
         rule: 'domain-is-pure',
         from: 'plugins/bad/domain/uses-vendure.ts',
         to: '@vendure/core',
@@ -67,7 +88,7 @@ describe('architecture rules', () => {
     const good = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins/good'] });
 
     expect(good.violations).toEqual([]);
-    expect(good.cruisedModules.length).toBeGreaterThan(0);
+    expect(good.cruisedModules).toContain('plugins/good/dashboard/uses-shell-api.ts');
   });
 
   it('finds no violation in the workspace', async () => {

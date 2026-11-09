@@ -5,5 +5,5 @@ export {
   SHELL_PLACEHOLDER_PATH,
   SHELL_PLACEHOLDER_TEST_ID,
 } from './dashboard/constants';
-export { DASHBOARD_LANGUAGES, type DocumentLang, toDocumentLang } from './domain/document-lang';
+export { DASHBOARD_LANGUAGES, type DocumentLang, toDocumentLang } from './dashboard/document-lang';
 export { MerchantShellPlugin } from './merchant-shell.plugin';

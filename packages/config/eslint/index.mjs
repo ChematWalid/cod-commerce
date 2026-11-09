@@ -67,7 +67,8 @@ const ALLOWED_LAYER_IMPORTS = {
   application: ['application', 'domain'],
   infrastructure: ['infrastructure', 'application', 'domain'],
   api: ['api', 'application', 'domain'],
-  dashboard: ['dashboard', 'domain'],
+  // D92: a dashboard is presentation only (ADR 0017) and reaches no layer of its plugin's core.
+  dashboard: ['dashboard'],
   tests: PLUGIN_LAYERS,
 };
 
@@ -85,7 +86,13 @@ const boundaryElements = [
   })),
 ];
 
-const boundaryFiles = [{ pattern: PLUGIN_ROOT_FILES, category: 'plugin-root', capture: ['root', 'plugin'] }];
+/** The one file of another plugin that a dashboard may import: the merchant shell's page registry entry (D83). */
+const SHELL_API_FILE = '**/plugins/merchant-shell/dashboard/shell-api.ts';
+
+const boundaryFiles = [
+  { pattern: PLUGIN_ROOT_FILES, category: 'plugin-root', capture: ['root', 'plugin'] },
+  { pattern: SHELL_API_FILE, category: 'shell-api' },
+];
 
 const SAME_ROOT_PLUGIN = '{{ from.file.captured.plugin }}';
 const ROOT_FILE = { categories: 'plugin-root', captured: { plugin: SAME_ROOT_PLUGIN } };
@@ -95,6 +102,8 @@ const boundaryPolicies = [
     from: { element: { type: from } },
     allow: { to: { element: { type: targets, captured: { plugin: SAME_PLUGIN } } } },
   })),
+  // Every dashboard may import the shell's entry, whichever plugin owns it.
+  { from: { element: { type: 'dashboard' } }, allow: { to: { file: { categories: 'shell-api' } } } },
   // Tests may import the plugin's root files.
   {
     from: { element: { type: 'tests' } },
