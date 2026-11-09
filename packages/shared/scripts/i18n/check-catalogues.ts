@@ -17,12 +17,15 @@ export interface PluginCatalogueInput {
   readonly nonMessageLiterals?: readonly string[];
 }
 
-/** A gap: an id with no translation in a required catalogue, or an Arabic plural lacking a category. */
+/**
+ * A gap: an id with no translation in a required catalogue, an Arabic plural lacking a category, or a declared
+ * non-message literal (`literal`) that the plugin's own catalogue holds as a message id, which the scan would then skip.
+ */
 export interface CatalogueProblem {
   readonly plugin: string;
   readonly locale: CatalogueLocale;
   readonly id: string;
-  readonly kind: 'missing' | 'empty' | 'plural';
+  readonly kind: 'missing' | 'empty' | 'plural' | 'literal';
 }
 
 /** The plugin whose catalogues every dashboard can use: the Vite plugin merges them, and `SubdomainField` lives there. */
@@ -83,10 +86,20 @@ function pluralProblems(plugin: string, arabic: ReadonlyMap<string, string> | un
     .map(([id]) => ({ plugin, locale: 'ar', id, kind: 'plural' }));
 }
 
+/** The plugin's own non-message literals that one of its catalogues also holds as a message id. */
+function literalProblems(plugin: PluginCatalogueInput, own: Catalogues): CatalogueProblem[] {
+  return (Object.entries(own) as [CatalogueLocale, ReadonlyMap<string, string>][]).flatMap(([locale, catalogue]) =>
+    (plugin.nonMessageLiterals ?? [])
+      .filter((literal) => catalogue.has(literal))
+      .map((id) => ({ plugin: plugin.plugin, locale, id, kind: 'literal' as const })),
+  );
+}
+
 /**
  * Checks every plugin dashboard against its catalogues (D89). Each used id needs a non-empty translation in English
  * and Arabic, in the plugin's own catalogue or the shell's; a `subdomain.*` id needs French too; an Arabic message
- * with `plural,` names the six Arabic categories. Pure: the caller reads the files.
+ * with `plural,` names the six Arabic categories; a declared non-message literal is no msgid of the plugin's own
+ * catalogues. Pure: the caller reads the files.
  */
 export function checkCatalogues(input: {
   readonly plugins: readonly PluginCatalogueInput[];
@@ -101,7 +114,7 @@ export function checkCatalogues(input: {
         return kind === null ? [] : [{ plugin: plugin.plugin, locale, id, kind }];
       }),
     );
-    return [...gaps, ...pluralProblems(plugin.plugin, own.ar)];
+    return [...gaps, ...pluralProblems(plugin.plugin, own.ar), ...literalProblems(plugin, own)];
   });
 }
 

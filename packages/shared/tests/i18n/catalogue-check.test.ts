@@ -117,6 +117,16 @@ describe('checkCatalogues', () => {
     expect(check(plugin)).toEqual([]);
   });
 
+  it('reports a declared non-message literal that its own catalogue holds as a message id', () => {
+    const plugin = pluginWith(
+      `i18n._('demo.title')`,
+      { 'demo.title': 'Title' },
+      { nonMessageLiterals: ['demo.title', 'demo.leaf'] },
+    );
+
+    expect(check(plugin).map(formatProblem)).toEqual(['demo en literal demo.title', 'demo ar literal demo.title']);
+  });
+
   it("skips the shell's non-message literals in every plugin, as a leaf id given to registerShellPage", () => {
     const shell = { ...SHELL, nonMessageLiterals: ['team.roles'] };
 
