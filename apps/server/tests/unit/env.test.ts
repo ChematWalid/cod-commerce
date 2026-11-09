@@ -167,6 +167,16 @@ describe('loadEnv', () => {
     expect(issuePaths(failureOf({ PLATFORM_DOMAIN: domain }))).toEqual(['PLATFORM_DOMAIN']);
   });
 
+  it('reads the client address header, empty by default', () => {
+    expect(loadEnv(valid).CLIENT_IP_HEADER).toBe('');
+    expect(loadEnv({ ...valid, CLIENT_IP_HEADER: 'cf-connecting-ip' }).CLIENT_IP_HEADER).toBe('cf-connecting-ip');
+    expect(loadEnv({ ...valid, CLIENT_IP_HEADER: '' }).CLIENT_IP_HEADER).toBe('');
+  });
+
+  it.each(['cf connecting ip', 'x-real-ip: 1.2.3.4', 'a\nb'])('rejects %j as CLIENT_IP_HEADER', (header) => {
+    expect(issuePaths(failureOf({ CLIENT_IP_HEADER: header }))).toEqual(['CLIENT_IP_HEADER']);
+  });
+
   it('defaults PLATFORM_DOMAIN to localhost in development', () => {
     expect(loadEnv({ ...valid, APP_ENV: 'development', PLATFORM_DOMAIN: undefined }).PLATFORM_DOMAIN).toBe('localhost');
   });

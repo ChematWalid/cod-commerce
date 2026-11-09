@@ -1,5 +1,6 @@
 import type { SubdomainAvailability } from '@cod/shared';
 import { toSnowflake, toStoreId } from '@cod/shared';
+import { RateLimit } from '@cod/plugin-rate-limit';
 import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { Allow, ChannelService, Ctx, EntityNotFoundError, Permission, type RequestContext } from '@vendure/core';
 import { ArchiveStoreService } from '../application/archive-store.service';
@@ -48,6 +49,7 @@ export class StoreQueryResolver {
   /** Whether a store could use `subdomain`. Public: the sign-up wizard asks before an account exists. */
   @Query()
   @Allow(Permission.Public)
+  @RateLimit('subdomain-ip')
   subdomainAvailability(
     @Ctx() ctx: RequestContext,
     @Args('subdomain') subdomain: string,

@@ -1,3 +1,4 @@
+import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { describe, expect, it } from 'vitest';
@@ -42,4 +43,19 @@ describe('buildPlugins', () => {
     // Assert
     expect(plugins).toContain(TenancyPlugin);
   });
+
+  it.each(SERVER_ROLES)(
+    'registers RateLimitPlugin with the client address header for the %s role',
+    (role: ServerRole) => {
+      // Arrange
+      const env = loadEnv({ ...valid, ROLE: role, CLIENT_IP_HEADER: 'cf-connecting-ip' });
+
+      // Act
+      buildPlugins(env, role);
+
+      // Assert: tenancy, registered after it, must not have replaced the options with its default
+      expect(buildPlugins(env, role)).toContain(RateLimitPlugin);
+      expect(RateLimitPlugin.options).toEqual({ redisUrl: 'redis://valkey:6379', clientIpHeader: 'cf-connecting-ip' });
+    },
+  );
 });

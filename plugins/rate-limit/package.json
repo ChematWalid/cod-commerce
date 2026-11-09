@@ -1,0 +1,32 @@
+{
+  "name": "@cod/plugin-rate-limit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Valkey token-bucket rate limits with an in-process fallback during an outage (ADR 0008, D28 to D31).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.4.0",
+    "@nestjs/core": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "ioredis": "5.11.1"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

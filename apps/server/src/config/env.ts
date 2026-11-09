@@ -46,6 +46,8 @@ const GARAGE_SECRET_KEY = /^[0-9a-f]{64}$/;
 /** Lowercase DNS labels of 1-63 characters, dot-separated: no port, no trailing dot. */
 const DNS_NAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
 const DNS_NAME_MAX_LENGTH = 253;
+/** An HTTP header field name (RFC 9110 token, restricted to the characters real headers use). */
+const HEADER_NAME = /^[A-Za-z0-9-]+$/;
 
 const port = (fallback: number): z.ZodDefault<z.ZodCoercedNumber> =>
   z.coerce.number().int().min(1).max(MAX_PORT).default(fallback);
@@ -109,6 +111,8 @@ const baseSchema = z.object({
   CORS_ORIGINS: csvList,
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
+  // The request header that carries the client address behind the edge (`cf-connecting-ip`); blank uses `req.ip`.
+  CLIENT_IP_HEADER: z.string().max(DNS_NAME_MAX_LENGTH).regex(HEADER_NAME, 'must be an HTTP header name').default(''),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
 });

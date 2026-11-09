@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
+import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
@@ -52,6 +53,8 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       serveWorkerHealth: role === 'worker',
     }),
     TemplatePlugin,
+    // Before tenancy, which would otherwise initialise it without the client address header.
+    RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
     TenancyPlugin.init({
       redisUrl: env.REDIS_URL,
       platformDomain: env.PLATFORM_DOMAIN,

@@ -1,3 +1,4 @@
+import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import { Redis } from 'ioredis';
 import { tenantBusinessPermission, tenantStorePermission } from './api/permissions';
@@ -117,7 +118,7 @@ const STORE_USE_CASES = [
 
 /** Businesses and stores over Vendure's sellers and channels. This module only wires the layers. */
 @VendurePlugin({
-  imports: [PluginCommonModule],
+  imports: [PluginCommonModule, RateLimitPlugin],
   entities: [BusinessEntity, StoreEntity, CustomDomainEntity, BusinessOrderSequenceEntity],
   providers: [
     { provide: CHANNEL_PROVISIONER, useClass: VendureChannelProvisioner },
@@ -195,6 +196,9 @@ export class TenancyPlugin {
   /** Registers the plugin with its options. */
   static init(options: TenancyPluginOptions): typeof TenancyPlugin {
     TenancyPlugin.options = options;
+    // The server initialises the rate limiter itself, with its client address header; any other host (tests,
+    // scripts) gets it on the same Valkey, keyed by `req.ip`.
+    RateLimitPlugin.options ??= { redisUrl: options.redisUrl, clientIpHeader: '' };
     return TenancyPlugin;
   }
 }

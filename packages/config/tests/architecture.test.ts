@@ -22,12 +22,18 @@ describe('architecture rules', () => {
           'domain-no-outer-layers',
           'no-cross-plugin-internals',
           'plugin-core-no-tenancy-entry',
+          'plugin-core-no-tenancy-entry',
         ].sort(),
       );
       expect(bad.violations).toContainEqual({
         rule: 'plugin-core-no-tenancy-entry',
         from: 'plugins/bad/application/uses-tenancy-entry.ts',
         to: 'plugins/tenancy/index.ts',
+      });
+      expect(bad.violations).toContainEqual({
+        rule: 'plugin-core-no-tenancy-entry',
+        from: 'plugins/bad/application/uses-rate-limit-entry.ts',
+        to: 'plugins/rate-limit/index.ts',
       });
       expect(bad.violations).toContainEqual({
         rule: 'domain-is-pure',
