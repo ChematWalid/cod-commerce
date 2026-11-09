@@ -1,5 +1,5 @@
 import { SNOWFLAKE_ID_GENERATOR } from '@cod/plugin-tenancy';
-import { BUILT_IN_ROLES, vendurePermissionName } from '@cod/shared';
+import { BUILT_IN_ROLES, PLATFORM_STAFF_PERMISSION, vendurePermissionName } from '@cod/shared';
 import { createTwoBusinesses, failureOf, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { RequestContextService, Role } from '@vendure/core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -105,6 +105,14 @@ describe('Converging the roles of existing businesses', () => {
       expect(bindings).toEqual([
         expect.objectContaining({ businessRoleId: owner?.id, scope: ALL_STORES_SCOPE, vendureRoleId: ownerRoleId }),
       ]);
+    });
+
+    it('leaves PlatformStaff off the Owner Vendure role', async () => {
+      const { ownerRoleId } = await businessRow(businesses.a.businessId);
+
+      const { permissions } = await vendureRole(ownerRoleId);
+
+      expect(permissions).not.toContain(PLATFORM_STAFF_PERMISSION);
     });
 
     it('changes nothing and flushes nobody on a second run', async () => {

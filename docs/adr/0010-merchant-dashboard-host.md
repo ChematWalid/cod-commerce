@@ -114,3 +114,16 @@ Spike A, 2026-11-07, scratch app outside the repo (`%TEMP%\p0s2a\spike`, never c
 Why: the P1.S2 acceptance needs the merchant to land on Home right after submitting the wizard. The "no token handoff between origins" rule stays intact because the wizard runs on the dashboard origin: `auth.login` there stores the session and the owner (who holds only the new store's channel) lands on the new store. Spike A already proved that `authenticated: false` routes load without the app shell. Invitation acceptance (P1.S3) is not decided here.
 
 Cost if wrong: move three pages to Next.js and accept a login step after sign-up.
+
+## Addendum (2026-11-09): P1.S5 decisions D76, D78, D79, D84
+
+**Status**: Accepted (2026-11-09, standing user authorization for P1)
+
+Full reasoning and costs: `docs/roadmap/P1-decisions.md` (D76, D78, D79, D84).
+
+- **D76, language.** The language lives in the user's settings. There is no `/en/` or `/ar/` URL prefix: stock routes carry no locale segment and the router base is fixed. `html[dir]` comes from the dashboard, `html[lang]` from `DocumentLangSync`.
+- **D78, who is staff.** `PlatformStaff` is a tenancy permission, assignable so the superadmin role holds it, and listed in `PLATFORM_ONLY_CUSTOM_PERMISSIONS` so no Owner or custom role receives it. `isPlatformStaff(ctx)` tests `ctx.channels[].permissions` on any channel. This replaces the `ctx.hasPermissions` test in the Decision above, which is channel-scoped and false while the active channel loads (the risk named above).
+- **D79, merchant chrome.** Merchants get our own store switcher and account menu in the top bar; the stock sidebar header and footer are hidden by CSS unless `html[data-platform-staff]` is set. The licence notice stays visible (ADR 0001 §8).
+- **D84, reachable pages.** "Built-in pages stay reachable" is narrowed to an allow-list. A merchant reaches `/home`, `/account/profile` and extension routes only; any other stock route shows not found. This matches D59: the server already refuses their data.
+
+Cost if wrong: see the decision log; each is a small, local change.

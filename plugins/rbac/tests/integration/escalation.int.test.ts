@@ -1,4 +1,4 @@
-import { PERMISSION_AREA_IDS } from '@cod/shared';
+import { PERMISSION_AREA_IDS, PLATFORM_STAFF_PERMISSION } from '@cod/shared';
 import {
   type CredentialsFixture,
   createTwoBusinesses,
@@ -160,6 +160,14 @@ describe('role escalation (D60)', () => {
       const updated = await api.update(role.id, { revokes: [role.permissions[0] as string] });
 
       expect(updated.permissions).toHaveLength(role.permissions.length - 1);
+    });
+
+    it('cannot create a role naming PlatformStaff, even as the owner', async () => {
+      await team.asOwner();
+
+      const failure = await failureOf(api.create({ name: unique('Staff'), grants: [PLATFORM_STAFF_PERMISSION] }));
+
+      expect(failure.codes).toEqual(['rbac.unknown-permission']);
     });
 
     it('can create a role within what it holds (positive control)', async () => {

@@ -1,7 +1,7 @@
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import { Redis } from 'ioredis';
-import { tenantBusinessPermission, tenantStorePermission } from './api/permissions';
+import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
 import { BusinessResolver } from './api/business.resolver';
 import { adminApiSchema } from './api/schema';
@@ -95,7 +95,7 @@ function createIdGenerator(): ValkeySnowflakeGenerator {
 }
 
 function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
-  config.authOptions.customPermissions.push(tenantBusinessPermission, tenantStorePermission);
+  config.authOptions.customPermissions.push(tenantBusinessPermission, tenantStorePermission, platformStaffPermission);
   config.customFields.Administrator.push({
     name: 'businessId',
     type: 'string',

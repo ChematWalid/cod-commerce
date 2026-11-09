@@ -1,3 +1,5 @@
+import { PLATFORM_STAFF_PERMISSION } from '@cod/shared';
+
 /** The longest business or store name. */
 export const NAME_MAX_LENGTH = 255;
 
@@ -32,6 +34,7 @@ export const workerLeaseKey = (workerId: number): string => `idgen:worker:${Stri
 export const PLATFORM_ONLY_CUSTOM_PERMISSIONS: readonly string[] = [
   'ReadDashboardGlobalViews',
   'WriteDashboardGlobalViews',
+  PLATFORM_STAFF_PERMISSION,
 ];
 
 /** How many hosts each process keeps in memory. */
