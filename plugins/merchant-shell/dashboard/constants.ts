@@ -15,6 +15,9 @@ export const PLATFORM_LANGUAGES_TEST_ID = 'platform-languages';
 /** The id of the provider that keeps `html[lang]` in step with the display language. */
 export const DOCUMENT_LANG_PROVIDER_ID = 'merchant-shell-document-lang';
 
+/** The id of the provider that replaces the framework's name in the tab title (D91). */
+export const DOCUMENT_TITLE_PROVIDER_ID = 'merchant-shell-document-title';
+
 /** The ids of the providers behind the sidebar hide rule (D79) and the merchant route guard (D84). */
 export const PLATFORM_STAFF_FLAG_PROVIDER_ID = 'merchant-shell-platform-staff-flag';
 export const MERCHANT_ROUTE_GUARD_PROVIDER_ID = 'merchant-shell-route-guard';

@@ -3,6 +3,7 @@ import { defineDashboardExtension } from '@vendure/dashboard';
 import { AccountMenu } from './components/account-menu';
 import { AssistantPlaceholder } from './components/assistant-placeholder';
 import { CreditsPlaceholder } from './components/credits-placeholder';
+import { DocumentTitleBrand } from './components/document-title-brand';
 import { DocumentLangSync } from './components/document-lang-sync';
 import { LoginBrand, LoginWelcome } from './components/login-brand';
 import { MerchantRouteGuard } from './components/merchant-route-guard';
@@ -15,6 +16,7 @@ import {
   ASSISTANT_TOOLBAR_ITEM_ID,
   CREDITS_TOOLBAR_ITEM_ID,
   DOCUMENT_LANG_PROVIDER_ID,
+  DOCUMENT_TITLE_PROVIDER_ID,
   MERCHANT_ROUTE_GUARD_PROVIDER_ID,
   NOTIFICATIONS_TOOLBAR_ITEM_ID,
   PLATFORM_STAFF_FLAG_PROVIDER_ID,
@@ -54,6 +56,7 @@ defineDashboardExtension({
   ],
   customProviders: [
     { id: DOCUMENT_LANG_PROVIDER_ID, component: DocumentLangSync },
+    { id: DOCUMENT_TITLE_PROVIDER_ID, component: DocumentTitleBrand },
     { id: PLATFORM_STAFF_FLAG_PROVIDER_ID, component: PlatformStaffFlag },
     { id: MERCHANT_ROUTE_GUARD_PROVIDER_ID, location: 'layout', component: MerchantRouteGuard },
     {

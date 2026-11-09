@@ -8,5 +8,5 @@
     "declaration": false
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "tests", "src/gql"]
+  "exclude": ["dist", "node_modules", "tests", "src/gql", "src/**/*.vite.ts"]
 }
