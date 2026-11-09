@@ -14,4 +14,5 @@ export {
   type MemberAccessView,
   type SetMemberAccessCommand,
 } from './application/member-access.service';
+export { CreateRoleService, type CreateRoleCommand } from './application/create-role.service';
 export { asOperationContext } from './domain/ports/operation-context';

@@ -9,6 +9,7 @@ import { type Snowflake, toSnowflake } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
 import { Administrator, type RequestContext, TransactionalConnection } from '@vendure/core';
 import type { AppEnv } from '../config/env';
+import { seedDemoMembers } from './seed-demo-members';
 import { superadminContext } from './seed-platform-defaults';
 
 /** The demo seed was asked to run where it must not. */
@@ -32,10 +33,12 @@ interface DemoBusiness {
   readonly secondStore: DemoStore;
 }
 
+const DEMO_OWNER_EMAIL = 'owner@demo.example.test';
+
 const DEMO_BUSINESSES: readonly DemoBusiness[] = [
   {
     name: 'Demo',
-    ownerEmail: 'owner@demo.example.test',
+    ownerEmail: DEMO_OWNER_EMAIL,
     firstStore: { name: 'Demo Store', subdomain: 'demo', language: 'ar' },
     secondStore: { name: 'Demo Store 2', subdomain: 'demo2', language: 'en' },
   },
@@ -115,5 +118,6 @@ export async function seedDemoBusinesses(app: INestApplicationContext, env: AppE
   for (const demo of DEMO_BUSINESSES) {
     created.push(...(await ensureBusiness(app, ctx, demo, password)));
   }
+  created.push(...(await seedDemoMembers(app, ctx, DEMO_OWNER_EMAIL, password)));
   return { created };
 }
