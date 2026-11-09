@@ -33,3 +33,31 @@ export async function actAsInNewSession(
   await actAs(client, credentials, store);
   return client.getAuthToken();
 }
+
+/** A REST call to make; a body goes as JSON. */
+export interface RestRequest {
+  readonly method: string;
+  readonly path: string;
+  readonly body?: unknown;
+}
+
+/** What a REST call answered. */
+export interface RestAnswer {
+  readonly status: number;
+  readonly body: unknown;
+}
+
+/** A REST call with the client's session and channel; a body goes as JSON. */
+export async function restCall(
+  app: INestApplication,
+  client: SimpleGraphQLClient,
+  { method, path, body }: RestRequest,
+): Promise<RestAnswer> {
+  const { port } = (app.getHttpServer() as Server).address() as AddressInfo;
+  const response = await client.fetch(`http://localhost:${String(port)}${path}`, {
+    method,
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const text = await response.text();
+  return { status: response.status, body: text === '' ? null : (JSON.parse(text) as unknown) };
+}

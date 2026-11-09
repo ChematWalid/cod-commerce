@@ -7,7 +7,7 @@ import { GetRolesService } from '../application/get-roles.service';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { BusinessRoleView } from '../domain/role-view';
 import { RequestActors, roleActorOf } from './actor-of';
-import { choicesOf, type CreateBusinessRoleInputDto } from './dto';
+import { createCommandOf, type CreateBusinessRoleInputDto } from './dto';
 import { withRbacErrors } from './error-mapping';
 import { requirePermission } from './require-permission.decorator';
 
@@ -43,12 +43,7 @@ export class RolesResolver {
     @Args('input') input: CreateBusinessRoleInputDto,
   ): Promise<BusinessRoleView> {
     return withRbacErrors(async () =>
-      this.creator.create(asOperationContext(ctx), await roleActorOf(this.actors, ctx), {
-        ...choicesOf(input),
-        name: input.name,
-        description: input.description ?? null,
-        startFromRoleId: input.startFromRoleId ?? null,
-      }),
+      this.creator.create(asOperationContext(ctx), await roleActorOf(this.actors, ctx), createCommandOf(input)),
     );
   }
 

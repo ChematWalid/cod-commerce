@@ -5,7 +5,7 @@ import { UpdateRoleService } from '../application/update-role.service';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { BusinessRoleView } from '../domain/role-view';
 import { RequestActors, roleActorOf } from './actor-of';
-import { choicesOf, type UpdateBusinessRoleInputDto } from './dto';
+import { type UpdateBusinessRoleInputDto, updateCommandOf } from './dto';
 import { withRbacErrors } from './error-mapping';
 import { requirePermission } from './require-permission.decorator';
 
@@ -27,13 +27,7 @@ export class RoleEditsResolver {
     @Args('input') input: UpdateBusinessRoleInputDto,
   ): Promise<BusinessRoleView> {
     return withRbacErrors(async () =>
-      this.updater.update(asOperationContext(ctx), await roleActorOf(this.actors, ctx), {
-        ...choicesOf(input),
-        id,
-        name: input.name ?? undefined,
-        description: input.description,
-        startFromRoleId: input.startFromRoleId ?? undefined,
-      }),
+      this.updater.update(asOperationContext(ctx), await roleActorOf(this.actors, ctx), updateCommandOf(id, input)),
     );
   }
 

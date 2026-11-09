@@ -9,6 +9,9 @@ import { MemberAccessResolver } from './api/member-access.resolver';
 import { CatalogResolver } from './api/catalog.resolver';
 import { RbacTranslations } from './api/rbac-translations';
 import { RoleEditsResolver } from './api/role-edits.resolver';
+import { PermissionsController } from './api/permissions.controller';
+import { RoleEditsController } from './api/role-edits.controller';
+import { RolesController } from './api/roles.controller';
 import { RolesResolver } from './api/roles.resolver';
 import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
@@ -185,6 +188,7 @@ const systemClock: ClockPort = { now: () => new Date() };
     RbacLifecycleHook,
     StoreAccessFlushSubscriber,
   ],
+  controllers: [RolesController, RoleEditsController, PermissionsController],
   adminApiExtensions: {
     schema: adminApiSchema,
     resolvers: [ActivityLogResolver, MemberAccessResolver, RolesResolver, RoleEditsResolver, CatalogResolver],
