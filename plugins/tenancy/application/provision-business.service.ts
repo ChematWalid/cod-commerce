@@ -1,3 +1,4 @@
+import { toBusinessId } from '@cod/shared';
 import { type Business, newBusiness } from '../domain/business';
 import { assertValidName } from '../domain/name';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -60,6 +61,11 @@ export class ProvisionBusinessService {
       businessId: business.id,
     });
     await this.ports.platform.updateBusinessOwner(ctx, business.id, { ownerAdministratorId: administratorId });
+    await this.ports.lifecycle.businessProvisioned(ctx, {
+      businessId: toBusinessId(business.id),
+      ownerRoleId,
+      ownerAdministratorId: administratorId,
+    });
     return {
       business: { ...business, ownerRoleId, ownerAdministratorId: administratorId },
       store,

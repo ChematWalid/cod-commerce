@@ -8,6 +8,7 @@ import {
   InMemoryPlatformStore,
   openAssets,
   inlineTransaction,
+  noLifecycle,
   SequentialIdGenerator,
 } from '../fakes/fakes';
 
@@ -29,6 +30,7 @@ function setUp(): {
     transaction: inlineTransaction,
     ids: new SequentialIdGenerator('100'),
     assets: openAssets,
+    lifecycle: noLifecycle,
     clock: (): Date => NOW,
   };
   const service = new ProvisionBusinessService(ports, new CreateStoreService(ports));

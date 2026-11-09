@@ -11,16 +11,13 @@ import {
   Injector,
   isGraphQlErrorResult,
   LanguageCode,
-  type Permission,
   type RequestContext,
-  RequestContextService,
   RoleService,
   SellerService,
   TransactionalConnection,
-  User,
   Zone,
 } from '@vendure/core';
-import { ALGERIA_ZONE_NAME, ownerRoleCode, PLATFORM_ONLY_CUSTOM_PERMISSIONS } from '../domain/constants';
+import { ALGERIA_ZONE_NAME, ownerRoleCode } from '../domain/constants';
 import { PlatformZoneMissingError, UnsupportedStoreLanguageError } from '../domain/errors';
 import type {
   AdministratorRequest,
@@ -29,7 +26,8 @@ import type {
 } from '../domain/ports/channel-provisioner.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { toRequestContext } from './operation-context.adapter';
-import { shareTransaction } from './share-transaction';
+import { ownerRolePermissions } from './owner-role-permissions';
+import { SuperadminContextFactory } from './superadmin-context.factory';
 
 const CHANNEL_SECRET_BYTES = 16;
 
@@ -62,10 +60,10 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
 
   async createOwnerRole(ctx: OperationContext, businessId: Snowflake): Promise<number> {
     const code = ownerRoleCode(businessId);
-    const role = await this.injector.get(RoleService).create(await this.asSuperadmin(ctx), {
+    const role = await this.injector.get(RoleService).create(await this.superadmin(ctx), {
       code,
       description: code,
-      permissions: this.ownerPermissions(),
+      permissions: ownerRolePermissions(this.injector.get(ConfigService).authOptions.customPermissions),
       // Explicitly empty: without `channelIds` Vendure would put the role on the caller's channel.
       channelIds: [],
     });
@@ -94,12 +92,12 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
   }
 
   async assignRoleToChannel(ctx: OperationContext, roleId: number, channelId: number): Promise<void> {
-    await this.injector.get(RoleService).assignRoleToChannel(await this.asSuperadmin(ctx), roleId, channelId);
+    await this.injector.get(RoleService).assignRoleToChannel(await this.superadmin(ctx), roleId, channelId);
   }
 
   async updateChannelLanguage(ctx: OperationContext, channelId: number, language: string): Promise<void> {
     const languageCode = LanguageCode[language as keyof typeof LanguageCode];
-    const updated = await this.injector.get(ChannelService).update(await this.asSuperadmin(ctx), {
+    const updated = await this.injector.get(ChannelService).update(await this.superadmin(ctx), {
       id: channelId,
       defaultLanguageCode: languageCode,
       availableLanguageCodes: [languageCode],
@@ -111,7 +109,7 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
 
   async createAdministrator(ctx: OperationContext, request: AdministratorRequest): Promise<number> {
     const { businessId, roleId, ...identity } = request;
-    const administrator = await this.injector.get(AdministratorService).create(await this.asSuperadmin(ctx), {
+    const administrator = await this.injector.get(AdministratorService).create(await this.superadmin(ctx), {
       ...identity,
       roleIds: [roleId],
       customFields: { businessId },
@@ -119,16 +117,8 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
     return administrator.id as number;
   }
 
-  /** Every assignable plugin permission except the platform's own. Never core ones such as `ReadChannel` (A1). */
-  private ownerPermissions(): Permission[] {
-    return (
-      this.injector
-        .get(ConfigService)
-        .authOptions.customPermissions.flatMap((definition) => definition.getMetadata())
-        .filter(({ assignable, name }) => assignable && !PLATFORM_ONLY_CUSTOM_PERMISSIONS.includes(name))
-        // Custom permissions extend the enum at runtime only, so the compiler cannot know these names.
-        .map(({ name }) => name as unknown as Permission)
-    );
+  private superadmin(ctx: OperationContext): Promise<RequestContext> {
+    return this.injector.get(SuperadminContextFactory).create(ctx);
   }
 
   private async algeriaZone(ctx: RequestContext): Promise<Zone> {
@@ -140,22 +130,5 @@ export class VendureChannelProvisioner implements ChannelProvisionerPort {
       throw new PlatformZoneMissingError(ALGERIA_ZONE_NAME);
     }
     return zone;
-  }
-
-  /**
-   * A superadmin context on the caller's transaction. It is built per call: Vendure caches a user's channels per
-   * context, and creating a channel adds one to the superadmin's role.
-   */
-  private async asSuperadmin(ctx: OperationContext): Promise<RequestContext> {
-    const caller = toRequestContext(ctx);
-    const { identifier } = this.injector.get(ConfigService).authOptions.superadminCredentials;
-    const user = await this.injector
-      .get(TransactionalConnection)
-      .getRepository(caller, User)
-      .findOneOrFail({ where: { identifier }, relations: { roles: { channels: true } } });
-    const superadmin = await this.injector
-      .get(RequestContextService)
-      .create({ apiType: 'admin', channelOrToken: caller.channel, user });
-    return shareTransaction(caller, superadmin);
   }
 }

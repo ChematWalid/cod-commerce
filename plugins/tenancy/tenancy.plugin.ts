@@ -17,6 +17,7 @@ import { GetStoresService } from './application/get-stores.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
 import type { StoreAdminPorts } from './application/store-admin-ports';
 import type { TenancyPorts } from './application/tenancy-ports';
+import { TenantLifecycleRegistry } from './application/tenant-lifecycle.registry';
 import { UpdateBusinessService } from './application/update-business.service';
 import { UpdateStoreService } from './application/update-store.service';
 import {
@@ -27,14 +28,17 @@ import {
   STORE_ADMIN_PORTS,
   STORE_HOST_INVALIDATOR,
   TENANCY_PORTS,
+  TENANT_LIFECYCLE,
   TENANT_CONTEXT_RESOLVER,
   TENANT_STORES,
   TRANSACTION,
 } from './application/tokens';
 import type { AssetAccessPort } from './domain/ports/asset-access.port';
+import { BusinessStoreDirectory } from './domain/ports/business-store-directory.port';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { PlatformStorePort } from './domain/ports/platform-store.port';
+import type { TenantLifecycleHook } from './domain/ports/tenant-lifecycle.port';
 import type { StoreHostInvalidatorPort } from './domain/ports/store-host-invalidator.port';
 import type { TenantStoresPort } from './domain/ports/tenant-stores.port';
 import type { TransactionPort } from './domain/ports/transaction.port';
@@ -50,6 +54,7 @@ import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
 import { TenantStoresAdapter } from './infrastructure/tenant-stores.adapter';
 import { TenantTransaction } from './infrastructure/tenant-transaction';
 import { ValkeySnowflakeGenerator } from './infrastructure/valkey-snowflake.generator';
+import { SuperadminContextFactory } from './infrastructure/superadmin-context.factory';
 import { VendureAssetAccess } from './infrastructure/vendure-asset-access';
 import { VendureChannelProvisioner } from './infrastructure/vendure-channel-provisioner';
 import { VendureTransaction } from './infrastructure/vendure-transaction';
@@ -125,6 +130,9 @@ const STORE_USE_CASES = [
     { provide: ASSET_ACCESS, useClass: VendureAssetAccess },
     PlatformStoreLookup,
     { provide: PLATFORM_STORE, useExisting: PlatformStoreLookup },
+    { provide: BusinessStoreDirectory, useExisting: PlatformStoreLookup },
+    SuperadminContextFactory,
+    { provide: TENANT_LIFECYCLE, useClass: TenantLifecycleRegistry },
     TenantContextResolver,
     { provide: TENANT_CONTEXT_RESOLVER, useExisting: TenantContextResolver },
     TenantGuard,
@@ -136,15 +144,16 @@ const STORE_USE_CASES = [
     {
       provide: TENANCY_PORTS,
       useFactory: (
-        ...[channels, assets, platform, transaction, ids]: [
+        ...[channels, assets, platform, transaction, ids, lifecycle]: [
           ChannelProvisionerPort,
           AssetAccessPort,
           PlatformStorePort,
           TransactionPort,
           IdGeneratorPort,
+          TenantLifecycleHook,
         ]
-      ): TenancyPorts => ({ channels, assets, platform, transaction, ids, clock: systemClock }),
-      inject: [CHANNEL_PROVISIONER, ASSET_ACCESS, PLATFORM_STORE, TRANSACTION, ID_GENERATOR],
+      ): TenancyPorts => ({ channels, assets, platform, transaction, ids, lifecycle, clock: systemClock }),
+      inject: [CHANNEL_PROVISIONER, ASSET_ACCESS, PLATFORM_STORE, TRANSACTION, ID_GENERATOR, TENANT_LIFECYCLE],
     },
     {
       provide: CreateStoreService,
@@ -170,10 +179,13 @@ const STORE_USE_CASES = [
     },
   ],
   exports: [
+    BusinessStoreDirectory,
     CreateStoreService,
     ID_GENERATOR,
     OrderNumberService,
     ProvisionBusinessService,
+    SuperadminContextFactory,
+    TENANT_LIFECYCLE,
     TenantContextResolver,
     TENANT_CONTEXT_RESOLVER,
     TenantGuard,

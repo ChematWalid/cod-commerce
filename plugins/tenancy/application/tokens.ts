@@ -33,3 +33,6 @@ export const HOST_LOCAL_CACHE: unique symbol = Symbol('TenancyHostLocalCache');
 
 /** Injection token of the Valkey-backed `HostCachePort`. */
 export const HOST_SHARED_CACHE: unique symbol = Symbol('TenancyHostSharedCache');
+
+/** Injection token of the `TenantLifecycleRegistry` other plugins register their hooks on. */
+export const TENANT_LIFECYCLE: unique symbol = Symbol('TenancyTenantLifecycle');

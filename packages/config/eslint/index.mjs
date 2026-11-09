@@ -32,6 +32,8 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
   '**/plugins/tenancy/infrastructure/order-number.service.ts',
   '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
+  // Reads Vendure's account-level `user` row to build the superadmin context (A2).
+  '**/plugins/tenancy/infrastructure/superadmin-context.factory.ts',
   // `account_token` is an account-level table, not a tenant one (D24).
   '**/plugins/auth/infrastructure/typeorm-account-token.repository.ts',
   '**/plugins/auth/infrastructure/account-token-purge.task.ts',
