@@ -90,6 +90,71 @@ describe('findDashboardStyleViolations', () => {
     expect(css).toHaveLength(1);
   });
 
+  const inCss = (content: string, path = 'plugins/demo/dashboard/styles/x.css'): string[] =>
+    findDashboardStyleViolations([{ path, content }]);
+
+  it.each([
+    'margin-left: 1px',
+    'margin-right: 1px',
+    'padding-left: 1px',
+    'padding-right: 1px',
+    'left: 0',
+    'right: 0',
+    'border-left: 1px solid',
+    'border-right-width: 1px',
+    'border-top-left-radius: 2px',
+    'scroll-margin-left: 1px',
+    'text-align: left',
+    'text-align: right',
+    'float: left',
+  ])('flags the physical CSS property in "%s"', (declaration) => {
+    const violations = inCss(`a {\n  ${declaration};\n}`);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain('physical property');
+  });
+
+  it('accepts logical CSS properties, and selectors and comments that only name a side', () => {
+    const css = [
+      '/* pinned to the physical left: */',
+      "html[dir='rtl'] svg.lucide-chevron-left:not([class*='rtl:']) { scale: -1 1; }",
+      'a { margin-inline-start: 1px; padding-inline: 1px 2px; inset-inline-start: 0; text-align: start; }',
+    ].join('\n');
+
+    expect(inCss(css)).toEqual([]);
+  });
+
+  it("allows only the shell's reset of the stock marker's left, and only in rtl.css", () => {
+    const rtl = 'plugins/merchant-shell/dashboard/styles/rtl.css';
+
+    expect(inCss('a::before { left: auto; inset-inline-start: 0; }', rtl)).toEqual([]);
+    expect(inCss('a::before { left: 0; }', rtl)).toHaveLength(1);
+    expect(inCss('a::before { left: auto; }')).toHaveLength(1);
+  });
+
+  it('flags a physical utility used as a class selector in CSS', () => {
+    expect(inCss('.ml-2 { color: inherit; }')).toHaveLength(1);
+  });
+
+  it.each(['[&_.item]:ml-2', '[&:has(.x)]:pl-4', 'has-[.open]:mr-1', '[@media(min-width:40rem)]:text-left'])(
+    'flags a physical utility behind the arbitrary variant %s',
+    (token) => {
+      expect(violationsOf(`<div className="${token}" />`)).toHaveLength(1);
+    },
+  );
+
+  it('ignores an in-page link that looks like a hex colour', () => {
+    expect(violationsOf(`<a href="#add">x</a><a href='#fab'>y</a>`)).toEqual([]);
+  });
+
+  it('reports every match, not just the first', () => {
+    const violations = violationsOf('<i className="ml-2 pr-4 bg-white text-black" />');
+
+    expect(violations).toHaveLength(4);
+    expect(violations.join('\n')).toContain('"pr-4"');
+    expect(violations.join('\n')).toContain('"text-black"');
+  });
+
   it('ignores files outside a plugin dashboard and other extensions', () => {
     const files: SourceFile[] = [
       { path: 'plugins/demo/api/x.ts', content: 'ml-2 #fff' },
