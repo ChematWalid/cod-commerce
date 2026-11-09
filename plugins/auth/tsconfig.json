@@ -5,5 +5,5 @@
     "resolveJsonModule": true
   },
   "include": ["**/*.ts", "**/*.mts"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dashboard", "dist", "node_modules"]
 }

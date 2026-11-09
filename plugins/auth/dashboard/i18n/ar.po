@@ -1,0 +1,360 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "auth.email-taken"
+msgstr "يوجد حساب بهذا البريد الإلكتروني بالفعل"
+
+#. js-lingui-explicit-id
+msgid "auth.email-invalid"
+msgstr "أدخل بريدًا إلكترونيًا صالحًا"
+
+#. js-lingui-explicit-id
+msgid "auth.invalid-token"
+msgstr "هذا الرابط غير صالح أو انتهت صلاحيته"
+
+#. js-lingui-explicit-id
+msgid "auth.otp-invalid"
+msgstr "هذا الرمز غير صحيح"
+
+#. js-lingui-explicit-id
+msgid "auth.otp-locked"
+msgstr "محاولات خاطئة كثيرة. أرسل رمزًا جديدًا."
+
+#. js-lingui-explicit-id
+msgid "auth.password-policy"
+msgstr "استخدم ما بين 8 و72 حرفًا"
+
+#. js-lingui-explicit-id
+msgid "auth.registration-invalid"
+msgstr "يرجى التحقق من البيانات التي أدخلتها"
+
+#. js-lingui-explicit-id
+msgid "auth.profile-invalid"
+msgstr "يرجى التحقق من البيانات التي أدخلتها"
+
+#. js-lingui-explicit-id
+msgid "auth.current-password-wrong"
+msgstr "كلمة المرور الحالية غير صحيحة"
+
+#. js-lingui-explicit-id
+msgid "auth.cooldown"
+msgstr "يرجى الانتظار قليلًا قبل إرسال بريد آخر"
+
+#. js-lingui-explicit-id
+msgid "auth.rate-limited"
+msgstr "محاولات كثيرة. حاول مجددًا بعد قليل."
+
+#. js-lingui-explicit-id
+msgid "auth.challenge-failed"
+msgstr "تعذّر التأكد من أنك لست روبوتًا. يرجى المحاولة مجددًا."
+
+#. js-lingui-explicit-id
+msgid "auth.use-account-security"
+msgstr "غيّر بريدك الإلكتروني أو كلمة المرور من صفحة الأمان"
+
+#. js-lingui-explicit-id
+msgid "auth.oauth-link-requires-verification"
+msgstr "أكّد بريدك الإلكتروني قبل ربط طريقة الدخول هذه"
+
+#. js-lingui-explicit-id
+msgid "auth.logo-too-large"
+msgstr "يجب ألا يتجاوز حجم الصورة 5 ميغابايت"
+
+#. js-lingui-explicit-id
+msgid "auth.logo-type"
+msgstr "استخدم صورة بصيغة PNG أو JPEG أو GIF أو WebP"
+
+#. js-lingui-explicit-id
+msgid "auth.image-type"
+msgstr "استخدم صورة بصيغة PNG أو JPEG أو GIF أو WebP"
+
+#. js-lingui-explicit-id
+msgid "Something went wrong. Please try again."
+msgstr "حدث خطأ ما. يرجى المحاولة مجددًا."
+
+#. js-lingui-explicit-id
+msgid "This field is required"
+msgstr "هذا الحقل مطلوب"
+
+#. js-lingui-explicit-id
+msgid "Enter a valid phone number"
+msgstr "أدخل رقم هاتف صالحًا"
+
+#. js-lingui-explicit-id
+msgid "The two passwords do not match"
+msgstr "كلمتا المرور غير متطابقتين"
+
+#. js-lingui-explicit-id
+msgid "Your store was created, but the logo could not be saved"
+msgstr "تم إنشاء متجرك، لكن تعذّر حفظ الشعار"
+
+#. js-lingui-explicit-id
+msgid "Your account was created. Please sign in."
+msgstr "تم إنشاء حسابك. يرجى تسجيل الدخول."
+
+#. js-lingui-explicit-id
+msgid "Continue with {provider}"
+msgstr "المتابعة عبر {provider}"
+
+#. js-lingui-explicit-id
+msgid "New here?"
+msgstr "مستخدم جديد؟"
+
+#. js-lingui-explicit-id
+msgid "Create account"
+msgstr "إنشاء حساب"
+
+#. js-lingui-explicit-id
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "Password"
+msgstr "كلمة المرور"
+
+#. js-lingui-explicit-id
+msgid "At least 8 characters"
+msgstr "8 أحرف على الأقل"
+
+#. js-lingui-explicit-id
+msgid "First name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "Last name"
+msgstr "اللقب"
+
+#. js-lingui-explicit-id
+msgid "Continue"
+msgstr "متابعة"
+
+#. js-lingui-explicit-id
+msgid "Back"
+msgstr "رجوع"
+
+#. js-lingui-explicit-id
+msgid "Business name"
+msgstr "اسم النشاط التجاري"
+
+#. js-lingui-explicit-id
+msgid "Store name"
+msgstr "اسم المتجر"
+
+#. js-lingui-explicit-id
+msgid "Store address"
+msgstr "عنوان المتجر"
+
+#. js-lingui-explicit-id
+msgid "Store language"
+msgstr "لغة المتجر"
+
+#. js-lingui-explicit-id
+msgid "The language your customers shop in, not the dashboard"
+msgstr "اللغة التي يتسوّق بها زبائنك، وليست لغة لوحة التحكم"
+
+#. js-lingui-explicit-id
+msgid "Logo (optional)"
+msgstr "الشعار (اختياري)"
+
+#. js-lingui-explicit-id
+msgid "PNG, JPEG, GIF or WebP, up to 5 MB"
+msgstr "PNG أو JPEG أو GIF أو WebP، حتى 5 ميغابايت"
+
+#. js-lingui-explicit-id
+msgid "Choose image"
+msgstr "اختر صورة"
+
+#. js-lingui-explicit-id
+msgid "Remove"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "Create"
+msgstr "إنشاء"
+
+#. js-lingui-explicit-id
+msgid "Verification code"
+msgstr "رمز التحقق"
+
+#. js-lingui-explicit-id
+msgid "Verify"
+msgstr "تحقّق"
+
+#. js-lingui-explicit-id
+msgid "Verification email sent"
+msgstr "تم إرسال بريد التحقق"
+
+#. js-lingui-explicit-id
+msgid "Resend email"
+msgstr "إعادة إرسال البريد"
+
+#. js-lingui-explicit-id
+msgid "Your email is verified"
+msgstr "تم تأكيد بريدك الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "Verify your email"
+msgstr "أكّد بريدك الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "We sent you a link and a code. Click the link, or enter the code here."
+msgstr "أرسلنا إليك رابطًا ورمزًا. اضغط على الرابط أو أدخل الرمز هنا."
+
+#. js-lingui-explicit-id
+msgid "Go to dashboard"
+msgstr "الذهاب إلى لوحة التحكم"
+
+#. js-lingui-explicit-id
+msgid "Create your account"
+msgstr "أنشئ حسابك"
+
+#. js-lingui-explicit-id
+msgid "Your business"
+msgstr "نشاطك التجاري"
+
+#. js-lingui-explicit-id
+msgid "Set up your store"
+msgstr "جهّز متجرك"
+
+#. js-lingui-explicit-id
+msgid "Step {current} of {total}"
+msgstr "الخطوة {current} من {total}"
+
+#. js-lingui-explicit-id
+msgid "Already have an account?"
+msgstr "لديك حساب بالفعل؟"
+
+#. js-lingui-explicit-id
+msgid "Sign in"
+msgstr "تسجيل الدخول"
+
+#. js-lingui-explicit-id
+msgid "Confirm that this email address is yours."
+msgstr "أكّد أن هذا البريد الإلكتروني يخصّك."
+
+#. js-lingui-explicit-id
+msgid "Verify my email"
+msgstr "تأكيد بريدي الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "Confirm your new email"
+msgstr "أكّد بريدك الإلكتروني الجديد"
+
+#. js-lingui-explicit-id
+msgid "Use this address to sign in from now on."
+msgstr "استخدم هذا العنوان لتسجيل الدخول من الآن فصاعدًا."
+
+#. js-lingui-explicit-id
+msgid "Confirm new email"
+msgstr "تأكيد البريد الجديد"
+
+#. js-lingui-explicit-id
+msgid "Your email address has been changed"
+msgstr "تم تغيير بريدك الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "Profile"
+msgstr "الملف الشخصي"
+
+#. js-lingui-explicit-id
+msgid "Photo"
+msgstr "الصورة"
+
+#. js-lingui-explicit-id
+msgid "Profile saved"
+msgstr "تم حفظ الملف الشخصي"
+
+#. js-lingui-explicit-id
+msgid "Phone"
+msgstr "الهاتف"
+
+#. js-lingui-explicit-id
+msgid "Save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "Security"
+msgstr "الأمان"
+
+#. js-lingui-explicit-id
+msgid "Account"
+msgstr "الحساب"
+
+#. js-lingui-explicit-id
+msgid "Password changed"
+msgstr "تم تغيير كلمة المرور"
+
+#. js-lingui-explicit-id
+msgid "Current password"
+msgstr "كلمة المرور الحالية"
+
+#. js-lingui-explicit-id
+msgid "New password"
+msgstr "كلمة المرور الجديدة"
+
+#. js-lingui-explicit-id
+msgid "Confirm new password"
+msgstr "تأكيد كلمة المرور الجديدة"
+
+#. js-lingui-explicit-id
+msgid "Change password"
+msgstr "تغيير كلمة المرور"
+
+#. js-lingui-explicit-id
+msgid "Check your new inbox to confirm the change"
+msgstr "تحقّق من بريدك الجديد لتأكيد التغيير"
+
+#. js-lingui-explicit-id
+msgid "Waiting for confirmation: {email}"
+msgstr "في انتظار التأكيد: {email}"
+
+#. js-lingui-explicit-id
+msgid "New email"
+msgstr "البريد الإلكتروني الجديد"
+
+#. js-lingui-explicit-id
+msgid "Change email"
+msgstr "تغيير البريد الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "subdomain.length"
+msgstr "استخدم من 3 إلى 30 حرفًا"
+
+#. js-lingui-explicit-id
+msgid "subdomain.format"
+msgstr "استخدم أحرفًا لاتينية صغيرة وأرقامًا وشرطات فقط"
+
+#. js-lingui-explicit-id
+msgid "subdomain.punycode"
+msgstr "صيغة هذا العنوان غير مسموح بها"
+
+#. js-lingui-explicit-id
+msgid "subdomain.reserved"
+msgstr "هذا العنوان محجوز"
+
+#. js-lingui-explicit-id
+msgid "subdomain.taken"
+msgstr "هذا العنوان مستخدم بالفعل"
+
+#. js-lingui-explicit-id
+msgid "subdomain.rate-limited"
+msgstr "عمليات تحقق كثيرة. ستُعاد المحاولة قريبًا."
+
+#. js-lingui-explicit-id
+msgid "subdomain.available"
+msgstr "هذا العنوان متاح"
+
+#. js-lingui-explicit-id
+msgid "subdomain.checking"
+msgstr "جارٍ التحقق…"
+
+#. js-lingui-explicit-id
+msgid "subdomain.check-failed"
+msgstr "تعذّر التحقق من هذا العنوان. حاول مجددًا."
+#. js-lingui-explicit-id
+msgid "Creating your store…"
+msgstr "جارٍ إنشاء متجرك…"
+

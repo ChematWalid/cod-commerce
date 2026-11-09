@@ -265,6 +265,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     AuthProfileController,
   ],
   configuration: configure,
+  dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 // A Vendure plugin is a decorated class; its body stays empty when its metadata is the whole plugin.
