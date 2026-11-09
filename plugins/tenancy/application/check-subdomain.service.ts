@@ -12,6 +12,8 @@ export class CheckSubdomainService {
     const classified = classifySubdomain(raw);
     if (classified.status !== 'available') return classified;
     const taken = await this.ports.platform.isSubdomainTaken(ctx, classified.subdomain);
-    return taken ? { ...classified, status: 'taken', reason: new SubdomainTakenError().message, reasonCode: 'taken' } : classified;
+    return taken
+      ? { ...classified, status: 'taken', reason: new SubdomainTakenError().message, reasonCode: 'taken' }
+      : classified;
   }
 }
