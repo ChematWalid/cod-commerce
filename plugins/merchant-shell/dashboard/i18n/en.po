@@ -278,3 +278,55 @@ msgstr "The store could not be created. Please try again."
 #. js-lingui-explicit-id
 msgid "shell.store.create.switch-timeout"
 msgstr "Your store was created, but it could not be opened yet. Reload the page to see it."
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.credits"
+msgstr "Credits"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.notifications"
+msgstr "Notifications"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.coming-soon"
+msgstr "Coming soon"
+
+#. js-lingui-explicit-id
+msgid "shell.trial-banner.placeholder"
+msgstr "Your trial details will appear here."
+
+#. js-lingui-explicit-id
+msgid "shell.account.menu"
+msgstr "Account menu"
+
+#. js-lingui-explicit-id
+msgid "shell.account.profile"
+msgstr "Profile"
+
+#. js-lingui-explicit-id
+msgid "shell.account.security"
+msgstr "Security"
+
+#. js-lingui-explicit-id
+msgid "shell.account.language"
+msgstr "Language"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme"
+msgstr "Theme"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.light"
+msgstr "Light"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.dark"
+msgstr "Dark"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.system"
+msgstr "System"
+
+#. js-lingui-explicit-id
+msgid "shell.account.logout"
+msgstr "Log out"

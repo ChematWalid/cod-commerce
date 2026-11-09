@@ -16,8 +16,10 @@ export const DASHBOARD_LABELS = {
   languageItem: /^(Language|اللغة)\s/,
 } as const;
 
-/** The `<html>` attribute that keeps the stock sidebar footer visible (node runs this file without path mapping). */
-const PLATFORM_STAFF_ATTRIBUTE = 'data-platform-staff';
+/** The `data-testid`s of the merchant's account menu and its rows (node runs this file without path mapping). */
+const ACCOUNT_MENU_TEST_ID = 'account-menu';
+const ACCOUNT_LANGUAGE_TEST_ID = 'account-menu-language';
+const ACCOUNT_LOGOUT_TEST_ID = 'account-menu-logout';
 
 /** The GraphQL mutation that stores the user settings, the display language included, on the server. */
 const SAVE_SETTINGS_MUTATION = 'setSettingsStoreValue';
@@ -48,6 +50,9 @@ const userMenuTrigger = (page: Page): Locator =>
     includeHidden: true,
   });
 
+/** The merchant's account menu button in the top bar. */
+const accountMenuTrigger = (page: Page): Locator => page.locator(`[data-testid="${ACCOUNT_MENU_TEST_ID}"]`);
+
 /** Signs in on the dashboard login page and waits until the app shell has replaced it. */
 async function login(page: Page, baseUrl: string, username: string, password: string): Promise<void> {
   await page.goto(`${baseUrl}/login`);
@@ -55,8 +60,8 @@ async function login(page: Page, baseUrl: string, username: string, password: st
   await page.getByRole('textbox', { name: DASHBOARD_LABELS.password }).fill(password);
   await page.getByRole('button', { name: DASHBOARD_LABELS.signIn }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-  // Attached, not visible: the stock user menu is hidden from merchants by the shell (D79).
-  await userMenuTrigger(page).waitFor({ state: 'attached' });
+  // A merchant gets the account menu, platform staff the stock user menu; the stock one is hidden from merchants (D79).
+  await accountMenuTrigger(page).or(userMenuTrigger(page)).first().waitFor({ state: 'attached' });
 }
 
 /** Signs in as the platform superadmin. Tenant pages answer FORBIDDEN for it on the default channel. */
@@ -111,31 +116,38 @@ const isSettingsSave = (response: Response): boolean =>
   response.request().postData()?.includes(SAVE_SETTINGS_MUTATION) ?? false;
 
 /**
- * Switches the display language through the user menu → Language dialog, as a user would, and waits until
- * the server has stored it. Writing `localStorage` alone does not stick: the server-stored user settings
- * overwrite it on the next load (spike A, ADR 0010). The options are matched by their language code
- * ("ar العربية", "en English"), which stays the same in every display language.
+ * Switches the display language as a user would, and waits until the server has stored it. A merchant uses the account
+ * menu's Language radio, platform staff the stock user menu's dialog. Writing `localStorage` alone does not stick: the
+ * server-stored user settings overwrite it on the next load (spike A, ADR 0010).
  */
 export async function setDisplayLanguage(page: Page, language: DocumentLang): Promise<void> {
-  await withStockUserMenu(page, () => chooseDisplayLanguage(page, language));
+  if ((await accountMenuTrigger(page).count()) > 0) await chooseLanguageInAccountMenu(page, language);
+  else await chooseDisplayLanguage(page, language);
 }
 
-/**
- * Shows the stock user menu for the time of `action`. Merchants have it hidden (D79) until the account menu arrives
- * with their own language control, which replaces this.
- */
-async function withStockUserMenu(page: Page, action: () => Promise<void>): Promise<void> {
-  const added = await page.evaluate((attribute) => {
-    if (document.documentElement.hasAttribute(attribute)) return false;
-    document.documentElement.setAttribute(attribute, '');
-    return true;
-  }, PLATFORM_STAFF_ATTRIBUTE);
-  await action();
-  if (added) {
-    await page.evaluate((attribute) => {
-      document.documentElement.removeAttribute(attribute);
-    }, PLATFORM_STAFF_ATTRIBUTE);
+/** Opens the account menu → Language → the radio of `language`; leaves the menu closed. */
+async function chooseLanguageInAccountMenu(page: Page, language: DocumentLang): Promise<void> {
+  await accountMenuTrigger(page).click();
+  await page.locator(`[data-testid="${ACCOUNT_LANGUAGE_TEST_ID}"]`).click();
+  const option = page.locator(`[data-testid="${ACCOUNT_LANGUAGE_TEST_ID}-${language}"]`);
+  if ((await option.getAttribute('aria-checked')) === 'true') {
+    await closeMenus(page);
+    return;
   }
+  const saved = page.waitForResponse(isSettingsSave);
+  await option.click();
+  await saved;
+  await closeMenus(page);
+}
+
+/** Radio rows keep the menu open, and Escape closes one level (the submenu first), so it is pressed until none is left. */
+async function closeMenus(page: Page): Promise<void> {
+  const menus = page.getByRole('menu');
+  for (let level = 0; level < 3 && (await menus.count()) > 0; level += 1) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+  }
+  await menus.first().waitFor({ state: 'detached' });
 }
 
 async function chooseDisplayLanguage(page: Page, language: DocumentLang): Promise<void> {
@@ -152,6 +164,13 @@ async function chooseDisplayLanguage(page: Page, language: DocumentLang): Promis
   await page.getByRole('option', { name: optionName }).click();
   await saved;
   await page.keyboard.press('Escape');
+}
+
+/** Signs out through the account menu's Log out row, as a merchant does; resolves once the login page shows. */
+export async function logOutThroughMenu(page: Page): Promise<void> {
+  await accountMenuTrigger(page).click();
+  await page.locator(`[data-testid="${ACCOUNT_LOGOUT_TEST_ID}"]`).click();
+  await page.waitForURL((url) => url.pathname.endsWith('/login'));
 }
 
 /**

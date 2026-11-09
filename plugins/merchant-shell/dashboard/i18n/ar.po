@@ -278,3 +278,55 @@ msgstr "تعذّر إنشاء المتجر. حاول مرة أخرى."
 #. js-lingui-explicit-id
 msgid "shell.store.create.switch-timeout"
 msgstr "تم إنشاء متجرك، لكن تعذّر فتحه الآن. أعد تحميل الصفحة لرؤيته."
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.credits"
+msgstr "الرصيد"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.notifications"
+msgstr "الإشعارات"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.coming-soon"
+msgstr "قريبًا"
+
+#. js-lingui-explicit-id
+msgid "shell.trial-banner.placeholder"
+msgstr "ستظهر هنا تفاصيل فترتك التجريبية."
+
+#. js-lingui-explicit-id
+msgid "shell.account.menu"
+msgstr "قائمة الحساب"
+
+#. js-lingui-explicit-id
+msgid "shell.account.profile"
+msgstr "الملف الشخصي"
+
+#. js-lingui-explicit-id
+msgid "shell.account.security"
+msgstr "الأمان"
+
+#. js-lingui-explicit-id
+msgid "shell.account.language"
+msgstr "اللغة"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme"
+msgstr "المظهر"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.light"
+msgstr "فاتح"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.dark"
+msgstr "داكن"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.system"
+msgstr "النظام"
+
+#. js-lingui-explicit-id
+msgid "shell.account.logout"
+msgstr "تسجيل الخروج"

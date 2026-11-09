@@ -89,3 +89,55 @@ export const STORE_LANGUAGE_OPTIONS: readonly { readonly code: PlatformLanguageC
   { code: 'en', label: 'English' },
 ];
 export const DEFAULT_STORE_LANGUAGE: PlatformLanguageCode = 'ar';
+
+/** The toolbar items of the top bar (D79, D93). `alerts` is the stock bell, which the merchant's bell replaces. */
+export const CREDITS_TOOLBAR_ITEM_ID = 'merchant-credits';
+export const ASSISTANT_TOOLBAR_ITEM_ID = 'merchant-assistant';
+export const NOTIFICATIONS_TOOLBAR_ITEM_ID = 'merchant-notifications';
+export const ACCOUNT_TOOLBAR_ITEM_ID = 'merchant-account';
+export const STOCK_ALERTS_TOOLBAR_ITEM_ID = 'alerts';
+
+/** The provider behind the trial banner. It sorts after the route guard (order 0), so it renders inside it. */
+export const TRIAL_BANNER_PROVIDER_ID = 'merchant-shell-trial-banner';
+export const TRIAL_BANNER_PROVIDER_ORDER = 1;
+
+/** Markers of the top bar's controls. */
+export const ACCOUNT_MENU_TEST_ID = 'account-menu';
+export const ACCOUNT_PROFILE_TEST_ID = 'account-menu-profile';
+export const ACCOUNT_SECURITY_TEST_ID = 'account-menu-security';
+export const ACCOUNT_LANGUAGE_TEST_ID = 'account-menu-language';
+export const ACCOUNT_THEME_TEST_ID = 'account-menu-theme';
+export const ACCOUNT_LOGOUT_TEST_ID = 'account-menu-logout';
+export const CREDITS_PLACEHOLDER_TEST_ID = 'credits-placeholder';
+export const ASSISTANT_PLACEHOLDER_TEST_ID = 'assistant-placeholder';
+export const NOTIFICATIONS_PLACEHOLDER_TEST_ID = 'notifications-placeholder';
+export const TRIAL_BANNER_TEST_ID = 'trial-banner';
+
+/** The id of an option inside the account menu, by group: `account-menu-language-ar`, `account-menu-theme-dark`. */
+export const accountOptionTestId = (group: string, value: string): string => `${group}-${value}`;
+
+/** The account menu's destinations, below the dashboard base. P1.S2 owns both pages. */
+export const ACCOUNT_PROFILE_PATH = '/account/profile';
+export const ACCOUNT_SECURITY_PATH = '/account/security';
+export const LOGIN_PATH = '/login';
+
+/** The display languages the account menu offers: a subset of the platform languages (ADR 0005, D72). */
+export const ACCOUNT_MENU_LANGUAGES: readonly { readonly code: PlatformLanguageCode; readonly label: string }[] = [
+  { code: 'en', label: 'English' },
+  { code: 'ar', label: 'العربية' },
+];
+
+/** The themes of the dashboard's `UserSettings.theme` (D90). */
+export const ACCOUNT_MENU_THEMES = ['light', 'dark', 'system'] as const;
+export type AccountMenuTheme = (typeof ACCOUNT_MENU_THEMES)[number];
+
+/**
+ * The session that replaces each inert placeholder (D93). A placeholder holds no data and makes no request until then:
+ * the owner swaps the component, keeping the test id.
+ */
+export const PLACEHOLDER_HANDOFF_SESSIONS = {
+  trialBanner: 'P9.S1',
+  credits: 'P9.S2',
+  notifications: 'P7.S3',
+  assistant: 'P9.S7a',
+} as const;
