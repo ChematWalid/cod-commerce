@@ -12,7 +12,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "i18n:check": "vitest run tests/i18n/i18n-check.test.ts"
   },
   "dependencies": {
     "zod": "4.6.7"

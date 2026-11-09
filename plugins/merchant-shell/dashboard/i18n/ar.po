@@ -169,7 +169,7 @@ msgstr "الإعدادات"
 
 #. js-lingui-explicit-id
 msgid "shell.nav.settings.general"
-msgstr "عام"
+msgstr "عامة"
 
 #. js-lingui-explicit-id
 msgid "shell.nav.settings.pixels"
@@ -233,7 +233,7 @@ msgstr "هذا العنوان مستخدم بالفعل"
 
 #. js-lingui-explicit-id
 msgid "subdomain.rate-limited"
-msgstr "عمليات تحقق كثيرة. ستُعاد المحاولة قريبًا."
+msgstr "محاولات تحقق كثيرة. ستُعاد المحاولة بعد قليل."
 
 #. js-lingui-explicit-id
 msgid "subdomain.available"
@@ -325,7 +325,7 @@ msgstr "داكن"
 
 #. js-lingui-explicit-id
 msgid "shell.account.theme.system"
-msgstr "النظام"
+msgstr "حسب النظام"
 
 #. js-lingui-explicit-id
 msgid "shell.account.logout"

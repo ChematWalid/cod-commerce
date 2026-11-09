@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { storePathFor } from '../dashboard/model/store-path';
-import { SHELL_LEAVES, SHELL_TREE } from '../dashboard/model/tree';
+import { SHELL_LEAVES, SHELL_TREE, leafBreadcrumbTitleId } from '../dashboard/model/tree';
 
 /** Stock Vendure file routes that an extension route must never shadow (D81). */
 const STOCK_ROUTES = [
@@ -127,5 +127,17 @@ describe('the merchant navigation tree', () => {
     for (const group of links) {
       expect(group.leaves[0].id).toBe(group.id);
     }
+  });
+
+  it('gives a link leaf no breadcrumb of its own: its sidebar entry already names it, so /home shows one "Home"', () => {
+    const withoutCrumb = SHELL_LEAVES.filter((leaf) => leafBreadcrumbTitleId(leaf) === null).map((leaf) => leaf.id);
+
+    expect(withoutCrumb).toEqual(['home', 'delivery', 'apps', 'sourcing']);
+  });
+
+  it("gives a section's leaf its own title as breadcrumb, after the section's", () => {
+    const allOrders = SHELL_LEAVES.find((leaf) => leaf.id === 'orders.all');
+
+    expect(allOrders && leafBreadcrumbTitleId(allOrders)).toBe('shell.nav.orders.all');
   });
 });

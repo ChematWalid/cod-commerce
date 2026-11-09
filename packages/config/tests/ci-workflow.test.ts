@@ -101,8 +101,10 @@ describe('ci.yml', () => {
     }
   });
 
-  it('runs lint with the architecture checks, uncached', () => {
-    expect(stepsRun(jobOf(ci, 'lint'))).toEqual(expect.arrayContaining(['pnpm lint', 'pnpm run test:arch']));
+  it('runs lint with the architecture and dashboard catalogue checks (D89), uncached', () => {
+    const steps = stepsRun(jobOf(ci, 'lint'));
+
+    expect(steps).toEqual(expect.arrayContaining(['pnpm lint', 'pnpm run test:arch', 'pnpm i18n:check']));
   });
 
   it('checks the data services, then their portability', () => {

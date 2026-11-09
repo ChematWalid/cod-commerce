@@ -126,6 +126,22 @@ export const SHELL_LEAVES: readonly ShellLeaf<ShellLeafId>[] = SHELL_TREE.flatMa
   (entry) => entry.leaves,
 );
 
+/** A group of one leaf of its own id renders as a sidebar link; any other group is a section that expands. */
+export function isLinkGroup(group: ShellGroup): boolean {
+  const [only] = group.leaves;
+  return group.leaves.length === 1 && only?.id === group.id;
+}
+
+const LINK_LEAF_IDS: ReadonlySet<string> = new Set(SHELL_TREE.filter(isLinkGroup).map((group) => group.id));
+
+/**
+ * The title id of a leaf's own breadcrumb, or `null` for a link leaf. The dashboard already shows the sidebar entry
+ * matching the URL as the first crumb, and for a link that entry is the page itself: a second crumb would repeat it.
+ */
+export function leafBreadcrumbTitleId(entry: ShellLeaf): string | null {
+  return LINK_LEAF_IDS.has(entry.id) ? null : entry.titleId;
+}
+
 /** The sidebar URL of a leaf: a store-scoped leaf links to the current store (`/stores/active/…`). */
 export function shellLeafUrl(entry: ShellLeaf): string {
   return entry.storeScoped ? storePathFor(entry.path, ACTIVE_STORE_ALIAS) : entry.path;

@@ -27,6 +27,8 @@ jobs:
       - run: pnpm lint
       # Whole-repo architecture and pin checks, run directly so turbo never replays a cached pass.
       - run: pnpm run test:arch
+      # Every dashboard id has its English and Arabic text (D89); it reads plugin files, so no turbo cache.
+      - run: pnpm i18n:check
 
   typecheck:
     name: typecheck

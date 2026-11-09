@@ -1,6 +1,6 @@
 import { vendurePermissionName } from '@cod/shared';
 import { isMerchant, type ShellUserContext } from './staff';
-import { SHELL_TREE, shellLeafUrl, type ShellGroup, type ShellLeaf } from './tree';
+import { SHELL_TREE, isLinkGroup, shellLeafUrl, type ShellGroup, type ShellLeaf } from './tree';
 import type { ShellIconName } from './types';
 
 /**
@@ -93,7 +93,7 @@ function toEntry<Ctx extends ShellUserContext, Icon>(
     isVisible: isMerchant,
   };
   const [only] = group.leaves;
-  if (group.leaves.length === 1 && only?.id === group.id) {
+  if (only !== undefined && isLinkGroup(group)) {
     return { ...toItem<Ctx, Icon>(only, order, icons), ...common };
   }
   return { ...common, items: group.leaves.map((entry, index) => toItem<Ctx, Icon>(entry, index, icons)) };

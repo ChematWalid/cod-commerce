@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { MerchantNotFound } from '../components/merchant-route-guard';
 import { ShellLeafPage } from '../components/shell-leaf-page';
 import { storePathFor } from '../model/store-path';
-import { SHELL_LEAVES, type ShellLeaf, type ShellLeafId } from '../model/tree';
+import { SHELL_LEAVES, leafBreadcrumbTitleId, type ShellLeaf, type ShellLeafId } from '../model/tree';
 
 /** The router's name for the store segment of a store-scoped leaf. */
 const STORE_ID_PARAM = '$storeId';
@@ -18,10 +18,12 @@ function LeafBreadcrumb({ titleId }: { readonly titleId: string }): ReactNode {
   return i18n._(titleId);
 }
 
+/** A link leaf adds no crumb: the sidebar entry's crumb already names the page (`/home` showed "Home > Home"). */
 function toRoute(leaf: ShellLeaf<ShellLeafId>): DashboardRouteDefinition {
+  const crumbTitleId = leafBreadcrumbTitleId(leaf);
   return {
     path: leaf.storeScoped ? storePathFor(leaf.path, STORE_ID_PARAM) : leaf.path,
-    loader: () => ({ breadcrumb: <LeafBreadcrumb titleId={leaf.titleId} /> }),
+    loader: () => (crumbTitleId === null ? {} : { breadcrumb: <LeafBreadcrumb titleId={crumbTitleId} /> }),
     component: () => <ShellLeafPage leaf={leaf} />,
   };
 }
