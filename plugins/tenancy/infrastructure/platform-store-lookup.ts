@@ -4,7 +4,11 @@ import { Asset, TransactionalConnection } from '@vendure/core';
 import { MoreThan, type ObjectLiteral, type ObjectType, type Repository, type SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import type { Business } from '../domain/business';
-import { BusinessStoreDirectory, type BusinessSummary } from '../domain/ports/business-store-directory.port';
+import {
+  BusinessStoreDirectory,
+  type BusinessSummary,
+  MAX_BUSINESS_PAGE_SIZE,
+} from '../domain/ports/business-store-directory.port';
 import type { HostStoreLookupPort, HostStoreRow } from '../domain/ports/host-store-lookup.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { BusinessOwnerPatch, BusinessPatch, PlatformStorePort } from '../domain/ports/platform-store.port';
@@ -100,7 +104,7 @@ export class PlatformStoreLookup extends BusinessStoreDirectory implements Platf
       where: afterId === undefined ? {} : { id: MoreThan(afterId) },
       select: { id: true, ownerRoleId: true, ownerAdministratorId: true },
       order: { id: 'ASC' },
-      take: limit,
+      take: Math.min(Math.max(Math.trunc(limit), 1), MAX_BUSINESS_PAGE_SIZE),
     });
     return rows.map((row) => ({
       id: toBusinessId(toSnowflake(row.id)),

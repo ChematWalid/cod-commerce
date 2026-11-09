@@ -1,10 +1,11 @@
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { toBusinessId } from '@cod/shared';
 import { RequestContextService, TransactionalConnection, User } from '@vendure/core';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProvisionBusinessService } from '../../application/provision-business.service';
-import { TENANT_LIFECYCLE } from '../../application/tokens';
-import { TenantLifecycleRegistry } from '../../application/tenant-lifecycle.registry';
+import { CreateStoreService } from '../../application/create-store.service';
+import type { TenantLifecycleRegistrar } from '../../application/tenant-lifecycle.registry';
+import { TENANT_LIFECYCLE_REGISTRAR } from '../../application/tokens';
 import { BusinessStoreDirectory } from '../../domain/ports/business-store-directory.port';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type { TenantLifecycleHook } from '../../domain/ports/tenant-lifecycle.port';
@@ -38,17 +39,41 @@ describe('Tenant lifecycle hooks', () => {
     return Promise.all([...entities, ...tables].map((entity) => connection.getRepository(entity).count()));
   };
 
+  /** Registered once on the shared registry; each test sets where it fails and the fields reset before it. */
+  const probe = {
+    failAt: undefined as 'businessProvisioned' | 'storeCreated' | undefined,
+    businessEvents: [] as number[],
+    storeEvents: [] as number[],
+  };
+  const probeHook: TenantLifecycleHook = {
+    businessProvisioned: (_ctx, event) => {
+      probe.businessEvents.push(event.ownerRoleId);
+      return probe.failAt === 'businessProvisioned' ? Promise.reject(new Error('seeding failed')) : Promise.resolve();
+    },
+    storeCreated: (_ctx, event) => {
+      probe.storeEvents.push(event.channelId);
+      return probe.failAt === 'storeCreated' ? Promise.reject(new Error('seeding failed')) : Promise.resolve();
+    },
+  };
+
+  beforeEach(() => {
+    probe.failAt = undefined;
+    probe.businessEvents.length = 0;
+    probe.storeEvents.length = 0;
+  });
+
   beforeAll(async () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
     await adminClient.asSuperAdmin();
     await adminClient.query(UPDATE_GLOBAL_LANGUAGES);
+    server.app.get<TenantLifecycleRegistrar>(TENANT_LIFECYCLE_REGISTRAR).register(probeHook);
   });
 
   afterAll(async () => {
     await server.destroy();
   });
 
-  it('provisions with no hook registered, and the directory reads the owner links', async () => {
+  it('provisions past a hook that does not fail, and the directory reads the owner links', async () => {
     // Act
     const { business, store } = await server.app
       .get(ProvisionBusinessService)
@@ -71,15 +96,7 @@ describe('Tenant lifecycle hooks', () => {
 
   it('leaves nothing behind when a hook throws at businessProvisioned', async () => {
     // Arrange
-    const seen: number[] = [];
-    const failing: TenantLifecycleHook = {
-      storeCreated: () => Promise.resolve(),
-      businessProvisioned: (_ctx, event) => {
-        seen.push(event.ownerRoleId);
-        return Promise.reject(new Error('seeding failed'));
-      },
-    };
-    server.app.get<TenantLifecycleRegistry>(TENANT_LIFECYCLE).register(failing);
+    probe.failAt = 'businessProvisioned';
     const before = await counts();
 
     // Act
@@ -87,7 +104,35 @@ describe('Tenant lifecycle hooks', () => {
 
     // Assert
     await expect(provisioning).rejects.toThrow('seeding failed');
-    expect(seen).toHaveLength(1);
+    expect(probe.businessEvents).toHaveLength(1);
     expect(await counts()).toEqual(before);
+  });
+
+  it('leaves no store or channel behind when a hook throws at storeCreated', async () => {
+    // Arrange
+    const { business } = await server.app
+      .get(ProvisionBusinessService)
+      .provision(await context(), commandFor('opener'));
+    probe.storeEvents.length = 0;
+    probe.failAt = 'storeCreated';
+    const before = await counts();
+
+    // Act
+    const creating = server.app
+      .get(CreateStoreService)
+      .create(await context(), business.id, { name: 'Second', subdomain: 'opener-two', language: 'ar' });
+
+    // Assert
+    await expect(creating).rejects.toThrow('seeding failed');
+    expect(probe.storeEvents).toHaveLength(1);
+    expect(await counts()).toEqual(before);
+  });
+
+  it('clamps the page size of allBusinessIds to at least one row', async () => {
+    // Act
+    const page = await server.app.get(BusinessStoreDirectory).allBusinessIds(await context(), undefined, 0);
+
+    // Assert
+    expect(page).toHaveLength(1);
   });
 });

@@ -147,4 +147,19 @@ describe('tenant lifecycle hooks', () => {
     expect(created.store.subdomain).toBe('atlas');
     expect(extra.subdomain).toBe('atlas-two');
   });
+
+  it('ignores the same hook registered twice', async () => {
+    // Arrange
+    const journal: string[] = [];
+    const { registry, stores } = setUp(journal);
+    const hook = new RecordingLifecycleHook('once', journal);
+    registry.register(hook);
+    registry.register(hook);
+
+    // Act
+    await stores.create(ctx, BUSINESS_ID, STORE);
+
+    // Assert
+    expect(journal.filter((entry) => entry.startsWith('once:'))).toHaveLength(1);
+  });
 });

@@ -17,7 +17,7 @@ import { GetStoresService } from './application/get-stores.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
 import type { StoreAdminPorts } from './application/store-admin-ports';
 import type { TenancyPorts } from './application/tenancy-ports';
-import { TenantLifecycleRegistry } from './application/tenant-lifecycle.registry';
+import { type TenantLifecycleRegistrar, TenantLifecycleRegistry } from './application/tenant-lifecycle.registry';
 import { UpdateBusinessService } from './application/update-business.service';
 import { UpdateStoreService } from './application/update-store.service';
 import {
@@ -29,6 +29,7 @@ import {
   STORE_HOST_INVALIDATOR,
   TENANCY_PORTS,
   TENANT_LIFECYCLE,
+  TENANT_LIFECYCLE_REGISTRAR,
   TENANT_CONTEXT_RESOLVER,
   TENANT_STORES,
   TRANSACTION,
@@ -133,6 +134,15 @@ const STORE_USE_CASES = [
     { provide: BusinessStoreDirectory, useExisting: PlatformStoreLookup },
     SuperadminContextFactory,
     { provide: TENANT_LIFECYCLE, useClass: TenantLifecycleRegistry },
+    {
+      provide: TENANT_LIFECYCLE_REGISTRAR,
+      useFactory: (registry: TenantLifecycleRegistry): TenantLifecycleRegistrar => ({
+        register: (hook) => {
+          registry.register(hook);
+        },
+      }),
+      inject: [TENANT_LIFECYCLE],
+    },
     TenantContextResolver,
     { provide: TENANT_CONTEXT_RESOLVER, useExisting: TenantContextResolver },
     TenantGuard,
@@ -185,7 +195,7 @@ const STORE_USE_CASES = [
     OrderNumberService,
     ProvisionBusinessService,
     SuperadminContextFactory,
-    TENANT_LIFECYCLE,
+    TENANT_LIFECYCLE_REGISTRAR,
     TenantContextResolver,
     TENANT_CONTEXT_RESOLVER,
     TenantGuard,

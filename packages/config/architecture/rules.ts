@@ -3,6 +3,9 @@ import type { IForbiddenRuleType } from 'dependency-cruiser' with { 'resolution-
 /** Framework modules that domain code and `@cod/shared` never depend on, resolved or not (CLAUDE.md §3a.1). */
 const FRAMEWORK_MODULES = '^(@nestjs|@vendure)/|^typeorm(/|$)|node_modules/(@nestjs|@vendure|typeorm)/';
 
+/** The tenancy entry point that exposes the superadmin context and the unscoped business directory. */
+const TENANCY_PROVISIONING_ENTRY = '^plugins/tenancy/provisioning[.]ts$';
+
 /**
  * The dependency rules of CLAUDE.md §3a.1–2, checked by dependency-cruiser.
  * Paths are relative to the cruise `baseDir`; `$1` refers back to the plugin captured in `from`.
@@ -50,7 +53,18 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
       'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points; it uses @cod/shared contracts or domain events.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/' },
-    to: { path: '^plugins/[^/]+/', pathNot: ['^plugins/$1/', '^plugins/(tenancy|rate-limit)/index[.]ts$'] },
+    to: {
+      path: '^plugins/[^/]+/',
+      pathNot: ['^plugins/$1/', '^plugins/(tenancy|rate-limit)/index[.]ts$', TENANCY_PROVISIONING_ENTRY],
+    },
+  },
+  {
+    name: 'tenancy-provisioning-entry-restricted',
+    comment:
+      'The tenancy provisioning entry exports the superadmin context factory and the cross-business directory: only rbac/infrastructure (D56, D57) may import it.',
+    severity: 'error',
+    from: { pathNot: ['^plugins/rbac/infrastructure/', '^plugins/tenancy/'] },
+    to: { path: TENANCY_PROVISIONING_ENTRY },
   },
   {
     name: 'apps-no-plugin-internals',

@@ -157,6 +157,7 @@ describe('plugin layer boundaries', () => {
         'bad/application/uses-rate-limit-entry.ts',
         'bad/application/uses-tenancy-entry.ts',
         'bad/domain/uses-application.ts',
+        'bad/infrastructure/uses-provisioning-entry.ts',
       ].sort(),
     );
   });

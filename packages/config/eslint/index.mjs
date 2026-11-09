@@ -20,7 +20,12 @@ const APPLICATION_PURITY_MESSAGE =
   'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM (CLAUDE.md §3a.2)';
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
 /** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
-const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', '**/plugins/*/*.config.{ts,mts}'];
+const PLUGIN_ROOT_FILES = [
+  '**/plugins/*/index.ts',
+  '**/plugins/*/provisioning.ts',
+  '**/plugins/*/*.plugin.ts',
+  '**/plugins/*/*.config.{ts,mts}',
+];
 const RAW_DATA_GUARDED_FILES = ['**/plugins/*/infrastructure/**', '**/plugins/*/api/**'];
 /**
  * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
