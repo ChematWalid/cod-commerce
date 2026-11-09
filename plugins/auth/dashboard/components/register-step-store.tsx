@@ -1,12 +1,17 @@
+import {
+  StoreLanguageSelect,
+  SubdomainField,
+  TextField,
+  useSubdomainAvailability,
+} from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@vendure/dashboard';
 import type { SyntheticEvent, ReactNode } from 'react';
+import { fetchAuthPublicConfig } from '../auth-operations';
+import { AUTH_PUBLIC_CONFIG_QUERY_KEY } from '../constants';
 import type { RegisterWizard } from '../hooks/use-register-wizard';
-import { useSubdomainAvailability } from '../hooks/use-subdomain-availability';
 import { LogoPicker } from './logo-picker';
-import { StoreLanguageSelect } from './store-language-select';
-import { SubdomainField } from './subdomain-field';
-import { TextField } from './text-field';
 
 interface CreateActionsProps {
   readonly submitting: boolean;
@@ -56,6 +61,7 @@ export function RegisterStepStore({ wizard }: { readonly wizard: RegisterWizard 
   const { i18n } = useLingui();
   const { values, errors, set, back, submit, submitting } = wizard;
   const check = useSubdomainAvailability(values.subdomain);
+  const { data } = useQuery({ queryKey: AUTH_PUBLIC_CONFIG_QUERY_KEY, queryFn: fetchAuthPublicConfig, retry: false });
   const canCreate = check.state === 'available' && !submitting;
   const onSubmit = (event: SyntheticEvent): void => {
     event.preventDefault();
@@ -74,6 +80,7 @@ export function RegisterStepStore({ wizard }: { readonly wizard: RegisterWizard 
       <SubdomainField
         value={values.subdomain}
         check={check}
+        suffix={data === undefined ? undefined : `.${data.platformDomain}`}
         errorId={errors['subdomain']}
         onChange={(value) => {
           set('subdomain', value);

@@ -38,7 +38,3 @@ msgstr "Vérification…"
 #. js-lingui-explicit-id
 msgid "subdomain.check-failed"
 msgstr "Impossible de vérifier cette adresse. Réessayez."
-
-#. js-lingui-explicit-id
-msgid "auth.oauth-email-unconfirmed"
-msgstr "Ce fournisseur ne confirme pas que cet e-mail est le vôtre. Connectez-vous avec votre mot de passe."

@@ -1,3 +1,5 @@
+import type { PermissionKey, PlatformLanguageCode, SubdomainReasonCode } from '@cod/shared';
+
 /** The route of the shell placeholder page, below the dashboard base (`/dashboard`). */
 export const SHELL_PLACEHOLDER_PATH = '/merchant-shell';
 
@@ -39,3 +41,51 @@ export const SELECTED_CHANNEL_TOKEN_STORAGE_KEY = 'vendure-selected-channel-toke
 
 /** Marks the product name that replaces the stock logo on the login page. */
 export const LOGIN_BRAND_TEST_ID = 'login-brand';
+
+/** The toolbar item of the store switcher, and the marker of its control in the DOM. */
+export const STORE_SWITCHER_TOOLBAR_ITEM_ID = 'merchant-store-switcher';
+export const STORE_SWITCHER_TEST_ID = 'merchant-store-switcher';
+export const STORE_CREATE_TEST_ID = 'merchant-store-create';
+export const CREATE_STORE_DIALOG_TEST_ID = 'merchant-create-store-dialog';
+
+/** The permission Create Store is shown for (D87); the server enforces it again. */
+export const CREATE_STORE_PERMISSION: PermissionKey = 'store.stores.create';
+
+/** How long a new store's channel may take to reach the session before the merchant is told (D87). */
+export const STORE_SWITCH_TIMEOUT_MS = 10_000;
+
+/** How long the subdomain field waits after the last keystroke before asking the server. */
+export const SUBDOMAIN_DEBOUNCE_MS = 400;
+/** Used when a `429` carries no readable `Retry-After`. */
+export const SUBDOMAIN_RETRY_FALLBACK_SECONDS = 10;
+export const SUBDOMAIN_AVAILABILITY_ENDPOINT = '/stores/subdomain-availability';
+export const HTTP_TOO_MANY_REQUESTS = 429;
+export const MS_PER_SECOND = 1000;
+
+/** The catalogue id of each reason the server gives for an unusable subdomain (D39). */
+export const SUBDOMAIN_REASON_MESSAGE_IDS: Readonly<Record<SubdomainReasonCode, string>> = {
+  length: 'subdomain.length',
+  format: 'subdomain.format',
+  punycode: 'subdomain.punycode',
+  reserved: 'subdomain.reserved',
+  taken: 'subdomain.taken',
+};
+export const SUBDOMAIN_RATE_LIMITED_MESSAGE_ID = 'subdomain.rate-limited';
+export const SUBDOMAIN_AVAILABLE_MESSAGE_ID = 'subdomain.available';
+export const SUBDOMAIN_CHECKING_MESSAGE_ID = 'subdomain.checking';
+export const SUBDOMAIN_CHECK_FAILED_MESSAGE_ID = 'subdomain.check-failed';
+
+/** The stable codes `createStore` answers with for an unusable subdomain. */
+export const SUBDOMAIN_TAKEN_ERROR_CODE = 'tenancy.subdomain-taken';
+export const SUBDOMAIN_INVALID_ERROR_CODE = 'tenancy.subdomain-invalid';
+
+export const CREATE_STORE_FAILED_MESSAGE_ID = 'shell.store.create.failed';
+export const STORE_SWITCH_TIMEOUT_MESSAGE_ID = 'shell.store.create.switch-timeout';
+
+/** Store languages, labelled in their own language whatever the dashboard's language is. */
+export const STORE_LANGUAGE_OPTIONS: readonly { readonly code: PlatformLanguageCode; readonly label: string }[] = [
+  { code: 'ar', label: 'العربية' },
+  { code: 'fr', label: 'Français' },
+  { code: 'en', label: 'English' },
+];
+export const DEFAULT_STORE_LANGUAGE: PlatformLanguageCode = 'ar';

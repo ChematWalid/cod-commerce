@@ -1,8 +1,8 @@
 import { useLingui } from '@lingui/react';
+import { TextField } from '@cod/plugin-merchant-shell/shell-api';
 import { Button } from '@vendure/dashboard';
 import type { SyntheticEvent, ReactNode } from 'react';
 import type { RegisterWizard } from '../hooks/use-register-wizard';
-import { TextField } from './text-field';
 
 /** Step 2: the business that owns the stores. */
 export function RegisterStepBusiness({ wizard }: { readonly wizard: RegisterWizard }): ReactNode {

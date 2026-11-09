@@ -59,7 +59,8 @@ export function ShellLeafPage({ leaf }: { readonly leaf: ShellLeaf<ShellLeafId> 
     channels,
   });
   useStoreSwitch(view, setActiveChannel);
-  if (stores.isError) return <ErrorPage error={stores.error} />;
+  // A refetch that failed keeps the last answer: the store session recovers from it (Review Focus 2), with no alert.
+  if (stores.isError && stores.data === undefined) return <ErrorPage error={stores.error} />;
   switch (view.kind) {
     case 'page':
       return <LeafContent leaf={leaf} view={view} />;

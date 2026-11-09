@@ -1,4 +1,5 @@
 import { updateAccountProfileSchema } from '@cod/shared';
+import { TextField } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,7 +20,6 @@ import {
   updateAccountProfile,
 } from '../auth-operations';
 import { LogoPicker } from '../components/logo-picker';
-import { TextField } from '../components/text-field';
 import { ACCOUNT_PROFILE_PATH, ACCOUNT_PROFILE_QUERY_KEY } from '../constants';
 import { errorMessageId } from '../error-messages';
 import { fieldErrorsOf } from '../field-errors';

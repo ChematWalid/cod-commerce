@@ -1,5 +1,6 @@
 import { AUTH_ERROR_CODES } from '@cod/shared';
-import { GENERIC_ERROR_MESSAGE_ID, SUBDOMAIN_REASON_MESSAGE_IDS } from './constants';
+import { SUBDOMAIN_REASON_MESSAGE_IDS } from '@cod/plugin-merchant-shell/shell-api';
+import { GENERIC_ERROR_MESSAGE_ID } from './constants';
 
 const RATE_LIMITED_CODE = 'RATE_LIMITED';
 const SUBDOMAIN_TAKEN_CODE = 'tenancy.subdomain-taken';

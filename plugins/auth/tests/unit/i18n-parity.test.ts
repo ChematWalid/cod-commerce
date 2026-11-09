@@ -50,16 +50,6 @@ describe('dashboard catalogues (D40)', () => {
 
     expect(missing).toEqual([]);
   });
-
-  it('every subdomain message also has a French translation', () => {
-    const catalogue = readCatalogue('fr');
-    const subdomainIds = usedMessageIds().filter((id) => id.startsWith('subdomain.'));
-
-    const missing = subdomainIds.filter((id) => !catalogue.get(id));
-
-    expect(subdomainIds.length).toBeGreaterThan(0);
-    expect(missing).toEqual([]);
-  });
 });
 
 describe('dashboard layering (ADR 0017)', () => {

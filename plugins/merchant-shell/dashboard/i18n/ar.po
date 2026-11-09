@@ -198,3 +198,83 @@ msgstr "الحماية من الطلبات المشبوهة"
 #. js-lingui-explicit-id
 msgid "shell.coming-soon"
 msgstr "هذه الصفحة قيد الإعداد وستظهر هنا عند جاهزيتها."
+
+#. js-lingui-explicit-id
+msgid "Store address"
+msgstr "عنوان المتجر"
+
+#. js-lingui-explicit-id
+msgid "Store language"
+msgstr "لغة المتجر"
+
+#. js-lingui-explicit-id
+msgid "The language your customers shop in, not the dashboard"
+msgstr "اللغة التي يتسوّق بها زبائنك، وليست لغة لوحة التحكم"
+
+#. js-lingui-explicit-id
+msgid "subdomain.length"
+msgstr "استخدم من 3 إلى 30 حرفًا"
+
+#. js-lingui-explicit-id
+msgid "subdomain.format"
+msgstr "استخدم أحرفًا لاتينية صغيرة وأرقامًا وشرطات فقط"
+
+#. js-lingui-explicit-id
+msgid "subdomain.punycode"
+msgstr "صيغة هذا العنوان غير مسموح بها"
+
+#. js-lingui-explicit-id
+msgid "subdomain.reserved"
+msgstr "هذا العنوان محجوز"
+
+#. js-lingui-explicit-id
+msgid "subdomain.taken"
+msgstr "هذا العنوان مستخدم بالفعل"
+
+#. js-lingui-explicit-id
+msgid "subdomain.rate-limited"
+msgstr "عمليات تحقق كثيرة. ستُعاد المحاولة قريبًا."
+
+#. js-lingui-explicit-id
+msgid "subdomain.available"
+msgstr "هذا العنوان متاح"
+
+#. js-lingui-explicit-id
+msgid "subdomain.checking"
+msgstr "جارٍ التحقق…"
+
+#. js-lingui-explicit-id
+msgid "subdomain.check-failed"
+msgstr "تعذّر التحقق من هذا العنوان. حاول مجددًا."
+
+#. js-lingui-explicit-id
+msgid "shell.store.switch"
+msgstr "تبديل المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.store.none"
+msgstr "لا يوجد متجر نشط"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create"
+msgstr "إنشاء متجر"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.name"
+msgstr "اسم المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.submit"
+msgstr "إنشاء"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.failed"
+msgstr "تعذّر إنشاء المتجر. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.switch-timeout"
+msgstr "تم إنشاء متجرك، لكن تعذّر فتحه الآن. أعد تحميل الصفحة لرؤيته."

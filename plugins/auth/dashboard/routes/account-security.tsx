@@ -1,4 +1,5 @@
 import { emailSchema, passwordSchema } from '@cod/shared';
+import { TextField } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,7 +13,6 @@ import {
 } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import { changeAccountPassword, fetchAccountStatus, requestEmailChange } from '../auth-operations';
-import { TextField } from '../components/text-field';
 import {
   ACCOUNT_SECURITY_PATH,
   ACCOUNT_STATUS_QUERY_KEY,

@@ -7,6 +7,9 @@ export {
   SHELL_SKELETON_TEST_ID,
   SHELL_PLACEHOLDER_PATH,
   SHELL_PLACEHOLDER_TEST_ID,
+  CREATE_STORE_DIALOG_TEST_ID,
+  STORE_CREATE_TEST_ID,
+  STORE_SWITCHER_TEST_ID,
 } from './dashboard/constants';
 export { DASHBOARD_LANGUAGES, type DocumentLang, toDocumentLang } from './dashboard/document-lang';
 export { MerchantShellPlugin } from './merchant-shell.plugin';
