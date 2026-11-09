@@ -30,11 +30,13 @@ export class GoogleOAuthProvider implements OAuthProviderPort {
     if (subject === undefined) {
       throw new OAuthFailedError();
     }
+    const email = textField(profile, 'email') ?? null;
     return {
       provider: 'google',
       subject,
-      email: textField(profile, 'email') ?? null,
-      emailVerified: profile['email_verified'] === true,
+      email,
+      // A confirmation without an address confirms nothing; the sign-up form would apply it to the typed one.
+      emailVerified: email !== null && profile['email_verified'] === true,
       firstName: textField(profile, 'given_name') ?? '',
       lastName: textField(profile, 'family_name') ?? '',
     };

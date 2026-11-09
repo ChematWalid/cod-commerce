@@ -25,6 +25,21 @@ describe('a provider answering something other than a JSON object', () => {
   });
 });
 
+describe('a provider confirming an email it did not send', () => {
+  it('counts as unconfirmed', async () => {
+    // Arrange
+    const answer = { access_token: 'synthetic-access', sub: 'subject-1', email_verified: true };
+    vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify(answer), { status: 200 })));
+    const provider = new GoogleOAuthProvider(CONFIG);
+
+    // Act
+    const identity = await provider.exchange('code', 'verifier', 'https://api.example.test/callback');
+
+    // Assert
+    expect(identity).toMatchObject({ email: null, emailVerified: false });
+  });
+});
+
 describe('the OAuth state store', () => {
   it('does not open a value sealed for the mail queue', () => {
     // Arrange

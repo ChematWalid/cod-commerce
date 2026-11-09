@@ -137,6 +137,24 @@ describe('a new identity', () => {
     expect(await verifiedAtOf(email)).toBeNull();
   });
 
+  it('does not take a provider`s confirmation without an address for the typed email', async () => {
+    // Arrange
+    const email = uniqueEmail();
+    const profile = { sub: randomUUID(), email_verified: true, given_name: 'Sara', family_name: 'Owner' };
+    const run = await signInThrough('google', profile);
+
+    // Act
+    const answer = await registerWithTicket(
+      inputFor({ email, password: undefined, oauthTicket: run.ticket }),
+      run.browser,
+    );
+
+    // Assert
+    expect(answer.errors).toEqual([]);
+    expect(answer.data?.['registerMerchant']?.['verificationEmailSent']).toBe(true);
+    expect(await verifiedAtOf(email)).toBeNull();
+  });
+
   it('refuses a ticket registration whose subject was linked meanwhile', async () => {
     // Arrange
     const subject = randomUUID();
