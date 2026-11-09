@@ -6,7 +6,7 @@
     "node": ">=24.22 <25"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings=0 --cache --cache-location .eslintcache && prettier --check .",
+    "lint": "NODE_OPTIONS=--max-old-space-size=4096 eslint . --max-warnings=0 --cache --cache-location .eslintcache && prettier --check .",
     "typecheck": "turbo run typecheck --concurrency=2",
     "test": "turbo run test --concurrency=2",
     "test:integration": "turbo run test:integration --concurrency=1",

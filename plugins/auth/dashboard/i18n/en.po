@@ -1,0 +1,375 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "auth.email-taken"
+msgstr "An account with this email already exists"
+
+#. js-lingui-explicit-id
+msgid "auth.email-invalid"
+msgstr "Enter a valid email address"
+
+#. js-lingui-explicit-id
+msgid "auth.invalid-token"
+msgstr "This link is invalid or has expired"
+
+#. js-lingui-explicit-id
+msgid "auth.otp-invalid"
+msgstr "That code is not correct"
+
+#. js-lingui-explicit-id
+msgid "auth.otp-locked"
+msgstr "Too many wrong attempts. Send a new code."
+
+#. js-lingui-explicit-id
+msgid "auth.password-policy"
+msgstr "Use between 8 and 72 characters"
+
+#. js-lingui-explicit-id
+msgid "auth.registration-invalid"
+msgstr "Please check the details you entered"
+
+#. js-lingui-explicit-id
+msgid "auth.profile-invalid"
+msgstr "Please check the details you entered"
+
+#. js-lingui-explicit-id
+msgid "auth.current-password-wrong"
+msgstr "The current password is not correct"
+
+#. js-lingui-explicit-id
+msgid "auth.cooldown"
+msgstr "Please wait a moment before sending another email"
+
+#. js-lingui-explicit-id
+msgid "auth.rate-limited"
+msgstr "Too many attempts. Try again in a moment."
+
+#. js-lingui-explicit-id
+msgid "auth.challenge-failed"
+msgstr "We could not confirm you are human. Please try again."
+
+#. js-lingui-explicit-id
+msgid "auth.use-account-security"
+msgstr "Change your email or password from the Security page"
+
+#. js-lingui-explicit-id
+msgid "auth.oauth-link-requires-verification"
+msgstr "Verify your email before linking this sign-in"
+
+#. js-lingui-explicit-id
+msgid "auth.logo-too-large"
+msgstr "The image must be 5 MB or smaller"
+
+#. js-lingui-explicit-id
+msgid "auth.logo-type"
+msgstr "Use a PNG, JPEG, GIF or WebP image"
+
+#. js-lingui-explicit-id
+msgid "auth.image-type"
+msgstr "Use a PNG, JPEG, GIF or WebP image"
+
+#. js-lingui-explicit-id
+msgid "Something went wrong. Please try again."
+msgstr "Something went wrong. Please try again."
+
+#. js-lingui-explicit-id
+msgid "This field is required"
+msgstr "This field is required"
+
+#. js-lingui-explicit-id
+msgid "Enter a valid phone number"
+msgstr "Enter a valid phone number"
+
+#. js-lingui-explicit-id
+msgid "The two passwords do not match"
+msgstr "The two passwords do not match"
+
+#. js-lingui-explicit-id
+msgid "Your store was created, but the logo could not be saved"
+msgstr "Your store was created, but the logo could not be saved"
+
+#. js-lingui-explicit-id
+msgid "Your account was created. Please sign in."
+msgstr "Your account was created. Please sign in."
+
+#. js-lingui-explicit-id
+msgid "Continue with {provider}"
+msgstr "Continue with {provider}"
+
+#. js-lingui-explicit-id
+msgid "New here?"
+msgstr "New here?"
+
+#. js-lingui-explicit-id
+msgid "Create account"
+msgstr "Create account"
+
+#. js-lingui-explicit-id
+msgid "Email"
+msgstr "Email"
+
+#. js-lingui-explicit-id
+msgid "Password"
+msgstr "Password"
+
+#. js-lingui-explicit-id
+msgid "At least 8 characters"
+msgstr "At least 8 characters"
+
+#. js-lingui-explicit-id
+msgid "First name"
+msgstr "First name"
+
+#. js-lingui-explicit-id
+msgid "Last name"
+msgstr "Last name"
+
+#. js-lingui-explicit-id
+msgid "Continue"
+msgstr "Continue"
+
+#. js-lingui-explicit-id
+msgid "Back"
+msgstr "Back"
+
+#. js-lingui-explicit-id
+msgid "Business name"
+msgstr "Business name"
+
+#. js-lingui-explicit-id
+msgid "Store name"
+msgstr "Store name"
+
+#. js-lingui-explicit-id
+msgid "Store address"
+msgstr "Store address"
+
+#. js-lingui-explicit-id
+msgid "Store language"
+msgstr "Store language"
+
+#. js-lingui-explicit-id
+msgid "The language your customers shop in, not the dashboard"
+msgstr "The language your customers shop in, not the dashboard"
+
+#. js-lingui-explicit-id
+msgid "Logo (optional)"
+msgstr "Logo (optional)"
+
+#. js-lingui-explicit-id
+msgid "PNG, JPEG, GIF or WebP, up to 5 MB"
+msgstr "PNG, JPEG, GIF or WebP, up to 5 MB"
+
+#. js-lingui-explicit-id
+msgid "Choose image"
+msgstr "Choose image"
+
+#. js-lingui-explicit-id
+msgid "Remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "Create"
+msgstr "Create"
+
+#. js-lingui-explicit-id
+msgid "Verification code"
+msgstr "Verification code"
+
+#. js-lingui-explicit-id
+msgid "Verify"
+msgstr "Verify"
+
+#. js-lingui-explicit-id
+msgid "Verification email sent"
+msgstr "Verification email sent"
+
+#. js-lingui-explicit-id
+msgid "Resend email"
+msgstr "Resend email"
+
+#. js-lingui-explicit-id
+msgid "Your email is verified"
+msgstr "Your email is verified"
+
+#. js-lingui-explicit-id
+msgid "Verify your email"
+msgstr "Verify your email"
+
+#. js-lingui-explicit-id
+msgid "We sent you a link and a code. Click the link, or enter the code here."
+msgstr "We sent you a link and a code. Click the link, or enter the code here."
+
+#. js-lingui-explicit-id
+msgid "Go to dashboard"
+msgstr "Go to dashboard"
+
+#. js-lingui-explicit-id
+msgid "Create your account"
+msgstr "Create your account"
+
+#. js-lingui-explicit-id
+msgid "Your business"
+msgstr "Your business"
+
+#. js-lingui-explicit-id
+msgid "Set up your store"
+msgstr "Set up your store"
+
+#. js-lingui-explicit-id
+msgid "Step {current} of {total}"
+msgstr "Step {current} of {total}"
+
+#. js-lingui-explicit-id
+msgid "Already have an account?"
+msgstr "Already have an account?"
+
+#. js-lingui-explicit-id
+msgid "Sign in"
+msgstr "Sign in"
+
+#. js-lingui-explicit-id
+msgid "Confirm that this email address is yours."
+msgstr "Confirm that this email address is yours."
+
+#. js-lingui-explicit-id
+msgid "Verify my email"
+msgstr "Verify my email"
+
+#. js-lingui-explicit-id
+msgid "Confirm your new email"
+msgstr "Confirm your new email"
+
+#. js-lingui-explicit-id
+msgid "Use this address to sign in from now on."
+msgstr "Use this address to sign in from now on."
+
+#. js-lingui-explicit-id
+msgid "Confirm new email"
+msgstr "Confirm new email"
+
+#. js-lingui-explicit-id
+msgid "Your email address has been changed"
+msgstr "Your email address has been changed"
+
+#. js-lingui-explicit-id
+msgid "Profile"
+msgstr "Profile"
+
+#. js-lingui-explicit-id
+msgid "Photo"
+msgstr "Photo"
+
+#. js-lingui-explicit-id
+msgid "Profile saved"
+msgstr "Profile saved"
+
+#. js-lingui-explicit-id
+msgid "Phone"
+msgstr "Phone"
+
+#. js-lingui-explicit-id
+msgid "Save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "Security"
+msgstr "Security"
+
+#. js-lingui-explicit-id
+msgid "Account"
+msgstr "Account"
+
+#. js-lingui-explicit-id
+msgid "Password changed"
+msgstr "Password changed"
+
+#. js-lingui-explicit-id
+msgid "Current password"
+msgstr "Current password"
+
+#. js-lingui-explicit-id
+msgid "New password"
+msgstr "New password"
+
+#. js-lingui-explicit-id
+msgid "Confirm new password"
+msgstr "Confirm new password"
+
+#. js-lingui-explicit-id
+msgid "Change password"
+msgstr "Change password"
+
+#. js-lingui-explicit-id
+msgid "Check your new inbox to confirm the change"
+msgstr "Check your new inbox to confirm the change"
+
+#. js-lingui-explicit-id
+msgid "Waiting for confirmation: {email}"
+msgstr "Waiting for confirmation: {email}"
+
+#. js-lingui-explicit-id
+msgid "New email"
+msgstr "New email"
+
+#. js-lingui-explicit-id
+msgid "Change email"
+msgstr "Change email"
+
+#. js-lingui-explicit-id
+msgid "subdomain.length"
+msgstr "Use 3 to 30 characters"
+
+#. js-lingui-explicit-id
+msgid "subdomain.format"
+msgstr "Use only lowercase letters, numbers and hyphens"
+
+#. js-lingui-explicit-id
+msgid "subdomain.punycode"
+msgstr "This address format is not allowed"
+
+#. js-lingui-explicit-id
+msgid "subdomain.reserved"
+msgstr "This address is reserved"
+
+#. js-lingui-explicit-id
+msgid "subdomain.taken"
+msgstr "This address is already taken"
+
+#. js-lingui-explicit-id
+msgid "subdomain.rate-limited"
+msgstr "Too many checks. Trying again shortly."
+
+#. js-lingui-explicit-id
+msgid "subdomain.available"
+msgstr "This address is available"
+
+#. js-lingui-explicit-id
+msgid "subdomain.checking"
+msgstr "Checking…"
+
+#. js-lingui-explicit-id
+msgid "subdomain.check-failed"
+msgstr "Could not check this address. Try again."
+#. js-lingui-explicit-id
+msgid "Creating your store…"
+msgstr "Creating your store…"
+
+#. js-lingui-explicit-id
+msgid "auth.oauth-failed"
+msgstr "Sign-in with this provider failed. Please try again."
+
+#. js-lingui-explicit-id
+msgid "Signing you in…"
+msgstr "Signing you in…"
+
+#. js-lingui-explicit-id
+msgid "Back to sign in"
+msgstr "Back to sign in"
+
+#. js-lingui-explicit-id
+msgid "auth.oauth-email-unconfirmed"
+msgstr "This provider cannot confirm this email is yours. Sign in with your password instead."

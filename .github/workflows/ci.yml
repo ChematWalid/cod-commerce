@@ -73,6 +73,7 @@ jobs:
           S3_ACCESS_KEY: GK000000000000000000000000
           S3_SECRET_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
           COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
+          AUTH_TOKEN_SECRET: change-me-auth-000000000000000000000000000000000000000000000000
           SUPERADMIN_USERNAME: superadmin
           SUPERADMIN_PASSWORD: change-me-admin
         run: NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server build:dashboard
@@ -92,6 +93,12 @@ jobs:
       - run: scripts/check-data-services.sh
       - name: Check compose portability
         shell: bash
+        # .env.example holds local loopback values; the gate judges the deployed defaults, as verify-stack.sh does.
+        env:
+          AUTH_DASHBOARD_URL: ''
+          SMTP_HOST: ''
+          SMTP_PORT: ''
+          SMTP_FROM: ''
         run: |
           set -o pipefail
           docker compose config --format json | node scripts/check-compose-portability.mjs
@@ -113,9 +120,20 @@ jobs:
         run: docker compose down -v
 
   integration:
-    name: integration
+    name: integration (${{ matrix.part }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The whole suite no longer fits the ten-minute job budget (ADR 0001), so it runs in parts (D51).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: others
+            command: pnpm test:integration --filter=!@cod/plugin-auth
+          - part: auth-1
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-auth -- --shard=1/2
+          - part: auth-2
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-auth -- --shard=2/2
     # Same images as docker-compose.yml (a test pins them equal). Valkey's default eviction policy is already noeviction.
     services:
       postgres:
@@ -140,8 +158,20 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 12
+      mailpit:
+        image: axllent/mailpit:v1.33.0@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
     # Non-secret placeholders only; no PgBouncer in CI, so both database URLs point at Postgres.
     env:
+      MAILPIT_SMTP_HOST_PORT: 1025
+      MAILPIT_API_URL: http://localhost:8025
       DATABASE_URL: postgres://cod:change-me-pg@localhost:5432/cod
       DATABASE_URL_DIRECT: postgres://cod:change-me-pg@localhost:5432/cod
       REDIS_URL: redis://localhost:6379
@@ -151,6 +181,7 @@ jobs:
       APP_ENV: test
       ROLE: api
       COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
+      AUTH_TOKEN_SECRET: change-me-auth-000000000000000000000000000000000000000000000000
       SUPERADMIN_USERNAME: superadmin
       SUPERADMIN_PASSWORD: change-me-admin
       S3_ENDPOINT: http://localhost:3900
@@ -160,7 +191,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: pnpm test:integration
+      - run: ${{ matrix.command }}
 
   # Builds the single app image and runs the whole single-VPS stack (migrate, api, worker behind PgBouncer),
   # then the URL-reserved-password variant (RF5). verify-stack.sh tears its compose project down on exit.

@@ -176,7 +176,12 @@ export const REST_ROUTE_REGISTRY: readonly RestRouteEntry[] = [
   {
     route: '/stores/subdomain-availability',
     url: ({ victim }) => `/stores/subdomain-availability?subdomain=${victim.subdomain}`,
-    body: ({ victim }) => ({ subdomain: victim.subdomain, status: 'taken', reason: TAKEN_MESSAGE }),
+    body: ({ victim }) => ({
+      subdomain: victim.subdomain,
+      status: 'taken',
+      reason: TAKEN_MESSAGE,
+      reasonCode: 'taken',
+    }),
   },
   {
     route: '/store/resolve',

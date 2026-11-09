@@ -214,13 +214,21 @@ describe('ci.yml', () => {
     expect(timing?.['continue-on-error']).toBe(true);
   });
 
-  it('runs the integration tests against postgres and valkey service containers', () => {
+  it('runs the integration tests against postgres, valkey and mailpit service containers', () => {
     const integration = jobOf(ci, 'integration');
     const postgres = integration.services?.['postgres']?.image ?? '';
 
-    expect(Object.keys(integration.services ?? {}).sort()).toEqual(['postgres', 'valkey']);
+    expect(Object.keys(integration.services ?? {}).sort()).toEqual(['mailpit', 'postgres', 'valkey']);
     expect(postgres).toMatch(/^postgres:17\.\d+@sha256:[0-9a-f]{64}$/);
-    expect(stepsRun(integration)).toContain('pnpm test:integration');
+    expect(stepsRun(integration)).toContain('${{ matrix.command }}');
+  });
+
+  it('runs every integration package in one of the parts of the matrix', () => {
+    const workflow = read('.github/workflows/ci.yml');
+
+    expect(workflow).toContain('command: pnpm test:integration --filter=!@cod/plugin-auth');
+    expect(workflow).toContain('--filter=@cod/plugin-auth -- --shard=1/2');
+    expect(workflow).toContain('--filter=@cod/plugin-auth -- --shard=2/2');
   });
 
   it('uses the compose images for the CI service containers', () => {
@@ -229,6 +237,7 @@ describe('ci.yml', () => {
 
     expect(services['postgres']?.image).toBe(compose.services['postgres']?.image);
     expect(services['valkey']?.image).toBe(compose.services['valkey']?.image);
+    expect(services['mailpit']?.image).toBe(compose.services['mailpit']?.image);
   });
 
   // A unix-socket check passes while the image's first-boot initdb server runs without TCP (R3-10).

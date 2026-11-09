@@ -19,13 +19,18 @@
     "migration:generate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/scripts/generate-migration.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1164.0",
+    "@aws-sdk/lib-storage": "3.1164.0",
+    "@cod/plugin-auth": "workspace:*",
     "@cod/plugin-merchant-shell": "workspace:*",
     "@cod/plugin-platform-health": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
     "@cod/plugin-template": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
     "@nestjs/core": "12.4.0",
+    "@vendure/asset-server-plugin": "3.8.1",
     "@vendure/core": "3.8.1",
     "@vendure/dashboard": "3.8.1",
     "@vendure/harden-plugin": "3.8.1",

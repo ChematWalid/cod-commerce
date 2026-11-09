@@ -200,6 +200,6 @@ done
 phase "outage loop done"
 # The gate checks the committed default, not the localhost this script runs on. Set, not unset: compose would
 # otherwise read a local .env's value.
-export PLATFORM_DOMAIN=platform.invalid
+export PLATFORM_DOMAIN=platform.invalid AUTH_DASHBOARD_URL='' SMTP_HOST='' SMTP_PORT='' SMTP_FROM=''
 docker compose config --format json | node scripts/check-compose-portability.mjs
 echo "VERIFY-STACK-OK"

@@ -1,3 +1,4 @@
+import { SESSION_DURATION } from '@cod/shared';
 import type { AuthOptions } from '@vendure/core';
 import type { AppEnv } from './env';
 
@@ -5,6 +6,7 @@ import type { AppEnv } from './env';
 export function buildAuthConfig(env: AppEnv): AuthOptions {
   return {
     tokenMethod: ['cookie', 'bearer'],
+    sessionDuration: SESSION_DURATION,
     superadminCredentials: { identifier: env.SUPERADMIN_USERNAME, password: env.SUPERADMIN_PASSWORD },
     cookieOptions: { secret: env.COOKIE_SECRET },
   };

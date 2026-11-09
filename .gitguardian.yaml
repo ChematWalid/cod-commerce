@@ -11,6 +11,8 @@ secret:
       match: change-me-pg
     - name: .env.example placeholder COOKIE_SECRET (also Dockerfile ARG and CI env); loadEnv rejects it in staging and production
       match: change-me-000000000000000000000000000000000000000000000000000000
+    - name: .env.example placeholder AUTH_TOKEN_SECRET (also Dockerfile ARG and CI env); loadEnv rejects it in staging and production
+      match: change-me-auth-000000000000000000000000000000000000000000000000
     - name: .env.example placeholder GARAGE_ADMIN_TOKEN for the local compose Garage only (not read by the server)
       match: change-me-garage-admin
     - name: .env.example placeholder INTERNAL_HMAC_SECRET (not read by the server yet)

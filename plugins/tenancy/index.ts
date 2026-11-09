@@ -1,5 +1,6 @@
 export { TenantContextMissingError } from './api/tenant-context-missing.error';
 export { tenantOf } from './api/tenant-of';
+export { tenantBusinessPermission } from './api/permissions';
 export { TenantScoped } from './api/tenant-scoped.decorator';
 export { TenantGuard } from './api/tenant.guard';
 export { ID_GENERATOR as SNOWFLAKE_ID_GENERATOR } from './application/tokens';

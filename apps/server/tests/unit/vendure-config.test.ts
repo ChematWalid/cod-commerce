@@ -14,6 +14,11 @@ const valid = {
   DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
   REDIS_URL: 'redis://valkey:6379',
   COOKIE_SECRET: 'x'.repeat(32),
+  AUTH_TOKEN_SECRET: 'y'.repeat(32),
+  AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
+  SMTP_HOST: 'smtp.example.test',
+  SMTP_PORT: '587',
+  SMTP_FROM: 'no-reply@example.test',
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
@@ -103,7 +108,7 @@ describe('buildVendureConfig', () => {
 
   it('scopes the cache and session namespace by APP_ENV', () => {
     const namespaces = ['staging', 'production'].map((appEnv) => {
-      configFor('api', { APP_ENV: appEnv });
+      configFor('api', { APP_ENV: appEnv, CLIENT_IP_HEADER: 'cf-connecting-ip' });
       return RedisCachePlugin.options.namespace;
     });
 
@@ -145,5 +150,15 @@ describe('bullMqOptions', () => {
       queueOptions: { prefix: 'bull:test' },
       workerOptions: { prefix: 'bull:test' },
     });
+  });
+
+  it('backs the account email queue off for minutes and leaves other queues on the default', () => {
+    // Arrange
+    const { setJobOptions } = bullMqOptions(loadEnv(valid));
+    const job = {} as Parameters<NonNullable<typeof setJobOptions>>[1];
+
+    // Act and assert
+    expect(setJobOptions?.('auth-email', job)).toEqual({ backoff: { type: 'exponential', delay: 30_000 } });
+    expect(setJobOptions?.('send-email', job)).toEqual({});
   });
 });

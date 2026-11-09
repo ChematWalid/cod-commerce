@@ -60,11 +60,11 @@ describe('browser.yml', () => {
     expect(read('.github/workflows/browser.yml')).not.toMatch(/pull_request/);
   });
 
-  it('has the one browser job, with postgres and valkey service containers pinned like the integration job', () => {
+  it('has the one browser job, with mailpit, postgres and valkey service containers, the last two pinned like the integration job', () => {
     const integration = jobOf(ci, 'integration');
 
     expect(Object.keys(browser.jobs)).toEqual(['browser']);
-    expect(Object.keys(job.services ?? {}).sort()).toEqual(['postgres', 'valkey']);
+    expect(Object.keys(job.services ?? {}).sort()).toEqual(['mailpit', 'postgres', 'valkey']);
     expect(job.services?.['postgres']?.image).toBe(integration.services?.['postgres']?.image);
     expect(job.services?.['valkey']?.image).toBe(integration.services?.['valkey']?.image);
   });

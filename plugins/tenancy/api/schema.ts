@@ -41,6 +41,7 @@ export const adminApiSchema = gql`
     subdomain: String!
     status: SubdomainStatus!
     reason: String
+    reasonCode: String
   }
 
   type ProvisionBusinessResult {
