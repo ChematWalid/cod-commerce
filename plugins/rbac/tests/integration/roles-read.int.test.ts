@@ -103,7 +103,9 @@ describe('role reads and refusals', () => {
     await actAs(adminClient, businesses.b.owner, foreignStore);
 
     expect(await api.get(mine.id)).toBeNull();
-    expect((await api.list()).some(({ id }) => id === mine.id)).toBe(false);
+    const foreignRoles = await api.list();
+    expect(foreignRoles.length).toBeGreaterThan(0);
+    expect(foreignRoles.some(({ id }) => id === mine.id)).toBe(false);
     expect((await failureOf(api.update(mine.id, { name: unique('Took') }))).codes).toEqual(['rbac.role-not-found']);
     expect((await failureOf(api.remove(mine.id))).codes).toEqual(['rbac.role-not-found']);
     expect((await failureOf(api.duplicate(mine.id))).codes).toEqual(['rbac.role-not-found']);
@@ -118,5 +120,7 @@ describe('role reads and refusals', () => {
         .rawConnection.getRepository(BusinessRoleEntity)
         .countBy({ name: mine.name }),
     ).toBe(2);
+    await team.asOwner();
+    expect(await api.get(mine.id)).toMatchObject({ name: mine.name, permissions: mine.permissions });
   });
 });

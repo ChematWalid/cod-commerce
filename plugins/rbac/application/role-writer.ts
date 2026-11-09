@@ -1,7 +1,9 @@
-import { MAX_CUSTOM_ROLES_PER_BUSINESS, type StoreId, type TenantContext } from '@cod/shared';
+import { MAX_CUSTOM_ROLES_PER_BUSINESS, type PermissionKey, type StoreId, type TenantContext } from '@cod/shared';
 import type { BusinessRole, RoleBinding } from '../domain/business-role';
+import { ALL_STORES_SCOPE } from '../domain/constants';
 import { RoleLimitError, RoleNameTakenError, RoleNotFoundError } from '../domain/errors';
 import type { ActivityEntryInput } from '../domain/activity';
+import type { RoleEdit } from '../domain/escalation-rules';
 import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
 import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-repository.port';
 import type { ClockPort } from '../domain/ports/clock.port';
@@ -94,11 +96,16 @@ export class RoleWriter {
     return world.bindings.filter((binding) => binding.businessRoleId === roleId);
   }
 
-  reachOfRole(world: RoleWorld, roleId: string): readonly StoreId[] {
-    return reachOf(
-      this.bindingsOf(world, roleId).map((binding) => binding.scope),
-      world.activeStoreIds,
-    );
+  /** What D60.2 judges about an edit of `role` to `next`. */
+  editOf(world: RoleWorld, actor: RoleActor, role: BusinessRole, next: readonly PermissionKey[]): RoleEdit {
+    const scopes = this.bindingsOf(world, role.id).map((binding) => binding.scope);
+    return {
+      reach: reachOf(scopes, world.activeStoreIds),
+      allStoresBound: scopes.includes(ALL_STORES_SCOPE),
+      activeStoreId: actor.tenant.activeStoreId,
+      current: role.permissions,
+      next,
+    };
   }
 
   /** Records the change in the transaction `ctx` carries, so a failed append undoes it. */

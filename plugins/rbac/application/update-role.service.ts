@@ -1,12 +1,13 @@
 import { ACTIVITY_ACTIONS, type PermissionKey } from '@cod/shared';
 import type { BusinessRole } from '../domain/business-role';
 import { BuiltInImmutableError } from '../domain/errors';
-import { assertCanEditRole, assertNotEditingHeldRole } from '../domain/escalation-rules';
+import { assertCanChangeTarget, assertCanEditRole, assertNotEditingHeldRole } from '../domain/escalation-rules';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { isEmptyDiff, permissionsDiff } from '../domain/role-diff';
 import { parseDescription, type RolePermissionChoices, resolvePermissions } from '../domain/role-input';
 import { type ParsedRoleName, parseRoleName } from '../domain/role-name';
 import { type BusinessRoleView, toRoleView } from '../domain/role-view';
+import { buildActor } from '../domain/store-access';
 import type { BindingProjector } from './binding-projector.service';
 import type { RoleActor, RoleWorld, RoleWriter } from './role-writer';
 
@@ -66,12 +67,25 @@ export class UpdateRoleService {
   ): Promise<void> {
     const holdsRole = await this.writer.ports.assignments.isAssigned(ctx, actor.tenant, actor.administratorId, role.id);
     assertNotEditingHeldRole(world.actor, holdsRole);
-    assertCanEditRole(world.actor, {
-      reach: this.writer.reachOfRole(world, role.id),
-      activeStoreId: actor.tenant.activeStoreId,
-      current: role.permissions,
-      next: next.permissions,
-    });
+    assertCanEditRole(world.actor, this.writer.editOf(world, actor, role, next.permissions));
+    if (!isEmptyDiff(permissionsDiff(role.permissions, next.permissions))) {
+      await this.assertHoldersWithinActor(ctx, actor, world, role);
+    }
+  }
+
+  /** D60.4 for everyone the edit affects, so nobody changes what a superior can do. A rename affects nobody. */
+  private async assertHoldersWithinActor(
+    ctx: OperationContext,
+    actor: RoleActor,
+    world: RoleWorld,
+    role: BusinessRole,
+  ): Promise<void> {
+    const { assignments } = this.writer.ports;
+    const roles = new Map(world.roles.map((row) => [row.id as string, row]));
+    for (const holder of await assignments.holdersOf(ctx, actor.tenant, [role.id])) {
+      const rows = await assignments.ofAdministrator(ctx, actor.tenant, holder);
+      assertCanChangeTarget(world.actor, buildActor(holder, rows, roles, world.activeStoreIds));
+    }
   }
 
   /** An edit that changes nothing writes nothing and logs nothing. */

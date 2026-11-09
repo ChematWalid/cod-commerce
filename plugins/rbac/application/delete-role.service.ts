@@ -19,12 +19,7 @@ export class DeleteRoleService {
       const { ports } = this.writer;
       const role = this.writer.requireRole(world, id);
       if (role.builtInKey !== null) throw new BuiltInImmutableError();
-      assertCanEditRole(world.actor, {
-        reach: this.writer.reachOfRole(world, role.id),
-        activeStoreId: actor.tenant.activeStoreId,
-        current: role.permissions,
-        next: role.permissions,
-      });
+      assertCanEditRole(world.actor, this.writer.editOf(world, actor, role, role.permissions));
       if ((await ports.assignments.holdersOf(transactional, actor.tenant, [role.id])).length > 0)
         throw new RoleInUseError();
       await this.projector.removeBindings(transactional, actor.tenant, this.writer.bindingsOf(world, role.id));

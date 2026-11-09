@@ -14,7 +14,6 @@ import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
 import { BindingProjector } from './application/binding-projector.service';
 import { GetActivityLogService } from './application/get-activity-log.service';
-import { MemberAccessService } from './application/member-access.service';
 import { ExtendAllBindingsService } from './application/extend-all-bindings.service';
 import { RbacConvergeService } from './application/rbac-converge.service';
 import { SeedBuiltInRolesService } from './application/seed-built-in-roles.service';
@@ -46,6 +45,7 @@ import type { TransactionPort } from './domain/ports/transaction.port';
 import { ActivityLogEntity } from './infrastructure/activity-log.entity';
 import { ActivityRecordHandler } from './infrastructure/activity-record.handler';
 import { BusinessRoleEntity } from './infrastructure/business-role.entity';
+import { MEMBER_ACCESS_PROVIDERS } from './infrastructure/member-access.providers';
 import { MemberRoleAssignmentEntity } from './infrastructure/member-role-assignment.entity';
 import { RbacLifecycleHook } from './infrastructure/rbac-lifecycle.hook';
 import { RbacLock } from './infrastructure/rbac-lock';
@@ -177,53 +177,7 @@ const systemClock: ClockPort = { now: () => new Date() };
       ) => new BindingProjector({ bindings, assignments, engine, directory, ids }),
       inject: [ROLE_BINDINGS, MEMBER_ASSIGNMENTS, ENGINE_ROLES, BUSINESS_DIRECTORY, SNOWFLAKE_ID_GENERATOR],
     },
-    {
-      provide: MemberAccessService,
-      useFactory: (
-        ...[transaction, lock, members, directory, roles, assignments, engine, projector, activity, flusher, ids, clock]: [
-          TransactionPort,
-          RbacLockPort,
-          ActorDirectoryPort,
-          BusinessDirectoryPort,
-          BusinessRoleRepositoryPort,
-          MemberAssignmentRepositoryPort,
-          EngineRolesPort,
-          BindingProjector,
-          ActivityLogService,
-          SessionFlusherPort,
-          IdGeneratorPort,
-          ClockPort,
-        ]
-      ) =>
-        new MemberAccessService({
-          transaction,
-          lock,
-          members,
-          directory,
-          roles,
-          assignments,
-          engine,
-          projector,
-          activity,
-          flusher,
-          ids,
-          clock,
-        }),
-      inject: [
-        TRANSACTION,
-        RBAC_LOCK,
-        ACTOR_DIRECTORY,
-        BUSINESS_DIRECTORY,
-        BUSINESS_ROLES,
-        MEMBER_ASSIGNMENTS,
-        ENGINE_ROLES,
-        BindingProjector,
-        ActivityLogService,
-        SESSION_FLUSHER,
-        SNOWFLAKE_ID_GENERATOR,
-        CLOCK,
-      ],
-    },
+    ...MEMBER_ACCESS_PROVIDERS,
     ...ROLE_USE_CASE_PROVIDERS,
     RbacTranslations,
     RequestActors,

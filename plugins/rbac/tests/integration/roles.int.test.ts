@@ -243,6 +243,24 @@ describe('custom roles', () => {
       expect(updated?.diff['permissions']).toEqual({ added: ['orders.cancel'], removed: [role.permissions[0]] });
     });
 
+    it('keeps the bindings and the Vendure Role when a delete rolls back', async () => {
+      await team.asOwner();
+      const role = await customRole();
+      const member = await team.member();
+      const tracker = await team.rows.roleId(businesses.a.businessId, 'order-tracker');
+      await team.assign(member.id, [role.id]);
+      await team.assign(member.id, [tracker]);
+      const [binding] = await team.rows.bindings(role.id);
+      vi.spyOn(server.app.get<ActivityLogPort>(ACTIVITY_LOG), 'append').mockRejectedValueOnce(
+        new Error('append failed'),
+      );
+
+      await expect(api.remove(role.id)).rejects.toBeDefined();
+
+      expect(await team.rows.bindings(role.id)).toHaveLength(1);
+      expect(await team.rows.vendureRoleExists(binding?.vendureRoleId ?? 0)).toBe(true);
+    });
+
     it.each(['create', 'update', 'delete'] as const)(
       'undoes the %s when the activity row cannot be written',
       async (kind) => {

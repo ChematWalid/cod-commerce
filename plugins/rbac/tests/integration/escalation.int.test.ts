@@ -78,13 +78,27 @@ describe('role escalation (D60)', () => {
       expect((await failureOf(api.remove(role.id))).codes).toEqual(['rbac.privilege-exceeded']);
     });
 
-    it('with both stores and the permissions on each, can edit', async () => {
-      const onBoth = await boundRole([team.home, team.other]);
-      const onAll = await boundRole();
+    it('with both stores and the permissions on each, can edit a role bound on them', async () => {
+      const role = await boundRole([team.home, team.other]);
       await team.signedInMember([adminRole.id], [team.home, team.other]);
 
-      expect((await api.update(onBoth.id, { name: unique('Both') })).id).toBe(onBoth.id);
-      expect((await api.update(onAll.id, { name: unique('All') })).id).toBe(onAll.id);
+      expect((await api.update(role.id, { name: unique('Both') })).id).toBe(role.id);
+    });
+
+    it('with every store selected, still cannot edit an all-bound role', async () => {
+      const role = await boundRole();
+      await team.signedInMember([adminRole.id], [team.home, team.other]);
+
+      expect((await failureOf(api.update(role.id, { name: unique('Nope') }))).codes).toEqual([
+        'rbac.privilege-exceeded',
+      ]);
+    });
+
+    it('with all-stores access, can edit an all-bound role (positive control)', async () => {
+      const role = await boundRole();
+      await team.signedInMember([adminRole.id], undefined);
+
+      expect((await api.update(role.id, { name: unique('All') })).id).toBe(role.id);
     });
   });
 
@@ -95,6 +109,57 @@ describe('role escalation (D60)', () => {
       const failure = await failureOf(api.create({ name: unique('Over'), grants: ['orders.cancel'] }));
 
       expect(failure.codes).toEqual(['rbac.privilege-exceeded']);
+    });
+
+    it('cannot create a role with an area at Full beyond what it holds', async () => {
+      await team.signedInMember([adminRole.id], undefined);
+
+      const failure = await failureOf(api.create(allStoresRole(unique('Over'), { orders: 'full' })));
+
+      expect(failure.codes).toEqual(['rbac.privilege-exceeded']);
+    });
+
+    it('cannot create a role started from one holding more', async () => {
+      const manager = await team.rows.roleId(businesses.a.businessId, 'manager');
+      await team.signedInMember([adminRole.id], undefined);
+
+      const failure = await failureOf(api.create({ name: unique('Over'), startFromRoleId: manager }));
+
+      expect(failure.codes).toEqual(['rbac.privilege-exceeded']);
+    });
+
+    it.each(['area', 'start'] as const)('cannot raise a role through %s on update', async (route) => {
+      await team.asOwner();
+      const manager = await team.rows.roleId(businesses.a.businessId, 'manager');
+      const role = await api.create(allStoresRole(unique('Small'), { orders: 'view' }));
+      await team.signedInMember([adminRole.id], undefined);
+
+      const input = route === 'area' ? allStoresRole(role.name, { orders: 'full' }) : { startFromRoleId: manager };
+      const failure = await failureOf(api.update(role.id, input));
+
+      expect(failure.codes).toEqual(['rbac.privilege-exceeded']);
+    });
+
+    it('cannot change the permissions of a role held by a superior, but can rename it', async () => {
+      const role = await boundRole();
+      const manager = await team.rows.roleId(businesses.a.businessId, 'manager');
+      const superior = await team.member();
+      await team.assign(superior.id, [manager, role.id]);
+      await team.signedInMember([adminRole.id], undefined);
+
+      const failure = await failureOf(api.update(role.id, { revokes: [role.permissions[0] as string] }));
+
+      expect(failure.codes).toEqual(['rbac.privilege-exceeded']);
+      expect((await api.update(role.id, { name: unique('Renamed') })).permissions).toEqual(role.permissions);
+    });
+
+    it('can change the permissions of a role held by a peer (positive control)', async () => {
+      const role = await boundRole();
+      await team.signedInMember([adminRole.id], undefined);
+
+      const updated = await api.update(role.id, { revokes: [role.permissions[0] as string] });
+
+      expect(updated.permissions).toHaveLength(role.permissions.length - 1);
     });
 
     it('can create a role within what it holds (positive control)', async () => {

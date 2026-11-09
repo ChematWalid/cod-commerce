@@ -71,6 +71,7 @@ describe('D60 escalation rules', () => {
       () => {
         assertCanEditRole(actor(stores, { hasAllAccess: allAccess }), {
           reach,
+          allStoresBound: false,
           activeStoreId: A1,
           current: [VIEW],
           next: [VIEW, CANCEL],
@@ -89,13 +90,37 @@ describe('D60 escalation rules', () => {
 
     it('needs the current permissions too, on each store', () => {
       expectCode(() => {
-        assertCanEditRole(actor(a2Thin), { reach: [A1, A2], activeStoreId: A1, current: [CANCEL], next: [VIEW] });
+        assertCanEditRole(actor(a2Thin), {
+          reach: [A1, A2],
+          allStoresBound: false,
+          activeStoreId: A1,
+          current: [CANCEL],
+          next: [VIEW],
+        });
       }, CODES.PRIVILEGE_EXCEEDED);
+    });
+
+    it('refuses a role with an all binding to an actor without all-stores access', () => {
+      const edit = { reach: [A1], allStoresBound: true, activeStoreId: A1, current: [VIEW], next: [VIEW] };
+      const everywhere = new Map([[A1, [VIEW]]]);
+
+      expectCode(() => {
+        assertCanEditRole(actor(everywhere, { hasAllAccess: false }), edit);
+      }, CODES.PRIVILEGE_EXCEEDED);
+      expect(() => {
+        assertCanEditRole(actor(everywhere, { hasAllAccess: true }), edit);
+      }).not.toThrow();
     });
 
     it('judges an unbound role on the active store', () => {
       expectCode(() => {
-        assertCanEditRole(actor(a2Thin), { reach: [], activeStoreId: A2, current: [VIEW], next: [CANCEL] });
+        assertCanEditRole(actor(a2Thin), {
+          reach: [],
+          allStoresBound: false,
+          activeStoreId: A2,
+          current: [VIEW],
+          next: [CANCEL],
+        });
       }, CODES.PRIVILEGE_EXCEEDED);
     });
   });

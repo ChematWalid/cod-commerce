@@ -27,6 +27,8 @@ export function assertCanCreateRole(actor: Actor, activeStoreId: StoreId, permis
 export interface RoleEdit {
   /** Every store the role is bound to; an `all` binding reaches every store of the business. */
   readonly reach: readonly StoreId[];
+  /** The role has an `all` binding, so its keys also reach stores opened later. */
+  readonly allStoresBound: boolean;
   readonly activeStoreId: StoreId;
   readonly current: readonly PermissionKey[];
   readonly next: readonly PermissionKey[];
@@ -34,11 +36,14 @@ export interface RoleEdit {
 
 /**
  * D60.2: the actor reaches every store the role is bound to, and holds its current and new permissions on each.
- * A role with no bindings is judged on the active store, like a new one.
+ * A role with an `all` binding needs an all-stores actor. A role with no bindings is judged on the active store,
+ * like a new one.
  *
  * @throws {@link PrivilegeExceededError}
  */
-export function assertCanEditRole(actor: Actor, { reach, activeStoreId, current, next }: RoleEdit): void {
+export function assertCanEditRole(actor: Actor, edit: RoleEdit): void {
+  const { reach, allStoresBound, activeStoreId, current, next } = edit;
+  if (allStoresBound && !actor.hasAllAccess) throw new PrivilegeExceededError();
   const stores = reach.length === 0 ? [activeStoreId] : reach;
   const needed = [...current, ...next];
   if (!stores.every((storeId) => holdsAll(actor, storeId, needed))) throw new PrivilegeExceededError();
