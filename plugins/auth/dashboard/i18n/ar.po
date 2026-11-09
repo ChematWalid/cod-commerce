@@ -369,3 +369,7 @@ msgstr "جارٍ تسجيل دخولك…"
 #. js-lingui-explicit-id
 msgid "Back to sign in"
 msgstr "العودة إلى تسجيل الدخول"
+
+#. js-lingui-explicit-id
+msgid "auth.oauth-email-unconfirmed"
+msgstr "لا يؤكد هذا المزوّد أن هذا البريد الإلكتروني لك. سجّل الدخول بكلمة المرور."

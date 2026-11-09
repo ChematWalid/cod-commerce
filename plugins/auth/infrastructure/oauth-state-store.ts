@@ -5,7 +5,7 @@ import { SealedPayloadError } from './sealed-payload';
 
 /**
  * The flow travels inside `state` itself, sealed, so a flow abandoned at the provider leaves nothing to clean up.
- * The sealer's own key and context keep it apart from the mail queue's payloads.
+ * It is given a sealer with its own context (`OAUTH_STATE_SEAL_CONTEXT`), which keeps it apart from the mail queue's.
  */
 export class SealedOAuthStateStore implements OAuthStateStorePort {
   constructor(private readonly sealer: PayloadSealerPort) {}

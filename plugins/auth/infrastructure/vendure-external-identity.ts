@@ -29,4 +29,10 @@ export class VendureExternalIdentity implements ExternalIdentityPort {
       .getRepository(requestContextOf(ctx), ExternalAuthenticationMethod)
       .save(new ExternalAuthenticationMethod({ strategy: provider, externalIdentifier: subject, user }));
   }
+
+  async unlinkAll(ctx: OperationContext, userId: number): Promise<void> {
+    await this.connection
+      .getRepository(requestContextOf(ctx), ExternalAuthenticationMethod)
+      .delete({ user: { id: userId } });
+  }
 }

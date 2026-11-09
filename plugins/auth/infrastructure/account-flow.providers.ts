@@ -18,6 +18,7 @@ import { EventBusAuthEmailQueue } from './auth-email-queue';
 import { EmailClaimLock } from './email-claim-lock';
 import { VendureAccountIdentity } from './vendure-account-identity';
 import { VendureAccountSessions } from './vendure-account-sessions';
+import { VendureExternalIdentity } from './vendure-external-identity';
 
 const COMMON = [VendureAccountIdentity, AccountTokenService, AuthEmailService, AccountThrottle];
 type Common = [VendureAccountIdentity, AccountTokenService, AuthEmailService, AccountThrottle];
@@ -76,17 +77,27 @@ function emailVerification({ dashboardUrl, clock }: FlowSettings): Provider {
   };
 }
 
-type ResetExtras = [VendureAccountSessions, SessionTerminatorPort, EventBusAuthEmailQueue, PayloadSealerPort];
+type ResetExtras = [
+  VendureAccountSessions,
+  SessionTerminatorPort,
+  EventBusAuthEmailQueue,
+  PayloadSealerPort,
+  VendureExternalIdentity,
+];
 
 function passwordReset({ dashboardUrl, clock }: FlowSettings): Provider {
   return {
     provide: PasswordResetService,
     useFactory: (
-      ...[identity, tokens, emails, throttle, sessions, terminator, queue, sealer]: [...Common, ...ResetExtras]
+      ...[identity, tokens, emails, throttle, sessions, terminator, queue, sealer, external]: [
+        ...Common,
+        ...ResetExtras,
+      ]
     ) =>
       new PasswordResetService({
         identity,
         passwords: identity,
+        external,
         tokens,
         emails,
         throttle,
@@ -97,7 +108,14 @@ function passwordReset({ dashboardUrl, clock }: FlowSettings): Provider {
         clock,
         dashboardUrl: dashboardUrl(),
       }),
-    inject: [...COMMON, VendureAccountSessions, SESSION_TERMINATOR, EventBusAuthEmailQueue, PAYLOAD_SEALER],
+    inject: [
+      ...COMMON,
+      VendureAccountSessions,
+      SESSION_TERMINATOR,
+      EventBusAuthEmailQueue,
+      PAYLOAD_SEALER,
+      VendureExternalIdentity,
+    ],
   };
 }
 

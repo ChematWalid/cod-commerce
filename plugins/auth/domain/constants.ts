@@ -56,6 +56,9 @@ export const RESET_PASSWORD_PATH = '/reset-password';
 /** The dashboard page an email change confirmation link opens (D20). */
 export const CONFIRM_EMAIL_CHANGE_PATH = '/confirm-email-change';
 
+/** Authenticated context of a sealed `state`: a value sealed for the mail queue does not open as one, nor the reverse. */
+export const OAUTH_STATE_SEAL_CONTEXT = 'oauth-state';
+
 /** How long a browser may stay at the provider before its `state` stops working. */
 export const OAUTH_STATE_TTL_MS = 600_000;
 

@@ -14,6 +14,7 @@ export const AUTH_ERROR_CODES = {
   CHALLENGE_FAILED: 'auth.challenge-failed',
   USE_ACCOUNT_SECURITY: 'auth.use-account-security',
   OAUTH_LINK_REQUIRES_VERIFICATION: 'auth.oauth-link-requires-verification',
+  OAUTH_EMAIL_UNCONFIRMED: 'auth.oauth-email-unconfirmed',
   OAUTH_FAILED: 'auth.oauth-failed',
   LOGO_TOO_LARGE: 'auth.logo-too-large',
   LOGO_TYPE: 'auth.logo-type',

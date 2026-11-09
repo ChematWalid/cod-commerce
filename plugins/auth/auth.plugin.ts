@@ -220,6 +220,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
       oauth: () => requireOptions().oauth,
       apiBaseUrl: () => new URL(requireOptions().dashboardUrl).origin,
       clock: systemClock,
+      tokenSecret: () => requireOptions().tokenSecret,
     }),
     ...accountFlowProviders({
       dashboardUrl: () => requireOptions().dashboardUrl,
@@ -242,7 +243,8 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     ],
   },
   // Administrators' sessions also work on the Shop API, whose password mutations have none of the account rules.
-  shopApiExtensions: { resolvers: [ShopAccountGuardResolver, ShopPasswordResetGuardResolver] },
+  // `SessionResolver` also here: the stock Shop `logout` throws for a session of a strategy only the Admin API has.
+  shopApiExtensions: { resolvers: [ShopAccountGuardResolver, ShopPasswordResetGuardResolver, SessionResolver] },
   controllers: [
     AuthLoginController,
     AuthRegisterController,

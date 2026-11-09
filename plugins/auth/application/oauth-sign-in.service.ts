@@ -1,7 +1,12 @@
 import { normalizeEmail, OAUTH_TICKET_TTL_MS } from '@cod/shared';
 import type { AccountToken } from '../domain/account-token';
 import { OAUTH_STATE_TTL_MS } from '../domain/constants';
-import { InvalidTokenError, OAuthFailedError, OAuthLinkRequiresVerificationError } from '../domain/errors';
+import {
+  InvalidTokenError,
+  OAuthEmailUnconfirmedError,
+  OAuthFailedError,
+  OAuthLinkRequiresVerificationError,
+} from '../domain/errors';
 import type {
   OAuthCompletion,
   OAuthFlowState,
@@ -95,7 +100,8 @@ export class OAuthSignInService {
    * Checks the browser and `state` before spending the code, so a forged callback costs nothing and learns nothing.
    *
    * @throws OAuthFailedError for a forged or stale callback, or a provider refusal.
-   * @throws OAuthLinkRequiresVerificationError when the email belongs to an account it may not be linked to.
+   * @throws OAuthLinkRequiresVerificationError or OAuthEmailUnconfirmedError when the email belongs to an account it
+   * may not be linked to.
    */
   async complete(
     ctx: OperationContext,
@@ -229,7 +235,7 @@ export class OAuthSignInService {
     }
     const holder = identity.email === null ? undefined : await this.ports.identity.findByEmail(ctx, identity.email);
     if (holder === undefined) {
-      return { destination: 'register', ticket: await this.issueForNewIdentity(ctx, identity, bindingHash) };
+      return { destination: 'register', ticket: await this.issue(ctx, null, bindingHash, identity) };
     }
     assertLinkable(identity, holder);
     await this.ports.external.link(ctx, holder.userId, identity.provider, identity.subject);
@@ -241,25 +247,16 @@ export class OAuthSignInService {
     return userId === undefined ? undefined : this.ports.identity.findByUserId(ctx, userId);
   }
 
-  private async issue(ctx: OperationContext, userId: number, bindingHash: string): Promise<string> {
-    const payload: OAuthTicketPayload = { bindingHash, identity: null };
-    const { token } = await this.ports.tokens.issue(ctx, {
-      userId,
-      purpose: 'oauth-ticket',
-      ttlMs: OAUTH_TICKET_TTL_MS,
-      payload: { ...payload },
-    });
-    return token;
-  }
-
-  private async issueForNewIdentity(
+  /** `identity` travels only while the person has no account: `userId` is then null. */
+  private async issue(
     ctx: OperationContext,
-    identity: OAuthIdentity,
+    userId: number | null,
     bindingHash: string,
+    identity: OAuthIdentity | null = null,
   ): Promise<string> {
     const payload: OAuthTicketPayload = { bindingHash, identity };
     const { token } = await this.ports.tokens.issue(ctx, {
-      userId: null,
+      userId,
       purpose: 'oauth-ticket',
       ttlMs: OAUTH_TICKET_TTL_MS,
       payload: { ...payload },
@@ -291,7 +288,10 @@ function subjectClaim(identity: OAuthIdentity): string {
  * administrator is never linked: social sign-in must not reach that role.
  */
 function assertLinkable(identity: OAuthIdentity, holder: AccountRecord): void {
-  if (!identity.emailVerified || holder.emailVerifiedAt === null || holder.businessId === null) {
+  if (holder.emailVerifiedAt === null || holder.businessId === null) {
     throw new OAuthLinkRequiresVerificationError();
+  }
+  if (!identity.emailVerified) {
+    throw new OAuthEmailUnconfirmedError();
   }
 }

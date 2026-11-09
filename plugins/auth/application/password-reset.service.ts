@@ -11,6 +11,7 @@ import type {
 import type { AccountIdentityPort, AccountRecord } from '../domain/ports/account-identity.port';
 import type { PasswordResetQueuePort } from '../domain/ports/auth-email-queue.port';
 import type { ClockPort } from '../domain/ports/clock.port';
+import type { ExternalIdentityPort } from '../domain/ports/external-identity.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
 import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
@@ -21,6 +22,7 @@ import type { AuthEmailService } from './auth-email.service';
 export interface PasswordResetPorts {
   readonly identity: Pick<AccountIdentityPort, 'inTransaction' | 'findByEmail' | 'findByUserId' | 'markEmailVerified'>;
   readonly passwords: Pick<AccountPasswordsPort, 'set'>;
+  readonly external: Pick<ExternalIdentityPort, 'unlinkAll'>;
   readonly sessions: AccountSessionsPort;
   readonly terminator: Pick<SessionTerminatorPort, 'endOthers' | 'flushCache'>;
   readonly queue: PasswordResetQueuePort;
@@ -104,15 +106,18 @@ export class PasswordResetService {
   }
 
   private async apply(ctx: OperationContext, token: string, password: string): Promise<AppliedReset> {
-    const { identity, passwords, terminator, tokens, clock } = this.ports;
+    const { identity, passwords, external, terminator, tokens, clock } = this.ports;
     const { userId } = await tokens.consume(ctx, 'password-reset', token);
     const account = userId === null ? undefined : await identity.findByUserId(ctx, userId);
     if (account === undefined) {
       throw new InvalidTokenError();
     }
     await passwords.set(ctx, account.userId, password);
-    await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change']);
+    await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change', 'oauth-ticket']);
     if (account.emailVerifiedAt === null) {
+      // Nobody had proven this address, so a provider login on it may be whoever pre-registered it with this email.
+      // This reset is the first proof, and only the owner of the mailbox could make it.
+      await external.unlinkAll(ctx, account.userId);
       await identity.markEmailVerified(ctx, account.administratorId, clock.now());
     }
     return { account, ended: await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT) };

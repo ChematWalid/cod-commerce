@@ -2,12 +2,11 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Provider } from '@nestjs/common';
 import { AccountTokenService } from '../application/account-token.service';
 import { OAuthSignInService, type PkcePair } from '../application/oauth-sign-in.service';
-import { OAUTH_BROWSER_BINDING, PAYLOAD_SEALER, SECRET_HASHER } from '../application/tokens';
-import { OAUTH_PKCE_VERIFIER_BYTES } from '../domain/constants';
+import { OAUTH_BROWSER_BINDING, SECRET_HASHER } from '../application/tokens';
+import { OAUTH_PKCE_VERIFIER_BYTES, OAUTH_STATE_SEAL_CONTEXT } from '../domain/constants';
 import type { OAuthProviderName } from '../domain/oauth';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { OAuthProviderPort } from '../domain/ports/oauth-provider.port';
-import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
 import type { SecretHasherPort } from '../domain/ports/secret-hasher.port';
 import { EmailClaimLock } from './email-claim-lock';
 import { FacebookOAuthProvider } from './facebook-oauth-provider';
@@ -15,6 +14,7 @@ import { GoogleOAuthProvider } from './google-oauth-provider';
 import { OAuthBrowserBindingCookie } from './oauth-browser-binding.cookie';
 import type { OAuthProviderConfig } from './oauth-http';
 import { SealedOAuthStateStore } from './oauth-state-store';
+import { SEAL_KEY_LABEL, SealedPayloadCodec } from './sealed-payload';
 import { VendureAccountIdentity } from './vendure-account-identity';
 import { VendureExternalIdentity } from './vendure-external-identity';
 
@@ -31,6 +31,8 @@ interface OAuthSettings {
   /** The API's public address: same origin as the dashboard (D20). */
   readonly apiBaseUrl: () => string;
   readonly clock: ClockPort;
+  /** `AUTH_TOKEN_SECRET`, which the `state` sealer's key derives from. */
+  readonly tokenSecret: () => string;
 }
 
 function newPkce(): PkcePair {
@@ -54,11 +56,10 @@ type SignInDependencies = [
   EmailClaimLock,
   AccountTokenService,
   SecretHasherPort,
-  PayloadSealerPort,
 ];
 
 /** The Nest wiring of the OAuth sign-in; `application/` stays free of Nest. */
-export function oauthProviders({ oauth, apiBaseUrl, clock }: OAuthSettings): Provider[] {
+export function oauthProviders({ oauth, apiBaseUrl, clock, tokenSecret }: OAuthSettings): Provider[] {
   return [
     VendureExternalIdentity,
     {
@@ -67,10 +68,12 @@ export function oauthProviders({ oauth, apiBaseUrl, clock }: OAuthSettings): Pro
     },
     {
       provide: OAuthSignInService,
-      useFactory: (...[identity, external, claims, tokens, hasher, sealer]: SignInDependencies) =>
+      useFactory: (...[identity, external, claims, tokens, hasher]: SignInDependencies) =>
         new OAuthSignInService({
           providers: adaptersOf(oauth()),
-          state: new SealedOAuthStateStore(sealer),
+          state: new SealedOAuthStateStore(
+            new SealedPayloadCodec(tokenSecret(), SEAL_KEY_LABEL, OAUTH_STATE_SEAL_CONTEXT),
+          ),
           identity,
           external,
           claims,
@@ -80,14 +83,7 @@ export function oauthProviders({ oauth, apiBaseUrl, clock }: OAuthSettings): Pro
           newPkce,
           apiBaseUrl: apiBaseUrl(),
         }),
-      inject: [
-        VendureAccountIdentity,
-        VendureExternalIdentity,
-        EmailClaimLock,
-        AccountTokenService,
-        SECRET_HASHER,
-        PAYLOAD_SEALER,
-      ],
+      inject: [VendureAccountIdentity, VendureExternalIdentity, EmailClaimLock, AccountTokenService, SECRET_HASHER],
     },
   ];
 }

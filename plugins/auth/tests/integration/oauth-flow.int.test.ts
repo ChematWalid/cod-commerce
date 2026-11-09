@@ -7,6 +7,7 @@ import { createTestAdministrator } from './create-test-administrator';
 import { codeOf, inputFor, PASSWORD, uniqueEmail } from './register-test-kit';
 
 const LINK_REFUSED = 'auth.oauth-link-requires-verification';
+const EMAIL_UNCONFIRMED = 'auth.oauth-email-unconfirmed';
 
 const kit = createOAuthTestKit();
 const { server, signInThrough, authenticate, registerWithTicket, register, methodsOfSubject } = kit;
@@ -194,7 +195,7 @@ describe('an existing account', () => {
     const run = await signInThrough('google', googleProfile(email, false, subject));
 
     // Assert
-    expect(run.error).toBe(LINK_REFUSED);
+    expect(run.error).toBe(EMAIL_UNCONFIRMED);
     expect(await methodsOfSubject('google', subject)).toHaveLength(0);
   });
 
@@ -207,7 +208,7 @@ describe('an existing account', () => {
     const run = await signInThrough('facebook', facebookProfile(email, subject));
 
     // Assert
-    expect(run.error).toBe(LINK_REFUSED);
+    expect(run.error).toBe(EMAIL_UNCONFIRMED);
     expect(await methodsOfSubject('facebook', subject)).toHaveLength(0);
   });
 

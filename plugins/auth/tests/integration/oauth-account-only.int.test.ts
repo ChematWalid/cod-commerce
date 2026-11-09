@@ -98,6 +98,19 @@ describe('an account that signs in only through a provider', () => {
     expect(login.code).toBe('OK');
   });
 
+  it('logs out on the Shop API without an internal error', async () => {
+    // Arrange
+    const { email, bearer } = await oauthOnlyAccount();
+
+    // Act
+    const response = await client.rest('/shop-api', { query: 'mutation { logout { success } }' }, bearer);
+    const body = (await response.json()) as { data: { logout: { success: boolean } } | null };
+
+    // Assert
+    expect(body.data?.logout.success).toBe(true);
+    expect(await client.me(bearer)).not.toBe(email);
+  });
+
   it('holds its email against a password registration (D27)', async () => {
     // Arrange
     const { email } = await oauthOnlyAccount();

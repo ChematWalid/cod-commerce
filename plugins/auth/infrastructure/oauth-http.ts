@@ -29,7 +29,12 @@ async function requestJson(url: string, init: RequestInit): Promise<ProviderJson
       Logger.warn(`Provider answered ${String(response.status)}`, LOG_CONTEXT);
       throw new OAuthFailedError();
     }
-    return (await response.json()) as ProviderJson;
+    const body: unknown = await response.json();
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+      Logger.warn('Provider answered something other than a JSON object', LOG_CONTEXT);
+      throw new OAuthFailedError();
+    }
+    return body as ProviderJson;
   } catch (error: unknown) {
     if (error instanceof OAuthFailedError) {
       throw error;

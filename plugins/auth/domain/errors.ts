@@ -126,6 +126,15 @@ export class OAuthLinkRequiresVerificationError extends DomainError {
   }
 }
 
+/** The provider does not vouch for the email of a verified account: verifying the account again would not help. */
+export class OAuthEmailUnconfirmedError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.OAUTH_EMAIL_UNCONFIRMED;
+
+  constructor() {
+    super('This provider does not confirm this email; sign in with your password');
+  }
+}
+
 /** A forged or stale callback, or a provider that refused. One message: a caller learns nothing about which. */
 export class OAuthFailedError extends DomainError {
   readonly code = AUTH_ERROR_CODES.OAUTH_FAILED;

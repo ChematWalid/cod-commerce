@@ -369,3 +369,7 @@ msgstr "Signing you in…"
 #. js-lingui-explicit-id
 msgid "Back to sign in"
 msgstr "Back to sign in"
+
+#. js-lingui-explicit-id
+msgid "auth.oauth-email-unconfirmed"
+msgstr "This provider cannot confirm this email is yours. Sign in with your password instead."
