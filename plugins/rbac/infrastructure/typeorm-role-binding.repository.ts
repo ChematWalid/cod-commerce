@@ -8,6 +8,15 @@ import type { RoleBindingRepositoryPort } from '../domain/ports/role-binding-rep
 import { toRequestContext } from './request-context';
 import { RoleBindingEntity } from './role-binding.entity';
 
+function toBinding(row: RoleBindingEntity): RoleBinding {
+  return {
+    id: toSnowflake(row.id),
+    businessRoleId: toSnowflake(row.businessRoleId),
+    scope: row.scope,
+    vendureRoleId: row.vendureRoleId,
+  };
+}
+
 /** The Postgres adapter of {@link RoleBindingRepositoryPort}, on `TenantRepository` (ADR 0002). */
 @Injectable()
 export class TypeOrmRoleBindingRepository implements RoleBindingRepositoryPort {
@@ -21,15 +30,15 @@ export class TypeOrmRoleBindingRepository implements RoleBindingRepositoryPort {
     await this.rows.insert(new RequestTenantScope(toRequestContext(ctx), scope.businessId), { ...binding });
   }
 
+  async allBindings(ctx: OperationContext, scope: TenantScope): Promise<readonly RoleBinding[]> {
+    const rows = await this.rows.find(new RequestTenantScope(toRequestContext(ctx), scope.businessId));
+    return rows.map(toBinding);
+  }
+
   async allStoresBindings(ctx: OperationContext, scope: TenantScope): Promise<readonly RoleBinding[]> {
     const rows = await this.rows.find(new RequestTenantScope(toRequestContext(ctx), scope.businessId), {
       where: { scope: ALL_STORES_SCOPE },
     });
-    return rows.map((row) => ({
-      id: toSnowflake(row.id),
-      businessRoleId: toSnowflake(row.businessRoleId),
-      scope: row.scope,
-      vendureRoleId: row.vendureRoleId,
-    }));
+    return rows.map(toBinding);
   }
 }

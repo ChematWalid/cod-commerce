@@ -1,8 +1,11 @@
 import { RequestTenantScope, type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import { type BuiltInRoleKey, type PermissionKey, type TenantScope, toSnowflake } from '@cod/shared';
+import { type BuiltInRoleKey, type PermissionKey, type Snowflake, type TenantScope, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { BusinessRole } from '../domain/business-role';
-import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-repository.port';
+import type {
+  BusinessRolePermissionsPatch,
+  BusinessRoleRepositoryPort,
+} from '../domain/ports/business-role-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { BusinessRoleEntity } from './business-role.entity';
 import { toRequestContext } from './request-context';
@@ -34,6 +37,19 @@ export class TypeOrmBusinessRoleRepository implements BusinessRoleRepositoryPort
       ...role,
       permissions: [...role.permissions],
     });
+  }
+
+  async updatePermissions(
+    ctx: OperationContext,
+    scope: TenantScope,
+    id: Snowflake,
+    { permissions, updatedAt }: BusinessRolePermissionsPatch,
+  ): Promise<void> {
+    await this.rows.update(
+      new RequestTenantScope(toRequestContext(ctx), scope.businessId),
+      { id },
+      { permissions: [...permissions], updatedAt },
+    );
   }
 
   async findBuiltIn(ctx: OperationContext, scope: TenantScope, key: BuiltInRoleKey): Promise<BusinessRole | undefined> {

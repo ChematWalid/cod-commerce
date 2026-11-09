@@ -31,6 +31,11 @@ export type MemberStoreAccess = 'all' | 'selected';
 /** The code of the Vendure Role projecting a business role on `scope`. */
 export const vendureRoleCode = (businessRoleId: string, scope: BindingScope): string => `br-${businessRoleId}-${scope}`;
 
+/** The stock permission every Vendure Role of a merchant holds (D59); `RoleService` adds it on every write. */
+export const ENGINE_BASE_PERMISSION = 'Authenticated';
+/** How many businesses one page of the converge walks (D57). */
+export const CONVERGE_PAGE_SIZE = 200;
+
 /** The activity page size when the caller names none (D65). */
 export const ACTIVITY_DEFAULT_PAGE_SIZE = 50;
 /** The most activity rows one page holds. */
@@ -47,5 +52,7 @@ export const DIFF_MAX_DEPTH = 12;
 export const SESSION_CACHE_DELETE_TIMEOUT_MS = 1000;
 /** How long after the first delete the second one runs, for a reader that loaded before the commit (D55). */
 export const SESSION_REDELETE_DELAY_MS = 500;
+/** How long a process must stay up after a flush for its delayed repeat to finish (D55). */
+export const SESSION_FLUSH_SETTLE_MS = SESSION_REDELETE_DELAY_MS + SESSION_CACHE_DELETE_TIMEOUT_MS;
 /** Largest Vendure administrator id (a Postgres `integer`); a larger one is never a real id (D68). */
 export const MAX_VENDURE_ID = 2147483647;

@@ -1,14 +1,15 @@
-import { asOperationContext as asTenancyContext } from '@cod/plugin-tenancy';
+import { asOperationContext as asTenancyContext, ownerRolePermissions } from '@cod/plugin-tenancy';
 import { SuperadminContextFactory } from '@cod/plugin-tenancy/provisioning';
 import { Injectable } from '@nestjs/common';
 import {
   AdministratorService,
+  ConfigService,
   EntityNotFoundError,
   type Permission,
   type RequestContext,
   RoleService,
 } from '@vendure/core';
-import type { EngineRoleRequest, EngineRolesPort } from '../domain/ports/engine-roles.port';
+import type { EngineRoleRequest, EngineRolesPort, EngineRoleState } from '../domain/ports/engine-roles.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { toRequestContext } from './request-context';
 
@@ -22,6 +23,7 @@ export class VendureEngineRoles implements EngineRolesPort {
     private readonly superadmins: SuperadminContextFactory,
     private readonly roles: RoleService,
     private readonly administrators: AdministratorService,
+    private readonly config: ConfigService,
   ) {}
 
   async createRole(ctx: OperationContext, { code, permissions, channelIds }: EngineRoleRequest): Promise<number> {
@@ -59,6 +61,16 @@ export class VendureEngineRoles implements EngineRolesPort {
     const role = await this.roles.findOne(await this.superadmin(ctx), roleId);
     if (role === undefined) throw new EntityNotFoundError('Role', roleId);
     return role.permissions;
+  }
+
+  async describeRole(ctx: OperationContext, roleId: number): Promise<EngineRoleState> {
+    const role = await this.roles.findOne(await this.superadmin(ctx), roleId);
+    if (role === undefined) throw new EntityNotFoundError('Role', roleId);
+    return { permissions: role.permissions, channelIds: role.channels.map((channel) => channel.id as number) };
+  }
+
+  ownerPermissions(): readonly string[] {
+    return ownerRolePermissions(this.config.authOptions.customPermissions);
   }
 
   /** Built per call, because Vendure caches a user's channels per context and channels are added as stores open. */

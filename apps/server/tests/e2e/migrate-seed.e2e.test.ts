@@ -8,6 +8,8 @@ import { COMMITTED_MIGRATION_COUNT } from './support/committed-migrations';
 import { connectTo, createDatabase, dropDatabase } from './support/test-database';
 
 const DATABASE_NAME = `cod_migrate_${String(process.pid)}`;
+const BROKEN_BUSINESS_ID = '900000000000000001';
+const MISSING_ROLE_ID = 2147483000;
 
 /** The seeded platform rows, read with plain SQL so the assertion does not depend on Vendure's services. */
 interface SeedSnapshot {
@@ -113,7 +115,7 @@ describe('migrate role', () => {
 
     const report = await runMigrate(env);
 
-    expect(report).toEqual({ migrationsRun: [], seed: { changes: [] } });
+    expect(report).toEqual({ migrationsRun: [], seed: { changes: [] }, rbacConverged: { businesses: 0, changed: 0 } });
     const after = await snapshot(url);
     expect(after).toEqual(before);
     expect(after).toEqual({
@@ -129,6 +131,25 @@ describe('migrate role', () => {
       },
       availableLanguages: 'ar,fr,en',
     });
+  });
+
+  it('fails when a business cannot converge, naming it, and leaves nothing of it behind', async () => {
+    const client = await connectTo(url);
+    try {
+      await client.query(
+        `INSERT INTO business (id, name, "ownerAdministratorId", "sellerId", "ownerRoleId", status, "createdAt")
+         VALUES ($1, 'Broken SARL', 1, (SELECT min(id) FROM seller), $2, 'active', now())`,
+        [BROKEN_BUSINESS_ID, MISSING_ROLE_ID],
+      );
+
+      await expect(runMigrate(env)).rejects.toThrow(BROKEN_BUSINESS_ID);
+
+      const rows = await client.query('SELECT 1 FROM business_role WHERE "businessId" = $1', [BROKEN_BUSINESS_ID]);
+      expect(rows.rowCount).toBe(0);
+    } finally {
+      await client.query('DELETE FROM business WHERE id = $1', [BROKEN_BUSINESS_ID]);
+      await client.end();
+    }
   });
 
   // RF4: a missing migration would make TypeORM want to change the schema of a fully migrated database.

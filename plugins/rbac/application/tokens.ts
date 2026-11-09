@@ -22,5 +22,11 @@ export const ENGINE_ROLES: unique symbol = Symbol('RbacEngineRoles');
 /** Injection token of the `SessionFlusherPort` adapter. */
 export const SESSION_FLUSHER: unique symbol = Symbol('RbacSessionFlusher');
 
+/** Injection token of the `BusinessDirectoryPort` adapter. */
+export const BUSINESS_DIRECTORY: unique symbol = Symbol('RbacBusinessDirectory');
+
+/** Injection token of the `TransactionPort` adapter. */
+export const TRANSACTION: unique symbol = Symbol('RbacTransaction');
+
 /** Injection token of the `RbacLockPort` adapter. */
 export const RBAC_LOCK: unique symbol = Symbol('RbacLock');

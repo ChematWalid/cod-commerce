@@ -1,10 +1,18 @@
+import { setTimeout as delay } from 'node:timers/promises';
+import {
+  asOperationContext,
+  type ConvergeReport,
+  RbacConvergeService,
+  SESSION_FLUSH_SETTLE_MS,
+} from '@cod/plugin-rbac';
 import { toPostgresFields } from '@cod/shared';
+import type { INestApplicationContext } from '@nestjs/common';
 import { bootstrapWorker, type MigrationDiagnostic, runMigrations } from '@vendure/core';
 import { Client } from 'pg';
 import { DB_CONNECTION_TIMEOUT_MS } from '../config/db.config';
 import type { AppEnv } from '../config/env';
 import { buildVendureConfig } from '../config/vendure-config';
-import { seedPlatformDefaults } from '../seed/seed-platform-defaults';
+import { seedPlatformDefaults, superadminContext } from '../seed/seed-platform-defaults';
 import type { SeedReport } from '../seed/seed.types';
 import { MIGRATE_ADVISORY_LOCK_KEY, MIGRATE_LOCK_APPLICATION_NAME } from './migrate.constants';
 
@@ -12,6 +20,7 @@ import { MIGRATE_ADVISORY_LOCK_KEY, MIGRATE_LOCK_APPLICATION_NAME } from './migr
 export interface MigrateReport {
   migrationsRun: string[];
   seed: SeedReport;
+  rbacConverged: ConvergeReport;
 }
 
 /** Running the migrations failed, or left the schema out of step with the entities. */
@@ -73,9 +82,24 @@ async function withMigrateLock<T>(env: AppEnv, work: () => Promise<T>): Promise<
 }
 
 /**
+ * Converges the built-in roles of every business (D57); a business that fails rejects this, so the migrate exits
+ * non-zero once the others are done. The worker then stays up long enough for the sessions' delayed second eviction.
+ */
+async function convergeRoles(app: INestApplicationContext): Promise<ConvergeReport> {
+  let flushed = true;
+  try {
+    const report = await app.get(RbacConvergeService).convergeAll(asOperationContext(await superadminContext(app)));
+    flushed = report.changed > 0;
+    return report;
+  } finally {
+    if (flushed) await delay(SESSION_FLUSH_SETTLE_MS);
+  }
+}
+
+/**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
- * queue to seed the platform defaults. Concurrent runs are serialised, so each migration applies once.
+ * queue to seed the platform defaults and converge the roles of existing businesses. Concurrent runs are serialised, so each migration applies once.
  */
 export async function runMigrate(env: AppEnv): Promise<MigrateReport> {
   return withMigrateLock(env, async () => {
@@ -83,7 +107,8 @@ export async function runMigrate(env: AppEnv): Promise<MigrateReport> {
     const worker = await bootstrapWorker(buildVendureConfig(env, 'migrate'));
     try {
       const seed = await seedPlatformDefaults(worker.app);
-      return { migrationsRun, seed };
+      const rbacConverged = await convergeRoles(worker.app);
+      return { migrationsRun, seed, rbacConverged };
     } finally {
       await worker.app.close();
     }

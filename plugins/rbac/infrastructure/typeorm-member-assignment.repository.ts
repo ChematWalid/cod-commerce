@@ -1,6 +1,7 @@
 import { RequestTenantScope, type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import type { TenantScope } from '@cod/shared';
+import type { Snowflake, TenantScope } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
 import type { MemberAssignment } from '../domain/business-role';
 import { ALL_STORES_SCOPE } from '../domain/constants';
 import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
@@ -22,6 +23,30 @@ export class TypeOrmMemberAssignmentRepository implements MemberAssignmentReposi
       ...assignment,
       storeIds: [...assignment.storeIds],
     });
+  }
+
+  async isAssigned(
+    ctx: OperationContext,
+    scope: TenantScope,
+    administratorId: number,
+    businessRoleId: Snowflake,
+  ): Promise<boolean> {
+    const count = await this.rows.count(new RequestTenantScope(toRequestContext(ctx), scope.businessId), {
+      administratorId,
+      businessRoleId,
+    });
+    return count > 0;
+  }
+
+  async holdersOf(
+    ctx: OperationContext,
+    scope: TenantScope,
+    businessRoleIds: readonly Snowflake[],
+  ): Promise<readonly number[]> {
+    const rows = await this.rows.find(new RequestTenantScope(toRequestContext(ctx), scope.businessId), {
+      where: { businessRoleId: In([...businessRoleIds]) },
+    });
+    return [...new Set(rows.map((row) => row.administratorId))];
   }
 
   async allStoresAdministratorIds(ctx: OperationContext, scope: TenantScope): Promise<readonly number[]> {

@@ -7,6 +7,12 @@ export interface EngineRoleRequest {
   readonly channelIds: readonly number[];
 }
 
+/** What a Vendure Role holds now. */
+export interface EngineRoleState {
+  readonly permissions: readonly string[];
+  readonly channelIds: readonly number[];
+}
+
 /**
  * Vendure's roles, written as the superadmin: every use case has already applied its own rules (D60), and the caller
  * may be anonymous. Ids are Vendure's integers (D68). Writes join the transaction `ctx` carries.
@@ -18,4 +24,7 @@ export interface EngineRolesPort {
   deleteRole(ctx: OperationContext, roleId: number): Promise<void>;
   setAdministratorRoles(ctx: OperationContext, administratorId: number, roleIds: readonly number[]): Promise<void>;
   permissionsOf(ctx: OperationContext, roleId: number): Promise<readonly string[]>;
+  describeRole(ctx: OperationContext, roleId: number): Promise<EngineRoleState>;
+  /** What an Owner's Vendure Role holds: every assignable plugin permission except the platform's own (D59). */
+  ownerPermissions(): readonly string[];
 }
