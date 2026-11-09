@@ -1,4 +1,5 @@
 import type { FeatureKey, PermissionKey } from '@cod/shared';
+import { SETTINGS_PATH } from '../constants';
 import { ACTIVE_STORE_ALIAS, storePathFor } from './store-path';
 import type { ShellIconName } from './types';
 
@@ -108,7 +109,7 @@ export const SHELL_TREE = [
   group('apps', [leaf('apps', '/apps', ['apps.view'], 'P9.S8b')]),
   group('sourcing', [leaf('sourcing', '/sourcing', ['apps.cargo.view'], 'P9.S9')]),
   group('settings', [
-    leaf('settings.general', '/settings', ['settings.business.view'], 'P1.S5'),
+    leaf('settings.general', SETTINGS_PATH, ['settings.business.view'], 'P1.S5'),
     storeLeaf('settings.pixels', 'settings/pixels', ['store.stores.view'], 'P9.S3'),
     storeLeaf('settings.domains', 'settings/domains', ['store.domains.view'], 'P8.S9'),
     storeLeaf('settings.billing', 'settings/billing', ['settings.business.view'], 'P9.S1'),

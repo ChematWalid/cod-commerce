@@ -162,6 +162,9 @@ export const STORE_EDIT_PERMISSION: PermissionKey = 'store.settings.edit';
 export const ACTIVE_BUSINESS_QUERY_KEY = ['merchant-shell', 'active-business'] as const;
 export const STORE_RECORD_QUERY_KEY = ['merchant-shell', 'store'] as const;
 
+/** The General settings page's route below the dashboard base. */
+export const SETTINGS_PATH = '/settings';
+
 /** Markers of the General settings page and its controls. */
 export const BUSINESS_CARD_TEST_ID = 'business-profile-card';
 export const BUSINESS_NAME_TEST_ID = 'business-name';
