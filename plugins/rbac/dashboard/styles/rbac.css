@@ -9,7 +9,7 @@ html[dir='rtl'] .cod-rbac-accordion [data-slot='accordion-trigger'] {
   text-align: start;
 }
 
-/* `ml-auto` would hold the chevron against the title instead of at the row's far end. */
+/* The stock trigger's auto margin on the physical left would hold the chevron against the title instead of at the row's far end. */
 html[dir='rtl'] .cod-rbac-accordion [data-slot='accordion-trigger-icon'] {
   margin-left: 0;
   margin-inline-start: auto;
