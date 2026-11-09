@@ -5,6 +5,7 @@ export const AUTH_ERROR_CODES = {
   OTP_INVALID: 'auth.otp-invalid',
   OTP_LOCKED: 'auth.otp-locked',
   PASSWORD_POLICY: 'auth.password-policy',
+  REGISTRATION_INVALID: 'auth.registration-invalid',
   CURRENT_PASSWORD_WRONG: 'auth.current-password-wrong',
   COOLDOWN: 'auth.cooldown',
   RATE_LIMITED: 'auth.rate-limited',

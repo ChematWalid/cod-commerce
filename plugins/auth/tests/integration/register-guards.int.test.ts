@@ -106,6 +106,22 @@ describe('REST and public config', () => {
     expect(await administratorsNamed(input['email'] as string)).toHaveLength(1);
   });
 
+  it('answers 429 with Retry-After once an address is over the limit', async () => {
+    // Arrange: refused by validation, so the burst writes nothing and still spends the limit.
+    const ip = uniqueIp();
+    const burst = Array.from({ length: REGISTER_IP_LIMIT + 5 }, () =>
+      client.rest('/auth/register', inputFor({ password: 'short' }), { ip }),
+    );
+
+    // Act
+    const responses = await Promise.all(burst);
+
+    // Assert
+    const limited = responses.filter((response) => response.status === 429);
+    expect(limited.length).toBeGreaterThan(0);
+    expect(Number(limited[0]?.headers.get('retry-after'))).toBeGreaterThan(0);
+  });
+
   it('answers 409 with the code for a taken email', async () => {
     // Arrange
     const first = inputFor();

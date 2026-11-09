@@ -56,7 +56,7 @@ export class PasswordPolicyError extends DomainError {
 
 /** A registration that fails the shared schema. It names the fields and never their values. */
 export class RegistrationInvalidError extends DomainError {
-  readonly code = 'auth.registration-invalid';
+  readonly code = AUTH_ERROR_CODES.REGISTRATION_INVALID;
 
   constructor(fields: readonly string[]) {
     super(`Invalid registration fields: ${fields.join(', ')}`);

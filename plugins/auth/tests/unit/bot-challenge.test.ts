@@ -1,3 +1,4 @@
+import { Logger } from '@vendure/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BotChallengePort } from '../../domain/ports/bot-challenge.port';
 import { NoopBotChallenge } from '../../infrastructure/noop-bot-challenge';
@@ -7,6 +8,7 @@ const SECRET = 'synthetic-turnstile-secret';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 function stubFetch(result: Response | Error): ReturnType<typeof vi.fn> {
@@ -52,6 +54,46 @@ describe('TurnstileBotChallenge', () => {
     expect(outcome).toBe('failed');
   });
 
+  it.each([
+    ['a 400 with a bad token', 400, { success: false, 'error-codes': ['invalid-input-response'] }],
+    ['a 200 with a spent token', 200, { success: false, 'error-codes': ['timeout-or-duplicate'] }],
+    ['a 400 claiming success', 400, { success: true }],
+  ])('fails on %s', async (_name, status, answer) => {
+    // Arrange
+    stubFetch(new Response(JSON.stringify(answer), { status }));
+
+    // Act
+    const outcome = await new TurnstileBotChallenge(SECRET).verify('token');
+
+    // Assert
+    expect(outcome).toBe('failed');
+  });
+
+  it('fails on a 4xx whose body is not JSON', async () => {
+    // Arrange
+    stubFetch(new Response('refused', { status: 403 }));
+
+    // Act
+    const outcome = await new TurnstileBotChallenge(SECRET).verify('token');
+
+    // Assert
+    expect(outcome).toBe('failed');
+  });
+
+  it.each(['invalid-input-secret', 'missing-input-secret'])('logs %s at error level and fails', async (code) => {
+    // Arrange
+    stubFetch(new Response(JSON.stringify({ success: false, 'error-codes': [code] }), { status: 400 }));
+    const logged = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+
+    // Act
+    const outcome = await new TurnstileBotChallenge(SECRET).verify('token');
+
+    // Assert
+    expect(outcome).toBe('failed');
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining(code), expect.anything());
+    expect(JSON.stringify(logged.mock.calls)).not.toContain(SECRET);
+  });
+
   it('fails a missing token without calling the provider', async () => {
     // Arrange
     const fetchMock = stubFetch(new Response('{}'));
@@ -68,6 +110,8 @@ describe('TurnstileBotChallenge', () => {
     ['a network failure', new Error('connect failed')],
     ['a server error', new Response('down', { status: 503 })],
     ['an unreadable answer', new Response('<html>')],
+    ['a server error with JSON', new Response(JSON.stringify({ success: false }), { status: 500 })],
+    ['a provider internal error', new Response(JSON.stringify({ success: false, 'error-codes': ['internal-error'] }))],
   ])('reports the provider unavailable on %s', async (_name, result) => {
     // Arrange
     stubFetch(result);
