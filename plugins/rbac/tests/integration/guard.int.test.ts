@@ -22,6 +22,12 @@ const CANCEL_ORDER = gql`
   }
 `;
 
+const CLASS_CANCEL_ORDER = gql`
+  mutation {
+    rbacTestClassCancelOrder
+  }
+`;
+
 const MY_CHANNELS = gql`
   query {
     me {
@@ -163,6 +169,28 @@ describe('requirePermission', () => {
   });
 
   describe('on a class', () => {
+    it('lets a holder of the class permission call a resolver with no decorator of its own', async () => {
+      // Arrange
+      await actAs(adminClient, canceller, businesses.a.stores[0]);
+
+      // Act
+      const answer = await adminClient.query<{ rbacTestClassCancelOrder: boolean }>(CLASS_CANCEL_ORDER);
+
+      // Assert
+      expect(answer.rbacTestClassCancelOrder).toBe(true);
+    });
+
+    it('refuses a member without the class permission on a resolver with no decorator of its own', async () => {
+      // Arrange
+      await actAs(adminClient, bystander, businesses.a.stores[0]);
+
+      // Act
+      const failure = await failureOf(adminClient.query(CLASS_CANCEL_ORDER));
+
+      // Assert
+      expect(failure.codes).toEqual(['FORBIDDEN']);
+    });
+
     it('lets a holder of the class permission reach a handler with no decorator of its own', async () => {
       // Arrange
       await actAs(adminClient, viewer, businesses.a.stores[0]);

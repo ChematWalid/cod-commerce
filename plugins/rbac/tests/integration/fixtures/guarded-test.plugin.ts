@@ -14,6 +14,15 @@ class GuardedTestResolver {
   }
 }
 
+@Resolver()
+@requirePermission('orders.cancel')
+class ClassGuardedTestResolver {
+  @Mutation()
+  rbacTestClassCancelOrder(): boolean {
+    return true;
+  }
+}
+
 @Controller('rbac-test')
 class GuardedTestController {
   @Get('orders-view')
@@ -47,9 +56,10 @@ class ClassGuardedTestController {
     schema: gql`
       extend type Mutation {
         rbacTestCancelOrder: Boolean!
+        rbacTestClassCancelOrder: Boolean!
       }
     `,
-    resolvers: [GuardedTestResolver],
+    resolvers: [GuardedTestResolver, ClassGuardedTestResolver],
   },
 })
 // A Vendure plugin is a decorated class; this one only registers the fixtures.

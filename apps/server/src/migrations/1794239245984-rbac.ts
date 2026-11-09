@@ -1,6 +1,6 @@
 import type { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Rbac1794224390730 implements MigrationInterface {
+export class Rbac1794239245984 implements MigrationInterface {
 
    public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "activity_log" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "actorAdministratorId" integer, "action" character varying(64) NOT NULL, "entityType" character varying(32) NOT NULL, "entityId" character varying(32) NOT NULL, "summary" character varying(255) NOT NULL, "diff" jsonb NOT NULL, "ip" character varying(64), "userAgent" character varying(255), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_067d761e2956b77b14e534fd6f1" PRIMARY KEY ("id"))`, undefined);
