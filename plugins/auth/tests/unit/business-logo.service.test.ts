@@ -11,9 +11,9 @@ const PNG_HEAD = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 class RecordingAssets implements LogoAssetsPort {
   readonly stored: LogoImageFile[] = [];
 
-  store(_ctx: OperationContext, file: LogoImageFile): Promise<number> {
+  store(_ctx: OperationContext, file: LogoImageFile): Promise<string> {
     this.stored.push(file);
-    return Promise.resolve(41);
+    return Promise.resolve('41');
   }
 }
 
@@ -32,7 +32,7 @@ describe('BusinessLogoService', () => {
     const result = await new BusinessLogoService(assets).upload(ctx, pngOfSize(LOGO_MAX_BYTES));
 
     // Assert
-    expect(result).toEqual({ assetId: 41 });
+    expect(result).toEqual({ assetId: '41' });
     expect(assets.stored[0]?.type.mimeType).toBe('image/png');
   });
 

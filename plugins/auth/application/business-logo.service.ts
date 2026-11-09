@@ -6,7 +6,7 @@ import type { OperationContext } from '../domain/ports/operation-context';
 
 /** What an upload answers with. */
 export interface UploadedLogo {
-  readonly assetId: number;
+  readonly assetId: string;
 }
 
 /** Accepts a business logo (D34): at most {@link LOGO_MAX_BYTES}, and an image by its content. */

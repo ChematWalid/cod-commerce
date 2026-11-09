@@ -1,6 +1,7 @@
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { AssetServerPlugin, configureS3AssetStorage, HashedAssetNamingStrategy } from '@vendure/asset-server-plugin';
+import { RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { AssetServerPlugin, configureS3AssetStorage, PresetOnlyStrategy } from '@vendure/asset-server-plugin';
 import type { AppEnv } from './env';
 import { PrefixedAssetStorage } from './prefixed-asset-storage';
 
@@ -9,6 +10,13 @@ export const ASSET_ROUTE = 'assets';
 
 /** The key prefix of asset files inside the shared Garage bucket (D33). P2 replaces bucket and naming. */
 export const ASSET_KEY_PREFIX = 'assets/';
+
+/**
+ * Anonymous requests may only pick a named preset. Free `?w=&h=` would let anyone make the server render and cache
+ * an object per size. The dashboard's thumbnails and galleries all ask for presets; only its unused
+ * `ResponsiveImage` asks for widths, and those requests fall back to this preset.
+ */
+const DEFAULT_IMAGE_PRESET = 'medium';
 
 /** Required by the plugin's options, never written to: the S3 storage strategy replaces the local one. */
 const UNUSED_LOCAL_UPLOAD_DIR = path.join(tmpdir(), 'cod-assets-unused');
@@ -30,7 +38,8 @@ export function assetServerPlugin(env: AppEnv): ReturnType<typeof AssetServerPlu
   return AssetServerPlugin.init({
     route: ASSET_ROUTE,
     assetUploadDir: UNUSED_LOCAL_UPLOAD_DIR,
-    namingStrategy: new HashedAssetNamingStrategy(),
+    namingStrategy: new RandomAssetNamingStrategy(),
+    imageTransformStrategy: new PresetOnlyStrategy({ defaultPreset: DEFAULT_IMAGE_PRESET }),
     storageStrategyFactory: (options) => new PrefixedAssetStorage(s3(options), ASSET_KEY_PREFIX),
   });
 }

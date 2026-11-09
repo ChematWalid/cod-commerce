@@ -9,6 +9,6 @@ export interface LogoImageFile {
 
 /** Stores logos as assets of the request's store channel. */
 export interface LogoAssetsPort {
-  /** @returns the new asset's id. */
-  store(ctx: OperationContext, file: LogoImageFile): Promise<number>;
+  /** @returns the new asset's id, as a string like every id at an API boundary. */
+  store(ctx: OperationContext, file: LogoImageFile): Promise<string>;
 }

@@ -1,6 +1,6 @@
 import { AUTH_ERROR_CODES } from '@cod/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { png, svg, textClaimingPng } from './image-fixtures';
+import { png, pngOverPixelCap, pngSignatureThenText, svg, textClaimingPng, truncatedPng } from './image-fixtures';
 import { createProfileTestKit } from './profile-test-kit';
 import { codeOf } from './register-test-kit';
 
@@ -173,6 +173,21 @@ describe('the profile photo', () => {
     expect(readA['avatarUrl']).toEqual(expect.stringContaining('/assets/'));
   });
 
+  it.each([
+    ['a PNG cut off in the middle', truncatedPng],
+    ['an image over the pixel cap', pngOverPixelCap],
+  ])('refuses %s and keeps no photo', async (_label, makeFile) => {
+    // Arrange
+    const owner = await kit.owner();
+
+    // Act
+    const answer = await kit.setAvatar(owner.session, await makeFile());
+
+    // Assert
+    expect(codeOf(answer)).toBe(AUTH_ERROR_CODES.IMAGE_TYPE);
+    expect(profileOf(await kit.profile(owner.session))['avatarUrl']).toBeNull();
+  });
+
   it('refuses an anonymous upload', async () => {
     // Arrange / Act
     const answer = await kit.setAvatar({}, png());
@@ -185,6 +200,7 @@ describe('the profile photo', () => {
     ["an SVG that says so (core's type list)", svg(), 'USER_INPUT_ERROR'],
     ['an SVG that claims to be a PNG (content check)', svg('image/png', 'logo.png'), AUTH_ERROR_CODES.IMAGE_TYPE],
     ['text that claims to be a PNG (content check)', textClaimingPng(), AUTH_ERROR_CODES.IMAGE_TYPE],
+    ['a PNG signature followed by text (decode check)', pngSignatureThenText(), AUTH_ERROR_CODES.IMAGE_TYPE],
   ])('refuses %s and keeps no photo', async (_label, file, code) => {
     // Arrange
     const owner = await kit.owner();

@@ -20,3 +20,4 @@ export { ACCOUNT_TOKEN_PURPOSES, type AccountToken, type AccountTokenPurpose } f
 export * from './domain/errors';
 export { InvalidAuthEmailRequestError } from './domain/email';
 export { AuthPlugin, type AuthChallengeOptions, type AuthEmailOptions, type AuthPluginOptions } from './auth.plugin';
+export { RandomAssetNamingStrategy } from './infrastructure/random-asset-naming.strategy';

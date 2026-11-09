@@ -7,6 +7,7 @@ import { createPluginTestEnvironment, loadPluginTestDbConfig } from '@cod/testin
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { VendurePlugin } from '@vendure/core';
 import { AuthPlugin, type AuthEmailOptions } from '../../auth.plugin';
+import { RandomAssetNamingStrategy } from '../../infrastructure/random-asset-naming.strategy';
 import type { AuthEmailTemplatesPort } from '../../domain/ports/auth-email-templates.port';
 import { EchoTemplates } from '../fakes/recording-email';
 
@@ -62,7 +63,13 @@ export function createAuthTestEnvironment(
     plugins: [
       ...(cookieSessions ? [CookieSessionsTestPlugin] : []),
       ...(assets
-        ? [AssetServerPlugin.init({ route: 'assets', assetUploadDir: mkdtempSync(join(tmpdir(), 'cod-test-assets-')) })]
+        ? [
+            AssetServerPlugin.init({
+              route: 'assets',
+              namingStrategy: new RandomAssetNamingStrategy(),
+              assetUploadDir: mkdtempSync(join(tmpdir(), 'cod-test-assets-')),
+            }),
+          ]
         : []),
       RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: TEST_CLIENT_IP_HEADER }),
       TenancyPlugin.init({

@@ -1,8 +1,8 @@
-import { AuthPlugin } from '@cod/plugin-auth';
+import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
-import { type AssetServerOptions, AssetServerPlugin } from '@vendure/asset-server-plugin';
+import { type AssetServerOptions, AssetServerPlugin, type ImageTransformStrategy } from '@vendure/asset-server-plugin';
 import { describe, expect, it } from 'vitest';
 import { authEmailTemplates } from '../../src/email';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
@@ -97,5 +97,36 @@ describe('buildPlugins', () => {
     const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
     expect(options.route).toBe('assets');
     expect(options.storageStrategyFactory).toBeTypeOf('function');
+    expect(options.namingStrategy).toBeInstanceOf(RandomAssetNamingStrategy);
+  });
+
+  it('lets an anonymous asset request pick a preset only, never its own size', async () => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: 'api' });
+    buildPlugins(env, 'api');
+    const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
+    const strategy = options.imageTransformStrategy as ImageTransformStrategy;
+    const medium = { name: 'medium', width: 500, height: 500, mode: 'resize' } as const;
+    const input = {
+      width: 37,
+      height: 11,
+      mode: 'crop',
+      quality: undefined,
+      format: undefined,
+      fpx: 0.1,
+      fpy: 0.2,
+      preset: undefined,
+      backgroundColor: undefined,
+    } as const;
+
+    // Act
+    const parameters = await strategy.getImageTransformParameters({
+      req: {} as never,
+      input,
+      availablePresets: [medium],
+    });
+
+    // Assert
+    expect(parameters).toMatchObject({ width: 500, height: 500, mode: 'resize', fpx: undefined, fpy: undefined });
   });
 });

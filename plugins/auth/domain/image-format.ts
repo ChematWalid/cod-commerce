@@ -12,6 +12,9 @@ export const IMAGE_FORMATS = {
   webp: { mimeType: 'image/webp', extension: 'webp' },
 } as const satisfies Record<string, ImageFormat>;
 
+/** Most pixels (width times height) an uploaded image may have: 40 megapixels, far above any logo or photo. */
+export const MAX_IMAGE_PIXELS = 40_000_000;
+
 /** The leading bytes that tell the formats apart; the longest signature (WebP's) needs 12. */
 const SIGNATURE_BYTES = 12;
 

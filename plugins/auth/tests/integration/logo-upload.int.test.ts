@@ -1,7 +1,16 @@
 import { AUTH_ERROR_CODES, LOGO_MAX_BYTES } from '@cod/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestAdministrator } from './create-test-administrator';
-import { png, pngAtLimit, pngOverLimit, svg, textClaimingPng } from './image-fixtures';
+import {
+  png,
+  pngAtLimit,
+  pngOverLimit,
+  pngOverPixelCap,
+  pngSignatureThenText,
+  svg,
+  textClaimingPng,
+  truncatedPng,
+} from './image-fixtures';
 import type { Caller } from './login-test-client';
 import { createProfileTestKit } from './profile-test-kit';
 import { codeOf, PASSWORD, uniqueEmail } from './register-test-kit';
@@ -86,6 +95,24 @@ describe('uploadBusinessLogo limits', () => {
     expect(codeOf(answer)).toBe(AUTH_ERROR_CODES.LOGO_TYPE);
   });
 
+  it.each([
+    ['a PNG signature followed by text', () => Promise.resolve(pngSignatureThenText())],
+    ['a PNG cut off in the middle', truncatedPng],
+    ['an image over the pixel cap', pngOverPixelCap],
+  ])('refuses %s as a logo-type error and creates no asset', async (_label, makeFile) => {
+    // Arrange
+    const { caller } = await ownerOnStore();
+    const file = await makeFile();
+    const before = await kit.sql<{ count: string }>('SELECT count(*) AS count FROM "asset"');
+
+    // Act
+    const answer = await kit.uploadLogo(caller, file);
+
+    // Assert
+    expect(codeOf(answer)).toBe(AUTH_ERROR_CODES.LOGO_TYPE);
+    expect(await kit.sql('SELECT count(*) AS count FROM "asset"')).toEqual(before);
+  });
+
   it('judges a logo by its bytes: a real PNG sent as text/plain with an odd name is accepted', async () => {
     // Arrange
     const { caller } = await ownerOnStore();
@@ -145,6 +172,27 @@ describe('uploadBusinessLogo access', () => {
 });
 
 describe('a stored logo', () => {
+  it('gets a random name of its own, so two uploads of one file never share or reveal a name', async () => {
+    // Arrange
+    const { caller } = await ownerOnStore();
+
+    // Act
+    const first = assetIdOf(await kit.uploadLogo(caller, png()));
+    const second = assetIdOf(await kit.uploadLogo(caller, png()));
+    const rows = await kit.sql<{ source: string; preview: string }>(
+      'SELECT "source", "preview" FROM "asset" WHERE "id" = ANY($1) ORDER BY "id"',
+      [[first, second].map((id) => Number(id.replace(/^T_/, '')))],
+    );
+
+    // Assert
+    expect(new Set(rows.map((row) => row.source)).size).toBe(2);
+    expect(new Set(rows.map((row) => row.preview)).size).toBe(2);
+    for (const { source, preview } of rows) {
+      expect(source).toMatch(/^source\/[0-9a-f]{2}\/[0-9a-f]{32}\.png$/);
+      expect(preview).toMatch(/^preview\/[0-9a-f]{2}\/[0-9a-f]{32}__preview\.png$/);
+    }
+  });
+
   it("is on the active store's channel only, and updateBusiness and updateStore accept its id", async () => {
     // Arrange
     const { caller, storeId } = await ownerOnStore();
