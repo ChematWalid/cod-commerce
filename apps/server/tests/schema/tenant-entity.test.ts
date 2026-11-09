@@ -11,7 +11,7 @@ const ENTITIES_METADATA = 'entities';
 const BUSINESS_ID_COLUMN = 'businessId';
 
 /** Rows of the tenant root, not owned by one: a business has no business, its sequence is keyed by it. */
-const NOT_TENANT_OWNED = ['BusinessEntity', 'BusinessOrderSequenceEntity'];
+const NOT_TENANT_OWNED = ['BusinessEntity', 'BusinessOrderSequenceEntity', 'AccountTokenEntity'];
 
 /** A plugin's `entities` metadata, an array or the function form `entities: () => [...]`. */
 const declaredEntities = (candidate: unknown): EntityClass[] => {

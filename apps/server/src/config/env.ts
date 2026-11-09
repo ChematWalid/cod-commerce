@@ -1,5 +1,6 @@
 import { InvalidDatabaseUrlError, RESERVED_WORKER_ID_MAX, RESERVED_WORKER_ID_MIN, toPostgresFields } from '@cod/shared';
 import { z } from 'zod';
+import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 
@@ -116,6 +117,7 @@ const baseSchema = z.object({
   CLIENT_IP_HEADER: z.string().max(DNS_NAME_MAX_LENGTH).regex(HEADER_NAME, 'must be an HTTP header name').default(''),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
+  ...authEnvShape,
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
@@ -143,6 +145,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
+    ...authSecretsOf(env),
   ];
 }
 
@@ -182,8 +185,12 @@ const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(requireClientIpHeader)
+  .superRefine((env, context) => {
+    requireAuthSettings(env, PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV), context);
+  })
   .transform((env) => ({
     ...env,
+    ...authDefaults(env),
     PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
     DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
   }));

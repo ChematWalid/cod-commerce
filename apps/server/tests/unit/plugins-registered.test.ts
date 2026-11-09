@@ -1,3 +1,4 @@
+import { AuthPlugin } from '@cod/plugin-auth';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
@@ -12,6 +13,7 @@ const valid = {
   DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
   REDIS_URL: 'redis://valkey:6379',
   COOKIE_SECRET: 'x'.repeat(32),
+  AUTH_TOKEN_SECRET: 'y'.repeat(32),
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
@@ -31,6 +33,18 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TemplatePlugin);
+  });
+
+  it.each(SERVER_ROLES)('registers AuthPlugin with the token secret for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(AuthPlugin);
+    expect(AuthPlugin.options).toEqual({ tokenSecret: 'y'.repeat(32) });
   });
 
   it.each(SERVER_ROLES)('registers TenancyPlugin for the %s role', (role: ServerRole) => {

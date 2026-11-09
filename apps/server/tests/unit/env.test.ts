@@ -9,6 +9,11 @@ const valid = {
   DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
   REDIS_URL: 'redis://valkey:6379',
   COOKIE_SECRET: 'x'.repeat(32),
+  AUTH_TOKEN_SECRET: 'y'.repeat(32),
+  AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
+  SMTP_HOST: 'smtp.example.test',
+  SMTP_PORT: '587',
+  SMTP_FROM: 'no-reply@example.test',
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
@@ -190,6 +195,63 @@ describe('loadEnv', () => {
 
   it.each(['cf connecting ip', 'x-real-ip: 1.2.3.4', 'a\nb'])('rejects %j as CLIENT_IP_HEADER', (header) => {
     expect(issuePaths(failureOf({ CLIENT_IP_HEADER: header }))).toEqual(['CLIENT_IP_HEADER']);
+  });
+
+  it('requires an AUTH_TOKEN_SECRET of at least 32 characters', () => {
+    expect(issuePaths(failureOf({ AUTH_TOKEN_SECRET: undefined }))).toEqual(['AUTH_TOKEN_SECRET']);
+    expect(issuePaths(failureOf({ AUTH_TOKEN_SECRET: 'too-short' }))).toEqual(['AUTH_TOKEN_SECRET']);
+  });
+
+  it('rejects a placeholder AUTH_TOKEN_SECRET in staging', () => {
+    const staging = { APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+
+    expect(issuePaths(failureOf({ ...staging, AUTH_TOKEN_SECRET: `change-me-${'0'.repeat(40)}` }))).toEqual([
+      'AUTH_TOKEN_SECRET',
+    ]);
+  });
+
+  it.each(['AUTH_DASHBOARD_URL', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM'])('requires %s when deployed', (name) => {
+    const staging = { APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+
+    expect(issuePaths(failureOf({ ...staging, [name]: undefined }))).toEqual([name]);
+  });
+
+  it('falls back to the local mail and dashboard addresses in development', () => {
+    const env = loadEnv({
+      ...valid,
+      APP_ENV: 'development',
+      AUTH_DASHBOARD_URL: undefined,
+      SMTP_HOST: undefined,
+      SMTP_PORT: undefined,
+      SMTP_FROM: undefined,
+    });
+
+    expect(env).toMatchObject({
+      AUTH_DASHBOARD_URL: 'http://localhost:3100/dashboard',
+      SMTP_HOST: 'localhost',
+      SMTP_PORT: 1026,
+      SMTP_FROM: 'no-reply@localhost',
+    });
+  });
+
+  it('keeps oauth and the challenge off by default', () => {
+    expect(loadEnv(valid)).toMatchObject({ AUTH_OAUTH_ENABLED: false, TURNSTILE_ENABLED: false });
+  });
+
+  it('requires the provider credentials when oauth is on', () => {
+    expect(issuePaths(failureOf({ AUTH_OAUTH_ENABLED: 'true' })).sort()).toEqual([
+      'FACEBOOK_OAUTH_CLIENT_ID',
+      'FACEBOOK_OAUTH_CLIENT_SECRET',
+      'GOOGLE_OAUTH_CLIENT_ID',
+      'GOOGLE_OAUTH_CLIENT_SECRET',
+    ]);
+  });
+
+  it('requires the secret and the page when the challenge is on', () => {
+    expect(issuePaths(failureOf({ TURNSTILE_ENABLED: 'true' })).sort()).toEqual([
+      'TURNSTILE_CHALLENGE_URL',
+      'TURNSTILE_SECRET_KEY',
+    ]);
   });
 
   it('defaults PLATFORM_DOMAIN to localhost in development', () => {

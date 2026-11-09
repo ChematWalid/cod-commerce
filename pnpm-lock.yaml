@@ -71,6 +71,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@cod/plugin-auth':
+        specifier: workspace:*
+        version: link:../../plugins/auth
       '@cod/plugin-merchant-shell':
         specifier: workspace:*
         version: link:../../plugins/merchant-shell
@@ -343,6 +346,46 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: 7.3.7
+        version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+
+  plugins/auth:
+    dependencies:
+      '@cod/plugin-tenancy':
+        specifier: workspace:*
+        version: link:../tenancy
+      '@cod/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@nestjs/common':
+        specifier: 12.4.0
+        version: 12.4.0(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@vendure/core':
+        specifier: 3.8.1
+        version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
+      graphql-tag:
+        specifier: 2.12.7
+        version: 2.12.7(graphql@16.15.0)
+      typeorm:
+        specifier: 0.3.31
+        version: 0.3.31(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))
+    devDependencies:
+      '@cod/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@cod/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
       typescript:
         specifier: 5.9.3
         version: 5.9.3

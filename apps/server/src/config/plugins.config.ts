@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { AuthPlugin } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
@@ -61,6 +62,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
     }),
+    AuthPlugin.init({ tokenSecret: env.AUTH_TOKEN_SECRET }),
   ];
   if (role !== 'api') {
     return everyRole;

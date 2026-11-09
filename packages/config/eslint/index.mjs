@@ -32,6 +32,9 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
   '**/plugins/tenancy/infrastructure/order-number.service.ts',
   '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
+  // `account_token` is an account-level table, not a tenant one (D24).
+  '**/plugins/auth/infrastructure/typeorm-account-token.repository.ts',
+  '**/plugins/auth/infrastructure/account-token-purge.task.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
