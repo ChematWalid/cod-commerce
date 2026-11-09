@@ -108,7 +108,9 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
 
   async onApplicationShutdown(): Promise<void> {
     await this.redis.quit().catch((error: unknown) => {
-      this.report(error);
+      // Said directly: `report` would drop it as a repeat of an outage message, and it is not an outage.
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      this.options.logger.error(`Valkey connection did not close cleanly on shutdown; forcing it closed: ${reason}`);
       this.redis.disconnect();
     });
   }
