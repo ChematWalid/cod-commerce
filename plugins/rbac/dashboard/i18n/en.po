@@ -1,0 +1,268 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "rbac.nav-team"
+msgstr "Team"
+
+#. js-lingui-explicit-id
+msgid "rbac.nav-roles"
+msgstr "Roles"
+
+#. js-lingui-explicit-id
+msgid "rbac.nav-activity-log"
+msgstr "Activity log"
+
+#. js-lingui-explicit-id
+msgid "rbac.error-generic"
+msgstr "Something went wrong. Please try again."
+
+#. js-lingui-explicit-id
+msgid "rbac.error-forbidden"
+msgstr "You do not have permission to do this."
+
+#. js-lingui-explicit-id
+msgid "rbac.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "rbac.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "rbac.sensitive"
+msgstr "Sensitive"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-none"
+msgstr "None"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-view"
+msgstr "View"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-full"
+msgstr "Full"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-custom"
+msgstr "Custom"
+
+#. js-lingui-explicit-id
+msgid "rbac.start-from"
+msgstr "Start from"
+
+#. js-lingui-explicit-id
+msgid "rbac.start-from-none"
+msgstr "Nothing (empty role)"
+
+#. js-lingui-explicit-id
+msgid "rbac.name"
+msgstr "Name"
+
+#. js-lingui-explicit-id
+msgid "rbac.description"
+msgstr "Description"
+
+#. js-lingui-explicit-id
+msgid "rbac.saved"
+msgstr "Role saved"
+
+#. js-lingui-explicit-id
+msgid "rbac.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "rbac.new-role"
+msgstr "New role"
+
+#. js-lingui-explicit-id
+msgid "rbac.edit-role"
+msgstr "Edit role"
+
+#. js-lingui-explicit-id
+msgid "rbac.selected-count"
+msgstr "Permissions selected:"
+
+#. js-lingui-explicit-id
+msgid "rbac.deleted"
+msgstr "Role deleted"
+
+#. js-lingui-explicit-id
+msgid "rbac.delete-title"
+msgstr "Delete {name}?"
+
+#. js-lingui-explicit-id
+msgid "rbac.delete-warning"
+msgstr "This role will be removed for good."
+
+#. js-lingui-explicit-id
+msgid "rbac.delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+msgid "rbac.edit"
+msgstr "Edit"
+
+#. js-lingui-explicit-id
+msgid "rbac.duplicate"
+msgstr "Duplicate"
+
+#. js-lingui-explicit-id
+msgid "rbac.duplicated"
+msgstr "Role duplicated"
+
+#. js-lingui-explicit-id
+msgid "rbac.row-actions"
+msgstr "Role actions"
+
+#. js-lingui-explicit-id
+msgid "rbac.full-access"
+msgstr "Full access"
+
+#. js-lingui-explicit-id
+msgid "rbac.built-in"
+msgstr "Built-in"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-role"
+msgstr "Role"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-members"
+msgstr "Members"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-access"
+msgstr "Access"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-updated"
+msgstr "Updated"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-time"
+msgstr "Time"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-actor"
+msgstr "By"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-action"
+msgstr "Action"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-target"
+msgstr "Target"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-role"
+msgstr "Role"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-member"
+msgstr "Member"
+
+#. js-lingui-explicit-id
+msgid "rbac.actor-system"
+msgstr "System"
+
+#. js-lingui-explicit-id
+msgid "rbac.show-details"
+msgstr "Details"
+
+#. js-lingui-explicit-id
+msgid "rbac.activity-empty"
+msgstr "No activity yet."
+
+#. js-lingui-explicit-id
+msgid "rbac.load-more"
+msgstr "Load more"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.created"
+msgstr "Role created"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.updated"
+msgstr "Role updated"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.deleted"
+msgstr "Role deleted"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.duplicated"
+msgstr "Role duplicated"
+
+#. js-lingui-explicit-id
+msgid "rbac.member-access.changed"
+msgstr "Member access changed"
+
+#. js-lingui-explicit-id
+msgid "rbac.role-not-found"
+msgstr "This role no longer exists."
+
+#. js-lingui-explicit-id
+msgid "rbac.member-not-found"
+msgstr "Member not found."
+
+#. js-lingui-explicit-id
+msgid "rbac.built-in-immutable"
+msgstr "A built-in role cannot be changed or deleted."
+
+#. js-lingui-explicit-id
+msgid "rbac.role-in-use"
+msgstr "This role is still assigned to members. Remove it from them first."
+
+#. js-lingui-explicit-id
+msgid "rbac.name-taken"
+msgstr "A role with this name already exists."
+
+#. js-lingui-explicit-id
+msgid "rbac.name-invalid"
+msgstr "A role name must be between 1 and 60 characters."
+
+#. js-lingui-explicit-id
+msgid "rbac.description-too-long"
+msgstr "The role description is too long."
+
+#. js-lingui-explicit-id
+msgid "rbac.role-limit"
+msgstr "This business has reached its limit of custom roles."
+
+#. js-lingui-explicit-id
+msgid "rbac.unknown-permission"
+msgstr "That permission does not exist."
+
+#. js-lingui-explicit-id
+msgid "rbac.privilege-exceeded"
+msgstr "You cannot grant or change more than you hold."
+
+#. js-lingui-explicit-id
+msgid "rbac.self-assignment"
+msgstr "You cannot change your own access."
+
+#. js-lingui-explicit-id
+msgid "rbac.self-held-role"
+msgstr "You cannot edit a role you hold."
+
+#. js-lingui-explicit-id
+msgid "rbac.owner-restricted"
+msgstr "Only an owner can grant or remove the Owner role."
+
+#. js-lingui-explicit-id
+msgid "rbac.last-owner"
+msgstr "The business must keep its owner."
+
+#. js-lingui-explicit-id
+msgid "rbac.store-not-accessible"
+msgstr "That store is not accessible."
+
+#. js-lingui-explicit-id
+msgid "rbac.store-access-invalid"
+msgstr "Selected-store access needs at least one store."

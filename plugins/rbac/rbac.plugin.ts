@@ -194,6 +194,7 @@ const systemClock: ClockPort = { now: () => new Date() };
     resolvers: [ActivityLogResolver, MemberAccessResolver, RolesResolver, RoleEditsResolver, CatalogResolver],
   },
   configuration: addPermissions,
+  dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 // A Vendure plugin is a decorated class; its body stays empty when its metadata is the whole plugin.
