@@ -20,3 +20,4 @@ export * from './auth/constants';
 export * from './auth/error-codes';
 export * from './auth/normalize-email';
 export * from './auth/schemas';
+export * from './permissions';
