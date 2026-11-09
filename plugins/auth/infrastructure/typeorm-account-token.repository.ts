@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { type RequestContext, TransactionalConnection } from '@vendure/core';
-import type { EntityManager } from 'typeorm';
+import { type EntityManager, IsNull, MoreThan } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import {
   type AccountToken,
@@ -60,16 +60,22 @@ function requestContextOf(ctx: OperationContext): RequestContext {
 export class TypeOrmAccountTokenRepository implements AccountTokenRepositoryPort {
   constructor(private readonly connection: TransactionalConnection) {}
 
-  async replaceOpen(ctx: OperationContext, token: NewAccountToken): Promise<void> {
-    await this.connection.withTransaction(requestContextOf(ctx), async (transactional) => {
+  replaceOpen(ctx: OperationContext, token: NewAccountToken, notIssuedSince?: Date): Promise<boolean> {
+    return this.connection.withTransaction(requestContextOf(ctx), async (transactional) => {
       const repository = this.connection.getRepository(transactional, AccountTokenEntity);
       if (token.userId !== null) {
         await repository.manager.query(LOCK_USER_PURPOSE_SQL, [
           `account-token:${String(token.userId)}:${token.purpose}`,
         ]);
+        const operation = transactional as unknown as OperationContext;
+        const latest = await this.lastIssuedAt(operation, token.userId, token.purpose);
+        if (notIssuedSince !== undefined && latest !== undefined && latest > notIssuedSince) {
+          return false;
+        }
         await repository.manager.query(VOID_OPEN_SQL, [token.createdAt, token.userId, [token.purpose]]);
       }
       await repository.manager.insert(AccountTokenEntity, token as QueryDeepPartialEntity<AccountTokenEntity>);
+      return true;
     });
   }
 
@@ -104,6 +110,19 @@ export class TypeOrmAccountTokenRepository implements AccountTokenRepositoryPort
     now: Date,
   ): Promise<void> {
     await this.managerOf(ctx).query(VOID_OPEN_SQL, [now, userId, [...purposes]]);
+  }
+
+  async findOpen(
+    ctx: OperationContext,
+    userId: number,
+    purpose: AccountTokenPurpose,
+    now: Date,
+  ): Promise<AccountToken | undefined> {
+    const open = await this.connection.getRepository(requestContextOf(ctx), AccountTokenEntity).findOne({
+      where: { userId, purpose, consumedAt: IsNull(), expiresAt: MoreThan(now) },
+      order: { createdAt: 'DESC' },
+    });
+    return open ?? undefined;
   }
 
   async lastIssuedAt(ctx: OperationContext, userId: number, purpose: AccountTokenPurpose): Promise<Date | undefined> {

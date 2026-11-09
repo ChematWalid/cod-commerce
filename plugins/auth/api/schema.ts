@@ -1,6 +1,6 @@
 import gql from 'graphql-tag';
 
-/** The registration and public configuration part of the auth Admin API. */
+/** The auth Admin API; the shadowed stock mutations keep their stock schema (D21). */
 export const authAdminApiSchema = gql`
   input RegisterMerchantInput {
     email: String!
@@ -28,11 +28,30 @@ export const authAdminApiSchema = gql`
     challengeUrl: String
   }
 
+  type ResendResult {
+    sentAt: DateTime!
+    nextAllowedAt: DateTime!
+  }
+
+  type AccountStatus {
+    emailVerified: Boolean!
+    verificationRequired: Boolean!
+    resendAvailableAt: DateTime
+    pendingEmail: String
+  }
+
   extend type Query {
     authPublicConfig: AuthPublicConfig!
+    accountStatus: AccountStatus!
   }
 
   extend type Mutation {
     registerMerchant(input: RegisterMerchantInput!): RegisterMerchantResult!
+    verifyEmail(token: String!): Success!
+    verifyEmailOtp(code: String!): Success!
+    resendEmailVerification: ResendResult!
+    changeAccountPassword(currentPassword: String!, newPassword: String!): Success!
+    requestEmailChange(newEmail: String!, currentPassword: String!): Success!
+    confirmEmailChange(token: String!): Success!
   }
 `;

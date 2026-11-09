@@ -1,0 +1,87 @@
+import type { Provider } from '@nestjs/common';
+import { AccountTokenService } from '../application/account-token.service';
+import { AuthEmailService } from '../application/auth-email.service';
+import { ChangeEmailService } from '../application/change-email.service';
+import { ChangePasswordService } from '../application/change-password.service';
+import { EmailVerificationService } from '../application/email-verification.service';
+import { PasswordResetService } from '../application/password-reset.service';
+import { SESSION_TERMINATOR } from '../application/tokens';
+import type { ClockPort } from '../domain/ports/clock.port';
+import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
+import { AccountThrottle } from './account-throttle';
+import { EmailClaimLock } from './email-claim-lock';
+import { VendureAccountIdentity } from './vendure-account-identity';
+import { VendureAccountSessions } from './vendure-account-sessions';
+
+const COMMON = [VendureAccountIdentity, AccountTokenService, AuthEmailService, AccountThrottle];
+type Common = [VendureAccountIdentity, AccountTokenService, AuthEmailService, AccountThrottle];
+
+/** What every flow service is given besides its own collaborators. */
+interface FlowSettings {
+  readonly dashboardUrl: () => string;
+  readonly clock: ClockPort;
+}
+
+function emailVerification({ dashboardUrl, clock }: FlowSettings): Provider {
+  return {
+    provide: EmailVerificationService,
+    useFactory: (...[identity, tokens, emails, throttle]: Common) =>
+      new EmailVerificationService({ identity, tokens, emails, throttle, clock, dashboardUrl: dashboardUrl() }),
+    inject: COMMON,
+  };
+}
+
+function passwordReset({ dashboardUrl, clock }: FlowSettings): Provider {
+  return {
+    provide: PasswordResetService,
+    useFactory: (...[identity, tokens, emails, throttle, sessions]: [...Common, VendureAccountSessions]) =>
+      new PasswordResetService({
+        identity,
+        passwords: identity,
+        tokens,
+        emails,
+        throttle,
+        sessions,
+        clock,
+        dashboardUrl: dashboardUrl(),
+      }),
+    inject: [...COMMON, VendureAccountSessions],
+  };
+}
+
+const changePassword: Provider = {
+  provide: ChangePasswordService,
+  useFactory: (...[identity, tokens, emails, throttle, terminator]: [...Common, SessionTerminatorPort]) =>
+    new ChangePasswordService({ identity, passwords: identity, tokens, emails, throttle, terminator }),
+  inject: [...COMMON, SESSION_TERMINATOR],
+};
+
+function changeEmail({ dashboardUrl, clock }: FlowSettings): Provider {
+  return {
+    provide: ChangeEmailService,
+    useFactory: (...[identity, tokens, emails, throttle, claims]: [...Common, EmailClaimLock]) =>
+      new ChangeEmailService({
+        identity,
+        passwords: identity,
+        tokens,
+        emails,
+        throttle,
+        claims,
+        clock,
+        dashboardUrl: dashboardUrl(),
+      }),
+    inject: [...COMMON, EmailClaimLock],
+  };
+}
+
+/** The Nest wiring of the verification, reset and change services; `application/` stays free of Nest. */
+export function accountFlowProviders(settings: FlowSettings): Provider[] {
+  return [
+    AccountThrottle,
+    VendureAccountSessions,
+    emailVerification(settings),
+    passwordReset(settings),
+    changePassword,
+    changeEmail(settings),
+  ];
+}

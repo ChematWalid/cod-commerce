@@ -72,6 +72,7 @@ export const codeOf = (answer: GraphqlAnswer): string | undefined => answer.erro
 /** One test server and what the registration tests do with it. */
 export interface RegisterTestKit {
   readonly server: ReturnType<typeof createAuthTestEnvironment>['server'];
+  readonly adminClient: ReturnType<typeof createAuthTestEnvironment>['adminClient'];
   readonly client: LoginTestClient;
   readonly register: (input: Record<string, unknown>, ip?: string) => Promise<GraphqlAnswer>;
   readonly counts: () => Promise<Record<string, number>>;
@@ -110,5 +111,5 @@ export function createRegisterTestKit(): RegisterTestKit {
     await adminClient.query(UPDATE_GLOBAL_LANGUAGES);
   }
 
-  return { server, client, register, counts, administratorsNamed, start };
+  return { server, adminClient, client, register, counts, administratorsNamed, start };
 }

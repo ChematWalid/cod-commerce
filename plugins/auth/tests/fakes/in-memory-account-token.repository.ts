@@ -6,12 +6,30 @@ import type { AccountTokenRepositoryPort } from '../../domain/ports/account-toke
 export class InMemoryAccountTokenRepository implements AccountTokenRepositoryPort {
   rows: AccountToken[] = [];
 
-  replaceOpen(_ctx: unknown, token: NewAccountToken): Promise<void> {
+  replaceOpen(_ctx: unknown, token: NewAccountToken, notIssuedSince?: Date): Promise<boolean> {
     if (token.userId !== null) {
+      const recent = this.rows.some(
+        (r) =>
+          notIssuedSince !== undefined &&
+          r.userId === token.userId &&
+          r.purpose === token.purpose &&
+          r.createdAt > notIssuedSince,
+      );
+      if (recent) {
+        return Promise.resolve(false);
+      }
       this.voidRows(token.userId, [token.purpose], token.createdAt);
     }
     this.rows.push({ ...token, otpAttempts: 0, otpLockedAt: null, consumedAt: null });
-    return Promise.resolve();
+    return Promise.resolve(true);
+  }
+
+  findOpen(_ctx: unknown, userId: number, purpose: AccountTokenPurpose, now: Date): Promise<AccountToken | undefined> {
+    return Promise.resolve(
+      this.rows.findLast(
+        (r) => r.userId === userId && r.purpose === purpose && r.consumedAt === null && r.expiresAt > now,
+      ),
+    );
   }
 
   consumeByHash(

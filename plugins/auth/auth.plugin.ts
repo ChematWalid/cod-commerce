@@ -13,11 +13,15 @@ import {
   TransactionalConnection,
   VendurePlugin,
 } from '@vendure/core';
+import { AccountEmailResolver } from './api/account-email.resolver';
 import { AccountGuardResolver } from './api/account-guard.resolver';
+import { AuthAccountController } from './api/auth-account.controller';
 import { AuthConfigController } from './api/auth-config.controller';
 import { AuthLoginController } from './api/auth-login.controller';
+import { AuthPasswordController } from './api/auth-password.controller';
 import { AuthRegisterController } from './api/auth-register.controller';
 import { AuthTranslations } from './api/auth-translations';
+import { PasswordResolver } from './api/password.resolver';
 import { RegisterResolver } from './api/register.resolver';
 import { authAdminApiSchema } from './api/schema';
 import { SessionResolver } from './api/session.resolver';
@@ -44,6 +48,7 @@ import type { PayloadSealerPort } from './domain/ports/payload-sealer.port';
 import type { SecretHasherPort } from './domain/ports/secret-hasher.port';
 import type { AuthPublicConfig } from './domain/public-config';
 import { AccountPasswordValidationStrategy } from './infrastructure/account-password-validation.strategy';
+import { accountFlowProviders } from './infrastructure/account-flow.providers';
 import { accountTokenPurgeTask } from './infrastructure/account-token-purge.task';
 import { AccountTokenEntity } from './infrastructure/account-token.entity';
 import { AuthEmailJobs, EventBusAuthEmailQueue } from './infrastructure/auth-email-queue';
@@ -206,14 +211,21 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
         AuthEmailService,
       ],
     },
+    ...accountFlowProviders({ dashboardUrl: () => requireOptions().dashboardUrl, clock: systemClock }),
   ],
   exports: [AccountTokenService, AuthEmailService],
-  // `SessionResolver` and `AccountGuardResolver` replace the stock `logout` and `updateActiveAdministrator` (D21).
+  // `SessionResolver`, `AccountGuardResolver` and `PasswordResolver` replace four stock mutations (D21).
   adminApiExtensions: {
     schema: authAdminApiSchema,
-    resolvers: [SessionResolver, AccountGuardResolver, RegisterResolver],
+    resolvers: [SessionResolver, AccountGuardResolver, RegisterResolver, AccountEmailResolver, PasswordResolver],
   },
-  controllers: [AuthLoginController, AuthRegisterController, AuthConfigController],
+  controllers: [
+    AuthLoginController,
+    AuthRegisterController,
+    AuthConfigController,
+    AuthAccountController,
+    AuthPasswordController,
+  ],
   configuration: configure,
   compatibility: '^3.8.0',
 })

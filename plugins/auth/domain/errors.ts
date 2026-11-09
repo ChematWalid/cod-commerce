@@ -62,3 +62,30 @@ export class RegistrationInvalidError extends DomainError {
     super(`Invalid registration fields: ${fields.join(', ')}`);
   }
 }
+
+/** A new email address that is not one. */
+export class EmailInvalidError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.EMAIL_INVALID;
+
+  constructor() {
+    super('This email address is not valid');
+  }
+}
+
+/** The current password given to confirm a change is wrong. */
+export class CurrentPasswordWrongError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.CURRENT_PASSWORD_WRONG;
+
+  constructor() {
+    super('The current password is wrong');
+  }
+}
+
+/** A repeat of a mailing inside its cooldown (D26). */
+export class CooldownError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.COOLDOWN;
+
+  constructor() {
+    super('Please wait before asking again');
+  }
+}

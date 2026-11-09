@@ -1,6 +1,7 @@
 /** Stable error codes of the auth API; clients map them to translated messages. */
 export const AUTH_ERROR_CODES = {
   EMAIL_TAKEN: 'auth.email-taken',
+  EMAIL_INVALID: 'auth.email-invalid',
   INVALID_TOKEN: 'auth.invalid-token',
   OTP_INVALID: 'auth.otp-invalid',
   OTP_LOCKED: 'auth.otp-locked',

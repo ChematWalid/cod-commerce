@@ -5,6 +5,7 @@ import {
   registerMerchantSchema,
   VERIFY_LINK_TTL_MS,
 } from '@cod/shared';
+import { accountLink } from '../domain/account-link';
 import { VERIFY_EMAIL_PATH } from '../domain/constants';
 import { AUTH_EMAIL_LOCALES, type AuthEmailLocale } from '../domain/email';
 import { ChallengeFailedError, EmailTakenError, PasswordPolicyError, RegistrationInvalidError } from '../domain/errors';
@@ -22,7 +23,10 @@ export interface BusinessProvisioner {
 /** What {@link RegisterMerchantService} works with. */
 export interface RegisterMerchantPorts {
   readonly challenge: BotChallengePort;
-  readonly identity: AccountIdentityPort;
+  readonly identity: Pick<
+    AccountIdentityPort,
+    'inTransaction' | 'isEmailTaken' | 'setEmailLocale' | 'userIdOfAdministrator'
+  >;
   readonly claims: EmailClaimPort;
   readonly provisioner: BusinessProvisioner;
   readonly tokens: Pick<AccountTokenService, 'issue'>;
@@ -113,7 +117,7 @@ export class RegisterMerchantService {
       ttlMs: VERIFY_LINK_TTL_MS,
       withOtp: true,
     });
-    const link = `${dashboardUrl.replace(/\/+$/, '')}${VERIFY_EMAIL_PATH}?token=${token}`;
+    const link = accountLink(dashboardUrl, VERIFY_EMAIL_PATH, token);
     await emails.enqueue(ctx, {
       kind: 'verification',
       to: command.email,

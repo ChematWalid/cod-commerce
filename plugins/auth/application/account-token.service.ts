@@ -3,9 +3,10 @@ import {
   type AccountToken,
   type AccountTokenPayload,
   type AccountTokenPurpose,
+  type NewAccountToken,
   type OtpAttemptWindow,
 } from '../domain/account-token';
-import { InvalidTokenError, OtpInvalidError, OtpLockedError } from '../domain/errors';
+import { CooldownError, InvalidTokenError, OtpInvalidError, OtpLockedError } from '../domain/errors';
 import type { AccountTokenRepositoryPort } from '../domain/ports/account-token-repository.port';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
@@ -39,10 +40,34 @@ export class AccountTokenService {
 
   /** Creates a token, voiding the user's earlier open ones of that purpose. */
   async issue(ctx: OperationContext, command: IssueAccountTokenCommand): Promise<IssuedAccountToken> {
+    const { row, secrets } = this.newRow(command, this.clock.now());
+    await this.tokens.replaceOpen(ctx, row);
+    return secrets;
+  }
+
+  /**
+   * {@link issue}, unless the user's latest token of that purpose is younger than `cooldownMs`. Checked under the
+   * lock that serializes issuing, so a double click sends one email.
+   *
+   * @throws CooldownError inside the cooldown.
+   */
+  async issueAfterCooldown(
+    ctx: OperationContext,
+    command: IssueAccountTokenCommand,
+    cooldownMs: number,
+  ): Promise<IssuedAccountToken> {
     const now = this.clock.now();
+    const { row, secrets } = this.newRow(command, now);
+    if (!(await this.tokens.replaceOpen(ctx, row, new Date(now.getTime() - cooldownMs)))) {
+      throw new CooldownError();
+    }
+    return secrets;
+  }
+
+  private newRow(command: IssueAccountTokenCommand, now: Date): { row: NewAccountToken; secrets: IssuedAccountToken } {
     const token = this.hasher.newToken();
     const otp = command.withOtp === true ? this.hasher.newOtp() : undefined;
-    await this.tokens.replaceOpen(ctx, {
+    const row: NewAccountToken = {
       id: this.ids.next(),
       userId: command.userId,
       purpose: command.purpose,
@@ -52,8 +77,8 @@ export class AccountTokenService {
       payload: command.payload ?? null,
       expiresAt: new Date(now.getTime() + command.ttlMs),
       createdAt: now,
-    });
-    return otp === undefined ? { token } : { token, otp };
+    };
+    return { row, secrets: otp === undefined ? { token } : { token, otp } };
   }
 
   /**
@@ -104,6 +129,12 @@ export class AccountTokenService {
   /** When the latest token of this purpose was issued, for the resend cooldown. */
   lastIssuedAt(ctx: OperationContext, userId: number, purpose: AccountTokenPurpose): Promise<Date | undefined> {
     return this.tokens.lastIssuedAt(ctx, userId, purpose);
+  }
+
+  /** The address of the user's open email change, if one is open. */
+  async pendingEmailOf(ctx: OperationContext, userId: number): Promise<string | null> {
+    const open = await this.tokens.findOpen(ctx, userId, 'email-change', this.clock.now());
+    return open?.pendingEmail ?? null;
   }
 
   private otpWindow(): OtpAttemptWindow {

@@ -3,8 +3,11 @@ import type { OperationContext } from './operation-context';
 
 /** Storage of `account_token`. Every state change is a single conditional write, safe under concurrency. */
 export interface AccountTokenRepositoryPort {
-  /** Stores `token` and voids the user's open tokens of that purpose, atomically; concurrent calls serialize. */
-  replaceOpen(ctx: OperationContext, token: NewAccountToken): Promise<void>;
+  /**
+   * Stores `token` and voids the user's open tokens of that purpose, atomically; concurrent calls serialize. With
+   * `notIssuedSince`, stores nothing and answers `false` when the user's latest token of that purpose is that recent.
+   */
+  replaceOpen(ctx: OperationContext, token: NewAccountToken, notIssuedSince?: Date): Promise<boolean>;
 
   /** Marks the open, unexpired token with this hash used. `undefined` when no such token, or another caller won. */
   consumeByHash(
@@ -29,6 +32,14 @@ export interface AccountTokenRepositoryPort {
 
   /** Ends the user's open tokens of these purposes. */
   voidOpen(ctx: OperationContext, userId: number, purposes: readonly AccountTokenPurpose[], now: Date): Promise<void>;
+
+  /** The user's latest open, unexpired token of this purpose. */
+  findOpen(
+    ctx: OperationContext,
+    userId: number,
+    purpose: AccountTokenPurpose,
+    now: Date,
+  ): Promise<AccountToken | undefined>;
 
   /** When the user's latest token of this purpose was issued, voided ones included. */
   lastIssuedAt(ctx: OperationContext, userId: number, purpose: AccountTokenPurpose): Promise<Date | undefined>;

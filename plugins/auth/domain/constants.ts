@@ -47,6 +47,12 @@ export const RECIPIENT_HASH_LENGTH = 16;
 /** The dashboard page a verification link opens (D20). */
 export const VERIFY_EMAIL_PATH = '/verify-email';
 
+/** The stock dashboard page a password reset link opens (D20). */
+export const RESET_PASSWORD_PATH = '/reset-password';
+
+/** The dashboard page an email change confirmation link opens (D20). */
+export const CONFIRM_EMAIL_CHANGE_PATH = '/confirm-email-change';
+
 /** How long the challenge provider may take before sign-up goes on without it (D35). */
 export const CHALLENGE_TIMEOUT_MS = 3000;
 

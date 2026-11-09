@@ -2,7 +2,18 @@ import { SubdomainInvalidError, SubdomainTakenError } from '@cod/plugin-tenancy'
 import { DomainError } from '@cod/shared';
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common';
 import { I18nError, Logger, LogLevel, parseContext } from '@vendure/core';
-import { ChallengeFailedError, EmailTakenError, PasswordPolicyError, RegistrationInvalidError } from '../domain/errors';
+import {
+  ChallengeFailedError,
+  CooldownError,
+  CurrentPasswordWrongError,
+  EmailInvalidError,
+  EmailTakenError,
+  InvalidTokenError,
+  OtpInvalidError,
+  OtpLockedError,
+  PasswordPolicyError,
+  RegistrationInvalidError,
+} from '../domain/errors';
 
 const LOG_CONTEXT = 'AuthApi';
 const INTERNAL_MESSAGE = 'The request could not be completed';
@@ -15,6 +26,12 @@ const REFUSALS: readonly (readonly [abstract new (...args: never[]) => DomainErr
   [PasswordPolicyError, HttpStatus.BAD_REQUEST],
   [RegistrationInvalidError, HttpStatus.BAD_REQUEST],
   [SubdomainInvalidError, HttpStatus.BAD_REQUEST],
+  [InvalidTokenError, HttpStatus.BAD_REQUEST],
+  [OtpInvalidError, HttpStatus.BAD_REQUEST],
+  [EmailInvalidError, HttpStatus.BAD_REQUEST],
+  [CurrentPasswordWrongError, HttpStatus.BAD_REQUEST],
+  [OtpLockedError, HttpStatus.TOO_MANY_REQUESTS],
+  [CooldownError, HttpStatus.TOO_MANY_REQUESTS],
 ];
 
 /** A domain error as GraphQL clients see it: `extensions.code` is the domain error's stable code. */

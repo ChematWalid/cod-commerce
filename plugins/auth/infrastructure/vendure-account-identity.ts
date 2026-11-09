@@ -1,17 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { Administrator, type RequestContext, TransactionalConnection } from '@vendure/core';
-import { IsNull, type Repository } from 'typeorm';
+import {
+  Administrator,
+  isGraphQlErrorResult,
+  NativeAuthenticationMethod,
+  PasswordCipher,
+  type RequestContext,
+  TransactionalConnection,
+  UserService,
+} from '@vendure/core';
+import { type FindOptionsWhere, IsNull, type Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import type { AuthEmailLocale } from '../domain/email';
-import type { AccountIdentityPort } from '../domain/ports/account-identity.port';
+import { CurrentPasswordWrongError, PasswordPolicyError } from '../domain/errors';
+import type { AccountPasswordsPort } from '../domain/ports/account-credentials.port';
+import type { AccountIdentityPort, AccountRecord } from '../domain/ports/account-identity.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 
 const requestContextOf = (ctx: OperationContext): RequestContext => ctx as unknown as RequestContext;
 
-/** {@link AccountIdentityPort} over Vendure's administrators, which are account-level and not tenant tables. */
+/** The columns `configure` and tenancy add; the compiler does not know plugin custom fields. */
+interface AccountCustomFields {
+  readonly emailVerifiedAt: Date | null;
+  readonly emailLocale: AuthEmailLocale;
+  readonly businessId: string | null;
+}
+
+/**
+ * {@link AccountIdentityPort} and {@link AccountPasswordsPort} over Vendure's administrators and native logins, which
+ * are account-level and not tenant tables. The stock reset column is never written (D25).
+ */
 @Injectable()
-export class VendureAccountIdentity implements AccountIdentityPort {
-  constructor(private readonly connection: TransactionalConnection) {}
+export class VendureAccountIdentity implements AccountIdentityPort, AccountPasswordsPort {
+  constructor(
+    private readonly connection: TransactionalConnection,
+    private readonly users: UserService,
+    private readonly cipher: PasswordCipher,
+  ) {}
 
   inTransaction<T>(ctx: OperationContext, work: (transactional: OperationContext) => Promise<T>): Promise<T> {
     return this.connection.withTransaction(requestContextOf(ctx), (transactional) =>
@@ -35,6 +59,81 @@ export class VendureAccountIdentity implements AccountIdentityPort {
       relations: { user: true },
     });
     return administrator.user.id as number;
+  }
+
+  findByEmail(ctx: OperationContext, email: string): Promise<AccountRecord | undefined> {
+    return this.find(ctx, { emailAddress: email });
+  }
+
+  findByUserId(ctx: OperationContext, userId: number): Promise<AccountRecord | undefined> {
+    return this.find(ctx, { user: { id: userId } });
+  }
+
+  async markEmailVerified(ctx: OperationContext, administratorId: number, at: Date): Promise<void> {
+    const change = { customFields: { emailVerifiedAt: at } } as QueryDeepPartialEntity<Administrator>;
+    await this.administrators(ctx).update({ id: administratorId }, change);
+  }
+
+  async changeEmail(ctx: OperationContext, account: AccountRecord, email: string): Promise<void> {
+    await this.administrators(ctx).update({ id: account.administratorId }, { emailAddress: email });
+    await this.users.changeUserAndNativeIdentifier(requestContextOf(ctx), account.userId, email);
+  }
+
+  async verify(ctx: OperationContext, userId: number, password: string): Promise<boolean> {
+    const method = await this.nativeMethod(ctx, userId);
+    return method !== null && this.cipher.check(password, method.passwordHash);
+  }
+
+  async set(ctx: OperationContext, userId: number, password: string): Promise<void> {
+    const method = await this.nativeMethod(ctx, userId);
+    if (method === null) {
+      throw new Error('The account has no password login');
+    }
+    const passwordHash = await this.cipher.hash(password);
+    await this.connection
+      .getRepository(requestContextOf(ctx), NativeAuthenticationMethod)
+      .update({ id: method.id }, { passwordHash });
+  }
+
+  async change(ctx: OperationContext, userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    const result = await this.users.updatePassword(requestContextOf(ctx), userId, currentPassword, newPassword);
+    if (!isGraphQlErrorResult(result)) {
+      return;
+    }
+    throw result.__typename === 'PasswordValidationError' ? new PasswordPolicyError() : new CurrentPasswordWrongError();
+  }
+
+  /** `passwordHash` is not selected by default. */
+  private nativeMethod(ctx: OperationContext, userId: number): Promise<NativeAuthenticationMethod | null> {
+    return this.connection
+      .getRepository(requestContextOf(ctx), NativeAuthenticationMethod)
+      .createQueryBuilder('method')
+      .addSelect('method.passwordHash')
+      .where('method.user = :userId', { userId })
+      .getOne();
+  }
+
+  private async find(
+    ctx: OperationContext,
+    where: FindOptionsWhere<Administrator>,
+  ): Promise<AccountRecord | undefined> {
+    const administrator = await this.administrators(ctx).findOne({
+      where: { ...where, deletedAt: IsNull() },
+      relations: { user: true },
+    });
+    if (administrator === null) {
+      return undefined;
+    }
+    const { emailVerifiedAt, emailLocale, businessId } = administrator.customFields as unknown as AccountCustomFields;
+    return {
+      userId: administrator.user.id as number,
+      administratorId: administrator.id as number,
+      firstName: administrator.firstName,
+      email: administrator.emailAddress,
+      locale: emailLocale,
+      emailVerifiedAt,
+      businessId,
+    };
   }
 
   private administrators(ctx: OperationContext): Repository<Administrator> {
