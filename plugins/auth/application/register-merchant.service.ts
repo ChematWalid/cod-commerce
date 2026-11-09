@@ -1,4 +1,3 @@
-import type { ProvisionBusinessCommand, ProvisionedBusiness } from '@cod/plugin-tenancy';
 import {
   AUTH_ERROR_CODES,
   type RegisterMerchantCommand,
@@ -11,15 +10,11 @@ import { AUTH_EMAIL_LOCALES, type AuthEmailLocale } from '../domain/email';
 import { ChallengeFailedError, EmailTakenError, PasswordPolicyError, RegistrationInvalidError } from '../domain/errors';
 import type { AccountIdentityPort, EmailClaimPort } from '../domain/ports/account-identity.port';
 import type { BotChallengePort } from '../domain/ports/bot-challenge.port';
+import type { BusinessProvisionerPort } from '../domain/ports/business-provisioner.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { AccountTokenService } from './account-token.service';
 import type { AuthEmailService } from './auth-email.service';
 import type { OAuthSignInService, RedeemedOAuthRegistration } from './oauth-sign-in.service';
-
-/** Starts a business for the new owner; tenancy's one provisioning path (D5). */
-export interface BusinessProvisioner {
-  provision(ctx: OperationContext, command: ProvisionBusinessCommand): Promise<ProvisionedBusiness>;
-}
 
 /** What {@link RegisterMerchantService} works with. */
 export interface RegisterMerchantPorts {
@@ -29,7 +24,7 @@ export interface RegisterMerchantPorts {
     'inTransaction' | 'isEmailTaken' | 'setEmailLocale' | 'userIdOfAdministrator'
   >;
   readonly claims: EmailClaimPort;
-  readonly provisioner: BusinessProvisioner;
+  readonly provisioner: BusinessProvisionerPort;
   readonly tokens: Pick<AccountTokenService, 'issue'>;
   readonly emails: Pick<AuthEmailService, 'enqueue'>;
   /** `AUTH_DASHBOARD_URL`, which verification links start with. */
