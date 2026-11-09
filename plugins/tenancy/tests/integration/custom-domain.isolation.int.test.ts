@@ -66,7 +66,7 @@ describe('custom_domain isolation', () => {
     expect(row?.businessId).toBe(fixtures.b.businessId);
   });
 
-  it('resolves a domain only to the store of its own business', async () => {
+  it('maps each host to its own store (positive control)', async () => {
     // Arrange
     const lookup = server.app.get(PlatformStoreLookup);
 
