@@ -220,7 +220,15 @@ describe('ci.yml', () => {
 
     expect(Object.keys(integration.services ?? {}).sort()).toEqual(['mailpit', 'postgres', 'valkey']);
     expect(postgres).toMatch(/^postgres:17\.\d+@sha256:[0-9a-f]{64}$/);
-    expect(stepsRun(integration)).toContain('pnpm test:integration');
+    expect(stepsRun(integration)).toContain('${{ matrix.command }}');
+  });
+
+  it('runs every integration package in one of the parts of the matrix', () => {
+    const workflow = read('.github/workflows/ci.yml');
+
+    expect(workflow).toContain('command: pnpm test:integration --filter=!@cod/plugin-auth');
+    expect(workflow).toContain('--filter=@cod/plugin-auth -- --shard=1/2');
+    expect(workflow).toContain('--filter=@cod/plugin-auth -- --shard=2/2');
   });
 
   it('uses the compose images for the CI service containers', () => {

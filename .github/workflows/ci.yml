@@ -120,9 +120,20 @@ jobs:
         run: docker compose down -v
 
   integration:
-    name: integration
+    name: integration (${{ matrix.part }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The whole suite no longer fits the ten-minute job budget (ADR 0001), so it runs in parts (D51).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: others
+            command: pnpm test:integration --filter=!@cod/plugin-auth
+          - part: auth-1
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-auth -- --shard=1/2
+          - part: auth-2
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-auth -- --shard=2/2
     # Same images as docker-compose.yml (a test pins them equal). Valkey's default eviction policy is already noeviction.
     services:
       postgres:
@@ -180,7 +191,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: pnpm test:integration
+      - run: ${{ matrix.command }}
 
   # Builds the single app image and runs the whole single-VPS stack (migrate, api, worker behind PgBouncer),
   # then the URL-reserved-password variant (RF5). verify-stack.sh tears its compose project down on exit.
