@@ -19,6 +19,9 @@ export const DASHBOARD_LABELS = {
 /** The GraphQL mutation that stores the user settings, the display language included, on the server. */
 const SAVE_SETTINGS_MUTATION = 'setSettingsStoreValue';
 
+/** The `data-testid` of the auth plugin's verification banner (node runs this file without path mapping). */
+const VERIFY_BANNER_TEST_ID = 'verify-email-banner';
+
 /** The first demo business's owner (`pnpm --filter @cod/server seed:demo`): a merchant, with no platform role. */
 export const DEMO_OWNER_EMAIL = 'owner@demo.example.test';
 
@@ -70,7 +73,8 @@ export const loginAsDemoOwner = (page: Page, baseUrl: string): Promise<void> =>
 /** Waits for a page's queries, then fails if the page reports one as failed instead of showing its content. */
 export async function assertNoPageError(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
-  const alerts = page.getByRole('alert');
+  // The verification banner is also an alert, and a seeded owner's email is unverified by design.
+  const alerts = page.locator(`[role="alert"]:not([data-testid="${VERIFY_BANNER_TEST_ID}"])`);
   if ((await alerts.count()) > 0) throw new Error(`the page shows an error: ${await alerts.first().innerText()}`);
 }
 
