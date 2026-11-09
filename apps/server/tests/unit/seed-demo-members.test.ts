@@ -5,6 +5,14 @@ import { seedDemoMembers } from '../../src/seed/seed-demo-members';
 
 const ctx = {} as RequestContext;
 const OWNER_ROW = { id: 7, customFields: { businessId: '123456789012345678' } };
+/** The members the browser tests sign in as, in seed order; a rename here breaks them. */
+const SEEDED_MEMBER_EMAILS = [
+  'limited@demo.example.test',
+  'orders@demo.example.test',
+  'noview@demo.example.test',
+  'settingsview@demo.example.test',
+  'perstore@demo.example.test',
+];
 
 function appWhere(memberExists: boolean): { app: INestApplicationContext; withTransaction: ReturnType<typeof vi.fn> } {
   const withTransaction = vi.fn();
@@ -35,7 +43,7 @@ describe('seedDemoMembers', () => {
     expect(withTransaction).not.toHaveBeenCalled();
   });
 
-  it('writes each missing member in its own transaction', async () => {
+  it('creates the five demo members, each in its own transaction', async () => {
     // Arrange
     const { app, withTransaction } = appWhere(false);
 
@@ -43,7 +51,7 @@ describe('seedDemoMembers', () => {
     const created = await seedDemoMembers(app, ctx, 'owner@demo.example.test', 'synthetic-demo-password');
 
     // Assert
-    expect(created.length).toBeGreaterThan(0);
-    expect(withTransaction).toHaveBeenCalledTimes(created.length);
+    expect(created).toEqual(SEEDED_MEMBER_EMAILS);
+    expect(withTransaction).toHaveBeenCalledTimes(SEEDED_MEMBER_EMAILS.length);
   });
 });
