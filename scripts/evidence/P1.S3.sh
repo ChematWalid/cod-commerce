@@ -323,6 +323,9 @@ emit "$f" "activityLog, first page" "$Q_ACTIVITY" "$input" "$owner" "$demo"
 input=$(vars "{input:{first:5,after:'$cursor'}}")
 gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok activity2
 emit "$f" "activityLog, next page" "$Q_ACTIVITY" "$input" "$owner" "$demo"
+gql "$Q_ACTIVITY" '{}' "$limited" "$demo"; expect_ok "limited activity"
+assert_js "limited activity" "b.data.activityLog.items.length>0 && b.data.activityLog.items.every((i)=>i.storeId===null||i.storeId==='$demo_store')" "$work/b"
+emit "$f" "activityLog, a limited member on one selected store: only that store's rows and business-wide rows" "$Q_ACTIVITY" '{}' "$limited" "$demo"
 gql "$Q_ACTIVITY" '{}' "$orders" "$demo"; expect_code "orders activity" FORBIDDEN
 emit "$f" "activityLog without the permission: FORBIDDEN" "$Q_ACTIVITY" '{}' "$orders" "$demo"
 
