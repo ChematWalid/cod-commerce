@@ -3,7 +3,7 @@ import { PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { RequestContext, TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AccountTokenService } from '../../application/account-token.service';
-import { OtpInvalidError, OtpLockedError } from '../../domain/errors';
+import { InvalidTokenError, OtpInvalidError, OtpLockedError } from '../../domain/errors';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import { AccountTokenEntity } from '../../infrastructure/account-token.entity';
 import { HmacSecretHasher } from '../../infrastructure/hmac-secret-hasher';
@@ -203,7 +203,7 @@ describe('link tokens', () => {
     const ticket = await failureOf(service.issue(ctx, { userId: null, purpose: 'oauth-ticket', ttlMs: 1000 }));
 
     // Assert
-    expect(refused).toBeInstanceOf(Error);
+    expect(refused).toMatchObject({ driverError: { constraint: 'account_token_user_required' } });
     expect(ticket).toBeUndefined();
   });
 
@@ -226,7 +226,7 @@ describe('link tokens', () => {
     await service.voidOpen(ctx, USER, ['email-verification']);
 
     // Assert
-    expect(await failureOf(service.consume(ctx, 'email-verification', token))).toBeInstanceOf(Error);
+    expect(await failureOf(service.consume(ctx, 'email-verification', token))).toBeInstanceOf(InvalidTokenError);
     await expect(service.lastIssuedAt(ctx, USER, 'email-verification')).resolves.toBeInstanceOf(Date);
   });
 });

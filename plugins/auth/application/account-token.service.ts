@@ -73,6 +73,10 @@ export class AccountTokenService {
    * Tries the user's emailed code. The guess is counted before the code is compared, so concurrent guesses cannot
    * compare more than `OTP_MAX_ATTEMPTS` times.
    *
+   * Callers must not wrap this in a transaction. The guess commits on its own connection so that the error it causes
+   * cannot roll it back; a surrounding transaction that has touched this row would block that commit forever, and one
+   * that rolls back after a right code would reopen the token with the guess still spent.
+   *
    * @throws OtpInvalidError for a wrong code, or when no code is open.
    * @throws OtpLockedError once the guesses are spent, even for the right code.
    */
