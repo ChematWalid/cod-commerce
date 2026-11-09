@@ -6,7 +6,7 @@ import { BusinessOwnerLinkMissingError, type ConvergeFailure, RbacConvergeFailed
 import type { BusinessDirectoryPort, ConvergeTarget } from '../domain/ports/business-directory.port';
 import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-repository.port';
 import type { ClockPort } from '../domain/ports/clock.port';
-import type { EngineRolesPort } from '../domain/ports/engine-roles.port';
+import type { EngineRolesPort, EngineRoleState } from '../domain/ports/engine-roles.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -18,7 +18,7 @@ import type { TransactionPort } from '../domain/ports/transaction.port';
 /** What converging reads and writes through. */
 export interface RbacConvergePorts {
   readonly lock: RbacLockPort;
-  readonly roles: Pick<BusinessRoleRepositoryPort, 'insert' | 'findBuiltIn' | 'updatePermissions'>;
+  readonly roles: Pick<BusinessRoleRepositoryPort, 'insert' | 'all' | 'findBuiltIn' | 'updatePermissions'>;
   readonly bindings: Pick<RoleBindingRepositoryPort, 'insert' | 'allBindings'>;
   readonly assignments: Pick<MemberAssignmentRepositoryPort, 'insert' | 'isAssigned' | 'holdersOf'>;
   readonly engine: Pick<
@@ -48,6 +48,7 @@ interface ConvergeRun {
 }
 
 type BuiltIns = ReadonlyMap<BuiltInRoleKey, BusinessRole>;
+type EngineStates = ReadonlyMap<number, EngineRoleState>;
 
 const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : 'unknown error');
 
@@ -116,8 +117,9 @@ export class RbacConvergeService {
     const builtIns = await this.convergeRows(run);
     await this.adoptOwner(run, business, builtIns);
     const allBindings = await bindings.allBindings(ctx, run.scope);
-    await this.convergeEnginePermissions(run, allBindings, builtIns);
-    await this.extendAllStoresBindings(run, allBindings);
+    const states = await this.describeBindings(run, allBindings);
+    await this.convergeEnginePermissions(run, allBindings, states);
+    await this.extendAllStoresBindings(run, allBindings, states);
     if (run.changed.size === 0) return { changed: false, holders: [] };
     return { changed: true, holders: await assignments.holdersOf(ctx, run.scope, [...run.changed]) };
   }
@@ -175,19 +177,26 @@ export class RbacConvergeService {
     }
   }
 
-  /** Every binding of a built-in, store-scoped ones too: each is a Vendure Role holding the template. */
+  /** Reads each binding's Vendure Role once, for the permission and channel steps that follow. */
+  private async describeBindings(run: ConvergeRun, allBindings: readonly RoleBinding[]): Promise<EngineStates> {
+    const states = new Map<number, EngineRoleState>();
+    for (const { vendureRoleId } of allBindings) {
+      states.set(vendureRoleId, await this.ports.engine.describeRole(run.ctx, vendureRoleId));
+    }
+    return states;
+  }
+
+  /** Every binding of every role, custom ones too, so a change to `ENGINE_GRANTS` reaches them in both directions. */
   private async convergeEnginePermissions(
     run: ConvergeRun,
     allBindings: readonly RoleBinding[],
-    builtIns: BuiltIns,
+    states: EngineStates,
   ): Promise<void> {
-    const { engine } = this.ports;
-    for (const template of this.ports.templates) {
-      const role = builtIns.get(template.key);
-      const desired = [ENGINE_BASE_PERMISSION, ...this.enginePermissionsOf(template)];
-      for (const binding of allBindings.filter(({ businessRoleId }) => businessRoleId === role?.id)) {
-        const { permissions } = await engine.describeRole(run.ctx, binding.vendureRoleId);
-        if (!sameMembers(permissions, desired)) {
+    const { engine, roles } = this.ports;
+    for (const role of await roles.all(run.ctx, run.scope)) {
+      const desired = [ENGINE_BASE_PERMISSION, ...this.enginePermissionsOf(role)];
+      for (const binding of allBindings.filter(({ businessRoleId }) => businessRoleId === role.id)) {
+        if (!sameMembers(states.get(binding.vendureRoleId)?.permissions ?? [], desired)) {
           await engine.updatePermissions(run.ctx, binding.vendureRoleId, desired);
           run.changed.add(binding.businessRoleId);
         }
@@ -195,17 +204,21 @@ export class RbacConvergeService {
     }
   }
 
-  private enginePermissionsOf(template: BuiltInRoleDefinition): readonly string[] {
+  private enginePermissionsOf(role: BusinessRole): readonly string[] {
     // Owner also keeps every other assignable plugin permission (D59).
-    return template.key === 'owner' ? this.ports.engine.ownerPermissions() : enginePermissionsFor(template.permissions);
+    return role.builtInKey === 'owner' ? this.ports.engine.ownerPermissions() : enginePermissionsFor(role.permissions);
   }
 
   /** Repairs a store opened while a hook was absent. */
-  private async extendAllStoresBindings(run: ConvergeRun, allBindings: readonly RoleBinding[]): Promise<void> {
+  private async extendAllStoresBindings(
+    run: ConvergeRun,
+    allBindings: readonly RoleBinding[],
+    states: EngineStates,
+  ): Promise<void> {
     const { engine, directory } = this.ports;
     const channelIds = await directory.storeChannelIds(run.ctx, run.scope.businessId);
     for (const binding of allBindings.filter(({ scope }) => scope === ALL_STORES_SCOPE)) {
-      const held = new Set((await engine.describeRole(run.ctx, binding.vendureRoleId)).channelIds);
+      const held = new Set(states.get(binding.vendureRoleId)?.channelIds ?? []);
       for (const channelId of channelIds.filter((id) => !held.has(id))) {
         await engine.addChannel(run.ctx, binding.vendureRoleId, channelId);
         run.changed.add(binding.businessRoleId);

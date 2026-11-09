@@ -29,6 +29,11 @@ import { createRbacTestEnvironment } from './rbac-test-environment';
 const SNOWFLAKE_WORKER_ID = 1015;
 const BUILT_IN_COUNT = 7;
 const BUSINESS_COUNT = 2;
+const CUSTOM_ROLE_PERMISSION = 'store.stores.view';
+/** `ENGINE_GRANTS` maps the permission above to this. */
+const ADDED_ENGINE_GRANT = 'ReadTenantStore';
+/** Nothing in `ENGINE_GRANTS` for the permission above maps to this. */
+const REMOVED_ENGINE_GRANT = 'UpdateTenantBusiness';
 
 describe('Converging the roles of existing businesses', () => {
   const { server, adminClient } = createRbacTestEnvironment(SNOWFLAKE_WORKER_ID);
@@ -197,6 +202,23 @@ describe('Converging the roles of existing businesses', () => {
       expect(deletedTokens(deleted)).toEqual(expect.arrayContaining(tokens));
       adminClient.setChannelToken(stores[1].channelToken);
       await expect(adminClient.query(CANCEL_ORDER)).resolves.toEqual({ rbacTestCancelOrder: true });
+    });
+  });
+
+  describe('a custom role', () => {
+    it('adds a new engine grant and drops a removed one, once', async () => {
+      const roleId = await kit.arrangeDriftedCustomRole(businesses.a, CUSTOM_ROLE_PERMISSION, REMOVED_ENGINE_GRANT);
+
+      const report = await converge().convergeAll(await context());
+      const { permissions } = await vendureRole(roleId);
+
+      expect(report).toEqual({ businesses: BUSINESS_COUNT, changed: 1 });
+      expect(permissions).toContain(ADDED_ENGINE_GRANT);
+      expect(permissions).not.toContain(REMOVED_ENGINE_GRANT);
+      await expect(converge().convergeAll(await context())).resolves.toEqual({
+        businesses: BUSINESS_COUNT,
+        changed: 0,
+      });
     });
   });
 

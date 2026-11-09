@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { SNOWFLAKE_ID_GENERATOR, type SnowflakeIdGeneratorPort } from '@cod/plugin-tenancy';
-import { type PermissionKey, toBusinessId, toSnowflake } from '@cod/shared';
+import { type PermissionKey, toBusinessId, toSnowflake, vendurePermissionName } from '@cod/shared';
 import {
   type BusinessFixture,
   type CredentialsFixture,
@@ -21,9 +21,10 @@ import gql from 'graphql-tag';
 import type { EntityTarget, ObjectLiteral, Repository } from 'typeorm';
 import { vi } from 'vitest';
 import { RbacConvergeService } from '../../application/rbac-converge.service';
-import { ENGINE_ROLES, MEMBER_ASSIGNMENTS, ROLE_BINDINGS } from '../../application/tokens';
+import { BUSINESS_ROLES, ENGINE_ROLES, MEMBER_ASSIGNMENTS, ROLE_BINDINGS } from '../../application/tokens';
 import { ALL_STORES_SCOPE } from '../../domain/constants';
 import { enginePermissionsFor } from '../../domain/engine-grants';
+import type { BusinessRoleRepositoryPort } from '../../domain/ports/business-role-repository.port';
 import type { EngineRolesPort } from '../../domain/ports/engine-roles.port';
 import type { MemberAssignmentRepositoryPort } from '../../domain/ports/member-assignment-repository.port';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
@@ -149,6 +150,39 @@ export function createConvergeKit(server: TestServer, adminClient: SimpleGraphQL
     return { roleId, member, memberId: administrator.id as number };
   };
 
+  /** A custom role whose Vendure role lags the engine grants: one grant missing, one no longer granted. */
+  const arrangeDriftedCustomRole = async (
+    { businessId, stores }: BusinessFixture,
+    permission: PermissionKey,
+    staleGrant: string,
+  ): Promise<number> => {
+    const ctx = await context();
+    const scope = { businessId: toBusinessId(businessId) };
+    const ids = server.app.get<SnowflakeIdGeneratorPort>(SNOWFLAKE_ID_GENERATOR);
+    const suffix = randomBytes(3).toString('hex');
+    const id = ids.next();
+    const now = new Date();
+    await server.app.get<BusinessRoleRepositoryPort>(BUSINESS_ROLES).insert(ctx, scope, {
+      id,
+      name: `Custom ${suffix}`,
+      nameKey: `custom ${suffix}`,
+      description: null,
+      builtInKey: null,
+      permissions: [permission],
+      createdAt: now,
+      updatedAt: now,
+    });
+    const roleId = await engine().createRole(ctx, {
+      code: `custom-${suffix}`,
+      permissions: [vendurePermissionName(permission), staleGrant],
+      channelIds: [(await channelOf(stores[0])).id as number],
+    });
+    await server.app
+      .get<RoleBindingRepositoryPort>(ROLE_BINDINGS)
+      .insert(ctx, scope, { id: ids.next(), businessRoleId: id, scope: ALL_STORES_SCOPE, vendureRoleId: roleId });
+    return roleId;
+  };
+
   return {
     repository,
     businessRow,
@@ -164,5 +198,6 @@ export function createConvergeKit(server: TestServer, adminClient: SimpleGraphQL
     deletedTokens,
     arrangeOldBusiness,
     arrangeManagerMember,
+    arrangeDriftedCustomRole,
   };
 }
