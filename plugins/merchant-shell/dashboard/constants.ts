@@ -56,7 +56,7 @@ export const CREATE_STORE_PERMISSION: PermissionKey = 'store.stores.create';
 
 /** How long a new store's channel may take to reach the session before the merchant is told (D87). */
 export const STORE_SWITCH_TIMEOUT_MS = 10_000;
-/** How often the session is refreshed while a new store's channel is awaited. */
+/** The first wait before the session is refreshed while a new store's channel is awaited; each next wait doubles. */
 export const STORE_CHANNEL_POLL_MS = 1_000;
 
 /** How long the subdomain field waits after the last keystroke before asking the server. */

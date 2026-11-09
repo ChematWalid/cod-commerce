@@ -14,6 +14,7 @@ import {
   SWITCHABLE_STORES_QUERY_KEY,
 } from '../constants';
 import { errorCodeOf } from '../model/api-error';
+import { backoffRefreshTimes } from '../model/refresh-schedule';
 
 const CREATE_STORE_MUTATION = /* GraphQL */ `
   mutation ShellCreateStore($input: CreateStoreInput!) {
@@ -54,7 +55,8 @@ export interface CreateStore {
 
 /**
  * Waits for a new channel to reach the session: `refreshChannels` returns nothing and `setActiveChannel` ignores an
- * unknown id, so this refreshes every second, watches the channel list and gives up after the timeout (D87).
+ * unknown id, so this refreshes after 1, 2 and 4 more seconds, watches the channel list and gives up after the
+ * timeout (D87).
  */
 function useAwaitedChannel(token: string | null, onFound: (channelId: string) => void, onTimeout: () => void): void {
   const { channels, refreshChannels } = useChannel();
@@ -64,11 +66,14 @@ function useAwaitedChannel(token: string | null, onFound: (channelId: string) =>
   }, [channelId, onFound]);
   useEffect(() => {
     if (token === null) return undefined;
-    // The creator's session can lag behind the new channel, so one refresh is not always enough.
-    const poll = setInterval(refreshChannels, STORE_CHANNEL_POLL_MS);
+    // The creator's session can lag behind the new channel, so one refresh is not always enough; backing off keeps
+    // a slow server from being asked every second.
+    const refreshes = backoffRefreshTimes(STORE_CHANNEL_POLL_MS, STORE_SWITCH_TIMEOUT_MS).map((at) =>
+      setTimeout(refreshChannels, at),
+    );
     const timer = setTimeout(onTimeout, STORE_SWITCH_TIMEOUT_MS);
     return () => {
-      clearInterval(poll);
+      refreshes.forEach(clearTimeout);
       clearTimeout(timer);
     };
   }, [token, onTimeout, refreshChannels]);
