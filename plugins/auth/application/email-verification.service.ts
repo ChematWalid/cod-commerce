@@ -58,6 +58,8 @@ export class EmailVerificationService {
     if (!otpSchema.safeParse(code).success) {
       throw new OtpInvalidError();
     }
+    // A resend gives fresh tries, so only this cap bounds the guesses at codes over time (D44).
+    await this.ports.throttle.spendForUser('otp-account-daily', userId);
     const consumed = await this.ports.tokens.attemptOtp(ctx, userId, code);
     await this.markVerified(ctx, consumed.userId);
   }

@@ -15,6 +15,7 @@ describe('RATE_LIMIT_POLICIES', () => {
       'reset-ip': [60, 60],
       'otp-account': [10, 60],
       'otp-ip': [60, 60],
+      'otp-account-daily': [50, 86_400],
       'current-password-account': [10, 60],
       'current-password-ip': [60, 60],
       'register-ip': [20, 3600],

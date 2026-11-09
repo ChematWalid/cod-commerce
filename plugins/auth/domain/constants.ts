@@ -15,6 +15,9 @@ export const ACCOUNT_TOKEN_PURPOSE_MAX_LENGTH = 32;
 /** Longest `account_token.pendingEmail`: Vendure's identifier column holds 255 characters too. */
 export const PENDING_EMAIL_MAX_LENGTH = 255;
 
+/** The largest Postgres `int`: the type of Vendure's auto-increment ids and of `account_token.userId`. */
+export const ACCOUNT_USER_ID_MAX = 2_147_483_647;
+
 /** Longest `Administrator.customFields.phone`. */
 export const ADMINISTRATOR_PHONE_MAX_LENGTH = 20;
 

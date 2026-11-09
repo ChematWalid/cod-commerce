@@ -22,15 +22,13 @@ export interface OpenedSession {
   readonly channels: readonly object[];
 }
 
-/** Ending and opening sessions without the throttled login path. */
+/** Opening a session without the throttled login path. */
 export interface AccountSessionsPort {
-  /** Ends every session of the user, and its cache entry. Call it after the password write has committed. */
-  endAll(ctx: OperationContext, userId: number): Promise<void>;
   open(ctx: OperationContext, userId: number): Promise<OpenedSession>;
 }
 
 /** The per-account attempt limits of D29. */
-export type AccountLimitPolicy = 'reset-account' | 'otp-account' | 'current-password-account';
+export type AccountLimitPolicy = 'reset-account' | 'otp-account' | 'otp-account-daily' | 'current-password-account';
 
 /** Limits the account flows put on one account. */
 export interface AccountThrottlePort {

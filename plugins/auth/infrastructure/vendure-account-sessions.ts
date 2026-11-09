@@ -5,7 +5,6 @@ import {
   NATIVE_AUTH_STRATEGY_NAME,
   type RequestContext,
   SessionService,
-  User,
   UserService,
 } from '@vendure/core';
 import type { AccountSessionsPort, OpenedSession } from '../domain/ports/account-credentials.port';
@@ -21,11 +20,6 @@ export class VendureAccountSessions implements AccountSessionsPort {
     private readonly auth: AuthService,
     private readonly sessions: SessionService,
   ) {}
-
-  async endAll(operation: OperationContext, userId: number): Promise<void> {
-    const ctx = requestContextOf(operation);
-    await this.sessions.deleteSessionsByUser(ctx, new User({ id: userId }));
-  }
 
   /** Not through the login strategy: its lockout must not stand between a proven owner and the account. */
   async open(operation: OperationContext, userId: number): Promise<OpenedSession> {

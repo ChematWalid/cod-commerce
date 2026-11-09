@@ -10,6 +10,7 @@ import {
 } from '@vendure/core';
 import { type FindOptionsWhere, IsNull, type Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { accountUserId } from '../domain/account-user-id';
 import type { AuthEmailLocale } from '../domain/email';
 import { CurrentPasswordWrongError, PasswordPolicyError } from '../domain/errors';
 import type { AccountPasswordsPort } from '../domain/ports/account-credentials.port';
@@ -58,7 +59,7 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
       where: { id: administratorId },
       relations: { user: true },
     });
-    return administrator.user.id as number;
+    return accountUserId(administrator.user.id);
   }
 
   findByEmail(ctx: OperationContext, email: string): Promise<AccountRecord | undefined> {
@@ -126,7 +127,7 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
     }
     const { emailVerifiedAt, emailLocale, businessId } = administrator.customFields as unknown as AccountCustomFields;
     return {
-      userId: administrator.user.id as number,
+      userId: accountUserId(administrator.user.id),
       administratorId: administrator.id as number,
       firstName: administrator.firstName,
       email: administrator.emailAddress,

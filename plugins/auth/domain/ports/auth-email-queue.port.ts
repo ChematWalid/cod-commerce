@@ -10,3 +10,8 @@ export interface AuthEmailQueuePort {
    */
   enqueue(ctx: OperationContext, sealed: string, kind: AuthEmailKind): Promise<void>;
 }
+
+/** Puts a sealed forgot-password request on the worker queue. */
+export interface PasswordResetQueuePort {
+  enqueueResetRequest(ctx: OperationContext, sealed: string): Promise<void>;
+}

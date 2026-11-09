@@ -20,14 +20,22 @@ const refusalOf = async (work: Promise<unknown>): Promise<unknown> =>
     (error: unknown) => (error as { code?: string }).code,
   );
 
+class DailyCapError extends Error {
+  readonly code = 'RATE_LIMITED';
+}
+
 describe('EmailVerificationService', () => {
   let clock: ManualClock;
   let account: AccountRecord;
   let hasher: FakeSecretHasher;
   let service: EmailVerificationService;
   let tokens: AccountTokenService;
+  let spent: string[];
+  let dailyCapHit: boolean;
 
   beforeEach(() => {
+    spent = [];
+    dailyCapHit = false;
     clock = new ManualClock();
     hasher = new FakeSecretHasher();
     account = {
@@ -67,7 +75,14 @@ describe('EmailVerificationService', () => {
       },
       tokens,
       emails: new AuthEmailService(queue, sealer),
-      throttle: { spendForUser: () => Promise.resolve() },
+      throttle: {
+        spendForUser: (policy) => {
+          spent.push(policy);
+          return dailyCapHit && policy === 'otp-account-daily'
+            ? Promise.reject(new DailyCapError())
+            : Promise.resolve();
+        },
+      },
       clock,
       dashboardUrl: 'https://dash.example.test',
     });
@@ -102,6 +117,21 @@ describe('EmailVerificationService', () => {
 
     // Assert
     expect(refused).toBe(AUTH_ERROR_CODES.OTP_LOCKED);
+    expect(account.emailVerifiedAt).toBeNull();
+  });
+
+  it('stops guessing at the daily cap, before the code is compared, even for the right code', async () => {
+    // Arrange
+    const { otp } = await issue();
+    dailyCapHit = true;
+
+    // Act
+    const refused = await refusalOf(service.verifyByCode(ctx, USER_ID, otp ?? ''));
+
+    // Assert
+    expect(refused).toBe('RATE_LIMITED');
+    expect(spent).toEqual(['otp-account', 'otp-account-daily']);
+    expect(hasher.comparisons).toBe(0);
     expect(account.emailVerifiedAt).toBeNull();
   });
 

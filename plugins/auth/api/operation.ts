@@ -1,4 +1,5 @@
 import { ForbiddenError, type RequestContext } from '@vendure/core';
+import { accountUserId } from '../domain/account-user-id';
 import type { OperationContext } from '../domain/ports/operation-context';
 
 /** The caller's context as the inner layers take it. */
@@ -9,7 +10,7 @@ export function activeUserIdOf(ctx: RequestContext): number {
   if (ctx.activeUserId === undefined) {
     throw new ForbiddenError();
   }
-  return Number(ctx.activeUserId);
+  return accountUserId(ctx.activeUserId);
 }
 
 /** The session a password change keeps. */

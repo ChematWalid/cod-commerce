@@ -1,8 +1,10 @@
 import {
   ACCOUNT_CAPACITY,
+  DAY_WINDOW_SECONDS,
   HOUR_WINDOW_SECONDS,
   IP_CAPACITY,
   MINUTE_WINDOW_SECONDS,
+  OTP_DAILY_CAPACITY,
   REGISTER_IP_CAPACITY,
 } from './constants';
 
@@ -38,6 +40,7 @@ export const RATE_LIMIT_POLICIES = {
   'reset-ip': perMinute(IP_CAPACITY, 'in-process'),
   'otp-account': perMinute(ACCOUNT_CAPACITY, 'in-process'),
   'otp-ip': perMinute(IP_CAPACITY, 'in-process'),
+  'otp-account-daily': { capacity: OTP_DAILY_CAPACITY, windowSeconds: DAY_WINDOW_SECONDS, outage: 'in-process' },
   'current-password-account': perMinute(ACCOUNT_CAPACITY, 'in-process'),
   'current-password-ip': perMinute(IP_CAPACITY, 'in-process'),
   'register-ip': { capacity: REGISTER_IP_CAPACITY, windowSeconds: HOUR_WINDOW_SECONDS, outage: 'open' },

@@ -5,10 +5,12 @@ import { ChangeEmailService } from '../application/change-email.service';
 import { ChangePasswordService } from '../application/change-password.service';
 import { EmailVerificationService } from '../application/email-verification.service';
 import { PasswordResetService } from '../application/password-reset.service';
-import { SESSION_TERMINATOR } from '../application/tokens';
+import { PAYLOAD_SEALER, SESSION_TERMINATOR } from '../application/tokens';
 import type { ClockPort } from '../domain/ports/clock.port';
+import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
 import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
 import { AccountThrottle } from './account-throttle';
+import { EventBusAuthEmailQueue } from './auth-email-queue';
 import { EmailClaimLock } from './email-claim-lock';
 import { VendureAccountIdentity } from './vendure-account-identity';
 import { VendureAccountSessions } from './vendure-account-sessions';
@@ -31,10 +33,14 @@ function emailVerification({ dashboardUrl, clock }: FlowSettings): Provider {
   };
 }
 
+type ResetExtras = [VendureAccountSessions, SessionTerminatorPort, EventBusAuthEmailQueue, PayloadSealerPort];
+
 function passwordReset({ dashboardUrl, clock }: FlowSettings): Provider {
   return {
     provide: PasswordResetService,
-    useFactory: (...[identity, tokens, emails, throttle, sessions]: [...Common, VendureAccountSessions]) =>
+    useFactory: (
+      ...[identity, tokens, emails, throttle, sessions, terminator, queue, sealer]: [...Common, ...ResetExtras]
+    ) =>
       new PasswordResetService({
         identity,
         passwords: identity,
@@ -42,10 +48,13 @@ function passwordReset({ dashboardUrl, clock }: FlowSettings): Provider {
         emails,
         throttle,
         sessions,
+        terminator,
+        queue,
+        sealer,
         clock,
         dashboardUrl: dashboardUrl(),
       }),
-    inject: [...COMMON, VendureAccountSessions],
+    inject: [...COMMON, VendureAccountSessions, SESSION_TERMINATOR, EventBusAuthEmailQueue, PAYLOAD_SEALER],
   };
 }
 

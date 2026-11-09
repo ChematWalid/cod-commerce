@@ -9,8 +9,11 @@ import type {
   OpenedSession,
 } from '../domain/ports/account-credentials.port';
 import type { AccountIdentityPort, AccountRecord } from '../domain/ports/account-identity.port';
+import type { PasswordResetQueuePort } from '../domain/ports/auth-email-queue.port';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { OperationContext } from '../domain/ports/operation-context';
+import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
+import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
 import type { AccountTokenService } from './account-token.service';
 import type { AuthEmailService } from './auth-email.service';
 
@@ -19,6 +22,9 @@ export interface PasswordResetPorts {
   readonly identity: Pick<AccountIdentityPort, 'inTransaction' | 'findByEmail' | 'findByUserId' | 'markEmailVerified'>;
   readonly passwords: Pick<AccountPasswordsPort, 'set'>;
   readonly sessions: AccountSessionsPort;
+  readonly terminator: Pick<SessionTerminatorPort, 'endOthers' | 'flushCache'>;
+  readonly queue: PasswordResetQueuePort;
+  readonly sealer: PayloadSealerPort;
   readonly throttle: Pick<AccountThrottlePort, 'spendForEmail' | 'clearLoginLockout'>;
   readonly tokens: Pick<AccountTokenService, 'issue' | 'consume' | 'voidOpen'>;
   readonly emails: Pick<AuthEmailService, 'enqueue'>;
@@ -26,14 +32,36 @@ export interface PasswordResetPorts {
   readonly dashboardUrl: string;
 }
 
+/** What a queued reset request holds, sealed: the typed address must not sit readable in the queue store. */
+interface ResetRequestPayload {
+  readonly email: string;
+}
+
+interface AppliedReset {
+  readonly account: AccountRecord;
+  readonly ended: readonly string[];
+}
+
+/** No session has this token, so `endOthers` ends them all. */
+const NO_SESSION_KEPT = '';
+
 /** Forgot password: our hashed token in place of the stock plaintext column (D21, D25). */
 export class PasswordResetService {
   constructor(private readonly ports: PasswordResetPorts) {}
 
-  /** Mails a link when the email has an account, and answers the same either way (D27). */
+  /**
+   * Only throttles and queues, so a known and an unknown email take the same path and the same time here (D27). The
+   * worker runs {@link fulfil}.
+   */
   async request(ctx: OperationContext, rawEmail: string): Promise<void> {
     const email = normalizeEmail(rawEmail);
     await this.ports.throttle.spendForEmail('reset-account', email);
+    await this.ports.queue.enqueueResetRequest(ctx, this.ports.sealer.seal({ email }));
+  }
+
+  /** The worker's half of {@link request}: looks the email up and mails a link when it has an account. */
+  async fulfil(ctx: OperationContext, sealed: string): Promise<void> {
+    const { email } = this.ports.sealer.open(sealed) as ResetRequestPayload;
     const account = await this.ports.identity.findByEmail(ctx, email);
     if (account !== undefined) {
       await this.ports.identity.inTransaction(ctx, (transactional) => this.mailLink(transactional, account));
@@ -41,8 +69,9 @@ export class PasswordResetService {
   }
 
   /**
-   * The password is checked before the token is spent, so a weak one costs the owner no second email. Sessions end
-   * after the commit: evicting them earlier would let a concurrent request re-cache one from its still visible row.
+   * The password is checked before the token is spent, so a weak one costs the owner no second email. Sessions are
+   * deleted with the password write, so a crash cannot leave one alive; the cache is flushed after the commit, because
+   * evicting earlier would let a concurrent request re-cache a session from its still visible row.
    *
    * @throws PasswordPolicyError or InvalidTokenError.
    */
@@ -50,9 +79,11 @@ export class PasswordResetService {
     if (!passwordSchema.safeParse(password).success) {
       throw new PasswordPolicyError();
     }
-    const { identity, sessions, throttle } = this.ports;
-    const account = await identity.inTransaction(ctx, (transactional) => this.apply(transactional, token, password));
-    await sessions.endAll(ctx, account.userId);
+    const { identity, sessions, terminator, throttle } = this.ports;
+    const { account, ended } = await identity.inTransaction(ctx, (transactional) =>
+      this.apply(transactional, token, password),
+    );
+    await terminator.flushCache(ended);
     await throttle.clearLoginLockout(ctx, account.email);
     return sessions.open(ctx, account.userId);
   }
@@ -72,8 +103,8 @@ export class PasswordResetService {
     });
   }
 
-  private async apply(ctx: OperationContext, token: string, password: string): Promise<AccountRecord> {
-    const { identity, passwords, tokens, clock } = this.ports;
+  private async apply(ctx: OperationContext, token: string, password: string): Promise<AppliedReset> {
+    const { identity, passwords, terminator, tokens, clock } = this.ports;
     const { userId } = await tokens.consume(ctx, 'password-reset', token);
     const account = userId === null ? undefined : await identity.findByUserId(ctx, userId);
     if (account === undefined) {
@@ -84,6 +115,6 @@ export class PasswordResetService {
     if (account.emailVerifiedAt === null) {
       await identity.markEmailVerified(ctx, account.administratorId, clock.now());
     }
-    return account;
+    return { account, ended: await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT) };
   }
 }

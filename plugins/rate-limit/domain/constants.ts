@@ -1,5 +1,6 @@
 const MINUTE_SECONDS = 60;
 const HOUR_SECONDS = 3600;
+const DAY_SECONDS = 86_400;
 
 /** Failures per minute one account (or one account-and-IP pair) may cause before the bucket is empty (D29). */
 export const ACCOUNT_CAPACITY = 10;
@@ -8,6 +9,10 @@ export const IP_CAPACITY = 60;
 /** Sign-ups per hour from one IP (D29). */
 export const REGISTER_IP_CAPACITY = 20;
 
+/** Wrong or right code guesses per day one account may make, whatever the resends (D44). */
+export const OTP_DAILY_CAPACITY = 50;
+
+export const DAY_WINDOW_SECONDS = DAY_SECONDS;
 export const MINUTE_WINDOW_SECONDS = MINUTE_SECONDS;
 export const HOUR_WINDOW_SECONDS = HOUR_SECONDS;
 
