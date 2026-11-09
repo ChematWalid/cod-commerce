@@ -40,9 +40,32 @@ export const authAdminApiSchema = gql`
     pendingEmail: String
   }
 
+  type AccountProfile {
+    firstName: String!
+    lastName: String!
+    emailAddress: String!
+    "E.164, or null when none is set."
+    phone: String
+    "Absolute URL of the photo, set with setActiveAdministratorAvatar."
+    avatarUrl: String
+    emailVerified: Boolean!
+  }
+
+  "A field left out keeps its value; an empty or null phone clears it."
+  input UpdateAccountProfileInput {
+    firstName: String
+    lastName: String
+    phone: String
+  }
+
+  type UploadedLogo {
+    assetId: ID!
+  }
+
   extend type Query {
     authPublicConfig: AuthPublicConfig!
     accountStatus: AccountStatus!
+    accountProfile: AccountProfile!
   }
 
   extend type Mutation {
@@ -53,5 +76,7 @@ export const authAdminApiSchema = gql`
     changeAccountPassword(currentPassword: String!, newPassword: String!): Success!
     requestEmailChange(newEmail: String!, currentPassword: String!): Success!
     confirmEmailChange(token: String!): Success!
+    updateAccountProfile(input: UpdateAccountProfileInput!): AccountProfile!
+    uploadBusinessLogo(file: Upload!): UploadedLogo!
   }
 `;

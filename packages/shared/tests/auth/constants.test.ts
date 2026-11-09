@@ -17,7 +17,7 @@ describe('auth constants', () => {
     expect(SESSION_DURATION).toBe('30d');
   });
   it('namespaces every error code under auth.', () => {
-    expect(Object.values(AUTH_ERROR_CODES)).toHaveLength(13);
+    expect(Object.values(AUTH_ERROR_CODES)).toHaveLength(17);
     for (const code of Object.values(AUTH_ERROR_CODES)) expect(code.startsWith('auth.')).toBe(true);
   });
 });

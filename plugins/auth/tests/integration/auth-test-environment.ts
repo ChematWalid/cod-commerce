@@ -1,6 +1,10 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { createPluginTestEnvironment, loadPluginTestDbConfig } from '@cod/testing';
+import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { VendurePlugin } from '@vendure/core';
 import { AuthPlugin, type AuthEmailOptions } from '../../auth.plugin';
 import type { AuthEmailTemplatesPort } from '../../domain/ports/auth-email-templates.port';
@@ -43,12 +47,23 @@ export function createAuthTestEnvironment(
     readonly templates?: AuthEmailTemplatesPort;
     readonly smtp?: AuthEmailOptions['smtp'];
     readonly cookieSessions?: boolean;
+    /** Serves assets from a temporary directory at `/assets`, so uploads and their URLs can be tested. */
+    readonly assets?: boolean;
   } = {},
 ): ReturnType<typeof createPluginTestEnvironment> {
-  const { templates = new EchoTemplates(), smtp = mailpitSmtp(), cookieSessions = false, ...environment } = options;
+  const {
+    templates = new EchoTemplates(),
+    smtp = mailpitSmtp(),
+    cookieSessions = false,
+    assets = false,
+    ...environment
+  } = options;
   return createPluginTestEnvironment({
     plugins: [
       ...(cookieSessions ? [CookieSessionsTestPlugin] : []),
+      ...(assets
+        ? [AssetServerPlugin.init({ route: 'assets', assetUploadDir: mkdtempSync(join(tmpdir(), 'cod-test-assets-')) })]
+        : []),
       RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: TEST_CLIENT_IP_HEADER }),
       TenancyPlugin.init({
         redisUrl: TEST_REDIS_URL,

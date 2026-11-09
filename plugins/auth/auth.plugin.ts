@@ -19,17 +19,22 @@ import { AuthAccountController } from './api/auth-account.controller';
 import { AuthConfigController } from './api/auth-config.controller';
 import { AuthLoginController } from './api/auth-login.controller';
 import { AuthPasswordController } from './api/auth-password.controller';
+import { AuthProfileController } from './api/auth-profile.controller';
 import { AuthRegisterController } from './api/auth-register.controller';
 import { AuthTranslations } from './api/auth-translations';
+import { LogoUploadResolver } from './api/logo-upload.resolver';
 import { PasswordResolver } from './api/password.resolver';
+import { ProfileResolver } from './api/profile.resolver';
 import { RegisterResolver } from './api/register.resolver';
 import { authAdminApiSchema } from './api/schema';
 import { SessionResolver } from './api/session.resolver';
 import { ShopAccountGuardResolver } from './api/shop-account-guard.resolver';
 import { ShopPasswordResetGuardResolver } from './api/shop-password-reset-guard.resolver';
+import { AccountProfileService } from './application/account-profile.service';
 import { AccountTokenService } from './application/account-token.service';
 import { AuthEmailDelivery } from './application/auth-email-delivery';
 import { AuthEmailService } from './application/auth-email.service';
+import { BusinessLogoService } from './application/business-logo.service';
 import { RegisterMerchantService } from './application/register-merchant.service';
 import {
   ACCOUNT_TOKEN_REPOSITORY,
@@ -42,6 +47,7 @@ import {
   SESSION_TERMINATOR,
 } from './application/tokens';
 import { ADMINISTRATOR_PHONE_MAX_LENGTH, EMAIL_LOCALE_LENGTH } from './domain/constants';
+import { IMAGE_FORMATS } from './domain/image-format';
 import type { AccountTokenRepositoryPort } from './domain/ports/account-token-repository.port';
 import type { AuthEmailTemplatesPort } from './domain/ports/auth-email-templates.port';
 import type { BotChallengePort } from './domain/ports/bot-challenge.port';
@@ -49,6 +55,7 @@ import type { EmailSenderPort } from './domain/ports/email-sender.port';
 import type { PayloadSealerPort } from './domain/ports/payload-sealer.port';
 import type { SecretHasherPort } from './domain/ports/secret-hasher.port';
 import type { AuthPublicConfig } from './domain/public-config';
+import { AssetContentGuard } from './infrastructure/asset-content-guard';
 import { AccountPasswordValidationStrategy } from './infrastructure/account-password-validation.strategy';
 import { accountFlowProviders } from './infrastructure/account-flow.providers';
 import { accountTokenPurgeTask } from './infrastructure/account-token-purge.task';
@@ -64,6 +71,8 @@ import { ThrottledNativeAuthenticationStrategy } from './infrastructure/throttle
 import { TurnstileBotChallenge } from './infrastructure/turnstile-bot-challenge';
 import { TypeOrmAccountTokenRepository } from './infrastructure/typeorm-account-token.repository';
 import { VendureAccountIdentity } from './infrastructure/vendure-account-identity';
+import { VendureAccountProfile } from './infrastructure/vendure-account-profile';
+import { VendureLogoAssets } from './infrastructure/vendure-logo-assets';
 
 /** How {@link AuthPlugin} is configured. */
 export interface AuthPluginOptions {
@@ -129,6 +138,9 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     },
   );
   config.schedulerOptions.tasks.push(accountTokenPurgeTask);
+  // Profile photos and logos are the only uploads so far, and SVG is markup: core's default `image/*` admits it.
+  // A later catalog session widens this for product media.
+  config.assetOptions.permittedFileTypes = Object.values(IMAGE_FORMATS).map(({ mimeType }) => mimeType);
   const { authOptions } = config;
   authOptions.adminAuthenticationStrategy = [
     new ThrottledNativeAuthenticationStrategy(),
@@ -181,6 +193,19 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     { provide: AUTH_PUBLIC_CONFIG, useFactory: publicConfig },
     EmailClaimLock,
     VendureAccountIdentity,
+    VendureAccountProfile,
+    VendureLogoAssets,
+    AssetContentGuard,
+    {
+      provide: AccountProfileService,
+      useFactory: (store: VendureAccountProfile) => new AccountProfileService(store),
+      inject: [VendureAccountProfile],
+    },
+    {
+      provide: BusinessLogoService,
+      useFactory: (assets: VendureLogoAssets) => new BusinessLogoService(assets),
+      inject: [VendureLogoAssets],
+    },
     {
       provide: RegisterMerchantService,
       useFactory: (
@@ -219,7 +244,15 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
   // `SessionResolver`, `AccountGuardResolver` and `PasswordResolver` replace four stock mutations (D21).
   adminApiExtensions: {
     schema: authAdminApiSchema,
-    resolvers: [SessionResolver, AccountGuardResolver, RegisterResolver, AccountEmailResolver, PasswordResolver],
+    resolvers: [
+      SessionResolver,
+      AccountGuardResolver,
+      RegisterResolver,
+      AccountEmailResolver,
+      PasswordResolver,
+      ProfileResolver,
+      LogoUploadResolver,
+    ],
   },
   // Administrators' sessions also work on the Shop API, whose password mutations have none of the account rules.
   shopApiExtensions: { resolvers: [ShopAccountGuardResolver, ShopPasswordResetGuardResolver] },
@@ -229,6 +262,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     AuthConfigController,
     AuthAccountController,
     AuthPasswordController,
+    AuthProfileController,
   ],
   configuration: configure,
   compatibility: '^3.8.0',

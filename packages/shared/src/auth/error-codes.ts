@@ -7,6 +7,7 @@ export const AUTH_ERROR_CODES = {
   OTP_LOCKED: 'auth.otp-locked',
   PASSWORD_POLICY: 'auth.password-policy',
   REGISTRATION_INVALID: 'auth.registration-invalid',
+  PROFILE_INVALID: 'auth.profile-invalid',
   CURRENT_PASSWORD_WRONG: 'auth.current-password-wrong',
   COOLDOWN: 'auth.cooldown',
   RATE_LIMITED: 'auth.rate-limited',
@@ -15,6 +16,7 @@ export const AUTH_ERROR_CODES = {
   OAUTH_LINK_REQUIRES_VERIFICATION: 'auth.oauth-link-requires-verification',
   LOGO_TOO_LARGE: 'auth.logo-too-large',
   LOGO_TYPE: 'auth.logo-type',
+  IMAGE_TYPE: 'auth.image-type',
 } as const;
 
 /** One of the {@link AUTH_ERROR_CODES} values. */

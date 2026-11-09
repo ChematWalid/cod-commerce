@@ -10,6 +10,7 @@ import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
 import { DefaultSchedulerPlugin, RedisCachePlugin, type VendureConfig } from '@vendure/core';
 import { authEmailTemplates } from '../email';
+import { assetServerPlugin } from './asset-storage.config';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
 import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
@@ -78,6 +79,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
     }),
     authPlugin(env),
+    assetServerPlugin(env),
   ];
   if (role !== 'api') {
     return everyRole;

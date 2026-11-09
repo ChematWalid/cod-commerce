@@ -44,6 +44,22 @@ const nameSchema = z.string().trim().min(1).max(NAME_MAX_LENGTH);
 const opaqueTokenSchema = z.string().max(AUTH_OPAQUE_TOKEN_MAX_LENGTH);
 const languageSchema = z.enum(PLATFORM_LANGUAGE_CODES);
 
+/**
+ * The profile form: both names, and a phone that may be left out or cleared (an empty string clears it).
+ * The phone comes out in E.164 or as null.
+ */
+export const updateAccountProfileSchema = z.object({
+  firstName: nameSchema,
+  lastName: nameSchema,
+  phone: z
+    .union([z.string().trim().length(0), phoneE164Schema])
+    .nullish()
+    .transform((phone) => (phone == null || phone === '' ? null : phone)),
+});
+
+export type UpdateAccountProfileInput = z.input<typeof updateAccountProfileSchema>;
+export type UpdateAccountProfileCommand = z.output<typeof updateAccountProfileSchema>;
+
 /** Wizard step 1. */
 export const registerAccountStepSchema = z.object({
   email: emailSchema,

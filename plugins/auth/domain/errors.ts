@@ -89,3 +89,37 @@ export class CooldownError extends DomainError {
     super('Please wait before asking again');
   }
 }
+
+/** A profile save that fails the shared schema. It names the fields and never their values. */
+export class ProfileInvalidError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.PROFILE_INVALID;
+
+  constructor(fields: readonly string[]) {
+    super(`Invalid profile fields: ${fields.join(', ')}`);
+  }
+}
+
+/** A logo over the size limit (D34). */
+export class LogoTooLargeError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.LOGO_TOO_LARGE;
+
+  constructor() {
+    super('The logo is too large');
+  }
+}
+
+/** A logo whose bytes are not an accepted image format. */
+export class LogoTypeError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.LOGO_TYPE;
+
+  constructor() {
+    super('The logo must be a PNG, JPEG, GIF or WebP image');
+  }
+}
+
+/** A session whose user has no administrator. No login produces one, so this is a fault, not a refusal. */
+export class ProfileMissingError extends Error {
+  constructor() {
+    super('The signed-in user has no administrator profile');
+  }
+}

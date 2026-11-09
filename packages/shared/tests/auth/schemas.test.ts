@@ -9,6 +9,7 @@ import {
   registerBusinessStepSchema,
   registerMerchantSchema,
   registerStoreStepSchema,
+  updateAccountProfileSchema,
 } from '../../src/index';
 
 const account = { email: ' Owner@Shop.test ', password: 'correct-horse', firstName: 'Amine', lastName: 'B' };
@@ -96,5 +97,24 @@ describe('registration schemas', () => {
     expect(
       registerMerchantSchema.safeParse({ ...account, password: 'short', businessName: 'A', ...store }).success,
     ).toBe(false);
+  });
+});
+
+describe('updateAccountProfileSchema', () => {
+  const names = { firstName: ' Amine ', lastName: 'Benali' };
+
+  it('stores a national phone in E.164 and trims the names', () => {
+    expect(updateAccountProfileSchema.parse({ ...names, phone: '0555123456' })).toEqual({
+      firstName: 'Amine',
+      lastName: 'Benali',
+      phone: '+213555123456',
+    });
+  });
+  it.each([undefined, null, '', '  '])('reads %j as no phone', (phone) => {
+    expect(updateAccountProfileSchema.parse({ ...names, phone }).phone).toBeNull();
+  });
+  it('rejects a phone that is not a number and an empty name', () => {
+    expect(updateAccountProfileSchema.safeParse({ ...names, phone: 'abc' }).success).toBe(false);
+    expect(updateAccountProfileSchema.safeParse({ firstName: ' ', lastName: 'B' }).success).toBe(false);
   });
 });

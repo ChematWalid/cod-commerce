@@ -81,8 +81,8 @@ export interface RegisterTestKit {
 }
 
 /** Builds the {@link RegisterTestKit} of a test file. */
-export function createRegisterTestKit(): RegisterTestKit {
-  const { server, adminClient } = createAuthTestEnvironment(TOKEN_SECRET);
+export function createRegisterTestKit(environment: { readonly assets?: boolean } = {}): RegisterTestKit {
+  const { server, adminClient } = createAuthTestEnvironment(TOKEN_SECRET, environment);
   const client = new LoginTestClient(() => server.app);
 
   const register = (input: Record<string, unknown>, ip = uniqueIp()): Promise<GraphqlAnswer> =>

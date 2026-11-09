@@ -30,6 +30,7 @@
     "@cod/config": "workspace:*",
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",
+    "@vendure/asset-server-plugin": "3.8.1",
     "typescript": "5.9.3",
     "vite": "7.3.7",
     "vitest": "5.1.0"

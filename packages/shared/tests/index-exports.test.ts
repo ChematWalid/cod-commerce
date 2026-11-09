@@ -41,6 +41,7 @@ const RUNTIME_EXPORTS = [
   'passwordSchema',
   'phoneE164Schema',
   'registerMerchantSchema',
+  'updateAccountProfileSchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {

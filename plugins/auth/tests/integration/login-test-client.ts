@@ -19,6 +19,8 @@ export interface Caller {
   readonly token?: string;
   readonly cookie?: string;
   readonly language?: string;
+  /** The `vendure-token` of the channel the request is for. */
+  readonly channelToken?: string;
 }
 
 interface GraphqlError {
@@ -31,6 +33,13 @@ export interface GraphqlAnswer {
   readonly data: Record<string, Record<string, unknown> | null> | null;
   readonly errors: readonly GraphqlError[];
   readonly headers: Headers;
+}
+
+/** A file to send, with the type and name a client claims for it. */
+export interface UploadedTestFile {
+  readonly bytes: Uint8Array;
+  readonly claimedType: string;
+  readonly name: string;
 }
 
 /** The outcome of a `login`: `OK`, an error result code or a thrown error's code. */
@@ -50,13 +59,15 @@ const cookiesOf = (headers: Headers): string =>
     .map((line) => line.split(';')[0] ?? '')
     .join('; ');
 
-function headersFor(caller: Caller): Record<string, string> {
+/** `json` false leaves `content-type` out, for a multipart body whose boundary `fetch` writes itself. */
+function headersFor(caller: Caller, json = true): Record<string, string> {
   return {
-    'content-type': 'application/json',
+    ...(json ? { 'content-type': 'application/json' } : {}),
     ...(caller.ip === undefined ? {} : { 'x-test-client-ip': caller.ip }),
     ...(caller.token === undefined ? {} : { authorization: `Bearer ${caller.token}` }),
     ...(caller.cookie === undefined ? {} : { cookie: caller.cookie }),
     ...(caller.language === undefined ? {} : { 'accept-language': caller.language }),
+    ...(caller.channelToken === undefined ? {} : { 'vendure-token': caller.channelToken }),
   };
 }
 
@@ -75,6 +86,31 @@ export class LoginTestClient {
 
   async graphql(query: string, variables: object = {}, caller: Caller = {}): Promise<GraphqlAnswer> {
     const response = await this.rest('/admin-api', { query, variables }, caller);
+    const body = (await response.json()) as Pick<GraphqlAnswer, 'data'> & { errors?: GraphqlError[] };
+    return { data: body.data, errors: body.errors ?? [], headers: response.headers };
+  }
+
+  /** A JSON request of any method, answered with the status and the parsed body. */
+  async json(method: string, path: string, caller: Caller, body?: object): Promise<{ status: number; body: unknown }> {
+    const response = await fetch(this.url(path), {
+      method,
+      headers: headersFor(caller),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    return { status: response.status, body: await response.json().catch(() => null) };
+  }
+
+  /** A GraphQL multipart request (the `graphql-multipart-request-spec`) with one file at `variables.file`. */
+  async upload(query: string, file: UploadedTestFile, caller: Caller = {}): Promise<GraphqlAnswer> {
+    const form = new FormData();
+    form.set('operations', JSON.stringify({ query, variables: { file: null } }));
+    form.set('map', JSON.stringify({ '0': ['variables.file'] }));
+    form.set('0', new Blob([file.bytes], { type: file.claimedType }), file.name);
+    const response = await fetch(this.url('/admin-api'), {
+      method: 'POST',
+      headers: headersFor(caller, false),
+      body: form,
+    });
     const body = (await response.json()) as Pick<GraphqlAnswer, 'data'> & { errors?: GraphqlError[] };
     return { data: body.data, errors: body.errors ?? [], headers: response.headers };
   }

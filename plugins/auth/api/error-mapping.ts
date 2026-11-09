@@ -9,9 +9,12 @@ import {
   EmailInvalidError,
   EmailTakenError,
   InvalidTokenError,
+  LogoTooLargeError,
+  LogoTypeError,
   OtpInvalidError,
   OtpLockedError,
   PasswordPolicyError,
+  ProfileInvalidError,
   RegistrationInvalidError,
 } from '../domain/errors';
 
@@ -25,6 +28,9 @@ const REFUSALS: readonly (readonly [abstract new (...args: never[]) => DomainErr
   [ChallengeFailedError, HttpStatus.FORBIDDEN],
   [PasswordPolicyError, HttpStatus.BAD_REQUEST],
   [RegistrationInvalidError, HttpStatus.BAD_REQUEST],
+  [ProfileInvalidError, HttpStatus.BAD_REQUEST],
+  [LogoTooLargeError, HttpStatus.PAYLOAD_TOO_LARGE],
+  [LogoTypeError, HttpStatus.UNSUPPORTED_MEDIA_TYPE],
   [SubdomainInvalidError, HttpStatus.BAD_REQUEST],
   [InvalidTokenError, HttpStatus.BAD_REQUEST],
   [OtpInvalidError, HttpStatus.BAD_REQUEST],

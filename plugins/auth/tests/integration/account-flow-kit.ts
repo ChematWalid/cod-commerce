@@ -28,8 +28,8 @@ const mailBody = async (address: string, count: number): Promise<string> => {
 };
 
 /** Builds the {@link AccountFlowKit} of a test file. */
-export function createAccountFlowKit(): AccountFlowKit {
-  const kit = createRegisterTestKit();
+export function createAccountFlowKit(environment: { readonly assets?: boolean } = {}): AccountFlowKit {
+  const kit = createRegisterTestKit(environment);
 
   const sql = <T>(query: string, parameters: unknown[] = []): Promise<T[]> =>
     kit.server.app.get(TransactionalConnection).rawConnection.query<T[]>(query, parameters);

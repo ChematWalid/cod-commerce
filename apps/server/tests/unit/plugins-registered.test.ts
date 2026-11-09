@@ -2,6 +2,7 @@ import { AuthPlugin } from '@cod/plugin-auth';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
+import { type AssetServerOptions, AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { describe, expect, it } from 'vitest';
 import { authEmailTemplates } from '../../src/email';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
@@ -83,4 +84,18 @@ describe('buildPlugins', () => {
       expect(RateLimitPlugin.options).toEqual({ redisUrl: 'redis://valkey:6379', clientIpHeader: 'cf-connecting-ip' });
     },
   );
+
+  it.each(SERVER_ROLES)('registers the asset server on the Garage bucket for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(AssetServerPlugin);
+    const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
+    expect(options.route).toBe('assets');
+    expect(options.storageStrategyFactory).toBeTypeOf('function');
+  });
 });

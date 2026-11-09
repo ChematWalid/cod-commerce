@@ -40,6 +40,8 @@ const RAW_DATA_ACCESS_FILES = [
   // `administrator` is Vendure's account-level table, and the claim lock runs only an advisory lock (D41).
   '**/plugins/auth/infrastructure/vendure-account-identity.ts',
   '**/plugins/auth/infrastructure/email-claim-lock.ts',
+  // The profile reads and writes the same account-level `administrator` row.
+  '**/plugins/auth/infrastructure/vendure-account-profile.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
