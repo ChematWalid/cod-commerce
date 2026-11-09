@@ -1,6 +1,6 @@
 import { ACTIVITY_ACTIONS } from '@cod/shared';
 import { useLingui } from '@lingui/react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   Button,
   Collapsible,
@@ -19,22 +19,18 @@ import {
   TableRow,
   useLocalFormat,
 } from '@vendure/dashboard';
-import { type ReactNode, useMemo } from 'react';
-import { withoutArchivedStores } from '../archived-store-ids';
+import type { ReactNode } from 'react';
 import { LtrRun } from '../components/ltr-run';
 import {
   ACTIVITY_LOG_NAV_TITLE,
   ACTIVITY_LOG_PATH,
   ACTIVITY_LOG_QUERY_KEY,
   ACTIVITY_LOG_VIEW_VENDURE_PERMISSION,
-  ARCHIVED_STORE_STATUS,
   LOADING_MESSAGE_ID,
-  STORES_QUERY_KEY,
   TEAM_NAV_SECTION_ID,
-  VIEW_STORES_KEY,
 } from '../constants';
 import { errorMessageId } from '../error-messages';
-import { type ActivityLogItemDto, fetchActivityLog, fetchStoreStatuses, useEffectivePermissions } from '../queries';
+import { type ActivityLogItemDto, fetchActivityLog } from '../queries';
 
 const PAGE_ID = 'rbac-activity-log';
 const BLOCK_ID = 'rbac-activity-log-list';
@@ -72,12 +68,7 @@ function TargetCell({ item }: { readonly item: ActivityLogItemDto }): ReactNode 
   );
 }
 
-interface ActivityRowProps {
-  readonly item: ActivityLogItemDto;
-  readonly archived: ReadonlySet<string>;
-}
-
-function ActivityRow({ item, archived }: ActivityRowProps): ReactNode {
+function ActivityRow({ item }: { readonly item: ActivityLogItemDto }): ReactNode {
   const { i18n } = useLingui();
   const { formatDate } = useLocalFormat();
   return (
@@ -89,7 +80,7 @@ function ActivityRow({ item, archived }: ActivityRowProps): ReactNode {
       <TableCell>
         <ActionCell action={item.action} />
       </TableCell>
-      <TableCell className="min-w-32 whitespace-normal">
+      <TableCell className="whitespace-normal">
         <TargetCell item={item} />
         <Collapsible>
           <CollapsibleTrigger className="text-muted-foreground text-xs underline">
@@ -97,7 +88,7 @@ function ActivityRow({ item, archived }: ActivityRowProps): ReactNode {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <pre dir="ltr" style={JSON_STYLE} className="max-w-full overflow-x-auto text-xs">
-              {JSON.stringify(withoutArchivedStores(item.diff, archived), null, JSON_INDENT)}
+              {JSON.stringify(item.diff, null, JSON_INDENT)}
             </pre>
           </CollapsibleContent>
         </Collapsible>
@@ -106,28 +97,7 @@ function ActivityRow({ item, archived }: ActivityRowProps): ReactNode {
   );
 }
 
-/** Only a member who can read stores gets their statuses; the ids are opaque to anyone else. */
-function useArchivedStoreIds(): { readonly archived: ReadonlySet<string>; readonly error: unknown } {
-  const held = useEffectivePermissions();
-  const { data, error } = useQuery({
-    queryKey: STORES_QUERY_KEY,
-    queryFn: fetchStoreStatuses,
-    enabled: held.has(VIEW_STORES_KEY),
-    retry: false,
-  });
-  const archived = useMemo(
-    () => new Set((data ?? []).filter((store) => store.status === ARCHIVED_STORE_STATUS).map((store) => store.id)),
-    [data],
-  );
-  return { archived, error };
-}
-
-interface ActivityTableProps {
-  readonly items: readonly ActivityLogItemDto[];
-  readonly archived: ReadonlySet<string>;
-}
-
-function ActivityTable({ items, archived }: ActivityTableProps): ReactNode {
+function ActivityTable({ items }: { readonly items: readonly ActivityLogItemDto[] }): ReactNode {
   const { i18n } = useLingui();
   return (
     <Table>
@@ -142,7 +112,7 @@ function ActivityTable({ items, archived }: ActivityTableProps): ReactNode {
       </TableHeader>
       <TableBody>
         {items.map((item) => (
-          <ActivityRow key={item.id} item={item} archived={archived} />
+          <ActivityRow key={item.id} item={item} />
         ))}
       </TableBody>
     </Table>
@@ -151,7 +121,6 @@ function ActivityTable({ items, archived }: ActivityTableProps): ReactNode {
 
 function ActivityLogPage(): ReactNode {
   const { i18n } = useLingui();
-  const { archived, error: storesError } = useArchivedStoreIds();
   const log = useInfiniteQuery({
     queryKey: ACTIVITY_LOG_QUERY_KEY,
     queryFn: ({ pageParam }) => fetchActivityLog(pageParam),
@@ -159,17 +128,16 @@ function ActivityLogPage(): ReactNode {
     getNextPageParam: (page) => page.nextCursor,
     retry: false,
   });
-  const failure: unknown = log.error ?? storesError;
   const items = log.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <Page pageId={PAGE_ID}>
       <PageTitle>{i18n._(ACTIVITY_LOG_NAV_TITLE)}</PageTitle>
       <PageLayout>
         <FullWidthPageBlock blockId={BLOCK_ID}>
-          {failure !== null && <p role="alert">{i18n._(errorMessageId(failure))}</p>}
+          {log.isError && <p role="alert">{i18n._(errorMessageId(log.error))}</p>}
           {log.isPending && <p>{i18n._(LOADING_MESSAGE_ID)}</p>}
           {log.isSuccess && items.length === 0 && <p>{i18n._('rbac.activity-empty')}</p>}
-          <ActivityTable items={items} archived={archived} />
+          <ActivityTable items={items} />
           {log.hasNextPage && (
             <Button
               variant="outline"

@@ -22,7 +22,9 @@ import type { BusinessRoleDto } from '../queries';
 import { LtrRun } from './ltr-run';
 
 const TOTAL_PERMISSIONS = PERMISSION_CATALOG.length;
-const HEADER_IDS = ['rbac.column-role', 'rbac.column-members', 'rbac.column-access', 'rbac.column-updated'];
+const HEADER_IDS = ['rbac.column-role', 'rbac.column-members', 'rbac.column-access'];
+/** Hidden on a phone so the row menu, the only way to the row's actions, fits without scrolling. */
+const UPDATED_COLUMN_CLASS = 'hidden sm:table-cell';
 
 /** What a row's menu can ask for. */
 export interface RoleActions {
@@ -94,7 +96,7 @@ function RoleRow({ role, ...actions }: RowMenuProps): ReactNode {
       <TableCell>
         <AccessCell count={role.permissionCount} />
       </TableCell>
-      <TableCell>{formatDate(role.updatedAt, { dateStyle: 'medium' })}</TableCell>
+      <TableCell className={UPDATED_COLUMN_CLASS}>{formatDate(role.updatedAt, { dateStyle: 'medium' })}</TableCell>
       <TableCell className="text-end">
         <RowMenu role={role} {...actions} />
       </TableCell>
@@ -114,6 +116,7 @@ export function RolesTable({ roles, ...rowProps }: RolesTableProps): ReactNode {
               {i18n._(id)}
             </TableHead>
           ))}
+          <TableHead className={`${UPDATED_COLUMN_CLASS} text-start`}>{i18n._('rbac.column-updated')}</TableHead>
           <TableHead />
         </TableRow>
       </TableHeader>

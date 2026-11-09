@@ -71,7 +71,7 @@ function RolesList({ held, onEdit, onDelete, roles, onDuplicate }: RolesListProp
 function RolesPage(): ReactNode {
   const { i18n } = useLingui();
   const roles = useBusinessRoles();
-  const held = useEffectivePermissions();
+  const { held, error: heldError } = useEffectivePermissions();
   const onDuplicate = useDuplicateRole();
   const [editor, setEditor] = useState<EditorState>({ open: false });
   const [deleting, setDeleting] = useState<BusinessRoleDto | null>(null);
@@ -90,6 +90,7 @@ function RolesPage(): ReactNode {
       </PageActionBar>
       <PageLayout>
         <FullWidthPageBlock blockId={BLOCK_ID}>
+          {heldError !== null && <p role="alert">{i18n._(errorMessageId(heldError))}</p>}
           <RolesList roles={roles} held={held} onEdit={openEditor} onDuplicate={onDuplicate} onDelete={setDeleting} />
         </FullWidthPageBlock>
       </PageLayout>

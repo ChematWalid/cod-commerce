@@ -33,11 +33,6 @@ export interface ActivityLogPageDto {
   readonly nextCursor: string | null;
 }
 
-export interface StoreStatusDto {
-  readonly id: string;
-  readonly status: string;
-}
-
 /** A role form's values: its text fields and the choices, never a permission list. */
 export interface RoleFormInput extends RoleChoicesInput {
   readonly name: string;
@@ -131,15 +126,6 @@ const ACTIVITY_LOG_QUERY = /* GraphQL */ `
   }
 `;
 
-const STORE_STATUSES_QUERY = /* GraphQL */ `
-  query RbacStoreStatuses {
-    stores {
-      id
-      status
-    }
-  }
-`;
-
 /** The roles of the business, built-ins included. */
 export function useBusinessRoles(): ReturnType<typeof useQuery<readonly BusinessRoleDto[]>> {
   return useQuery({
@@ -150,9 +136,15 @@ export function useBusinessRoles(): ReturnType<typeof useQuery<readonly Business
   });
 }
 
-/** What the server says the caller holds on the active store; empty until it answers, so no control flashes. */
-export function useEffectivePermissions(): ReadonlySet<string> {
-  const { data } = useQuery({
+/** What the server says the caller holds on the active store, and why it could not say. */
+export interface HeldPermissions {
+  readonly held: ReadonlySet<string>;
+  readonly error: unknown;
+}
+
+/** Empty until the server answers and when it fails, so no control is shown on a guess (ADR 0017). */
+export function useEffectivePermissions(): HeldPermissions {
+  const { data, error } = useQuery({
     queryKey: EFFECTIVE_PERMISSIONS_QUERY_KEY,
     queryFn: () =>
       api.query<{ readonly effectivePermissions: { readonly permissions: readonly string[] } }>(
@@ -160,7 +152,7 @@ export function useEffectivePermissions(): ReadonlySet<string> {
       ),
     retry: false,
   });
-  return new Set(data?.effectivePermissions.permissions ?? []);
+  return { held: new Set(data?.effectivePermissions.permissions ?? []), error };
 }
 
 export function createRole(input: RoleFormInput): Promise<unknown> {
@@ -184,8 +176,4 @@ export async function fetchActivityLog(after: string | null): Promise<ActivityLo
   const input = after === null ? {} : { after };
   const answer = await api.query<{ readonly activityLog: ActivityLogPageDto }>(ACTIVITY_LOG_QUERY, { input });
   return answer.activityLog;
-}
-
-export async function fetchStoreStatuses(): Promise<readonly StoreStatusDto[]> {
-  return (await api.query<{ readonly stores: readonly StoreStatusDto[] }>(STORE_STATUSES_QUERY)).stores;
 }

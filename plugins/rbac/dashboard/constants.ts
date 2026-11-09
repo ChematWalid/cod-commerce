@@ -17,17 +17,13 @@ export const ACTIVITY_LOG_VIEW_VENDURE_PERMISSION = 'CodSettingsActivityLogView'
 export const CREATE_ROLE_KEY = 'team.roles.create';
 export const EDIT_ROLE_KEY = 'team.roles.edit';
 export const DELETE_ROLE_KEY = 'team.roles.delete';
-export const VIEW_STORES_KEY = 'store.stores.view';
 
 export const ROLES_QUERY_KEY = ['rbac', 'roles'] as const;
 export const EFFECTIVE_PERMISSIONS_QUERY_KEY = ['rbac', 'effective-permissions'] as const;
 export const ACTIVITY_LOG_QUERY_KEY = ['rbac', 'activity-log'] as const;
-export const STORES_QUERY_KEY = ['rbac', 'stores'] as const;
 
 /** The value of the "Start from" option that names no role; a `Select` item needs a value. */
 export const NO_START_ROLE = 'none';
-
-export const ARCHIVED_STORE_STATUS = 'archived';
 
 /** Catalogue ids of the messages used from more than one file. */
 export const GENERIC_ERROR_MESSAGE_ID = 'rbac.error-generic';
