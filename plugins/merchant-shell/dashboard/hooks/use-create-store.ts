@@ -3,6 +3,9 @@ import { api, useChannel } from '@vendure/dashboard';
 import { useCallback, useEffect, useState } from 'react';
 import {
   CREATE_STORE_FAILED_MESSAGE_ID,
+  STORE_CHANNEL_POLL_MS,
+  STORE_NAME_INVALID_ERROR_CODE,
+  STORE_NAME_INVALID_MESSAGE_ID,
   STORE_SWITCH_TIMEOUT_MESSAGE_ID,
   STORE_SWITCH_TIMEOUT_MS,
   SUBDOMAIN_INVALID_ERROR_CODE,
@@ -43,6 +46,7 @@ function createErrorMessageId(error: unknown): string {
   const code = errorCodeOf(error);
   if (code === SUBDOMAIN_TAKEN_ERROR_CODE) return SUBDOMAIN_REASON_MESSAGE_IDS.taken;
   if (code === SUBDOMAIN_INVALID_ERROR_CODE) return SUBDOMAIN_REASON_MESSAGE_IDS.format;
+  if (code === STORE_NAME_INVALID_ERROR_CODE) return STORE_NAME_INVALID_MESSAGE_ID;
   return CREATE_STORE_FAILED_MESSAGE_ID;
 }
 
@@ -57,21 +61,24 @@ export interface CreateStore {
 
 /**
  * Waits for a new channel to reach the session: `refreshChannels` returns nothing and `setActiveChannel` ignores an
- * unknown id, so this watches the channel list and gives up after the timeout (D87).
+ * unknown id, so this refreshes every second, watches the channel list and gives up after the timeout (D87).
  */
 function useAwaitedChannel(token: string | null, onFound: (channelId: string) => void, onTimeout: () => void): void {
-  const { channels } = useChannel();
+  const { channels, refreshChannels } = useChannel();
   const channelId = channels.find((channel) => channel.token === token)?.id;
   useEffect(() => {
     if (channelId !== undefined) onFound(channelId);
   }, [channelId, onFound]);
   useEffect(() => {
     if (token === null) return undefined;
+    // The creator's session can lag behind the new channel, so one refresh is not always enough.
+    const poll = setInterval(refreshChannels, STORE_CHANNEL_POLL_MS);
     const timer = setTimeout(onTimeout, STORE_SWITCH_TIMEOUT_MS);
     return () => {
+      clearInterval(poll);
       clearTimeout(timer);
     };
-  }, [token, onTimeout]);
+  }, [token, onTimeout, refreshChannels]);
 }
 
 /** The `createStore` call and what follows it: the token to wait for, or the error to show. */

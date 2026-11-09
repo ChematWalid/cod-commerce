@@ -53,6 +53,8 @@ export const CREATE_STORE_PERMISSION: PermissionKey = 'store.stores.create';
 
 /** How long a new store's channel may take to reach the session before the merchant is told (D87). */
 export const STORE_SWITCH_TIMEOUT_MS = 10_000;
+/** How often the session is refreshed while a new store's channel is awaited. */
+export const STORE_CHANNEL_POLL_MS = 1_000;
 
 /** How long the subdomain field waits after the last keystroke before asking the server. */
 export const SUBDOMAIN_DEBOUNCE_MS = 400;
@@ -78,8 +80,10 @@ export const SUBDOMAIN_CHECK_FAILED_MESSAGE_ID = 'subdomain.check-failed';
 /** The stable codes `createStore` answers with for an unusable subdomain. */
 export const SUBDOMAIN_TAKEN_ERROR_CODE = 'tenancy.subdomain-taken';
 export const SUBDOMAIN_INVALID_ERROR_CODE = 'tenancy.subdomain-invalid';
+export const STORE_NAME_INVALID_ERROR_CODE = 'tenancy.name-invalid';
 
 export const CREATE_STORE_FAILED_MESSAGE_ID = 'shell.store.create.failed';
+export const STORE_NAME_INVALID_MESSAGE_ID = 'shell.store.create.name-invalid';
 export const STORE_SWITCH_TIMEOUT_MESSAGE_ID = 'shell.store.create.switch-timeout';
 
 /** Store languages, labelled in their own language whatever the dashboard's language is. */

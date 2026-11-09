@@ -330,3 +330,7 @@ msgstr "System"
 #. js-lingui-explicit-id
 msgid "shell.account.logout"
 msgstr "Log out"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.name-invalid"
+msgstr "Enter a valid store name."

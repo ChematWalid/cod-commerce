@@ -1,4 +1,6 @@
+import { STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
 import type { Page } from 'playwright-core';
+import { expect } from 'vitest';
 
 const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
 
@@ -50,7 +52,11 @@ export async function createDisposableStore(
   input: { readonly name: string; readonly subdomain: string; readonly language: string },
 ): Promise<StoreRow> {
   await adminApi(page, 'mutation ($input: CreateStoreInput!) { createStore(input: $input) { id } }', { input });
-  const store = (await switchableStores(page)).find((row) => row.subdomain === input.subdomain);
+  const find = async (): Promise<StoreRow | undefined> =>
+    (await switchableStores(page)).find((row) => row.subdomain === input.subdomain);
+  // The creator's session can take a moment to hold the new channel (D87).
+  await expect.poll(find).toBeDefined();
+  const store = await find();
   if (store === undefined) throw new Error(`The new store ${input.subdomain} is not switchable`);
   return store;
 }
@@ -98,3 +104,19 @@ export async function ownAdministratorId(page: Page): Promise<string> {
   );
   return activeAdministrator.id;
 }
+
+export const byTestId = (page: Page, id: string) => page.locator(`[data-testid="${id}"]`);
+
+export async function chooseStore(page: Page, subdomain: string): Promise<void> {
+  await byTestId(page, STORE_SWITCHER_TEST_ID).click();
+  await page.getByRole('menuitem', { name: new RegExp(`${subdomain}$`) }).click();
+}
+
+export const switcherSubdomain = (page: Page): Promise<string> =>
+  byTestId(page, STORE_SWITCHER_TEST_ID).locator('bdi[dir="ltr"]').innerText();
+
+export const expectSwitcherOn = (page: Page, subdomain: string) =>
+  expect.poll(() => switcherSubdomain(page)).toBe(subdomain);
+
+export const tokenChangesFrom = (page: Page, before: string | null) =>
+  expect.poll(async () => selectedToken(page)).not.toBe(before);

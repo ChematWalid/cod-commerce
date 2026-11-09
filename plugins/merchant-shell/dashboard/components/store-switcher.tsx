@@ -73,7 +73,7 @@ function StoreMenu({ stores, active, canCreate, onSelect, onCreate }: StoreMenuP
   return (
     <DropdownMenu>
       <StoreTrigger active={active} />
-      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)]">
+      <DropdownMenuContent align="end" className="max-h-[60vh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto">
         {stores.map((store) => (
           <DropdownMenuItem
             key={store.id}

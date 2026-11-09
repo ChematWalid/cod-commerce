@@ -1,31 +1,30 @@
-import {
-  CREATE_STORE_DIALOG_TEST_ID,
-  MERCHANT_NOT_FOUND_TEST_ID,
-  STORE_CREATE_TEST_ID,
-  STORE_SWITCHER_TEST_ID,
-} from '@cod/plugin-merchant-shell';
+import { MERCHANT_NOT_FOUND_TEST_ID, STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
-import { assertNoPageError, loginAsDemoOwner, loginAsOwner, setDisplayLanguage } from './dashboard-session';
+import { assertNoPageError, loginAsDemoOwner, loginAsOwner } from './dashboard-session';
 import {
   archiveStore,
+  byTestId,
+  chooseStore,
   createDisposableStore,
+  expectSwitcherOn,
   memberAccess,
   ownAdministratorId,
   selectedToken,
   setSelectedStores,
   type StoreRow,
   switchableStores,
+  switcherSubdomain,
+  tokenChangesFrom,
 } from './store-switcher-fixtures';
 
 const SECOND_BUSINESS_OWNER_EMAIL = 'owner@second.example.test';
 const LIMITED_MEMBER_EMAIL = 'limited@demo.example.test';
-const USER_SETTINGS_KEY = 'vendure-user-settings';
-const ARABIC_TAKEN_TEXT = 'هذا العنوان مستخدم بالفعل';
-const LONG_ARABIC_NAME = 'متجر'.repeat(15);
-const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const ME_OPERATION = 'CurrentUserInformation';
+const ACTIVE_CHANNEL_SELECTION = 'activeChannel {';
+/** Long enough for a refresh loop, which runs at round-trip rate, to show. */
+const RECOVERY_SETTLE_MS = 3_000;
 
 const runId = Date.now().toString(36);
 let sequence = 0;
@@ -35,23 +34,9 @@ function uniqueSubdomain(): string {
   return `sw${runId}${String(sequence)}`;
 }
 
-const byTestId = (page: Page, id: string) => page.locator(`[data-testid="${id}"]`);
 const open = (page: Page, path: string) => page.goto(`${DASHBOARD_URL}${path}`, { waitUntil: 'domcontentloaded' });
 const dashboardPath = (path: string): string => `${new URL(DASHBOARD_URL).pathname}${path}`;
 const pathOf = (page: Page): string => new URL(page.url()).pathname;
-
-async function chooseStore(page: Page, subdomain: string): Promise<void> {
-  await byTestId(page, STORE_SWITCHER_TEST_ID).click();
-  await page.getByRole('menuitem', { name: new RegExp(`${subdomain}$`) }).click();
-}
-
-const switcherSubdomain = (page: Page): Promise<string> =>
-  byTestId(page, STORE_SWITCHER_TEST_ID).locator('bdi[dir="ltr"]').innerText();
-
-const expectSwitcherOn = (page: Page, subdomain: string) => expect.poll(() => switcherSubdomain(page)).toBe(subdomain);
-
-const tokenChangesFrom = (page: Page, before: string | null) =>
-  expect.poll(async () => selectedToken(page)).not.toBe(before);
 
 describe('store switcher', () => {
   let browser: Browser;
@@ -79,6 +64,17 @@ describe('store switcher', () => {
     await context.close();
   });
 
+  /** A store of another business, read through that business's owner. */
+  async function foreignStore(): Promise<StoreRow> {
+    const other = await browser.newContext();
+    const otherPage = await other.newPage();
+    await loginAsOwner(otherPage, DASHBOARD_URL, SECOND_BUSINESS_OWNER_EMAIL);
+    const [foreign] = await switchableStores(otherPage);
+    await other.close();
+    if (foreign === undefined) throw new Error('the second business has a store');
+    return foreign;
+  }
+
   async function ownStores(): Promise<readonly [StoreRow, StoreRow]> {
     const [first, second] = await switchableStores(page);
     if (first === undefined || second === undefined) throw new Error('the demo owner has two stores');
@@ -86,11 +82,7 @@ describe('store switcher', () => {
   }
 
   it('lists the stores of the business and no store of another business', async () => {
-    const other = await browser.newContext();
-    const otherPage = await other.newPage();
-    await loginAsOwner(otherPage, DASHBOARD_URL, SECOND_BUSINESS_OWNER_EMAIL);
-    const [foreign] = await switchableStores(otherPage);
-    await other.close();
+    const foreign = await foreignStore();
     await loginAsDemoOwner(page, DASHBOARD_URL);
     const [first, second] = await ownStores();
 
@@ -99,7 +91,8 @@ describe('store switcher', () => {
     const menu = page.getByRole('menu');
     await expect.poll(() => menu.innerText()).toContain(first.subdomain);
     expect(await menu.innerText()).toContain(second.subdomain);
-    expect(await menu.innerText()).not.toContain(foreign?.subdomain);
+    expect(await menu.innerText()).not.toContain(foreign.subdomain);
+    expect(await menu.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
   });
 
   it('switching changes the channel token and survives a reload', async () => {
@@ -135,15 +128,11 @@ describe('store switcher', () => {
   });
 
   it('a store of another business is not found and an own store switches', async () => {
-    const other = await browser.newContext();
-    const otherPage = await other.newPage();
-    await loginAsOwner(otherPage, DASHBOARD_URL, SECOND_BUSINESS_OWNER_EMAIL);
-    const [foreign] = await switchableStores(otherPage);
-    await other.close();
+    const foreign = await foreignStore();
     await loginAsDemoOwner(page, DASHBOARD_URL);
     const [first, second] = await ownStores();
 
-    await open(page, `/stores/${foreign?.id ?? ''}/products`);
+    await open(page, `/stores/${foreign.id}/products`);
     await byTestId(page, MERCHANT_NOT_FOUND_TEST_ID).waitFor();
 
     await open(page, `/stores/${first.id}/products`);
@@ -213,82 +202,26 @@ describe('store switcher', () => {
     }
   });
 
-  it('Create Store shows the Arabic refusal for a taken address, then creates and switches', async () => {
+  it('a persistently failing active channel refreshes exactly once', async () => {
     await loginAsDemoOwner(page, DASHBOARD_URL);
-    await setDisplayLanguage(page, 'ar');
-    try {
-      const before = await selectedToken(page);
-      const subdomain = uniqueSubdomain();
-      await byTestId(page, STORE_SWITCHER_TEST_ID).click();
-      await byTestId(page, STORE_CREATE_TEST_ID).click();
-      const dialog = byTestId(page, CREATE_STORE_DIALOG_TEST_ID);
-      await dialog.getByRole('textbox').nth(0).fill(`Created ${runId}`);
-      const address = dialog.getByRole('textbox').nth(1);
+    let meRequests = 0;
+    await page.route(/\/admin-api/, async (route) => {
+      const body = route.request().postData() ?? '';
+      if (body.includes(ME_OPERATION)) meRequests += 1;
+      if (!body.includes(ACTIVE_CHANNEL_SELECTION)) {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        json: { errors: [{ message: 'refused', extensions: { code: 'FORBIDDEN' } }], data: null },
+      });
+    });
 
-      await address.fill('demo');
-      await dialog.getByText(ARABIC_TAKEN_TEXT).waitFor();
+    await page.reload();
 
-      await address.fill(subdomain);
-      await expect.poll(() => dialog.locator('button[type="submit"]').isEnabled()).toBe(true);
-      await dialog.locator('button[type="submit"]').click();
-
-      await expectSwitcherOn(page, subdomain);
-      await tokenChangesFrom(page, before);
-      const created = (await switchableStores(page)).find((row) => row.subdomain === subdomain);
-      if (created !== undefined) disposable.push(created.id);
-    } finally {
-      await setDisplayLanguage(page, 'en');
-    }
-  });
-
-  it('hides Create Store from a member without the permission', async () => {
-    await loginAsOwner(page, DASHBOARD_URL, LIMITED_MEMBER_EMAIL);
-    await open(page, '/team/roles');
-    await byTestId(page, STORE_SWITCHER_TEST_ID).click();
-    await page.getByRole('menu').waitFor();
-
-    expect(await byTestId(page, STORE_CREATE_TEST_ID).count()).toBe(0);
-  });
-
-  it('truncates a 60-character Arabic name with no horizontal overflow at 390 px (Review Focus 5)', async () => {
-    await loginAsDemoOwner(page, DASHBOARD_URL);
-    const subdomain = uniqueSubdomain();
-    const store = await createDisposableStore(page, { name: LONG_ARABIC_NAME, subdomain, language: 'ar' });
-    disposable.push(store.id);
-    await setDisplayLanguage(page, 'ar');
-    try {
-      await page.setViewportSize(MOBILE_VIEWPORT);
-      await open(page, '/home');
-      await chooseStore(page, subdomain);
-      await expectSwitcherOn(page, subdomain);
-
-      const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-      expect(fits).toBe(true);
-      expect(await byTestId(page, STORE_SWITCHER_TEST_ID).locator('bdi[dir="ltr"]').innerText()).toBe(subdomain);
-    } finally {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await setDisplayLanguage(page, 'en');
-    }
-  });
-
-  it('a French store sets the content language to French with the sidebar closed on mobile', async () => {
-    await loginAsDemoOwner(page, DASHBOARD_URL);
-    const subdomain = uniqueSubdomain();
-    const store = await createDisposableStore(page, { name: `French ${runId}`, subdomain, language: 'fr' });
-    disposable.push(store.id);
-    await page.setViewportSize(MOBILE_VIEWPORT);
-    await open(page, '/home');
-
-    await chooseStore(page, subdomain);
-
-    await expect
-      .poll(() =>
-        page.evaluate(
-          (key) => (JSON.parse(localStorage.getItem(key) ?? '{}') as { contentLanguage?: string }).contentLanguage,
-          USER_SETTINGS_KEY,
-        ),
-      )
-      .toBe('fr');
-    expect(store.language).toBe('fr');
+    // One for the page load and one for the single refresh.
+    await expect.poll(() => meRequests).toBe(2);
+    await page.waitForTimeout(RECOVERY_SETTLE_MS);
+    expect(meRequests).toBe(2);
   });
 });

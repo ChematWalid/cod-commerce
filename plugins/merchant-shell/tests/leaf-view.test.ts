@@ -46,9 +46,10 @@ describe('decideLeafView', () => {
   });
 
   it('asks for a switch before reading any permission, so a store the active one forbids does not flash forbidden', () => {
-    expect(
-      decideLeafView(input({ storeParam: A2.id, channels: [{ id: '1', permissions: [] }, A2_CHANNEL] })),
-    ).toEqual({ kind: 'switch', channelId: A2.channelId });
+    expect(decideLeafView(input({ storeParam: A2.id, channels: [{ id: '1', permissions: [] }, A2_CHANNEL] }))).toEqual({
+      kind: 'switch',
+      channelId: A2.channelId,
+    });
   });
 
   it('checks the permission on the store the URL resolved to, once it is active', () => {

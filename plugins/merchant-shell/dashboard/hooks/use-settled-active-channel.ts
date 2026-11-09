@@ -31,7 +31,11 @@ export function useSettledActiveChannel(): SettledActiveChannel {
   const stored = readStoredToken();
   const stale = activeChannel !== undefined && stored !== null && stored !== activeChannel.token;
   useEffect(() => {
-    if (!stale || refetchedFor.current === stored) return;
+    if (!stale) {
+      refetchedFor.current = null;
+      return;
+    }
+    if (refetchedFor.current === stored) return;
     refetchedFor.current = stored;
     void queryClient.invalidateQueries({ queryKey: ACTIVE_CHANNEL_QUERY_KEY });
   }, [stale, stored, queryClient]);

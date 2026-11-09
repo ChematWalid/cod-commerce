@@ -70,7 +70,7 @@ const activeChannelId = (page: Page): Promise<string> =>
 const expectActive = (page: Page, channelId: string) => expect.poll(() => activeChannelId(page)).toBe(channelId);
 
 /** Records, from before the page's own scripts run, whether `testId` is ever in the DOM. */
-const watchFor = (page: Page, testId: string): Promise<void> =>
+const watchFor = (page: Page, testId: string): Promise<unknown> =>
   page.addInitScript((id: string) => {
     const seen = (): void => {
       if (document.querySelector(`[data-testid="${id}"]`)) {
@@ -128,6 +128,7 @@ describe('merchant shell navigation', () => {
           await byTestId(page, SHELL_SKELETON_TEST_ID).waitFor();
           expect(pathOf(page), path).toBe(dashboardPath(path));
           await expect(byTestId(page, MERCHANT_NOT_FOUND_TEST_ID).count(), path).resolves.toBe(0);
+          await assertNoPageError(page);
         }
       },
       EVERY_LEAF_TIMEOUT_MS,
