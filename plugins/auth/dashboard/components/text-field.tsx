@@ -11,6 +11,9 @@ interface TextFieldProps extends Omit<ComponentProps<'input'>, 'id' | 'size'> {
   readonly suffix?: string | undefined;
 }
 
+/** The stock stylesheet sets `direction` on every element of an RTL page, so the `dir` attribute alone does nothing. */
+const LTR_RUN = { direction: 'ltr' } as const;
+
 /** One labelled input with its hint and its translated error. */
 export function TextField({ label, errorId, hint, isPassword = false, suffix, ...input }: TextFieldProps): ReactNode {
   const { i18n } = useLingui();
@@ -23,9 +26,11 @@ export function TextField({ label, errorId, hint, isPassword = false, suffix, ..
       {suffix === undefined ? (
         control
       ) : (
-        <div dir="ltr" className="flex items-center gap-1.5">
+        <div dir="ltr" style={LTR_RUN} className="flex items-center gap-1.5">
           <div className="min-w-0 flex-1">{control}</div>
-          <span className="text-muted-foreground shrink-0 text-sm">{suffix}</span>
+          <span style={LTR_RUN} className="text-muted-foreground shrink-0 text-sm">
+            {suffix}
+          </span>
         </div>
       )}
       {hint !== undefined && <p className="text-muted-foreground text-xs">{hint}</p>}
