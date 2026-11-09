@@ -25,6 +25,7 @@
     "@cod/plugin-merchant-shell": "workspace:*",
     "@cod/plugin-platform-health": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/plugin-rbac": "workspace:*",
     "@cod/plugin-template": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",

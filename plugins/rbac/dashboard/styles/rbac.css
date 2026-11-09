@@ -1,0 +1,35 @@
+/* RTL defects of the stock atoms, on this plugin's surfaces only. Unlayered, so these win over Tailwind's utilities. */
+
+/* The thumb moves with a physical translate, which in RTL would carry it out of the track. */
+html[dir='rtl'] .cod-rbac-switch [data-slot='switch-thumb'][data-checked] {
+  translate: calc(-100% + 2px) 0;
+}
+
+html[dir='rtl'] .cod-rbac-accordion [data-slot='accordion-trigger'] {
+  text-align: start;
+}
+
+/* `ml-auto` would hold the chevron against the title instead of at the row's far end. */
+html[dir='rtl'] .cod-rbac-accordion [data-slot='accordion-trigger-icon'] {
+  margin-left: 0;
+  margin-inline-start: auto;
+}
+
+html[dir='rtl'] .cod-rbac-dialog [data-slot='dialog-close'] {
+  right: auto;
+  inset-inline-end: 1rem;
+}
+
+/* The header and footer stay put while the areas scroll, also on a phone. */
+.cod-rbac-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+}
+
+.cod-rbac-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-inline: 2px;
+}

@@ -1,4 +1,4 @@
-# Where we stopped: onboarding for the next agent (2026-11-09, after P1.S2: auth, P1.S3 next)
+# Where we stopped: onboarding for the next agent (2026-11-09, after P1.S3: roles, P1.S5 next)
 
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
@@ -23,6 +23,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P0.S2c-polish** Pre-P1 polish: CodShop login branding, Arabic strings, RTL password field, storefront stub, mobile sidebar evidence, bearer client proof, ADR 0017 (accepted 2026-11-08), CLAUDE.md §3a.16-19 | #93 | `chore/p0-polish` | see `gh pr list` | **merged**; handoff `handoff/P0.S2c-polish.md`; evidence `docs/evidence/P0.S2c-polish/`; ADR 0017 awaits acceptance |
 | **P1.S1** Business→Stores tenancy: `plugins/tenancy`, tenant isolation by construction, host resolver, order sequence | #4 | `feat/p1-s1-tenancy` | see `gh pr list` | **merged**; handoff `handoff/P1.S1.md`; evidence `docs/evidence/P1.S1/`; decisions `P1-decisions.md` |
 | **P1.S2** Accounts & auth: `plugins/auth`, `plugins/rate-limit`, sign-up wizard, verification, reset, profile, OAuth behind a flag | #5 | `feat/p1-s2-auth` | see `gh pr list` | **merged**; handoff `handoff/P1.S2.md`; evidence `docs/evidence/P1.S2/`; decisions `P1-decisions.md` |
+| **P1.S3** Permissions catalog & roles: 93-permission catalog, `plugins/rbac`, built-in and custom roles, store-scoped access, activity log | #6 | `feat/p1-s3-rbac` | see `gh pr list` | **merged**; handoff `handoff/P1.S3.md`; evidence `docs/evidence/P1.S3/`; decisions `P1-decisions.md` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
@@ -66,7 +67,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. P0, P1.S1 and P1.S2 are merged. P1 runs in the order S3, S5, S6, S4. Next: **P1.S3**. Read `handoff/P1.S2.md` first, and log each decision in `P1-decisions.md`.
+3. P0 and P1.S1 to P1.S3 are merged. P1 runs in the order S5, S6, S4. Next: **P1.S5**. Read `handoff/P1.S3.md` first, and log each decision in `P1-decisions.md`.
 4. Open items for later sessions, flagged while applying the ADRs:
    - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.

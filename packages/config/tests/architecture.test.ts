@@ -23,6 +23,7 @@ describe('architecture rules', () => {
           'no-cross-plugin-internals',
           'plugin-core-no-tenancy-entry',
           'plugin-core-no-tenancy-entry',
+          'tenancy-provisioning-entry-restricted',
         ].sort(),
       );
       expect(bad.violations).toContainEqual({
@@ -35,6 +36,14 @@ describe('architecture rules', () => {
         from: 'plugins/bad/application/uses-rate-limit-entry.ts',
         to: 'plugins/rate-limit/index.ts',
       });
+      expect(bad.violations).toContainEqual({
+        rule: 'tenancy-provisioning-entry-restricted',
+        from: 'plugins/bad/infrastructure/uses-provisioning-entry.ts',
+        to: 'plugins/tenancy/provisioning.ts',
+      });
+      expect(bad.violations.map((violation) => violation.from)).not.toContain(
+        'plugins/rbac/infrastructure/uses-provisioning-entry.ts',
+      );
       expect(bad.violations).toContainEqual({
         rule: 'domain-is-pure',
         from: 'plugins/bad/domain/uses-vendure.ts',

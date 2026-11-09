@@ -1,9 +1,14 @@
-import { type BusinessId, type Snowflake, type StoreId, toSnowflake, toStoreId } from '@cod/shared';
+import { type BusinessId, type Snowflake, type StoreId, toBusinessId, toSnowflake, toStoreId } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { Asset, TransactionalConnection } from '@vendure/core';
-import type { ObjectLiteral, ObjectType, Repository, SelectQueryBuilder } from 'typeorm';
+import { MoreThan, type ObjectLiteral, type ObjectType, type Repository, type SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import type { Business } from '../domain/business';
+import {
+  BusinessStoreDirectory,
+  type BusinessSummary,
+  MAX_BUSINESS_PAGE_SIZE,
+} from '../domain/ports/business-store-directory.port';
 import type { HostStoreLookupPort, HostStoreRow } from '../domain/ports/host-store-lookup.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { BusinessOwnerPatch, BusinessPatch, PlatformStorePort } from '../domain/ports/platform-store.port';
@@ -35,8 +40,10 @@ function toBusiness(row: BusinessEntity): Business {
  * so these cannot go through `TenantRepository`; this file alone is on the lint allow-list for that reason.
  */
 @Injectable()
-export class PlatformStoreLookup implements PlatformStorePort, HostStoreLookupPort {
-  constructor(private readonly connection: TransactionalConnection) {}
+export class PlatformStoreLookup extends BusinessStoreDirectory implements PlatformStorePort, HostStoreLookupPort {
+  constructor(private readonly connection: TransactionalConnection) {
+    super();
+  }
 
   async saveBusiness(ctx: OperationContext, business: Business): Promise<void> {
     await this.repository(ctx, BusinessEntity).insert({ ...business } as QueryDeepPartialEntity<BusinessEntity>);
@@ -82,6 +89,33 @@ export class PlatformStoreLookup implements PlatformStorePort, HostStoreLookupPo
       select: { id: true, channelId: true, status: true },
     });
     return rows.map((row) => ({ id: toStoreId(row.id), channelId: row.channelId, status: row.status }));
+  }
+
+  storesOf(ctx: OperationContext, businessId: BusinessId): Promise<readonly StoreAccess[]> {
+    return this.findStoreAccess(ctx, businessId);
+  }
+
+  async ownerAdministratorOf(ctx: OperationContext, businessId: BusinessId): Promise<number | null> {
+    const business = await this.findBusiness(ctx, toSnowflake(businessId));
+    return business?.ownerAdministratorId ?? null;
+  }
+
+  async allBusinessIds(
+    ctx: OperationContext,
+    afterId: Snowflake | undefined,
+    limit: number,
+  ): Promise<readonly BusinessSummary[]> {
+    const rows = await this.repository(ctx, BusinessEntity).find({
+      where: afterId === undefined ? {} : { id: MoreThan(afterId) },
+      select: { id: true, ownerRoleId: true, ownerAdministratorId: true },
+      order: { id: 'ASC' },
+      take: Math.min(Math.max(Math.trunc(limit), 1), MAX_BUSINESS_PAGE_SIZE),
+    });
+    return rows.map((row) => ({
+      id: toBusinessId(toSnowflake(row.id)),
+      ownerRoleId: row.ownerRoleId,
+      ownerAdministratorId: row.ownerAdministratorId,
+    }));
   }
 
   async findBySubdomain(subdomain: string): Promise<HostStoreRow | null> {

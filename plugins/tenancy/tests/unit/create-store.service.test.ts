@@ -15,6 +15,7 @@ import {
   InMemoryPlatformStore,
   openAssets,
   inlineTransaction,
+  noLifecycle,
   SequentialIdGenerator,
 } from '../fakes/fakes';
 
@@ -47,6 +48,7 @@ describe('CreateStoreService', () => {
       transaction: inlineTransaction,
       ids: new SequentialIdGenerator('500'),
       assets: openAssets,
+      lifecycle: noLifecycle,
       clock: () => NOW,
     });
 

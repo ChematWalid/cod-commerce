@@ -1,5 +1,6 @@
 import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
+import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { type AssetServerOptions, AssetServerPlugin, type ImageTransformStrategy } from '@vendure/asset-server-plugin';
@@ -69,6 +70,17 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TenancyPlugin);
+  });
+
+  it.each(SERVER_ROLES)('registers RbacPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(RbacPlugin);
   });
 
   it.each(SERVER_ROLES)(

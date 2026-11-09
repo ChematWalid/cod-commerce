@@ -20,7 +20,12 @@ const APPLICATION_PURITY_MESSAGE =
   'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM (CLAUDE.md §3a.2)';
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
 /** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
-const PLUGIN_ROOT_FILES = ['**/plugins/*/index.ts', '**/plugins/*/*.plugin.ts', '**/plugins/*/*.config.{ts,mts}'];
+const PLUGIN_ROOT_FILES = [
+  '**/plugins/*/index.ts',
+  '**/plugins/*/provisioning.ts',
+  '**/plugins/*/*.plugin.ts',
+  '**/plugins/*/*.config.{ts,mts}',
+];
 const RAW_DATA_GUARDED_FILES = ['**/plugins/*/infrastructure/**', '**/plugins/*/api/**'];
 /**
  * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
@@ -32,6 +37,8 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
   '**/plugins/tenancy/infrastructure/order-number.service.ts',
   '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
+  // Reads Vendure's account-level `user` row to build the superadmin context (A2).
+  '**/plugins/tenancy/infrastructure/superadmin-context.factory.ts',
   // `account_token` is an account-level table, not a tenant one (D24).
   '**/plugins/auth/infrastructure/typeorm-account-token.repository.ts',
   '**/plugins/auth/infrastructure/account-token-purge.task.ts',
@@ -44,6 +51,12 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/auth/infrastructure/vendure-account-profile.ts',
   // `authentication_method` and `user` are Vendure's account-level tables (D36).
   '**/plugins/auth/infrastructure/vendure-external-identity.ts',
+  // `administrator` is Vendure's account-level table; every read carries the caller's business.
+  '**/plugins/rbac/infrastructure/vendure-actor-directory.ts',
+  // Runs only the advisory lock (D70).
+  '**/plugins/rbac/infrastructure/rbac-lock.ts',
+  // `session` and `administrator` are Vendure's account-level tables (D55).
+  '**/plugins/rbac/infrastructure/role-session-flusher.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { EXPECTED_MATRIX_PARTS, integrationPackages, type MatrixPart, shardedCommand } from './integration-matrix';
 
 const repoRoot = resolve(__dirname, '../../..');
 const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8');
@@ -21,6 +22,7 @@ interface Job {
   env?: Record<string, string>;
   services?: Record<string, { image?: string }>;
   'timeout-minutes'?: number;
+  strategy?: { matrix?: { include?: MatrixPart[] } };
   steps?: Step[];
 }
 interface Workflow {
@@ -47,6 +49,9 @@ const jobOf = (workflow: Workflow, name: string): Job => {
 
 const stepsRun = (job: Job): string[] =>
   (job.steps ?? []).map((step) => step.run).filter((run): run is string => run !== undefined);
+
+const matrixParts = (workflow: Workflow): MatrixPart[] =>
+  jobOf(workflow, 'integration').strategy?.matrix?.include ?? [];
 
 /** The shell of the gate job's verdict step. */
 const gateScript = (workflow: Workflow): string => stepsRun(jobOf(workflow, 'build-test')).join('\n');
@@ -223,12 +228,23 @@ describe('ci.yml', () => {
     expect(stepsRun(integration)).toContain('${{ matrix.command }}');
   });
 
-  it('runs every integration package in one of the parts of the matrix', () => {
-    const workflow = read('.github/workflows/ci.yml');
+  it('splits the integration job into the five parts of the matrix', () => {
+    expect(matrixParts(ci)).toEqual(EXPECTED_MATRIX_PARTS);
+  });
 
-    expect(workflow).toContain('command: pnpm test:integration --filter=!@cod/plugin-auth');
-    expect(workflow).toContain('--filter=@cod/plugin-auth -- --shard=1/2');
-    expect(workflow).toContain('--filter=@cod/plugin-auth -- --shard=2/2');
+  it('runs every integration package in one of the parts of the matrix', () => {
+    // Arrange
+    const commands = matrixParts(ci).map((part) => part.command);
+    const others = commands.find((command) => command.startsWith('pnpm test:integration')) ?? '';
+    const packages = integrationPackages(repoRoot);
+
+    // Assert: a package is either left in `others` or has every shard of its own
+    expect(packages).toEqual(expect.arrayContaining(['@cod/plugin-auth', '@cod/plugin-rbac', '@cod/plugin-tenancy']));
+    for (const name of packages) {
+      if (others.includes(`--filter=!${name}`)) {
+        expect(commands, name).toEqual(expect.arrayContaining([shardedCommand(name, 1), shardedCommand(name, 2)]));
+      }
+    }
   });
 
   it('uses the compose images for the CI service containers', () => {

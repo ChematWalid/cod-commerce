@@ -9,6 +9,12 @@ import type { AssetAccessPort } from '../../domain/ports/asset-access.port';
 import type { IdGeneratorPort } from '../../domain/ports/id-generator.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { BusinessOwnerPatch, PlatformStorePort } from '../../domain/ports/platform-store.port';
+import { TenantLifecycleRegistry } from '../../application/tenant-lifecycle.registry';
+import type {
+  BusinessProvisionedEvent,
+  StoreCreatedEvent,
+  TenantLifecycleHook,
+} from '../../domain/ports/tenant-lifecycle.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
 import type { Store, StoreAccess } from '../../domain/store';
 
@@ -133,3 +139,27 @@ export const openAssets: AssetAccessPort = {
 export const inlineTransaction: TransactionPort = {
   run: (ctx, work) => work(ctx),
 };
+
+/** Records the order hooks ran in, and throws from `failAt` when given. */
+export class RecordingLifecycleHook implements TenantLifecycleHook {
+  constructor(
+    private readonly name: string,
+    private readonly journal: string[],
+    private readonly failAt?: 'businessProvisioned' | 'storeCreated',
+  ) {}
+
+  businessProvisioned(_ctx: OperationContext, event: BusinessProvisionedEvent): Promise<void> {
+    this.journal.push(
+      `${this.name}:business:${event.businessId}:${String(event.ownerRoleId)}:${String(event.ownerAdministratorId)}`,
+    );
+    return this.failAt === 'businessProvisioned' ? Promise.reject(new Error(`${this.name} failed`)) : Promise.resolve();
+  }
+
+  storeCreated(_ctx: OperationContext, event: StoreCreatedEvent): Promise<void> {
+    this.journal.push(`${this.name}:store:${event.storeId}:${String(event.channelId)}`);
+    return this.failAt === 'storeCreated' ? Promise.reject(new Error(`${this.name} failed`)) : Promise.resolve();
+  }
+}
+
+/** A lifecycle that nobody registered on. */
+export const noLifecycle: TenantLifecycleHook = new TenantLifecycleRegistry();

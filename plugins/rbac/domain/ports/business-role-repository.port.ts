@@ -1,0 +1,28 @@
+import type { BuiltInRoleKey, PermissionKey, Snowflake, TenantScope } from '@cod/shared';
+import type { BusinessRole } from '../business-role';
+import type { OperationContext } from './operation-context';
+
+/** A role's new permissions and when they changed. */
+export interface BusinessRolePermissionsPatch {
+  readonly permissions: readonly PermissionKey[];
+  readonly updatedAt: Date;
+}
+
+/** What an edit of a custom role writes. */
+export type BusinessRolePatch = Pick<BusinessRole, 'name' | 'nameKey' | 'description' | 'permissions' | 'updatedAt'>;
+
+/** The business roles of a tenant. */
+export interface BusinessRoleRepositoryPort {
+  insert(ctx: OperationContext, scope: TenantScope, role: BusinessRole): Promise<void>;
+  /** Every role of the business. */
+  all(ctx: OperationContext, scope: TenantScope): Promise<readonly BusinessRole[]>;
+  findBuiltIn(ctx: OperationContext, scope: TenantScope, key: BuiltInRoleKey): Promise<BusinessRole | undefined>;
+  updatePermissions(
+    ctx: OperationContext,
+    scope: TenantScope,
+    id: Snowflake,
+    patch: BusinessRolePermissionsPatch,
+  ): Promise<void>;
+  update(ctx: OperationContext, scope: TenantScope, id: Snowflake, patch: BusinessRolePatch): Promise<void>;
+  delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<void>;
+}

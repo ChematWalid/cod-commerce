@@ -27,7 +27,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | AI credits: balance in top bar, buy credit packs, credit history | S | `/credits/*` |
 | [ ] | Locale switch EN/AR with RTL layout | C | `/en/...`, `/ar/...` |
 | [ ] | Notifications centre (bell, mark read) | C | `/notifications` |
-| [ ] | Activity log | S | permission "View the activity log" |
+| [x] | Activity log | S | permission "View the activity log" |
 
 ## 2. Home dashboard
 
@@ -193,7 +193,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Members list: All / Active / Pending / Inactive; roles, salary, status, order count, store access, joined | C | `/team` |
 | [ ] | Invite by email with roles, store access (all / selected), base salary, commission structures | C | |
 | [ ] | Member actions: view details, edit, set limit (max open orders), stop receiving orders, pay salary | C | |
-| [ ] | Roles: 7 built-in templates; custom roles with name, description, start-from template; 93 permissions in 12 areas with None/View/Full per area and "Sensitive" flags (full list in research notes) | C | `?tab=roles` |
+| [x] | Roles: 7 built-in templates; custom roles with name, description, start-from template; 93 permissions in 12 areas with None/View/Full per area and "Sensitive" flags (full list in research notes) | C | `?tab=roles` |
 | [ ] | Order distribution: Evenly (fewest open) / In turn / Nobody; reclaim timeout; exception rules (ordered) | C | `?tab=distribution` |
 | [ ] | Team stats report and commissions | S | |
 

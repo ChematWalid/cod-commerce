@@ -89,6 +89,15 @@ Where the code differs from, or sharpens, the Decision above. Evidence: `docs/ev
 - **Demo seed.** `pnpm --filter @cod/server seed:demo` creates the synthetic businesses Demo (`demo`, Arabic; `demo2`, English) and Second (`second`, French; `second2`, English). It is idempotent, refuses `APP_ENV=production` and needs `DEMO_OWNER_PASSWORD`.
 - **Not yet built:** `Order.customFields.businessId/storeId` (P3.S4 declares and assigns them; this session ships only the per-business order number sequence), `BusinessMember`, RLS (P10.S2).
 
+## As implemented (P1.S3, 2026-11-09)
+
+Accepted (2026-11-09, standing user authorization for P1). Sharpens the Decision above; full reasoning: `docs/roadmap/P1-decisions.md` (D53, D55, D56, D57).
+
+- **Role mapping (D53).** A business role has bindings, each pointing at one Vendure Role: scope `all` is one Vendure Role on every store channel of the business, extended when a store opens; scope `<storeId>` is one Vendure Role on that channel. This replaces "one role set per store". Unused pairs cost nothing, and the Owner role of P1.S1 is the `all` binding of Owner.
+- **Session invalidation (D55).** Role and assignment writes go through `RoleService` and `AdministratorService`, then delete the cached sessions of the affected users after commit and again after 500 ms, because Vendure's own clear runs before commit and is absent for assignments and channel extensions. The bound when this fails is `sessionCacheTTL`.
+- **Lifecycle hooks (D56).** Tenancy exposes `TenantLifecycleRegistry` (`businessProvisioned`, `storeCreated`), awaited inside the provisioning or store transaction, so the RBAC plugin seeds roles atomically without tenancy importing it.
+- **Existing businesses (D57).** No SQL data migration: `runMigrate` converges every business idempotently, adopting `ownerRoleId` as Owner's `all` binding with the same Vendure Role id, so sessions and user rows stay valid.
+
 ## Consequences
 
 ### Positive

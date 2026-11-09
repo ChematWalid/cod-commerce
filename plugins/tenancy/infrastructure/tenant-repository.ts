@@ -47,6 +47,12 @@ export class TenantRepository<T extends TenantEntity> {
     return result.affected ?? 0;
   }
 
+  /** Deletes the scope's rows matching `where`; `where` must name them, an empty filter would mean every row. */
+  async delete(scope: TenantScope, where: Where<T>): Promise<number> {
+    const result = await this.repository(scope).delete(inScope(scope, where));
+    return result.affected ?? 0;
+  }
+
   count(scope: TenantScope, where: Where<T> = {}): Promise<number> {
     return this.repository(scope).count({ where: inScope(scope, where) });
   }

@@ -100,6 +100,11 @@ export class CreateStoreService {
       now: this.ports.clock(),
     });
     await this.ports.platform.saveStore(ctx, store);
+    await this.ports.lifecycle.storeCreated(ctx, {
+      businessId: toBusinessId(business.id),
+      storeId: store.id,
+      channelId,
+    });
     return store;
   }
 }

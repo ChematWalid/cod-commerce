@@ -42,6 +42,16 @@ const RUNTIME_EXPORTS = [
   'phoneE164Schema',
   'registerMerchantSchema',
   'updateAccountProfileSchema',
+  'PERMISSION_CATALOG',
+  'PERMISSION_AREAS',
+  'vendurePermissionName',
+  'isPermissionKey',
+  'expandRolePermissions',
+  'areaLevelOf',
+  'BUILT_IN_ROLES',
+  'BUILT_IN_ROLE_KEYS',
+  'RBAC_ERROR_CODES',
+  'ACTIVITY_ACTIONS',
 ] as const;
 
 describe('@cod/shared entry point', () => {

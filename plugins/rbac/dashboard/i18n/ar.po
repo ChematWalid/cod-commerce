@@ -1,0 +1,268 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "rbac.nav-team"
+msgstr "الفريق"
+
+#. js-lingui-explicit-id
+msgid "rbac.nav-roles"
+msgstr "الأدوار"
+
+#. js-lingui-explicit-id
+msgid "rbac.nav-activity-log"
+msgstr "سجل النشاط"
+
+#. js-lingui-explicit-id
+msgid "rbac.error-generic"
+msgstr "حدث خطأ ما. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "rbac.error-forbidden"
+msgstr "ليست لديك صلاحية للقيام بذلك."
+
+#. js-lingui-explicit-id
+msgid "rbac.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "rbac.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "rbac.sensitive"
+msgstr "حساس"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-none"
+msgstr "بدون"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-view"
+msgstr "عرض"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-full"
+msgstr "كامل"
+
+#. js-lingui-explicit-id
+msgid "rbac.level-custom"
+msgstr "مخصص"
+
+#. js-lingui-explicit-id
+msgid "rbac.start-from"
+msgstr "البدء من"
+
+#. js-lingui-explicit-id
+msgid "rbac.start-from-none"
+msgstr "لا شيء (دور فارغ)"
+
+#. js-lingui-explicit-id
+msgid "rbac.name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "rbac.description"
+msgstr "الوصف"
+
+#. js-lingui-explicit-id
+msgid "rbac.saved"
+msgstr "تم حفظ الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "rbac.new-role"
+msgstr "دور جديد"
+
+#. js-lingui-explicit-id
+msgid "rbac.edit-role"
+msgstr "تعديل الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.selected-count"
+msgstr "الصلاحيات المحددة:"
+
+#. js-lingui-explicit-id
+msgid "rbac.deleted"
+msgstr "تم حذف الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.delete-title"
+msgstr "حذف {name}؟"
+
+#. js-lingui-explicit-id
+msgid "rbac.delete-warning"
+msgstr "ستتم إزالة هذا الدور نهائيًا."
+
+#. js-lingui-explicit-id
+msgid "rbac.delete"
+msgstr "حذف"
+
+#. js-lingui-explicit-id
+msgid "rbac.edit"
+msgstr "تعديل"
+
+#. js-lingui-explicit-id
+msgid "rbac.duplicate"
+msgstr "نسخ"
+
+#. js-lingui-explicit-id
+msgid "rbac.duplicated"
+msgstr "تم نسخ الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.row-actions"
+msgstr "إجراءات الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.full-access"
+msgstr "وصول كامل"
+
+#. js-lingui-explicit-id
+msgid "rbac.built-in"
+msgstr "مدمج"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-role"
+msgstr "الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-members"
+msgstr "الأعضاء"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-access"
+msgstr "الوصول"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-updated"
+msgstr "آخر تحديث"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-time"
+msgstr "الوقت"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-actor"
+msgstr "بواسطة"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-action"
+msgstr "الإجراء"
+
+#. js-lingui-explicit-id
+msgid "rbac.column-target"
+msgstr "الهدف"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-role"
+msgstr "الدور"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-member"
+msgstr "العضو"
+
+#. js-lingui-explicit-id
+msgid "rbac.actor-system"
+msgstr "النظام"
+
+#. js-lingui-explicit-id
+msgid "rbac.show-details"
+msgstr "التفاصيل"
+
+#. js-lingui-explicit-id
+msgid "rbac.activity-empty"
+msgstr "لا يوجد نشاط بعد."
+
+#. js-lingui-explicit-id
+msgid "rbac.load-more"
+msgstr "تحميل المزيد"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.created"
+msgstr "إنشاء دور"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.updated"
+msgstr "تعديل دور"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.deleted"
+msgstr "حذف دور"
+
+#. js-lingui-explicit-id
+msgid "rbac.role.duplicated"
+msgstr "نسخ دور"
+
+#. js-lingui-explicit-id
+msgid "rbac.member-access.changed"
+msgstr "تغيير صلاحيات عضو"
+
+#. js-lingui-explicit-id
+msgid "rbac.role-not-found"
+msgstr "هذا الدور لم يعد موجودًا."
+
+#. js-lingui-explicit-id
+msgid "rbac.member-not-found"
+msgstr "العضو غير موجود."
+
+#. js-lingui-explicit-id
+msgid "rbac.built-in-immutable"
+msgstr "لا يمكن تعديل دور مدمج أو حذفه."
+
+#. js-lingui-explicit-id
+msgid "rbac.role-in-use"
+msgstr "هذا الدور ما زال مسندًا إلى أعضاء. أزله عنهم أولًا."
+
+#. js-lingui-explicit-id
+msgid "rbac.name-taken"
+msgstr "يوجد دور بهذا الاسم بالفعل."
+
+#. js-lingui-explicit-id
+msgid "rbac.name-invalid"
+msgstr "يجب أن يتكون اسم الدور من 1 إلى 60 حرفًا."
+
+#. js-lingui-explicit-id
+msgid "rbac.description-too-long"
+msgstr "وصف الدور طويل جدًا."
+
+#. js-lingui-explicit-id
+msgid "rbac.role-limit"
+msgstr "وصل هذا النشاط التجاري إلى الحد الأقصى للأدوار المخصصة."
+
+#. js-lingui-explicit-id
+msgid "rbac.unknown-permission"
+msgstr "هذه الصلاحية غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "rbac.privilege-exceeded"
+msgstr "لا يمكنك منح أو تغيير أكثر مما تملك."
+
+#. js-lingui-explicit-id
+msgid "rbac.self-assignment"
+msgstr "لا يمكنك تغيير صلاحياتك بنفسك."
+
+#. js-lingui-explicit-id
+msgid "rbac.self-held-role"
+msgstr "لا يمكنك تعديل دور تحمله."
+
+#. js-lingui-explicit-id
+msgid "rbac.owner-restricted"
+msgstr "يمكن للمالك فقط منح دور المالك أو إزالته."
+
+#. js-lingui-explicit-id
+msgid "rbac.last-owner"
+msgstr "يجب أن يحتفظ النشاط التجاري بمالكه."
+
+#. js-lingui-explicit-id
+msgid "rbac.store-not-accessible"
+msgstr "لا يمكن الوصول إلى هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "rbac.store-access-invalid"
+msgstr "يتطلب الوصول إلى متاجر محددة متجرًا واحدًا على الأقل."

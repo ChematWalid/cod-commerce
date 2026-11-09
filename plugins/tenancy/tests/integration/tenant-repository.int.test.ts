@@ -107,6 +107,32 @@ describe('Tenant data access', () => {
       expect(alphaRow.businessId).toBe(alpha.business.id);
     });
 
+    it("deletes the scope's row and nothing of another business", async () => {
+      const id = '7000000000000000002';
+      await stores.insert(scopeOf(alpha), {
+        id,
+        storeId: id,
+        channelId: UNUSED_CHANNEL_ID,
+        sellerId: alpha.business.sellerId,
+        name: 'disposable',
+        language: 'ar',
+        subdomain: 'disposable',
+        status: 'archived',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const crossTenant = await stores.delete(scopeOf(alpha), { id: bravo.store.id });
+      const spoofed = await stores.delete(scopeOf(alpha), { id: bravo.store.id, businessId: bravo.business.id });
+      const own = await stores.delete(scopeOf(alpha), { id });
+
+      expect(crossTenant).toBe(0);
+      expect(spoofed).toBe(0);
+      expect(own).toBe(1);
+      expect(await raw().getRepository(StoreEntity).existsBy({ id: bravo.store.id })).toBe(true);
+      expect(await raw().getRepository(StoreEntity).existsBy({ id })).toBe(false);
+    });
+
     it('scopes a query builder, and a later where cannot replace the filter', async () => {
       const scoped = await tenantQuery(scopeOf(alpha), stores, 'store').getMany();
       const replaced = await tenantQuery(scopeOf(alpha), stores, 'store')

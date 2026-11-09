@@ -1,0 +1,20 @@
+{
+  "error": {
+    "rbac-role-not-found": "Role not found.",
+    "rbac-member-not-found": "Member not found.",
+    "rbac-built-in-immutable": "A built-in role cannot be changed or deleted.",
+    "rbac-role-in-use": "This role is still assigned to members. Remove it from them first.",
+    "rbac-name-taken": "A role with this name already exists.",
+    "rbac-name-invalid": "A role name must be between 1 and 60 characters.",
+    "rbac-description-too-long": "The role description is too long.",
+    "rbac-role-limit": "This business has reached its limit of custom roles.",
+    "rbac-unknown-permission": "That permission does not exist.",
+    "rbac-privilege-exceeded": "You cannot grant or change more than you hold.",
+    "rbac-self-assignment": "You cannot change your own access.",
+    "rbac-self-held-role": "You cannot edit a role you hold.",
+    "rbac-owner-restricted": "Only an owner can grant or remove the Owner role.",
+    "rbac-last-owner": "The business must keep its owner.",
+    "rbac-store-not-accessible": "That store is not accessible.",
+    "rbac-store-access-invalid": "Selected-store access needs at least one store."
+  }
+}

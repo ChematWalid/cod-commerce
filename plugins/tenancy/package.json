@@ -7,6 +7,10 @@
     ".": {
       "@cod/source": "./index.ts",
       "default": "./dist/index.js"
+    },
+    "./provisioning": {
+      "@cod/source": "./provisioning.ts",
+      "default": "./dist/provisioning.js"
     }
   },
   "scripts": {

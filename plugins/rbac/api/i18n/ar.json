@@ -1,0 +1,20 @@
+{
+  "error": {
+    "rbac-role-not-found": "الدور غير موجود.",
+    "rbac-member-not-found": "العضو غير موجود.",
+    "rbac-built-in-immutable": "لا يمكن تعديل دور مدمج أو حذفه.",
+    "rbac-role-in-use": "هذا الدور ما زال مسندًا إلى أعضاء. أزله عنهم أولًا.",
+    "rbac-name-taken": "يوجد دور بهذا الاسم بالفعل.",
+    "rbac-name-invalid": "يجب أن يتراوح اسم الدور بين حرف واحد و60 حرفًا.",
+    "rbac-description-too-long": "وصف الدور طويل جدًا.",
+    "rbac-role-limit": "بلغ هذا النشاط الحد الأقصى للأدوار المخصصة.",
+    "rbac-unknown-permission": "هذه الصلاحية غير موجودة.",
+    "rbac-privilege-exceeded": "لا يمكنك منح أو تغيير أكثر مما تملك.",
+    "rbac-self-assignment": "لا يمكنك تغيير صلاحياتك بنفسك.",
+    "rbac-self-held-role": "لا يمكنك تعديل دور تحمله.",
+    "rbac-owner-restricted": "وحده المالك يمكنه منح دور المالك أو سحبه.",
+    "rbac-last-owner": "يجب أن يحتفظ النشاط بمالكه.",
+    "rbac-store-not-accessible": "لا يمكن الوصول إلى هذا المتجر.",
+    "rbac-store-access-invalid": "يتطلب الوصول إلى متاجر محددة متجرًا واحدًا على الأقل."
+  }
+}
