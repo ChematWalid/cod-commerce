@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AUTH_OPAQUE_TOKEN_MAX_LENGTH,
   emailSchema,
   otpSchema,
   passwordSchema,
@@ -21,6 +22,7 @@ describe('passwordSchema', () => {
     ['73 bytes', 'a'.repeat(73), false],
     ['40 Arabic characters (80 bytes)', 'ع'.repeat(40), false],
     ['36 Arabic characters (72 bytes)', 'ع'.repeat(36), true],
+    ['a NUL byte', 'abcdefg\0h', false],
     ['3 Arabic characters (6 bytes)', 'ع'.repeat(3), false],
     ['4 Arabic characters (8 bytes)', 'ع'.repeat(4), true],
   ])('%s', (_label, value, ok) => {
@@ -50,6 +52,9 @@ describe('phoneE164Schema', () => {
     ['0555123456', '+213555123456'],
     ['+213555123456', '+213555123456'],
     ['0555 12 34 56', '+213555123456'],
+    ['+213 0555123456', '+213555123456'],
+    ['00213555123456', '+213555123456'],
+    ['0033612345678', '+33612345678'],
   ])('turns %s into %s', (raw, expected) => {
     expect(phoneE164Schema.parse(raw)).toBe(expected);
   });
@@ -59,6 +64,20 @@ describe('phoneE164Schema', () => {
 });
 
 describe('registration schemas', () => {
+  it('caps challengeToken and oauthTicket', () => {
+    const base = { ...account, businessName: 'A', ...store };
+    expect(
+      registerMerchantSchema.safeParse({ ...base, challengeToken: 'x'.repeat(AUTH_OPAQUE_TOKEN_MAX_LENGTH) }).success,
+    ).toBe(true);
+    expect(
+      registerMerchantSchema.safeParse({ ...base, challengeToken: 'x'.repeat(AUTH_OPAQUE_TOKEN_MAX_LENGTH + 1) })
+        .success,
+    ).toBe(false);
+    expect(
+      registerMerchantSchema.safeParse({ ...base, oauthTicket: 'x'.repeat(AUTH_OPAQUE_TOKEN_MAX_LENGTH + 1) }).success,
+    ).toBe(false);
+  });
+
   it('normalises the email in step 1', () => {
     expect(registerAccountStepSchema.parse(account).email).toBe('owner@shop.test');
   });
@@ -74,6 +93,8 @@ describe('registration schemas', () => {
     expect(parsed).toMatchObject({ email: 'owner@shop.test', emailLocale: 'ar' });
   });
   it('rejects a weak password in the full input', () => {
-    expect(registerMerchantSchema.safeParse({ ...account, password: 'short', businessName: 'A', ...store }).success).toBe(false);
+    expect(
+      registerMerchantSchema.safeParse({ ...account, password: 'short', businessName: 'A', ...store }).success,
+    ).toBe(false);
   });
 });

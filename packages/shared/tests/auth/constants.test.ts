@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { AUTH_ERROR_CODES, LOGO_MAX_BYTES, OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_TTL_MS, SESSION_DURATION } from '../../src/index';
+import {
+  AUTH_ERROR_CODES,
+  LOGO_MAX_BYTES,
+  OTP_LENGTH,
+  OTP_MAX_ATTEMPTS,
+  OTP_TTL_MS,
+  SESSION_DURATION,
+} from '../../src/index';
 
 describe('auth constants', () => {
   it('pins the contract values', () => {

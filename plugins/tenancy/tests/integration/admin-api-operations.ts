@@ -151,6 +151,7 @@ export const SUBDOMAIN_AVAILABILITY = gql`
       subdomain
       status
       reason
+      reasonCode
     }
   }
 `;

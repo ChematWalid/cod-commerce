@@ -30,3 +30,6 @@ export const LOGO_MAX_BYTES = 5_242_880;
 
 /** Vendure `authOptions.sessionDuration`. */
 export const SESSION_DURATION = '30d';
+
+/** Longest opaque client-supplied token (challenge response, OAuth ticket) the server will read. */
+export const AUTH_OPAQUE_TOKEN_MAX_LENGTH = 4096;
