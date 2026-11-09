@@ -9,6 +9,7 @@ import { actAs, actAsInNewSession, restCall } from './rbac-kit';
 import { createRbacTestEnvironment } from './rbac-test-environment';
 import { allStoresRole, RoleApi, type RoleAnswer, RoleTeam } from './roles-kit';
 import {
+  type Actor,
   BusinessRows,
   graphqlOutcome,
   graphqlSurface,
@@ -26,13 +27,6 @@ const NOT_FOUND_STATUS = 404;
 const FORBIDDEN_STATUS = 403;
 const OK_STATUS = 200;
 const TEAM_VIEW = [{ area: 'team', level: 'view' }];
-
-interface Actor {
-  readonly label: string;
-  readonly signIn: () => Promise<unknown>;
-  /** What the actor holds on its store, which `effectivePermissions` must answer. */
-  readonly held: () => readonly string[];
-}
 
 describe('two businesses: roles, permissions, member access and the activity log', () => {
   const { server, adminClient } = createRbacTestEnvironment(SNOWFLAKE_WORKER_ID);
@@ -121,20 +115,26 @@ describe('two businesses: roles, permissions, member access and the activity log
         const own = roleOf(await surface.create({ name: unique('Control'), areaLevels: TEAM_VIEW }));
 
         // Act: positive control on its own role
+        const read = await surface.get(own.id);
+        const started = await surface.create({ name: unique('Started'), startFromRoleId: own.id });
         const renamed = await surface.update(own.id, { name: unique('Renamed') });
         const copy = await surface.duplicate(own.id);
-        const removed = [await surface.remove(roleOf(copy).id), await surface.remove(own.id)];
+        const removed = [roleOf(started).id, roleOf(copy).id, own.id];
+        const removals = await Promise.all(removed.map((id) => surface.remove(id)));
 
         // Assert: the control changed A's side
-        expect([renamed.code, copy.code, ...removed.map(({ code }) => code)]).toEqual(new Array(4).fill(undefined));
+        const expected = [read, started, renamed, copy, ...removals];
+        expect(expected.map(({ code }) => code)).toEqual(new Array(expected.length).fill(undefined));
+        expect(roleOf(read).id).toBe(own.id);
         expect(roleOf(renamed).name).not.toBe(own.name);
         expect(await rows.roleNamed(businesses.a.businessId, own.id)).toBeUndefined();
 
         // Act: the same operations on B's roles
         const before = await foreignSnapshot();
-        const outcomes = await Promise.all(
-          [foreign.role.id, foreign.ownerRoleId].flatMap((id) => [
-            surface.get(id),
+        const foreignIds = [foreign.role.id, foreign.ownerRoleId];
+        const reads = await Promise.all(foreignIds.map((id) => surface.get(id)));
+        const writes = await Promise.all(
+          foreignIds.flatMap((id) => [
             surface.update(id, { name: unique('Took') }),
             surface.remove(id),
             surface.duplicate(id),
@@ -143,12 +143,12 @@ describe('two businesses: roles, permissions, member access and the activity log
         );
 
         // Assert
-        const refused = outcomes.filter(
-          ({ code, data }) => code === NOT_FOUND || (code === undefined && data === null),
-        );
-        expect(refused).toHaveLength(outcomes.length);
+        const outcomes = [...reads, ...writes];
+        const absent = reads.filter(({ code, data }) => code === NOT_FOUND || (code === undefined && data === null));
+        expect(absent).toHaveLength(reads.length);
+        expect(writes.filter(({ code }) => code === NOT_FOUND)).toHaveLength(writes.length);
         if (surface.name === 'rest')
-          expect(outcomes.map(({ status }) => status)).toEqual(new Array(10).fill(NOT_FOUND_STATUS));
+          expect(outcomes.map(({ status }) => status)).toEqual(new Array(outcomes.length).fill(NOT_FOUND_STATUS));
         expect(await foreignSnapshot()).toEqual(before);
         await actAs(adminClient, businesses.b.owner, businesses.b.stores[0]);
         expect(await api.get(foreign.role.id)).toMatchObject({

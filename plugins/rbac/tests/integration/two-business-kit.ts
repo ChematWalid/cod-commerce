@@ -166,3 +166,11 @@ export class BusinessRows {
     return rows.map(({ businessRoleId }) => businessRoleId);
   }
 }
+
+/** Who performs a two-business case. */
+export interface Actor {
+  readonly label: string;
+  readonly signIn: () => Promise<unknown>;
+  /** What the actor holds on its store, which `effectivePermissions` must answer. */
+  readonly held: () => readonly string[];
+}
