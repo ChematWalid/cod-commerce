@@ -325,6 +325,7 @@ link and stop without merging.
 - "Account menu: …Language, Light/Dark theme" — **language and theme only**.
 
 **Read first**
+- docs/roadmap/plans/P1.S5-plan.md (executable plan)
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S1.md`, ADR 0005 (i18n), ADR 0007 (branding), ADR 0010 (dashboard host: how the built-in Vendure navigation is hidden/replaced for merchant users, or the own-admin-app layout).
 - `docs/research/dashboard-captures.md` intro "Top bar: sidebar toggle, AI credits counter + Add credits, Ask Tassya, notifications bell, user menu, store switcher" and "Sidebar" (the exact tree: Home · Orders (Customers, Spam) · Tracking (Returns) · Products (Collections, Offers, Themes, A/B Testing) · Analytics (Team stats, Marketing) · Inventory (Packaging, Movements) · Finance (Costs, Products, Wilayas, Ads, Wallets, Product study) · Team (Order distribution, Roles & Permissions) · Delivery & Shipping · Apps · Sourcing · Settings (Pixels & Tracking, Domains, Plan & Billing, Status customization, Stock locations, Spam protection)).
