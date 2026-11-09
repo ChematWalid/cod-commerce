@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { RateLimiter } from '@cod/plugin-rate-limit';
 import { PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { loginPairKey } from '../../domain/login-throttle-keys';
+import { SECRET_HASHER } from '../../application/tokens';
+import { loginEmailKey, loginPairKey } from '../../domain/login-throttle-keys';
+import type { SecretHasherPort } from '../../domain/ports/secret-hasher.port';
 import { createAuthTestEnvironment } from './auth-test-environment';
 import { createTestAdministrator } from './create-test-administrator';
 import { AUTH_TOKEN_HEADER, LoginTestClient } from './login-test-client';
@@ -13,6 +15,8 @@ const WRONG_PASSWORD = 'synthetic-wrong-password';
 const PAIR_LIMIT = 10;
 const IP_LIMIT = 60;
 const FIRST_LOCKOUT_SECONDS = 60;
+/** Enough refused failures that re-locking on each would climb the doubling series to its cap. */
+const OVER_LIMIT_BURST = 30;
 /** Over the limit by enough that the token a second refilled during the burst cannot absorb it all. */
 const IP_BURST = 80;
 const INVALID = 'INVALID_CREDENTIALS_ERROR';
@@ -30,6 +34,7 @@ const uniqueIp = (): string => {
     .map((byte) => parseInt(byte, 16))
     .join('.');
 };
+const emailKeyOf = (email: string): string => loginEmailKey(server.app.get<SecretHasherPort>(SECRET_HASHER), email);
 const uniqueEmail = (): string => `owner-${randomUUID()}@example.test`;
 
 async function registeredEmail(): Promise<string> {
@@ -107,7 +112,7 @@ describe('login throttling (D29)', () => {
     // Assert
     expect(wrong.code).toBe(LIMITED);
     expect(right.code).toBe('OK');
-    expect((await limiter.isLocked(loginPairKey(email, otherIp))).locked).toBe(false);
+    expect((await limiter.isLocked(loginPairKey(emailKeyOf(email), otherIp))).locked).toBe(false);
   });
 
   it('treats an unknown email exactly like a registered one', async () => {
@@ -121,6 +126,35 @@ describe('login throttling (D29)', () => {
 
     // Assert
     expect(unknownAnswers).toEqual(knownAnswers);
+  });
+
+  it('escalates the lockout by one step when a burst goes far over the limit', async () => {
+    // Arrange
+    const email = await registeredEmail();
+    const ip = uniqueIp();
+
+    // Act
+    await failTimes(email, ip, OVER_LIMIT_BURST);
+    const lock = await limiter.isLocked(loginPairKey(emailKeyOf(email), ip));
+
+    // Assert
+    expect(lock.locked).toBe(true);
+    expect(lock.retryAfterSeconds).toBeLessThanOrEqual(FIRST_LOCKOUT_SECONDS);
+  });
+
+  it('keeps the email out of every limiter key', async () => {
+    // Arrange
+    const email = uniqueEmail();
+    const consume = vi.spyOn(limiter, 'consume');
+
+    // Act
+    await client.login(email, WRONG_PASSWORD, { ip: uniqueIp() });
+    const keys = consume.mock.calls.map(([, key]) => key);
+    consume.mockRestore();
+
+    // Assert
+    expect(keys.length).toBeGreaterThan(0);
+    expect(keys.filter((key) => key.includes(email))).toEqual([]);
   });
 
   it('leaves another account on the same address alone', async () => {
@@ -156,7 +190,7 @@ describe('login throttling (D29)', () => {
     // Arrange: the first lockout has run out, so the next one would double if it were remembered.
     const email = await registeredEmail();
     const ip = uniqueIp();
-    const key = loginPairKey(email, ip);
+    const key = loginPairKey(emailKeyOf(email), ip);
     await limiter.lockout(key);
     vi.spyOn(limiter, 'isLocked').mockResolvedValueOnce({ locked: false, retryAfterSeconds: 0 });
 

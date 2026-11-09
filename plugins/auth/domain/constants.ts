@@ -38,6 +38,9 @@ export const AUTH_EMAIL_ATTEMPTS = 5;
 /** Domain separator of the recipient hash in logs. */
 export const RECIPIENT_HASH_DOMAIN = 'recipient:';
 
+/** Domain separator of the account key in login throttling. */
+export const LOGIN_THROTTLE_HASH_DOMAIN = 'login-throttle:';
+
 /** Characters of the recipient hash that appear in logs: enough to correlate, too short to look an address up. */
 export const RECIPIENT_HASH_LENGTH = 16;
 

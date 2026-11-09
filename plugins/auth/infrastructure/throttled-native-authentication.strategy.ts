@@ -8,8 +8,10 @@ import {
   type RequestContext,
   type User,
 } from '@vendure/core';
+import { SECRET_HASHER } from '../application/tokens';
 import { LOGIN_RATE_LIMITED_MESSAGE } from '../domain/constants';
-import { loginPairKey } from '../domain/login-throttle-keys';
+import { loginEmailKey, loginPairKey } from '../domain/login-throttle-keys';
+import type { SecretHasherPort } from '../domain/ports/secret-hasher.port';
 
 const NO_CLIENT: ClientRequest = { ip: undefined, headers: {} };
 const RETRY_AFTER_HEADER = 'Retry-After';
@@ -17,7 +19,7 @@ const RETRY_AFTER_HEADER = 'Retry-After';
 /** Who is attempting a login, in the forms the limiter keys by. */
 interface LoginAttempt {
   readonly ctx: RequestContext;
-  readonly email: string;
+  readonly emailKey: string;
   readonly ip: string;
   readonly pairKey: string;
 }
@@ -30,12 +32,14 @@ interface LoginAttempt {
 export class ThrottledNativeAuthenticationStrategy extends NativeAuthenticationStrategy {
   private limiter!: RateLimiter;
   private clientIp!: ClientIpResolver;
+  private hasher!: SecretHasherPort;
 
   override async init(injector: Injector): Promise<void> {
     await super.init(injector);
     // Abstract, so it does not fit `Type<T>`; at runtime the class is the injection token.
     this.limiter = injector.get(RateLimiter as unknown as Type<RateLimiter>);
     this.clientIp = injector.get(ClientIpResolver);
+    this.hasher = injector.get<SecretHasherPort>(SECRET_HASHER);
   }
 
   override async authenticate(ctx: RequestContext, data: NativeAuthenticationData): Promise<User | false> {
@@ -52,9 +56,9 @@ export class ThrottledNativeAuthenticationStrategy extends NativeAuthenticationS
   }
 
   private attemptOf(ctx: RequestContext, data: NativeAuthenticationData): LoginAttempt {
-    const email = normalizeEmail(data.username);
+    const emailKey = loginEmailKey(this.hasher, normalizeEmail(data.username));
     const ip = this.clientIp.resolve(ctx.req ?? NO_CLIENT);
-    return { ctx, email, ip, pairKey: loginPairKey(email, ip) };
+    return { ctx, emailKey, ip, pairKey: loginPairKey(emailKey, ip) };
   }
 
   private async refuseIfOverLimit(attempt: LoginAttempt): Promise<void> {
@@ -68,16 +72,21 @@ export class ThrottledNativeAuthenticationStrategy extends NativeAuthenticationS
     }
   }
 
-  /** Spending the pair's last token locks at once, so the attempt after the tenth failure is the one refused. */
+  /**
+   * Spending the pair's last token locks at once, so the attempt after the tenth failure is the one refused.
+   * Only that call locks: every lockout doubles, so a refused call re-locking would let one burst reach the cap.
+   */
   private async recordFailure(attempt: LoginAttempt): Promise<void> {
     const pair = await this.limiter.consume('login-pair', attempt.pairKey);
-    const lock = pair.exhausted ? await this.limiter.lockout(attempt.pairKey) : undefined;
-    const account = await this.limiter.consume('login-account', attempt.email);
+    if (pair.allowed && pair.exhausted) {
+      await this.limiter.lockout(attempt.pairKey);
+    }
+    const account = await this.limiter.consume('login-account', attempt.emailKey);
     if (!account.allowed) {
       this.refuse(attempt.ctx, account.retryAfterSeconds);
     }
     if (!pair.allowed) {
-      this.refuse(attempt.ctx, lock?.retryAfterSeconds ?? pair.retryAfterSeconds);
+      this.refuse(attempt.ctx, pair.retryAfterSeconds);
     }
   }
 
