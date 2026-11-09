@@ -137,9 +137,10 @@ async function createAndDuplicate(page, lang, vp) {
   await page.getByRole('menuitem', { name: t('rbac.duplicate'), exact: true }).click();
   await page
     .getByRole('row')
+    .filter({ hasText: name })
     .filter({ hasText: lang === 'ar' ? '(نسخة)' : '(copy)' })
-    .first()
     .waitFor();
+  await page.getByText(t('rbac.duplicated'), { exact: true }).first().waitFor();
 }
 
 async function shootOwnerScreens(browser, lang, vp) {
