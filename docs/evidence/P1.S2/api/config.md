@@ -56,7 +56,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-09T07:27:58.219Z",
+  "timestamp": "2026-11-09T08:25:21.043Z",
   "path": "/auth/oauth/google/start"
 }
 ```

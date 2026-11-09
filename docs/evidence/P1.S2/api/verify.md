@@ -23,7 +23,7 @@ content-type: application/json; charset=utf-8
     "accountStatus": {
       "emailVerified": false,
       "verificationRequired": true,
-      "resendAvailableAt": "2026-11-09T07:28:58.774Z",
+      "resendAvailableAt": "2026-11-09T08:26:21.505Z",
       "pendingEmail": null
     }
   }
@@ -41,7 +41,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 404,
   "message": "Cannot GET /auth/verify-email/<VERIFY_TOKEN_A>",
-  "timestamp": "2026-11-09T07:28:07.959Z",
+  "timestamp": "2026-11-09T08:25:29.569Z",
   "path": "/auth/verify-email/<VERIFY_TOKEN_A>"
 }
 ```
@@ -132,7 +132,7 @@ content-type: application/json; charset=utf-8
     "accountStatus": {
       "emailVerified": true,
       "verificationRequired": true,
-      "resendAvailableAt": "2026-11-09T07:28:58.774Z",
+      "resendAvailableAt": "2026-11-09T08:26:21.505Z",
       "pendingEmail": null
     }
   }
@@ -265,8 +265,8 @@ content-type: application/json; charset=utf-8
 {
   "data": {
     "resendEmailVerification": {
-      "sentAt": "2026-11-09T07:29:10.976Z",
-      "nextAllowedAt": "2026-11-09T07:30:10.976Z"
+      "sentAt": "2026-11-09T08:26:32.271Z",
+      "nextAllowedAt": "2026-11-09T08:27:32.271Z"
     }
   }
 }

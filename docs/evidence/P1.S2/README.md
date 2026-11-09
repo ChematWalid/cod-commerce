@@ -2,7 +2,7 @@
 
 Transcripts, emails and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P1.S2.sh`. Data is
 synthetic. Image built from a tree with no uncommitted change outside the evidence folders and browser tests, last
-image-relevant commit `7fae30d01cc3312878a62fb45e8bbdc31e3a47ee`. Compose project `cod-evidence`; a second api container on port 23101 runs with
+image-relevant commit `881089ca8faceeaaa433597ecfd0e177207136a9`. Compose project `cod-evidence`; a second api container on port 23101 runs with
 `AUTH_OAUTH_ENABLED=true` against a mock provider (`scripts/evidence/P1.S2-oauth-mock.mjs`).
 
 ## API transcripts
@@ -18,7 +18,8 @@ image-relevant commit `7fae30d01cc3312878a62fb45e8bbdc31e3a47ee`. Compose projec
 | [`api/profile.md`](api/profile.md) | `accountProfile`, `updateAccountProfile`, REST GET and PATCH, anonymous 403, `uploadBusinessLogo` |
 | [`api/isolation.md`](api/isolation.md) | Cross-tenant: A's owner on B's channel and B's ids |
 | [`api/rate-limit.md`](api/rate-limit.md) | Real 429 with Retry-After, `RATE_LIMITED` on GraphQL, login throttle |
-| [`api/oauth.md`](api/oauth.md) | Flag on against the mock: providers, 302 with PKCE, forged callback, unknown provider |
+| [`api/oauth.md`](api/oauth.md) | Flag on against the mock: providers, 302 with PKCE, forged callback, unknown provider, the success callback issuing a ticket, `POST /auth/oauth/ticket` for its browser and refused for another |
+| [`api/shop-guards.md`](api/shop-guards.md) | Shop API with an administrator's session: password change and email change refused, forgot-password answers as for an unknown email |
 
 ## Emails
 
@@ -81,6 +82,10 @@ licence-required login footer on the public pages (`Vendure v3.8.1`, ADR 0001), 
 - **Not fixed, known.** The channel switcher shows a hex channel code in place of the store name (P1.S5, already deferred by P1.S1).
 - **Data, not a defect.** The English merchant's sidebar reads "Language: Arabic": that is the store language, and the wizard's default was kept.
 
-Which run was opened: 29 of the 55 shots were opened from this final run, including every shot the fix could change (Arabic
-`register-3` and `register-rate-limited`). The other 26 were opened on an earlier run of the same pages, before the fix commit,
-which does not touch them; only the run suffix of the synthetic names differs.
+### Run of 2026-11-09 (final fix wave)
+
+Against the previous run, 45 of the 55 shots are pixel-identical. The other 10 (`banner-*-desktop`, `profile-*-desktop`,
+`security-*-desktop`, `security-password-changed-*-desktop`, `security-email-pending-*-desktop`, Arabic and English) differ only in the
+store switcher at the top of the sidebar, where the random hex channel code of this run's stack shows (the known P1.S5 item above). A
+pixel comparison gave a change box of about 140 by 12 pixels on each; `banner-ar-desktop` and `security-email-pending-en-desktop` were
+opened to confirm it. No screen changed in layout or wording: this fix wave changed no dashboard code.
