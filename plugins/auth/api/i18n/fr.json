@@ -1,0 +1,6 @@
+{
+  "error": {
+    "auth-login-rate-limited": "Trop de tentatives de connexion. Veuillez patienter avant de réessayer.",
+    "auth-use-account-security": "Modifiez votre e-mail ou votre mot de passe depuis la page de sécurité du compte."
+  }
+}

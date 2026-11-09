@@ -2,7 +2,7 @@
  * Token bucket in one round trip. It is `takeToken` (domain/token-bucket.ts) in Lua and must stay equal to it:
  * refill from the stored stamp, take a token if one is there, otherwise take nothing and report the wait.
  *
- * KEYS[1] bucket hash; ARGV: capacity, window in ms, now in ms. Returns {allowed, retryAfterSeconds}.
+ * KEYS[1] bucket hash; ARGV: capacity, window in ms, now in ms. Returns {allowed, retryAfterSeconds, exhausted}.
  * The caller's clock is passed in so that all instances and the tests agree on one notion of time.
  */
 export const TOKEN_BUCKET_SCRIPT = `
@@ -20,16 +20,20 @@ local elapsed = math.max(0, nowMs - updated)
 tokens = math.min(capacity, tokens + elapsed * capacity / windowMs)
 local allowed = 0
 local retry = 0
+local exhausted = 1
 if tokens + 1e-9 >= 1 then
   tokens = tokens - 1
   allowed = 1
+  if tokens + 1e-9 >= 1 then
+    exhausted = 0
+  end
 else
   local waitMs = math.floor((1 - tokens) * windowMs / capacity + 0.5)
   retry = math.max(1, math.ceil(waitMs / 1000))
 end
 redis.call('HSET', KEYS[1], 't', tostring(tokens), 'u', tostring(math.max(nowMs, updated)))
 redis.call('PEXPIRE', KEYS[1], windowMs)
-return {allowed, retry}
+return {allowed, retry, exhausted}
 `;
 
 /**

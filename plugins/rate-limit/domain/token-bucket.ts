@@ -38,11 +38,17 @@ export function takeToken(state: BucketState | undefined, policy: RateLimitPolic
   // Never move the stamp back: instances with slightly different clocks would otherwise refill twice.
   const updatedAtMs = Math.max(nowMs, state?.updatedAtMs ?? nowMs);
   if (tokens + TOKEN_EPSILON >= 1) {
-    return { decision: ALLOWED, state: { tokens: tokens - 1, updatedAtMs } };
+    const remaining = tokens - 1;
+    const decision = { ...ALLOWED, exhausted: remaining + TOKEN_EPSILON < 1 };
+    return { decision, state: { tokens: remaining, updatedAtMs } };
   }
   const waitMs = (1 - tokens) / refillRate(policy);
   return {
-    decision: { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil(Math.round(waitMs) / MS_PER_SECOND)) },
+    decision: {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil(Math.round(waitMs) / MS_PER_SECOND)),
+      exhausted: true,
+    },
     state: { tokens, updatedAtMs },
   };
 }

@@ -12,3 +12,6 @@ export const AUTH_EMAIL_TEMPLATES: unique symbol = Symbol('AuthEmailTemplates');
 
 /** Injection token of the `EmailSenderPort` adapter. */
 export const EMAIL_SENDER: unique symbol = Symbol('EmailSender');
+
+/** Injection token of {@link SessionTerminatorPort}. */
+export const SESSION_TERMINATOR = Symbol('SESSION_TERMINATOR');

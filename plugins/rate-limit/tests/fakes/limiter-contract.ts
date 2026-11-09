@@ -31,7 +31,25 @@ export function describeLimiterContract(name: string, create: () => LimiterHarne
 
       // Assert: 10 per minute refills one token every 6 s
       expect(decisions.slice(0, LOGIN_PAIR.capacity).every((decision) => decision.allowed)).toBe(true);
-      expect(decisions[LOGIN_PAIR.capacity]).toEqual({ allowed: false, retryAfterSeconds: 6 });
+      expect(decisions[LOGIN_PAIR.capacity]).toEqual({ allowed: false, retryAfterSeconds: 6, exhausted: true });
+    });
+
+    it('reports the call that takes the last token as exhausted, and no earlier one', async () => {
+      // Arrange
+      const { limiter, uniqueKey } = create();
+      const key = uniqueKey();
+
+      // Act
+      const decisions = [];
+      for (let i = 0; i < LOGIN_PAIR.capacity; i += 1) {
+        decisions.push(await limiter.consume('login-pair', key));
+      }
+
+      // Assert
+      expect(decisions.map((decision) => decision.exhausted)).toEqual([
+        ...Array<boolean>(LOGIN_PAIR.capacity - 1).fill(false),
+        true,
+      ]);
     });
 
     it('reports a shorter wait as the clock advances', async () => {
@@ -47,7 +65,7 @@ export function describeLimiterContract(name: string, create: () => LimiterHarne
       const decision = await limiter.consume('login-pair', key);
 
       // Assert
-      expect(decision).toEqual({ allowed: false, retryAfterSeconds: 2 });
+      expect(decision).toEqual({ allowed: false, retryAfterSeconds: 2, exhausted: true });
     });
 
     it('refills after the window', async () => {
@@ -84,7 +102,7 @@ export function describeLimiterContract(name: string, create: () => LimiterHarne
 
       // Assert
       expect(afterOneSecond.allowed).toBe(true);
-      expect(immediately).toEqual({ allowed: false, retryAfterSeconds: 1 });
+      expect(immediately).toEqual({ allowed: false, retryAfterSeconds: 1, exhausted: true });
     });
 
     it('keeps policies and keys apart', async () => {

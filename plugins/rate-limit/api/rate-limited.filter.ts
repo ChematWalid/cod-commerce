@@ -1,5 +1,5 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@nestjs/common';
-import { parseContext } from '@vendure/core';
+import { type I18nRequest, parseContext } from '@vendure/core';
 import { RateLimitedError } from './rate-limited.error';
 
 /**
@@ -17,7 +17,8 @@ export class RateLimitedFilter implements ExceptionFilter<RateLimitedError> {
     }
     res.status(HttpStatus.TOO_MANY_REQUESTS).json({
       statusCode: HttpStatus.TOO_MANY_REQUESTS,
-      message: error.message,
+      // Only GraphQL errors pass through Vendure's translation; on REST the i18n key would reach the client.
+      message: (req as Partial<I18nRequest>).t?.(error.message) ?? error.message,
       retryAfterSeconds: error.retryAfterSeconds,
       path: req.url,
     });

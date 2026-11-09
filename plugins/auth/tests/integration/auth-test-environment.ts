@@ -1,5 +1,7 @@
+import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { createPluginTestEnvironment, loadPluginTestDbConfig } from '@cod/testing';
+import { VendurePlugin } from '@vendure/core';
 import { AuthPlugin, type AuthEmailOptions } from '../../auth.plugin';
 import type { AuthEmailTemplatesPort } from '../../domain/ports/auth-email-templates.port';
 import { EchoTemplates } from '../fakes/recording-email';
@@ -7,6 +9,21 @@ import { EchoTemplates } from '../fakes/recording-email';
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const SNOWFLAKE_WORKER_ID = 1007;
 const DEFAULT_MAILPIT_SMTP_PORT = 1026;
+
+/** The header tests name the client address with, so one process can act as many addresses. */
+export const TEST_CLIENT_IP_HEADER = 'x-test-client-ip';
+
+/** Turns on the cookie method next to `testConfig`'s bearer one, as the server's `buildAuthConfig` does. */
+@VendurePlugin({
+  configuration: (config) => {
+    config.authOptions.tokenMethod = ['cookie', 'bearer'];
+    config.authOptions.cookieOptions = { secret: 'integration-test-only-cookie-secret' };
+    return config;
+  },
+})
+// A Vendure plugin is a decorated class; its metadata is the whole plugin.
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+class CookieSessionsTestPlugin {}
 
 /** The compose Mailpit as seen from the host: the SMTP port `MAILPIT_SMTP_HOST_PORT` publishes. */
 export function mailpitSmtp(): AuthEmailOptions['smtp'] {
@@ -24,11 +41,14 @@ export function createAuthTestEnvironment(
     readonly poolSize?: number;
     readonly templates?: AuthEmailTemplatesPort;
     readonly smtp?: AuthEmailOptions['smtp'];
+    readonly cookieSessions?: boolean;
   } = {},
 ): ReturnType<typeof createPluginTestEnvironment> {
-  const { templates = new EchoTemplates(), smtp = mailpitSmtp(), ...environment } = options;
+  const { templates = new EchoTemplates(), smtp = mailpitSmtp(), cookieSessions = false, ...environment } = options;
   return createPluginTestEnvironment({
     plugins: [
+      ...(cookieSessions ? [CookieSessionsTestPlugin] : []),
+      RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: TEST_CLIENT_IP_HEADER }),
       TenancyPlugin.init({
         redisUrl: TEST_REDIS_URL,
         platformDomain: 'localhost',

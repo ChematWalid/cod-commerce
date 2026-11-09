@@ -21,6 +21,9 @@ export const ADMINISTRATOR_PHONE_MAX_LENGTH = 20;
 /** Length of `Administrator.customFields.emailLocale`. */
 export const EMAIL_LOCALE_LENGTH = 2;
 
+/** How long one session cache delete may take; a cache that hangs must not hold up a logout. */
+export const SESSION_CACHE_DELETE_TIMEOUT_MS = 1000;
+
 const DAY_MS = 86_400_000;
 
 /** Finished tokens stay this long after expiry or consumption, then the purge removes them (D43). */
@@ -37,3 +40,9 @@ export const RECIPIENT_HASH_DOMAIN = 'recipient:';
 
 /** Characters of the recipient hash that appear in logs: enough to correlate, too short to look an address up. */
 export const RECIPIENT_HASH_LENGTH = 16;
+
+/** i18n key of the refused login (D30): the stock login form shows the message, so it must be translated. */
+export const LOGIN_RATE_LIMITED_MESSAGE = 'error.auth-login-rate-limited';
+
+/** i18n key of a profile update that must go through the account security flows (D38). */
+export const USE_ACCOUNT_SECURITY_MESSAGE = 'error.auth-use-account-security';

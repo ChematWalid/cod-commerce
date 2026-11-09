@@ -43,7 +43,7 @@ const guardWith = (limiter: RateLimiter): RateLimitGuard =>
 describe('RateLimitGuard', () => {
   it('consumes the handler policy, keyed by the client address, and lets an allowed request through', async () => {
     // Arrange
-    const limiter = new RecordingLimiter({ allowed: true, retryAfterSeconds: 0 });
+    const limiter = new RecordingLimiter({ allowed: true, retryAfterSeconds: 0, exhausted: false });
 
     // Act
     const result = await guardWith(limiter).canActivate(restContext(limitedHandler));
@@ -55,7 +55,7 @@ describe('RateLimitGuard', () => {
 
   it('refuses with RATE_LIMITED and the wait when the limiter denies', async () => {
     // Arrange
-    const limiter = new RecordingLimiter({ allowed: false, retryAfterSeconds: 7 });
+    const limiter = new RecordingLimiter({ allowed: false, retryAfterSeconds: 7, exhausted: true });
 
     // Act
     const attempt = guardWith(limiter).canActivate(restContext(limitedHandler));
@@ -67,7 +67,7 @@ describe('RateLimitGuard', () => {
 
   it('ignores a handler without a policy', async () => {
     // Arrange
-    const limiter = new RecordingLimiter({ allowed: false, retryAfterSeconds: 7 });
+    const limiter = new RecordingLimiter({ allowed: false, retryAfterSeconds: 7, exhausted: true });
 
     // Act
     const result = await guardWith(limiter).canActivate(restContext(unlimitedHandler));

@@ -47,7 +47,7 @@ describe('takeToken', () => {
     const second = takeToken(first.state, policy, 0);
 
     // Assert: 20 per hour refills a token every 180 s
-    expect(first.decision).toEqual({ allowed: false, retryAfterSeconds: 180 });
+    expect(first.decision).toEqual({ allowed: false, retryAfterSeconds: 180, exhausted: true });
     expect(second.decision).toEqual(first.decision);
   });
 

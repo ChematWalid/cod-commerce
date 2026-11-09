@@ -35,6 +35,8 @@ const RAW_DATA_ACCESS_FILES = [
   // `account_token` is an account-level table, not a tenant one (D24).
   '**/plugins/auth/infrastructure/typeorm-account-token.repository.ts',
   '**/plugins/auth/infrastructure/account-token-purge.task.ts',
+  // `session` is Vendure's account-level table, and SessionService has no single-session delete (D22).
+  '**/plugins/auth/infrastructure/session-terminator.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';

@@ -30,7 +30,7 @@ const NO_EXPIRY = -1;
 
 /** The custom commands {@link createLimiterRedis} defines on the client. */
 export interface LimiterRedis extends Redis {
-  rlTokenBucket(key: string, capacity: number, windowMs: number, nowMs: number): Promise<[number, number]>;
+  rlTokenBucket(key: string, capacity: number, windowMs: number, nowMs: number): Promise<[number, number, number]>;
   rlLockout(
     lockKey: string,
     levelKey: string,
@@ -116,13 +116,13 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
   async consume(policy: RateLimitPolicyName, key: string): Promise<RateLimitDecision> {
     const definition = RATE_LIMIT_POLICIES[policy];
     const fromValkey = await this.viaValkey(async () => {
-      const [allowed, retryAfterSeconds] = await this.redis.rlTokenBucket(
+      const [allowed, retryAfterSeconds, exhausted] = await this.redis.rlTokenBucket(
         `${KEY_PREFIX}:${policy}:${key}`,
         definition.capacity,
         definition.windowSeconds * MS_PER_SECOND,
         this.now(),
       );
-      return { allowed: allowed === 1, retryAfterSeconds };
+      return { allowed: allowed === 1, retryAfterSeconds, exhausted: exhausted === 1 };
     });
     if (fromValkey !== undefined) {
       return fromValkey;

@@ -1,0 +1,6 @@
+{
+  "error": {
+    "auth-login-rate-limited": "Too many sign-in attempts. Please wait before trying again.",
+    "auth-use-account-security": "Change your email or password from the account security page."
+  }
+}
