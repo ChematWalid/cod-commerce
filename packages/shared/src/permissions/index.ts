@@ -4,5 +4,6 @@ export * from './catalog';
 export * from './constants';
 export * from './error-codes';
 export * from './expand';
+export * from './localized-label';
 export * from './types';
 export * from './vendure-name';

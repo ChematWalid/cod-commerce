@@ -1,18 +1,11 @@
 import type { PermissionArea } from './areas';
-import type { PermissionKey } from './catalog';
+import type { LocalizedLabel } from './localized-label';
 
 /** What a permission lets someone do: look only, or change things. */
 export type PermissionLevel = 'view' | 'full';
 
 /** The level of a whole area on a role: nothing, look only, or everything. */
 export type AreaLevel = 'none' | 'view' | 'full';
-
-/** Display text. `fr` is optional and falls back to `en` (D72). */
-export interface LocalizedLabel {
-  readonly en: string;
-  readonly ar: string;
-  readonly fr?: string;
-}
 
 /** A permission as declared in the catalog files, with literal key and area types. */
 export interface PermissionDefinition<K extends string = string, A extends PermissionArea = PermissionArea> {
@@ -23,6 +16,3 @@ export interface PermissionDefinition<K extends string = string, A extends Permi
   readonly sensitive: boolean;
   readonly label: LocalizedLabel;
 }
-
-/** One entry of {@link PERMISSION_CATALOG}. */
-export type PermissionDefinitionEntry = PermissionDefinition<PermissionKey>;

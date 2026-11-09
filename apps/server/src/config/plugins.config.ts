@@ -3,6 +3,7 @@ import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions } from '@cod/
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
+import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
@@ -113,6 +114,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
     }),
+    RbacPlugin,
     authPlugin(env),
     assetServerPlugin(env),
   ];

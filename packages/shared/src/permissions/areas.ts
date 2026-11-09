@@ -1,4 +1,4 @@
-import type { LocalizedLabel } from './types';
+import type { LocalizedLabel } from './localized-label';
 
 /** The twelve permission areas, in display order. */
 export const PERMISSION_AREA_IDS = [

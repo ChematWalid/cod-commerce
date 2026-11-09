@@ -1,6 +1,6 @@
 import type { PermissionArea } from './areas';
 import { PERMISSION_CATALOG, type PermissionKey } from './catalog';
-import type { LocalizedLabel } from './types';
+import type { LocalizedLabel } from './localized-label';
 
 /** Keys of the seven roles every business starts with, in display order. */
 export const BUILT_IN_ROLE_KEYS = [

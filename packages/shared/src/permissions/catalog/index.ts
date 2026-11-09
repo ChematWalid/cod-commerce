@@ -1,4 +1,4 @@
-import type { PermissionDefinitionEntry } from '../types';
+import type { PermissionDefinition } from '../types';
 import { ORDERS_PERMISSIONS } from './orders';
 import { CATALOG_PERMISSIONS, INVENTORY_PERMISSIONS, OFFERS_PERMISSIONS, TRACKING_PERMISSIONS } from './products';
 import { ANALYTICS_PERMISSIONS, DELIVERY_PERMISSIONS, FINANCE_PERMISSIONS, TEAM_PERMISSIONS } from './operations';
@@ -21,6 +21,9 @@ const DECLARED = [
 
 /** Every permission key, as a literal union. */
 export type PermissionKey = (typeof DECLARED)[number]['key'];
+
+/** One entry of {@link PERMISSION_CATALOG}. */
+export type PermissionDefinitionEntry = PermissionDefinition<PermissionKey>;
 
 /** The 93 permissions, grouped by area in display order. */
 export const PERMISSION_CATALOG: readonly PermissionDefinitionEntry[] = DECLARED;
