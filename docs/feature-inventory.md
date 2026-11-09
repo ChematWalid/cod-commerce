@@ -14,8 +14,8 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 
 | ✓ | Feature | Type | Where / notes |
 |---|---|---|---|
-| [ ] | Register, login, logout, email verification (link + OTP), forgot/reset password, change password, change email | C | `/login`, `/register`, `/forgot-password` |
-| [ ] | Google and Facebook sign-in | I | login page |
+| [x] | Register, login, logout, email verification (link + OTP), forgot/reset password, change password, change email | C | `/login`, `/register`, `/forgot-password` |
+| [x] | Google and Facebook sign-in | I | login page |
 | [x] | Business profile (logo, name) and onboarding state | C | `/settings` |
 | [ ] | Multi-store per business, store switcher with subdomain | C | top bar |
 | [ ] | Plans Starter / Basic / Advanced, monthly or 3/6/12-month prepay (−10/−15/−20%) | C | `S:/store_settings?tab=plan` |
@@ -230,7 +230,7 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 
 | ✓ | Feature | Type | Area / notes |
 |---|---|---|---|
-| [ ] | Sign-up wizard (3 steps) with store name, live subdomain availability, store language, logo | C | Accounts |
+| [x] | Sign-up wizard (3 steps) with store name, live subdomain availability, store language, logo | C | Accounts |
 | [ ] | Onboarding checklist on Home (add product → connect carrier → test order → confirm) + "Example" data on empty dashboard | C | Home |
 | [ ] | Account menu: Profile (photo, name, phone), Security (change password), Notification settings (browser push permission, per-event Email/Push toggles for new order, delivered, confirmed, dispatched, returned, cancelled, abandoned checkout, delivery note, assigned to me, scheduled, business updates; Send test), Language, Light/Dark theme | C | Accounts |
 | [ ] | Store switcher with "Create Store" | C | Accounts |
