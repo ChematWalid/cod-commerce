@@ -6,9 +6,11 @@ import {
   type ActivityRecord,
   parseVendureId,
 } from '../domain/activity';
-import { ACTIVITY_DEFAULT_PAGE_SIZE, ACTIVITY_MAX_PAGE_SIZE } from '../domain/constants';
+import { ACTIVITY_DEFAULT_PAGE_SIZE, ACTIVITY_MAX_PAGE_SIZE, ALL_STORES_SCOPE } from '../domain/constants';
 import type { ActivityLogPort } from '../domain/ports/activity-log.port';
 import type { ActorDirectoryPort } from '../domain/ports/actor-directory.port';
+import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
+import { holdsAllAccess } from '../domain/store-access';
 
 /** What a caller asks of the log; ids are the decimal text clients send. */
 export interface ActivityLogRequest {
@@ -18,8 +20,10 @@ export interface ActivityLogRequest {
   readonly action?: string;
   readonly entityType?: string;
   readonly entityId?: string;
-  /** The stores the caller can see rows of (D65). */
+  /** The stores the caller can reach today (D65). */
   readonly visibleStoreIds: readonly StoreId[];
+  /** Who asks: a member with all-stores access also sees the rows of archived stores. */
+  readonly viewerAdministratorId: number;
 }
 
 /** A row with the name of whoever did it. */
@@ -53,6 +57,7 @@ export class GetActivityLogService {
   constructor(
     private readonly log: ActivityLogPort,
     private readonly actors: ActorDirectoryPort,
+    private readonly assignments: Pick<MemberAssignmentRepositoryPort, 'ofAdministrator'>,
   ) {}
 
   /**
@@ -71,21 +76,34 @@ export class GetActivityLogService {
       action: request.action,
       entityType: request.entityType,
       entityId: request.entityId,
-      visibleStoreIds: request.visibleStoreIds,
+      visibleStoreIds: await this.visibleStores(ctx, scope, request),
     };
     const rows = await this.log.list(ctx, scope, query);
     const page = rows.slice(0, limit);
     return {
-      items: await this.withActors(ctx, page),
+      items: await this.withActors(ctx, scope, page),
       nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
     };
   }
 
-  private async withActors(ctx: OperationContext, rows: readonly ActivityRecord[]): Promise<ActivityItem[]> {
+  private async visibleStores(
+    ctx: OperationContext,
+    scope: TenantScope,
+    { viewerAdministratorId, visibleStoreIds }: ActivityLogRequest,
+  ): Promise<ActivityQuery['visibleStoreIds']> {
+    const held = await this.assignments.ofAdministrator(ctx, scope, viewerAdministratorId);
+    return holdsAllAccess(held) ? ALL_STORES_SCOPE : visibleStoreIds;
+  }
+
+  private async withActors(
+    ctx: OperationContext,
+    scope: TenantScope,
+    rows: readonly ActivityRecord[],
+  ): Promise<ActivityItem[]> {
     const ids = [
       ...new Set(rows.flatMap((row) => (row.actorAdministratorId === null ? [] : [row.actorAdministratorId]))),
     ];
-    const names = ids.length === 0 ? new Map<number, string>() : await this.actors.namesOf(ctx, ids);
+    const names = ids.length === 0 ? new Map<number, string>() : await this.actors.namesOf(ctx, scope, ids);
     return rows.map(({ actorAdministratorId, ...row }) => ({
       ...row,
       actor:

@@ -6,6 +6,7 @@ import {
   ACTIVITY_IP_MAX_LENGTH,
   ACTIVITY_SUMMARY_MAX_LENGTH,
   ACTIVITY_USER_AGENT_MAX_LENGTH,
+  type ALL_STORES_SCOPE,
   MAX_VENDURE_ID,
 } from './constants';
 
@@ -74,8 +75,8 @@ export interface ActivityQuery {
   readonly action?: string;
   readonly entityType?: string;
   readonly entityId?: string;
-  /** Rows of a store show only for these stores; rows of no store always show. */
-  readonly visibleStoreIds: readonly StoreId[];
+  /** Rows of a store show only for these stores, or for every store; rows of no store always show (D65). */
+  readonly visibleStoreIds: readonly StoreId[] | typeof ALL_STORES_SCOPE;
 }
 
 const clip = (text: string, max: number): string => (text.length > max ? text.slice(0, max) : text);

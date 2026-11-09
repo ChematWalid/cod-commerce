@@ -4,9 +4,13 @@ import { BUILT_IN_ROLES } from '@cod/shared';
 import { PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import { ActivityLogResolver } from './api/activity-log.resolver';
 import { RBAC_PERMISSION_DEFINITIONS } from './api/permission-definitions';
+import { RequestActors } from './api/actor-of';
+import { MemberAccessResolver } from './api/member-access.resolver';
 import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
+import { BindingProjector } from './application/binding-projector.service';
 import { GetActivityLogService } from './application/get-activity-log.service';
+import { MemberAccessService } from './application/member-access.service';
 import { ExtendAllBindingsService } from './application/extend-all-bindings.service';
 import { RbacConvergeService } from './application/rbac-converge.service';
 import { SeedBuiltInRolesService } from './application/seed-built-in-roles.service';
@@ -85,8 +89,9 @@ const systemClock: ClockPort = { now: () => new Date() };
     },
     {
       provide: GetActivityLogService,
-      useFactory: (log: ActivityLogPort, actors: ActorDirectoryPort) => new GetActivityLogService(log, actors),
-      inject: [ACTIVITY_LOG, ACTOR_DIRECTORY],
+      useFactory: (log: ActivityLogPort, actors: ActorDirectoryPort, assignments: MemberAssignmentRepositoryPort) =>
+        new GetActivityLogService(log, actors, assignments),
+      inject: [ACTIVITY_LOG, ACTOR_DIRECTORY, MEMBER_ASSIGNMENTS],
     },
     {
       provide: SeedBuiltInRolesService,
@@ -154,11 +159,72 @@ const systemClock: ClockPort = { now: () => new Date() };
         CLOCK,
       ],
     },
+    {
+      provide: BindingProjector,
+      useFactory: (
+        ...[bindings, assignments, engine, directory, ids]: [
+          RoleBindingRepositoryPort,
+          MemberAssignmentRepositoryPort,
+          EngineRolesPort,
+          BusinessDirectoryPort,
+          IdGeneratorPort,
+        ]
+      ) => new BindingProjector({ bindings, assignments, engine, directory, ids }),
+      inject: [ROLE_BINDINGS, MEMBER_ASSIGNMENTS, ENGINE_ROLES, BUSINESS_DIRECTORY, SNOWFLAKE_ID_GENERATOR],
+    },
+    {
+      provide: MemberAccessService,
+      useFactory: (
+        ...[transaction, lock, members, directory, roles, assignments, engine, projector, activity, flusher, ids, clock]: [
+          TransactionPort,
+          RbacLockPort,
+          ActorDirectoryPort,
+          BusinessDirectoryPort,
+          BusinessRoleRepositoryPort,
+          MemberAssignmentRepositoryPort,
+          EngineRolesPort,
+          BindingProjector,
+          ActivityLogService,
+          SessionFlusherPort,
+          IdGeneratorPort,
+          ClockPort,
+        ]
+      ) =>
+        new MemberAccessService({
+          transaction,
+          lock,
+          members,
+          directory,
+          roles,
+          assignments,
+          engine,
+          projector,
+          activity,
+          flusher,
+          ids,
+          clock,
+        }),
+      inject: [
+        TRANSACTION,
+        RBAC_LOCK,
+        ACTOR_DIRECTORY,
+        BUSINESS_DIRECTORY,
+        BUSINESS_ROLES,
+        MEMBER_ASSIGNMENTS,
+        ENGINE_ROLES,
+        BindingProjector,
+        ActivityLogService,
+        SESSION_FLUSHER,
+        SNOWFLAKE_ID_GENERATOR,
+        CLOCK,
+      ],
+    },
+    RequestActors,
     ActivityRecordHandler,
     RbacLifecycleHook,
     StoreAccessFlushSubscriber,
   ],
-  adminApiExtensions: { schema: adminApiSchema, resolvers: [ActivityLogResolver] },
+  adminApiExtensions: { schema: adminApiSchema, resolvers: [ActivityLogResolver, MemberAccessResolver] },
   configuration: addPermissions,
   compatibility: '^3.8.0',
 })

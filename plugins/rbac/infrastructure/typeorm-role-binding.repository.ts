@@ -1,5 +1,5 @@
 import { RequestTenantScope, type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import { type TenantScope, toSnowflake } from '@cod/shared';
+import { type Snowflake, type TenantScope, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { RoleBinding } from '../domain/business-role';
 import { ALL_STORES_SCOPE } from '../domain/constants';
@@ -28,6 +28,10 @@ export class TypeOrmRoleBindingRepository implements RoleBindingRepositoryPort {
 
   async insert(ctx: OperationContext, scope: TenantScope, binding: RoleBinding): Promise<void> {
     await this.rows.insert(new RequestTenantScope(toRequestContext(ctx), scope.businessId), { ...binding });
+  }
+
+  async delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<void> {
+    await this.rows.delete(new RequestTenantScope(toRequestContext(ctx), scope.businessId), { id });
   }
 
   async allBindings(ctx: OperationContext, scope: TenantScope): Promise<readonly RoleBinding[]> {

@@ -4,6 +4,7 @@ import type { BusinessId, Snowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { BusinessDirectoryPort, ConvergeTarget } from '../domain/ports/business-directory.port';
 import type { OperationContext } from '../domain/ports/operation-context';
+import type { BusinessStore } from '../domain/store-access';
 import { toRequestContext } from './request-context';
 
 /** {@link BusinessDirectoryPort} on tenancy's platform-wide directory. */
@@ -13,6 +14,14 @@ export class TenancyBusinessDirectory implements BusinessDirectoryPort {
 
   page(ctx: OperationContext, afterId: Snowflake | undefined, limit: number): Promise<readonly ConvergeTarget[]> {
     return this.directory.allBusinessIds(asTenancyContext(toRequestContext(ctx)), afterId, limit);
+  }
+
+  stores(ctx: OperationContext, businessId: BusinessId): Promise<readonly BusinessStore[]> {
+    return this.directory.storesOf(asTenancyContext(toRequestContext(ctx)), businessId);
+  }
+
+  ownerAdministratorOf(ctx: OperationContext, businessId: BusinessId): Promise<number | null> {
+    return this.directory.ownerAdministratorOf(asTenancyContext(toRequestContext(ctx)), businessId);
   }
 
   async storeChannelIds(ctx: OperationContext, businessId: BusinessId): Promise<readonly number[]> {

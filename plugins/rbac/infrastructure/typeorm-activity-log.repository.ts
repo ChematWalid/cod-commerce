@@ -1,11 +1,12 @@
 import type { OperationContext } from '../domain/ports/operation-context';
 import { RequestTenantScope, type TenantRepository, TenantRepositoryFactory, tenantQuery } from '@cod/plugin-tenancy';
-import { type Snowflake, type TenantScope, toSnowflake } from '@cod/shared';
+import { type TenantScope, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import type { ActivityEntry, ActivityQuery, ActivityRecord } from '../domain/activity';
 import type { ActivityLogPort } from '../domain/ports/activity-log.port';
+import { ALL_STORES_SCOPE } from '../domain/constants';
 import { ActivityLogEntity } from './activity-log.entity';
 import { toRequestContext } from './request-context';
 
@@ -81,7 +82,11 @@ export class TypeOrmActivityLogRepository implements ActivityLogPort {
     return select.orderBy(`${ALIAS}.id`, 'DESC').limit(query.limit);
   }
 
-  private limitToVisibleStores(select: SelectQueryBuilder<ActivityLogEntity>, stores: readonly Snowflake[]): void {
+  private limitToVisibleStores(
+    select: SelectQueryBuilder<ActivityLogEntity>,
+    stores: ActivityQuery['visibleStoreIds'],
+  ): void {
+    if (stores === ALL_STORES_SCOPE) return;
     if (stores.length === 0) {
       select.andWhere(`${ALIAS}.storeId IS NULL`);
       return;

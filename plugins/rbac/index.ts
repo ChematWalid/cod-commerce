@@ -7,4 +7,10 @@ export type { ActivityEntryInput } from './domain/activity';
 export { ActivityRecordEvent } from './infrastructure/activity-record.event';
 export { RbacConvergeService, type ConvergeReport } from './application/rbac-converge.service';
 export { SESSION_FLUSH_SETTLE_MS } from './domain/constants';
+export {
+  MemberAccessService,
+  type MemberAccessActor,
+  type MemberAccessView,
+  type SetMemberAccessCommand,
+} from './application/member-access.service';
 export { asOperationContext } from './domain/ports/operation-context';

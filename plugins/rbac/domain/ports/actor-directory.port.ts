@@ -1,7 +1,11 @@
+import type { TenantScope } from '@cod/shared';
 import type { OperationContext } from './operation-context';
 
-/** The display names of administrators. */
+/** The administrators of one business. */
 export interface ActorDirectoryPort {
-  /** The name of each administrator that exists; an id with no administrator is absent from the map. */
-  namesOf(ctx: OperationContext, ids: readonly number[]): Promise<ReadonlyMap<number, string>>;
+  /** The name of each of these administrators that belongs to the business, departed ones too. Any other id is absent. */
+  namesOf(ctx: OperationContext, scope: TenantScope, ids: readonly number[]): Promise<ReadonlyMap<number, string>>;
+
+  /** Whether the id names a current administrator of the business. */
+  isMember(ctx: OperationContext, scope: TenantScope, administratorId: number): Promise<boolean>;
 }

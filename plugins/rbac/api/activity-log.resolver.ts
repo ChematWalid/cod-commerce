@@ -1,5 +1,4 @@
 import { asOperationContext } from '../domain/ports/operation-context';
-import { tenantOf } from '@cod/plugin-tenancy';
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { Ctx, type RequestContext } from '@vendure/core';
 import {
@@ -7,6 +6,7 @@ import {
   type ActivityLogRequest,
   type ActivityPage,
 } from '../application/get-activity-log.service';
+import { RequestActors } from './actor-of';
 import { withRbacErrors } from './error-mapping';
 import { requirePermission } from './require-permission.decorator';
 
@@ -23,7 +23,7 @@ const orUndefined = <T>(value: T | null | undefined): T | undefined => value ?? 
 
 function toRequest(
   input: ActivityLogInputDto | null | undefined,
-  visibleStoreIds: ActivityLogRequest['visibleStoreIds'],
+  viewer: Pick<ActivityLogRequest, 'visibleStoreIds' | 'viewerAdministratorId'>,
 ): ActivityLogRequest {
   return {
     first: orUndefined(input?.first),
@@ -32,23 +32,27 @@ function toRequest(
     action: orUndefined(input?.action),
     entityType: orUndefined(input?.entityType),
     entityId: orUndefined(input?.entityId),
-    visibleStoreIds,
+    ...viewer,
   };
 }
 
 /** The activity log of the caller's business. */
 @Resolver()
 export class ActivityLogResolver {
-  constructor(private readonly activity: GetActivityLogService) {}
+  constructor(
+    private readonly activity: GetActivityLogService,
+    private readonly actors: RequestActors,
+  ) {}
 
-  /** One page of the log, newest first. Rows of a store show only to members with access to that store (D65). */
+  /** One page of the log, newest first. Rows of a store show only to members with access to that store; all-stores members also see archived stores (D65). */
   @Query()
   @requirePermission('settings.activity-log.view')
-  activityLog(
+  async activityLog(
     @Ctx() ctx: RequestContext,
     @Args('input') input: ActivityLogInputDto | null | undefined,
   ): Promise<ActivityPage> {
-    const tenant = tenantOf(ctx);
-    return withRbacErrors(() => this.activity.list(asOperationContext(ctx), tenant, toRequest(input, tenant.storeIds)));
+    const { administratorId, tenant } = await this.actors.actorOf(ctx);
+    const viewer = { visibleStoreIds: tenant.storeIds, viewerAdministratorId: administratorId };
+    return withRbacErrors(() => this.activity.list(asOperationContext(ctx), tenant, toRequest(input, viewer)));
   }
 }

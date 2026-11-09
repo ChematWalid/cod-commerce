@@ -34,7 +34,36 @@ export const adminApiSchema = gql`
     nextCursor: String
   }
 
+  enum StoreAccessMode {
+    all
+    selected
+  }
+
+  input SetMemberAccessInput {
+    administratorId: String!
+    roleIds: [String!]!
+    storeAccess: StoreAccessMode!
+    storeIds: [String!]
+  }
+
+  type MemberAccessRole {
+    id: String!
+    name: String!
+  }
+
+  type MemberAccess {
+    administratorId: String!
+    roles: [MemberAccessRole!]!
+    storeAccess: StoreAccessMode!
+    storeIds: [String!]!
+  }
+
   extend type Query {
     activityLog(input: ActivityLogInput): ActivityLogPage!
+    memberAccess(administratorId: String!): MemberAccess
+  }
+
+  extend type Mutation {
+    setMemberAccess(input: SetMemberAccessInput!): MemberAccess!
   }
 `;

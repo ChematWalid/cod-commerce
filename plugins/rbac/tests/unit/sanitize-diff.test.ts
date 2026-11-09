@@ -24,6 +24,36 @@ describe('sanitizeDiff', () => {
     });
   });
 
+  it.each([
+    'privateKey',
+    'private_key',
+    'accessKey',
+    'ACCESS-KEY',
+    'session',
+    'sessionId',
+    'credential',
+    'credentials',
+    'cvv',
+    'cardCvv',
+    'otp',
+    'otpCode',
+    'hash',
+  ])('redacts %s', (key) => {
+    // Act
+    const clean = sanitizeDiff({ [key]: 'x' });
+
+    // Assert
+    expect(clean).toEqual({ [key]: REDACTED_VALUE });
+  });
+
+  it.each(['footprint', 'hashtag', 'obsession', 'accessKeyboard', 'credentialing'])('keeps %s', (key) => {
+    // Act
+    const clean = sanitizeDiff({ [key]: 'x' });
+
+    // Assert
+    expect(clean).toEqual({ [key]: 'x' });
+  });
+
   it('keeps ordinary keys and values', () => {
     // Arrange
     const diff = { name: 'Orders', permissions: ['a.b', 'c.d'], count: 3, flag: true, none: null };

@@ -51,7 +51,7 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/auth/infrastructure/vendure-account-profile.ts',
   // `authentication_method` and `user` are Vendure's account-level tables (D36).
   '**/plugins/auth/infrastructure/vendure-external-identity.ts',
-  // `administrator` is Vendure's account-level table; only display names leave, for ids a business's own rows hold.
+  // `administrator` is Vendure's account-level table; every read carries the caller's business.
   '**/plugins/rbac/infrastructure/vendure-actor-directory.ts',
   // Runs only the advisory lock (D70).
   '**/plugins/rbac/infrastructure/rbac-lock.ts',

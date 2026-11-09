@@ -52,6 +52,11 @@ export class TypeOrmBusinessRoleRepository implements BusinessRoleRepositoryPort
     );
   }
 
+  async all(ctx: OperationContext, scope: TenantScope): Promise<readonly BusinessRole[]> {
+    const rows = await this.rows.find(new RequestTenantScope(toRequestContext(ctx), scope.businessId));
+    return rows.map(toRole);
+  }
+
   async findBuiltIn(ctx: OperationContext, scope: TenantScope, key: BuiltInRoleKey): Promise<BusinessRole | undefined> {
     const row = await this.rows.findOne(new RequestTenantScope(toRequestContext(ctx), scope.businessId), {
       builtInKey: key,

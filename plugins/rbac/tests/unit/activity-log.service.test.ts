@@ -34,11 +34,13 @@ function setup(): { log: InMemoryActivityLog; record: ActivityLogService; read: 
   return {
     log,
     record: new ActivityLogService(log, new SequentialIdGenerator(), new FixedClock(NOW)),
-    read: new GetActivityLogService(log, new FakeActorDirectory(new Map([[7, 'Amina Benali']]))),
+    read: new GetActivityLogService(log, new FakeActorDirectory(new Map([[7, 'Amina Benali']])), {
+      ofAdministrator: () => Promise.resolve([]),
+    }),
   };
 }
 
-const request = (visibleStoreIds: readonly StoreId[] = []) => ({ visibleStoreIds });
+const request = (visibleStoreIds: readonly StoreId[] = []) => ({ visibleStoreIds, viewerAdministratorId: 7 });
 
 describe('ActivityLogService.record', () => {
   it('stores the entry with an id, the time and a sanitized diff', async () => {

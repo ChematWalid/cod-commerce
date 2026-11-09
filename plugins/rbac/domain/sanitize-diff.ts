@@ -1,7 +1,20 @@
 import { ACTIVITY_DIFF_MAX_BYTES, DIFF_MAX_DEPTH, DIFF_OMITTED_VALUE, REDACTED_VALUE } from './constants';
 
-/** Keys whose values are secrets, in any case and spelling (D66). */
-const SENSITIVE_KEY = /password|secret|token|otp|hash|api.?key|authorization|cookie/i;
+/** Unambiguous fragments: a key containing one is a secret, even written without word breaks (`authtoken`). */
+const SENSITIVE_FRAGMENT = /password|secret|token|authorization|cookie/i;
+
+/** Short or common words: matched whole, so `footprint` is not an `otp` and `hashtag` is not a `hash` (D66). */
+const SENSITIVE_WORD = /\b(?:otp|hash|sessions?|cvv|credentials?|api ?key|private ?key|access ?key)\b/;
+
+/** `API_Key`, `api-key` and `apiKey` all become `api key`. */
+const wordsOf = (key: string): string =>
+  key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .toLowerCase();
+
+const isSensitiveKey = (key: string): boolean => SENSITIVE_FRAGMENT.test(key) || SENSITIVE_WORD.test(wordsOf(key));
 
 /** What a diff becomes when it is too large to keep. */
 export const TRUNCATED_DIFF: Readonly<Record<string, unknown>> = { truncated: true };
@@ -18,7 +31,7 @@ function sanitizeValue(value: unknown, depth: number, ancestors: ReadonlySet<obj
   return Object.fromEntries(
     Object.entries(value).map(([key, inner]) => [
       key,
-      SENSITIVE_KEY.test(key) ? REDACTED_VALUE : sanitizeValue(inner, depth + 1, path),
+      isSensitiveKey(key) ? REDACTED_VALUE : sanitizeValue(inner, depth + 1, path),
     ]),
   );
 }

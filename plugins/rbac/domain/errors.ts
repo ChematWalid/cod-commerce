@@ -14,6 +14,87 @@ export class RoleNameInvalidError extends RbacError {
   }
 }
 
+/** The administrator is not a member of the caller's business, or the id cannot name one (D68). */
+export class MemberNotFoundError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.MEMBER_NOT_FOUND;
+
+  constructor() {
+    super('Member not found');
+  }
+}
+
+/** The role is not one of the caller's business. */
+export class RoleNotFoundError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.ROLE_NOT_FOUND;
+
+  constructor() {
+    super('Role not found');
+  }
+}
+
+/** The actor does not hold what the change needs (D60). */
+export class PrivilegeExceededError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.PRIVILEGE_EXCEEDED;
+
+  constructor() {
+    super('You cannot grant or change more than you hold');
+  }
+}
+
+/** Nobody changes their own assignment (D60.5). */
+export class SelfAssignmentError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.SELF_ASSIGNMENT;
+
+  constructor() {
+    super('You cannot change your own access');
+  }
+}
+
+/** A non-owner edited a role they hold (D60.6). */
+export class SelfHeldRoleError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.SELF_HELD_ROLE;
+
+  constructor() {
+    super('You cannot edit a role you hold');
+  }
+}
+
+/** Only an Owner holder grants or removes Owner (D60.7). */
+export class OwnerRestrictedError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.OWNER_RESTRICTED;
+
+  constructor() {
+    super('Only an owner can grant or remove the Owner role');
+  }
+}
+
+/** The change would leave the business without its owner or any Owner holder (D60.8). */
+export class LastOwnerError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.LAST_OWNER;
+
+  constructor() {
+    super('The business must keep its owner');
+  }
+}
+
+/** A named store is another business's, archived, or out of the actor's reach. */
+export class StoreNotAccessibleError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.STORE_NOT_ACCESSIBLE;
+
+  constructor() {
+    super('That store is not accessible');
+  }
+}
+
+/** Selected-store access names no store. */
+export class StoreAccessInvalidError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.STORE_ACCESS_INVALID;
+
+  constructor() {
+    super('Selected-store access needs at least one store');
+  }
+}
+
 /** A business whose row has no owner role or administrator, so its Owner cannot be bound (D57). */
 export class BusinessOwnerLinkMissingError extends Error {
   constructor(businessId: BusinessId) {

@@ -21,3 +21,15 @@ export async function restStatus(app: INestApplication, client: SimpleGraphQLCli
   const response = await client.fetch(`http://localhost:${String(port)}${path}`);
   return response.status;
 }
+
+/** Like {@link actAs}, but leaves the client's previous session open, so its token stays usable; returns the new token. */
+export async function actAsInNewSession(
+  client: SimpleGraphQLClient,
+  credentials: CredentialsFixture,
+  store: StoreFixture,
+): Promise<string> {
+  // `asUserWithCredentials` logs the current session out whenever the client holds a token.
+  client.setAuthToken('');
+  await actAs(client, credentials, store);
+  return client.getAuthToken();
+}

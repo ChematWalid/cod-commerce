@@ -22,7 +22,7 @@ export interface RbacConvergePorts {
   readonly bindings: Pick<RoleBindingRepositoryPort, 'insert' | 'allBindings'>;
   readonly assignments: Pick<MemberAssignmentRepositoryPort, 'insert' | 'isAssigned' | 'holdersOf'>;
   readonly engine: Pick<EngineRolesPort, 'describeRole' | 'updatePermissions' | 'addChannel' | 'ownerPermissions'>;
-  readonly directory: BusinessDirectoryPort;
+  readonly directory: Pick<BusinessDirectoryPort, 'page' | 'storeChannelIds'>;
   readonly transaction: TransactionPort;
   readonly flusher: SessionFlusherPort;
   readonly ids: IdGeneratorPort;

@@ -20,6 +20,9 @@ export abstract class BusinessStoreDirectory {
   /** Every store of the business, archived ones too: the caller decides what counts. */
   abstract storesOf(ctx: OperationContext, businessId: BusinessId): Promise<readonly StoreAccess[]>;
 
+  /** The administrator the business was provisioned for, or `null` when it has none or does not exist. */
+  abstract ownerAdministratorOf(ctx: OperationContext, businessId: BusinessId): Promise<number | null>;
+
   /** Up to `limit` (at most {@link MAX_BUSINESS_PAGE_SIZE}, at least 1) businesses with an id above `afterId` (all of them when absent), in ascending id order. */
   abstract allBusinessIds(
     ctx: OperationContext,
