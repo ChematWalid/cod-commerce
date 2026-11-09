@@ -188,13 +188,17 @@ describe('switchableStores', () => {
     // Arrange
     const businesses = server.app.get(TransactionalConnection).rawConnection.getRepository(BusinessEntity);
     await businesses.update({ id: fixtures.b.businessId }, { status: 'suspended' });
-    await asOwner(fixtures.b);
+    try {
+      await asOwner(fixtures.b);
 
-    // Act
-    const view = await switchable();
-    await businesses.update({ id: fixtures.b.businessId }, { status: 'active' });
+      // Act
+      const view = await switchable();
 
-    // Assert
-    expect(view.stores).toEqual([]);
+      // Assert
+      expect(view.stores).toEqual([]);
+    } finally {
+      // Later tests use business B as active, whatever this one did.
+      await businesses.update({ id: fixtures.b.businessId }, { status: 'active' });
+    }
   });
 });
