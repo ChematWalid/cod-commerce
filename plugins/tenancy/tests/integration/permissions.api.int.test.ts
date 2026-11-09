@@ -94,7 +94,9 @@ describe('Admin API permissions of a tenant member', () => {
   describe('the PlatformStaff permission (D78)', () => {
     const channelsHolding = async (): Promise<string[]> => {
       const { me } = await adminClient.query<MyPermissions>(MY_PERMISSIONS);
-      return me.channels.filter((channel) => channel.permissions.includes(PLATFORM_STAFF_PERMISSION)).map((c) => c.token);
+      return me.channels
+        .filter((channel) => channel.permissions.includes(PLATFORM_STAFF_PERMISSION))
+        .map((c) => c.token);
     };
 
     it('is held by the superadmin on the default channel and on a store channel', async () => {
