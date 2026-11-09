@@ -7,6 +7,7 @@ import {
   brandDashboardHtml,
   DashboardBrandingError,
   dashboardBrandingPlugin,
+  DESCRIPTION_SUFFIX,
   ICON_FILE_NAME,
 } from '../../src/config/dashboard-branding.vite';
 
@@ -39,7 +40,8 @@ describe('brandDashboardHtml', () => {
   it('names no vendor in the description or the author', () => {
     const html = brandDashboardHtml(STOCK_INDEX_HTML, PRODUCT_NAME);
     expect(html).not.toMatch(/vendure/i);
-    expect(html).toContain(`<meta name="description" content="${PRODUCT_NAME} merchant dashboard" />`);
+    expect(html).toContain(`<meta name="description" content="${PRODUCT_NAME}${DESCRIPTION_SUFFIX}" />`);
+    expect(DESCRIPTION_SUFFIX).toBe(' merchant dashboard');
     expect(html).toContain(`<meta name="author" content="${PRODUCT_NAME}" />`);
   });
 
@@ -97,9 +99,23 @@ describe('dashboardBrandingPlugin', () => {
     try {
       writeFileSync(join(outDir, 'favicon.png'), 'png');
       const configResolved = plugin.configResolved as (config: unknown) => void;
-      configResolved({ root: '/', build: { outDir } });
+      configResolved({ command: 'build', root: '/', build: { outDir } });
       (plugin.closeBundle as () => void)();
       expect(existsSync(join(outDir, 'favicon.png'))).toBe(false);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves the output folder alone outside a build', () => {
+    const devPlugin = dashboardBrandingPlugin(BASE_PATH);
+    const outDir = mkdtempSync(join(tmpdir(), 'cod-branding-'));
+    try {
+      writeFileSync(join(outDir, 'favicon.png'), 'png');
+      const configResolved = devPlugin.configResolved as (config: unknown) => void;
+      configResolved({ command: 'serve', root: '/', build: { outDir } });
+      (devPlugin.closeBundle as () => void)();
+      expect(existsSync(join(outDir, 'favicon.png'))).toBe(true);
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }

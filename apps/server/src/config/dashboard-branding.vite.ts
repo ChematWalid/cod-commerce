@@ -12,6 +12,9 @@ const STOCK_ICON_FILE_NAME = 'favicon.png';
 /** Our own artwork: a neutral glyph that names no product. */
 const ICON_SOURCE_PATH = join(__dirname, '../assets/brand-icon.svg');
 
+/** What follows the product name in the description meta tag. */
+export const DESCRIPTION_SUFFIX = ' merchant dashboard';
+
 /** The icon link of the package's `index.html`, which names a PNG of the framework. */
 const ICON_LINK = /<link\s+rel="icon"[^>]*>/;
 /** The two meta tags of the package's `index.html` that name the framework. */
@@ -55,7 +58,7 @@ export function brandDashboardHtml(html: string, productName: string, iconHref: 
     withIcon,
     DESCRIPTION_META,
     'description meta',
-    `<meta name="description" content="${name} merchant dashboard" />`,
+    `<meta name="description" content="${name}${escapeAttribute(DESCRIPTION_SUFFIX)}" />`,
   );
   return replaceTag(withDescription, AUTHOR_META, 'author meta', `<meta name="author" content="${name}" />`);
 }
@@ -74,6 +77,7 @@ export type DashboardBrandingPlugin = Plugin & {
 export function dashboardBrandingPlugin(basePath: string): DashboardBrandingPlugin {
   const iconHref = `${basePath.replace(/\/$/, '')}/${ICON_FILE_NAME}`;
   let outDir = '';
+  let isBuild = false;
   return {
     name: 'cod:dashboard-branding',
     transformIndexHtml: {
@@ -89,11 +93,14 @@ export function dashboardBrandingPlugin(basePath: string): DashboardBrandingPlug
     },
     configResolved(config) {
       outDir = resolve(config.root, config.build.outDir);
+      isBuild = config.command === 'build';
     },
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: ICON_FILE_NAME, source: readFileSync(ICON_SOURCE_PATH) });
     },
     closeBundle() {
+      // Only a build writes the output folder; `vite dev` must not touch an earlier build's files.
+      if (!isBuild) return;
       // The package's public folder copies its own PNG into every build, after the bundle is generated; nothing
       // refers to it any more.
       rmSync(join(outDir, STOCK_ICON_FILE_NAME), { force: true });
