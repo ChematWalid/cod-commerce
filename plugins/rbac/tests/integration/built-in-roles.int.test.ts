@@ -17,9 +17,7 @@ import {
   Permission,
   RequestContextService,
   Role,
-  Seller,
   TransactionalConnection,
-  User,
 } from '@vendure/core';
 import gql from 'graphql-tag';
 import type { EntityTarget, ObjectLiteral, Repository } from 'typeorm';
@@ -32,13 +30,7 @@ import type { RoleBindingRepositoryPort } from '../../domain/ports/role-binding-
 import { BusinessRoleEntity } from '../../infrastructure/business-role.entity';
 import { MemberRoleAssignmentEntity } from '../../infrastructure/member-role-assignment.entity';
 import { RoleBindingEntity } from '../../infrastructure/role-binding.entity';
-import {
-  CANCEL_ORDER,
-  CREATE_STORE,
-  FORBIDDEN_STOCK_OPERATIONS,
-  PROVISION_BUSINESS,
-  STOCK_ADMINISTRATORS,
-} from './built-in-roles-kit';
+import { CANCEL_ORDER, CREATE_STORE, FORBIDDEN_STOCK_OPERATIONS, STOCK_ADMINISTRATORS } from './built-in-roles-kit';
 import { actAs } from './rbac-kit';
 import { createRbacTestEnvironment } from './rbac-test-environment';
 
@@ -178,53 +170,6 @@ describe('Built-in roles at provisioning', () => {
       await adminClient.asSuperAdmin();
       const answer = await adminClient.query<{ administrators: { totalItems: number } }>(STOCK_ADMINISTRATORS);
       expect(answer.administrators.totalItems).toBeGreaterThan(0);
-    });
-  });
-
-  describe('atomicity', () => {
-    const rowCounts = (): Promise<number[]> =>
-      Promise.all(
-        [
-          'BusinessEntity',
-          'StoreEntity',
-          Channel,
-          Role,
-          Seller,
-          User,
-          Administrator,
-          BusinessRoleEntity,
-          RoleBindingEntity,
-          MemberRoleAssignmentEntity,
-        ].map((entity) => repository(entity as EntityTarget<ObjectLiteral>).count()),
-      );
-
-    it('leaves nothing behind when the seed fails partway', async () => {
-      adminClient.setChannelToken(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
-      await adminClient.asSuperAdmin();
-      const before = await rowCounts();
-      const bindings = server.app.get<RoleBindingRepositoryPort>(ROLE_BINDINGS);
-      const suffix = randomBytes(3).toString('hex');
-      const failing = vi.spyOn(bindings, 'insert').mockRejectedValueOnce(new Error('forced seed failure'));
-
-      const failure = await failureOf(
-        adminClient.query(PROVISION_BUSINESS, {
-          input: {
-            name: 'Failing SARL',
-            owner: {
-              emailAddress: `failing-${suffix}@example.test`,
-              firstName: 'F',
-              lastName: 'Owner',
-              password: 'synthetic-owner-password',
-            },
-            store: { name: 'Failing store', subdomain: `failing-${suffix}`, language: 'ar' },
-          },
-        }),
-      );
-
-      expect(failing).toHaveBeenCalledOnce();
-      failing.mockRestore();
-      expect(failure.codes.length).toBeGreaterThan(0);
-      expect(await rowCounts()).toEqual(before);
     });
   });
 

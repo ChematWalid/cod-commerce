@@ -2,13 +2,11 @@ import { RequestTenantScope, type TenantRepository, TenantRepositoryFactory } fr
 import type { TenantScope } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { MemberAssignment } from '../domain/business-role';
-import type { MemberStoreAccess } from '../domain/constants';
+import { ALL_STORES_SCOPE } from '../domain/constants';
 import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { MemberRoleAssignmentEntity } from './member-role-assignment.entity';
 import { toRequestContext } from './request-context';
-
-const ALL_STORES_ACCESS: MemberStoreAccess = 'all';
 
 /** The Postgres adapter of {@link MemberAssignmentRepositoryPort}, on `TenantRepository` (ADR 0002). */
 @Injectable()
@@ -28,7 +26,7 @@ export class TypeOrmMemberAssignmentRepository implements MemberAssignmentReposi
 
   async allStoresAdministratorIds(ctx: OperationContext, scope: TenantScope): Promise<readonly number[]> {
     const rows = await this.rows.find(new RequestTenantScope(toRequestContext(ctx), scope.businessId), {
-      where: { storeAccess: ALL_STORES_ACCESS },
+      where: { storeAccess: ALL_STORES_SCOPE },
     });
     return [...new Set(rows.map((row) => row.administratorId))];
   }
