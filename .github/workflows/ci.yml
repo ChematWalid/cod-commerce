@@ -93,6 +93,12 @@ jobs:
       - run: scripts/check-data-services.sh
       - name: Check compose portability
         shell: bash
+        # .env.example holds local loopback values; the gate judges the deployed defaults, as verify-stack.sh does.
+        env:
+          AUTH_DASHBOARD_URL: ''
+          SMTP_HOST: ''
+          SMTP_PORT: ''
+          SMTP_FROM: ''
         run: |
           set -o pipefail
           docker compose config --format json | node scripts/check-compose-portability.mjs
