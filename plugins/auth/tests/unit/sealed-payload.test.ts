@@ -48,6 +48,12 @@ describe('SealedPayloadCodec', () => {
     expect(() => new SealedPayloadCodec(`${SECRET}x`).open(codec.seal(PAYLOAD))).toThrow(SealedPayloadError);
   });
 
+  it('does not open under another queue context', () => {
+    expect(() => new SealedPayloadCodec(SECRET, undefined, 'another-queue').open(codec.seal(PAYLOAD))).toThrow(
+      SealedPayloadError,
+    );
+  });
+
   it('does not use the secret itself as the key', () => {
     // Arrange: a codec whose key is derived under another label must not open it.
     const other = new SealedPayloadCodec(SECRET, 'another-label');

@@ -1,12 +1,12 @@
 import { PRODUCT_NAME } from '@cod/shared';
 import type { AuthEmailLocale, AuthEmailVars, RenderedEmail } from '@cod/plugin-auth';
-import { type MessageSpec, renderMessage, requireVar } from './layout';
+import { isolate, type MessageSpec, renderMessage, requireVar } from './layout';
 
 function spec(locale: AuthEmailLocale, name: string): MessageSpec {
   if (locale === 'ar') {
     return {
       subject: `تم تغيير كلمة مرورك في ${PRODUCT_NAME}`,
-      greeting: `مرحبًا ${name}،`,
+      greeting: `مرحبًا ${isolate(name)}،`,
       paragraphs: ['تم تغيير كلمة مرور حسابك للتو.', 'إذا لم تكن أنت من قام بذلك، فأعد تعيين كلمة المرور فورًا.'],
       footnote: 'أُرسلت هذه الرسالة لإعلامك فقط.',
     };

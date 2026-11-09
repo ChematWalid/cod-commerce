@@ -18,6 +18,6 @@ export class AuthEmailService {
    */
   async enqueue(ctx: OperationContext, request: AuthEmailRequest): Promise<void> {
     const checked = parseAuthEmailRequest(request);
-    await this.queue.enqueue(ctx, this.sealer.seal(checked));
+    await this.queue.enqueue(ctx, this.sealer.seal(checked), checked.kind);
   }
 }

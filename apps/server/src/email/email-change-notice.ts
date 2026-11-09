@@ -1,14 +1,14 @@
 import { PRODUCT_NAME } from '@cod/shared';
 import type { AuthEmailLocale, AuthEmailVars, RenderedEmail } from '@cod/plugin-auth';
-import { type MessageSpec, renderMessage, requireVar } from './layout';
+import { isolate, type MessageSpec, renderMessage, requireVar } from './layout';
 
 function spec(locale: AuthEmailLocale, name: string, newEmail: string): MessageSpec {
   if (locale === 'ar') {
     return {
       subject: `طلب تغيير بريدك الإلكتروني في ${PRODUCT_NAME}`,
-      greeting: `مرحبًا ${name}،`,
+      greeting: `مرحبًا ${isolate(name)}،`,
       paragraphs: [
-        `طُلب تغيير بريد حسابك إلى: ${newEmail}. لن يتغير شيء قبل تأكيد العنوان الجديد.`,
+        `طُلب تغيير بريد حسابك إلى: ${isolate(newEmail)}. لن يتغير شيء قبل تأكيد العنوان الجديد.`,
         'إذا لم تكن أنت من طلب ذلك، فغيّر كلمة مرورك فورًا.',
       ],
       footnote: 'أُرسلت هذه الرسالة إلى بريدك الحالي لإعلامك فقط.',

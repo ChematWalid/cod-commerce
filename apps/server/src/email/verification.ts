@@ -1,6 +1,6 @@
 import { OTP_TTL_MS, PRODUCT_NAME, VERIFY_LINK_TTL_MS } from '@cod/shared';
 import type { AuthEmailLocale, AuthEmailVars, RenderedEmail } from '@cod/plugin-auth';
-import { describeDuration, type MessageSpec, renderMessage, requireHttpUrl, requireVar } from './layout';
+import { describeDuration, isolate, type MessageSpec, renderMessage, requireHttpUrl, requireVar } from './layout';
 
 function spec(locale: AuthEmailLocale, name: string, link: string, code: string): MessageSpec {
   const linkLife = describeDuration(locale, VERIFY_LINK_TTL_MS);
@@ -8,7 +8,7 @@ function spec(locale: AuthEmailLocale, name: string, link: string, code: string)
   if (locale === 'ar') {
     return {
       subject: `تأكيد بريدك الإلكتروني في ${PRODUCT_NAME}`,
-      greeting: `مرحبًا ${name}،`,
+      greeting: `مرحبًا ${isolate(name)}،`,
       paragraphs: [
         `شكرًا لانضمامك إلى ${PRODUCT_NAME}. أكّد بريدك الإلكتروني بالضغط على الزر أدناه، أو أدخل الرمز في صفحة التأكيد.`,
       ],

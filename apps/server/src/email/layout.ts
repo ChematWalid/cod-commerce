@@ -37,6 +37,17 @@ export function requireHttpUrl(value: string): string {
   return value;
 }
 
+const FIRST_STRONG_ISOLATE = '\u2068';
+const POP_DIRECTIONAL_ISOLATE = '\u2069';
+
+/**
+ * Keeps a Latin name or address from reordering the Arabic text around it (and the other way round): the bidi
+ * algorithm treats the wrapped value as one unit. It works in html and in plain text.
+ */
+export function isolate(value: string): string {
+  return `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`;
+}
+
 /** The variable `name` of an email's variables. @throws Error if it is missing or empty. */
 export function requireVar(vars: AuthEmailVars, name: string): string {
   const value = vars[name];

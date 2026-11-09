@@ -32,5 +32,8 @@ export const AUTH_EMAIL_QUEUE = 'auth-email';
 /** Delivery attempts per email: the first try and four retries. */
 export const AUTH_EMAIL_ATTEMPTS = 5;
 
+/** Domain separator of the recipient hash in logs. */
+export const RECIPIENT_HASH_DOMAIN = 'recipient:';
+
 /** Characters of the recipient hash that appear in logs: enough to correlate, too short to look an address up. */
 export const RECIPIENT_HASH_LENGTH = 16;

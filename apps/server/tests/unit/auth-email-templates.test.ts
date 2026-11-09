@@ -70,6 +70,23 @@ describe('auth email templates', () => {
     expect(email.subject).not.toContain('<');
   });
 
+  it('isolates the Latin name and address inside Arabic text, in html and text', () => {
+    const vars = { ...varsFor('email-change-confirm'), name: 'Sara', newEmail: 'new@example.test' };
+
+    const email = authEmailTemplates.render('email-change-confirm', 'ar', vars);
+
+    for (const body of [email.html, email.text]) {
+      expect(body).toContain('\u2068Sara\u2069');
+      expect(body).toContain('\u2068new@example.test\u2069');
+    }
+  });
+
+  it('adds no isolates to English copy', () => {
+    const email = authEmailTemplates.render('password-changed', 'en', varsFor('password-changed'));
+
+    expect(email.text).not.toMatch(/[\u2068\u2069]/);
+  });
+
   it('escapes a hostile link inside its attribute', () => {
     const hostile = 'https://x.test/?a="><script>alert(1)</script>';
 

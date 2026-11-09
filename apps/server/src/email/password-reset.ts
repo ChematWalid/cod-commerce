@@ -1,13 +1,13 @@
 import { PRODUCT_NAME, RESET_TOKEN_TTL_MS } from '@cod/shared';
 import type { AuthEmailLocale, AuthEmailVars, RenderedEmail } from '@cod/plugin-auth';
-import { describeDuration, type MessageSpec, renderMessage, requireHttpUrl, requireVar } from './layout';
+import { describeDuration, isolate, type MessageSpec, renderMessage, requireHttpUrl, requireVar } from './layout';
 
 function spec(locale: AuthEmailLocale, name: string, link: string): MessageSpec {
   const life = describeDuration(locale, RESET_TOKEN_TTL_MS);
   if (locale === 'ar') {
     return {
       subject: `إعادة تعيين كلمة المرور في ${PRODUCT_NAME}`,
-      greeting: `مرحبًا ${name}،`,
+      greeting: `مرحبًا ${isolate(name)}،`,
       paragraphs: ['تلقّينا طلبًا لإعادة تعيين كلمة مرور حسابك. اضغط على الزر أدناه لاختيار كلمة مرور جديدة.'],
       action: { label: 'إعادة تعيين كلمة المرور', url: link },
       footnote: `الرابط صالح لمدة ${life} ويعمل مرة واحدة فقط. إذا لم تطلب ذلك، تجاهل هذه الرسالة: كلمة مرورك لم تتغير.`,

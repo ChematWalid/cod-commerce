@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
+import { AUTH_EMAIL_QUEUE } from '../domain/constants';
 import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
 
 /** HKDF label of the sealing key: it keeps that key apart from the HMAC key `AUTH_TOKEN_SECRET` also feeds (D25). */
@@ -25,13 +26,19 @@ export class SealedPayloadError extends Error {
 export class SealedPayloadCodec implements PayloadSealerPort {
   private readonly key: Buffer;
 
-  constructor(secret: string, label: string = SEAL_KEY_LABEL) {
+  /** `context` is authenticated but not stored: a payload sealed for one queue does not open for another. */
+  constructor(
+    secret: string,
+    label: string = SEAL_KEY_LABEL,
+    private readonly context: string = AUTH_EMAIL_QUEUE,
+  ) {
     this.key = Buffer.from(hkdfSync('sha256', secret, Buffer.alloc(0), label, KEY_BYTES));
   }
 
   seal(payload: unknown): string {
     const iv = randomBytes(IV_BYTES);
     const cipher = createCipheriv(CIPHER, this.key, iv);
+    cipher.setAAD(Buffer.from(this.context));
     const body = Buffer.concat([cipher.update(JSON.stringify(payload), 'utf8'), cipher.final()]);
     return FORMAT_PREFIX + Buffer.concat([iv, cipher.getAuthTag(), body]).toString('base64url');
   }
@@ -46,6 +53,7 @@ export class SealedPayloadCodec implements PayloadSealerPort {
     }
     try {
       const decipher = createDecipheriv(CIPHER, this.key, bytes.subarray(0, IV_BYTES));
+      decipher.setAAD(Buffer.from(this.context));
       decipher.setAuthTag(bytes.subarray(IV_BYTES, IV_BYTES + TAG_BYTES));
       const plain = Buffer.concat([decipher.update(bytes.subarray(IV_BYTES + TAG_BYTES)), decipher.final()]);
       return JSON.parse(plain.toString('utf8')) as unknown;

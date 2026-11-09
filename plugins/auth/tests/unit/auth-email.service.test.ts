@@ -51,7 +51,7 @@ describe('AuthEmailService and AuthEmailDelivery', () => {
 
     // Assert
     expect(sender.sent).toHaveLength(1);
-    expect(sender.sent[0]).toMatchObject({ to: 'Owner@Example.test', subject: 'verification/ar' });
+    expect(sender.sent[0]).toMatchObject({ to: 'owner@example.test', subject: 'verification/ar' });
     expect(sender.sent[0]?.text).toContain(RAW_TOKEN);
     expect(sender.sent[0]?.text).toContain('code=482913');
   });
@@ -60,6 +60,19 @@ describe('AuthEmailService and AuthEmailDelivery', () => {
     await expect(service.enqueue(CTX, { ...REQUEST, vars: { name: 'Sara' } })).rejects.toThrow(
       InvalidAuthEmailRequestError,
     );
+    expect(queue.queued).toHaveLength(0);
+  });
+
+  it.each([
+    'a@x.test, b@y.test',
+    'a@x.test;b@y.test',
+    'Name <b@y.test>',
+    '"a@x.test, b" <c@y.test>',
+    'a@x.test b@y.test',
+    'a@x.test\r\nBcc: b@y.test',
+    '',
+  ])('refuses the recipient %j: only one bare address is accepted', async (to) => {
+    await expect(service.enqueue(CTX, { ...REQUEST, to })).rejects.toThrow(InvalidAuthEmailRequestError);
     expect(queue.queued).toHaveLength(0);
   });
 
@@ -103,6 +116,18 @@ describe('AuthEmailService and AuthEmailDelivery', () => {
 
     // Assert
     expect(first.recipientHash).toBe(second.recipientHash);
+  });
+
+  it('tells a readable but invalid request from an unreadable one', async () => {
+    // Arrange: sealed by this codec, but not an email request.
+    const sealed = new SealedPayloadCodec(SECRET).seal({ kind: 'newsletter', to: 'a@x.test', locale: 'en', vars: {} });
+
+    // Act
+    const error = (await delivery.deliver(sealed).catch((e: unknown) => e)) as AuthEmailDeliveryError;
+
+    // Assert
+    expect(error.kind).toBe('invalid');
+    expect(sender.sent).toHaveLength(0);
   });
 
   it('fails delivery of an unreadable payload without a kind', async () => {

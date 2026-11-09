@@ -1,15 +1,15 @@
 import { EMAIL_CHANGE_TTL_MS, PRODUCT_NAME } from '@cod/shared';
 import type { AuthEmailLocale, AuthEmailVars, RenderedEmail } from '@cod/plugin-auth';
-import { describeDuration, type MessageSpec, renderMessage, requireHttpUrl, requireVar } from './layout';
+import { describeDuration, isolate, type MessageSpec, renderMessage, requireHttpUrl, requireVar } from './layout';
 
 function spec(locale: AuthEmailLocale, name: string, link: string, newEmail: string): MessageSpec {
   const life = describeDuration(locale, EMAIL_CHANGE_TTL_MS);
   if (locale === 'ar') {
     return {
       subject: `تأكيد عنوان بريدك الإلكتروني الجديد في ${PRODUCT_NAME}`,
-      greeting: `مرحبًا ${name}،`,
+      greeting: `مرحبًا ${isolate(name)}،`,
       paragraphs: [
-        `طُلب تغيير بريد حسابك في ${PRODUCT_NAME} إلى هذا العنوان: ${newEmail}. اضغط على الزر أدناه لتأكيد التغيير.`,
+        `طُلب تغيير بريد حسابك في ${PRODUCT_NAME} إلى هذا العنوان: ${isolate(newEmail)}. اضغط على الزر أدناه لتأكيد التغيير.`,
       ],
       action: { label: 'تأكيد البريد الجديد', url: link },
       footnote: `الرابط صالح لمدة ${life}. إذا لم تطلب ذلك، تجاهل هذه الرسالة ولن يتغير شيء.`,

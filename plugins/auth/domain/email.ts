@@ -1,4 +1,4 @@
-import { DomainError } from '@cod/shared';
+import { DomainError, emailSchema } from '@cod/shared';
 
 /** The transactional emails of the account flows. */
 export const AUTH_EMAIL_KINDS = [
@@ -55,7 +55,7 @@ export class InvalidAuthEmailRequestError extends DomainError {
 /** A delivery attempt failed. It names the kind and a hash of the recipient, never the address or the body. */
 export class AuthEmailDeliveryError extends Error {
   constructor(
-    readonly kind: AuthEmailKind | 'unreadable',
+    readonly kind: AuthEmailKind | 'unreadable' | 'invalid',
     readonly recipientHash: string | null,
     readonly reason: string,
   ) {
@@ -81,6 +81,15 @@ function stringVars(value: unknown): Record<string, string> | undefined {
 }
 
 /**
+ * The one bare address in `value`, normalised. A list (`a@x.test, b@y.test`) or a display name
+ * (`Name <b@y.test>`) is refused: nodemailer would send either to several recipients.
+ */
+function singleAddress(value: unknown): string | undefined {
+  const parsed = emailSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/**
  * Checks a value read from the queue or a caller against the request shape.
  *
  * @throws InvalidAuthEmailRequestError naming what is wrong, never a value.
@@ -97,12 +106,13 @@ export function parseAuthEmailRequest(value: unknown): AuthEmailRequest {
   if (!includes(AUTH_EMAIL_LOCALES, locale)) {
     throw new InvalidAuthEmailRequestError('unknown locale');
   }
-  if (typeof to !== 'string' || to.trim() === '' || vars === undefined) {
+  const recipient = singleAddress(to);
+  if (recipient === undefined || vars === undefined) {
     throw new InvalidAuthEmailRequestError('recipient or variables malformed');
   }
   const missing = AUTH_EMAIL_REQUIRED_VARS[kind].filter((name) => (vars[name] ?? '') === '');
   if (missing.length > 0) {
     throw new InvalidAuthEmailRequestError(`${kind} lacks ${missing.join(', ')}`);
   }
-  return { kind, to, locale, vars };
+  return { kind, to: recipient, locale, vars };
 }

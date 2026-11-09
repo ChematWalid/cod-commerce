@@ -9,7 +9,14 @@ export { redisOptionsFromUrl };
  * The wait before the first retry of an account email; it doubles each time, so five attempts span about eight
  * minutes, long enough to outlast a mail server restart (BullMQ's default of 1 s would burn them in 15 s).
  */
-export const AUTH_EMAIL_BACKOFF = { type: 'exponential', delay: 30_000 } as const;
+export const AUTH_EMAIL_BACKOFF_DELAY_MS = 30_000;
+
+/** BullMQ's per-queue job options: the account email queue backs off; the others keep the default. */
+export function authEmailJobOptions(
+  delay: number = AUTH_EMAIL_BACKOFF_DELAY_MS,
+): NonNullable<BullMQPluginOptions['setJobOptions']> {
+  return (queueName) => (queueName === AUTH_EMAIL_QUEUE ? { backoff: { type: 'exponential', delay } } : {});
+}
 
 /**
  * BullMQ options. Its blocking worker connections require `maxRetriesPerRequest: null`, and queue keys are
@@ -21,7 +28,6 @@ export function bullMqOptions(env: AppEnv): BullMQPluginOptions {
     connection: { ...redisOptionsFromUrl(env.REDIS_URL), maxRetriesPerRequest: null },
     queueOptions: { prefix },
     workerOptions: { prefix },
-    // Other queues keep BullMQ's default backoff.
-    setJobOptions: (queueName) => (queueName === AUTH_EMAIL_QUEUE ? { backoff: AUTH_EMAIL_BACKOFF } : {}),
+    setJobOptions: authEmailJobOptions(),
   };
 }

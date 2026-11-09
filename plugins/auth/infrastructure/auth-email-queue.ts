@@ -2,7 +2,7 @@ import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { EventBus, JobQueueService, Logger, type RequestContext, VendureEvent } from '@vendure/core';
 import { AuthEmailDelivery } from '../application/auth-email-delivery';
 import { AUTH_EMAIL_ATTEMPTS, AUTH_EMAIL_QUEUE } from '../domain/constants';
-import { AuthEmailDeliveryError } from '../domain/email';
+import { type AuthEmailKind, AuthEmailDeliveryError } from '../domain/email';
 import type { AuthEmailQueuePort } from '../domain/ports/auth-email-queue.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 
@@ -21,6 +21,7 @@ export class AuthEmailRequestedEvent extends VendureEvent {
   constructor(
     readonly ctx: RequestContext,
     readonly sealed: string,
+    readonly kind: AuthEmailKind,
   ) {
     super();
   }
@@ -31,8 +32,9 @@ export class AuthEmailRequestedEvent extends VendureEvent {
 export class EventBusAuthEmailQueue implements AuthEmailQueuePort {
   constructor(private readonly eventBus: EventBus) {}
 
-  async enqueue(ctx: OperationContext, sealed: string): Promise<void> {
-    await this.eventBus.publish(new AuthEmailRequestedEvent(ctx as unknown as RequestContext, sealed));
+  async enqueue(ctx: OperationContext, sealed: string, kind: AuthEmailKind): Promise<void> {
+    // The one place the opaque context becomes Vendure's: the event bus reads its transaction from it.
+    await this.eventBus.publish(new AuthEmailRequestedEvent(ctx as unknown as RequestContext, sealed, kind));
   }
 }
 
@@ -58,7 +60,7 @@ export class AuthEmailJobs implements OnModuleInit {
     });
     this.queue = queue;
     this.eventBus.ofType(AuthEmailRequestedEvent).subscribe((event) => {
-      void this.add(event.sealed);
+      void this.add(event.sealed, event.kind);
     });
   }
 
@@ -76,12 +78,15 @@ export class AuthEmailJobs implements OnModuleInit {
     }
   }
 
-  private async add(sealed: string): Promise<void> {
+  private async add(sealed: string, kind: AuthEmailKind): Promise<void> {
     try {
-      await this.queue?.add({ sealed }, { retries: AUTH_EMAIL_ATTEMPTS - 1 });
+      if (this.queue === undefined) {
+        throw new Error('the auth-email queue is not created yet');
+      }
+      await this.queue.add({ sealed }, { retries: AUTH_EMAIL_ATTEMPTS - 1 });
     } catch (error) {
       // The request is already committed and cannot be handed back to the caller: say so loudly.
-      Logger.error(`Auth email could not be queued: ${(error as Error).name}`, LOG_CONTEXT);
+      Logger.error(`Auth email could not be queued: kind=${kind} reason=${(error as Error).name}`, LOG_CONTEXT);
     }
   }
 }
