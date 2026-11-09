@@ -7,18 +7,22 @@ import type { AreaLevel } from './types';
 /** Thrown when an input names a key that is not in the catalog. */
 export class UnknownPermissionError extends DomainError {
   readonly code = RBAC_ERROR_CODES.UNKNOWN_PERMISSION;
+  readonly key: string;
 
-  constructor(readonly key: string) {
+  constructor(key: string) {
     super(`Unknown permission key: ${key}`);
+    this.key = key;
   }
 }
 
 /** Thrown when an area level is not `none`, `view` or `full`. */
 export class UnknownAreaLevelError extends DomainError {
   readonly code = RBAC_ERROR_CODES.UNKNOWN_PERMISSION;
+  readonly level: string;
 
-  constructor(readonly level: string) {
+  constructor(level: string) {
     super(`Unknown area level: ${level}`);
+    this.level = level;
   }
 }
 
