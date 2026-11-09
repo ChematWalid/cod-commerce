@@ -5,11 +5,19 @@ import { ACCOUNT_NAV_SECTION_ID, ACCOUNT_NAV_SECTION_ORDER, VERIFY_BANNER_PROVID
 import { accountProfileRoute } from './routes/account-profile';
 import { accountSecurityRoute } from './routes/account-security';
 import { confirmEmailChangeRoute } from './routes/confirm-email-change';
+import { oauthCompleteRoute } from './routes/oauth-complete';
 import { registerRoute } from './routes/register';
 import { verifyEmailRoute } from './routes/verify-email';
 
 defineDashboardExtension({
-  routes: [registerRoute, verifyEmailRoute, confirmEmailChangeRoute, accountProfileRoute, accountSecurityRoute],
+  routes: [
+    registerRoute,
+    verifyEmailRoute,
+    confirmEmailChangeRoute,
+    oauthCompleteRoute,
+    accountProfileRoute,
+    accountSecurityRoute,
+  ],
   login: { afterForm: { component: LoginAfterForm } },
   customProviders: [{ id: VERIFY_BANNER_PROVIDER_ID, location: 'layout', component: VerifyEmailBanner }],
   navSections: [

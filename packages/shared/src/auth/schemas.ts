@@ -71,6 +71,9 @@ export const registerAccountStepSchema = z.object({
 /** Wizard step 2. */
 export const registerBusinessStepSchema = z.object({ businessName: nameSchema });
 
+/** Wizard step 1 after a provider sign-in: the provider stands in for the password. */
+export const registerOAuthAccountStepSchema = registerAccountStepSchema.omit({ password: true });
+
 /** Wizard step 3. The subdomain's availability is checked separately, against the database. */
 export const registerStoreStepSchema = z.object({
   storeName: nameSchema,
@@ -80,6 +83,7 @@ export const registerStoreStepSchema = z.object({
 
 /** The whole sign-up. `emailLocale` defaults to the store language. */
 export const registerMerchantSchema = registerAccountStepSchema
+  .extend({ password: passwordSchema.optional() })
   .extend(registerBusinessStepSchema.shape)
   .extend(registerStoreStepSchema.shape)
   .extend({
@@ -87,6 +91,7 @@ export const registerMerchantSchema = registerAccountStepSchema
     challengeToken: opaqueTokenSchema.optional(),
     oauthTicket: opaqueTokenSchema.optional(),
   })
+  .refine((input) => input.password !== undefined || input.oauthTicket !== undefined, { path: ['password'] })
   .transform((input) => ({ ...input, emailLocale: input.emailLocale ?? input.storeLanguage }));
 
 export type RegisterMerchantInput = z.input<typeof registerMerchantSchema>;

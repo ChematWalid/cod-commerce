@@ -44,6 +44,19 @@ export class InMemoryAccountTokenRepository implements AccountTokenRepositoryPor
     return Promise.resolve(row && this.replace(row, { consumedAt: now }));
   }
 
+  findOpenByHash(
+    _ctx: unknown,
+    purpose: AccountTokenPurpose,
+    tokenHash: string,
+    now: Date,
+  ): Promise<AccountToken | undefined> {
+    return Promise.resolve(
+      this.rows.find(
+        (r) => r.tokenHash === tokenHash && r.purpose === purpose && r.consumedAt === null && r.expiresAt > now,
+      ),
+    );
+  }
+
   claimOtpAttempt(userId: number, window: OtpAttemptWindow): Promise<AccountToken | undefined> {
     const row = this.openOtp(userId, window);
     if (row === undefined || row.otpAttempts >= window.maxAttempts) {

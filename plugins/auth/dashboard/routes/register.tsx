@@ -1,24 +1,17 @@
 import { useLingui } from '@lingui/react';
 import type { AnyRoute } from '@tanstack/react-router';
 import { Link, Navigate } from '@tanstack/react-router';
-import { type DashboardRouteDefinition, toast, useAuth } from '@vendure/dashboard';
-import { type ReactNode, useEffect, useState } from 'react';
-import { type RegisterMerchantResultDto, saveBusinessLogo } from '../auth-operations';
+import { type DashboardRouteDefinition, useAuth } from '@vendure/dashboard';
+import type { ReactNode } from 'react';
 import { PublicPageFrame } from '../components/public-page-frame';
 import { RegisterStepAccount } from '../components/register-step-account';
 import { RegisterStepBusiness } from '../components/register-step-business';
 import { RegisterStepStore } from '../components/register-step-store';
-import {
-  HOME_PATH,
-  IMAGE_SAVE_FAILED_MESSAGE_ID,
-  LOGIN_PATH,
-  REGISTER_FORM_TEST_ID,
-  REGISTER_PATH,
-  SIGN_IN_AFTER_REGISTER_MESSAGE_ID,
-} from '../constants';
-import { useRegisterWizard, WIZARD_STEPS, type WizardStep, type WizardValues } from '../hooks/use-register-wizard';
-
-type NavigateTo = (options: { readonly to: string }) => unknown;
+import { HOME_PATH, INVALID_TICKET_MESSAGE_ID, LOGIN_PATH, REGISTER_FORM_TEST_ID, REGISTER_PATH } from '../constants';
+import { type OAuthPrefill, useOAuthPrefill } from '../hooks/use-oauth-prefill';
+import { type NavigateTo, useFinishRegistration } from '../hooks/use-finish-registration';
+import { type RegisterWizard, useRegisterWizard, WIZARD_STEPS, type WizardStep } from '../hooks/use-register-wizard';
+import { useRawSearch, validateTicketSearch } from './token-search';
 
 function StepIndicator({ step }: { readonly step: WizardStep }): ReactNode {
   const { i18n } = useLingui();
@@ -37,44 +30,28 @@ function StepIndicator({ step }: { readonly step: WizardStep }): ReactNode {
   );
 }
 
-/**
- * True from the created account until the login and logo are done. Module state on purpose: the dashboard unmounts
- * its router while `auth.status` is `verifying`, so component state would be lost mid-login and the fresh page would
- * redirect Home before the logo is saved, or show an empty wizard if the login failed.
- */
-const finishing = { active: false };
+interface WizardBodyProps {
+  readonly wizard: RegisterWizard;
+  readonly ticket: string | undefined;
+  readonly prefill: OAuthPrefill;
+}
 
-/**
- * Logs the new account in and finishes the sign-up. The account exists from here on, so a logo problem only
- * warns (D34), and a failed login sends the merchant to sign in rather than back into a form that would refuse.
- */
-function useFinishRegistration(navigate: NavigateTo): {
-  readonly created: boolean;
-  readonly finish: (result: RegisterMerchantResultDto, values: WizardValues) => void;
-} {
+function WizardBody({ wizard, ticket, prefill }: WizardBodyProps): ReactNode {
   const { i18n } = useLingui();
-  const auth = useAuth();
-  const [created, setCreated] = useState(finishing.active);
-  useEffect(() => {
-    if (!finishing.active || auth.status !== 'unauthenticated') return;
-    finishing.active = false;
-    toast.error(i18n._(SIGN_IN_AFTER_REGISTER_MESSAGE_ID));
-    void navigate({ to: LOGIN_PATH });
-  }, [auth.status, i18n, navigate]);
-  const finish = ({ storeId }: RegisterMerchantResultDto, { email, password, logo }: WizardValues): void => {
-    finishing.active = true;
-    setCreated(true);
-    auth.login(email, password, () => {
-      const saved = logo === null ? Promise.resolve() : saveBusinessLogo(logo, storeId);
-      void saved
-        .catch(() => toast.error(i18n._(IMAGE_SAVE_FAILED_MESSAGE_ID)))
-        .finally(() => {
-          finishing.active = false;
-          void navigate({ to: HOME_PATH });
-        });
-    });
-  };
-  return { created, finish };
+  return (
+    <>
+      {prefill.invalid && (
+        <p role="alert" className="text-destructive text-center text-sm">
+          {i18n._(INVALID_TICKET_MESSAGE_ID)}
+        </p>
+      )}
+      {wizard.step === 'account' && (
+        <RegisterStepAccount wizard={wizard} oauth={ticket === undefined ? undefined : prefill} />
+      )}
+      {wizard.step === 'business' && <RegisterStepBusiness wizard={wizard} />}
+      {wizard.step === 'store' && <RegisterStepStore wizard={wizard} />}
+    </>
+  );
 }
 
 function RegisterPage({ route }: { readonly route: AnyRoute }): ReactNode {
@@ -82,7 +59,9 @@ function RegisterPage({ route }: { readonly route: AnyRoute }): ReactNode {
   const auth = useAuth();
   const navigate: NavigateTo = route.useNavigate();
   const { created, finish } = useFinishRegistration(navigate);
-  const wizard = useRegisterWizard(finish);
+  const { ticket } = validateTicketSearch(useRawSearch(route));
+  const wizard = useRegisterWizard(finish, ticket);
+  const prefill = useOAuthPrefill(ticket, wizard.set);
   const titles: Readonly<Record<WizardStep, string>> = {
     account: i18n._('Create your account'),
     business: i18n._('Your business'),
@@ -102,9 +81,7 @@ function RegisterPage({ route }: { readonly route: AnyRoute }): ReactNode {
       <div className="grid gap-6" data-testid={REGISTER_FORM_TEST_ID}>
         <h1 className="text-center text-2xl font-semibold tracking-tight">{titles[wizard.step]}</h1>
         <StepIndicator step={wizard.step} />
-        {wizard.step === 'account' && <RegisterStepAccount wizard={wizard} />}
-        {wizard.step === 'business' && <RegisterStepBusiness wizard={wizard} />}
-        {wizard.step === 'store' && <RegisterStepStore wizard={wizard} />}
+        <WizardBody wizard={wizard} ticket={ticket} prefill={prefill} />
         <p className="text-muted-foreground text-center text-sm">
           {i18n._('Already have an account?')}{' '}
           <Link to={LOGIN_PATH} className="text-foreground font-medium underline">
@@ -120,5 +97,6 @@ function RegisterPage({ route }: { readonly route: AnyRoute }): ReactNode {
 export const registerRoute: DashboardRouteDefinition = {
   path: REGISTER_PATH,
   authenticated: false,
+  validateSearch: validateTicketSearch,
   component: (route) => <RegisterPage route={route} />,
 };

@@ -1,4 +1,6 @@
+import { getApiBaseUrl } from '@/vdb/utils/config-utils.js';
 import { api } from '@vendure/dashboard';
+import { OAUTH_TICKET_ENDPOINT } from './constants';
 
 /**
  * The auth Admin API as the dashboard calls it. Documents are untyped and typed by the interfaces here, as
@@ -28,7 +30,8 @@ export interface AccountProfileDto {
 
 export interface RegisterMerchantInputDto {
   readonly email: string;
-  readonly password: string;
+  /** Left out with an `oauthTicket`. */
+  readonly password?: string;
   readonly firstName: string;
   readonly lastName: string;
   readonly businessName: string;
@@ -36,12 +39,36 @@ export interface RegisterMerchantInputDto {
   readonly subdomain: string;
   readonly storeLanguage: string;
   readonly emailLocale: string;
+  readonly oauthTicket?: string;
+}
+
+/** A new identity's details, for its own browser. */
+export interface OAuthTicketPreviewDto {
+  readonly email: string | null;
+  readonly emailVerified: boolean;
+  readonly firstName: string;
+  readonly lastName: string;
+}
+
+/** The channel a fresh session selects. */
+export interface SessionChannelDto {
+  readonly id: string;
+  readonly token: string;
+}
+
+interface AuthenticateAnswer {
+  readonly authenticate: {
+    readonly __typename: string;
+    readonly channels?: readonly SessionChannelDto[];
+    readonly authenticationError?: string;
+  };
 }
 
 export interface RegisterMerchantResultDto {
   readonly businessId: string;
   readonly storeId: string;
   readonly verificationEmailSent: boolean;
+  readonly signInTicket: string | null;
 }
 
 export interface UpdateProfileInputDto {
@@ -77,10 +104,38 @@ export async function fetchAccountProfile(): Promise<AccountProfileDto> {
 
 export async function registerMerchant(input: RegisterMerchantInputDto): Promise<RegisterMerchantResultDto> {
   const document = `mutation RegisterMerchant($input: RegisterMerchantInput!) {
-    registerMerchant(input: $input) { businessId storeId verificationEmailSent }
+    registerMerchant(input: $input) { businessId storeId verificationEmailSent signInTicket }
   }`;
   const result = await mutate<{ registerMerchant: RegisterMerchantResultDto }>(document, { input });
   return result.registerMerchant;
+}
+
+/** Spends a sign-in ticket. The session comes back in the response, as for a login. */
+export async function authenticateWithOAuthTicket(ticket: string): Promise<readonly SessionChannelDto[]> {
+  const document = `mutation AuthenticateWithTicket($ticket: String!) {
+    authenticate(input: { oauth: { ticket: $ticket } }) {
+      __typename
+      ... on CurrentUser { channels { id token } }
+      ... on InvalidCredentialsError { authenticationError }
+    }
+  }`;
+  const { authenticate } = await mutate<AuthenticateAnswer>(document, { ticket });
+  if (authenticate.__typename !== 'CurrentUser') {
+    throw Object.assign(new Error('Sign-in failed'), { extensions: { code: authenticate.authenticationError } });
+  }
+  return authenticate.channels ?? [];
+}
+
+/** Over REST, because the route must not exist in any schema while the flag is off. */
+export async function fetchOAuthTicketPreview(ticket: string): Promise<OAuthTicketPreviewDto> {
+  const response = await fetch(`${getApiBaseUrl()}${OAUTH_TICKET_ENDPOINT}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ticket }),
+  });
+  if (!response.ok) throw new Error(`The ticket preview answered ${String(response.status)}`);
+  return (await response.json()) as OAuthTicketPreviewDto;
 }
 
 export async function verifyEmail(token: string): Promise<void> {

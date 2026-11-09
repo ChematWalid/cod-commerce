@@ -2,6 +2,7 @@ import {
   isPlatformLanguageCode,
   registerAccountStepSchema,
   registerBusinessStepSchema,
+  registerOAuthAccountStepSchema,
   registerStoreStepSchema,
   AUTH_ERROR_CODES,
 } from '@cod/shared';
@@ -76,14 +77,23 @@ function stepAfter(step: WizardStep, offset: number): WizardStep {
   return WIZARD_STEPS[WIZARD_STEPS.indexOf(step) + offset] ?? step;
 }
 
-function toRegisterInput(values: WizardValues, displayLanguage: string): RegisterMerchantInputDto {
+function toRegisterInput(
+  values: WizardValues,
+  displayLanguage: string,
+  oauthTicket: string | undefined,
+): RegisterMerchantInputDto {
   const { email, password, firstName, lastName, businessName, storeName, subdomain, storeLanguage } = values;
   const emailLocale = isPlatformLanguageCode(displayLanguage) ? displayLanguage : storeLanguage;
-  return { email, password, firstName, lastName, businessName, storeName, subdomain, storeLanguage, emailLocale };
+  const credential = oauthTicket === undefined ? { password } : { oauthTicket };
+  return { email, firstName, lastName, businessName, storeName, subdomain, storeLanguage, emailLocale, ...credential };
 }
 
-/** The three steps' state and the one submit, at the last step. */
-export function useRegisterWizard(onRegistered: OnRegistered): RegisterWizard {
+function schemaOf(step: WizardStep, oauthTicket: string | undefined): Parameters<typeof fieldErrorsOf>[0] {
+  return step === 'account' && oauthTicket !== undefined ? registerOAuthAccountStepSchema : STEP_SCHEMAS[step];
+}
+
+/** The three steps' state and the one submit, at the last step. `oauthTicket` makes it a provider sign-up. */
+export function useRegisterWizard(onRegistered: OnRegistered, oauthTicket?: string): RegisterWizard {
   const { settings } = useUserSettings();
   const [step, setStep] = useState<WizardStep>('account');
   const [values, setValues] = useState(INITIAL_VALUES);
@@ -91,7 +101,7 @@ export function useRegisterWizard(onRegistered: OnRegistered): RegisterWizard {
   const [submitting, setSubmitting] = useState(false);
   const inFlight = useRef(false);
   const validateStep = (): boolean => {
-    const found = fieldErrorsOf(STEP_SCHEMAS[step], values);
+    const found = fieldErrorsOf(schemaOf(step, oauthTicket), values);
     setErrors(found);
     return !hasFieldErrors(found);
   };
@@ -100,7 +110,7 @@ export function useRegisterWizard(onRegistered: OnRegistered): RegisterWizard {
     inFlight.current = true;
     setSubmitting(true);
     try {
-      onRegistered(await registerMerchant(toRegisterInput(values, settings.displayLanguage)), values);
+      onRegistered(await registerMerchant(toRegisterInput(values, settings.displayLanguage, oauthTicket)), values);
     } catch (error: unknown) {
       const refusal = refusalOf(error);
       setStep(refusal.step);

@@ -358,3 +358,14 @@ msgstr "تعذّر التحقق من هذا العنوان. حاول مجددً�
 msgid "Creating your store…"
 msgstr "جارٍ إنشاء متجرك…"
 
+#. js-lingui-explicit-id
+msgid "auth.oauth-failed"
+msgstr "تعذّر تسجيل الدخول عبر هذا المزوّد. حاول مجددًا."
+
+#. js-lingui-explicit-id
+msgid "Signing you in…"
+msgstr "جارٍ تسجيل دخولك…"
+
+#. js-lingui-explicit-id
+msgid "Back to sign in"
+msgstr "العودة إلى تسجيل الدخول"

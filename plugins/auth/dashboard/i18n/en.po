@@ -358,3 +358,14 @@ msgstr "Could not check this address. Try again."
 msgid "Creating your store…"
 msgstr "Creating your store…"
 
+#. js-lingui-explicit-id
+msgid "auth.oauth-failed"
+msgstr "Sign-in with this provider failed. Please try again."
+
+#. js-lingui-explicit-id
+msgid "Signing you in…"
+msgstr "Signing you in…"
+
+#. js-lingui-explicit-id
+msgid "Back to sign in"
+msgstr "Back to sign in"

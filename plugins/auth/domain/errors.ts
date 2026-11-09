@@ -117,6 +117,24 @@ export class LogoTypeError extends DomainError {
   }
 }
 
+/** The provider's email belongs to an account it may not be linked to (D36). */
+export class OAuthLinkRequiresVerificationError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.OAUTH_LINK_REQUIRES_VERIFICATION;
+
+  constructor() {
+    super('Verify this account by email before signing in with a provider');
+  }
+}
+
+/** A forged or stale callback, or a provider that refused. One message: a caller learns nothing about which. */
+export class OAuthFailedError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.OAUTH_FAILED;
+
+  constructor() {
+    super('Sign-in with the provider failed');
+  }
+}
+
 /** A session whose user has no administrator. No login produces one, so this is a fault, not a refusal. */
 export class ProfileMissingError extends Error {
   constructor() {

@@ -1,11 +1,5 @@
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
-import {
-  asOperationContext,
-  ProvisionBusinessService,
-  type SnowflakeIdGeneratorPort,
-  SNOWFLAKE_ID_GENERATOR,
-  TenancyPlugin,
-} from '@cod/plugin-tenancy';
+import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
 import {
   NATIVE_AUTH_STRATEGY_NAME,
   PluginCommonModule,
@@ -16,6 +10,7 @@ import {
 import { AccountEmailResolver } from './api/account-email.resolver';
 import { AccountGuardResolver } from './api/account-guard.resolver';
 import { AuthAccountController } from './api/auth-account.controller';
+import { AUTH_DASHBOARD_URL } from './api/auth-dashboard-url';
 import { AuthConfigController } from './api/auth-config.controller';
 import { AuthLoginController } from './api/auth-login.controller';
 import { AuthPasswordController } from './api/auth-password.controller';
@@ -23,6 +18,8 @@ import { AuthProfileController } from './api/auth-profile.controller';
 import { AuthRegisterController } from './api/auth-register.controller';
 import { AuthTranslations } from './api/auth-translations';
 import { LogoUploadResolver } from './api/logo-upload.resolver';
+import { OAuthController } from './api/oauth.controller';
+import { OAuthEnabledGuard } from './api/oauth-enabled.guard';
 import { PasswordResolver } from './api/password.resolver';
 import { ProfileResolver } from './api/profile.resolver';
 import { RegisterResolver } from './api/register.resolver';
@@ -35,7 +32,6 @@ import { AccountTokenService } from './application/account-token.service';
 import { AuthEmailDelivery } from './application/auth-email-delivery';
 import { AuthEmailService } from './application/auth-email.service';
 import { BusinessLogoService } from './application/business-logo.service';
-import { RegisterMerchantService } from './application/register-merchant.service';
 import {
   ACCOUNT_TOKEN_REPOSITORY,
   AUTH_EMAIL_TEMPLATES,
@@ -65,6 +61,8 @@ import { EmailClaimLock } from './infrastructure/email-claim-lock';
 import { HmacSecretHasher } from './infrastructure/hmac-secret-hasher';
 import { NoopBotChallenge } from './infrastructure/noop-bot-challenge';
 import { NodemailerEmailSender, type SmtpOptions } from './infrastructure/nodemailer-email-sender';
+import { OAuthAuthenticationStrategy } from './infrastructure/oauth-authentication.strategy';
+import { type AuthOAuthOptions, oauthProviders } from './infrastructure/oauth.providers';
 import { SealedPayloadCodec } from './infrastructure/sealed-payload';
 import { SessionTerminator } from './infrastructure/session-terminator';
 import { ThrottledNativeAuthenticationStrategy } from './infrastructure/throttled-native-authentication.strategy';
@@ -85,9 +83,11 @@ export interface AuthPluginOptions {
   readonly platformDomain: string;
   /** The sign-up challenge; left out while `TURNSTILE_ENABLED` is false (D35). */
   readonly challenge?: AuthChallengeOptions;
-  /** OAuth providers on offer; none until the strategies are registered (D36). */
-  readonly oauthProviders?: readonly string[];
+  /** Google and Facebook sign-in; left out while `AUTH_OAUTH_ENABLED` is false (D36). */
+  readonly oauth?: AuthOAuthOptions;
 }
+
+export type { AuthOAuthOptions };
 
 /** The Turnstile side of {@link AuthPluginOptions}. */
 export interface AuthChallengeOptions {
@@ -120,10 +120,10 @@ function createBotChallenge(): BotChallengePort {
 }
 
 function publicConfig(): AuthPublicConfig {
-  const { oauthProviders = [], challenge, platformDomain } = requireOptions();
+  const { oauth, challenge, platformDomain } = requireOptions();
   return {
-    oauthEnabled: oauthProviders.length > 0,
-    oauthProviders,
+    oauthEnabled: oauth !== undefined,
+    oauthProviders: oauth === undefined ? [] : Object.keys(oauth.providers),
     challengeUrl: challenge?.challengeUrl ?? null,
     platformDomain,
   };
@@ -152,6 +152,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
   authOptions.adminAuthenticationStrategy = [
     new ThrottledNativeAuthenticationStrategy(),
     ...authOptions.adminAuthenticationStrategy.filter((strategy) => strategy.name !== NATIVE_AUTH_STRATEGY_NAME),
+    ...(requireOptions().oauth === undefined ? [] : [new OAuthAuthenticationStrategy()]),
   ];
   authOptions.passwordValidationStrategy = new AccountPasswordValidationStrategy();
   return config;
@@ -213,39 +214,18 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
       useFactory: (assets: VendureLogoAssets) => new BusinessLogoService(assets),
       inject: [VendureLogoAssets],
     },
-    {
-      provide: RegisterMerchantService,
-      useFactory: (
-        ...[challenge, identity, claims, provisioning, tokens, emails]: [
-          BotChallengePort,
-          VendureAccountIdentity,
-          EmailClaimLock,
-          ProvisionBusinessService,
-          AccountTokenService,
-          AuthEmailService,
-        ]
-      ) =>
-        new RegisterMerchantService({
-          challenge,
-          identity,
-          claims,
-          provisioner: {
-            provision: (ctx, command) => provisioning.provision(asOperationContext(ctx), command),
-          },
-          tokens,
-          emails,
-          dashboardUrl: requireOptions().dashboardUrl,
-        }),
-      inject: [
-        BOT_CHALLENGE,
-        VendureAccountIdentity,
-        EmailClaimLock,
-        ProvisionBusinessService,
-        AccountTokenService,
-        AuthEmailService,
-      ],
-    },
-    ...accountFlowProviders({ dashboardUrl: () => requireOptions().dashboardUrl, clock: systemClock }),
+    { provide: AUTH_DASHBOARD_URL, useFactory: () => requireOptions().dashboardUrl },
+    OAuthEnabledGuard,
+    ...oauthProviders({
+      oauth: () => requireOptions().oauth,
+      apiBaseUrl: () => new URL(requireOptions().dashboardUrl).origin,
+      clock: systemClock,
+    }),
+    ...accountFlowProviders({
+      dashboardUrl: () => requireOptions().dashboardUrl,
+      clock: systemClock,
+      oauthEnabled: () => requireOptions().oauth !== undefined,
+    }),
   ],
   exports: [AccountTokenService, AuthEmailService],
   // `SessionResolver`, `AccountGuardResolver` and `PasswordResolver` replace four stock mutations (D21).
@@ -270,6 +250,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     AuthAccountController,
     AuthPasswordController,
     AuthProfileController,
+    OAuthController,
   ],
   configuration: configure,
   dashboard: './dashboard/index.tsx',

@@ -6,6 +6,7 @@ export const LOGIN_PATH = '/login';
 export const HOME_PATH = '/';
 export const VERIFY_EMAIL_PATH = '/verify-email';
 export const CONFIRM_EMAIL_CHANGE_PATH = '/confirm-email-change';
+export const OAUTH_COMPLETE_PATH = '/oauth-complete';
 export const ACCOUNT_PROFILE_PATH = '/account/profile';
 export const ACCOUNT_SECURITY_PATH = '/account/security';
 
@@ -25,11 +26,16 @@ export const SUBDOMAIN_DEBOUNCE_MS = 400;
 /** Used when a `429` carries no readable `Retry-After`. */
 export const SUBDOMAIN_RETRY_FALLBACK_SECONDS = 10;
 export const SUBDOMAIN_AVAILABILITY_ENDPOINT = '/stores/subdomain-availability';
+export const OAUTH_TICKET_ENDPOINT = '/auth/oauth/ticket';
 export const HTTP_TOO_MANY_REQUESTS = 429;
 export const MS_PER_SECOND = 1000;
 
 /** Where a provider button starts the OAuth redirect (D36). */
 export const oauthStartPath = (provider: string): string => `/auth/oauth/${encodeURIComponent(provider)}/start`;
+
+/** A provider's name as its own brand writes it; an unknown one is shown as the server sent it. */
+export const oauthProviderLabel = (provider: string): string =>
+  ({ google: 'Google', facebook: 'Facebook' })[provider] ?? provider;
 
 /** The catalogue id of each reason the server gives for an unusable subdomain (D39). */
 export const SUBDOMAIN_REASON_MESSAGE_IDS: Readonly<Record<SubdomainReasonCode, string>> = {
@@ -66,6 +72,7 @@ export const REQUIRED_FIELD_MESSAGE_ID = 'This field is required';
 export const INVALID_PHONE_MESSAGE_ID = 'Enter a valid phone number';
 export const PASSWORDS_DIFFER_MESSAGE_ID = 'The two passwords do not match';
 export const IMAGE_SAVE_FAILED_MESSAGE_ID = 'Your store was created, but the logo could not be saved';
+export const INVALID_TICKET_MESSAGE_ID = 'auth.invalid-token';
 export const SIGN_IN_AFTER_REGISTER_MESSAGE_ID = 'Your account was created. Please sign in.';
 
 export const REGISTER_FORM_TEST_ID = 'register-wizard';

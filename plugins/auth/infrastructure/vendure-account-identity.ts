@@ -6,6 +6,7 @@ import {
   PasswordCipher,
   type RequestContext,
   TransactionalConnection,
+  User,
   UserService,
 } from '@vendure/core';
 import { type FindOptionsWhere, IsNull, type Repository } from 'typeorm';
@@ -87,16 +88,22 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
 
   async set(ctx: OperationContext, userId: number, password: string): Promise<void> {
     const method = await this.nativeMethod(ctx, userId);
-    if (method === null) {
-      throw new Error('The account has no password login');
-    }
     const passwordHash = await this.cipher.hash(password);
-    await this.connection
-      .getRepository(requestContextOf(ctx), NativeAuthenticationMethod)
-      .update({ id: method.id }, { passwordHash });
+    const methods = this.connection.getRepository(requestContextOf(ctx), NativeAuthenticationMethod);
+    if (method !== null) {
+      await methods.update({ id: method.id }, { passwordHash });
+      return;
+    }
+    // A provider-only account: the emailed token proved ownership, so the reset gives it a password login.
+    const user = await this.connection.getRepository(requestContextOf(ctx), User).findOneByOrFail({ id: userId });
+    await methods.save(new NativeAuthenticationMethod({ identifier: user.identifier, passwordHash, user }));
   }
 
   async change(ctx: OperationContext, userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    if ((await this.nativeMethod(ctx, userId)) === null) {
+      // Stock `updatePassword` throws an internal error here; no current password can be right for this account.
+      throw new CurrentPasswordWrongError();
+    }
     const result = await this.users.updatePassword(requestContextOf(ctx), userId, currentPassword, newPassword);
     if (!isGraphQlErrorResult(result)) {
       return;

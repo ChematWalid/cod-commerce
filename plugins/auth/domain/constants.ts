@@ -56,6 +56,28 @@ export const RESET_PASSWORD_PATH = '/reset-password';
 /** The dashboard page an email change confirmation link opens (D20). */
 export const CONFIRM_EMAIL_CHANGE_PATH = '/confirm-email-change';
 
+/** How long a browser may stay at the provider before its `state` stops working. */
+export const OAUTH_STATE_TTL_MS = 600_000;
+
+/** The browser binding cookie (D36). It outlives `state` by the ticket's five minutes, so the ticket can be checked. */
+export const OAUTH_BINDING_COOKIE = 'cod_oauth_binding';
+export const OAUTH_BINDING_COOKIE_MAX_AGE_MS = 900_000;
+
+/** How long a provider may take to answer one server-side request. */
+export const OAUTH_HTTP_TIMEOUT_MS = 5000;
+
+/** Random bytes of a PKCE code verifier before base64url. */
+export const OAUTH_PKCE_VERIFIER_BYTES = 32;
+
+/** The name of the login strategy, and the key of its `authenticate` input. */
+export const OAUTH_STRATEGY_NAME = 'oauth';
+
+/** The dashboard page that spends a sign-in ticket, and shows a refused sign-in (D36). */
+export const OAUTH_COMPLETE_PATH = '/oauth-complete';
+
+/** The dashboard page where a new identity finishes signing up (D36). */
+export const OAUTH_REGISTER_PATH = '/register';
+
 /** How long the challenge provider may take before sign-up goes on without it (D35). */
 export const CHALLENGE_TIMEOUT_MS = 3000;
 

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { Administrator, TransactionalConnection } from '@vendure/core';
 import gql from 'graphql-tag';
+import type { AuthOAuthOptions } from '../../auth.plugin';
 import { createAuthTestEnvironment } from './auth-test-environment';
 import { type GraphqlAnswer, LoginTestClient } from './login-test-client';
 
@@ -81,7 +82,9 @@ export interface RegisterTestKit {
 }
 
 /** Builds the {@link RegisterTestKit} of a test file. */
-export function createRegisterTestKit(environment: { readonly assets?: boolean } = {}): RegisterTestKit {
+export function createRegisterTestKit(
+  environment: { readonly assets?: boolean; readonly oauth?: AuthOAuthOptions } = {},
+): RegisterTestKit {
   const { server, adminClient } = createAuthTestEnvironment(TOKEN_SECRET, environment);
   const client = new LoginTestClient(() => server.app);
 

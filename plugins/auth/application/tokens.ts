@@ -22,5 +22,8 @@ export const BOT_CHALLENGE: unique symbol = Symbol('BotChallenge');
 /** Injection token of the `AuthPublicConfig` value. */
 export const AUTH_PUBLIC_CONFIG: unique symbol = Symbol('AuthPublicConfig');
 
+/** Injection token of the `OAuthBrowserBindingPort` adapter. */
+export const OAUTH_BROWSER_BINDING: unique symbol = Symbol('OAuthBrowserBinding');
+
 /** Injection token of the `AccountIdentityPort` adapter, for the API layer. */
 export const ACCOUNT_IDENTITY: unique symbol = Symbol('AccountIdentity');

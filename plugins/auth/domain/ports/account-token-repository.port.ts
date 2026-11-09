@@ -17,6 +17,14 @@ export interface AccountTokenRepositoryPort {
     now: Date,
   ): Promise<AccountToken | undefined>;
 
+  /** The open, unexpired token with this hash; spends nothing. */
+  findOpenByHash(
+    ctx: OperationContext,
+    purpose: AccountTokenPurpose,
+    tokenHash: string,
+    now: Date,
+  ): Promise<AccountToken | undefined>;
+
   /**
    * Counts one guess against the user's open code, locking it on the last allowed one, and returns the row as
    * updated; `undefined` when no guess is left or no code is open. It takes no context on purpose: it commits by

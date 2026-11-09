@@ -4,7 +4,8 @@ import gql from 'graphql-tag';
 export const authAdminApiSchema = gql`
   input RegisterMerchantInput {
     email: String!
-    password: String!
+    "Left out only with an oauthTicket: a provider sign-up has no password."
+    password: String
     firstName: String!
     lastName: String!
     businessName: String!
@@ -20,6 +21,8 @@ export const authAdminApiSchema = gql`
     businessId: String!
     storeId: String!
     verificationEmailSent: Boolean!
+    "Set after a provider sign-up: spend it through authenticate(input: { oauth }) to open the session."
+    signInTicket: String
   }
 
   type AuthPublicConfig {

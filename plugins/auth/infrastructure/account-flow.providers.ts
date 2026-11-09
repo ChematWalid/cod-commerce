@@ -1,11 +1,15 @@
+import { asOperationContext, ProvisionBusinessService } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import { AccountTokenService } from '../application/account-token.service';
 import { AuthEmailService } from '../application/auth-email.service';
 import { ChangeEmailService } from '../application/change-email.service';
 import { ChangePasswordService } from '../application/change-password.service';
 import { EmailVerificationService } from '../application/email-verification.service';
+import { OAuthSignInService } from '../application/oauth-sign-in.service';
 import { PasswordResetService } from '../application/password-reset.service';
-import { ACCOUNT_IDENTITY, PAYLOAD_SEALER, SESSION_TERMINATOR } from '../application/tokens';
+import { RegisterMerchantService } from '../application/register-merchant.service';
+import { ACCOUNT_IDENTITY, BOT_CHALLENGE, PAYLOAD_SEALER, SESSION_TERMINATOR } from '../application/tokens';
+import type { BotChallengePort } from '../domain/ports/bot-challenge.port';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
 import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
@@ -22,6 +26,45 @@ type Common = [VendureAccountIdentity, AccountTokenService, AuthEmailService, Ac
 interface FlowSettings {
   readonly dashboardUrl: () => string;
   readonly clock: ClockPort;
+  readonly oauthEnabled: () => boolean;
+}
+
+type RegisterDependencies = [
+  BotChallengePort,
+  VendureAccountIdentity,
+  EmailClaimLock,
+  ProvisionBusinessService,
+  AccountTokenService,
+  AuthEmailService,
+  OAuthSignInService,
+];
+
+function registerMerchant({ dashboardUrl, oauthEnabled }: FlowSettings): Provider {
+  return {
+    provide: RegisterMerchantService,
+    useFactory: (...[challenge, identity, claims, provisioning, tokens, emails, oauth]: RegisterDependencies) =>
+      new RegisterMerchantService({
+        challenge,
+        identity,
+        claims,
+        provisioner: {
+          provision: (ctx, command) => provisioning.provision(asOperationContext(ctx), command),
+        },
+        tokens,
+        emails,
+        dashboardUrl: dashboardUrl(),
+        ...(oauthEnabled() ? { oauth } : {}),
+      }),
+    inject: [
+      BOT_CHALLENGE,
+      VendureAccountIdentity,
+      EmailClaimLock,
+      ProvisionBusinessService,
+      AccountTokenService,
+      AuthEmailService,
+      OAuthSignInService,
+    ],
+  };
 }
 
 function emailVerification({ dashboardUrl, clock }: FlowSettings): Provider {
@@ -89,6 +132,7 @@ export function accountFlowProviders(settings: FlowSettings): Provider[] {
     AccountThrottle,
     VendureAccountSessions,
     { provide: ACCOUNT_IDENTITY, useExisting: VendureAccountIdentity },
+    registerMerchant(settings),
     emailVerification(settings),
     passwordReset(settings),
     changePassword,

@@ -88,6 +88,18 @@ export class TypeOrmAccountTokenRepository implements AccountTokenRepositoryPort
     return this.firstReturned(this.managerOf(ctx), CONSUME_BY_HASH_SQL, [now, tokenHash, purpose]);
   }
 
+  async findOpenByHash(
+    ctx: OperationContext,
+    purpose: AccountTokenPurpose,
+    tokenHash: string,
+    now: Date,
+  ): Promise<AccountToken | undefined> {
+    const open = await this.connection.getRepository(requestContextOf(ctx), AccountTokenEntity).findOne({
+      where: { tokenHash, purpose, consumedAt: IsNull(), expiresAt: MoreThan(now) },
+    });
+    return open ?? undefined;
+  }
+
   claimOtpAttempt(userId: number, window: OtpAttemptWindow): Promise<AccountToken | undefined> {
     const parameters = [window.now, userId, OTP_PURPOSE, window.issuedAfter, window.maxAttempts];
     return this.firstReturned(this.connection.rawConnection.manager, CLAIM_OTP_ATTEMPT_SQL, parameters);

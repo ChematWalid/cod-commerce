@@ -95,6 +95,43 @@ export class AccountTokenService {
   }
 
   /**
+   * The open ticket of this browser, without spending it.
+   *
+   * @throws InvalidTokenError for an unknown, expired or used token, or one bound to another browser.
+   */
+  async peekBound(
+    ctx: OperationContext,
+    purpose: AccountTokenPurpose,
+    token: string,
+    binding: string | undefined,
+  ): Promise<AccountToken> {
+    const open = await this.tokens.findOpenByHash(ctx, purpose, this.hasher.hash(token), this.clock.now());
+    const bindingHash = open?.payload?.['bindingHash'];
+    if (open === undefined || binding === undefined || typeof bindingHash !== 'string') {
+      throw new InvalidTokenError();
+    }
+    if (!this.hasher.matches(binding, bindingHash)) {
+      throw new InvalidTokenError();
+    }
+    return open;
+  }
+
+  /**
+   * {@link consume} for a token bound to a browser. The browser is checked first, so another browser cannot burn it.
+   *
+   * @throws InvalidTokenError as {@link peekBound}, or when a concurrent caller spent it first.
+   */
+  async consumeBound(
+    ctx: OperationContext,
+    purpose: AccountTokenPurpose,
+    token: string,
+    binding: string | undefined,
+  ): Promise<AccountToken> {
+    await this.peekBound(ctx, purpose, token, binding);
+    return this.consume(ctx, purpose, token);
+  }
+
+  /**
    * Tries the user's emailed code. The guess is counted before the code is compared, so concurrent guesses cannot
    * compare more than `OTP_MAX_ATTEMPTS` times.
    *

@@ -42,6 +42,8 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/auth/infrastructure/email-claim-lock.ts',
   // The profile reads and writes the same account-level `administrator` row.
   '**/plugins/auth/infrastructure/vendure-account-profile.ts',
+  // `authentication_method` and `user` are Vendure's account-level tables (D36).
+  '**/plugins/auth/infrastructure/vendure-external-identity.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';

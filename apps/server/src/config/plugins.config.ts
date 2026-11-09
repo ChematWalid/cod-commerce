@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { AuthPlugin } from '@cod/plugin-auth';
+import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
@@ -28,6 +28,8 @@ export const HARDEN_MAX_QUERY_COMPLEXITY = 1000;
  * The built dashboard (`build:dashboard`). The same relative path holds from `src/config` (host-run) and
  * from `dist/config` (the image): both resolve to `apps/server/dist/dashboard`.
  */
+type AuthOAuthProviderSettings = AuthOAuthOptions['providers']['google'];
+
 const DASHBOARD_APP_DIR = path.join(__dirname, '../../dist/dashboard');
 
 /** The api's GraphQL hardening. It declares no entities, so leaving it out elsewhere keeps the schema equal. */
@@ -36,6 +38,37 @@ const hardenPlugin = (env: AppEnv): VendurePluginEntry =>
     maxQueryComplexity: HARDEN_MAX_QUERY_COMPLEXITY,
     apiMode: env.APP_ENV === 'production' ? 'prod' : 'dev',
   });
+
+/** The OAuth flag: the options stay absent while it is off, and that absence is what switches the feature off (D36). */
+function oauthOptions(env: AppEnv): Pick<AuthPluginOptions, 'oauth'> {
+  if (!env.AUTH_OAUTH_ENABLED) {
+    return {};
+  }
+  const provider = (clientId: string | undefined, clientSecret: string | undefined): AuthOAuthProviderSettings => ({
+    // `requireAuthSettings` refused to boot without these when the flag is on.
+    clientId: clientId ?? '',
+    clientSecret: clientSecret ?? '',
+  });
+  return {
+    oauth: {
+      providers: {
+        google: {
+          ...provider(env.GOOGLE_OAUTH_CLIENT_ID, env.GOOGLE_OAUTH_CLIENT_SECRET),
+          authorizeUrl: env.GOOGLE_OAUTH_AUTHORIZE_URL,
+          tokenUrl: env.GOOGLE_OAUTH_TOKEN_URL,
+          userInfoUrl: env.GOOGLE_OAUTH_USERINFO_URL,
+        },
+        facebook: {
+          ...provider(env.FACEBOOK_OAUTH_CLIENT_ID, env.FACEBOOK_OAUTH_CLIENT_SECRET),
+          authorizeUrl: env.FACEBOOK_OAUTH_AUTHORIZE_URL,
+          tokenUrl: env.FACEBOOK_OAUTH_TOKEN_URL,
+          userInfoUrl: env.FACEBOOK_OAUTH_USERINFO_URL,
+        },
+      },
+      secureCookie: env.APP_ENV !== 'development',
+    },
+  };
+}
 
 /** The account plugin with its secret and the mail side: SMTP settings and the wording (D32). */
 const authPlugin = (env: AppEnv): VendurePluginEntry =>
@@ -50,6 +83,7 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
     ...(env.TURNSTILE_ENABLED && env.TURNSTILE_SECRET_KEY !== undefined && env.TURNSTILE_CHALLENGE_URL !== undefined
       ? { challenge: { secretKey: env.TURNSTILE_SECRET_KEY, challengeUrl: env.TURNSTILE_CHALLENGE_URL } }
       : {}),
+    ...oauthOptions(env),
   });
 
 /**

@@ -6,7 +6,7 @@ import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { createPluginTestEnvironment, loadPluginTestDbConfig } from '@cod/testing';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { VendurePlugin } from '@vendure/core';
-import { AuthPlugin, type AuthEmailOptions } from '../../auth.plugin';
+import { AuthPlugin, type AuthEmailOptions, type AuthOAuthOptions } from '../../auth.plugin';
 import { RandomAssetNamingStrategy } from '../../infrastructure/random-asset-naming.strategy';
 import type { AuthEmailTemplatesPort } from '../../domain/ports/auth-email-templates.port';
 import { EchoTemplates } from '../fakes/recording-email';
@@ -52,6 +52,8 @@ export function createAuthTestEnvironment(
     readonly cookieSessions?: boolean;
     /** Serves assets from a temporary directory at `/assets`, so uploads and their URLs can be tested. */
     readonly assets?: boolean;
+    /** Turns the OAuth flag on, with these providers. */
+    readonly oauth?: AuthOAuthOptions;
   } = {},
 ): ReturnType<typeof createPluginTestEnvironment> {
   const {
@@ -59,6 +61,7 @@ export function createAuthTestEnvironment(
     smtp = mailpitSmtp(),
     cookieSessions = false,
     assets = false,
+    oauth,
     ...environment
   } = options;
   return createPluginTestEnvironment({
@@ -84,6 +87,7 @@ export function createAuthTestEnvironment(
         email: { smtp, templates },
         dashboardUrl: TEST_DASHBOARD_URL,
         platformDomain: TEST_PLATFORM_DOMAIN,
+        ...(oauth === undefined ? {} : { oauth }),
       }),
     ],
     db: loadPluginTestDbConfig(process.env),
