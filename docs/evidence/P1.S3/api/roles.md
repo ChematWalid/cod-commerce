@@ -23,7 +23,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "businessRoles": [
       {
-        "id": "245577270142443524",
+        "id": "245593672379277316",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -200,7 +200,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443523",
+        "id": "245593672379277315",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -259,7 +259,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443521",
+        "id": "245593672379277313",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -318,7 +318,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443522",
+        "id": "245593672379277314",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -377,7 +377,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443525",
+        "id": "245593672379277317",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -495,7 +495,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443526",
+        "id": "245593672379277318",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
@@ -570,7 +570,7 @@ content-type: application/json; charset=utf-8
 
 [
   {
-    "id": "245577270142443524",
+    "id": "245593672379277316",
     "name": "Accountant",
     "description": "Can keep the books and read every order, without changing orders.",
     "builtInKey": "accountant",
@@ -640,7 +640,7 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 11,
     "memberCount": 0,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   },
   {
     "id": "<ROLE_CLERK>",
@@ -703,7 +703,7 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 1,
     "memberCount": 1,
-    "updatedAt": "2026-11-09T15:56:24.851Z"
+    "updatedAt": "2026-11-09T17:01:35.554Z"
   },
   {
     "id": "<ROLE_VIEWER>",
@@ -767,10 +767,10 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 2,
     "memberCount": 1,
-    "updatedAt": "2026-11-09T15:56:24.427Z"
+    "updatedAt": "2026-11-09T17:01:35.151Z"
   },
   {
-    "id": "245577270142443523",
+    "id": "245593672379277315",
     "name": "Inventory manager",
     "description": "Can keep products, collections and stock up to date, including purchase prices.",
     "builtInKey": "inventory-manager",
@@ -841,10 +841,10 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 12,
     "memberCount": 0,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   },
   {
-    "id": "245577270142443521",
+    "id": "245593672379277313",
     "name": "Manager",
     "description": "Can do everything except delete records, remove members or change business settings.",
     "builtInKey": "manager",
@@ -980,10 +980,10 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 77,
     "memberCount": 0,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   },
   {
-    "id": "245577270142443522",
+    "id": "245593672379277314",
     "name": "Order manager",
     "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
     "builtInKey": "order-manager",
@@ -1061,10 +1061,10 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 19,
     "memberCount": 0,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   },
   {
-    "id": "245577270142443525",
+    "id": "245593672379277317",
     "name": "Order tracker",
     "description": "Can follow shipments and update their status, and nothing else.",
     "builtInKey": "order-tracker",
@@ -1126,7 +1126,7 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 3,
     "memberCount": 0,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   },
   {
     "id": "<ROLE_OWNER>",
@@ -1281,10 +1281,10 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 93,
     "memberCount": 1,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   },
   {
-    "id": "245577270142443526",
+    "id": "245593672379277318",
     "name": "Store manager",
     "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
     "builtInKey": "store-manager",
@@ -1366,7 +1366,7 @@ content-type: application/json; charset=utf-8
     ],
     "permissionCount": 23,
     "memberCount": 0,
-    "updatedAt": "2026-11-09T15:56:23.807Z"
+    "updatedAt": "2026-11-09T17:01:34.404Z"
   }
 ]
 ```
@@ -1527,7 +1527,7 @@ content-type: application/json; charset=utf-8
   ],
   "permissionCount": 2,
   "memberCount": 1,
-  "updatedAt": "2026-11-09T15:56:24.427Z"
+  "updatedAt": "2026-11-09T17:01:35.151Z"
 }
 ```
 
@@ -1652,7 +1652,7 @@ content-type: application/json; charset=utf-8
     "activityLog": {
       "items": [
         {
-          "id": "245577427013603328",
+          "id": "245593841103540224",
           "action": "rbac.role.created",
           "entityType": "role",
           "entityId": "<ROLE_CREATED>",
@@ -1674,7 +1674,7 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:01.208Z"
+          "createdAt": "2026-11-09T17:02:14.632Z"
         }
       ],
       "nextCursor": null
@@ -1799,7 +1799,7 @@ content-type: application/json; charset=utf-8
     "activityLog": {
       "items": [
         {
-          "id": "245577429601488896",
+          "id": "245593843460739072",
           "action": "rbac.role.updated",
           "entityType": "role",
           "entityId": "<ROLE_CREATED>",
@@ -1825,10 +1825,10 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:01.825Z"
+          "createdAt": "2026-11-09T17:02:15.194Z"
         },
         {
-          "id": "245577427013603328",
+          "id": "245593841103540224",
           "action": "rbac.role.created",
           "entityType": "role",
           "entityId": "<ROLE_CREATED>",
@@ -1850,7 +1850,7 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:01.208Z"
+          "createdAt": "2026-11-09T17:02:14.632Z"
         }
       ],
       "nextCursor": null
@@ -1970,7 +1970,7 @@ content-type: application/json; charset=utf-8
     "activityLog": {
       "items": [
         {
-          "id": "245577431971270656",
+          "id": "245593845813743616",
           "action": "rbac.role.duplicated",
           "entityType": "role",
           "entityId": "<ROLE_COPY>",
@@ -1991,7 +1991,7 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:02.390Z"
+          "createdAt": "2026-11-09T17:02:15.755Z"
         }
       ],
       "nextCursor": null
@@ -2054,7 +2054,7 @@ content-type: application/json; charset=utf-8
     "activityLog": {
       "items": [
         {
-          "id": "245577434177474560",
+          "id": "245593848397434880",
           "action": "rbac.role.deleted",
           "entityType": "role",
           "entityId": "<ROLE_COPY>",
@@ -2075,10 +2075,10 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:02.916Z"
+          "createdAt": "2026-11-09T17:02:16.371Z"
         },
         {
-          "id": "245577431971270656",
+          "id": "245593845813743616",
           "action": "rbac.role.duplicated",
           "entityType": "role",
           "entityId": "<ROLE_COPY>",
@@ -2099,7 +2099,7 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:02.390Z"
+          "createdAt": "2026-11-09T17:02:15.755Z"
         }
       ],
       "nextCursor": null
@@ -2190,7 +2190,7 @@ content-type: application/json; charset=utf-8
   ],
   "permissionCount": 2,
   "memberCount": 0,
-  "updatedAt": "2026-11-09T15:57:03.542Z"
+  "updatedAt": "2026-11-09T17:02:16.996Z"
 }
 ```
 
@@ -2270,7 +2270,7 @@ content-type: application/json; charset=utf-8
   ],
   "permissionCount": 2,
   "memberCount": 0,
-  "updatedAt": "2026-11-09T15:57:03.653Z"
+  "updatedAt": "2026-11-09T17:02:17.157Z"
 }
 ```
 
@@ -2348,7 +2348,7 @@ content-type: application/json; charset=utf-8
   ],
   "permissionCount": 2,
   "memberCount": 0,
-  "updatedAt": "2026-11-09T15:57:03.733Z"
+  "updatedAt": "2026-11-09T17:02:17.298Z"
 }
 ```
 

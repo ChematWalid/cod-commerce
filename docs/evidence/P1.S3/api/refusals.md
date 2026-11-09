@@ -54,7 +54,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-09T15:57:06.109Z",
+  "timestamp": "2026-11-09T17:02:19.830Z",
   "path": "/roles"
 }
 ```
@@ -191,7 +191,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-09T15:57:06.743Z",
+  "timestamp": "2026-11-09T17:02:20.488Z",
   "path": "/permissions"
 }
 ```

@@ -118,7 +118,7 @@ content-type: application/json; charset=utf-8
     "activityLog": {
       "items": [
         {
-          "id": "245577440913526784",
+          "id": "245593855397728256",
           "action": "rbac.member-access.changed",
           "entityType": "member",
           "entityId": "4",
@@ -149,10 +149,10 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:57:04.522Z"
+          "createdAt": "2026-11-09T17:02:18.040Z"
         },
         {
-          "id": "245577274378690560",
+          "id": "245593677076897792",
           "action": "rbac.member-access.changed",
           "entityType": "member",
           "entityId": "4",
@@ -178,7 +178,7 @@ content-type: application/json; charset=utf-8
             "name": "Demo Owner"
           },
           "storeId": null,
-          "createdAt": "2026-11-09T15:56:24.817Z"
+          "createdAt": "2026-11-09T17:01:35.525Z"
         }
       ],
       "nextCursor": null

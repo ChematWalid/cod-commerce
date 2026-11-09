@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P1.S3.sh`. Data is synthetic. Image
 built from a tree with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit
-`15222d9562d5ad7da8a990bb20c705301da45534`. Compose project `cod-evidence`; a second api container on port 23101 shares only Valkey and Postgres with the first.
+`8ec742ab7f96a794889a055894a5f2177abda073`. Compose project `cod-evidence`; a second api container on port 23101 shares only Valkey and Postgres with the first.
 
 ## API transcripts
 
@@ -70,7 +70,7 @@ text right-aligned, Arabic font loaded. English shots are `dir=ltr`. No horizont
 ### Defects
 
 - **Fixed (`fix(rbac): fit the roles and activity tables on phones`).** At 390 px the roles table overflowed its scroller: in Arabic the Access column and the row menu were cut off, and in the activity log the Target text was clipped in both languages. The page itself did not overflow, so the original assertion passed. Role names now wrap, the activity log hides the By column on a phone, and the script now fails if a table is wider than its container.
-- **Fixed (`fix(rbac): use erasable syntax in shared permission errors`).** A real `docker compose build` failed: the storefront's type check refused the parameter properties in `packages/shared/src/permissions/expand.ts`. CI's unit jobs had not caught it.
+- **Fixed (`fix(rbac): use erasable syntax in shared permission errors`).** A real `docker compose build` failed: the storefront's type check refused the parameter properties in `packages/shared/src/permissions/expand.ts`.
 
 ### Seen outside the rbac screens (not changed here)
 

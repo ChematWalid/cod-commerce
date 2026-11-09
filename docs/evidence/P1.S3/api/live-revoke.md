@@ -23,7 +23,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "businessRoles": [
       {
-        "id": "245577270142443524",
+        "id": "245593672379277316",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -200,7 +200,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443523",
+        "id": "245593672379277315",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -259,7 +259,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443521",
+        "id": "245593672379277313",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -318,7 +318,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443522",
+        "id": "245593672379277314",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -377,7 +377,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443525",
+        "id": "245593672379277317",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -495,7 +495,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443526",
+        "id": "245593672379277318",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
@@ -796,7 +796,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "businessRoles": [
       {
-        "id": "245577270142443524",
+        "id": "245593672379277316",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -973,7 +973,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443523",
+        "id": "245593672379277315",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -1032,7 +1032,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443521",
+        "id": "245593672379277313",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -1091,7 +1091,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443522",
+        "id": "245593672379277314",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -1150,7 +1150,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443525",
+        "id": "245593672379277317",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -1268,7 +1268,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245577270142443526",
+        "id": "245593672379277318",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
