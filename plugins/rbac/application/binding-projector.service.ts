@@ -14,7 +14,7 @@ import type { BusinessStore } from '../domain/store-access';
 export interface BindingProjectorPorts {
   readonly bindings: Pick<RoleBindingRepositoryPort, 'allBindings' | 'insert' | 'delete'>;
   readonly assignments: Pick<MemberAssignmentRepositoryPort, 'ofRoles'>;
-  readonly engine: Pick<EngineRolesPort, 'createRole' | 'deleteRole' | 'ownerPermissions'>;
+  readonly engine: Pick<EngineRolesPort, 'createRole' | 'deleteRole' | 'ownerPermissions' | 'updatePermissions'>;
   readonly directory: Pick<BusinessDirectoryPort, 'stores'>;
   readonly ids: IdGeneratorPort;
 }
@@ -86,6 +86,21 @@ export class BindingProjector {
     }
   }
 
+  /** Writes the role's permissions on each of its Vendure Roles, so every store sees the edit (D53). */
+  async syncPermissions(ctx: OperationContext, role: BusinessRole, bindings: readonly RoleBinding[]): Promise<void> {
+    for (const binding of bindings) {
+      await this.ports.engine.updatePermissions(ctx, binding.vendureRoleId, this.engineGrantsOf(role));
+    }
+  }
+
+  /** Removes these bindings and their Vendure Roles (D53). */
+  async removeBindings(ctx: OperationContext, scope: TenantScope, bindings: readonly RoleBinding[]): Promise<void> {
+    for (const binding of bindings) {
+      await this.ports.bindings.delete(ctx, scope, binding.id);
+      await this.ports.engine.deleteRole(ctx, binding.vendureRoleId);
+    }
+  }
+
   private async ensureBinding(projection: Projection, role: BusinessRole, scope: BindingScope): Promise<number> {
     const found = projection.existing.find((row) => row.businessRoleId === role.id && row.scope === scope);
     if (found !== undefined) return found.vendureRoleId;
@@ -93,7 +108,7 @@ export class BindingProjector {
     const { engine, bindings, ids } = this.ports;
     const vendureRoleId = await engine.createRole(ctx, {
       code: vendureRoleCode(role.id, scope),
-      permissions: [ENGINE_BASE_PERMISSION, ...this.enginePermissionsOf(role)],
+      permissions: this.engineGrantsOf(role),
       channelIds: this.channelsOf(scope, stores),
     });
     const binding: RoleBinding = { id: ids.next(), businessRoleId: role.id, scope, vendureRoleId };
@@ -105,6 +120,10 @@ export class BindingProjector {
   /** Archived stores are included: tenancy's resolver filters them, and a restored store would then just work. */
   private channelsOf(scope: BindingScope, stores: readonly BusinessStore[]): readonly number[] {
     return stores.filter((store) => scope === ALL_STORES_SCOPE || store.id === scope).map((store) => store.channelId);
+  }
+
+  private engineGrantsOf(role: BusinessRole): readonly string[] {
+    return [ENGINE_BASE_PERMISSION, ...this.enginePermissionsOf(role)];
   }
 
   private enginePermissionsOf(role: BusinessRole): readonly string[] {

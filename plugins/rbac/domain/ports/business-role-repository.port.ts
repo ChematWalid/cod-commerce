@@ -8,6 +8,9 @@ export interface BusinessRolePermissionsPatch {
   readonly updatedAt: Date;
 }
 
+/** What an edit of a custom role writes. */
+export type BusinessRolePatch = Pick<BusinessRole, 'name' | 'nameKey' | 'description' | 'permissions' | 'updatedAt'>;
+
 /** The business roles of a tenant. */
 export interface BusinessRoleRepositoryPort {
   insert(ctx: OperationContext, scope: TenantScope, role: BusinessRole): Promise<void>;
@@ -20,4 +23,6 @@ export interface BusinessRoleRepositoryPort {
     id: Snowflake,
     patch: BusinessRolePermissionsPatch,
   ): Promise<void>;
+  update(ctx: OperationContext, scope: TenantScope, id: Snowflake, patch: BusinessRolePatch): Promise<void>;
+  delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<void>;
 }

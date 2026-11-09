@@ -3,6 +3,7 @@ import { ClientIpResolver } from '@cod/plugin-rate-limit';
 import type { TenantContext } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { AdministratorService, ForbiddenError, type RequestContext } from '@vendure/core';
+import type { RoleActor } from '../application/role-writer';
 import { requestOrigin, type RequestOrigin } from './request-origin';
 
 /** The caller of a tenant-scoped handler. */
@@ -31,4 +32,10 @@ export class RequestActors {
     if (administrator === undefined) throw new ForbiddenError();
     return { administratorId: administrator.id as number, tenant, origin: requestOrigin(ctx, this.ips) };
   }
+}
+
+/** The caller of a role write, in the shape the use cases take. */
+export async function roleActorOf(actors: RequestActors, ctx: RequestContext): Promise<RoleActor> {
+  const { administratorId, tenant, origin } = await actors.actorOf(ctx);
+  return { administratorId, tenant, ...origin };
 }

@@ -6,6 +6,10 @@ import { ActivityLogResolver } from './api/activity-log.resolver';
 import { RBAC_PERMISSION_DEFINITIONS } from './api/permission-definitions';
 import { RequestActors } from './api/actor-of';
 import { MemberAccessResolver } from './api/member-access.resolver';
+import { CatalogResolver } from './api/catalog.resolver';
+import { RbacTranslations } from './api/rbac-translations';
+import { RoleEditsResolver } from './api/role-edits.resolver';
+import { RolesResolver } from './api/roles.resolver';
 import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
 import { BindingProjector } from './application/binding-projector.service';
@@ -45,6 +49,7 @@ import { BusinessRoleEntity } from './infrastructure/business-role.entity';
 import { MemberRoleAssignmentEntity } from './infrastructure/member-role-assignment.entity';
 import { RbacLifecycleHook } from './infrastructure/rbac-lifecycle.hook';
 import { RbacLock } from './infrastructure/rbac-lock';
+import { ROLE_USE_CASE_PROVIDERS } from './infrastructure/role-use-case.providers';
 import { RoleBindingEntity } from './infrastructure/role-binding.entity';
 import { RoleSessionFlusher } from './infrastructure/role-session-flusher';
 import { StoreAccessFlushSubscriber } from './infrastructure/store-access-flush.subscriber';
@@ -219,12 +224,17 @@ const systemClock: ClockPort = { now: () => new Date() };
         CLOCK,
       ],
     },
+    ...ROLE_USE_CASE_PROVIDERS,
+    RbacTranslations,
     RequestActors,
     ActivityRecordHandler,
     RbacLifecycleHook,
     StoreAccessFlushSubscriber,
   ],
-  adminApiExtensions: { schema: adminApiSchema, resolvers: [ActivityLogResolver, MemberAccessResolver] },
+  adminApiExtensions: {
+    schema: adminApiSchema,
+    resolvers: [ActivityLogResolver, MemberAccessResolver, RolesResolver, RoleEditsResolver, CatalogResolver],
+  },
   configuration: addPermissions,
   compatibility: '^3.8.0',
 })

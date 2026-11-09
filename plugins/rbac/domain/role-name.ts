@@ -25,3 +25,32 @@ export function parseRoleName(raw: string): ParsedRoleName {
   }
   return { name, nameKey: caseFolded(name) };
 }
+
+/** The languages a copy can be named in (D71). */
+export type CopyLocale = 'en' | 'ar';
+
+const DEFAULT_COPY_LOCALE: CopyLocale = 'en';
+const COPY_WORDS: Readonly<Record<CopyLocale, string>> = { en: 'copy', ar: 'نسخة' };
+
+/** The locale a client asked for; anything else names the copy in the default language. */
+export const copyLocaleOf = (locale: string | undefined): CopyLocale =>
+  locale === 'ar' || locale === 'en' ? locale : DEFAULT_COPY_LOCALE;
+
+const copySuffix = (locale: CopyLocale, ordinal: number): string =>
+  ordinal === 1 ? ` (${COPY_WORDS[locale]})` : ` (${COPY_WORDS[locale]} ${String(ordinal)})`;
+
+const clipped = (name: string, characters: number): string => Array.from(name).slice(0, characters).join('').trimEnd();
+
+/**
+ * The first free copy name of `source`: `(copy)`, then `(copy 2)` and up. The source is cut so the result stays within
+ * {@link ROLE_NAME_MAX_LENGTH} characters (D71). `isTaken` is asked about name keys, so spelling variants collide.
+ */
+export function copyNameOf(source: string, locale: CopyLocale, isTaken: (nameKey: string) => boolean): ParsedRoleName {
+  let ordinal = 1;
+  for (;;) {
+    const suffix = copySuffix(locale, ordinal);
+    const parsed = parseRoleName(clipped(source, ROLE_NAME_MAX_LENGTH - Array.from(suffix).length) + suffix);
+    if (!isTaken(parsed.nameKey)) return parsed;
+    ordinal += 1;
+  }
+}

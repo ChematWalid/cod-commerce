@@ -1,6 +1,6 @@
 import { type PermissionKey, type Snowflake, type StoreId, toSnowflake, toStoreId } from '@cod/shared';
 import type { BusinessRole, MemberAssignment } from './business-role';
-import type { MemberStoreAccess } from './constants';
+import { ALL_STORES_SCOPE, type BindingScope, type MemberStoreAccess } from './constants';
 import { StoreAccessInvalidError, StoreNotAccessibleError } from './errors';
 
 /** A store of the business and its Vendure channel. */
@@ -127,6 +127,15 @@ const sameStores = (left: readonly string[], right: readonly string[]): boolean 
 export function sameReach(left: AssignmentReach | undefined, right: AssignmentReach | undefined): boolean {
   if (left === undefined || right === undefined) return left === right;
   return left.storeAccess === right.storeAccess && sameStores(left.storeIds, right.storeIds);
+}
+
+/**
+ * Every active store a role reaches through its bindings (D60): an `all` binding reaches every store of the business.
+ * An archived store grants nothing (Review Focus 5), so it does not count.
+ */
+export function reachOf(scopes: readonly BindingScope[], activeStoreIds: readonly StoreId[]): readonly StoreId[] {
+  if (scopes.includes(ALL_STORES_SCOPE)) return activeStoreIds;
+  return activeStoreIds.filter((id) => scopes.includes(id));
 }
 
 /** The assignment row's stored form of a store id. */

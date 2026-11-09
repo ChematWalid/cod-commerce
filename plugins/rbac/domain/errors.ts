@@ -32,6 +32,51 @@ export class RoleNotFoundError extends RbacError {
   }
 }
 
+/** A built-in role is defined by the platform and cannot be changed or removed (D61). */
+export class BuiltInImmutableError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.BUILT_IN_IMMUTABLE;
+
+  constructor() {
+    super('A built-in role cannot be changed');
+  }
+}
+
+/** A role some member still holds cannot be deleted. */
+export class RoleInUseError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.ROLE_IN_USE;
+
+  constructor() {
+    super('This role is still assigned to members');
+  }
+}
+
+/** Another role of the business already has this name, once normalised (D71). */
+export class RoleNameTakenError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.NAME_TAKEN;
+
+  constructor() {
+    super('A role with this name already exists');
+  }
+}
+
+/** A role description over the limit (D71). */
+export class RoleDescriptionTooLongError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.DESCRIPTION_TOO_LONG;
+
+  constructor() {
+    super('The role description is too long');
+  }
+}
+
+/** The business holds as many custom roles as it may (D71). */
+export class RoleLimitError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.ROLE_LIMIT;
+
+  constructor() {
+    super('This business has reached its limit of custom roles');
+  }
+}
+
 /** The actor does not hold what the change needs (D60). */
 export class PrivilegeExceededError extends RbacError {
   readonly code = RBAC_ERROR_CODES.PRIVILEGE_EXCEEDED;

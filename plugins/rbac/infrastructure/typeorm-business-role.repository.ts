@@ -3,6 +3,7 @@ import { type BuiltInRoleKey, type PermissionKey, type Snowflake, type TenantSco
 import { Injectable } from '@nestjs/common';
 import type { BusinessRole } from '../domain/business-role';
 import type {
+  BusinessRolePatch,
   BusinessRolePermissionsPatch,
   BusinessRoleRepositoryPort,
 } from '../domain/ports/business-role-repository.port';
@@ -50,6 +51,18 @@ export class TypeOrmBusinessRoleRepository implements BusinessRoleRepositoryPort
       { id },
       { permissions: [...permissions], updatedAt },
     );
+  }
+
+  async update(ctx: OperationContext, scope: TenantScope, id: Snowflake, patch: BusinessRolePatch): Promise<void> {
+    await this.rows.update(
+      new RequestTenantScope(toRequestContext(ctx), scope.businessId),
+      { id },
+      { ...patch, permissions: [...patch.permissions] },
+    );
+  }
+
+  async delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<void> {
+    await this.rows.delete(new RequestTenantScope(toRequestContext(ctx), scope.businessId), { id });
   }
 
   async all(ctx: OperationContext, scope: TenantScope): Promise<readonly BusinessRole[]> {
