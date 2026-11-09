@@ -47,6 +47,13 @@ const openOrders = async (dialog: Locator): Promise<Locator> => {
 
 const rowOf = (page: Page, name: string): Locator => page.getByRole('row').filter({ hasText: name });
 
+const deleteRole = async (page: Page, name: string): Promise<void> => {
+  await rowOf(page, name).getByRole('button', { name: 'Role actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
+  await rowOf(page, name).waitFor({ state: 'detached' });
+};
+
 describe('roles page', () => {
   let browser: Browser;
   let page: Page;
@@ -117,6 +124,10 @@ describe('roles page', () => {
       await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
 
       await rowOf(page, `${name} (copy)`).waitFor();
+
+      // The copy first: a row's filter matches on a substring, so the original's would match both while the copy exists.
+      await deleteRole(page, `${name} (copy)`);
+      await deleteRole(page, name);
     });
   });
 
