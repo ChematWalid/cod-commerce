@@ -334,3 +334,59 @@ msgstr "Log out"
 #. js-lingui-explicit-id
 msgid "shell.store.create.name-invalid"
 msgstr "Enter a valid store name."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.title"
+msgstr "Business"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.name"
+msgstr "Business name"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.title"
+msgstr "Store"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.name"
+msgstr "Store name"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.description"
+msgstr "Store description"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.saved"
+msgstr "Changes saved"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.load-failed"
+msgstr "Could not load these settings. Reload the page to try again."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save-failed"
+msgstr "Could not save your changes. Try again."
+
+#. js-lingui-explicit-id
+msgid "tenancy.name-invalid"
+msgstr "Enter a name of up to 255 characters."
+
+#. js-lingui-explicit-id
+msgid "tenancy.unsupported-store-language"
+msgstr "Choose one of the languages offered."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-not-found"
+msgstr "This store no longer exists."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-archived"
+msgstr "This store was archived, so it can no longer be changed."
+
+#. js-lingui-explicit-id
+msgid "tenancy.business-not-found"
+msgstr "This business could not be found."

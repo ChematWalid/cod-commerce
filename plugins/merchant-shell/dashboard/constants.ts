@@ -145,3 +145,25 @@ export const PLACEHOLDER_HANDOFF_SESSIONS = {
   notifications: 'P7.S3',
   assistant: 'P9.S7a',
 } as const;
+
+/** The permissions of the General settings page (the server enforces each again): see and change the business. */
+export const BUSINESS_VIEW_PERMISSION: PermissionKey = 'settings.business.view';
+export const BUSINESS_EDIT_PERMISSION: PermissionKey = 'settings.business.edit';
+/** See the active store, and change it. */
+export const STORE_VIEW_PERMISSION: PermissionKey = 'store.stores.view';
+export const STORE_EDIT_PERMISSION: PermissionKey = 'store.settings.edit';
+
+/** The query keys of the two records the page edits, prefixed by the active channel so a switch refetches. */
+export const ACTIVE_BUSINESS_QUERY_KEY = ['merchant-shell', 'active-business'] as const;
+export const STORE_RECORD_QUERY_KEY = ['merchant-shell', 'store'] as const;
+
+/** Markers of the General settings page and its controls. */
+export const BUSINESS_CARD_TEST_ID = 'business-profile-card';
+export const BUSINESS_NAME_TEST_ID = 'business-name';
+export const BUSINESS_SAVE_TEST_ID = 'business-save';
+export const STORE_CARD_TEST_ID = 'store-profile-card';
+export const STORE_NAME_TEST_ID = 'store-name';
+export const STORE_DESCRIPTION_TEST_ID = 'store-description';
+export const STORE_SAVE_TEST_ID = 'store-save';
+export const SETTINGS_ERROR_TEST_ID = 'settings-error';
+export const SETTINGS_LOAD_ERROR_TEST_ID = 'settings-load-error';

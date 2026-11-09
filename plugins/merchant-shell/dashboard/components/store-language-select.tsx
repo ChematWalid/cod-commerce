@@ -6,10 +6,12 @@ import { STORE_LANGUAGE_OPTIONS } from '../constants';
 interface StoreLanguageSelectProps {
   readonly value: string;
   readonly onChange: (language: string) => void;
+  /** Shows the value without letting it change, for someone who may see the store but not edit it. */
+  readonly disabled?: boolean;
 }
 
 /** The storefront's language, independent of the language this dashboard is shown in. */
-export function StoreLanguageSelect({ value, onChange }: StoreLanguageSelectProps): ReactNode {
+export function StoreLanguageSelect({ value, onChange, disabled = false }: StoreLanguageSelectProps): ReactNode {
   const { i18n } = useLingui();
   const id = useId();
   const hintId = `${id}-hint`;
@@ -18,6 +20,7 @@ export function StoreLanguageSelect({ value, onChange }: StoreLanguageSelectProp
       <Label htmlFor={id}>{i18n._('Store language')}</Label>
       <Select
         value={value}
+        disabled={disabled}
         onValueChange={(language) => {
           if (language !== null) onChange(language);
         }}

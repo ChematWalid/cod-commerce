@@ -25,8 +25,12 @@ import {
 } from './constants';
 import { buildMerchantNav } from './model/nav-config';
 import { SHELL_NAV_ICONS } from './nav/icons';
+import { registerShellPage } from './registry/shell-pages';
+import { GeneralSettingsPage } from './routes/general-settings-page';
 import { shellRoutes } from './routes/shell-routes';
 import { shellPlaceholderRoute } from './routes/shell-placeholder';
+
+registerShellPage('settings.general', { component: GeneralSettingsPage });
 
 defineDashboardExtension({
   routes: [shellPlaceholderRoute, ...shellRoutes],

@@ -40,9 +40,10 @@ describe('seedDemoMembers', () => {
     const { app, withTransaction } = appWhere(false);
 
     // Act
-    await seedDemoMembers(app, ctx, 'owner@demo.example.test', 'synthetic-demo-password');
+    const created = await seedDemoMembers(app, ctx, 'owner@demo.example.test', 'synthetic-demo-password');
 
     // Assert
-    expect(withTransaction).toHaveBeenCalledTimes(2);
+    expect(created.length).toBeGreaterThan(0);
+    expect(withTransaction).toHaveBeenCalledTimes(created.length);
   });
 });

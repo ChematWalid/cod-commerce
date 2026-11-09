@@ -13,6 +13,7 @@ import {
   SUBDOMAIN_TAKEN_ERROR_CODE,
   SWITCHABLE_STORES_QUERY_KEY,
 } from '../constants';
+import { errorCodeOf } from '../model/api-error';
 
 const CREATE_STORE_MUTATION = /* GraphQL */ `
   mutation ShellCreateStore($input: CreateStoreInput!) {
@@ -32,14 +33,6 @@ export interface CreateStoreInput {
 
 interface CreateStoreResult {
   readonly createStore: { readonly channelToken: string };
-}
-
-/** The API's stable code of a failed call, when it gave one. */
-function errorCodeOf(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null || !('extensions' in error)) return undefined;
-  const { extensions } = error;
-  if (typeof extensions !== 'object' || extensions === null || !('code' in extensions)) return undefined;
-  return typeof extensions.code === 'string' ? extensions.code : undefined;
 }
 
 function createErrorMessageId(error: unknown): string {

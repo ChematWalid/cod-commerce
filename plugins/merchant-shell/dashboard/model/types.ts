@@ -31,3 +31,17 @@ export interface SwitchableStoreView {
 export interface ShellPageProps {
   readonly store: SwitchableStoreView | undefined;
 }
+
+/** The business as `activeBusiness` returns the part the settings page edits. */
+export interface BusinessRecord {
+  readonly id: string;
+  readonly name: string;
+}
+
+/** A store as `store(id)` returns the part the settings page edits. */
+export interface StoreRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly language: string;
+}

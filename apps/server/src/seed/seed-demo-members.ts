@@ -29,6 +29,8 @@ export const DEMO_LIMITED_MEMBER_EMAIL = 'limited@demo.example.test';
 export const DEMO_ORDERS_MEMBER_EMAIL = 'orders@demo.example.test';
 /** Holds no view permission, so the merchant sidebar shows Home alone. */
 export const DEMO_NO_VIEW_MEMBER_EMAIL = 'noview@demo.example.test';
+/** Can see the business and store settings, and change neither. */
+export const DEMO_SETTINGS_VIEWER_EMAIL = 'settingsview@demo.example.test';
 /** Can view products on the first store only, and is a member of the second store without that key. */
 export const DEMO_PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
 
@@ -52,6 +54,13 @@ const DEMO_MEMBERS: readonly DemoMember[] = [
     firstName: 'NoView',
     roleName: 'Demo no view',
     grants: [],
+    storeAccess: 'all',
+  },
+  {
+    emailAddress: DEMO_SETTINGS_VIEWER_EMAIL,
+    firstName: 'SettingsView',
+    roleName: 'Demo settings viewer',
+    grants: ['settings.business.view', 'store.stores.view'],
     storeAccess: 'all',
   },
   {

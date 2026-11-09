@@ -334,3 +334,59 @@ msgstr "تسجيل الخروج"
 #. js-lingui-explicit-id
 msgid "shell.store.create.name-invalid"
 msgstr "أدخل اسم متجر صالحًا."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.title"
+msgstr "النشاط التجاري"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.name"
+msgstr "اسم النشاط"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.title"
+msgstr "المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.name"
+msgstr "اسم المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.description"
+msgstr "وصف المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.saved"
+msgstr "تم حفظ التغييرات"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.load-failed"
+msgstr "تعذّر تحميل هذه الإعدادات. أعد تحميل الصفحة للمحاولة مجددًا."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save-failed"
+msgstr "تعذّر حفظ تغييراتك. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "tenancy.name-invalid"
+msgstr "أدخل اسمًا لا يزيد عن 255 حرفًا."
+
+#. js-lingui-explicit-id
+msgid "tenancy.unsupported-store-language"
+msgstr "اختر إحدى اللغات المعروضة."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-not-found"
+msgstr "لم يعد هذا المتجر موجودًا."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-archived"
+msgstr "تمت أرشفة هذا المتجر، فلا يمكن تعديله بعد الآن."
+
+#. js-lingui-explicit-id
+msgid "tenancy.business-not-found"
+msgstr "تعذّر العثور على هذا النشاط."
