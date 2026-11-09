@@ -6,7 +6,7 @@ import { EmailVerificationService } from '../application/email-verification.serv
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { HttpRequest } from './end-current-session';
 import { DomainErrorRestFilter } from './error-mapping';
-import { activeUserIdOf, operationOf } from './operation';
+import { activeUserIdOf, operationOf, sessionTokenOf } from './operation';
 import { stringFields } from './rest-body';
 
 interface SuccessResult {
@@ -29,6 +29,7 @@ export class AuthAccountController {
   @Post('verify-email/:token')
   @HttpCode(HttpStatus.OK)
   @Allow(Permission.Public)
+  @RateLimit('token-redeem-ip')
   async verifyEmail(@Param('token') token: string, @Req() req: HttpRequest): Promise<SuccessResult> {
     await this.verification.verifyByLink(await this.adminContext(req), token);
     return SUCCESS;
@@ -57,9 +58,11 @@ export class AuthAccountController {
   @Post('confirm-email-change')
   @HttpCode(HttpStatus.OK)
   @Allow(Permission.Public)
+  @RateLimit('token-redeem-ip')
   async confirmEmailChange(@Body() body: unknown, @Req() req: HttpRequest): Promise<SuccessResult> {
     const { token } = stringFields(body, 'token');
-    await this.emailChange.confirm(await this.adminContext(req), token);
+    const ctx = await this.requestContexts.create({ req, apiType: 'admin' });
+    await this.emailChange.confirm(operationOf(ctx), token, sessionTokenOf(ctx));
     return SUCCESS;
   }
 

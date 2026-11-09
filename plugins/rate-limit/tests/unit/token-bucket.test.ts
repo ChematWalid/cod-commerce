@@ -13,6 +13,7 @@ describe('RATE_LIMIT_POLICIES', () => {
       'login-ip': [60, 60],
       'reset-account': [10, 60],
       'reset-ip': [60, 60],
+      'token-redeem-ip': [60, 60],
       'otp-account': [10, 60],
       'otp-ip': [60, 60],
       'otp-account-daily': [50, 86_400],

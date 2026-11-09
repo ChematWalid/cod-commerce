@@ -8,7 +8,7 @@ import {
   type ResendResult,
 } from '../application/email-verification.service';
 import { withApiErrors } from './error-mapping';
-import { activeUserIdOf, operationOf } from './operation';
+import { activeUserIdOf, operationOf, sessionTokenOf } from './operation';
 
 interface SuccessResult {
   readonly success: boolean;
@@ -30,6 +30,7 @@ export class AccountEmailResolver {
   /** Verifies the email with the emailed link's token. */
   @Mutation()
   @Allow(Permission.Public)
+  @RateLimit('token-redeem-ip')
   async verifyEmail(@Ctx() ctx: RequestContext, @Args('token') token: string): Promise<SuccessResult> {
     await withApiErrors(() => this.verification.verifyByLink(operationOf(ctx), token));
     return SUCCESS;
@@ -75,8 +76,9 @@ export class AccountEmailResolver {
   /** Switches the account to the confirmed address. */
   @Mutation()
   @Allow(Permission.Public)
+  @RateLimit('token-redeem-ip')
   async confirmEmailChange(@Ctx() ctx: RequestContext, @Args('token') token: string): Promise<SuccessResult> {
-    await withApiErrors(() => this.emailChange.confirm(operationOf(ctx), token));
+    await withApiErrors(() => this.emailChange.confirm(operationOf(ctx), token, sessionTokenOf(ctx)));
     return SUCCESS;
   }
 }

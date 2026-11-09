@@ -53,6 +53,7 @@ export class AuthPasswordController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @Allow(Permission.Public)
+  @RateLimit('token-redeem-ip')
   async resetPassword(
     @Body() body: unknown,
     @Req() req: HttpRequest,

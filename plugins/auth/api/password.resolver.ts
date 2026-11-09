@@ -69,6 +69,7 @@ export class PasswordResolver {
   /** Sets a new password with an emailed token and signs the owner in. */
   @Mutation()
   @Allow(Permission.Public)
+  @RateLimit('token-redeem-ip')
   async resetPassword(
     @Ctx() ctx: RequestContext,
     @Args('token') token: string,

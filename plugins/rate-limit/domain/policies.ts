@@ -38,6 +38,7 @@ export const RATE_LIMIT_POLICIES = {
   'login-ip': perMinute(IP_CAPACITY, 'in-process'),
   'reset-account': perMinute(ACCOUNT_CAPACITY, 'in-process'),
   'reset-ip': perMinute(IP_CAPACITY, 'in-process'),
+  'token-redeem-ip': perMinute(IP_CAPACITY, 'in-process'),
   'otp-account': perMinute(ACCOUNT_CAPACITY, 'in-process'),
   'otp-ip': perMinute(IP_CAPACITY, 'in-process'),
   'otp-account-daily': { capacity: OTP_DAILY_CAPACITY, windowSeconds: DAY_WINDOW_SECONDS, outage: 'in-process' },
