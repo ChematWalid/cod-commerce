@@ -1,4 +1,5 @@
 import { TemplatePlugin } from '@cod/plugin-template';
+import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { describe, expect, it } from 'vitest';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
 import { buildPlugins } from '../../src/config/plugins.config';
@@ -29,5 +30,16 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TemplatePlugin);
+  });
+
+  it.each(SERVER_ROLES)('registers TenancyPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(TenancyPlugin);
   });
 });

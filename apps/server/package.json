@@ -15,12 +15,14 @@
     "test:integration": "vitest run --configLoader runner --project e2e",
     "test:browser": "vitest run --configLoader runner -c vitest.browser.config.ts",
     "migrate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-migrate.ts",
+    "seed:demo": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-seed-demo.ts",
     "migration:generate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/scripts/generate-migration.ts"
   },
   "dependencies": {
     "@cod/plugin-merchant-shell": "workspace:*",
     "@cod/plugin-platform-health": "workspace:*",
     "@cod/plugin-template": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
     "@nestjs/core": "12.4.0",

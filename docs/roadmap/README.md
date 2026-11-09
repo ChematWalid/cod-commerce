@@ -231,6 +231,7 @@ flowchart LR
 These are the cross-session seams; the owning session defines them, later sessions only consume or register.
 | Contract | Owner | Consumers |
 |---|---|---|
+| Snowflake id generator (`SnowflakeGenerator`, `toSnowflake`) and tenancy contracts (`TenantContext`, `classifySubdomain`, `formatOrderNumber`, host helpers) in `packages/shared` | P1.S1 | every session that creates a row of ours, the storefront |
 | Per-business order number sequence service | P1.S1 | P3.S4 assigns at acceptance; P4.S5 assigns on spam release |
 | `requireFeature()` / limit checks (no-op until P9.S1) | P0.S2b (stub) → P9.S1 (real) | Every gated session calls it when it builds the feature (finance, tracked items, team seats, landing pages per product, active offers). P9.S1 wires gates for sessions already merged; later sessions call it themselves |
 | Repo layout, dashboard code path (`plugins/<name>/dashboard/` or the ADR 0010 mapping), order lifecycle and quote→order-total strategy | P0.S2a-1 (ADR 0001, 0010, 0009, 0004) | every session; P3.S4 (pending state, totals), P4.S1 (full process) |

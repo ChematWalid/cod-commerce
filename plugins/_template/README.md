@@ -11,7 +11,7 @@ are live, so it stays honest: the full gate runs it.
 | ----------------- | ------------------------------------------------------------- | ------------------------------------------- |
 | `domain/`         | entities, value objects, typed errors, ports, `constants.ts`  | `domain/`, `@cod/shared` (no Nest, Vendure, TypeORM, not even types) |
 | `application/`    | use cases (plain classes), application ports, DI tokens       | `application/`, `domain/`, `@cod/shared` (no Nest, Vendure, TypeORM, not even types) |
-| `infrastructure/` | adapters: TypeORM entity and repository, scope resolver, ids  | `infrastructure/`, `application/`, `domain/` |
+| `infrastructure/` | adapters: TypeORM entity and repository, ids                  | `infrastructure/`, `application/`, `domain/` |
 | `api/`            | GraphQL schema, resolver, DTOs, permissions, error mapping    | `api/`, `application/`, `domain/`            |
 | `dashboard/`      | the dashboard extension (ADR 0010)                            | `dashboard/`, `domain/`                      |
 | `tests/`          | unit, contract, integration tests and fakes                   | anything in the plugin                       |
@@ -19,17 +19,20 @@ are live, so it stays honest: the full gate runs it.
 
 ESLint (`boundaries/*`, `no-restricted-imports`, size limits) and the dependency-cruiser architecture test
 enforce the table; a file outside these places fails `boundaries/no-unknown-files`. Another plugin's files
-are never imported: share through `@cod/shared` contracts or domain events.
+are never imported: share through `@cod/shared` contracts or domain events. Tenancy is consumed only through the
+`@cod/plugin-tenancy` entry point (D10).
 
 ## How the pieces fit
 
-- `TemplateNoteResolver` resolves the caller's `TenantScope` through `TenantScopeResolver`, runs a use case,
+- `TemplateNoteResolver` is `@TenantScoped()`: the guard (imported through `TenancyPlugin`, A6) derives the tenant
+  from the administrator and the channel. The resolver builds the scope from `tenantOf(ctx)`, runs a use case,
   and maps a `DomainError` to `DomainInputError` (`api/error-mapping.ts`, the plugin's only error mapping).
   The client sees the domain error's stable `code` in `extensions.code`.
 - `CreateNoteService` and `GetNotesService` depend on ports only (`NoteRepositoryPort`, `IdGeneratorPort`)
   and a clock, so they are unit-tested with fakes. `template.plugin.ts` builds them with `useFactory`.
-- `TypeOrmNoteRepository` filters every query by `scope.businessId` and joins the request's transaction
-  through `RequestTenantScope`. `InMemoryNoteRepository` (tests) passes the same contract.
+- `TypeOrmNoteRepository` goes through `TenantRepository` (ADR 0002), which confines every call to
+  `scope.businessId` and joins the request's transaction through `RequestTenantScope`. `NoteEntity` extends
+  `TenantEntity`. `InMemoryNoteRepository` (tests) passes the same contract.
 - The dashboard page reads through `useQuery`: switching the channel invalidates every query, so it refetches for
   the new business and shows the loading state meanwhile. A one-shot `useEffect` would keep the old business's notes.
 - The GraphQL input never has a `businessId`; the business comes from the request, never from the client.
@@ -57,17 +60,19 @@ are never imported: share through `@cod/shared` contracts or domain events.
      it until it is granted to a role.
 3. **Migrate**: `pnpm --filter @cod/server migration:generate <name>` against the migrated dev database. The
    generator already makes the `typeorm` import type-only and the methods `Promise<void>`, so the file needs no
-   hand edit; review it: `bigint` primary key, `businessId bigint NOT NULL` with an index. The RF4 e2e
+   hand edit; review it: `bigint` primary key, `businessId bigint NOT NULL` with an index (from `TenantEntity`),
+   and a composite `(businessId, createdAt, id)` index when the entity is listed newest first. The RF4 e2e
    (`migrate-seed.e2e.test.ts`) fails while the entities and the committed migrations differ.
 4. **Follow the layer rules** in the table above.
 5. **Checklist** before the PR:
    - [ ] domain unit tests, without Nest or the database (`tests/unit/`);
    - [ ] a use-case test with the in-memory fake;
    - [ ] a contract test per adapter of each port (`tests/contract/`), run by every adapter;
-   - [ ] an integration test per endpoint (`createPluginTestEnvironment` from `@cod/testing`);
+   - [ ] an integration test per endpoint (`createPluginTestEnvironment` and `createTwoBusinesses` from `@cod/testing`);
    - [ ] a `FORBIDDEN` test for every handler, mutations included, with a role lacking its permission: Vendure
      lets anyone call a handler that has no `@Allow`;
-   - [ ] a two-business isolation test per entity and endpoint, including the unknown-channel-token case;
+   - [ ] a two-business isolation test per entity and endpoint, from a registry checked against the plugin's
+     `adminApiSchema` (`adminOperationsOf`), including B's channel token and the unknown-channel-token case;
    - [ ] typed `DomainError`s with stable codes, mapped through `DomainInputError` only;
    - [ ] constants in `domain/constants.ts`, never inline;
    - [ ] `requireFeature(feature, scope)` (`@cod/shared`) where the feature is gated;
@@ -82,11 +87,4 @@ Postgres; `DATABASE_URL_DIRECT` comes from `apps/server/.env` or the environment
 
 ## What changes later
 
-- **P1.S1** replaces the three stubs (dated deviations 6 and 7):
-  - `ChannelTenantScopeResolver` (one channel = one business) becomes the ADR 0002 `TenantContextResolver`,
-    which derives the business from the authenticated administrator;
-  - the entity's own `businessId` column moves to the `TenantEntity` base class, and the repository goes
-    through `TenantRepository` / `tenantQuery`;
-  - `RandomBigintIdGenerator` becomes the ADR 0003 snowflake generator, behind the same `IdGeneratorPort`
-    (P1.S1 owns ids).
 - **P1.S5** adds the dashboard's `.po` catalogues; until then the page's strings are English only.

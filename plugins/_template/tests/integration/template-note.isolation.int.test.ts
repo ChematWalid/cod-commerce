@@ -1,208 +1,220 @@
+import { TenancyPlugin } from '@cod/plugin-tenancy';
 import {
+  adminOperationsOf,
+  asChannel,
+  type BusinessFixture,
+  type GraphQlDocument,
   createPluginTestEnvironment,
+  createTwoBusinesses,
+  failureOf,
   loadPluginTestDbConfig,
-  PLUGIN_TEST_CURRENCY_CODE,
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
   PLUGIN_TEST_INITIAL_DATA,
+  type TwoBusinesses,
 } from '@cod/testing';
-import gql from 'graphql-tag';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { adminApiSchema } from '../../api/schema';
 import { TemplatePlugin } from '../../template.plugin';
-import { failureOf } from './graphql-outcome';
+import { CREATE_NOTE, NOTE_BY_ID, type NoteResult, NOTES, TEST_REDIS_URL } from './template-note-operations';
 
-/** Vendure's code of the platform channel, which a business never is (ADR 0002). */
-const DEFAULT_CHANNEL_CODE = '__default_channel__';
-const TOKEN_A = 'business-a-token';
-const TOKEN_B = 'business-b-token';
+type NoteIdsOf = (value: unknown) => readonly string[];
 
-interface NoteRef {
-  readonly id: string;
+/** What A's call must come to; it is never B's data. */
+type NoteOutcome = { readonly kind: 'null' } | { readonly kind: 'callerOwned'; readonly noteIdsOf: NoteIdsOf };
+
+/** Proves an attack aimed at something real, so `null` cannot come from a wrong id. */
+type NoteControl = { readonly kind: 'readAsB'; readonly noteIdsOf: NoteIdsOf } | { readonly kind: 'noForeignTarget' };
+
+/** One Admin API operation, its call from A against B, and the result it must have. */
+interface NoteEntry {
+  readonly operation: string;
+  readonly document: GraphQlDocument;
+  readonly variables: () => Record<string, unknown>;
+  readonly outcome: NoteOutcome;
+  readonly control: NoteControl;
 }
 
-type CreateChannelResult = { readonly id: string } | { readonly errorCode: string; readonly message: string };
-
-interface ChannelRef {
-  readonly id: string;
-  readonly code: string;
-}
-
-const ZONES = gql`
-  query {
-    zones {
-      items {
-        id
-      }
-    }
-  }
-`;
-
-const CREATE_CHANNEL = gql`
-  mutation ($input: CreateChannelInput!) {
-    createChannel(input: $input) {
-      ... on Channel {
-        id
-      }
-      ... on ErrorResult {
-        errorCode
-        message
-      }
-    }
-  }
-`;
-
-const ACTIVE_CHANNEL = gql`
-  query {
-    activeChannel {
-      id
-      code
-    }
-  }
-`;
-
-const CREATE_NOTE = gql`
-  mutation ($input: CreateTemplateNoteInput!) {
-    createTemplateNote(input: $input) {
-      id
-    }
-  }
-`;
-
-const NOTE_BY_ID = gql`
-  query ($id: String!) {
-    templateNote(id: $id) {
-      id
-    }
-  }
-`;
-
-const NOTES = gql`
-  query {
-    templateNotes {
-      id
-    }
-  }
-`;
+const idOfNote: NoteIdsOf = (value) => [(value as NoteResult).id];
+const idsOfNotes: NoteIdsOf = (value) => (value as NoteResult[]).map((note) => note.id);
 
 describe('TemplateNote isolation between two businesses', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TemplatePlugin],
+    plugins: [
+      TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1004 }),
+      TemplatePlugin,
+    ],
     db: loadPluginTestDbConfig(process.env),
   });
-  let noteOfA: NoteRef;
-  let noteOfB: NoteRef;
+  let fixtures: TwoBusinesses;
+  let noteOfA: NoteResult;
+  let noteOfB: NoteResult;
 
-  /** Runs the Admin API calls of `work` on the channel of `token`, then returns to the default channel. */
-  async function asChannel<T>(token: string, work: () => Promise<T>): Promise<T> {
-    adminClient.setChannelToken(token);
-    try {
-      return await work();
-    } finally {
-      adminClient.setChannelToken(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
-    }
+  const REGISTRY: readonly NoteEntry[] = [
+    {
+      operation: 'templateNote',
+      document: NOTE_BY_ID,
+      variables: () => ({ id: noteOfB.id }),
+      outcome: { kind: 'null' },
+      control: { kind: 'readAsB', noteIdsOf: idOfNote },
+    },
+    {
+      operation: 'templateNotes',
+      document: NOTES,
+      variables: () => ({}),
+      outcome: { kind: 'callerOwned', noteIdsOf: idsOfNotes },
+      control: { kind: 'readAsB', noteIdsOf: idsOfNotes },
+    },
+    {
+      operation: 'createTemplateNote',
+      document: CREATE_NOTE,
+      variables: () => ({ input: { title: "A's own", body: '' } }),
+      outcome: { kind: 'callerOwned', noteIdsOf: idOfNote },
+      control: { kind: 'noForeignTarget' },
+    },
+  ];
+
+  async function callOperation(entry: NoteEntry): Promise<unknown> {
+    const data = await adminClient.query<Record<string, unknown>>(entry.document, entry.variables());
+    return data[entry.operation];
   }
 
-  async function createBusinessChannel(code: string, token: string, zoneId: string): Promise<void> {
-    const { createChannel } = await adminClient.query<{ createChannel: CreateChannelResult }>(CREATE_CHANNEL, {
-      input: {
-        code,
-        token,
-        defaultLanguageCode: 'en',
-        pricesIncludeTax: true,
-        defaultCurrencyCode: PLUGIN_TEST_CURRENCY_CODE,
-        defaultTaxZoneId: zoneId,
-        defaultShippingZoneId: zoneId,
-      },
-    });
-    if ('errorCode' in createChannel) {
-      throw new Error(`createChannel ${code} failed: ${createChannel.errorCode} ${createChannel.message}`);
-    }
+  async function asOwner(business: BusinessFixture, store = business.stores[0]): Promise<void> {
+    adminClient.setChannelToken(store.channelToken);
+    await adminClient.asUserWithCredentials(business.owner.email, business.owner.password);
   }
 
-  const createNote = (token: string, title: string): Promise<NoteRef> =>
-    asChannel(token, async () => {
-      const result = await adminClient.query<{ createTemplateNote: NoteRef }>(CREATE_NOTE, {
-        input: { title, body: '' },
-      });
-      return result.createTemplateNote;
+  async function createNote(business: BusinessFixture, title: string): Promise<NoteResult> {
+    await asOwner(business);
+    const result = await adminClient.query<{ createTemplateNote: NoteResult }>(CREATE_NOTE, {
+      input: { title, body: '' },
     });
+    return result.createTemplateNote;
+  }
 
-  const listIds = async (token: string): Promise<string[]> =>
-    asChannel(token, async () => {
-      const result = await adminClient.query<{ templateNotes: NoteRef[] }>(NOTES);
-      return result.templateNotes.map((note) => note.id);
-    });
-
-  const readById = (token: string, id: string): Promise<NoteRef | null> =>
-    asChannel(token, async () => {
-      const result = await adminClient.query<{ templateNote: NoteRef | null }>(NOTE_BY_ID, { id });
-      return result.templateNote;
-    });
+  const noteIds = async (): Promise<string[]> => {
+    const { templateNotes } = await adminClient.query<{ templateNotes: NoteResult[] }>(NOTES);
+    return templateNotes.map((note) => note.id);
+  };
 
   beforeAll(async () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
+    fixtures = await createTwoBusinesses(adminClient);
+    noteOfA = await createNote(fixtures.a, "A's note");
+    noteOfB = await createNote(fixtures.b, "B's note");
+  });
+
+  afterEach(async () => {
+    adminClient.setChannelToken(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
     await adminClient.asSuperAdmin();
-    const { zones } = await adminClient.query<{ zones: { items: { id: string }[] } }>(ZONES);
-    const [zone] = zones.items;
-    if (zone === undefined) {
-      throw new Error('The test server has no zone: PLUGIN_TEST_INITIAL_DATA must create Algeria');
-    }
-    const zoneId = zone.id;
-    await createBusinessChannel('business-a', TOKEN_A, zoneId);
-    await createBusinessChannel('business-b', TOKEN_B, zoneId);
-    noteOfA = await createNote(TOKEN_A, "A's note");
-    noteOfB = await createNote(TOKEN_B, "B's note");
   });
 
   afterAll(async () => {
     await server.destroy();
   });
 
+  it('has a registry entry for every Admin API operation', () => {
+    // Act
+    const registered = REGISTRY.map((entry) => entry.operation).sort();
+
+    // Assert
+    expect(registered).toEqual(adminOperationsOf(adminApiSchema));
+  });
+
   it("business A cannot read B's note by id", async () => {
+    // Arrange
+    await asOwner(fixtures.a);
+
     // Act
-    const readByB = await readById(TOKEN_B, noteOfB.id);
-    const readByA = await readById(TOKEN_A, noteOfB.id);
+    const { templateNote } = await adminClient.query<{ templateNote: NoteResult | null }>(NOTE_BY_ID, {
+      id: noteOfB.id,
+    });
 
     // Assert
-    expect(readByB).toEqual(noteOfB);
-    expect(readByA).toBeNull();
+    expect(templateNote).toBeNull();
   });
 
-  it("business A's list never contains B's notes", async () => {
+  it("business A's list never contains B's notes, on either of its stores", async () => {
+    // Arrange
+    await asOwner(fixtures.a);
+
     // Act
-    const listedForA = await listIds(TOKEN_A);
-    const listedForB = await listIds(TOKEN_B);
+    const onA1 = await noteIds();
+    await asOwner(fixtures.a, fixtures.a.stores[1]);
+    const onA2 = await noteIds();
 
     // Assert
-    expect(listedForA).toEqual([noteOfA.id]);
+    expect(onA1).toContain(noteOfA.id);
+    expect(onA1).not.toContain(noteOfB.id);
+    expect(onA2).toEqual(onA1);
+  });
+
+  it("a note A creates stays out of B's list", async () => {
+    // Arrange
+    const created = await createNote(fixtures.a, 'Private to A');
+
+    // Act
+    await asOwner(fixtures.b);
+    const listedForB = await noteIds();
+
+    // Assert
     expect(listedForB).toEqual([noteOfB.id]);
+    expect(listedForB).not.toContain(created.id);
   });
 
-  // RF1: an isolation test is vacuous if A and B resolve to the same business, or to the default channel.
-  it('A and B are two businesses, neither of them the default channel', async () => {
+  it.each(REGISTRY)("$operation run by A never returns B's notes", async (entry) => {
+    // Arrange
+    await asOwner(fixtures.a);
+
     // Act
-    const channelOf = async (token: string): Promise<ChannelRef> =>
-      asChannel(
-        token,
-        async () => (await adminClient.query<{ activeChannel: ChannelRef }>(ACTIVE_CHANNEL)).activeChannel,
-      );
-    const [channelA, channelB, platform] = [
-      await channelOf(TOKEN_A),
-      await channelOf(TOKEN_B),
-      await channelOf(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN),
-    ];
-    const listedOnPlatform = await listIds(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
+    const value = await callOperation(entry);
 
     // Assert
-    expect(new Set([channelA.id, channelB.id, platform.id]).size).toBe(3);
-    expect(platform.code).toBe(DEFAULT_CHANNEL_CODE);
-    expect([channelA.code, channelB.code]).toEqual(['business-a', 'business-b']);
-    expect(listedOnPlatform).toEqual([]);
+    if (entry.outcome.kind === 'null') {
+      expect(value).toBeNull();
+    } else {
+      expect(entry.outcome.noteIdsOf(value)).not.toContain(noteOfB.id);
+      expect(entry.outcome.noteIdsOf(value).length).toBeGreaterThan(0);
+    }
+    await asOwner(fixtures.b);
+    expect(await noteIds()).toEqual([noteOfB.id]);
+  });
+
+  // The attack above must aim at a real note: without this, a wrong id would also come back null.
+  it.each(REGISTRY)("$operation run by B returns B's note", async (entry) => {
+    // Arrange
+    await asOwner(fixtures.b);
+
+    // Act and Assert
+    if (entry.control.kind === 'readAsB') {
+      expect(entry.control.noteIdsOf(await callOperation(entry))).toEqual([noteOfB.id]);
+    }
+  });
+
+  it.each(REGISTRY)("$operation is FORBIDDEN for A's owner on B's channel", async ({ document, variables }) => {
+    // Arrange
+    await asOwner(fixtures.a);
+
+    // Act
+    const failure = await failureOf(
+      asChannel(adminClient, fixtures.b.stores[0].channelToken, () => adminClient.query(document, variables())),
+    );
+
+    // Assert
+    expect(failure.codes).toEqual(['FORBIDDEN']);
+  });
+
+  it('is FORBIDDEN on the default channel, which belongs to no business', async () => {
+    // Act
+    const failure = await failureOf(adminClient.query(NOTES));
+
+    // Assert
+    expect(failure.codes).toEqual(['FORBIDDEN']);
   });
 
   // RF1: Vendure would serve an empty token from the default channel; an unknown one must be refused.
   it('rejects an unknown channel token instead of falling back to the default channel', async () => {
     // Act
-    const failure = await failureOf(asChannel('nope', () => adminClient.query(NOTES)));
+    const failure = await failureOf(asChannel(adminClient, 'nope', () => adminClient.query(NOTES)));
 
     // Assert
     expect(failure).toEqual({ codes: ['CHANNEL_NOT_FOUND'], data: null });

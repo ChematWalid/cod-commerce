@@ -3,23 +3,40 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checkArchitecture } from '../architecture/check';
 
+/** dependency-cruiser walks the whole fixture tree; 7 s was observed under load, past Vitest's 5 s default. */
+const FULL_SCAN_TIMEOUT_MS = 60_000;
 const repoRoot = resolve(__dirname, '../../..');
 const fixturesArch = join(__dirname, 'fixtures/arch');
 const existsInRepo = (dir: string): boolean => existsSync(join(repoRoot, dir));
 
 describe('architecture rules', () => {
-  it('reports every forbidden dependency in the bad fixtures, type-only imports included', async () => {
-    const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins'] });
+  it(
+    'reports every forbidden dependency in the bad fixtures, type-only imports included',
+    async () => {
+      const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins'] });
 
-    expect(bad.violations.map((violation) => violation.rule).sort()).toEqual(
-      ['application-no-concretes', 'domain-is-pure', 'domain-no-outer-layers', 'no-cross-plugin-internals'].sort(),
-    );
-    expect(bad.violations).toContainEqual({
-      rule: 'domain-is-pure',
-      from: 'plugins/bad/domain/uses-vendure.ts',
-      to: '@vendure/core',
-    });
-  });
+      expect(bad.violations.map((violation) => violation.rule).sort()).toEqual(
+        [
+          'application-no-concretes',
+          'domain-is-pure',
+          'domain-no-outer-layers',
+          'no-cross-plugin-internals',
+          'plugin-core-no-tenancy-entry',
+        ].sort(),
+      );
+      expect(bad.violations).toContainEqual({
+        rule: 'plugin-core-no-tenancy-entry',
+        from: 'plugins/bad/application/uses-tenancy-entry.ts',
+        to: 'plugins/tenancy/index.ts',
+      });
+      expect(bad.violations).toContainEqual({
+        rule: 'domain-is-pure',
+        from: 'plugins/bad/domain/uses-vendure.ts',
+        to: '@vendure/core',
+      });
+    },
+    FULL_SCAN_TIMEOUT_MS,
+  );
 
   it('reports an app that imports a plugin layer directly', async () => {
     const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['apps/bad'] });

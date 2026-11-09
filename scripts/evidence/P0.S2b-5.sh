@@ -7,7 +7,7 @@
 #   scripts/evidence/P0.S2b-5.sh   # always rebuilds cod-platform:local first (the layer cache keeps that cheap)
 #
 # The browser work is scripts/evidence/storefront-screens.mjs; transcripts are formatted by transcript.mjs.
-# Data is synthetic (.env placeholders, the storefront's stub stores).
+# Data is synthetic (.env placeholders, the demo seed's stores).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=../lib/wait-http.sh
@@ -24,14 +24,17 @@ export COMPOSE_PROJECT_NAME=cod-evidence
 export POSTGRES_HOST_PORT=25433 PGBOUNCER_HOST_PORT=26432 VALKEY_HOST_PORT=26380 GARAGE_S3_HOST_PORT=23900
 export MAILPIT_SMTP_HOST_PORT=21026 MAILPIT_UI_HOST_PORT=28026 API_HOST_PORT=23100 WORKER_HEALTH_HOST_PORT=23020
 export STOREFRONT_HOST_PORT=23001
+# The stores below live on *.localhost; compose's own default is deliberately unusable.
+export PLATFORM_DOMAIN=localhost
+export DEMO_OWNER_PASSWORD=${DEMO_OWNER_PASSWORD:-synthetic-evidence-owner}
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
 
-# --- the storefront's stub stores and page markers, mirrored once ---------------------------
-# From apps/storefront: STUB_STORES (src/tenancy/stub-store-resolver.ts), the tenant page heading and
-# app/not-found.tsx. Every check below and storefront-screens.mjs use these; the .mjs fails the run when they
+# --- the demo seed's stores and the page markers, mirrored once ------------------------------
+# From apps/server/src/seed/seed-demo-businesses.ts, the tenant page heading and app/not-found.tsx. Store ids are
+# generated, so they are read from the API after the seed. Every check below and storefront-screens.mjs use these; the .mjs fails the run when they
 # no longer match the storefront source.
-export DEMO_STORE_ID=demo DEMO_STORE_NAME='Demo Store' DEMO_STORE_HOST=demo.localhost DEMO_STORE_LOCALE=ar
-export SECOND_STORE_ID=second SECOND_STORE_NAME='Second Store' SECOND_STORE_HOST=second.localhost SECOND_STORE_LOCALE=fr
+export DEMO_STORE_NAME='Demo Store' DEMO_STORE_HOST=demo.localhost DEMO_STORE_LOCALE=ar
+export SECOND_STORE_NAME='Second Store' SECOND_STORE_HOST=second.localhost SECOND_STORE_LOCALE=fr
 export UNKNOWN_HOST=nope.localhost
 export STORE_NAME_TEST_ID=store-name NOT_FOUND_TEST_ID=not-found NOT_FOUND_TEXT='Page not found'
 # The storefront's container port; a Host with it and an IP address belongs to no store.
@@ -118,9 +121,18 @@ dirty=$(git status --porcelain -- "${image_inputs[@]}")
 [[ -z "$dirty" ]] || fail "the tree changed during the image build:
 $dirty"
 
-# Only the storefront and the Valkey it depends on are needed.
-docker compose up -d storefront
-wait_healthy storefront
+# The storefront asks the api which store a host belongs to, so the api and the demo seed are needed too.
+docker compose up -d storefront api
+wait_healthy storefront api
+# The image's entry point runs a role, so the seed replaces it.
+docker compose run --rm --no-deps -T -e ROLE=migrate -e DEMO_OWNER_PASSWORD --entrypoint node migrate \
+  --enable-source-maps apps/server/dist/main-seed-demo.js >/dev/null || fail "demo seed"
+store_id_of() {
+  curl -fs --max-time 10 "http://127.0.0.1:$API_HOST_PORT/store/resolve?host=$1" |
+    node -p 'JSON.parse(require("node:fs").readFileSync(0, "utf8")).storeId'
+}
+DEMO_STORE_ID=$(store_id_of "$DEMO_STORE_HOST") || fail "the api does not know $DEMO_STORE_HOST"
+SECOND_STORE_ID=$(store_id_of "$SECOND_STORE_HOST") || fail "the api does not know $SECOND_STORE_HOST"
 wait_http 200 "$site/livez" 60 || fail "storefront /livez"
 wait_http 200 "$site/readyz" 60 || fail "storefront /readyz"
 deployment_id=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(container_of storefront)" | command grep '^NEXT_DEPLOYMENT_ID=' | command cut -d= -f2-)
@@ -171,7 +183,7 @@ not_found_main="<main data-testid=\"$NOT_FOUND_TEST_ID\""
 second_internal_path="/_t/$SECOND_STORE_ID/$SECOND_STORE_LOCALE"
 second_encoded_internal_path="/%5Ft/$SECOND_STORE_ID/$SECOND_STORE_LOCALE"
 # RF3: the host is matched case-insensitively, without a trailing dot and port (DEMO.localhost.:3001).
-demo_host_variant="${DEMO_STORE_HOST/#$DEMO_STORE_ID/${DEMO_STORE_ID^^}}.:$STOREFRONT_CONTAINER_PORT"
+demo_host_variant="${DEMO_STORE_HOST^^}.:$STOREFRONT_CONTAINER_PORT"
 
 begin "$out/api/livez.md" "Storefront liveness" "\`GET /livez\` on the storefront role (container port $STOREFRONT_CONTAINER_PORT, published on \`$STOREFRONT_HOST_PORT\`) with a host that belongs to no store: liveness does not depend on the Host header."
 record "$out/api/livez.md" "GET /livez with Host: $NO_STORE_HOST" /livez 200 - - - "Host: $NO_STORE_HOST"
@@ -246,7 +258,7 @@ cat >"$out/README.md" <<README
 
 Screenshots and request/response transcripts of the real storefront (Next.js 16, \`apps/storefront\`) running as the
 \`storefront\` role of the compose stack (CLAUDE.md §3a.14). Produced by \`scripts/evidence/P0.S2b-5.sh\`; nothing here is
-hand-written. Data is synthetic: the storefront's two stub stores (placeholders from \`.env.example\` for the rest).
+hand-written. Data is synthetic: the demo seed's two stores (placeholders from \`.env.example\` for the rest).
 
 - Image: \`cod-platform:local\`, built by that run (\`docker compose build migrate\`) from a working tree with no uncommitted
   change outside the evidence folders, whose last image-relevant commit is \`$image_commit\`.

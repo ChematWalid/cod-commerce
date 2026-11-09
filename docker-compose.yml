@@ -22,6 +22,7 @@ x-app: &app
     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
     DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     REDIS_URL: redis://valkey:6379
+    PLATFORM_DOMAIN: ${PLATFORM_DOMAIN:-platform.invalid}
     S3_ENDPOINT: http://garage:3900
     S3_REGION: ${S3_REGION:-garage}
     S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
@@ -83,7 +84,7 @@ services:
       AUTH_TYPE: scram-sha-256
       POOL_MODE: transaction
       MAX_PREPARED_STATEMENTS: '200'
-      DEFAULT_POOL_SIZE: '20'
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-20}
       MAX_CLIENT_CONN: '500'
       ADMIN_USERS: ${POSTGRES_USER}
       LISTEN_PORT: '5432'
@@ -203,6 +204,8 @@ services:
       ROLE: storefront
       APP_ENV: ${APP_ENV:-production}
       REDIS_URL: redis://valkey:6379
+      # Read by the proxy on each request to find the store behind a host (D12).
+      INTERNAL_API_URL: http://api:3000
       # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
       # always match the deployment the assets were built for.
     depends_on:

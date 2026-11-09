@@ -1,4 +1,4 @@
-import { InvalidDatabaseUrlError, toPostgresFields } from '@cod/shared';
+import { InvalidDatabaseUrlError, RESERVED_WORKER_ID_MAX, RESERVED_WORKER_ID_MIN, toPostgresFields } from '@cod/shared';
 import { z } from 'zod';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
@@ -38,10 +38,14 @@ const MIN_COOKIE_SECRET_LENGTH = 32;
 const MIN_SUPERADMIN_PASSWORD_LENGTH = 8;
 const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
 const DEFAULT_S3_REGION = 'garage';
+const DEFAULT_PLATFORM_DOMAIN = 'localhost';
 
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
 const GARAGE_ACCESS_KEY = /^GK[0-9a-f]{24}$/;
 const GARAGE_SECRET_KEY = /^[0-9a-f]{64}$/;
+/** Lowercase DNS labels of 1-63 characters, dot-separated: no port, no trailing dot. */
+const DNS_NAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+const DNS_NAME_MAX_LENGTH = 253;
 
 const port = (fallback: number): z.ZodDefault<z.ZodCoercedNumber> =>
   z.coerce.number().int().min(1).max(MAX_PORT).default(fallback);
@@ -104,6 +108,9 @@ const baseSchema = z.object({
     .transform((value) => value === 'true'),
   CORS_ORIGINS: csvList,
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
+  PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
+  DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
+  SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
@@ -126,6 +133,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
   return [
     ['COOKIE_SECRET', env.COOKIE_SECRET],
     ['SUPERADMIN_PASSWORD', env.SUPERADMIN_PASSWORD],
+    ['DEMO_OWNER_PASSWORD', env.DEMO_OWNER_PASSWORD],
     ['S3_SECRET_KEY', env.S3_SECRET_KEY],
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
@@ -144,10 +152,28 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
-const envSchema = baseSchema.superRefine(rejectPlaceholders).transform((env) => ({
-  ...env,
-  DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
-}));
+/** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
+function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
+  if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.PLATFORM_DOMAIN === undefined) {
+    context.addIssue({ code: 'custom', path: ['PLATFORM_DOMAIN'], message: 'is required in this environment' });
+  }
+  if (env.APP_ENV !== 'test' && env.SNOWFLAKE_WORKER_ID !== undefined) {
+    context.addIssue({
+      code: 'custom',
+      path: ['SNOWFLAKE_WORKER_ID'],
+      message: 'is only allowed when APP_ENV is test',
+    });
+  }
+}
+
+const envSchema = baseSchema
+  .superRefine(rejectPlaceholders)
+  .superRefine(rejectUnsafeTenancySettings)
+  .transform((env) => ({
+    ...env,
+    PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
+    DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
+  }));
 
 /** The validated, typed environment of the server. */
 export type AppEnv = z.infer<typeof envSchema>;

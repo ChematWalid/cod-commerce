@@ -3,7 +3,7 @@ import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '@cod/plugin-templat
 import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
-import { loginAsSuperadmin, setDisplayLanguage, signOut } from './dashboard-session';
+import { assertNoPageError, loginAsDemoOwner, setDisplayLanguage, signOut } from './dashboard-session';
 
 /** Where the text of an empty right-to-left input starts, measured from the viewport's left edge. */
 function textStart(page: Page, selector: string): Promise<number> {
@@ -27,7 +27,7 @@ describe('dashboard in Arabic', () => {
 
   beforeEach(async () => {
     page = await browser.newPage();
-    await loginAsSuperadmin(page, DASHBOARD_URL);
+    await loginAsDemoOwner(page, DASHBOARD_URL);
     await setDisplayLanguage(page, 'ar');
   });
 
@@ -45,6 +45,7 @@ describe('dashboard in Arabic', () => {
   it('translates the notes page title', async () => {
     await page.goto(`${DASHBOARD_URL}${TEMPLATE_NOTES_PATH}`);
     await page.getByTestId(TEMPLATE_NOTES_TEST_ID).waitFor({ state: 'attached' });
+    await assertNoPageError(page);
 
     await expect(page.getByRole('heading', { level: 1 }).textContent()).resolves.toBe('الملاحظات');
   });

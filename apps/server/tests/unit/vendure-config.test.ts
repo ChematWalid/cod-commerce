@@ -20,6 +20,7 @@ const valid = {
   S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
   S3_SECRET_KEY: 'b'.repeat(64),
   S3_BUCKET_PRIVATE: 'cod-private',
+  PLATFORM_DOMAIN: 'example.test',
 };
 
 const ROLES: readonly ServerRole[] = ['api', 'worker', 'migrate'];

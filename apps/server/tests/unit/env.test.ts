@@ -15,6 +15,7 @@ const valid = {
   S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
   S3_SECRET_KEY: 'b'.repeat(64),
   S3_BUCKET_PRIVATE: 'cod-private',
+  PLATFORM_DOMAIN: 'example.test',
 };
 
 function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
@@ -132,6 +133,56 @@ describe('loadEnv', () => {
         S3_SECRET_KEY: '0'.repeat(64),
       }),
     ).toMatchObject({ APP_ENV: 'development' });
+  });
+
+  it.each(['staging', 'production'])('requires PLATFORM_DOMAIN in %s', (appEnv) => {
+    expect(issuePaths(failureOf({ APP_ENV: appEnv, PLATFORM_DOMAIN: undefined }))).toEqual(['PLATFORM_DOMAIN']);
+  });
+
+  it.each([
+    'localhost',
+    'app.localhost',
+    'platform.invalid',
+    'example.test',
+    'souk-1.example.dz',
+    `${'a'.repeat(63)}.example.test`,
+  ])('accepts %s as PLATFORM_DOMAIN', (domain) => {
+    expect(loadEnv({ ...valid, PLATFORM_DOMAIN: domain }).PLATFORM_DOMAIN).toBe(domain);
+  });
+
+  it.each([
+    ['uppercase', 'Example.test'],
+    ['port', 'example.test:3000'],
+    ['trailing dot', 'example.test.'],
+    ['leading dot', '.example.test'],
+    ['empty label', 'example..test'],
+    ['label starting with a hyphen', '-a.example.test'],
+    ['label ending with a hyphen', 'a-.example.test'],
+    ['label over 63 characters', `${'a'.repeat(64)}.example.test`],
+    ['name over 253 characters', Array.from({ length: 64 }, () => 'abc').join('.') + '.example.test'],
+    ['scheme', 'https://example.test'],
+    ['wildcard', '*.localhost'],
+    ['underscore', 'a_b.example.test'],
+  ])('rejects PLATFORM_DOMAIN with %s', (_label, domain) => {
+    expect(issuePaths(failureOf({ PLATFORM_DOMAIN: domain }))).toEqual(['PLATFORM_DOMAIN']);
+  });
+
+  it('defaults PLATFORM_DOMAIN to localhost in development', () => {
+    expect(loadEnv({ ...valid, APP_ENV: 'development', PLATFORM_DOMAIN: undefined }).PLATFORM_DOMAIN).toBe('localhost');
+  });
+
+  it('accepts a reserved SNOWFLAKE_WORKER_ID when APP_ENV is test', () => {
+    expect(loadEnv({ ...valid, APP_ENV: 'test', SNOWFLAKE_WORKER_ID: '1000' }).SNOWFLAKE_WORKER_ID).toBe(1000);
+  });
+
+  it('rejects SNOWFLAKE_WORKER_ID outside tests', () => {
+    const error = failureOf({ APP_ENV: 'development', SNOWFLAKE_WORKER_ID: '1000' });
+
+    expect(issuePaths(error)).toEqual(['SNOWFLAKE_WORKER_ID']);
+  });
+
+  it('rejects a SNOWFLAKE_WORKER_ID outside the reserved range', () => {
+    expect(issuePaths(failureOf({ APP_ENV: 'test', SNOWFLAKE_WORKER_ID: '999' }))).toEqual(['SNOWFLAKE_WORKER_ID']);
   });
 });
 

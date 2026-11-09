@@ -1,13 +1,13 @@
-// Screenshot helper of scripts/evidence/P0.S2b-6.sh (CLAUDE.md §3a.14): drives the live dashboard of the
-// cod-evidence stack to the template plugin's notes page and writes the 4 PNGs (ar/en x desktop/mobile) plus
-// the README table rows.
+// Screenshot helper of scripts/evidence/P1.S1.sh (CLAUDE.md §3a.14): drives the live dashboard of the cod-evidence
+// stack, signed in as a business owner (the merchant's real role), to the notes page and writes the PNGs
+// (ar/en x desktop/mobile), the content-language shot and the README table rows.
 //
 //   node scripts/evidence/template-screens.mjs <dashboard-url> <out-dir> <table-file>
 //
-// Env: SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD (read by the session helper), CHANNEL_CODE_A / CHANNEL_TOKEN_A (the code and
-// token of business A, whose notes the page must list), CHANNEL_CODE_B / CHANNEL_TOKEN_B (the other business),
-// NOTE_TITLES (A's titles that must be on the page, separated by "|"), OTHER_BUSINESS_TITLE (B's note title: never
-// on A's shots, and the page must list it once the channel switcher selects B). Node 24 strips the types of the imported .ts files; nothing here needs a build step.
+// Env: SUPERADMIN_USERNAME, DEMO_OWNER_PASSWORD (read by the session helpers), OWNER_EMAIL_A / OWNER_EMAIL_B (the
+// owners of the two businesses), CHANNEL_CODE_A / CHANNEL_TOKEN_A (A's Arabic store), NOTE_TITLES (A's titles that
+// must be on the page, separated by "|"), OTHER_BUSINESS_TITLE (B's note: never on A's shots, and on B's page once B's
+// owner signs in). Node 24 strips the types of the imported .ts files; nothing here needs a build step.
 /* global process, console, URL, document, localStorage, getComputedStyle -- Node globals, and browser globals inside page.evaluate callbacks */
 import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ARABIC_FONT_FAMILY } from '../../plugins/merchant-shell/dashboard/constants.ts';
 import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '../../plugins/_template/dashboard/constants.ts';
-import { loginAsSuperadmin, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
+import { loginAsOwner, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');
@@ -24,28 +24,25 @@ const [baseArg, outDir, tableFile] = process.argv.slice(2);
 if (!baseArg || !outDir || !tableFile)
   throw new Error('usage: template-screens.mjs <dashboard-url> <out-dir> <table-file>');
 const base = baseArg.replace(/\/$/, '');
-const channelToken = process.env.CHANNEL_TOKEN_A;
-const CHANNEL_CODE_A = process.env.CHANNEL_CODE_A;
-const CHANNEL_CODE_B = process.env.CHANNEL_CODE_B;
-const channelTokenB = process.env.CHANNEL_TOKEN_B;
-const otherBusinessTitle = process.env.OTHER_BUSINESS_TITLE;
+const {
+  CHANNEL_CODE_A,
+  CHANNEL_TOKEN_A: channelToken,
+  OWNER_EMAIL_A,
+  OWNER_EMAIL_B,
+  OTHER_BUSINESS_TITLE: otherBusinessTitle,
+} = process.env;
 const noteTitles = (process.env.NOTE_TITLES ?? '').split('|').filter(Boolean);
-if (
-  !channelToken ||
-  !CHANNEL_CODE_A ||
-  !CHANNEL_CODE_B ||
-  !channelTokenB ||
-  !otherBusinessTitle ||
-  noteTitles.length === 0
-) {
+if (!channelToken || !CHANNEL_CODE_A || !OWNER_EMAIL_A || !OWNER_EMAIL_B || !otherBusinessTitle || !noteTitles.length) {
   throw new Error(
-    'CHANNEL_TOKEN_A, CHANNEL_CODE_A, CHANNEL_CODE_B, CHANNEL_TOKEN_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set',
+    'CHANNEL_CODE_A, CHANNEL_TOKEN_A, OWNER_EMAIL_A, OWNER_EMAIL_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set',
   );
 }
 const MAX_BYTES = 300 * 1024;
 const PHONE_MAX_WIDTH = 768;
 /** The dashboard's localStorage key of the selected channel token (`@vendure/dashboard` storage-keys.ts). */
 const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
+/** The dashboard's localStorage key of the user settings, the content language among them. */
+const USER_SETTINGS_KEY = 'vendure-user-settings';
 
 /** A phone screenshot went over the size budget at its device scale; the caller retries at scale 1. */
 class ScaleBudgetError extends Error {}
@@ -105,28 +102,24 @@ async function capture(page, file) {
  * is overwritten by the dashboard's own channel state. */
 async function selectChannel(page, code, token) {
   await page.locator('[data-sidebar="sidebar"] button').first().click();
-  await page.getByRole('menuitem', { name: code, exact: true }).click();
+  await page.getByRole('menuitem', { name: code }).click();
   await page.waitForFunction(([key, value]) => localStorage.getItem(key) === value, [SELECTED_CHANNEL_KEY, token]);
 }
 
-/** On the open notes page, switches the channel from A to B: B's note must replace A's, without a reload. */
-async function assertChannelSwitchReplacesNotes(browser) {
+/** The other business's owner sees that business's note and none of A's: the page is scoped by who signs in. */
+async function assertOtherOwnerSeesOwnNotes(browser) {
   const context = await browser.newContext({ ...VIEWPORTS.desktop.options, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
-    await loginAsSuperadmin(page, base);
+    await loginAsOwner(page, base, OWNER_EMAIL_B);
     await setDisplayLanguage(page, 'en');
-    await selectChannel(page, CHANNEL_CODE_A, channelToken);
     await page.goto(`${base}${TEMPLATE_NOTES_PATH}`);
     const marker = page.getByTestId(TEMPLATE_NOTES_TEST_ID);
-    await marker.getByText(noteTitles[0], { exact: false }).first().waitFor({ state: 'visible' });
-    await selectChannel(page, CHANNEL_CODE_B, channelTokenB);
     await marker.getByText(otherBusinessTitle, { exact: false }).first().waitFor({ state: 'visible', timeout: 15_000 });
     for (const title of noteTitles) {
-      const stale = await marker.getByText(title, { exact: false }).count();
-      if (stale > 0) fail(`channel switch: A's note "${title}" is still listed under B`);
+      if ((await marker.getByText(title, { exact: false }).count()) > 0) fail(`B's owner sees A's note "${title}"`);
     }
-    console.error("channel switch: the page replaced A's notes by B's");
+    console.error("isolation: B's owner lists B's note and none of A's");
   } finally {
     await context.close();
   }
@@ -140,7 +133,7 @@ async function prepareStorageState(browser, lang) {
   const context = await browser.newContext({ ...VIEWPORTS.desktop.options, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
-    await loginAsSuperadmin(page, base);
+    await loginAsOwner(page, base, OWNER_EMAIL_A);
     await setDisplayLanguage(page, lang);
     await selectChannel(page, CHANNEL_CODE_A, channelToken);
     return await context.storageState();
@@ -187,6 +180,28 @@ async function shootNotes(browser, vpName, lang, deviceScaleFactor) {
   }
 }
 
+/** Arabic store: the dashboard's content language must follow the store (D7). The switcher menu is open in the shot. */
+async function shootContentLanguage(browser) {
+  const storageState = await prepareStorageState(browser, 'ar');
+  const context = await browser.newContext({ ...VIEWPORTS.desktop.options, storageState, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${base}${TEMPLATE_NOTES_PATH}`);
+    await page.getByTestId(TEMPLATE_NOTES_TEST_ID).getByText(noteTitles[0], { exact: false }).first().waitFor();
+    await settle(page);
+    const language = await page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) ?? '{}').contentLanguage,
+      USER_SETTINGS_KEY,
+    );
+    if (language !== 'ar') fail(`the Arabic store's content language is ${language}`);
+    await page.locator('[data-sidebar="sidebar"] button').first().click();
+    await page.getByRole('menuitem', { name: CHANNEL_CODE_A }).waitFor();
+    await capture(page, join(outDir, 'dashboard-content-language-ar-desktop.png'));
+  } finally {
+    await context.close();
+  }
+}
+
 async function shootWithinBudget(browser, vpName, lang) {
   const scale = VIEWPORTS[vpName].options.deviceScaleFactor;
   try {
@@ -202,10 +217,11 @@ mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
 const rows = [];
 try {
-  await assertChannelSwitchReplacesNotes(browser);
+  await assertOtherOwnerSeesOwnNotes(browser);
   for (const vpName of Object.keys(VIEWPORTS)) {
     for (const lang of Object.keys(LANG_DIRS)) rows.push(await shootWithinBudget(browser, vpName, lang));
   }
+  await shootContentLanguage(browser);
 } finally {
   await browser.close();
 }
@@ -213,7 +229,7 @@ try {
 const files = readdirSync(outDir)
   .filter((f) => f.endsWith('.png'))
   .sort();
-if (files.length !== 4) fail(`expected 4 PNGs, found ${files.length}`);
+if (files.length !== 5) fail(`expected 5 PNGs, found ${files.length}`);
 for (const f of files) {
   const size = statSync(join(outDir, f)).size;
   if (size > MAX_BYTES) fail(`${f} is ${size} bytes, over ${MAX_BYTES}`);

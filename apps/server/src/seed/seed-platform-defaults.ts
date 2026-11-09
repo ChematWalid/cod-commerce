@@ -23,7 +23,7 @@ const SEED_STEPS: readonly EnsureStep[] = [
 ];
 
 /** An admin context acting as the superadmin Vendure created at boot, so permission checks pass. */
-async function superadminContext(app: INestApplicationContext): Promise<RequestContext> {
+export async function superadminContext(app: INestApplicationContext): Promise<RequestContext> {
   const { identifier } = app.get(ConfigService).authOptions.superadminCredentials;
   const user = await app
     .get(TransactionalConnection)

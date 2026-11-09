@@ -95,6 +95,14 @@ jobs:
         run: |
           set -o pipefail
           docker compose config --format json | node scripts/check-compose-portability.mjs
+      # A server pool of one makes both clients of the test share a backend, so session state would show (A13).
+      - name: Check tenant state does not leak through PgBouncer
+        env:
+          PGBOUNCER_DEFAULT_POOL_SIZE: '1'
+          DATABASE_URL: postgresql://cod:change-me-pg@localhost:6432/cod
+        run: |
+          docker compose up -d --wait pgbouncer
+          pnpm --filter @cod/plugin-tenancy test:pgbouncer
       - name: Show compose state and logs
         if: failure()
         run: |
@@ -137,6 +145,8 @@ jobs:
       DATABASE_URL: postgres://cod:change-me-pg@localhost:5432/cod
       DATABASE_URL_DIRECT: postgres://cod:change-me-pg@localhost:5432/cod
       REDIS_URL: redis://localhost:6379
+      PLATFORM_DOMAIN: localhost
+      INTERNAL_API_URL: http://localhost:3100
       TZ: UTC
       APP_ENV: test
       ROLE: api

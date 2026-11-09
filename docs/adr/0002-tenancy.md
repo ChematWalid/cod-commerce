@@ -74,6 +74,21 @@ Pass: (b) and (c) under 150 ms p95 cold at the DB, (e) under 200 MB, (f) under 2
 - **Cache keys**: lint/unit check for un-prefixed cache and R2 keys.
 - CI runs the suite on every PR (ADR 0001 budget).
 
+## As implemented (P1.S1, 2026-11-08)
+
+Where the code differs from, or sharpens, the Decision above. Evidence: `docs/evidence/P1.S1/`; full reasoning: `docs/roadmap/P1-decisions.md`.
+
+- **Ids and tenant link.** Our ids are snowflake `bigint`, exposed as `String!` in GraphQL (ADR 0003 addendum). The Business link is the internal custom field `Administrator.customFields.businessId` (a 20-character indexed string), not a relation.
+- **Subdomain** is `varchar(30)` unique with `CHECK (subdomain = lower(subdomain))` instead of `citext`. An archived store keeps its subdomain.
+- **Provisioning.** The SuperAdmin-only `provisionBusiness` mutation is the one creation path (seed, tests, evidence; P1.S2 reuses the service).
+- **Owner role.** One placeholder Owner role per business, on that business's channels only, extended with each new store. It holds `Authenticated`, the Tenant Store and Tenant Business CRUD permissions and assignable plugin permissions, and deliberately **not** `ReadChannel`, `ReadSettings` or `UpdateChannel`, because `channels` lists every store's token unscoped. The dashboard falls back to the channels on the owner's own user. P1.S3 replaces these permissions.
+- **Channel languages.** A channel's default and available languages are both `[store language]`, so the dashboard's content language follows the store.
+- **Another business's `vendure-token`** stays Vendure's `FORBIDDEN` at the auth guard; "not found" applies to ids.
+- **Tenant status.** `TenantContext` is cached per request; Store and Business status are read from our rows on each request (indexed), without a Redis tier yet. This covers §7 (authority is our rows, not the channel cache).
+- **Host resolution.** `GET /store/resolve` goes through an in-memory LRU, then Valkey, then the database. A subdomain change is invalidated across processes by pub/sub; a Valkey outage falls through to the database.
+- **Demo seed.** `pnpm --filter @cod/server seed:demo` creates the synthetic businesses Demo (`demo`, Arabic; `demo2`, English) and Second (`second`, French; `second2`, English). It is idempotent, refuses `APP_ENV=production` and needs `DEMO_OWNER_PASSWORD`.
+- **Not yet built:** `Order.customFields.businessId/storeId` (P3.S4 declares and assigns them; this session ships only the per-business order number sequence), `BusinessMember`, RLS (P10.S2).
+
 ## Consequences
 
 ### Positive

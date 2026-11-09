@@ -24,6 +24,17 @@ const RUNTIME_EXPORTS = [
   'toPostgresFields',
   'STORE_CACHE_TAG_PREFIX',
   'storeCacheTag',
+  'SnowflakeGenerator',
+  'LEASED_WORKER_ID_MAX',
+  'RESERVED_WORKER_ID_MIN',
+  'RESERVED_WORKER_ID_MAX',
+  'toSnowflake',
+  'toStoreId',
+  'classifySubdomain',
+  'formatOrderNumber',
+  'normalizeHost',
+  'subdomainOfHost',
+  'hostOfSubdomain',
 ] as const;
 
 describe('@cod/shared entry point', () => {

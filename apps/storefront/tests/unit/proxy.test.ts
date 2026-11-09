@@ -1,7 +1,32 @@
 import { getRewrittenUrl, unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 import { NextRequest } from 'next/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config, proxy } from '../../proxy';
+
+/** The stores the fake API knows, by host. */
+const STORES: Record<string, object> = {
+  'demo.localhost': store('demo', 'ar', 'demo.localhost'),
+  'second.localhost': store('second', 'fr', 'second.localhost'),
+  'shop.example.test': store('demo', 'ar', 'demo.localhost'),
+};
+
+function store(storeId: string, language: string, primaryHost: string): object {
+  return {
+    storeId,
+    businessId: `business-${storeId}`,
+    language,
+    name: storeId,
+    logo: null,
+    primaryHost,
+    status: 'active',
+  };
+}
+
+function fakeApi(input: URL): Promise<Response> {
+  const host = input.searchParams.get('host') ?? '';
+  const known = STORES[host];
+  return Promise.resolve(known ? Response.json(known) : new Response('{}', { status: 404 }));
+}
 
 /** A request as the storefront receives it: the URL's own host is irrelevant, only `Host` is read. */
 function storefrontRequest(path: string, headers: Record<string, string>): NextRequest {
@@ -14,6 +39,16 @@ async function rewrittenPath(path: string, headers: Record<string, string>): Pro
 }
 
 describe('storefront proxy', () => {
+  beforeEach(() => {
+    vi.stubEnv('INTERNAL_API_URL', 'http://api.test:3000');
+    vi.stubGlobal('fetch', vi.fn(fakeApi));
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
   it('rewrites a known host to the tenant path with the default locale', async () => {
     // Arrange
     const headers = { host: 'demo.localhost:3001' };
@@ -49,6 +84,41 @@ describe('storefront proxy', () => {
 
   it('normalises an uppercase host with a port and a trailing dot', async () => {
     await expect(rewrittenPath('/', { host: 'DEMO.localhost.:3001' })).resolves.toBe('/_t/demo/ar');
+  });
+
+  it('sends a secondary host to the primary host with a 301, keeping path, query and port', async () => {
+    // Arrange
+    const request = storefrontRequest('/p/shoe?ref=ad', { host: 'shop.example.test:3001' });
+
+    // Act
+    const response = await proxy(request);
+
+    // Assert
+    expect(response.status).toBe(301);
+    expect(response.headers.get('location')).toBe('http://demo.localhost:3001/p/shoe?ref=ad');
+  });
+
+  it('redirects to https when the edge terminated TLS, without inventing a port', async () => {
+    // Arrange
+    const request = storefrontRequest('/', { host: 'shop.example.test', 'x-forwarded-proto': 'https' });
+
+    // Act
+    const response = await proxy(request);
+
+    // Assert
+    expect(response.status).toBe(301);
+    expect(response.headers.get('location')).toBe('https://demo.localhost/');
+  });
+
+  it('fails the request instead of showing a 404 when the API is down', async () => {
+    // Arrange
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('connection refused'))),
+    );
+
+    // Act and Assert
+    await expect(proxy(storefrontRequest('/', { host: 'demo.localhost' }))).rejects.toThrow('connection refused');
   });
 
   it.each(['/api/store/cart', '/livez', '/readyz', '/favicon.ico', '/_next/static/x.js', '/_next/image'])(
