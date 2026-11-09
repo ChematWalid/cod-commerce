@@ -19,4 +19,4 @@ export type { AuthEmailTemplatesPort } from './domain/ports/auth-email-templates
 export { ACCOUNT_TOKEN_PURPOSES, type AccountToken, type AccountTokenPurpose } from './domain/account-token';
 export * from './domain/errors';
 export { InvalidAuthEmailRequestError } from './domain/email';
-export { AuthPlugin, type AuthEmailOptions, type AuthPluginOptions } from './auth.plugin';
+export { AuthPlugin, type AuthChallengeOptions, type AuthEmailOptions, type AuthPluginOptions } from './auth.plugin';

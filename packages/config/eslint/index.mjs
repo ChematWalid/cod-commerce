@@ -37,6 +37,9 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/auth/infrastructure/account-token-purge.task.ts',
   // `session` is Vendure's account-level table, and SessionService has no single-session delete (D22).
   '**/plugins/auth/infrastructure/session-terminator.ts',
+  // `administrator` is Vendure's account-level table, and the claim lock runs only an advisory lock (D41).
+  '**/plugins/auth/infrastructure/vendure-account-identity.ts',
+  '**/plugins/auth/infrastructure/email-claim-lock.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';

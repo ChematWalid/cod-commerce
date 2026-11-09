@@ -15,3 +15,9 @@ export const EMAIL_SENDER: unique symbol = Symbol('EmailSender');
 
 /** Injection token of {@link SessionTerminatorPort}. */
 export const SESSION_TERMINATOR = Symbol('SESSION_TERMINATOR');
+
+/** Injection token of the `BotChallengePort` adapter. */
+export const BOT_CHALLENGE: unique symbol = Symbol('BotChallenge');
+
+/** Injection token of the `AuthPublicConfig` value. */
+export const AUTH_PUBLIC_CONFIG: unique symbol = Symbol('AuthPublicConfig');

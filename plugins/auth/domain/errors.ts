@@ -26,3 +26,39 @@ export class OtpLockedError extends DomainError {
     super('Too many wrong codes; request a new one');
   }
 }
+
+/** Registration of an email an account already holds. Disclosed on purpose, in this flow only (D27). */
+export class EmailTakenError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.EMAIL_TAKEN;
+
+  constructor() {
+    super('An account with this email already exists');
+  }
+}
+
+/** The sign-up challenge said this is not a person. */
+export class ChallengeFailedError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.CHALLENGE_FAILED;
+
+  constructor() {
+    super('The sign-up challenge failed');
+  }
+}
+
+/** A password outside the policy (D37). */
+export class PasswordPolicyError extends DomainError {
+  readonly code = AUTH_ERROR_CODES.PASSWORD_POLICY;
+
+  constructor() {
+    super('The password does not meet the policy');
+  }
+}
+
+/** A registration that fails the shared schema. It names the fields and never their values. */
+export class RegistrationInvalidError extends DomainError {
+  readonly code = 'auth.registration-invalid';
+
+  constructor(fields: readonly string[]) {
+    super(`Invalid registration fields: ${fields.join(', ')}`);
+  }
+}

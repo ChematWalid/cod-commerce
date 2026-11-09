@@ -44,6 +44,10 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
       smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
       templates: authEmailTemplates,
     },
+    dashboardUrl: env.AUTH_DASHBOARD_URL,
+    ...(env.TURNSTILE_ENABLED && env.TURNSTILE_SECRET_KEY !== undefined && env.TURNSTILE_CHALLENGE_URL !== undefined
+      ? { challenge: { secretKey: env.TURNSTILE_SECRET_KEY, challengeUrl: env.TURNSTILE_CHALLENGE_URL } }
+      : {}),
   });
 
 /**

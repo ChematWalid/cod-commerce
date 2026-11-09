@@ -44,6 +44,12 @@ export const LOGIN_THROTTLE_HASH_DOMAIN = 'login-throttle:';
 /** Characters of the recipient hash that appear in logs: enough to correlate, too short to look an address up. */
 export const RECIPIENT_HASH_LENGTH = 16;
 
+/** The dashboard page a verification link opens (D20). */
+export const VERIFY_EMAIL_PATH = '/verify-email';
+
+/** How long the challenge provider may take before sign-up goes on without it (D35). */
+export const CHALLENGE_TIMEOUT_MS = 3000;
+
 /** i18n key of the refused login (D30): the stock login form shows the message, so it must be translated. */
 export const LOGIN_RATE_LIMITED_MESSAGE = 'error.auth-login-rate-limited';
 
