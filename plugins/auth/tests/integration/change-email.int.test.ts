@@ -1,5 +1,8 @@
 import { AUTH_ERROR_CODES } from '@cod/shared';
+import { RequestContext } from '@vendure/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AccountTokenService } from '../../application/account-token.service';
+import type { OperationContext } from '../../domain/ports/operation-context';
 import { createAccountFlowKit } from './account-flow-kit';
 import { messagesTo, waitForMessages } from './mailpit';
 import { codeOf, inputFor, PASSWORD, uniqueEmail, uniqueIp } from './register-test-kit';
@@ -57,6 +60,38 @@ describe('change email', () => {
     expect(active.data?.['activeAdministrator']?.['emailAddress']).toBe(target);
     expect(await loginCode(email)).toBe('INVALID_CREDENTIALS_ERROR');
     expect(await kit.status(fresh)).toMatchObject({ pendingEmail: null, emailVerified: true });
+  });
+
+  it('keeps the confirming session, ends the others at once, and voids open provider tickets', async () => {
+    // Arrange
+    const { email, session } = await kit.owner();
+    const other = await kit.session(email);
+    const target = uniqueEmail();
+    const [user] = await kit.sql<{ id: number }>('SELECT "id" FROM "user" WHERE "identifier" = $1', [email]);
+    await kit.server.app.get(AccountTokenService).issue(RequestContext.empty() as unknown as OperationContext, {
+      userId: user?.id ?? null,
+      purpose: 'oauth-ticket',
+      ttlMs: 60_000,
+    });
+    await client.graphql(REQUEST, { email: target, password: PASSWORD }, session);
+    const token = await kit.tokenInMail(target);
+    const otherBefore = await client.me(other);
+
+    // Act
+    const confirmed = await client.graphql(CONFIRM, { token }, session);
+    const openTickets = await kit.sql<{ count: string }>(
+      `SELECT count(*) AS count FROM "account_token"
+       WHERE "userId" = $1 AND "purpose" = 'oauth-ticket' AND "consumedAt" IS NULL`,
+      [user?.id],
+    );
+
+    // Assert
+    expect(confirmed.errors).toEqual([]);
+    expect(otherBefore).toBe(email);
+    expect(await client.me(other)).not.toBe(email);
+    expect(await client.me(other)).not.toBe(target);
+    expect(await client.me(session)).toBe(target);
+    expect(Number(openTickets[0]?.count)).toBe(0);
   });
 
   it('tells the old address, and a replayed confirmation is refused', async () => {

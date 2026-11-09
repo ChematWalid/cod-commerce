@@ -6,6 +6,7 @@ import type { AccountPasswordsPort, AccountThrottlePort } from '../domain/ports/
 import type { AccountIdentityPort, AccountRecord, EmailClaimPort } from '../domain/ports/account-identity.port';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { OperationContext } from '../domain/ports/operation-context';
+import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
 import type { AccountTokenService } from './account-token.service';
 import type { AuthEmailService } from './auth-email.service';
 
@@ -19,6 +20,7 @@ export interface ChangeEmailPorts {
   readonly passwords: Pick<AccountPasswordsPort, 'verify'>;
   readonly throttle: Pick<AccountThrottlePort, 'spendForUser'>;
   readonly tokens: Pick<AccountTokenService, 'issueAfterCooldown' | 'consume' | 'voidOpen'>;
+  readonly terminator: Pick<SessionTerminatorPort, 'endOthers' | 'flushCache'>;
   readonly emails: Pick<AuthEmailService, 'enqueue'>;
   readonly clock: ClockPort;
   readonly dashboardUrl: string;
@@ -60,12 +62,18 @@ export class ChangeEmailService {
   }
 
   /**
-   * Holds the claim on the address for the switch (D41), so a registration cannot take it at the same moment.
+   * Holds the claim on the address for the switch (D41), so a registration cannot take it at the same moment. The
+   * cache is flushed after the commit: evicting earlier would let a concurrent request re-cache a session from its
+   * still visible row.
    *
+   * @param keepSessionToken The confirming session, when there is one; every other session of the account ends.
    * @throws InvalidTokenError for a bad token, and for a target taken since the request.
    */
-  confirm(ctx: OperationContext, token: string): Promise<void> {
-    return this.ports.identity.inTransaction(ctx, (transactional) => this.applyChange(transactional, token));
+  async confirm(ctx: OperationContext, token: string, keepSessionToken: string): Promise<void> {
+    const ended = await this.ports.identity.inTransaction(ctx, (transactional) =>
+      this.applyChange(transactional, token, keepSessionToken),
+    );
+    await this.ports.terminator.flushCache(ended);
   }
 
   private async record(ctx: OperationContext, userId: number, newEmail: string): Promise<void> {
@@ -108,8 +116,12 @@ export class ChangeEmailService {
     });
   }
 
-  private async applyChange(ctx: OperationContext, token: string): Promise<void> {
-    const { identity, claims, tokens, clock } = this.ports;
+  private async applyChange(
+    ctx: OperationContext,
+    token: string,
+    keepSessionToken: string,
+  ): Promise<readonly string[]> {
+    const { identity, claims, tokens, clock, terminator } = this.ports;
     const { userId, pendingEmail } = await tokens.consume(ctx, 'email-change', token);
     const account = userId === null ? undefined : await identity.findByUserId(ctx, userId);
     if (account === undefined || pendingEmail === null) {
@@ -121,6 +133,7 @@ export class ChangeEmailService {
     }
     await identity.changeEmail(ctx, account, pendingEmail);
     await identity.markEmailVerified(ctx, account.administratorId, clock.now());
-    await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change']);
+    await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change', 'oauth-ticket']);
+    return terminator.endOthers(ctx, String(account.userId), keepSessionToken);
   }
 }

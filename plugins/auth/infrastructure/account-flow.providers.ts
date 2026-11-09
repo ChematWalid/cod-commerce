@@ -129,7 +129,9 @@ const changePassword: Provider = {
 function changeEmail({ dashboardUrl, clock }: FlowSettings): Provider {
   return {
     provide: ChangeEmailService,
-    useFactory: (...[identity, tokens, emails, throttle, claims]: [...Common, EmailClaimLock]) =>
+    useFactory: (
+      ...[identity, tokens, emails, throttle, claims, terminator]: [...Common, EmailClaimLock, SessionTerminatorPort]
+    ) =>
       new ChangeEmailService({
         identity,
         passwords: identity,
@@ -137,10 +139,11 @@ function changeEmail({ dashboardUrl, clock }: FlowSettings): Provider {
         emails,
         throttle,
         claims,
+        terminator,
         clock,
         dashboardUrl: dashboardUrl(),
       }),
-    inject: [...COMMON, EmailClaimLock],
+    inject: [...COMMON, EmailClaimLock, SESSION_TERMINATOR],
   };
 }
 
