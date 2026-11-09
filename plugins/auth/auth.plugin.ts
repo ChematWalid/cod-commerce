@@ -26,6 +26,7 @@ import { RegisterResolver } from './api/register.resolver';
 import { authAdminApiSchema } from './api/schema';
 import { SessionResolver } from './api/session.resolver';
 import { ShopAccountGuardResolver } from './api/shop-account-guard.resolver';
+import { ShopPasswordResetGuardResolver } from './api/shop-password-reset-guard.resolver';
 import { AccountTokenService } from './application/account-token.service';
 import { AuthEmailDelivery } from './application/auth-email-delivery';
 import { AuthEmailService } from './application/auth-email.service';
@@ -220,8 +221,8 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
     schema: authAdminApiSchema,
     resolvers: [SessionResolver, AccountGuardResolver, RegisterResolver, AccountEmailResolver, PasswordResolver],
   },
-  // Administrators' sessions also work on the Shop API, whose password mutation has none of the account rules.
-  shopApiExtensions: { resolvers: [ShopAccountGuardResolver] },
+  // Administrators' sessions also work on the Shop API, whose password mutations have none of the account rules.
+  shopApiExtensions: { resolvers: [ShopAccountGuardResolver, ShopPasswordResetGuardResolver] },
   controllers: [
     AuthLoginController,
     AuthRegisterController,

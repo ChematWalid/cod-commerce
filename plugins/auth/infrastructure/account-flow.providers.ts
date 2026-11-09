@@ -5,7 +5,7 @@ import { ChangeEmailService } from '../application/change-email.service';
 import { ChangePasswordService } from '../application/change-password.service';
 import { EmailVerificationService } from '../application/email-verification.service';
 import { PasswordResetService } from '../application/password-reset.service';
-import { PAYLOAD_SEALER, SESSION_TERMINATOR } from '../application/tokens';
+import { ACCOUNT_IDENTITY, PAYLOAD_SEALER, SESSION_TERMINATOR } from '../application/tokens';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { PayloadSealerPort } from '../domain/ports/payload-sealer.port';
 import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
@@ -88,6 +88,7 @@ export function accountFlowProviders(settings: FlowSettings): Provider[] {
   return [
     AccountThrottle,
     VendureAccountSessions,
+    { provide: ACCOUNT_IDENTITY, useExisting: VendureAccountIdentity },
     emailVerification(settings),
     passwordReset(settings),
     changePassword,
