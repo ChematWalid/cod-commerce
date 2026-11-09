@@ -1,6 +1,6 @@
-import { preBootstrapConfig, resetConfig } from '@vendure/core';
+import { Logger, preBootstrapConfig, resetConfig } from '@vendure/core';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type AppEnv, loadEnv, type ServerRole } from '../../src/config/env';
 import { buildVendureConfig } from '../../src/config/vendure-config';
 import { runMigrate } from '../../src/roles/migrate.role';
@@ -142,7 +142,14 @@ describe('migrate role', () => {
         [BROKEN_BUSINESS_ID, MISSING_ROLE_ID],
       );
 
+      const logged = vi.spyOn(Logger, 'error');
+
       await expect(runMigrate(env)).rejects.toThrow(BROKEN_BUSINESS_ID);
+
+      expect(logged.mock.calls.map(([message]) => message)).toEqual(
+        expect.arrayContaining([expect.stringContaining(`Business ${BROKEN_BUSINESS_ID} failed to converge`)]),
+      );
+      logged.mockRestore();
 
       const rows = await client.query('SELECT 1 FROM business_role WHERE "businessId" = $1', [BROKEN_BUSINESS_ID]);
       expect(rows.rowCount).toBe(0);

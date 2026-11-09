@@ -21,7 +21,10 @@ export interface RbacConvergePorts {
   readonly roles: Pick<BusinessRoleRepositoryPort, 'insert' | 'findBuiltIn' | 'updatePermissions'>;
   readonly bindings: Pick<RoleBindingRepositoryPort, 'insert' | 'allBindings'>;
   readonly assignments: Pick<MemberAssignmentRepositoryPort, 'insert' | 'isAssigned' | 'holdersOf'>;
-  readonly engine: Pick<EngineRolesPort, 'describeRole' | 'updatePermissions' | 'addChannel' | 'ownerPermissions'>;
+  readonly engine: Pick<
+    EngineRolesPort,
+    'describeRole' | 'updatePermissions' | 'addChannel' | 'ownerPermissions' | 'reuseActorFor'
+  >;
   readonly directory: Pick<BusinessDirectoryPort, 'page' | 'storeChannelIds'>;
   readonly transaction: TransactionPort;
   readonly flusher: SessionFlusherPort;
@@ -105,8 +108,10 @@ export class RbacConvergeService {
     ctx: OperationContext,
     business: ConvergeTarget,
   ): Promise<{ changed: boolean; holders: readonly number[] }> {
-    const { lock, clock, bindings, assignments } = this.ports;
+    const { lock, clock, bindings, assignments, engine } = this.ports;
     await lock.acquire(ctx, business.id);
+    // Converging opens no channel, and a no-op deploy would otherwise reload the superadmin per engine read.
+    await engine.reuseActorFor(ctx);
     const run: ConvergeRun = { ctx, scope: { businessId: business.id }, now: clock.now(), changed: new Set() };
     const builtIns = await this.convergeRows(run);
     await this.adoptOwner(run, business, builtIns);

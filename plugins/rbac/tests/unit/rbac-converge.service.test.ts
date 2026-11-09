@@ -54,4 +54,10 @@ describe('RbacConvergeService.convergeAll', () => {
       failures: [{ businessId: all[0]?.id, reason: 'boom' }],
     });
   });
+
+  it('states how many failures its message leaves out', () => {
+    const failures = Array.from({ length: 25 }, (_unused, index) => ({ businessId: target(index).id, reason: 'boom' }));
+
+    expect(new RbacConvergeFailedError(25, 0, failures).message).toContain('and 5 more');
+  });
 });

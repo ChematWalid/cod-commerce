@@ -19,6 +19,8 @@ const asPermissions = (names: readonly string[]): Permission[] => names.map((nam
 /** {@link EngineRolesPort} on Vendure's services, so its entity events fire (D55). */
 @Injectable()
 export class VendureEngineRoles implements EngineRolesPort {
+  private readonly sharedActors = new WeakMap<OperationContext, RequestContext>();
+
   constructor(
     private readonly superadmins: SuperadminContextFactory,
     private readonly roles: RoleService,
@@ -73,8 +75,17 @@ export class VendureEngineRoles implements EngineRolesPort {
     return ownerRolePermissions(this.config.authOptions.customPermissions);
   }
 
-  /** Built per call, because Vendure caches a user's channels per context and channels are added as stores open. */
+  async reuseActorFor(ctx: OperationContext): Promise<void> {
+    this.sharedActors.set(ctx, await this.newSuperadmin(ctx));
+  }
+
   private superadmin(ctx: OperationContext): Promise<RequestContext> {
+    const shared = this.sharedActors.get(ctx);
+    return shared === undefined ? this.newSuperadmin(ctx) : Promise.resolve(shared);
+  }
+
+  /** Built per call by default, because Vendure caches a user's channels per context and channels are added as stores open. */
+  private newSuperadmin(ctx: OperationContext): Promise<RequestContext> {
     return this.superadmins.create(asTenancyContext(toRequestContext(ctx)));
   }
 }

@@ -1,7 +1,7 @@
 import { SNOWFLAKE_ID_GENERATOR } from '@cod/plugin-tenancy';
 import { BUILT_IN_ROLES, vendurePermissionName } from '@cod/shared';
 import { createTwoBusinesses, failureOf, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
-import { Role } from '@vendure/core';
+import { RequestContextService, Role } from '@vendure/core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { RbacConvergeService, type RbacConvergePorts } from '../../application/rbac-converge.service';
 import {
@@ -112,9 +112,13 @@ describe('Converging the roles of existing businesses', () => {
         vi.spyOn(server.app.get<MemberAssignmentRepositoryPort>(MEMBER_ASSIGNMENTS), 'insert'),
       ];
 
-      const report = await converge().convergeAll(await context());
+      const ctx = await context();
+      const contextsBuilt = vi.spyOn(server.app.get(RequestContextService), 'create');
+
+      const report = await converge().convergeAll(ctx);
 
       expect(report).toEqual({ businesses: BUSINESS_COUNT, changed: 0 });
+      expect(contextsBuilt).toHaveBeenCalledTimes(BUSINESS_COUNT);
       expect(await Promise.all([rolesOf(businesses.a.businessId), rolesOf(businesses.b.businessId)])).toEqual(before);
       expect(deleted).not.toHaveBeenCalled();
       for (const write of writes) expect(write).not.toHaveBeenCalled();
@@ -229,6 +233,31 @@ describe('Converging the roles of existing businesses', () => {
         changed: 1,
       });
       expect(await rolesOf(failing)).toHaveLength(BUILT_IN_COUNT);
+    });
+
+    it('undoes a Vendure role write made before the failure', async () => {
+      const { businessId } = businesses.a;
+      await arrangeOldBusiness(businessId);
+      const { ownerRoleId } = await businessRow(businessId);
+      const before = (await vendureRole(ownerRoleId)).permissions;
+      const write = vi.spyOn(engine(), 'updatePermissions');
+      const assignments = server.app.get<MemberAssignmentRepositoryPort>(MEMBER_ASSIGNMENTS);
+      vi.spyOn(assignments, 'holdersOf').mockRejectedValueOnce(new Error('forced failure after the role write'));
+
+      const failure = await converge()
+        .convergeAll(await context())
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(RbacConvergeFailedError);
+      expect(write).toHaveBeenCalledWith(expect.anything(), ownerRoleId, expect.anything());
+      expect((await vendureRole(ownerRoleId)).permissions).toEqual(before);
+      expect(await rolesOf(businessId)).toHaveLength(0);
+
+      vi.restoreAllMocks();
+      await expect(converge().convergeAll(await context())).resolves.toEqual({
+        businesses: BUSINESS_COUNT,
+        changed: 1,
+      });
     });
   });
 });

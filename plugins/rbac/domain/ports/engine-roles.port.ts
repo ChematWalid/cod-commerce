@@ -27,4 +27,9 @@ export interface EngineRolesPort {
   describeRole(ctx: OperationContext, roleId: number): Promise<EngineRoleState>;
   /** What an Owner's Vendure Role holds: every assignable plugin permission except the platform's own (D59). */
   ownerPermissions(): readonly string[];
+  /**
+   * Makes later calls with this `ctx` share one superadmin instead of loading one each. Only for work that opens no
+   * channel while `ctx` lives: the shared superadmin does not see a channel created after it was loaded.
+   */
+  reuseActorFor(ctx: OperationContext): Promise<void>;
 }

@@ -119,7 +119,11 @@ export class RbacConvergeFailedError extends Error {
     readonly failures: readonly ConvergeFailure[],
   ) {
     const listed = failures.slice(0, REPORTED_FAILURES).map(({ businessId, reason }) => `${businessId}: ${reason}`);
-    super(`${String(failures.length)} of ${String(businesses)} businesses failed to converge: ${listed.join('; ')}`);
+    const omitted = failures.length - listed.length;
+    const more = omitted > 0 ? `; and ${String(omitted)} more` : '';
+    super(
+      `${String(failures.length)} of ${String(businesses)} businesses failed to converge: ${listed.join('; ')}${more}`,
+    );
     this.name = 'RbacConvergeFailedError';
   }
 }

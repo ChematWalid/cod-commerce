@@ -2,12 +2,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 import {
   asOperationContext,
   type ConvergeReport,
+  RbacConvergeFailedError,
   RbacConvergeService,
   SESSION_FLUSH_SETTLE_MS,
 } from '@cod/plugin-rbac';
 import { toPostgresFields } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
-import { bootstrapWorker, type MigrationDiagnostic, runMigrations } from '@vendure/core';
+import { bootstrapWorker, Logger, type MigrationDiagnostic, runMigrations } from '@vendure/core';
 import { Client } from 'pg';
 import { DB_CONNECTION_TIMEOUT_MS } from '../config/db.config';
 import type { AppEnv } from '../config/env';
@@ -15,6 +16,8 @@ import { buildVendureConfig } from '../config/vendure-config';
 import { seedPlatformDefaults, superadminContext } from '../seed/seed-platform-defaults';
 import type { SeedReport } from '../seed/seed.types';
 import { MIGRATE_ADVISORY_LOCK_KEY, MIGRATE_LOCK_APPLICATION_NAME } from './migrate.constants';
+
+const CONVERGE_LOG_CONTEXT = 'migrate';
 
 /** The outcome of one `migrate` run. */
 export interface MigrateReport {
@@ -81,6 +84,14 @@ async function withMigrateLock<T>(env: AppEnv, work: () => Promise<T>): Promise<
   }
 }
 
+/** The error's message lists only the first failures, so each one is logged here. */
+function logConvergeFailures(error: unknown): void {
+  if (!(error instanceof RbacConvergeFailedError)) return;
+  for (const { businessId, reason } of error.failures) {
+    Logger.error(`Business ${businessId} failed to converge: ${reason}`, CONVERGE_LOG_CONTEXT);
+  }
+}
+
 /**
  * Converges the built-in roles of every business (D57); a business that fails rejects this, so the migrate exits
  * non-zero once the others are done. The worker then stays up long enough for the sessions' delayed second eviction.
@@ -91,6 +102,9 @@ async function convergeRoles(app: INestApplicationContext): Promise<ConvergeRepo
     const report = await app.get(RbacConvergeService).convergeAll(asOperationContext(await superadminContext(app)));
     flushed = report.changed > 0;
     return report;
+  } catch (error: unknown) {
+    logConvergeFailures(error);
+    throw error;
   } finally {
     if (flushed) await delay(SESSION_FLUSH_SETTLE_MS);
   }
