@@ -3,7 +3,12 @@ import { RESERVED_SUBDOMAINS, SUBDOMAIN_MAX_LENGTH, SUBDOMAIN_MIN_LENGTH, classi
 
 describe('classifySubdomain', () => {
   it('lowercases and trims, then reports available', () => {
-    expect(classifySubdomain('  DEMO ')).toEqual({ subdomain: 'demo', status: 'available', reason: null, reasonCode: null });
+    expect(classifySubdomain('  DEMO ')).toEqual({
+      subdomain: 'demo',
+      status: 'available',
+      reason: null,
+      reasonCode: null,
+    });
   });
 
   it('accepts digits and inner hyphens at the length bounds', () => {
