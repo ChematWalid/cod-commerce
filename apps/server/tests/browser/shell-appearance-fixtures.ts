@@ -1,5 +1,6 @@
 import { ACCOUNT_MENU_TEST_ID, ACCOUNT_THEME_TEST_ID, accountOptionTestId } from '@cod/plugin-merchant-shell';
 import type { Page } from 'playwright-core';
+import { DASHBOARD_URL } from './dashboard-pages';
 import { closeMenus } from './dashboard-session';
 
 /** The account menu's theme choices (`UserSettings.theme`). */
@@ -82,6 +83,20 @@ export function computedStyle(page: Page, selector: string, property: 'rotate' |
       return getComputedStyle(element).getPropertyValue(name);
     },
     { target: selector, name: property },
+  );
+}
+
+const SUB_ENTRIES = '[data-sidebar="menu-sub-button"]';
+
+/** The paths, below the dashboard base, of the visible sidebar sub-entries whose active marker shows. */
+export async function markedSubEntries(page: Page): Promise<string[]> {
+  await page.locator(SUB_ENTRIES).first().waitFor();
+  return page.evaluate(
+    ({ selector, base }: { selector: string; base: string }) =>
+      [...document.querySelectorAll<HTMLAnchorElement>(selector)]
+        .filter((entry) => entry.checkVisibility() && getComputedStyle(entry, '::before').opacity === '1')
+        .map((entry) => new URL(entry.href).pathname.slice(base.length)),
+    { selector: SUB_ENTRIES, base: new URL(DASHBOARD_URL).pathname },
   );
 }
 

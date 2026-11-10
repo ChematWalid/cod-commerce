@@ -10,6 +10,7 @@ import {
   computedStyle,
   contrastRatio,
   isDark,
+  markedSubEntries,
   markerOffsets,
   MIN_TEXT_CONTRAST,
   type ThemeChoice,
@@ -24,6 +25,8 @@ const CLOSED_CHEVRON = `${SIDEBAR_LINK}[aria-expanded="false"] > svg.lucide-chev
 const BREADCRUMB_SEPARATOR = '[data-slot="breadcrumb-separator"] svg';
 const BREADCRUMB_ITEM = '[data-slot="breadcrumb-item"]';
 const NESTED_PAGE = '/cod-orders/spam';
+/** The Orders group's own page, its first child (D80), whose path is a prefix of `NESTED_PAGE`. */
+const GROUP_PAGE = '/cod-orders';
 const ACTIVE_LINK = `[data-sidebar="content"] a[href$="${NESTED_PAGE}"]`;
 const AT_EDGE = '0px';
 const MIRRORED = '-1 1';
@@ -145,6 +148,17 @@ describe('merchant shell appearance', () => {
         expect(closed).not.toBe(openRotation);
       },
     );
+
+    it("marks the open child page alone, not its group's own page, in both directions", async () => {
+      const page = await visit('light');
+      await setDisplayLanguage(page, 'ar');
+      await open(page, NESTED_PAGE);
+      await expect(markedSubEntries(page)).resolves.toEqual([NESTED_PAGE]);
+
+      await setDisplayLanguage(page, 'en');
+      await open(page, GROUP_PAGE);
+      await expect(markedSubEntries(page)).resolves.toEqual([GROUP_PAGE]);
+    });
 
     it('draws the active-row marker on the side the text starts, in both directions', async () => {
       const page = await visit('light');

@@ -35,6 +35,8 @@ const PHYSICAL_PROPERTY =
 const ALLOWED_PHYSICAL_PROPERTIES: readonly { readonly path: string; readonly declaration: string }[] = [
   // The stock active-row marker's `left` class, before `inset-inline-start: 0`.
   { path: 'plugins/merchant-shell/dashboard/styles/rtl.css', declaration: 'left: auto' },
+  // The stock dialog close button's `right` class, before `inset-inline-end: 1rem`.
+  { path: 'plugins/merchant-shell/dashboard/styles/rtl.css', declaration: 'right: auto' },
   // The stock accordion icon's auto `margin-left`, before `margin-inline-start: auto`.
   { path: 'plugins/rbac/dashboard/styles/rbac.css', declaration: 'margin-left: 0' },
   // The stock dialog close button's `right`, before `inset-inline-end`.

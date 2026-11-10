@@ -28,6 +28,28 @@ html[dir='rtl'] [data-sidebar] [class*='before:absolute']::before {
   inset-inline-start: 0;
 }
 
+/* The stock sidebar marks a leaf active on a prefix match, so a group's own page, its first child (D80, e.g. `/cod-orders`),
+   stayed highlighted beside the open child page (`/cod-orders/spam`). Only the deeper match keeps the active look. */
+[data-sidebar='menu-sub']:has(> :not(:first-child) [data-sidebar='menu-sub-button'][data-active])
+  > :first-child
+  [data-sidebar='menu-sub-button'][data-active]:not(:hover) {
+  background-color: transparent;
+  color: var(--color-sidebar-foreground);
+}
+
+[data-sidebar='menu-sub']:has(> :not(:first-child) [data-sidebar='menu-sub-button'][data-active])
+  > :first-child
+  [data-sidebar='menu-sub-button'][data-active]::before {
+  opacity: 0;
+}
+
+/* The stock dialog's close button is pinned to the physical right, where an Arabic title starts: it sat under the title
+   and could not be seen. It goes to the inline end, as in English. */
+html[dir='rtl'] [data-slot='dialog-close'] {
+  right: auto;
+  inset-inline-end: 1rem;
+}
+
 /* Directional top-bar icons: the sidebar toggle draws the panel on the physical left, and Log out points to the
    physical right. Both follow the sidebar to the other side in RTL. */
 html[dir='rtl'] svg.lucide-panel-left,

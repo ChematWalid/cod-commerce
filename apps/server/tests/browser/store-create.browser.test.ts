@@ -1,5 +1,5 @@
 import { CREATE_STORE_DIALOG_TEST_ID, STORE_CREATE_TEST_ID, STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
-import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core';
+import { type Browser, type BrowserContext, chromium, type Locator, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
 import { loginAsDemoOwner, loginAsOwner, setDisplayLanguage } from './dashboard-session';
@@ -30,6 +30,16 @@ function uniqueSubdomain(): string {
   sequence += 1;
   return `sc${runId}${String(sequence)}`;
 }
+
+/** Which half of the dialog holds its close button: an Arabic title starts on the right, so the button belongs on the left. */
+const closeButtonSide = (dialog: Locator): Promise<'left' | 'right'> =>
+  dialog.evaluate((element) => {
+    const close = element.querySelector('[data-slot="dialog-close"]');
+    if (close === null) throw new Error('the dialog has no close button');
+    const box = element.getBoundingClientRect();
+    const button = close.getBoundingClientRect();
+    return button.left + button.width / 2 < box.left + box.width / 2 ? 'left' : 'right';
+  });
 
 const open = (page: Page, path: string) => page.goto(`${DASHBOARD_URL}${path}`, { waitUntil: 'domcontentloaded' });
 
@@ -68,6 +78,7 @@ describe('create store and store language', () => {
       await byTestId(page, STORE_SWITCHER_TEST_ID).click();
       await byTestId(page, STORE_CREATE_TEST_ID).click();
       const dialog = byTestId(page, CREATE_STORE_DIALOG_TEST_ID);
+      await expect(closeButtonSide(dialog)).resolves.toBe('left');
       await dialog.getByRole('textbox').nth(0).fill(`Created ${runId}`);
       const address = dialog.getByRole('textbox').nth(1);
 
