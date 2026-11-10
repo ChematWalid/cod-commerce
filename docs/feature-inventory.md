@@ -17,7 +17,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [x] | Register, login, logout, email verification (link + OTP), forgot/reset password, change password, change email | C | `/login`, `/register`, `/forgot-password` |
 | [x] | Google and Facebook sign-in | I | login page |
 | [x] | Business profile (logo, name) and onboarding state | C | `/settings` |
-| [ ] | Multi-store per business, store switcher with subdomain | C | top bar |
+| [x] | Multi-store per business, store switcher with subdomain | C | top bar |
 | [ ] | Plans Starter / Basic / Advanced, monthly or 3/6/12-month prepay (−10/−15/−20%) | C | `S:/store_settings?tab=plan` |
 | [ ] | Plan quotas: orders/month (excl. duplicates, blocked, exchanges), stores, team seats, landing pages per product, stock-tracked items, AI credits | C | quota bar "This month's orders"; 80% warning |
 | [ ] | Over-quota and expired-trial behaviour: orders accepted, buyer phone hidden until upgrade/renew | C | |
@@ -25,7 +25,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Change plan, renew early, cancel renewal, payment history | C | |
 | [ ] | Checkout with Edahabia/CIB (SATIM) and Visa/Mastercard (Stripe billing portal) | I | `/billing/checkout`, `/billing/stripe/billing-portal` |
 | [ ] | AI credits: balance in top bar, buy credit packs, credit history | S | `/credits/*` |
-| [ ] | Locale switch EN/AR with RTL layout | C | `/en/...`, `/ar/...` |
+| [x] | Locale switch EN/AR with RTL layout | C | `/en/...`, `/ar/...` |
 | [ ] | Notifications centre (bell, mark read) | C | `/notifications` |
 | [x] | Activity log | S | permission "View the activity log" |
 
@@ -233,7 +233,7 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 | [x] | Sign-up wizard (3 steps) with store name, live subdomain availability, store language, logo | C | Accounts |
 | [ ] | Onboarding checklist on Home (add product → connect carrier → test order → confirm) + "Example" data on empty dashboard | C | Home |
 | [ ] | Account menu: Profile (photo, name, phone), Security (change password), Notification settings (browser push permission, per-event Email/Push toggles for new order, delivered, confirmed, dispatched, returned, cancelled, abandoned checkout, delivery note, assigned to me, scheduled, business updates; Send test), Language, Light/Dark theme | C | Accounts |
-| [ ] | Store switcher with "Create Store" | C | Accounts |
+| [x] | Store switcher with "Create Store" | C | Accounts |
 | [ ] | Notification feed entries per order event | C | Notifications |
 | [ ] | Storefront pricing engine: cart-quote with offers applied/skipped + reasons, upsell nudge ("add 1 more, save X"), signed quote token, shipping-quote (base, overweight, waived, speed) | C | Storefront |
 | [ ] | Commune data with ONS codes and per-commune home/stop-desk availability | C | Delivery |
@@ -268,7 +268,7 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 | [ ] | CAPI test events and test mode for Meta/TikTok/Snapchat | I | Pixels |
 | [ ] | YouCan / Ayor / Shopify order & product sync; media library | I | Integrations |
 | [ ] | Custom domain inline connect → DNS records → verify | C | Store |
-| [ ] | Arabic dashboard (RTL, IBM Plex Sans Arabic) | C | i18n |
+| [x] | Arabic dashboard (RTL, IBM Plex Sans Arabic) | C | i18n |
 
 ## Still not covered (needs outside accounts or would cost money)
 - Real carrier dispatch, labels PDF and webhooks (need carrier API keys).
