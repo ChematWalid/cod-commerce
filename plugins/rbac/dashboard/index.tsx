@@ -1,10 +1,11 @@
 import './styles/rbac.css';
+import { registerShellPage } from '@cod/plugin-merchant-shell/shell-api';
 import { defineDashboardExtension } from '@vendure/dashboard';
-import { TEAM_NAV_SECTION_ID, TEAM_NAV_SECTION_ORDER, TEAM_NAV_SECTION_TITLE } from './constants';
 import { activityLogRoute } from './routes/activity-log-page';
-import { rolesRoute } from './routes/roles-page';
+import { RolesPage } from './routes/roles-page';
+
+registerShellPage('team.roles', { component: RolesPage });
 
 defineDashboardExtension({
-  routes: [rolesRoute, activityLogRoute],
-  navSections: [{ id: TEAM_NAV_SECTION_ID, title: TEAM_NAV_SECTION_TITLE, order: TEAM_NAV_SECTION_ORDER }],
+  routes: [activityLogRoute],
 });

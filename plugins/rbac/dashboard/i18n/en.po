@@ -4,10 +4,6 @@ msgstr ""
 "Language: en\n"
 
 #. js-lingui-explicit-id
-msgid "rbac.nav-team"
-msgstr "Team"
-
-#. js-lingui-explicit-id
 msgid "rbac.nav-roles"
 msgstr "Roles"
 

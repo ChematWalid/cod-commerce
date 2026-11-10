@@ -14,6 +14,12 @@ export class GetStoresService {
     return stores.filter((store) => canReach(actor, store));
   }
 
+  /** The active stores `actor` holds a role on, oldest first: where the caller can switch to. */
+  async listSwitchable(ctx: OperationContext, actor: StoreActor): Promise<readonly Store[]> {
+    const stores = await this.list(ctx, actor);
+    return stores.filter((store) => store.status === 'active');
+  }
+
   /** The store, or `undefined` when it does not exist or `actor` cannot reach it. */
   async get(ctx: OperationContext, actor: StoreActor, id: StoreId): Promise<Store | undefined> {
     const store = await this.ports.stores.find(ctx, actor.businessId, id);

@@ -45,12 +45,17 @@ export class TenantContextResolver implements TenantContextResolverPort<RequestC
 
   /** The tenant of the request, or `undefined`: the default channel never belongs to a business. */
   async resolve(ctx: RequestContext): Promise<TenantContext | undefined> {
+    const businessId = await this.activeBusinessOf(ctx);
+    if (businessId === undefined) return undefined;
+    return toTenant(ctx, businessId, await this.lookup.findStoreAccess(asOperationContext(ctx), businessId));
+  }
+
+  /** The administrator's business, or `undefined` when there is none or it is not active (suspended). */
+  async activeBusinessOf(ctx: RequestContext): Promise<BusinessId | undefined> {
     const businessId = await this.businessOf(ctx);
     if (businessId === undefined) return undefined;
-    const operation = asOperationContext(ctx);
-    const business = await this.lookup.findBusiness(operation, toSnowflake(businessId));
-    if (business?.status !== 'active') return undefined;
-    return toTenant(ctx, businessId, await this.lookup.findStoreAccess(operation, businessId));
+    const business = await this.lookup.findBusiness(asOperationContext(ctx), toSnowflake(businessId));
+    return business?.status === 'active' ? businessId : undefined;
   }
 
   private async businessOf(ctx: RequestContext): Promise<BusinessId | undefined> {

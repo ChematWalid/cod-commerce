@@ -1,6 +1,6 @@
 import { useDisplayLocale } from '@vendure/dashboard';
 import { type PropsWithChildren, type ReactNode, useEffect } from 'react';
-import { toDocumentLang } from '../../domain/document-lang';
+import { toDocumentLang } from '../document-lang';
 
 /**
  * Keeps `html[lang]` in step with the display language. The dashboard sets `html[dir]` itself but leaves

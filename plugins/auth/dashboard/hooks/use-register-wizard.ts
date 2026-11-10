@@ -6,10 +6,10 @@ import {
   registerStoreStepSchema,
   AUTH_ERROR_CODES,
 } from '@cod/shared';
+import { DEFAULT_STORE_LANGUAGE } from '@cod/plugin-merchant-shell/shell-api';
 import { useUserSettings } from '@vendure/dashboard';
 import { useRef, useState } from 'react';
 import { registerMerchant, type RegisterMerchantInputDto, type RegisterMerchantResultDto } from '../auth-operations';
-import { DEFAULT_STORE_LANGUAGE } from '../constants';
 import { errorCodeOf, errorMessageId, isSubdomainRefusal } from '../error-messages';
 import { type FieldErrors, fieldErrorsOf, hasFieldErrors } from '../field-errors';
 

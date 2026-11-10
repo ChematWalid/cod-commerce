@@ -1,4 +1,5 @@
 import { updateAccountProfileSchema } from '@cod/shared';
+import { TextField } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,8 +20,7 @@ import {
   updateAccountProfile,
 } from '../auth-operations';
 import { LogoPicker } from '../components/logo-picker';
-import { TextField } from '../components/text-field';
-import { ACCOUNT_NAV_SECTION_ID, ACCOUNT_PROFILE_PATH, ACCOUNT_PROFILE_QUERY_KEY } from '../constants';
+import { ACCOUNT_PROFILE_PATH, ACCOUNT_PROFILE_QUERY_KEY } from '../constants';
 import { errorMessageId } from '../error-messages';
 import { fieldErrorsOf } from '../field-errors';
 import { useAccountForm } from '../hooks/use-account-form';
@@ -105,10 +105,4 @@ function AccountProfilePage(): ReactNode {
 export const accountProfileRoute: DashboardRouteDefinition = {
   path: ACCOUNT_PROFILE_PATH,
   component: () => <AccountProfilePage />,
-  navMenuItem: {
-    sectionId: ACCOUNT_NAV_SECTION_ID,
-    id: 'auth-account-profile',
-    title: PROFILE_TITLE,
-    url: ACCOUNT_PROFILE_PATH,
-  },
 };

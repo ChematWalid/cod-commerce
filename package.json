@@ -11,6 +11,7 @@
     "test": "turbo run test --concurrency=2",
     "test:integration": "turbo run test:integration --concurrency=1",
     "test:arch": "pnpm --filter @cod/config run test:arch",
+    "i18n:check": "pnpm --filter @cod/shared run i18n:check",
     "build": "turbo run build --concurrency=1",
     "dev": "turbo run dev"
   },

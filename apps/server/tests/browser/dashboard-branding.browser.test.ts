@@ -3,6 +3,12 @@ import { afterAll, beforeAll, beforeEach, afterEach, describe, expect, it } from
 import { PRODUCT_NAME } from '@cod/shared';
 import { LOGIN_BRAND_TEST_ID } from '@cod/plugin-merchant-shell';
 import { DASHBOARD_URL } from './dashboard-pages';
+import { loginAsSuperadmin } from './dashboard-session';
+
+/** The framework's name in the stock tab title and meta tags; the licence footer is its one allowed mention. */
+const VENDOR_NAME = /vendure/i;
+const HOME_PATH = '/home';
+const ICON_FILE_NAME = 'brand-icon.svg';
 
 /**
  * The footer `[data-vendure-branding]` is the one element excluded: `@vendure/dashboard` marks it as a
@@ -50,5 +56,39 @@ describe('dashboard login branding (ADR 0007)', () => {
 
   it('names no framework outside the licence footer', async () => {
     expect((await readBrandableLogin(page)).text).not.toMatch(/vendure/i);
+  });
+
+  it('keeps the licence footer', async () => {
+    await expect(page.locator(LICENCE_FOOTER).count()).resolves.toBeGreaterThan(0);
+  });
+
+  it('names the product, not the framework, in the tab title on the login page', async () => {
+    await page.waitForFunction((vendor: string) => !new RegExp(vendor, 'i').test(document.title), VENDOR_NAME.source);
+    const title = await page.title();
+    expect(title).toContain(PRODUCT_NAME);
+    expect(title).not.toMatch(VENDOR_NAME);
+  });
+
+  it('serves our icon and meta tags, none naming the framework', async () => {
+    const tags = await page.evaluate(() => ({
+      icon: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.href ?? '',
+      description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content ?? '',
+      author: document.querySelector<HTMLMetaElement>('meta[name="author"]')?.content ?? '',
+    }));
+    expect(tags.icon).toBe(`${DASHBOARD_URL}/${ICON_FILE_NAME}`);
+    expect(`${tags.description} ${tags.author}`).not.toMatch(VENDOR_NAME);
+    expect(`${tags.description} ${tags.author}`).toContain(PRODUCT_NAME);
+    const response = await page.request.get(tags.icon);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('image/svg+xml');
+  });
+
+  it('names the product, not the framework, in the tab title once signed in', async () => {
+    await loginAsSuperadmin(page, DASHBOARD_URL);
+    await page.goto(`${DASHBOARD_URL}${HOME_PATH}`);
+    await page.waitForLoadState('networkidle');
+    const title = await page.title();
+    expect(title).toContain(PRODUCT_NAME);
+    expect(title).not.toMatch(VENDOR_NAME);
   });
 });

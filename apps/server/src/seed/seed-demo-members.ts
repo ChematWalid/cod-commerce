@@ -2,7 +2,14 @@ import { MemberAccessService, asOperationContext as rbacOperationContext, Create
 import { asOperationContext, BusinessStoreDirectory } from '@cod/plugin-tenancy';
 import { type PermissionKey, type StoreId, toBusinessId } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
-import { Administrator, AdministratorService, type RequestContext, TransactionalConnection } from '@vendure/core';
+import {
+  Administrator,
+  AdministratorService,
+  Permission,
+  type RequestContext,
+  RoleService,
+  TransactionalConnection,
+} from '@vendure/core';
 
 /** A synthetic member of the Demo business: invitations arrive in P1.S4, and the browser checks need one now. */
 interface DemoMember {
@@ -12,12 +19,20 @@ interface DemoMember {
   readonly grants: readonly PermissionKey[];
   /** `selected` reaches the business's first store only, so another store can be proven refused. */
   readonly storeAccess: 'all' | 'selected';
+  /** Also signed in on the business's second store, where `grants` do not apply: its role differs per store. */
+  readonly bareOnSecondStore?: true;
 }
 
 /** Can read roles and the activity log, and change nothing. */
 export const DEMO_LIMITED_MEMBER_EMAIL = 'limited@demo.example.test';
 /** Holds no team permission at all. */
 export const DEMO_ORDERS_MEMBER_EMAIL = 'orders@demo.example.test';
+/** Holds no view permission, so the merchant sidebar shows Home alone. */
+export const DEMO_NO_VIEW_MEMBER_EMAIL = 'noview@demo.example.test';
+/** Can see the business and store settings, and change neither. */
+export const DEMO_SETTINGS_VIEWER_EMAIL = 'settingsview@demo.example.test';
+/** Can view products on the first store only, and is a member of the second store without that key. */
+export const DEMO_PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
 
 const DEMO_MEMBERS: readonly DemoMember[] = [
   {
@@ -33,6 +48,28 @@ const DEMO_MEMBERS: readonly DemoMember[] = [
     roleName: 'Demo orders clerk',
     grants: ['orders.view'],
     storeAccess: 'all',
+  },
+  {
+    emailAddress: DEMO_NO_VIEW_MEMBER_EMAIL,
+    firstName: 'NoView',
+    roleName: 'Demo no view',
+    grants: [],
+    storeAccess: 'all',
+  },
+  {
+    emailAddress: DEMO_SETTINGS_VIEWER_EMAIL,
+    firstName: 'SettingsView',
+    roleName: 'Demo settings viewer',
+    grants: ['settings.business.view', 'store.stores.view'],
+    storeAccess: 'all',
+  },
+  {
+    emailAddress: DEMO_PER_STORE_MEMBER_EMAIL,
+    firstName: 'PerStore',
+    roleName: 'Demo first store catalog',
+    grants: ['catalog.products.view'],
+    storeAccess: 'selected',
+    bareOnSecondStore: true,
   },
 ];
 
@@ -108,6 +145,31 @@ async function createMember(run: SeedRun, member: DemoMember): Promise<void> {
     storeAccess: member.storeAccess,
     storeIds: member.storeAccess === 'selected' ? storeIds.slice(0, 1) : [],
   });
+  if (member.bareOnSecondStore) await addBareRoleOnSecondStore(run, administratorId, storeIds);
+}
+
+/**
+ * Puts the member on the second store with no permission beyond signing in. `setAccess` applies one set of roles to
+ * every selected store, so the case of a role that differs per store needs an engine role written directly.
+ */
+async function addBareRoleOnSecondStore(
+  { app, ctx, owner }: SeedRun,
+  administratorId: number,
+  storeIds: readonly StoreId[],
+): Promise<void> {
+  const second = storeIds[1];
+  const stores = await app
+    .get(BusinessStoreDirectory)
+    .storesOf(asOperationContext(ctx), toBusinessId(owner.businessId));
+  const channelId = stores.find((store) => store.id === second)?.channelId;
+  if (channelId === undefined) throw new Error(`The business ${owner.businessId} has no second store`);
+  const role = await app.get(RoleService).create(ctx, {
+    code: `demo-bare-${String(administratorId)}`,
+    description: 'Demo member: signed in on the second store only',
+    permissions: [Permission.Authenticated],
+    channelIds: [channelId],
+  });
+  await app.get(AdministratorService).assignRole(ctx, administratorId, role.id);
 }
 
 /**

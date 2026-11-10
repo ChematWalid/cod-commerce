@@ -1,4 +1,4 @@
-/* The merchant shell's RTL stylesheet (ADR 0010). Logical properties only. */
+/* The merchant shell's stylesheet (ADR 0010). Logical properties only. */
 @import '@fontsource/ibm-plex-sans-arabic/400.css';
 @import '@fontsource/ibm-plex-sans-arabic/500.css';
 @import '@fontsource/ibm-plex-sans-arabic/600.css';
@@ -13,6 +13,50 @@ html[dir='rtl'] svg.lucide-chevron-left:not([class*='rtl:']) {
   scale: -1 1;
 }
 
+/* Evidence (c): the sidebar's chevron carries `rtl:rotate-180` and `group-data-open:rotate-90`; the RTL rule wins, so an
+   open section looked like a closed one. Open points down in both directions, closed points to the inline end. */
+html[dir='rtl']
+  [data-sidebar='content']
+  [data-slot='collapsible-trigger'][aria-expanded='true']
+  > svg.lucide-chevron-right {
+  rotate: 90deg;
+}
+
+/* The stock active-row marker is pinned to the physical left, which puts it at the inline end in RTL. Move it to the start. */
+html[dir='rtl'] [data-sidebar] [class*='before:absolute']::before {
+  left: auto;
+  inset-inline-start: 0;
+}
+
+/* The stock sidebar marks a leaf active on a prefix match, so a group's own page, its first child (D80, e.g. `/cod-orders`),
+   stayed highlighted beside the open child page (`/cod-orders/spam`). Only the deeper match keeps the active look. */
+[data-sidebar='menu-sub']:has(> :not(:first-child) [data-sidebar='menu-sub-button'][data-active])
+  > :first-child
+  [data-sidebar='menu-sub-button'][data-active]:not(:hover) {
+  background-color: transparent;
+  color: var(--color-sidebar-foreground);
+}
+
+[data-sidebar='menu-sub']:has(> :not(:first-child) [data-sidebar='menu-sub-button'][data-active])
+  > :first-child
+  [data-sidebar='menu-sub-button'][data-active]::before {
+  opacity: 0;
+}
+
+/* The stock dialog's close button is pinned to the physical right, where an Arabic title starts: it sat under the title
+   and could not be seen. It goes to the inline end, as in English. */
+html[dir='rtl'] [data-slot='dialog-close'] {
+  right: auto;
+  inset-inline-end: 1rem;
+}
+
+/* Directional top-bar icons: the sidebar toggle draws the panel on the physical left, and Log out points to the
+   physical right. Both follow the sidebar to the other side in RTL. */
+html[dir='rtl'] svg.lucide-panel-left,
+html[dir='rtl'] svg.lucide-log-out {
+  scale: -1 1;
+}
+
 /* Evidence (c): LTR runs (rich text, "0 / 100" stock cells, inputs) are reordered by the RTL paragraph. */
 html[dir='rtl'] .ProseMirror p,
 html[dir='rtl'] td,
@@ -23,4 +67,10 @@ html[dir='rtl'] input {
 /* The input-group control keeps the eye-icon inset on its text side in RTL: restore the 10px of a plain input. */
 html[dir='rtl'] [data-slot='input-group-control'] {
   padding-inline: 0.625rem 0.375rem;
+}
+
+/* D79: merchants use the toolbar's store switcher and account menu. Inverted so nothing flashes before the flag is set. */
+html:not([data-platform-staff]) [data-sidebar='header'],
+html:not([data-platform-staff]) [data-sidebar='footer'] {
+  display: none;
 }

@@ -14,3 +14,383 @@ msgstr "مرحبًا بك في {name}"
 #. js-lingui-explicit-id
 msgid "Sign in to manage your store"
 msgstr "سجّل الدخول لإدارة متجرك"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.home"
+msgstr "الرئيسية"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders"
+msgstr "الطلبات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.all"
+msgstr "كل الطلبات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.customers"
+msgstr "الزبائن"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.spam"
+msgstr "الطلبات المشبوهة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking"
+msgstr "التتبع"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.shipments"
+msgstr "الشحنات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.returns"
+msgstr "المرتجعات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.all"
+msgstr "كل المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.collections"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.offers"
+msgstr "العروض"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.themes"
+msgstr "القوالب"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.ab-tests"
+msgstr "اختبارات A/B"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics"
+msgstr "التحليلات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.overview"
+msgstr "نظرة عامة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.team"
+msgstr "إحصاءات الفريق"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.marketing"
+msgstr "التسويق"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory"
+msgstr "المخزون"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.stock"
+msgstr "المخزون الحالي"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.packaging"
+msgstr "التغليف"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.movements"
+msgstr "حركات المخزون"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance"
+msgstr "المالية"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.report"
+msgstr "التقرير"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.costs"
+msgstr "التكاليف"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.products"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wilayas"
+msgstr "الولايات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.ads"
+msgstr "الإعلانات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wallets"
+msgstr "المحافظ"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.study"
+msgstr "دراسة المنتج"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team"
+msgstr "الفريق"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.members"
+msgstr "الأعضاء"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.distribution"
+msgstr "توزيع الطلبات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.roles"
+msgstr "الأدوار والصلاحيات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.delivery"
+msgstr "التوصيل والشحن"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.apps"
+msgstr "التطبيقات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.sourcing"
+msgstr "التوريد"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings"
+msgstr "الإعدادات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.general"
+msgstr "عامة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.pixels"
+msgstr "البكسلات والتتبع"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.domains"
+msgstr "النطاقات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.billing"
+msgstr "الخطة والفوترة"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.statuses"
+msgstr "تخصيص الحالات"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.locations"
+msgstr "مواقع المخزون"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.spam"
+msgstr "الحماية من الطلبات المشبوهة"
+
+#. js-lingui-explicit-id
+msgid "shell.coming-soon"
+msgstr "هذه الصفحة قيد الإعداد وستظهر هنا عند جاهزيتها."
+
+#. js-lingui-explicit-id
+msgid "Store address"
+msgstr "عنوان المتجر"
+
+#. js-lingui-explicit-id
+msgid "Store language"
+msgstr "لغة المتجر"
+
+#. js-lingui-explicit-id
+msgid "The language your customers shop in, not the dashboard"
+msgstr "اللغة التي يتسوّق بها زبائنك، وليست لغة لوحة التحكم"
+
+#. js-lingui-explicit-id
+msgid "subdomain.length"
+msgstr "استخدم من 3 إلى 30 حرفًا"
+
+#. js-lingui-explicit-id
+msgid "subdomain.format"
+msgstr "استخدم أحرفًا لاتينية صغيرة وأرقامًا وشرطات فقط"
+
+#. js-lingui-explicit-id
+msgid "subdomain.punycode"
+msgstr "صيغة هذا العنوان غير مسموح بها"
+
+#. js-lingui-explicit-id
+msgid "subdomain.reserved"
+msgstr "هذا العنوان محجوز"
+
+#. js-lingui-explicit-id
+msgid "subdomain.taken"
+msgstr "هذا العنوان مستخدم بالفعل"
+
+#. js-lingui-explicit-id
+msgid "subdomain.rate-limited"
+msgstr "محاولات تحقق كثيرة. ستُعاد المحاولة بعد قليل."
+
+#. js-lingui-explicit-id
+msgid "subdomain.available"
+msgstr "هذا العنوان متاح"
+
+#. js-lingui-explicit-id
+msgid "subdomain.checking"
+msgstr "جارٍ التحقق…"
+
+#. js-lingui-explicit-id
+msgid "subdomain.check-failed"
+msgstr "تعذّر التحقق من هذا العنوان. حاول مجددًا."
+
+#. js-lingui-explicit-id
+msgid "shell.store.switch"
+msgstr "تبديل المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.store.none"
+msgstr "لا يوجد متجر نشط"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create"
+msgstr "إنشاء متجر"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.name"
+msgstr "اسم المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.submit"
+msgstr "إنشاء"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.failed"
+msgstr "تعذّر إنشاء المتجر. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.switch-timeout"
+msgstr "تم إنشاء متجرك، لكن تعذّر فتحه الآن. أعد تحميل الصفحة لرؤيته."
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.credits"
+msgstr "الرصيد"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.notifications"
+msgstr "الإشعارات"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.coming-soon"
+msgstr "قريبًا"
+
+#. js-lingui-explicit-id
+msgid "shell.trial-banner.placeholder"
+msgstr "ستظهر هنا تفاصيل فترتك التجريبية."
+
+#. js-lingui-explicit-id
+msgid "shell.account.menu"
+msgstr "قائمة الحساب"
+
+#. js-lingui-explicit-id
+msgid "shell.account.profile"
+msgstr "الملف الشخصي"
+
+#. js-lingui-explicit-id
+msgid "shell.account.security"
+msgstr "الأمان"
+
+#. js-lingui-explicit-id
+msgid "shell.account.language"
+msgstr "اللغة"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme"
+msgstr "المظهر"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.light"
+msgstr "فاتح"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.dark"
+msgstr "داكن"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.system"
+msgstr "حسب النظام"
+
+#. js-lingui-explicit-id
+msgid "shell.account.logout"
+msgstr "تسجيل الخروج"
+
+#. js-lingui-explicit-id
+msgid "shell.account.logout-failed"
+msgstr "تعذّر تسجيل الخروج. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.name-invalid"
+msgstr "أدخل اسم متجر صالحًا."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.title"
+msgstr "النشاط التجاري"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.name"
+msgstr "اسم النشاط"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.title"
+msgstr "المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.name"
+msgstr "اسم المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.description"
+msgstr "وصف المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.saved"
+msgstr "تم حفظ التغييرات"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.load-failed"
+msgstr "تعذّر تحميل هذه الإعدادات. أعد تحميل الصفحة للمحاولة مجددًا."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save-failed"
+msgstr "تعذّر حفظ تغييراتك. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "tenancy.name-invalid"
+msgstr "أدخل اسمًا لا يزيد عن 255 حرفًا."
+
+#. js-lingui-explicit-id
+msgid "tenancy.unsupported-store-language"
+msgstr "اختر إحدى اللغات المعروضة."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-not-found"
+msgstr "لم يعد هذا المتجر موجودًا."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-archived"
+msgstr "تمت أرشفة هذا المتجر، فلا يمكن تعديله بعد الآن."
+
+#. js-lingui-explicit-id
+msgid "tenancy.business-not-found"
+msgstr "تعذّر العثور على هذا النشاط."

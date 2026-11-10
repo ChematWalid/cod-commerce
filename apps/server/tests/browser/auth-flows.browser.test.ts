@@ -108,7 +108,7 @@ describe('auth flows in a real browser', () => {
     await createButton(page).click();
     const banner = page.getByTestId(VERIFY_BANNER_TEST_ID);
     await banner.waitFor();
-    expect(new URL(page.url()).pathname.replace(/\/$/, '')).toBe(new URL(DASHBOARD_URL).pathname);
+    await page.waitForURL((url) => url.pathname === `${new URL(DASHBOARD_URL).pathname}/home`); // D84: the root lands on Home
     await expect(storesOfSelectedChannel(page)).resolves.toEqual([subdomain]);
 
     const { code } = emailSecrets(await waitForEmail(MAILPIT_URL, email, { contains: '/verify-email' }));

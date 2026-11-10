@@ -1,10 +1,10 @@
 import { useLingui } from '@lingui/react';
+import { TextField } from '@cod/plugin-merchant-shell/shell-api';
 import { Button } from '@vendure/dashboard';
 import type { SyntheticEvent, ReactNode } from 'react';
 import type { OAuthPrefill } from '../hooks/use-oauth-prefill';
 import type { RegisterWizard } from '../hooks/use-register-wizard';
 import { OAuthProviderButtons } from './oauth-provider-buttons';
-import { TextField } from './text-field';
 
 function NameFields({ wizard }: { readonly wizard: RegisterWizard }): ReactNode {
   const { i18n } = useLingui();

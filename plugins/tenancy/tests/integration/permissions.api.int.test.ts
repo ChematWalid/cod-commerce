@@ -1,4 +1,8 @@
+import { PLATFORM_STAFF_PERMISSION } from '@cod/shared';
+import { PermissionDefinition } from '@vendure/core';
+import { gql } from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { ownerRolePermissions } from '../../infrastructure/owner-role-permissions';
 import {
   ACTIVE_BUSINESS,
   ARCHIVE_STORE,
@@ -12,8 +16,23 @@ import {
   UPDATE_STORE,
 } from './admin-api-operations';
 import { actAsMember, createMember } from './admin-api-session';
-import { failureOf } from '@cod/testing';
+import { failureOf, PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import { type StoreApi, useStoreApi } from './store-api-harness';
+
+const MY_PERMISSIONS = gql`
+  query {
+    me {
+      channels {
+        token
+        permissions
+      }
+    }
+  }
+`;
+
+interface MyPermissions {
+  readonly me: { readonly channels: readonly { readonly token: string; readonly permissions: readonly string[] }[] };
+}
 
 type Variables = (api: StoreApi) => Record<string, unknown>;
 
@@ -70,5 +89,48 @@ describe('Admin API permissions of a tenant member', () => {
 
     // Assert
     expect(failure.codes).toEqual(['FORBIDDEN']);
+  });
+
+  describe('the PlatformStaff permission (D78)', () => {
+    const channelsHolding = async (): Promise<string[]> => {
+      const { me } = await adminClient.query<MyPermissions>(MY_PERMISSIONS);
+      return me.channels
+        .filter((channel) => channel.permissions.includes(PLATFORM_STAFF_PERMISSION))
+        .map((c) => c.token);
+    };
+
+    it('is held by the superadmin on the default channel and on a store channel', async () => {
+      // Arrange
+      const storeChannel = await api.channels().findOneByOrFail({ id: api.alpha.store.channelId });
+
+      // Act
+      const holding = await channelsHolding();
+
+      // Assert
+      expect(holding).toContain(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
+      expect(holding).toContain(storeChannel.token);
+    });
+
+    it("is held on none of a freshly provisioned owner's channels", async () => {
+      // Arrange
+      await api.asAlpha();
+
+      // Act
+      const holding = await channelsHolding();
+
+      // Assert
+      expect(holding).toEqual([]);
+    });
+
+    it('is left out of what an Owner role receives', () => {
+      // Arrange
+      const definition = new PermissionDefinition({ name: PLATFORM_STAFF_PERMISSION, assignable: true });
+
+      // Act
+      const permissions = ownerRolePermissions([definition]);
+
+      // Assert
+      expect(permissions).toEqual([]);
+    });
   });
 });

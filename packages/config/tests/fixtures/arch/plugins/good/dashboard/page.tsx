@@ -1,3 +1,1 @@
-import { isValid } from '../domain/rule';
-
-export const canSubmit = (value: string): boolean => isValid(value);
+export const canSubmit = (value: string): boolean => value.length > 0;

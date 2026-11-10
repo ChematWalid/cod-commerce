@@ -21,14 +21,7 @@ import {
 } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import { LtrRun } from '../components/ltr-run';
-import {
-  ACTIVITY_LOG_NAV_TITLE,
-  ACTIVITY_LOG_PATH,
-  ACTIVITY_LOG_QUERY_KEY,
-  ACTIVITY_LOG_VIEW_VENDURE_PERMISSION,
-  LOADING_MESSAGE_ID,
-  TEAM_NAV_SECTION_ID,
-} from '../constants';
+import { ACTIVITY_LOG_NAV_TITLE, ACTIVITY_LOG_PATH, ACTIVITY_LOG_QUERY_KEY, LOADING_MESSAGE_ID } from '../constants';
 import { errorMessageId } from '../error-messages';
 import { type ActivityLogItemDto, fetchActivityLog } from '../queries';
 
@@ -165,11 +158,4 @@ function ActivityLogPage(): ReactNode {
 export const activityLogRoute: DashboardRouteDefinition = {
   path: ACTIVITY_LOG_PATH,
   component: () => <ActivityLogPage />,
-  navMenuItem: {
-    sectionId: TEAM_NAV_SECTION_ID,
-    id: 'rbac-activity-log',
-    title: ACTIVITY_LOG_NAV_TITLE,
-    url: ACTIVITY_LOG_PATH,
-    requiresPermission: ACTIVITY_LOG_VIEW_VENDURE_PERMISSION,
-  },
 };

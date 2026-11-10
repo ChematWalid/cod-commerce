@@ -14,8 +14,14 @@ interface Step {
   env?: Record<string, string>;
   with?: Record<string, string>;
 }
+interface MatrixPart {
+  part: string;
+  command: string;
+}
 interface Job {
+  name?: string;
   env?: Record<string, string>;
+  strategy?: { 'fail-fast'?: boolean; matrix?: { include?: MatrixPart[] } };
   needs?: string[];
   services?: Record<string, { image?: string }>;
   'timeout-minutes'?: number;
@@ -45,6 +51,19 @@ const allUses = (workflow: Workflow, action: CompositeAction): string[] =>
     .map((step) => step.uses)
     .filter((uses): uses is string => uses !== undefined);
 
+/** The dashboard browser suite takes about 7 minutes on one runner (measured 2026-11-10), so it runs in three parts. */
+const DASHBOARD_SHARDS = 3;
+const EXPECTED_BROWSER_PARTS: readonly MatrixPart[] = [
+  ...Array.from({ length: DASHBOARD_SHARDS }, (_, index) => ({
+    part: `dashboard-${String(index + 1)}`,
+    command: `pnpm --filter @cod/server test:browser --shard=${String(index + 1)}/${String(DASHBOARD_SHARDS)}`,
+  })),
+  {
+    part: 'storefront',
+    command: 'pnpm --filter @cod/storefront test:smoke && pnpm --filter @cod/storefront test:browser',
+  },
+];
+
 const stepsRun = (job: Job): string[] =>
   (job.steps ?? []).map((step) => step.run).filter((run): run is string => run !== undefined);
 
@@ -73,7 +92,14 @@ describe('browser.yml', () => {
     expect(job['timeout-minutes']).toBeLessThanOrEqual(10);
   });
 
-  it('sets up, installs the browser, builds, migrates, starts the api, waits, tests, in that order', () => {
+  it('splits the tests into the dashboard shards and the storefront, each its own ten-minute part', () => {
+    expect(job.strategy?.['fail-fast']).toBe(false);
+    expect(job.strategy?.matrix?.include).toEqual(EXPECTED_BROWSER_PARTS);
+    expect(job.name).toContain('${{ matrix.part }}');
+    expect((job.steps ?? []).filter((step) => step.run === '${{ matrix.command }}')).toHaveLength(1);
+  });
+
+  it('sets up, installs the browser, builds, migrates, starts the api and the storefront, waits, tests, in that order', () => {
     const steps = job.steps ?? [];
     const order = [
       steps.findIndex((step) => step.uses === './.github/actions/setup'),
@@ -83,9 +109,8 @@ describe('browser.yml', () => {
       index('apps/server/dist/main-migrate.js'),
       index('setsid'),
       index('wait_http 200 http://localhost:3100/readyz'),
-      index('pnpm --filter @cod/server test:browser'),
-      index('pnpm --filter @cod/storefront test:smoke'),
-      index('pnpm --filter @cod/storefront test:browser'),
+      index('wait_http 200 http://127.0.0.1:3001/livez'),
+      index('${{ matrix.command }}'),
     ];
 
     expect(order.every((position) => position >= 0)).toBe(true);
@@ -107,7 +132,7 @@ describe('browser.yml', () => {
     expect(start).toBeGreaterThan(index('setsid node'));
     expect(runs.join('\n')).toMatch(/setsid pnpm --filter @cod\/storefront start > storefront\.log 2>&1 &/);
     expect(wait).toBeGreaterThanOrEqual(start);
-    expect(wait).toBeLessThan(index('pnpm --filter @cod/storefront test:smoke'));
+    expect(wait).toBeLessThan(index('${{ matrix.command }}'));
   });
 
   it('gives the storefront the job valkey, the build deployment id and a non-secret environment', () => {
@@ -129,11 +154,12 @@ describe('browser.yml', () => {
     expect(show?.run).toContain('tail -n 200 storefront.log');
   });
 
-  it('uploads the screenshots even when the tests fail, by an action pinned by SHA', () => {
+  it('uploads the screenshots even when the tests fail, by an action pinned by SHA, one artifact per part', () => {
     const upload = (job.steps ?? []).find((step) => step.uses?.startsWith('actions/upload-artifact@'));
 
     expect(upload?.uses).toBe('actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
     expect(upload?.if).toBe('always()');
+    expect(upload?.with?.['name']).toContain('${{ matrix.part }}');
     expect(upload?.with?.['path']).toContain('apps/server/test-results/*.png');
     expect(upload?.with?.['path']).toContain('apps/storefront/test-results/*.png');
   });

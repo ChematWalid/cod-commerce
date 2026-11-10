@@ -1,6 +1,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
 import { defaultClientConditions, defineConfig, type Plugin, searchForWorkspaceRoot } from 'vite';
+import { dashboardBrandingPlugin } from './src/config/dashboard-branding.vite.js';
 import { DASHBOARD_BASE_PATH } from './src/config/dashboard-route.js';
 import { DEV_API_PORT } from './src/config/ports.js';
 
@@ -37,6 +38,8 @@ export default defineConfig(({ mode }) => {
         // workspace plugins are linked into this package's node_modules, so it must scan this one.
         pluginPackageScanner: { nodeModulesRoot: fileURLToPath(new URL('./node_modules', import.meta.url)) },
       }),
+      // Its `pre` hook runs before the stock base-path rewrite, whatever the plugin order.
+      dashboardBrandingPlugin(DASHBOARD_BASE_PATH),
       workspaceSourceConditions,
     ],
   };

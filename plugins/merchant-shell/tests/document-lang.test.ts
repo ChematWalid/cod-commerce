@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toDocumentLang } from '../domain/document-lang';
+import { toDocumentLang } from '../dashboard/document-lang';
 
 describe('toDocumentLang', () => {
   it('maps the Arabic display locale to ar', () => {

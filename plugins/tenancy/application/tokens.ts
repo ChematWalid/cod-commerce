@@ -39,3 +39,6 @@ export const TENANT_LIFECYCLE: unique symbol = Symbol('TenancyTenantLifecycle');
 
 /** Injection token of the register-only `TenantLifecycleRegistrar` other plugins add their hooks through. */
 export const TENANT_LIFECYCLE_REGISTRAR: unique symbol = Symbol('TenancyTenantLifecycleRegistrar');
+
+/** Injection token of the platform domain stores are subdomains of. */
+export const PLATFORM_DOMAIN: unique symbol = Symbol('TenancyPlatformDomain');

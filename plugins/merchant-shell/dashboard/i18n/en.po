@@ -14,3 +14,383 @@ msgstr "Welcome to {name}"
 #. js-lingui-explicit-id
 msgid "Sign in to manage your store"
 msgstr "Sign in to manage your store"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.home"
+msgstr "Home"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders"
+msgstr "Orders"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.all"
+msgstr "All orders"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.customers"
+msgstr "Customers"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.orders.spam"
+msgstr "Spam"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking"
+msgstr "Tracking"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.shipments"
+msgstr "Shipments"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.tracking.returns"
+msgstr "Returns"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.all"
+msgstr "All products"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.collections"
+msgstr "Collections"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.offers"
+msgstr "Offers"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.themes"
+msgstr "Themes"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.products.ab-tests"
+msgstr "A/B testing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics"
+msgstr "Analytics"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.overview"
+msgstr "Overview"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.team"
+msgstr "Team stats"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.analytics.marketing"
+msgstr "Marketing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory"
+msgstr "Inventory"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.stock"
+msgstr "Stock"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.packaging"
+msgstr "Packaging"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.inventory.movements"
+msgstr "Movements"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance"
+msgstr "Finance"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.report"
+msgstr "Report"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.costs"
+msgstr "Costs"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.products"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wilayas"
+msgstr "Wilayas"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.ads"
+msgstr "Ads"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.wallets"
+msgstr "Wallets"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.finance.study"
+msgstr "Product study"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team"
+msgstr "Team"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.members"
+msgstr "Members"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.distribution"
+msgstr "Order distribution"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.team.roles"
+msgstr "Roles & permissions"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.delivery"
+msgstr "Delivery & shipping"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.apps"
+msgstr "Apps"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.sourcing"
+msgstr "Sourcing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings"
+msgstr "Settings"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.general"
+msgstr "General"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.pixels"
+msgstr "Pixels & tracking"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.domains"
+msgstr "Domains"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.billing"
+msgstr "Plan & billing"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.statuses"
+msgstr "Status customization"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.locations"
+msgstr "Stock locations"
+
+#. js-lingui-explicit-id
+msgid "shell.nav.settings.spam"
+msgstr "Spam protection"
+
+#. js-lingui-explicit-id
+msgid "shell.coming-soon"
+msgstr "A page coming soon. It will appear here once it is ready."
+
+#. js-lingui-explicit-id
+msgid "Store address"
+msgstr "Store address"
+
+#. js-lingui-explicit-id
+msgid "Store language"
+msgstr "Store language"
+
+#. js-lingui-explicit-id
+msgid "The language your customers shop in, not the dashboard"
+msgstr "The language your customers shop in, not the dashboard"
+
+#. js-lingui-explicit-id
+msgid "subdomain.length"
+msgstr "Use 3 to 30 characters"
+
+#. js-lingui-explicit-id
+msgid "subdomain.format"
+msgstr "Use only lowercase letters, numbers and hyphens"
+
+#. js-lingui-explicit-id
+msgid "subdomain.punycode"
+msgstr "This address format is not allowed"
+
+#. js-lingui-explicit-id
+msgid "subdomain.reserved"
+msgstr "This address is reserved"
+
+#. js-lingui-explicit-id
+msgid "subdomain.taken"
+msgstr "This address is already taken"
+
+#. js-lingui-explicit-id
+msgid "subdomain.rate-limited"
+msgstr "Too many checks. Trying again shortly."
+
+#. js-lingui-explicit-id
+msgid "subdomain.available"
+msgstr "This address is available"
+
+#. js-lingui-explicit-id
+msgid "subdomain.checking"
+msgstr "Checking…"
+
+#. js-lingui-explicit-id
+msgid "subdomain.check-failed"
+msgstr "Could not check this address. Try again."
+
+#. js-lingui-explicit-id
+msgid "shell.store.switch"
+msgstr "Switch store"
+
+#. js-lingui-explicit-id
+msgid "shell.store.none"
+msgstr "No active store"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create"
+msgstr "Create store"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.name"
+msgstr "Store name"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.submit"
+msgstr "Create"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.failed"
+msgstr "The store could not be created. Please try again."
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.switch-timeout"
+msgstr "Your store was created, but it could not be opened yet. Reload the page to see it."
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.credits"
+msgstr "Credits"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.notifications"
+msgstr "Notifications"
+
+#. js-lingui-explicit-id
+msgid "shell.topbar.coming-soon"
+msgstr "Coming soon"
+
+#. js-lingui-explicit-id
+msgid "shell.trial-banner.placeholder"
+msgstr "Your trial details will appear here."
+
+#. js-lingui-explicit-id
+msgid "shell.account.menu"
+msgstr "Account menu"
+
+#. js-lingui-explicit-id
+msgid "shell.account.profile"
+msgstr "Profile"
+
+#. js-lingui-explicit-id
+msgid "shell.account.security"
+msgstr "Security"
+
+#. js-lingui-explicit-id
+msgid "shell.account.language"
+msgstr "Language"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme"
+msgstr "Theme"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.light"
+msgstr "Light"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.dark"
+msgstr "Dark"
+
+#. js-lingui-explicit-id
+msgid "shell.account.theme.system"
+msgstr "System"
+
+#. js-lingui-explicit-id
+msgid "shell.account.logout"
+msgstr "Log out"
+
+#. js-lingui-explicit-id
+msgid "shell.account.logout-failed"
+msgstr "Could not sign out. Try again."
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.name-invalid"
+msgstr "Enter a valid store name."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.title"
+msgstr "Business"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.name"
+msgstr "Business name"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.title"
+msgstr "Store"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.name"
+msgstr "Store name"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.description"
+msgstr "Store description"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.saved"
+msgstr "Changes saved"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.load-failed"
+msgstr "Could not load these settings. Reload the page to try again."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.save-failed"
+msgstr "Could not save your changes. Try again."
+
+#. js-lingui-explicit-id
+msgid "tenancy.name-invalid"
+msgstr "Enter a name of up to 255 characters."
+
+#. js-lingui-explicit-id
+msgid "tenancy.unsupported-store-language"
+msgstr "Choose one of the languages offered."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-not-found"
+msgstr "This store no longer exists."
+
+#. js-lingui-explicit-id
+msgid "tenancy.store-archived"
+msgstr "This store was archived, so it can no longer be changed."
+
+#. js-lingui-explicit-id
+msgid "tenancy.business-not-found"
+msgstr "This business could not be found."

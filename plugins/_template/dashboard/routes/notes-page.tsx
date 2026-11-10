@@ -2,8 +2,7 @@ import { useLingui } from '@lingui/react';
 import { useQuery } from '@tanstack/react-query';
 import { api, Page, PageBlock, PageLayout, PageTitle } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
-import { DEFAULT_PAGE_SIZE } from '../../domain/constants';
-import { TEMPLATE_NOTES_NAV_ITEM, TEMPLATE_NOTES_TEST_ID } from '../constants';
+import { TEMPLATE_NOTES_NAV_ITEM, TEMPLATE_NOTES_PAGE_SIZE, TEMPLATE_NOTES_TEST_ID } from '../constants';
 import {
   TEMPLATE_NOTES_QUERY,
   type TemplateNoteDto,
@@ -30,7 +29,7 @@ function useTemplateNotes(): NotesState {
   const query = useQuery({
     queryKey: NOTES_QUERY_KEY,
     queryFn: () => {
-      const variables: TemplateNotesVariables = { take: DEFAULT_PAGE_SIZE };
+      const variables: TemplateNotesVariables = { take: TEMPLATE_NOTES_PAGE_SIZE };
       return api.query<TemplateNotesResult>(TEMPLATE_NOTES_QUERY, variables);
     },
     retry: false,

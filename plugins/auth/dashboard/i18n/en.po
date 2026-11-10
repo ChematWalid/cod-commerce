@@ -144,18 +144,6 @@ msgid "Store name"
 msgstr "Store name"
 
 #. js-lingui-explicit-id
-msgid "Store address"
-msgstr "Store address"
-
-#. js-lingui-explicit-id
-msgid "Store language"
-msgstr "Store language"
-
-#. js-lingui-explicit-id
-msgid "The language your customers shop in, not the dashboard"
-msgstr "The language your customers shop in, not the dashboard"
-
-#. js-lingui-explicit-id
 msgid "Logo (optional)"
 msgstr "Logo (optional)"
 
@@ -319,41 +307,6 @@ msgstr "New email"
 msgid "Change email"
 msgstr "Change email"
 
-#. js-lingui-explicit-id
-msgid "subdomain.length"
-msgstr "Use 3 to 30 characters"
-
-#. js-lingui-explicit-id
-msgid "subdomain.format"
-msgstr "Use only lowercase letters, numbers and hyphens"
-
-#. js-lingui-explicit-id
-msgid "subdomain.punycode"
-msgstr "This address format is not allowed"
-
-#. js-lingui-explicit-id
-msgid "subdomain.reserved"
-msgstr "This address is reserved"
-
-#. js-lingui-explicit-id
-msgid "subdomain.taken"
-msgstr "This address is already taken"
-
-#. js-lingui-explicit-id
-msgid "subdomain.rate-limited"
-msgstr "Too many checks. Trying again shortly."
-
-#. js-lingui-explicit-id
-msgid "subdomain.available"
-msgstr "This address is available"
-
-#. js-lingui-explicit-id
-msgid "subdomain.checking"
-msgstr "Checking…"
-
-#. js-lingui-explicit-id
-msgid "subdomain.check-failed"
-msgstr "Could not check this address. Try again."
 #. js-lingui-explicit-id
 msgid "Creating your store…"
 msgstr "Creating your store…"

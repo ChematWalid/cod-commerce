@@ -109,6 +109,22 @@ export const STORE = gql`
   ${STORE_FIELDS}
 `;
 
+export const SWITCHABLE_STORES = gql`
+  query {
+    switchableStores {
+      platformDomain
+      stores {
+        id
+        businessId
+        channelId
+        name
+        subdomain
+        language
+      }
+    }
+  }
+`;
+
 export const CREATE_STORE = gql`
   mutation ($input: CreateStoreInput!) {
     createStore(input: $input) {
