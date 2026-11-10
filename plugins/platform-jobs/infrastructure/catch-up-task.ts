@@ -1,3 +1,4 @@
+import { DomainError } from '@cod/shared';
 import { type Injector, Logger, ScheduledTask } from '@vendure/core';
 import { TASK_HEARTBEAT_WRITER } from '../application/tokens';
 import { PLATFORM_CLOCK, type PlatformClock } from '../domain/clock.port';
@@ -6,6 +7,15 @@ import { InvalidTaskIdError } from '../domain/errors';
 import type { TaskHeartbeatWriter } from '../domain/task-heartbeat.port';
 
 const LOG_CONTEXT = 'CatchUpTask';
+
+/**
+ * What may be logged about a failure: the code and message of our own typed errors, which never carry secrets
+ * (Global Constraints), and only the class name of anything else, whose message could hold a value or a query.
+ */
+function describeFailure(error: unknown): string {
+  if (error instanceof DomainError) return `${error.code}: ${error.message}`;
+  return `reason=${error instanceof Error ? error.name : typeof error}`;
+}
 
 /** What {@link catchUpTask} needs to describe one scheduled task. */
 export interface CatchUpTaskConfig {
@@ -39,8 +49,7 @@ export function catchUpTask(config: CatchUpTaskConfig): ScheduledTask {
         await injector.get<TaskHeartbeatWriter>(TASK_HEARTBEAT_WRITER).recordSuccess(config.id, now);
         return counts;
       } catch (error) {
-        const failure = error instanceof Error ? error : new Error(String(error));
-        Logger.error(`Scheduled task ${config.id} failed: ${failure.message}`, LOG_CONTEXT, failure.stack ?? '');
+        Logger.error(`Scheduled task ${config.id} failed: ${describeFailure(error)}`, LOG_CONTEXT);
         throw error;
       }
     },

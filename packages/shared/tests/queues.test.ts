@@ -107,6 +107,19 @@ describe('durableJobId', () => {
     }
   });
 
+  it.each([
+    ['od', ['7', 'foo-r1']],
+    ['od', ['7', 'r12']],
+    ['ob', ['7-r2']],
+  ] as const)('rejects %s %j, which ends like a continuation id', (kind, parts) => {
+    expect(() => durableJobId(kind, ...parts)).toThrow(InvalidDurableJobIdError);
+  });
+
+  it('accepts a name that merely contains r and digits', () => {
+    expect(durableJobId('od', '7', 'r1-log')).toBe('od-7-r1-log');
+    expect(durableJobId('od', '7', 'order')).toBe('od-7-order');
+  });
+
   it('rejects an empty part or one containing a colon', () => {
     expect(() => durableJobId('ob', '')).toThrow(InvalidDurableJobIdError);
     expect(() => durableJobId('od', '1', '')).toThrow(InvalidDurableJobIdError);

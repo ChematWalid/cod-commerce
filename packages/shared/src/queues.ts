@@ -93,6 +93,9 @@ export const DURABLE_JOB_KINDS = {
 } as const;
 export type DurableJobKind = (typeof DURABLE_JOB_KINDS)[keyof typeof DURABLE_JOB_KINDS];
 
+/** The ending a continuation job id has (`{jobId}-r{n}`, D100); no durable id may end like it. */
+const CONTINUATION_LIKE_SUFFIX = /-r\d+$/;
+
 /** Job data every durable queue carries: the id BullMQ must use, and an optional start delay. */
 export interface DurableJobData {
   readonly jobId: string;
@@ -111,12 +114,15 @@ export class InvalidDurableJobIdError extends DomainError {
 /**
  * Builds a durable job id such as `od-7301-demo-log`.
  *
- * @throws {@link InvalidDurableJobIdError} when there is no part, a part is empty or contains `:`, or the first part contains `-`.
+ * @throws {@link InvalidDurableJobIdError} when there is no part, a part is empty or contains `:`, the first part contains `-`,
+ * or the id ends in `-r<digits>`: that suffix names a re-queued continuation (`ob-7-r2`), so `od-7-foo-r1` could collide with one.
  */
 export function durableJobId(kind: DurableJobKind, ...parts: readonly string[]): string {
   // '-' joins the parts, so a dash in the first part would make two different id tuples collide.
   if (parts.length === 0 || parts[0]?.includes('-') || parts.some((part) => part === '' || part.includes(':'))) {
     throw new InvalidDurableJobIdError(kind);
   }
-  return [kind, ...parts].join('-');
+  const id = [kind, ...parts].join('-');
+  if (CONTINUATION_LIKE_SUFFIX.test(id)) throw new InvalidDurableJobIdError(kind);
+  return id;
 }

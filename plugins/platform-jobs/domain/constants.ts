@@ -51,3 +51,6 @@ export const CONTINUATION_SUFFIX = /^(?<base>.+)-r(?<count>\d+)$/;
 
 /** The longest scheduled task id the heartbeat table stores. */
 export const TASK_ID_MAX_LENGTH = 100;
+
+/** How much a continuation's count grows over the job it continues. */
+export const CONTINUATION_STEP = 1;

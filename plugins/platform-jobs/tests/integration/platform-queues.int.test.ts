@@ -20,6 +20,7 @@ interface Seen {
 const seen: Seen[] = [];
 let failFirst = 0;
 const lateDefinitionErrors: unknown[] = [];
+const definitionErrors: unknown[] = [];
 
 /** Defines a queue the way a feature plugin does: in `onModuleInit`. */
 @Injectable()
@@ -35,6 +36,16 @@ class ProbeConsumer implements OnModuleInit {
       }
       return Promise.resolve();
     });
+    this.tryToDefine('platform-maintenance');
+    this.tryToDefine('not-a-queue' as never);
+  }
+
+  private tryToDefine(name: Parameters<PlatformQueues['define']>[0]): void {
+    try {
+      this.queues.define(name, () => Promise.resolve());
+    } catch (error) {
+      definitionErrors.push(error);
+    }
   }
 }
 
@@ -97,6 +108,13 @@ describe('PlatformQueues', () => {
 
     // Assert
     await expect(add).rejects.toMatchObject({ code: 'platform-jobs.queue-not-defined' });
+  });
+
+  it('rejects a second definition of a queue and a name outside the registry during onModuleInit', () => {
+    // Assert
+    // Vendure's test server boots an api app and a worker app, so each failure is recorded once per app.
+    const codes = new Set(definitionErrors.map((error) => (error as { code: string }).code));
+    expect([...codes]).toEqual(['platform-jobs.queue-already-defined', 'platform-jobs.unregistered-queue']);
   });
 
   it('rejects a definition after bootstrap', () => {

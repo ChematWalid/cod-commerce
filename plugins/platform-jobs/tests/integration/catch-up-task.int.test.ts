@@ -87,7 +87,8 @@ describe('catchUpTask', () => {
     // Assert
     await expect(outcome).rejects.toThrow('boom');
     expect((await lastSuccess()).get('probe-bad')).toEqual(T0);
-    expect(logged).toHaveBeenCalledWith(expect.stringContaining('probe-bad'), expect.any(String), expect.any(String));
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining('probe-bad'), expect.any(String));
+    expect(String(logged.mock.calls[0]?.[0])).not.toContain('boom');
   });
 
   it('exposes the id, schedule and timeout to the scheduler', () => {
