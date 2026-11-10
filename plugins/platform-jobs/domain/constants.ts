@@ -41,6 +41,8 @@ export const VALKEY_COMMAND_TIMEOUT_MS = 250;
 export const VALKEY_OUTAGE_RETRY_MS = 2_000;
 /** The most often the same Valkey outage is logged. */
 export const VALKEY_ERROR_LOG_INTERVAL_MS = 30_000;
+/** Command timeouts in a row after which the Valkey socket is presumed hung and replaced. */
+export const VALKEY_HUNG_SOCKET_TIMEOUTS = 5;
 /** How long boot waits for the first Valkey connection before carrying on without one. */
 export const VALKEY_STARTUP_WAIT_MS = 1_000;
 

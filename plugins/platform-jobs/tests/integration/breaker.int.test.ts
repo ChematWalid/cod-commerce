@@ -181,3 +181,65 @@ describe('ValkeyCircuitBreaker: half-open probe', () => {
     expect(await breaker.stateOf(ACCOUNT)).toBe('closed');
   });
 });
+
+describe('ValkeyCircuitBreaker: probe lease', () => {
+  it('lets the next caller probe once a silent probe has held its lease for 60 s', async () => {
+    // Arrange: a probe that never reports, as if its process died
+    await openNow();
+    fixture.clock.advanceMs(BREAKER_OPEN_MS);
+    const silent = heldWork<string>();
+    const silentRun = breaker.withCircuitBreaker(ACCOUNT, silent.work);
+    await silent.started;
+    const waiting = heldWork<string>();
+
+    // Act
+    fixture.clock.advanceMs(30 * SECOND_MS);
+    const duringLease = await openError(breaker.withCircuitBreaker(ACCOUNT, waiting.work));
+    fixture.clock.advanceMs(30 * SECOND_MS);
+    const afterLease = await breaker.withCircuitBreaker(ACCOUNT, () => Promise.resolve('new probe'));
+
+    // Assert
+    expect(duringLease.retryAfterMs).toBe(30 * SECOND_MS);
+    expect(waiting.calls()).toBe(0);
+    expect(afterLease).toBe('new probe');
+    expect(await breaker.stateOf(ACCOUNT)).toBe('closed');
+    silent.finish('late');
+    await silentRun;
+  });
+
+  it('ignores a late success of an expired probe after a newer probe reopened the breaker', async () => {
+    // Arrange
+    await openNow();
+    fixture.clock.advanceMs(BREAKER_OPEN_MS);
+    const expired = heldWork<string>();
+    const expiredRun = breaker.withCircuitBreaker(ACCOUNT, expired.work);
+    await expired.started;
+    fixture.clock.advanceMs(BREAKER_OPEN_MS);
+    await failOnce();
+
+    // Act
+    expired.finish('late success');
+    await expiredRun;
+
+    // Assert
+    expect(await breaker.stateOf(ACCOUNT)).toBe('open');
+  });
+
+  it('ignores a late failure of an expired probe after a newer probe closed the breaker', async () => {
+    // Arrange
+    await openNow();
+    fixture.clock.advanceMs(BREAKER_OPEN_MS);
+    const expired = heldWork<string>();
+    const expiredRun = breaker.withCircuitBreaker(ACCOUNT, expired.work);
+    await expired.started;
+    fixture.clock.advanceMs(BREAKER_OPEN_MS);
+    await breaker.withCircuitBreaker(ACCOUNT, () => Promise.resolve('healthy'));
+
+    // Act
+    expired.fail(new Error('late failure'));
+    await expect(expiredRun).rejects.toThrow('late failure');
+
+    // Assert
+    expect(await breaker.stateOf(ACCOUNT)).toBe('closed');
+  });
+});

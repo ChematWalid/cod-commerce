@@ -39,7 +39,7 @@ export class ValkeyBusinessSemaphore extends BusinessSemaphore {
     try {
       return await work();
     } finally {
-      await this.valkey.run((redis) => redis.zrem(leaseKey, token));
+      await this.valkey.runCleanup((redis) => redis.zrem(leaseKey, token));
     }
   }
 }

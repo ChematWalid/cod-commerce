@@ -105,4 +105,22 @@ describe('ValkeyBusinessSemaphore', () => {
     crashed.finish('late');
     await crashedRun;
   });
+
+  it('releases a lease even during the back-off that follows a Valkey fault', async () => {
+    // Arrange: a holder, then a fault that starts the 2 s back-off
+    const held = heldWork<string>();
+    const run = semaphore.withBusinessSemaphore(BUSINESS_A, 1, held.work);
+    await held.started;
+    await fixture.valkey.run(() => Promise.reject(new Error('simulated Valkey fault')));
+    const skipped = await fixture.valkey.run(() => Promise.resolve('asked'));
+
+    // Act
+    held.finish('done');
+    await run;
+
+    // Assert
+    expect(skipped).toBeUndefined();
+    expect(await fixture.redis.zcard(`${fixture.appEnv}:sem:order-effects:b:business-a`)).toBe(0);
+    expect(fixture.errors).toHaveLength(1);
+  });
 });
