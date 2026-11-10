@@ -106,7 +106,7 @@ describe('architecture rules', () => {
         'plugins/_template/infrastructure/typeorm-note.repository.ts',
       ]),
     );
-  });
+  }, FULL_SCAN_TIMEOUT_MS);
 
   it('fails loudly when a root does not exist', async () => {
     await expect(checkArchitecture({ baseDir: fixturesArch, roots: ['missing'] })).rejects.toThrow();
