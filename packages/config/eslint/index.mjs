@@ -9,7 +9,13 @@ const TS_FILES = ['**/*.{ts,tsx,mts}'];
 const JS_FILES = ['**/*.{js,mjs,cjs}'];
 const DOMAIN_FILES = ['**/plugins/*/domain/**', 'packages/shared/src/**'];
 const MAGIC_NUMBER_FILES = ['**/plugins/*/domain/**', '**/plugins/*/application/**', 'packages/shared/src/**'];
-const MAGIC_NUMBER_EXEMPT = ['**/constants.ts', 'packages/shared/src/wilayas/**', 'packages/shared/src/platform/**'];
+// queues.ts is the queue registry: a table of named policy numbers (ADR 0013), the constants themselves.
+const MAGIC_NUMBER_EXEMPT = [
+  '**/constants.ts',
+  'packages/shared/src/wilayas/**',
+  'packages/shared/src/platform/**',
+  'packages/shared/src/queues.ts',
+];
 const TEST_FILES = ['**/*.test.ts', '**/tests/**'];
 const MIGRATION_FILES = ['apps/server/src/migrations/**'];
 const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];

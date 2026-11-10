@@ -52,6 +52,9 @@ const RUNTIME_EXPORTS = [
   'BUILT_IN_ROLE_KEYS',
   'RBAC_ERROR_CODES',
   'ACTIVITY_ACTIONS',
+  'QUEUES',
+  'activeQueuesFor',
+  'durableJobId',
 ] as const;
 
 describe('@cod/shared entry point', () => {
