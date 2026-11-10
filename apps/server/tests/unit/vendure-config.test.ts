@@ -1,7 +1,11 @@
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { activeQueuesFor, QUEUES } from '@cod/shared';
 import { getEntitiesFromPlugins, RedisCachePlugin, type VendureConfig } from '@vendure/core';
+import { BullMQJobQueueStrategy } from '@vendure/job-queue-plugin/package/bullmq/bullmq-job-queue-strategy';
 import { describe, expect, it } from 'vitest';
 import { loadEnv, type ServerRole } from '../../src/config/env';
+import { assertPooledJobQueue, buildJobQueueConfig } from '../../src/config/job-queue.config';
 import { CACHE_NAMESPACE_PREFIX } from '../../src/config/plugins.config';
 import { bullMqOptions } from '../../src/config/redis.config';
 import { buildVendureConfig } from '../../src/config/vendure-config';
@@ -123,12 +127,43 @@ describe('buildVendureConfig', () => {
     expect(migrate).toEqual(api);
   });
 
-  it('worker role passes WORKER_ACTIVE_QUEUES through', () => {
-    const worker = configFor('worker', { WORKER_ACTIVE_QUEUES: 'q1' });
-    const api = configFor('api', { WORKER_ACTIVE_QUEUES: 'q1' });
+  it('lists PlatformJobsPlugin right after BullMQJobQueuePlugin, with the pooled queues', () => {
+    for (const role of ROLES) {
+      const names = pluginNamesOf(configFor(role));
 
-    expect(worker.jobQueueOptions?.activeQueues).toEqual(['q1']);
-    expect(api.jobQueueOptions?.activeQueues).toBeUndefined();
+      expect(names.indexOf('PlatformJobsPlugin')).toBe(names.indexOf('BullMQJobQueuePlugin') + 1);
+      expect(PlatformJobsPlugin.options).toMatchObject({ appEnv: 'test', redisUrl: 'redis://valkey:6379' });
+      expect(PlatformJobsPlugin.usesPooledQueues()).toBe(true);
+    }
+  });
+
+  it('boots a worker of one pool with the queues of that pool', () => {
+    const critical = configFor('worker', { WORKER_POOL: 'critical' });
+
+    expect(critical.jobQueueOptions?.activeQueues).toEqual(activeQueuesFor('critical'));
+  });
+
+  it('refuses activeQueues with a strategy that is not the pooled one', () => {
+    const config = configFor('worker', { WORKER_POOL: 'bulk' });
+
+    expect(() => {
+      assertPooledJobQueue({
+        ...config,
+        jobQueueOptions: { ...config.jobQueueOptions, jobQueueStrategy: new BullMQJobQueueStrategy() },
+      });
+    }).toThrow(/PooledJobQueueStrategy/);
+  });
+
+  it('refuses activeQueues when PlatformJobsPlugin will not install the pooled strategy', () => {
+    const config = configFor('worker', { WORKER_POOL: 'critical' });
+    PlatformJobsPlugin.init({ redisUrl: 'redis://valkey:6379', appEnv: 'test' });
+
+    expect(() => {
+      assertPooledJobQueue(config);
+    }).toThrow(/PooledJobQueueStrategy/);
+    expect(() => {
+      assertPooledJobQueue({ ...config, jobQueueOptions: {} });
+    }).not.toThrow();
   });
 
   it('only the worker serves the worker health port', () => {
@@ -138,6 +173,23 @@ describe('buildVendureConfig', () => {
     });
 
     expect(served).toEqual([false, true, false]);
+  });
+});
+
+describe('buildJobQueueConfig', () => {
+  const envFor = (role: ServerRole, pool: string) => loadEnv({ ...valid, ROLE: role, WORKER_POOL: pool });
+
+  it('gives a worker the queues of its pool and every queue for all', () => {
+    expect(buildJobQueueConfig(envFor('worker', 'critical'), 'worker')).toEqual({
+      activeQueues: activeQueuesFor('critical'),
+    });
+    expect(buildJobQueueConfig(envFor('worker', 'bulk'), 'worker')).toEqual({ activeQueues: activeQueuesFor('bulk') });
+    expect(buildJobQueueConfig(envFor('worker', 'all'), 'worker')).toEqual({ activeQueues: [] });
+  });
+
+  it('leaves the api and migrate roles alone', () => {
+    expect(buildJobQueueConfig(envFor('api', 'bulk'), 'api')).toEqual({});
+    expect(buildJobQueueConfig(envFor('migrate', 'bulk'), 'migrate')).toEqual({});
   });
 });
 
@@ -152,13 +204,15 @@ describe('bullMqOptions', () => {
     });
   });
 
-  it('backs the account email queue off for minutes and leaves other queues on the default', () => {
+  it('takes attempts and backoff of every queue from the registry', () => {
     // Arrange
     const { setJobOptions } = bullMqOptions(loadEnv(valid));
-    const job = {} as Parameters<NonNullable<typeof setJobOptions>>[1];
+    const job = { data: {} } as Parameters<NonNullable<typeof setJobOptions>>[1];
 
     // Act and assert
-    expect(setJobOptions?.('auth-email', job)).toEqual({ backoff: { type: 'exponential', delay: 30_000 } });
-    expect(setJobOptions?.('send-email', job)).toEqual({});
+    expect(setJobOptions?.('auth-email', job)).toEqual({
+      attempts: QUEUES['auth-email'].attempts,
+      backoff: { type: 'exponential', delay: 30_000 },
+    });
   });
 });

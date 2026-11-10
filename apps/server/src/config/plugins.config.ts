@@ -2,6 +2,7 @@ import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
@@ -94,6 +95,9 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
 export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[] {
   const everyRole: VendurePluginEntry[] = [
     BullMQJobQueuePlugin.init(bullMqOptions(env)),
+    // Right after BullMQ's plugin: its configuration replaces the stock strategy and index task with the pooled
+    // ones (D97), and the stock plugin keeps providing the Redis health indicator the pools use.
+    PlatformJobsPlugin.init({ redisUrl: env.REDIS_URL, appEnv: env.APP_ENV, pooledQueues: bullMqOptions(env) }),
     // Sessions live in this cache, so environments sharing a Valkey must never read each other's keys.
     RedisCachePlugin.init({
       redisOptions: redisOptionsFromUrl(env.REDIS_URL),

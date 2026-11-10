@@ -43,7 +43,7 @@ describe('loadEnv', () => {
       API_PORT: 3000,
       WORKER_HEALTH_PORT: 3020,
       DB_POOL_MAX: 10,
-      WORKER_ACTIVE_QUEUES: [],
+      WORKER_POOL: 'all',
       CORS_ORIGINS: [],
     });
   });
@@ -58,12 +58,19 @@ describe('loadEnv', () => {
     expect(loadEnv({ ...valid, API_PORT: '3100' }).API_PORT).toBe(3100);
   });
 
-  it('splits WORKER_ACTIVE_QUEUES', () => {
-    expect(loadEnv({ ...valid, WORKER_ACTIVE_QUEUES: 'a, b' }).WORKER_ACTIVE_QUEUES).toEqual(['a', 'b']);
+  it('reads WORKER_POOL and refuses an unknown pool', () => {
+    expect(loadEnv({ ...valid, WORKER_POOL: 'bulk' }).WORKER_POOL).toBe('bulk');
+    expect(issuePaths(failureOf({ WORKER_POOL: 'llm' }))).toContain('WORKER_POOL');
   });
 
-  it('treats an empty WORKER_ACTIVE_QUEUES as all queues', () => {
-    expect(loadEnv({ ...valid, WORKER_ACTIVE_QUEUES: '' }).WORKER_ACTIVE_QUEUES).toEqual([]);
+  it('refuses a non-empty WORKER_ACTIVE_QUEUES, which WORKER_POOL replaced', () => {
+    const error = failureOf({ WORKER_ACTIVE_QUEUES: 'q1' });
+
+    expect(error.issues).toContainEqual({ path: 'WORKER_ACTIVE_QUEUES', message: 'replaced by WORKER_POOL' });
+  });
+
+  it('accepts an empty WORKER_ACTIVE_QUEUES, so an old .env still boots', () => {
+    expect(loadEnv({ ...valid, WORKER_ACTIVE_QUEUES: '' }).WORKER_POOL).toBe('all');
   });
 
   it('rejects a non-UTC TZ', () => {

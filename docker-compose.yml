@@ -201,8 +201,8 @@ services:
     environment:
       <<: *app-env
       ROLE: worker
-      # Empty: the worker consumes every queue (ADR 0013 addendum).
-      WORKER_ACTIVE_QUEUES: ${WORKER_ACTIVE_QUEUES:-}
+      # critical | bulk | all: the queue pools this worker runs (D97). One worker runs every pool at Launch.
+      WORKER_POOL: ${WORKER_POOL:-all}
     depends_on: *app-depends-on
     ports:
       - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:3020'

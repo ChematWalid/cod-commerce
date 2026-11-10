@@ -3,7 +3,7 @@ import { buildAuthConfig } from './auth.config';
 import { buildDbConfig } from './db.config';
 import { DzdMoneyStrategy } from './dzd-money-strategy';
 import type { AppEnv, LogLevelName, ServerRole } from './env';
-import { buildJobQueueConfig } from './job-queue.config';
+import { assertPooledJobQueue, buildJobQueueConfig } from './job-queue.config';
 import { buildPlugins } from './plugins.config';
 
 /** The api sits behind exactly one reverse proxy, whose `X-Forwarded-For` hop it trusts. */
@@ -20,9 +20,11 @@ const VENDURE_LOG_LEVELS: Record<LogLevelName, LogLevel> = {
 /**
  * The Vendure config of one server role. It only composes the per-concern builders. The built-in health
  * checks stay empty because `PlatformHealthPlugin` serves the probes (ADR 0013).
+ *
+ * @throws Error when `activeQueues` is set without the pooled job queue strategy (ADR 0013 addendum).
  */
 export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig {
-  return {
+  const config: VendureConfig = {
     apiOptions: {
       port: env.API_PORT,
       trustProxy: TRUSTED_PROXY_HOPS,
@@ -38,4 +40,6 @@ export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig
     logger: new DefaultLogger({ level: VENDURE_LOG_LEVELS[env.LOG_LEVEL] }),
     plugins: buildPlugins(env, role),
   };
+  assertPooledJobQueue(config);
+  return config;
 }

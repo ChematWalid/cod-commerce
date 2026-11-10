@@ -1,0 +1,31 @@
+{
+  "name": "@cod/plugin-platform-jobs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Queue pools on BullMQ, job options from the queue registry and job presence for the reconciler (ADR 0013, D96-D99).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner"
+  },
+  "dependencies": {
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "@vendure/job-queue-plugin": "3.8.1",
+    "bullmq": "5.81.5"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

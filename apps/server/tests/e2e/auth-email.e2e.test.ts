@@ -13,14 +13,14 @@ const LINK_TOKEN = 'e2e-link-token-0123456789';
 const OTP = '482913';
 
 describe('account email through the BullMQ worker queue', () => {
-  // `WORKER_ACTIVE_QUEUES` is unset, so this process consumes every queue, `auth-email` among them (D42).
+  // The test server runs every queue (`activeQueues` unset), `auth-email` among them in the critical pool (D42, D97).
   const { server } = createTestEnvironment(
     buildE2eConfig(
       {},
       {
         suite: SUITE,
         port: E2E_PORTS.authEmail,
-        env: { SMTP_HOST: 'localhost', SMTP_PORT: MAILPIT_SMTP_PORT, WORKER_ACTIVE_QUEUES: '' },
+        env: { SMTP_HOST: 'localhost', SMTP_PORT: MAILPIT_SMTP_PORT, WORKER_POOL: 'all' },
       },
     ),
   );

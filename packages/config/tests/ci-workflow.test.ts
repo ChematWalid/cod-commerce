@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { EXPECTED_MATRIX_PARTS, integrationPackages, type MatrixPart, shardedCommand } from './integration-matrix';
+import { EXPECTED_MATRIX_PARTS, hasOwnPart, integrationPackages, type MatrixPart } from './integration-matrix';
 
 const repoRoot = resolve(__dirname, '../../..');
 const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8');
@@ -230,7 +230,7 @@ describe('ci.yml', () => {
     expect(stepsRun(integration)).toContain('${{ matrix.command }}');
   });
 
-  it('splits the integration job into the five parts of the matrix', () => {
+  it('splits the integration job into the parts of the matrix', () => {
     expect(matrixParts(ci)).toEqual(EXPECTED_MATRIX_PARTS);
   });
 
@@ -240,12 +240,12 @@ describe('ci.yml', () => {
     const others = commands.find((command) => command.startsWith('pnpm test:integration')) ?? '';
     const packages = integrationPackages(repoRoot);
 
-    // Assert: a package is either left in `others` or has every shard of its own
-    expect(packages).toEqual(expect.arrayContaining(['@cod/plugin-auth', '@cod/plugin-rbac', '@cod/plugin-tenancy']));
+    // Assert: a package is either left in `others`, or has a part of its own or every shard of its own
+    expect(packages).toEqual(
+      expect.arrayContaining(['@cod/server', '@cod/plugin-auth', '@cod/plugin-rbac', '@cod/plugin-tenancy']),
+    );
     for (const name of packages) {
-      if (others.includes(`--filter=!${name}`)) {
-        expect(commands, name).toEqual(expect.arrayContaining([shardedCommand(name, 1), shardedCommand(name, 2)]));
-      }
+      if (others.includes(`--filter=!${name}`)) expect(hasOwnPart(commands, name), name).toBe(true);
     }
   });
 

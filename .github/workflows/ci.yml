@@ -131,7 +131,9 @@ jobs:
       matrix:
         include:
           - part: others
-            command: pnpm test:integration --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac
+            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac
+          - part: server-e2e
+            command: pnpm exec turbo run test:integration --filter=@cod/server
           - part: auth-1
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-auth -- --shard=1/2
           - part: auth-2

@@ -1,4 +1,10 @@
-import { InvalidDatabaseUrlError, RESERVED_WORKER_ID_MAX, RESERVED_WORKER_ID_MIN, toPostgresFields } from '@cod/shared';
+import {
+  InvalidDatabaseUrlError,
+  RESERVED_WORKER_ID_MAX,
+  RESERVED_WORKER_ID_MIN,
+  toPostgresFields,
+  WORKER_POOLS,
+} from '@cod/shared';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT } from './ports';
@@ -94,7 +100,13 @@ const baseSchema = z.object({
   DATABASE_URL_DIRECT: databaseUrl,
   DB_POOL_MAX: z.coerce.number().int().min(1).optional(),
   REDIS_URL: redisUrl,
-  WORKER_ACTIVE_QUEUES: csvList,
+  WORKER_POOL: z.enum(WORKER_POOLS).default('all'),
+  // Replaced by WORKER_POOL (D97). Blank is dropped before parsing, so an old `.env` with `WORKER_ACTIVE_QUEUES=`
+  // still boots; any value fails, because the stock strategy fails the jobs of inactive queues.
+  WORKER_ACTIVE_QUEUES: z
+    .string()
+    .optional()
+    .refine((value) => value === undefined, { error: 'replaced by WORKER_POOL' }),
   API_PORT: port(DEFAULT_API_PORT),
   WORKER_HEALTH_PORT: port(DEFAULT_WORKER_HEALTH_PORT),
   COOKIE_SECRET: z.string().min(MIN_COOKIE_SECRET_LENGTH),

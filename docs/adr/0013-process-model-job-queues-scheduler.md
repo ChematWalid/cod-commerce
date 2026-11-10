@@ -193,3 +193,15 @@ Tests  11 passed | 1 expected fail (12)
 - The pool split follows option (c) of the activeQueues addendum: one BullMQ prefix per pool (`WORKER_POOL=critical|bulk|all`, default `all`), replacing `WORKER_ACTIVE_QUEUES`. Reasoning and cost: `docs/roadmap/P1-decisions.md` (D96, D97, D98).
 - Durable job ids are `ob-`, `od-`, `iw-`, `kek-` plus dash-joined parts, because BullMQ refuses integer ids and ids containing `:` (D99).
 
+
+## Addendum (2026-11-10): Settled in P1.S6 (D97)
+
+**Status**: Accepted (2026-11-10, standing user authorization for P1)
+
+This settles the three items of the activeQueues addendum.
+
+1. **Pools instead of `WORKER_ACTIVE_QUEUES`.** `WORKER_POOL=critical|bulk|all` (default `all`) sets a worker's `activeQueues` to the registry queues of its pool (`all` = every queue). Boot refuses a non-empty `WORKER_ACTIVE_QUEUES` ("replaced by WORKER_POOL"); an empty one is accepted so old `.env` files still boot. Compose keeps one worker with `all` at Launch.
+2. **Option (c), one prefix per pool.** `PooledJobQueueStrategy` (plugin `platform-jobs`) routes each registry queue to one stock `BullMQJobQueueStrategy` per pool, each with its own prefix `bull:{APP_ENV}:{pool}` (queue and worker), options and job list index. A process starts workers only for its pools, so a job of another pool waits in its own BullMQ queue instead of failing (`apps/server/tests/e2e/worker-pools.e2e.test.ts`). Jobs leave the strategy with id `{pool}.{bullId}`; the Admin API lists and finds jobs of every pool. A queue outside the registry throws `UnregisteredQueueError` at `add` and `start`. The stock `clean-job-queue-index` task is replaced by one that cleans every pool's index. Jobs under the old prefix `bull:{APP_ENV}` are abandoned (pre-production; drain a dev worker before switching).
+3. **Boot assertion.** `buildVendureConfig` throws when `activeQueues` is non-empty and the job queue strategy is not `PooledJobQueueStrategy`. The `it.fails` test of `active-queues.e2e.test.ts` keeps running on the stock strategy as the upstream signal.
+
+Cost: deep imports into `@vendure/job-queue-plugin` (`bullmq-job-queue-strategy`, `constants`, `job-list-index.service`), which a plugin upgrade must re-check; M.S1 re-runs the pool e2e. Fallback: every worker `all`.

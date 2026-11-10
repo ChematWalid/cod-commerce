@@ -21,7 +21,7 @@
         "INTERNAL_API_URL",
         "DEMO_OWNER_PASSWORD",
         "SNOWFLAKE_WORKER_ID",
-        "WORKER_ACTIVE_QUEUES",
+        "WORKER_POOL",
         "API_PORT",
         "WORKER_HEALTH_PORT",
         "COOKIE_SECRET",

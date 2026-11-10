@@ -14,4 +14,5 @@ export const E2E_PORTS = {
   bearerClient: 3057,
   authEmail: 3058,
   authEmailRetry: 3059,
+  workerPools: 3060,
 } as const;
