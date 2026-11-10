@@ -1,8 +1,22 @@
 export { JOB_PRESENCE } from './application/tokens';
-export { CLEAN_JOB_QUEUE_INDEX_TASK_ID, KEEP_COMPLETED_JOBS, KEEP_FAILED_JOBS } from './domain/constants';
-export { UnregisteredQueueError } from './domain/errors';
+export { type BreakerKey, type BreakerState, breakerStateAt, CircuitBreaker } from './domain/breaker';
+export { PLATFORM_CLOCK, type PlatformClock, SYSTEM_CLOCK } from './domain/clock.port';
+export {
+  BREAKER_FAILURE_THRESHOLD,
+  BREAKER_OPEN_MS,
+  BREAKER_WINDOW_MS,
+  CLEAN_JOB_QUEUE_INDEX_TASK_ID,
+  KEEP_COMPLETED_JOBS,
+  KEEP_FAILED_JOBS,
+  SEMAPHORE_LEASE_MS,
+  SEMAPHORE_RETRY_MAX_MS,
+  SEMAPHORE_RETRY_MIN_MS,
+  VALKEY_COMMAND_TIMEOUT_MS,
+} from './domain/constants';
+export { CircuitOpenError, SemaphoreBusyError, UnregisteredQueueError } from './domain/errors';
 export { type JobPresence, type JobPresencePort, presenceOf } from './domain/job-presence.port';
 export { parsePooledJobId, type PooledJobId, toPooledJobId } from './domain/pooled-job-id';
+export { BusinessSemaphore, type SemaphoreKey, semaphoreRetryDelayMs } from './domain/semaphore';
 export { BullMqJobPresence } from './infrastructure/bullmq-job-presence';
 export { cleanPoolIndexesTask } from './infrastructure/clean-pool-indexes.task';
 export { bullMqJobOptions } from './infrastructure/job-options';
@@ -12,4 +26,7 @@ export {
   poolOptionsFor,
   poolPrefix,
 } from './infrastructure/pooled-job-queue.strategy';
+export { createPlatformRedis, PlatformValkey } from './infrastructure/valkey-client';
+export { ValkeyBusinessSemaphore } from './infrastructure/valkey-business-semaphore';
+export { ValkeyCircuitBreaker } from './infrastructure/valkey-circuit-breaker';
 export { configurePlatformJobs, PlatformJobsPlugin, type PlatformJobsPluginOptions } from './platform-jobs.plugin';

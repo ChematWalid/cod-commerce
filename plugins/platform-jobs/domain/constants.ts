@@ -16,3 +16,30 @@ export const KEEP_COMPLETED_JOBS = { age: SECONDS_PER_HOUR, count: 1000 } as con
 
 /** Failed jobs stay 14 days, for inspection and the reconciler (ADR 0013 (e), D98). */
 export const KEEP_FAILED_JOBS = { age: FAILED_JOB_KEEP_DAYS * HOURS_PER_DAY * SECONDS_PER_HOUR } as const;
+
+/** A semaphore lease lasts 10 min; a holder whose process died stops counting after it (D100). */
+export const SEMAPHORE_LEASE_MS = 600_000;
+/** The shortest wait before a job turned away by a busy semaphore runs again (D100). */
+export const SEMAPHORE_RETRY_MIN_MS = 5_000;
+/** The longest such wait; the spread keeps re-queued jobs of one business from returning together (D100). */
+export const SEMAPHORE_RETRY_MAX_MS = 30_000;
+
+/** Failures within {@link BREAKER_WINDOW_MS} that open a breaker (D100). */
+export const BREAKER_FAILURE_THRESHOLD = 5;
+/** The sliding window in which failures are counted (D100). */
+export const BREAKER_WINDOW_MS = 120_000;
+/** How long an open breaker turns calls away before it lets one probe through (D100). */
+export const BREAKER_OPEN_MS = 60_000;
+/** A probe that has not reported within this long is presumed lost, and the next caller probes instead. */
+export const BREAKER_PROBE_LEASE_MS = 60_000;
+/** An open breaker's record is dropped after a day without traffic, which closes it. */
+export const BREAKER_RECORD_TTL_MS = 86_400_000;
+
+/** How long a Valkey command of the semaphore or the breaker may take before it is given up (D31, D100). */
+export const VALKEY_COMMAND_TIMEOUT_MS = 250;
+/** After a Valkey failure it is not asked again for this long, so an outage does not add a timeout to every job. */
+export const VALKEY_OUTAGE_RETRY_MS = 2_000;
+/** The most often the same Valkey outage is logged. */
+export const VALKEY_ERROR_LOG_INTERVAL_MS = 30_000;
+/** How long boot waits for the first Valkey connection before carrying on without one. */
+export const VALKEY_STARTUP_WAIT_MS = 1_000;
