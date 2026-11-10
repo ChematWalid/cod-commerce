@@ -91,22 +91,26 @@ describe('architecture rules', () => {
     expect(good.cruisedModules).toContain('plugins/good/dashboard/uses-shell-api.ts');
   });
 
-  it('finds no violation in the workspace', async () => {
-    const real = await checkArchitecture({
-      baseDir: repoRoot,
-      roots: ['apps', 'packages', 'plugins'].filter(existsInRepo),
-    });
+  it(
+    'finds no violation in the workspace',
+    async () => {
+      const real = await checkArchitecture({
+        baseDir: repoRoot,
+        roots: ['apps', 'packages', 'plugins'].filter(existsInRepo),
+      });
 
-    expect(real.violations).toEqual([]);
-    expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
-    expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);
-    expect(real.cruisedModules).toEqual(
-      expect.arrayContaining([
-        'plugins/_template/domain/note.ts',
-        'plugins/_template/infrastructure/typeorm-note.repository.ts',
-      ]),
-    );
-  }, FULL_SCAN_TIMEOUT_MS);
+      expect(real.violations).toEqual([]);
+      expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
+      expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);
+      expect(real.cruisedModules).toEqual(
+        expect.arrayContaining([
+          'plugins/_template/domain/note.ts',
+          'plugins/_template/infrastructure/typeorm-note.repository.ts',
+        ]),
+      );
+    },
+    FULL_SCAN_TIMEOUT_MS,
+  );
 
   it('fails loudly when a root does not exist', async () => {
     await expect(checkArchitecture({ baseDir: fixturesArch, roots: ['missing'] })).rejects.toThrow();
