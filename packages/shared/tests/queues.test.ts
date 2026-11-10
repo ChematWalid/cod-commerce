@@ -68,7 +68,7 @@ describe('queue registry', () => {
 
   it('spreads capi retries over about 24 hours', () => {
     const { attempts, backoff } = QUEUES.capi;
-    const total = Array.from({ length: attempts }, (_, i) => backoff.delayMs * 2 ** i).reduce((a, b) => a + b, 0);
+    const total = Array.from({ length: attempts - 1 }, (_, i) => backoff.delayMs * 2 ** i).reduce((a, b) => a + b, 0);
 
     expect(backoff.type).toBe('exponential');
     expect(total).toBeGreaterThan(23 * HOUR_MS);
@@ -112,5 +112,6 @@ describe('durableJobId', () => {
     expect(() => durableJobId('od', '1', '')).toThrow(InvalidDurableJobIdError);
     expect(() => durableJobId('od', '1', 'a:b')).toThrow(InvalidDurableJobIdError);
     expect(() => durableJobId('ob')).toThrow(InvalidDurableJobIdError);
+    expect(() => durableJobId('od', '7301-x', 'demo-log')).toThrow(InvalidDurableJobIdError);
   });
 });

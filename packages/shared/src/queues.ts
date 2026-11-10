@@ -31,9 +31,9 @@ const STOCK: QueueSpec = {
   backoff: { type: 'fixed', delayMs: 0 },
 };
 
-// ADR 0013 "12 over 24 h": the twelve 21 s-based exponential delays sum to about 24 h (BullMQ waits between
-// attempts, so eleven waits make the first-to-last span about 12 h; the brief's figure is kept, see D98).
-const DAY_LONG_RETRY = exponential('bulk', 10, 12, 21_000);
+// ADR 0013 "12 over 24 h": BullMQ waits between attempts, so 12 attempts mean 11 waits; 42 s doubled
+// 11 times sums to about 23.9 h.
+const DAY_LONG_RETRY = exponential('bulk', 10, 12, 42_000);
 
 /** Every queue the platform runs, with its pool, concurrency per worker and retry policy. */
 export const QUEUES = {
@@ -111,10 +111,11 @@ export class InvalidDurableJobIdError extends DomainError {
 /**
  * Builds a durable job id such as `od-7301-demo-log`.
  *
- * @throws {@link InvalidDurableJobIdError} when there is no part, or a part is empty or contains `:`.
+ * @throws {@link InvalidDurableJobIdError} when there is no part, a part is empty or contains `:`, or the first part contains `-`.
  */
 export function durableJobId(kind: DurableJobKind, ...parts: readonly string[]): string {
-  if (parts.length === 0 || parts.some((part) => part === '' || part.includes(':'))) {
+  // '-' joins the parts, so a dash in the first part would make two different id tuples collide.
+  if (parts.length === 0 || parts[0]?.includes('-') || parts.some((part) => part === '' || part.includes(':'))) {
     throw new InvalidDurableJobIdError(kind);
   }
   return [kind, ...parts].join('-');
