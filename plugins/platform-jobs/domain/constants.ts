@@ -43,3 +43,9 @@ export const VALKEY_OUTAGE_RETRY_MS = 2_000;
 export const VALKEY_ERROR_LOG_INTERVAL_MS = 30_000;
 /** How long boot waits for the first Valkey connection before carrying on without one. */
 export const VALKEY_STARTUP_WAIT_MS = 1_000;
+
+/** A continuation job id ends in `-r{n}`: the n-th re-queue of a job a busy semaphore turned away (D100). */
+export const CONTINUATION_SUFFIX = /^(?<base>.+)-r(?<count>\d+)$/;
+
+/** The longest scheduled task id the heartbeat table stores. */
+export const TASK_ID_MAX_LENGTH = 100;

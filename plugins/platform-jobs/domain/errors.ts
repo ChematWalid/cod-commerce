@@ -26,3 +26,39 @@ export class CircuitOpenError extends DomainError {
     super(`The provider account's circuit is open; retry in ${String(retryAfterMs)} ms`);
   }
 }
+
+/** A queue name was defined twice; every queue has one processor (D96). */
+export class QueueAlreadyDefinedError extends DomainError {
+  readonly code = 'platform-jobs.queue-already-defined';
+
+  constructor(queueName: string) {
+    super(`Queue "${queueName}" already has a processor`);
+  }
+}
+
+/** A queue was defined after bootstrap; definitions belong in `onModuleInit` so every process creates the queue. */
+export class QueueRegistryClosedError extends DomainError {
+  readonly code = 'platform-jobs.queue-registry-closed';
+
+  constructor(queueName: string) {
+    super(`Queue "${queueName}" was defined after bootstrap; define queues in onModuleInit`);
+  }
+}
+
+/** A job was added to a registered queue that no plugin of this process defined. */
+export class QueueNotDefinedError extends DomainError {
+  readonly code = 'platform-jobs.queue-not-defined';
+
+  constructor(queueName: string) {
+    super(`Queue "${queueName}" has no processor defined in this process`);
+  }
+}
+
+/** A scheduled task id the heartbeat table cannot store. */
+export class InvalidTaskIdError extends DomainError {
+  readonly code = 'platform-jobs.invalid-task-id';
+
+  constructor(taskId: string) {
+    super(`Task id "${taskId}" must be 1 to 100 characters`);
+  }
+}

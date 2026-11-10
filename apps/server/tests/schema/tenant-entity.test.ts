@@ -10,8 +10,11 @@ const PLUGIN_PACKAGE_PREFIX = '@cod/plugin-';
 const ENTITIES_METADATA = 'entities';
 const BUSINESS_ID_COLUMN = 'businessId';
 
-/** Rows of the tenant root, not owned by one: a business has no business, its sequence is keyed by it. */
-const NOT_TENANT_OWNED = ['BusinessEntity', 'BusinessOrderSequenceEntity', 'AccountTokenEntity'];
+/**
+ * Rows of the tenant root, not owned by one: a business has no business, its sequence is keyed by it. An account
+ * token has no business, and a task heartbeat is one row per scheduled task (D24, D105).
+ */
+const NOT_TENANT_OWNED = ['BusinessEntity', 'BusinessOrderSequenceEntity', 'AccountTokenEntity', 'TaskHeartbeatEntity'];
 
 /** A plugin's `entities` metadata, an array or the function form `entities: () => [...]`. */
 const declaredEntities = (candidate: unknown): EntityClass[] => {

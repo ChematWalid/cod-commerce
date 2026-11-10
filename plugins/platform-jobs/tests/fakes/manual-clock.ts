@@ -6,6 +6,10 @@ export class ManualClock implements PlatformClock {
 
   now = (): number => this.current;
 
+  set(ms: number): void {
+    this.current = ms;
+  }
+
   advanceMs(ms: number): void {
     this.current += ms;
   }

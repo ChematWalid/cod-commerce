@@ -1,13 +1,18 @@
 import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import type { BullMQPluginOptions } from '@vendure/job-queue-plugin/package/bullmq';
-import { JOB_PRESENCE } from './application/tokens';
+import { JOB_PRESENCE, TASK_HEARTBEAT_WRITER } from './application/tokens';
+import { PlatformQueues } from './application/platform-queues';
 import { CircuitBreaker } from './domain/breaker';
 import { PLATFORM_CLOCK, type PlatformClock, SYSTEM_CLOCK } from './domain/clock.port';
 import { CLEAN_JOB_QUEUE_INDEX_TASK_ID } from './domain/constants';
 import { BusinessSemaphore } from './domain/semaphore';
+import { TaskHeartbeatReader } from './domain/task-heartbeat.port';
 import { BullMqJobPresence } from './infrastructure/bullmq-job-presence';
 import { cleanPoolIndexesTask } from './infrastructure/clean-pool-indexes.task';
 import { PooledJobQueueStrategy } from './infrastructure/pooled-job-queue.strategy';
+import { TaskHeartbeatEntity } from './infrastructure/task-heartbeat.entity';
+import { TaskHeartbeatRepository } from './infrastructure/task-heartbeat.repository';
+import { VendurePlatformQueues } from './infrastructure/vendure-platform-queues';
 import { createPlatformRedis, PlatformValkey } from './infrastructure/valkey-client';
 import { ValkeyBusinessSemaphore } from './infrastructure/valkey-business-semaphore';
 import { ValkeyCircuitBreaker } from './infrastructure/valkey-circuit-breaker';
@@ -19,6 +24,8 @@ export interface PlatformJobsPluginOptions {
   readonly appEnv: string;
   /** BullMQ options of the pools. Absent: the stock strategy of `BullMQJobQueuePlugin` stays (tests only). */
   readonly pooledQueues?: BullMQPluginOptions;
+  /** The platform clock; the system clock when absent. Tests set it to move time by hand. */
+  readonly clock?: PlatformClock;
 }
 
 /**
@@ -65,14 +72,19 @@ function createPlatformValkey(clock: PlatformClock): PlatformValkey {
 
 /**
  * Queue pools on BullMQ (`WORKER_POOL`), job options from the queue registry, job presence (D96-D99), the business
- * semaphore and the circuit breaker (D100).
+ * semaphore and the circuit breaker (D100), durable job helpers and the task heartbeat (D117).
  */
 @VendurePlugin({
   imports: [PluginCommonModule],
+  entities: [TaskHeartbeatEntity],
   configuration: (config) => configurePlatformJobs(config, PlatformJobsPlugin.options),
   providers: [
     { provide: JOB_PRESENCE, useClass: BullMqJobPresence },
-    { provide: PLATFORM_CLOCK, useValue: SYSTEM_CLOCK },
+    { provide: PLATFORM_CLOCK, useFactory: () => PlatformJobsPlugin.options?.clock ?? SYSTEM_CLOCK },
+    { provide: PlatformQueues, useClass: VendurePlatformQueues },
+    TaskHeartbeatRepository,
+    { provide: TaskHeartbeatReader, useExisting: TaskHeartbeatRepository },
+    { provide: TASK_HEARTBEAT_WRITER, useExisting: TaskHeartbeatRepository },
     { provide: PlatformValkey, useFactory: createPlatformValkey, inject: [PLATFORM_CLOCK] },
     {
       provide: BusinessSemaphore,
@@ -87,7 +99,7 @@ function createPlatformValkey(clock: PlatformClock): PlatformValkey {
       inject: [PlatformValkey, PLATFORM_CLOCK],
     },
   ],
-  exports: [JOB_PRESENCE, PLATFORM_CLOCK, BusinessSemaphore, CircuitBreaker],
+  exports: [JOB_PRESENCE, PLATFORM_CLOCK, BusinessSemaphore, CircuitBreaker, PlatformQueues, TaskHeartbeatReader],
   compatibility: '^3.8.0',
 })
 // A Vendure plugin is a decorated class; its body stays empty when its metadata is the whole plugin.

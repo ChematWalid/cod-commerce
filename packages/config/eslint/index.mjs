@@ -63,6 +63,8 @@ const RAW_DATA_ACCESS_FILES = [
   '**/plugins/rbac/infrastructure/rbac-lock.ts',
   // `session` and `administrator` are Vendure's account-level tables (D55).
   '**/plugins/rbac/infrastructure/role-session-flusher.ts',
+  // `platform_task_heartbeat` is a platform table, one row per scheduled task (D105, D117).
+  '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
 ];
 const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
