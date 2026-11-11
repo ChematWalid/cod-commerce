@@ -95,7 +95,8 @@ seed() {
   command grep '"seed-demo.done"' "$work/seed.log" || fail "the demo seed printed no result: $(command tail -20 "$work/seed.log")"
 }
 first=$(seed); second=$(seed)
-[[ "$first" == '{"event":"seed-demo.done","created":["demo","demo2","second","second2"]}' ]] || fail "first seed: $first"
+# The P1.S1 businesses come first; later sessions' seed steps add their own rows (store members) after them.
+[[ "$first" == '{"event":"seed-demo.done","created":["demo","demo2","second","second2"'[],]* ]] || fail "first seed: $first"
 [[ "$second" == '{"event":"seed-demo.done","created":[]}' ]] || fail "second seed: $second"
 
 # --- the second api process -----------------------------------------------------------------
