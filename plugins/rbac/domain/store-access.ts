@@ -45,6 +45,14 @@ export function activeStoreIdsOf(stores: readonly BusinessStore[]): readonly Sto
 }
 
 /**
+ * Every store of the business, archived included: the D60 reach checks count them (D210), so a role bound only to an
+ * archived store still has a reach that an actor must cover. What a member is granted stays on active stores.
+ */
+export function reachStoreIdsOf(stores: readonly BusinessStore[]): readonly StoreId[] {
+  return stores.map((store) => store.id);
+}
+
+/**
  * Checks a client's store access against the stores of the business. A list sent with `all` is ignored.
  *
  * @throws {@link StoreAccessInvalidError} when `selected` names no store
@@ -61,11 +69,11 @@ export function resolveStoreAccess(
   return { storeAccess: 'selected', storeIds: [...new Set(request.storeIds)].map(toStoreId) };
 }
 
-/** The active stores an assignment reaches. */
-function storesReached(assignment: AssignmentReach, activeStoreIds: readonly StoreId[]): readonly StoreId[] {
-  if (assignment.storeAccess === 'all') return activeStoreIds;
+/** The stores among `storeIds` that an assignment reaches. */
+function storesReached(assignment: AssignmentReach, storeIds: readonly StoreId[]): readonly StoreId[] {
+  if (assignment.storeAccess === 'all') return storeIds;
   const named = new Set<string>(assignment.storeIds);
-  return activeStoreIds.filter((id) => named.has(id));
+  return storeIds.filter((id) => named.has(id));
 }
 
 /** Fails closed on a mix of `all` and `selected` rows, which the API cannot produce (D54). */
@@ -73,17 +81,20 @@ export function holdsAllAccess(assignments: readonly Pick<AssignmentReach, 'stor
   return assignments.length > 0 && assignments.every((assignment) => assignment.storeAccess === 'all');
 }
 
-/** Builds an {@link Actor} from a member's rows; roles missing from `roles` grant nothing. */
+/**
+ * Builds an {@link Actor} from a member's rows over `storeIds`; roles missing from `roles` grant nothing. Pass
+ * {@link activeStoreIdsOf} for what the member holds, {@link reachStoreIdsOf} for the D60 checks (D210).
+ */
 export function buildActor(
   administratorId: number,
   assignments: readonly AssignmentReach[],
   roles: ReadonlyMap<string, BusinessRole>,
-  activeStoreIds: readonly StoreId[],
+  storeIds: readonly StoreId[],
 ): Actor {
   const permissionsByStore = new Map<StoreId, Set<PermissionKey>>();
   for (const assignment of assignments) {
     const permissions = roles.get(assignment.businessRoleId)?.permissions ?? [];
-    for (const storeId of storesReached(assignment, activeStoreIds)) {
+    for (const storeId of storesReached(assignment, storeIds)) {
       const held = permissionsByStore.get(storeId) ?? new Set<PermissionKey>();
       permissions.forEach((key) => held.add(key));
       permissionsByStore.set(storeId, held);
@@ -97,9 +108,9 @@ export function buildActor(
   };
 }
 
-const pairsOf = (assignments: readonly AssignmentReach[], activeStoreIds: readonly StoreId[]): RoleOnStore[] =>
+const pairsOf = (assignments: readonly AssignmentReach[], storeIds: readonly StoreId[]): RoleOnStore[] =>
   assignments.flatMap((assignment) =>
-    storesReached(assignment, activeStoreIds).map((storeId) => ({
+    storesReached(assignment, storeIds).map((storeId) => ({
       businessRoleId: assignment.businessRoleId,
       storeId,
     })),
@@ -107,14 +118,14 @@ const pairsOf = (assignments: readonly AssignmentReach[], activeStoreIds: readon
 
 const keyOf = ({ businessRoleId, storeId }: RoleOnStore): string => `${businessRoleId}:${storeId}`;
 
-/** Every role-on-store pair gained, then every pair lost, between two sets of assignments. */
+/** Every role-on-store pair gained, then every pair lost, between two sets of assignments, over `storeIds`. */
 export function accessChange(
   before: readonly AssignmentReach[],
   after: readonly AssignmentReach[],
-  activeStoreIds: readonly StoreId[],
+  storeIds: readonly StoreId[],
 ): readonly RoleOnStore[] {
-  const old = pairsOf(before, activeStoreIds);
-  const next = pairsOf(after, activeStoreIds);
+  const old = pairsOf(before, storeIds);
+  const next = pairsOf(after, storeIds);
   const oldKeys = new Set(old.map(keyOf));
   const nextKeys = new Set(next.map(keyOf));
   return [...next.filter((pair) => !oldKeys.has(keyOf(pair))), ...old.filter((pair) => !nextKeys.has(keyOf(pair)))];
@@ -130,12 +141,12 @@ export function sameReach(left: AssignmentReach | undefined, right: AssignmentRe
 }
 
 /**
- * Every active store a role reaches through its bindings (D60): an `all` binding reaches every store of the business.
- * An archived store grants nothing (Review Focus 5), so it does not count.
+ * Every store among `storeIds` a role reaches through its bindings (D60): an `all` binding reaches all of them. The
+ * D60 checks pass {@link reachStoreIdsOf}, so a binding on an archived store still counts (D210).
  */
-export function reachOf(scopes: readonly BindingScope[], activeStoreIds: readonly StoreId[]): readonly StoreId[] {
-  if (scopes.includes(ALL_STORES_SCOPE)) return activeStoreIds;
-  return activeStoreIds.filter((id) => scopes.includes(id));
+export function reachOf(scopes: readonly BindingScope[], storeIds: readonly StoreId[]): readonly StoreId[] {
+  if (scopes.includes(ALL_STORES_SCOPE)) return storeIds;
+  return storeIds.filter((id) => scopes.includes(id));
 }
 
 /** The assignment row's stored form of a store id. */

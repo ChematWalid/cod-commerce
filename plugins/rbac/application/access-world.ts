@@ -13,10 +13,10 @@ import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assi
 import type { OperationContext } from '../domain/ports/operation-context';
 import {
   accessChange,
-  activeStoreIdsOf,
   type Actor,
   buildActor,
   holdsAllAccess,
+  reachStoreIdsOf,
   type RequestedStoreAccess,
   type RoleOnStore,
   sameReach,
@@ -47,7 +47,8 @@ export interface AccessWorldPorts {
 /** Everything the rules read, loaded under the lock. */
 export interface AccessWorld {
   readonly stores: Awaited<ReturnType<BusinessDirectoryPort['stores']>>;
-  readonly activeStoreIds: readonly StoreId[];
+  /** Every store of the business, archived included: the D60 checks count them (D210). */
+  readonly reachStoreIds: readonly StoreId[];
   readonly roles: ReadonlyMap<string, BusinessRole>;
   readonly owner: BusinessRole;
   readonly businessOwnerId: number | null;
@@ -65,7 +66,7 @@ export async function loadAccessWorld(
   const { directory, roles: roleRows, assignments } = ports;
   const { scope } = command.actor;
   const stores = await directory.stores(ctx, scope.businessId);
-  const activeStoreIds = activeStoreIdsOf(stores);
+  const reachStoreIds = reachStoreIdsOf(stores);
   const all = await roleRows.all(ctx, scope);
   const roles = new Map(all.map((role) => [role.id as string, role]));
   const owner = all.find((role) => role.builtInKey === 'owner');
@@ -74,12 +75,12 @@ export async function loadAccessWorld(
   const before = await assignments.ofAdministrator(ctx, scope, command.administratorId);
   return {
     stores,
-    activeStoreIds,
+    reachStoreIds,
     roles,
     owner,
     businessOwnerId: await directory.ownerAdministratorOf(ctx, scope.businessId),
-    actor: buildActor(command.actor.administratorId, actorRows, roles, activeStoreIds),
-    target: buildActor(command.administratorId, before, roles, activeStoreIds),
+    actor: buildActor(command.actor.administratorId, actorRows, roles, reachStoreIds),
+    target: buildActor(command.administratorId, before, roles, reachStoreIds),
     before,
   };
 }
@@ -97,7 +98,7 @@ export async function checkAccessRules(
   ctx: OperationContext,
   { command, world, after }: AccessChangeUnderReview,
 ): Promise<void> {
-  const { actor, target, owner, activeStoreIds, before, roles } = world;
+  const { actor, target, owner, reachStoreIds, before, roles } = world;
   const ownerBefore = before.find((row) => row.businessRoleId === owner.id);
   const ownerAfter = after.find((row) => row.businessRoleId === owner.id);
   assertOwnerChangeAllowed(actor, !sameReach(ownerBefore, ownerAfter));
@@ -110,7 +111,7 @@ export async function checkAccessRules(
   assertCanChangeTarget(actor, target);
   assertCanGrantAccess(actor, {
     wantsAllStores: command.storeAccess === ALL_STORES_SCOPE,
-    grants: accessChange(before, after, activeStoreIds).map((pair) => grantOf(pair, roles)),
+    grants: accessChange(before, after, reachStoreIds).map((pair) => grantOf(pair, roles)),
   });
 }
 

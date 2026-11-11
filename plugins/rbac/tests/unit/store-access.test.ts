@@ -1,11 +1,14 @@
 import { type PermissionKey, RBAC_ERROR_CODES as RBAC_CODES, toSnowflake, toStoreId } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import type { BusinessRole, MemberAssignment } from '../../domain/business-role';
+import { assertCanChangeTarget } from '../../domain/escalation-rules';
 import {
   accessChange,
   activeStoreIdsOf,
   type BusinessStore,
   buildActor,
+  reachOf,
+  reachStoreIdsOf,
   resolveStoreAccess,
 } from '../../domain/store-access';
 
@@ -161,5 +164,59 @@ describe('accessChange', () => {
 
     // Assert
     expect(change.map((pair) => pair.storeId)).toEqual([A1, A2]);
+  });
+});
+
+describe('reach for the D60 checks, over every store of the business (D210)', () => {
+  const everyId = reachStoreIdsOf(stores);
+  const roles = new Map([['1', role('1', ['orders.view'])]]);
+
+  it('counts archived stores beside active ones', () => {
+    // Act
+    const ids = reachStoreIdsOf(stores);
+
+    // Assert
+    expect(ids).toEqual([A1, A2, GONE]);
+  });
+
+  it('gives a role held only on an archived store a reach there', () => {
+    // Act
+    const target = buildActor(8, [assignment('1', ['13'])], roles, everyId);
+
+    // Assert
+    expect(target.permissionsByStore.get(GONE)).toEqual(new Set(['orders.view']));
+  });
+
+  it('refuses an actor without that archived store a change of such a member', () => {
+    // Arrange
+    const actor = buildActor(7, [assignment('1', ['11'])], roles, everyId);
+    const target = buildActor(8, [assignment('1', ['13'])], roles, everyId);
+
+    // Act
+    const act = () => {
+      assertCanChangeTarget(actor, target);
+    };
+
+    // Assert
+    expect(act).toThrow(expect.objectContaining({ code: RBAC_CODES.PRIVILEGE_EXCEEDED }) as Error);
+  });
+
+  it('reports the archived store a role leaves', () => {
+    // Act
+    const change = accessChange([assignment('1', ['13'])], [assignment('1', ['11'])], everyId);
+
+    // Assert
+    expect(change).toEqual([
+      { businessRoleId: toSnowflake('1'), storeId: A1 },
+      { businessRoleId: toSnowflake('1'), storeId: GONE },
+    ]);
+  });
+
+  it('gives a role bound only to an archived store that store as its reach', () => {
+    // Act
+    const reach = reachOf([GONE], everyId);
+
+    // Assert
+    expect(reach).toEqual([GONE]);
   });
 });

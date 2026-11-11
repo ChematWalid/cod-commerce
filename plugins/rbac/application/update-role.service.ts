@@ -84,7 +84,7 @@ export class UpdateRoleService {
     const roles = new Map(world.roles.map((row) => [row.id as string, row]));
     for (const holder of await assignments.holdersOf(ctx, actor.tenant, [role.id])) {
       const rows = await assignments.ofAdministrator(ctx, actor.tenant, holder);
-      assertCanChangeTarget(world.actor, buildActor(holder, rows, roles, world.activeStoreIds));
+      assertCanChangeTarget(world.actor, buildActor(holder, rows, roles, world.reachStoreIds));
     }
   }
 

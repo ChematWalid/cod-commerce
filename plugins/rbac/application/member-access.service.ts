@@ -15,12 +15,7 @@ import type { RbacLockPort } from '../domain/ports/rbac-lock.port';
 import type { SessionFlusherPort } from '../domain/ports/session-flusher.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 import { type ResolvedStoreAccess, resolveStoreAccess, sameReach, storeRowId } from '../domain/store-access';
-import {
-  type AccessWorld,
-  checkAccessRules,
-  loadAccessWorld,
-  type SetMemberAccessCommand,
-} from './access-world';
+import { type AccessWorld, checkAccessRules, loadAccessWorld, type SetMemberAccessCommand } from './access-world';
 import type { ActivityLogService } from './activity-log.service';
 import type { BindingProjector } from './binding-projector.service';
 

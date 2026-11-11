@@ -14,7 +14,7 @@ import type { RbacLockPort } from '../domain/ports/rbac-lock.port';
 import type { RoleBindingRepositoryPort } from '../domain/ports/role-binding-repository.port';
 import type { SessionFlusherPort } from '../domain/ports/session-flusher.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
-import { activeStoreIdsOf, type Actor, buildActor, reachOf } from '../domain/store-access';
+import { type Actor, buildActor, reachOf, reachStoreIdsOf } from '../domain/store-access';
 import type { ActivityLogService } from './activity-log.service';
 
 /** What role use cases read and write through. */
@@ -44,7 +44,8 @@ export interface RoleWorld {
   readonly roles: readonly BusinessRole[];
   readonly bindings: readonly RoleBinding[];
   readonly actor: Actor;
-  readonly activeStoreIds: readonly StoreId[];
+  /** Every store of the business, archived included: the D60 checks count them (D210). */
+  readonly reachStoreIds: readonly StoreId[];
 }
 
 /** What a write answers, and whose sessions to evict once it has committed (D55). */
@@ -100,7 +101,7 @@ export class RoleWriter {
   editOf(world: RoleWorld, actor: RoleActor, role: BusinessRole, next: readonly PermissionKey[]): RoleEdit {
     const scopes = this.bindingsOf(world, role.id).map((binding) => binding.scope);
     return {
-      reach: reachOf(scopes, world.activeStoreIds),
+      reach: reachOf(scopes, world.reachStoreIds),
       allStoresBound: scopes.includes(ALL_STORES_SCOPE),
       activeStoreId: actor.tenant.activeStoreId,
       current: role.permissions,
@@ -123,18 +124,18 @@ export class RoleWriter {
   private async load(ctx: OperationContext, actor: RoleActor): Promise<RoleWorld> {
     const { roles, bindings, assignments, directory } = this.ports;
     const scope = actor.tenant;
-    const activeStoreIds = activeStoreIdsOf(await directory.stores(ctx, scope.businessId));
+    const reachStoreIds = reachStoreIdsOf(await directory.stores(ctx, scope.businessId));
     const allRoles = await roles.all(ctx, scope);
     const actorRows = await assignments.ofAdministrator(ctx, scope, actor.administratorId);
     return {
       roles: allRoles,
       bindings: await bindings.allBindings(ctx, scope),
-      activeStoreIds,
+      reachStoreIds,
       actor: buildActor(
         actor.administratorId,
         actorRows,
         new Map(allRoles.map((role) => [role.id as string, role])),
-        activeStoreIds,
+        reachStoreIds,
       ),
     };
   }
