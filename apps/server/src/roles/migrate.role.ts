@@ -15,7 +15,12 @@ import type { AppEnv } from '../config/env';
 import { buildVendureConfig } from '../config/vendure-config';
 import { seedPlatformDefaults, superadminContext } from '../seed/seed-platform-defaults';
 import type { SeedReport } from '../seed/seed.types';
-import { MIGRATE_ADVISORY_LOCK_KEY, MIGRATE_LOCK_APPLICATION_NAME } from './migrate.constants';
+import {
+  MIGRATE_ADVISORY_LOCK_KEY,
+  MIGRATE_LOCK_APPLICATION_NAME,
+  MIGRATE_LOCK_POLL_MS,
+  MIGRATE_LOCK_WAIT_MS,
+} from './migrate.constants';
 
 const CONVERGE_LOG_CONTEXT = 'migrate';
 
@@ -58,12 +63,49 @@ async function runMigrationsOrThrow(config: ReturnType<typeof buildVendureConfig
   return migrationsRun;
 }
 
+/** Another `migrate` kept the advisory lock for longer than this run was willing to wait (audit SRV-13). */
+export class MigrationLockTimeoutError extends Error {
+  constructor(waitedMs: number, holder: string) {
+    super(`Could not take the migrate lock within ${String(waitedMs)} ms; it is held by "${holder}".`);
+    this.name = 'MigrationLockTimeoutError';
+  }
+}
+
+/** The `application_name` of the session holding the migrate advisory lock, for the timeout message. */
+async function lockHolder(client: Client): Promise<string> {
+  const { rows } = await client.query<{ application_name: string }>(
+    `SELECT a.application_name
+       FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
+      WHERE l.locktype = 'advisory' AND l.granted AND l.pid <> pg_backend_pid()
+        AND l.classid = (($1::bigint >> 32) & 4294967295)::oid AND l.objid = ($1::bigint & 4294967295)::oid
+        AND l.objsubid = 1
+      LIMIT 1`,
+    [MIGRATE_ADVISORY_LOCK_KEY],
+  );
+  const name = rows[0]?.application_name;
+  return name === undefined || name === '' ? 'an unnamed session' : name;
+}
+
+/** Polls `pg_try_advisory_lock` (a blocking `pg_advisory_lock` would wait forever behind a stuck holder). */
+async function takeLock(client: Client, lockWaitMs: number): Promise<void> {
+  const deadline = Date.now() + lockWaitMs;
+  for (;;) {
+    const { rows } = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock($1::bigint) AS locked', [
+      MIGRATE_ADVISORY_LOCK_KEY,
+    ]);
+    if (rows[0]?.locked === true) return;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new MigrationLockTimeoutError(lockWaitMs, await lockHolder(client));
+    await delay(Math.min(MIGRATE_LOCK_POLL_MS, remaining));
+  }
+}
+
 /**
  * Runs `work` while holding the migrate advisory lock on a direct connection of its own (session-level
- * advisory locks do not survive PgBouncer's transaction pooling). A second caller waits for the lock; ending
- * the connection releases it even if the explicit unlock fails.
+ * advisory locks do not survive PgBouncer's transaction pooling). A second caller polls for the lock up to
+ * `lockWaitMs`; ending the connection releases it even if the explicit unlock fails.
  */
-async function withMigrateLock<T>(env: AppEnv, work: () => Promise<T>): Promise<T> {
+async function withMigrateLock<T>(env: AppEnv, lockWaitMs: number, work: () => Promise<T>): Promise<T> {
   const { username, ...fields } = toPostgresFields(env.DATABASE_URL_DIRECT);
   const client = new Client({
     ...fields,
@@ -73,7 +115,7 @@ async function withMigrateLock<T>(env: AppEnv, work: () => Promise<T>): Promise<
   });
   await client.connect();
   try {
-    await client.query('SELECT pg_advisory_lock($1::bigint)', [MIGRATE_ADVISORY_LOCK_KEY]);
+    await takeLock(client, lockWaitMs);
     try {
       return await work();
     } finally {
@@ -113,10 +155,14 @@ async function convergeRoles(app: INestApplicationContext): Promise<ConvergeRepo
 /**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
- * queue to seed the platform defaults and converge the roles of existing businesses. Concurrent runs are serialised, so each migration applies once.
+ * queue to seed the platform defaults and converge the roles of existing businesses. Concurrent runs are serialised, so each migration applies once; one that cannot get the lock in time throws
+ * {@link MigrationLockTimeoutError}.
  */
-export async function runMigrate(env: AppEnv): Promise<MigrateReport> {
-  return withMigrateLock(env, async () => {
+export async function runMigrate(
+  env: AppEnv,
+  options: { lockWaitMs?: number } = {},
+): Promise<MigrateReport> {
+  return withMigrateLock(env, options.lockWaitMs ?? MIGRATE_LOCK_WAIT_MS, async () => {
     const migrationsRun = await runMigrationsOrThrow(buildVendureConfig(env, 'migrate'));
     const worker = await bootstrapWorker(buildVendureConfig(env, 'migrate'));
     try {

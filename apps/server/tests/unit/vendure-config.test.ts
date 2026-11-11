@@ -1,7 +1,15 @@
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { activeQueuesFor, QUEUES } from '@cod/shared';
-import { getEntitiesFromPlugins, RedisCachePlugin, type VendureConfig } from '@vendure/core';
+import {
+  defaultConfig,
+  getConfigurationFunction,
+  getEntitiesFromPlugins,
+  mergeConfig,
+  RedisCachePlugin,
+  type VendureConfig,
+} from '@vendure/core';
+import { NoopSchedulerStrategy } from '@vendure/core/dist/scheduler/noop-scheduler-strategy';
 import { BullMQJobQueueStrategy } from '@vendure/job-queue-plugin/package/bullmq/bullmq-job-queue-strategy';
 import { describe, expect, it } from 'vitest';
 import { loadEnv, type ServerRole } from '../../src/config/env';
@@ -46,7 +54,32 @@ const entitiesOf = (config: VendureConfig): string[] =>
     .map((entity) => entity.name)
     .sort();
 
+/** The scheduler strategy the app ends up with once every plugin's configuration step has run, as at bootstrap. */
+async function schedulerStrategyAfterPlugins(config: VendureConfig): Promise<object | undefined> {
+  const merged = mergeConfig(defaultConfig, config);
+  for (const plugin of config.plugins ?? []) {
+    await getConfigurationFunction(plugin)?.(merged);
+  }
+  return merged.schedulerOptions.schedulerStrategy;
+}
+
 describe('buildVendureConfig', () => {
+  it('SRV-12: the migrate role ends up with the no-op scheduler and the worker keeps the real one', async () => {
+    expect(await schedulerStrategyAfterPlugins(configFor('migrate'))).toBeInstanceOf(NoopSchedulerStrategy);
+    const worker = await schedulerStrategyAfterPlugins(configFor('worker'));
+    expect(worker).toBeDefined();
+    expect(worker).not.toBeInstanceOf(NoopSchedulerStrategy);
+    expect(await schedulerStrategyAfterPlugins(configFor('api'))).not.toBeInstanceOf(NoopSchedulerStrategy);
+  });
+
+  it('SRV-2: only the migrate connection carries the lock and statement timeouts', () => {
+    const extra = (role: ServerRole): Record<string, unknown> =>
+      (configFor(role).dbConnectionOptions as { extra: Record<string, unknown> }).extra;
+    expect(extra('migrate')).toMatchObject({ lock_timeout: 5_000, statement_timeout: 900_000 });
+    expect(extra('api')).not.toHaveProperty('lock_timeout');
+    expect(extra('worker')).not.toHaveProperty('statement_timeout');
+  });
+
   it('wires auth, health and money per ADR 0008/0013/0004', () => {
     const api = configFor('api');
 

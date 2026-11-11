@@ -13,6 +13,7 @@ import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
 import { DefaultSchedulerPlugin, RedisCachePlugin, type VendureConfig } from '@vendure/core';
 import { authEmailTemplates } from '../email';
 import { assetServerPlugin } from './asset-storage.config';
+import { MigrateNoSchedulerPlugin } from './migrate-no-scheduler.plugin';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
 import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
@@ -137,7 +138,8 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     assetServerPlugin(env),
   ];
   if (role !== 'api') {
-    return everyRole;
+    // Last on `migrate`, so it runs after `DefaultSchedulerPlugin`'s configuration (D122, SRV-12).
+    return role === 'migrate' ? [...everyRole, MigrateNoSchedulerPlugin] : everyRole;
   }
   return [
     ...everyRole,

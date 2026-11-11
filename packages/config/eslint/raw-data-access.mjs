@@ -71,7 +71,7 @@ export const RAW_DATA_ACCESS_FILES = [
   'apps/server/src/seed/seed-demo-businesses.ts',
   // Reads and writes Vendure's account-level `administrator` rows of the demo members.
   'apps/server/src/seed/seed-demo-members.ts',
-  // Takes only the migration advisory lock on its own `pg` client (the one file that imports `pg`); it reads no table.
+  // Takes (and polls for) only the migration advisory lock on its own `pg` client (the one file that imports `pg`); it reads no table.
   'apps/server/src/roles/migrate.role.ts',
 ];
 

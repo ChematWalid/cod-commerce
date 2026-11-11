@@ -1,4 +1,6 @@
 import { DefaultLogger, LogLevel, type VendureConfig } from '@vendure/core';
+// Not in the package index; `SchedulerService` tests for exactly this class.
+import { NoopSchedulerStrategy } from '@vendure/core/dist/scheduler/noop-scheduler-strategy';
 import { buildAuthConfig } from './auth.config';
 import { buildDbConfig } from './db.config';
 import { DzdMoneyStrategy } from './dzd-money-strategy';
@@ -36,6 +38,9 @@ export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig
     systemOptions: { healthChecks: [] },
     logger: new DefaultLogger({ level: VENDURE_LOG_LEVELS[env.LOG_LEVEL] }),
     plugins: buildPlugins(env, role),
+    // `DefaultSchedulerPlugin` replaces this in its own configuration step; `buildPlugins` puts a plugin last that
+    // puts it back for `migrate` (D122, audit SRV-12).
+    ...(role === 'migrate' ? { schedulerOptions: { schedulerStrategy: new NoopSchedulerStrategy() } } : {}),
   };
   assertPooledJobQueue(config);
   return config;
