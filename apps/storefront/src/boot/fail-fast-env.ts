@@ -19,8 +19,7 @@ export function failFastOnInvalidEnv(env: NodeJS.Dict<string>): void {
     loadStorefrontEnv(env);
   } catch (error) {
     if (!(error instanceof StorefrontEnvError)) throw error;
-    const line = { level: 'fatal', event: CONFIG_INVALID_EVENT, error: error.message, issues: error.issues };
-    console.error(JSON.stringify(line));
+    console.error(JSON.stringify({ level: 'fatal', event: CONFIG_INVALID_EVENT, issues: error.issues }));
     process.exit(CONFIG_ERROR_EXIT_CODE);
   }
 }

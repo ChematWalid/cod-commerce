@@ -36,8 +36,11 @@ describe('fail fast on an invalid environment', () => {
     // Act
     const line = fatalLineOf(env);
     // Assert
-    expect(line).toMatchObject({ level: 'fatal', event: CONFIG_INVALID_EVENT });
-    expect(String(line['error'])).toContain('REDIS_URL is required');
+    expect(line).toEqual({
+      level: 'fatal',
+      event: CONFIG_INVALID_EVENT,
+      issues: ["REDIS_URL is required when APP_ENV is 'production'"],
+    });
   });
 
   it('exits when INTERNAL_API_URL is missing, instead of answering 500 to every page (audit SF-1)', () => {
