@@ -8,6 +8,7 @@ import { BAD_FIXTURE_VIOLATIONS, describeViolations } from './arch-fixture-viola
 const FULL_SCAN_TIMEOUT_MS = 60_000;
 const repoRoot = resolve(__dirname, '../../..');
 const fixturesArch = join(__dirname, 'fixtures/arch');
+const FRAMEWORK_IN_NODE_MODULES = /node_modules\/@vendure\/core\//;
 const existsInRepo = (dir: string): boolean => existsSync(join(repoRoot, dir));
 
 describe('architecture rules', () => {
@@ -85,6 +86,8 @@ describe('architecture rules', () => {
       // The one unresolved workspace import is the fixture that is unresolvable on purpose.
       expect(real.cruisedModules.filter((module) => module.startsWith('@cod/'))).toEqual(['@cod/plugin-missing']);
       expect(real.cruisedModules).toContain('plugins/merchant-shell/dashboard/shell-api.ts');
+      // Positive control: the purity rules can only match a framework module the cruise keeps in the graph.
+      expect(real.cruisedModules.some((module) => FRAMEWORK_IN_NODE_MODULES.test(module))).toBe(true);
       expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
       expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);
       expect(real.cruisedModules).toEqual(

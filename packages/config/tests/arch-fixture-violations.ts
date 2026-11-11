@@ -7,6 +7,8 @@ const PROVISIONING_ENTRY = 'plugins/tenancy/provisioning.ts';
 const SHELL_API = 'plugins/merchant-shell/dashboard/shell-api.ts';
 const ADAPTER = `${BAD}/infrastructure/adapter.ts`;
 const OWN_ENTRY = `${BAD}/index.ts`;
+/** A framework module that resolves, as in the workspace; `@vendure/core` stays unresolved in the fixtures. */
+const TYPEORM = 'node_modules/typeorm/index.js';
 
 const violation = (rule: string, from: string, to: string): ArchitectureViolation => ({
   rule,
@@ -19,7 +21,7 @@ const violation = (rule: string, from: string, to: string): ArchitectureViolatio
  * package-name twin (`*-package.ts`), the import form the real plugins use.
  */
 export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
-  violation('application-is-pure', 'application/uses-typeorm.ts', 'typeorm'),
+  violation('application-is-pure', 'application/uses-typeorm.ts', TYPEORM),
   violation('application-is-pure', 'application/uses-vendure-type.ts', '@vendure/core'),
   violation('application-no-concretes', 'application/district-pricing.service.ts', ADAPTER),
   violation('application-no-concretes', 'application/uses-infrastructure.ts', ADAPTER),
@@ -27,6 +29,7 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('dashboard-no-server-entry', 'dashboard/uses-rate-limit-package.ts', RATE_LIMIT_ENTRY),
   violation('dashboard-no-server-entry', 'dashboard/uses-tenancy-entry.ts', TENANCY_ENTRY),
   violation('dashboard-no-server-entry', 'dashboard/uses-tenancy-package.ts', TENANCY_ENTRY),
+  violation('domain-is-pure', 'domain/uses-typeorm.ts', TYPEORM),
   violation('domain-is-pure', 'domain/uses-vendure.ts', '@vendure/core'),
   violation('domain-no-outer-layers', 'domain/uses-application.ts', `${BAD}/application/create.service.ts`),
   violation('layers-no-own-entry', 'application/uses-own-package.ts', OWN_ENTRY),
