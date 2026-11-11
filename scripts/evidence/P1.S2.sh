@@ -102,7 +102,7 @@ docker compose run --rm --no-deps -e DEMO_OWNER_PASSWORD --entrypoint node migra
 # --- flag-on api process and the mock provider ----------------------------------------------
 docker compose run -d --no-deps --name "$MOCK_NAME" -p "127.0.0.1:$MOCK_PORT:4000" -e MOCK_EMAIL="$EV_OAUTH_EMAIL" \
   -v "$PWD/scripts/evidence/P1.S2-oauth-mock.mjs:/tmp/oauth-mock.mjs:ro" --entrypoint node api /tmp/oauth-mock.mjs >/dev/null
-docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:3000" \
+docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:${COMPOSE_API_PORT:-3000}" \
   -e AUTH_OAUTH_ENABLED=true -e AUTH_DASHBOARD_URL="$api2/dashboard" \
   -e GOOGLE_OAUTH_CLIENT_ID=evidence-google-client -e GOOGLE_OAUTH_CLIENT_SECRET="$OAUTH_SECRET" \
   -e FACEBOOK_OAUTH_CLIENT_ID=evidence-facebook-client -e FACEBOOK_OAUTH_CLIENT_SECRET="$OAUTH_SECRET" \
