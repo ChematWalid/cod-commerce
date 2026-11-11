@@ -3,6 +3,11 @@ import { DEV_API_PORT, isPort } from './ports';
 /** Where `vite dev` finds the host-run api unless `API_HOST` says otherwise. */
 const DEV_API_HOST = 'http://localhost';
 
+/** The variables the dev server reads. The `.env.example` gate (`pnpm test:arch`) checks each one is documented. */
+export const DASHBOARD_DEV_ENV_KEYS = ['API_HOST', 'API_PORT'] as const;
+
+type DashboardDevEnvKey = (typeof DASHBOARD_DEV_ENV_KEYS)[number];
+
 /** The api the dashboard's dev server calls: a scheme with a host, and the port apart, as the Vite plugin takes them. */
 export interface DashboardDevApi {
   readonly host: string;
@@ -18,7 +23,7 @@ export class DashboardDevApiError extends Error {
 }
 
 /** A blank variable counts as unset, as in `loadEnv`. */
-const valueOf = (source: NodeJS.ProcessEnv, name: string): string | undefined => source[name] || undefined;
+const valueOf = (source: NodeJS.ProcessEnv, name: DashboardDevEnvKey): string | undefined => source[name] || undefined;
 
 function hostOf(value: string | undefined): string {
   if (value === undefined) {

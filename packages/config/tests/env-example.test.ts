@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { DASHBOARD_DEV_ENV_KEYS } from '../../../apps/server/src/config/dashboard-dev-api';
 import { SERVER_ENV_KEYS } from '../../../apps/server/src/config/env';
 import { STOREFRONT_ENV_KEYS } from '../../../apps/storefront/src/config/storefront-env';
-import { composeVariables, documentedKeys, missingKeys } from '../gates/env-example';
+import { composeVariables, documentedKeys, isEnvFile, missingKeys } from '../gates/env-example';
 
 const repoRoot = resolve(__dirname, '../../..');
 const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8');
@@ -14,6 +15,7 @@ const ROOT_EXAMPLE = '.env.example';
 const SERVER_EXAMPLE = 'apps/server/.env.example';
 const STOREFRONT_EXAMPLE = 'apps/storefront/.env.example';
 const COMPOSE_FILE = 'docker-compose.yml';
+const STOREFRONT_PACKAGE = 'apps/storefront/package.json';
 /** The services that run the server image with the server's env schema. */
 const SERVER_SERVICES = ['migrate', 'api', 'worker'];
 
@@ -42,11 +44,21 @@ function composeEnvKeys(services: readonly string[]): Set<string> {
   return new Set(services.flatMap((service) => Object.keys(compose.services[service]?.environment ?? {})));
 }
 
+/** The variables the storefront's package scripts expand, such as the port of `next dev` and `next start`. */
+function storefrontScriptVariables(): Set<string> {
+  const { scripts } = JSON.parse(read(STOREFRONT_PACKAGE)) as { scripts: Record<string, string> };
+  return composeVariables(Object.values(scripts).join('\n'));
+}
+
 describe('env example gate helpers', () => {
   it('reads set and commented-out keys, and skips prose comments', () => {
     const example = ['# A comment about KEY_IN_PROSE and how it is set', 'SET_KEY=1', '# OPTIONAL_KEY=', '', 'EMPTY='];
 
     expect([...documentedKeys(example.join('\n'))]).toEqual(['SET_KEY', 'OPTIONAL_KEY', 'EMPTY']);
+  });
+
+  it('reads lowercase keys too', () => {
+    expect([...documentedKeys('lower_key=1\n# optional_lower=')]).toEqual(['lower_key', 'optional_lower']);
   });
 
   it('reads compose variables with defaults and nested defaults, and skips escaped ones', () => {
@@ -55,14 +67,80 @@ describe('env example gate helpers', () => {
     expect([...composeVariables(compose)]).toEqual(['PLAIN', 'WITH_DEFAULT', 'OUTER', 'INNER']);
   });
 
+  it('reads the unbraced form', () => {
+    expect([...composeVariables('a: $UNBRACED\nb: "x-$IN_TEXT-y"\nc: $_LEADING_UNDERSCORE')]).toEqual([
+      'UNBRACED',
+      'IN_TEXT',
+      '_LEADING_UNDERSCORE',
+    ]);
+  });
+
+  it('reads lowercase and mixed-case names', () => {
+    expect([...composeVariables('a: ${lower_case}\nb: $mixedCase\nc: ${Mixed_1:-x}')]).toEqual([
+      'lower_case',
+      'mixedCase',
+      'Mixed_1',
+    ]);
+  });
+
+  it('skips every escaped form, and reads a variable that follows an escaped dollar', () => {
+    const compose =
+      'a: $$ESCAPED\nb: $${ESCAPED_BRACED}\nc: $$$AFTER_ESCAPE\nd: $$${AFTER_ESCAPE_BRACED}\ne: costs 5$ or $1';
+
+    expect([...composeVariables(compose)]).toEqual(['AFTER_ESCAPE', 'AFTER_ESCAPE_BRACED']);
+  });
+
   it('lists what is neither present nor exempt', () => {
     expect(missingKeys(['B', 'A', 'C', 'D'], new Set(['C']), { D: 'reason' })).toEqual(['A', 'B']);
+  });
+
+  it.each([
+    '.env',
+    'apps/server/.env',
+    '.env.local',
+    'apps/storefront/.env.production',
+    'prod.env',
+    'deploy/secrets.env',
+    '.envrc',
+    'infra/.envrc',
+  ])('treats %s as an env file', (file) => {
+    expect(isEnvFile(file)).toBe(true);
+  });
+
+  it.each([
+    '.env.example',
+    'apps/server/.env.example',
+    'apps/server/src/config/env.ts',
+    'auth-env.ts',
+    'docs/environment.md',
+    'runtime-env.d.ts',
+  ])('does not treat %s as an env file', (file) => {
+    expect(isEnvFile(file)).toBe(false);
   });
 });
 
 describe('.env.example completeness', () => {
+  it('has something to check: a refactor that empties a key set must not pass the gate', () => {
+    expect(SERVER_ENV_KEYS).toEqual(expect.arrayContaining(['DATABASE_URL', 'TRUSTED_PROXY_HOPS']));
+    expect(STOREFRONT_ENV_KEYS).toContain('INTERNAL_API_URL');
+    expect(DASHBOARD_DEV_ENV_KEYS).toContain('API_HOST');
+    expect([...composeVariables(read(COMPOSE_FILE))]).toEqual(expect.arrayContaining(['POSTGRES_USER', 'APP_ENV']));
+    expect([...composeEnvKeys(SERVER_SERVICES)]).toContain('DATABASE_URL');
+    expect([...composeEnvKeys(['storefront'])]).toContain('INTERNAL_API_URL');
+    expect([...storefrontScriptVariables()]).toContain('STOREFRONT_PORT');
+    for (const example of [ROOT_EXAMPLE, SERVER_EXAMPLE, STOREFRONT_EXAMPLE]) {
+      expect(documentedKeys(read(example)).size, example).toBeGreaterThan(0);
+    }
+  });
+
   it('documents every key of the server env schema in apps/server/.env.example', () => {
     const missing = missingKeys(SERVER_ENV_KEYS, documentedKeys(read(SERVER_EXAMPLE)), UNDOCUMENTED_SERVER_KEYS);
+
+    expect(missing, `add to ${SERVER_EXAMPLE} with a one-line comment`).toEqual([]);
+  });
+
+  it('documents the variables of the dashboard dev server in apps/server/.env.example', () => {
+    const missing = missingKeys(DASHBOARD_DEV_ENV_KEYS, documentedKeys(read(SERVER_EXAMPLE)));
 
     expect(missing, `add to ${SERVER_EXAMPLE} with a one-line comment`).toEqual([]);
   });
@@ -86,6 +164,12 @@ describe('.env.example completeness', () => {
     expect(missing, `add to ${STOREFRONT_EXAMPLE} with a one-line comment`).toEqual([]);
   });
 
+  it('documents every variable the storefront package scripts expand in apps/storefront/.env.example', () => {
+    const missing = missingKeys(storefrontScriptVariables(), documentedKeys(read(STOREFRONT_EXAMPLE)));
+
+    expect(missing, `add to ${STOREFRONT_EXAMPLE} with a one-line comment`).toEqual([]);
+  });
+
   it('hands every variable the storefront reads to its container', () => {
     const missing = missingKeys(STOREFRONT_ENV_KEYS, composeEnvKeys(['storefront']), NOT_PASSED_TO_STOREFRONT);
 
@@ -98,13 +182,21 @@ describe('.env.example completeness', () => {
   });
 });
 
-describe('.env files in git', () => {
-  it('tracks only .env.example files', () => {
-    const tracked = execFileSync('git', ['ls-files'], { cwd: repoRoot, encoding: 'utf8' })
-      .split('\n')
-      .filter((file) => /(^|\/)\.env(\.|$)/.test(file));
+describe('env files in git', () => {
+  const tracked = execFileSync('git', ['ls-files'], { cwd: repoRoot, encoding: 'utf8' }).split('\n');
 
-    expect(tracked.filter((file) => !file.endsWith('.env.example'))).toEqual([]);
+  it('tracks no env file: no .env, .env.*, *.env or .envrc at any level', () => {
+    expect(tracked.length).toBeGreaterThan(100);
+    expect(tracked.filter(isEnvFile)).toEqual([]);
+  });
+
+  it('tracks the three .env.example files', () => {
     expect(tracked).toEqual(expect.arrayContaining([ROOT_EXAMPLE, SERVER_EXAMPLE, STOREFRONT_EXAMPLE]));
+  });
+
+  it.each(['.env', 'apps/server/.env.local', 'prod.env', 'deploy/secrets.env', '.envrc'])('git ignores %s', (file) => {
+    const ignored = execFileSync('git', ['check-ignore', file], { cwd: repoRoot, encoding: 'utf8' });
+
+    expect(ignored.trim()).toBe(file);
   });
 });

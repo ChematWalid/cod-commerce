@@ -25,6 +25,8 @@ apps/storefront/next-env.d.ts
 # Environment (only .env.example is committed)
 .env
 .env.*
+*.env
+.envrc
 !.env.example
 
 # Local assets / uploads
