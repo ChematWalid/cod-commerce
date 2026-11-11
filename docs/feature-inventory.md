@@ -193,7 +193,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Members list: All / Active / Pending / Inactive; roles, salary, status, order count, store access, joined | C | `/team` |
 | [ ] | Invite by email with roles, store access (all / selected), base salary, commission structures | C | |
 | [ ] | Member actions: view details, edit, set limit (max open orders), stop receiving orders, pay salary | C | |
-| [x] | Roles: 7 built-in templates; custom roles with name, description, start-from template; 93 permissions in 12 areas with None/View/Full per area and "Sensitive" flags (full list in research notes) | C | `?tab=roles` |
+| [x] | Roles: 7 built-in templates; custom roles with name, description, start-from template; 94 permissions (the research list of 93 plus `store.stores.archive`, D96) in 12 areas with None/View/Full per area and "Sensitive" flags (full list in research notes) | C | `?tab=roles` |
 | [ ] | Order distribution: Evenly (fewest open) / In turn / Nobody; reclaim timeout; exception rules (ordered) | C | `?tab=distribution` |
 | [ ] | Team stats report and commissions | S | |
 
