@@ -74,6 +74,21 @@ describe('architecture rules', () => {
     FULL_SCAN_TIMEOUT_MS,
   );
 
+  it(
+    'cruises a file whose name merely contains an excluded folder name',
+    async () => {
+      const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins/bad'] });
+
+      expect(bad.cruisedModules).toContain('plugins/bad/application/district-pricing.service.ts');
+      expect(bad.violations).toContainEqual({
+        rule: 'application-no-concretes',
+        from: 'plugins/bad/application/district-pricing.service.ts',
+        to: 'plugins/bad/infrastructure/adapter.ts',
+      });
+    },
+    FULL_SCAN_TIMEOUT_MS,
+  );
+
   it('reports an app that imports a plugin layer directly', async () => {
     const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['apps/bad'] });
 

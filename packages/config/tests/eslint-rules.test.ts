@@ -231,6 +231,7 @@ describe('plugin layer boundaries', () => {
       [
         'bad/api/uses-other-plugin.ts',
         'bad/api/uses-shell-api.ts',
+        'bad/application/district-pricing.service.ts',
         'bad/application/uses-infrastructure.ts',
         'bad/application/uses-rate-limit-entry.ts',
         'bad/application/uses-tenancy-entry.ts',
