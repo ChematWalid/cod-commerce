@@ -349,6 +349,9 @@ importers:
       '@cod/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@cod/plugin-rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@cod/testing':
         specifier: workspace:*
         version: link:../../packages/testing

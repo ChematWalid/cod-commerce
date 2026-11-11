@@ -11,7 +11,6 @@ import { LruHostCache } from '../../infrastructure/lru';
 import { PlatformStoreLookup } from '../../infrastructure/platform-store-lookup';
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { ValkeyHostCache } from '../../infrastructure/valkey-host-cache';
-import { TenancyPlugin } from '../../tenancy.plugin';
 import {
   ARCHIVE_STORE,
   CHANGE_STORE_SUBDOMAIN,
@@ -20,7 +19,7 @@ import {
   UPDATE_STORE,
 } from './admin-api-operations';
 import { actAsOwner, seedAsset } from './admin-api-session';
-import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, TEST_REDIS_URL, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const HOST_PROPAGATION_LIMIT_MS = 1000;
 const POLL_MS = 10;
@@ -38,7 +37,7 @@ interface Stack {
 
 describe('host to store resolution', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1010 })],
+    plugins: tenancyTestPlugins(1010),
     db: loadPluginTestDbConfig(process.env),
   });
   const probe = new Redis(TEST_REDIS_URL);

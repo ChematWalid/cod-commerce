@@ -11,15 +11,14 @@ import {
 } from '../../domain/errors';
 import { StoreEntity } from '../../infrastructure/store.entity';
 import { type TenantRepository, tenantQuery, TenantRepositoryFactory } from '../../infrastructure/tenant-repository';
-import { TenancyPlugin } from '../../tenancy.plugin';
-import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const UNUSED_CHANNEL_ID = 987_654;
 const NO_BUSINESS = {} as TenantScope;
 
 describe('Tenant data access', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1002 })],
+    plugins: tenancyTestPlugins(1002),
     db: loadPluginTestDbConfig(process.env),
   });
 
