@@ -4,6 +4,7 @@ import prettierConfig from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 import { LINT_LIMITS } from './lint-limits.mjs';
+import { RAW_DATA_SYNTAX, rawDataAccessConfig } from './raw-data-access.mjs';
 
 const TS_FILES = ['**/*.{ts,tsx,mts}'];
 const JS_FILES = ['**/*.{js,mjs,cjs}'];
@@ -26,39 +27,6 @@ const PLUGIN_ROOT_FILES = [
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',
 ];
-const RAW_DATA_GUARDED_FILES = ['**/plugins/*/infrastructure/**', '**/plugins/*/api/**'];
-/**
- * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
- * `platform-store-lookup` is the unscoped read path and `tenant-transaction` runs only `set_config`. `order-number.service` updates the sequence row, which is keyed by the business itself.
- */
-const RAW_DATA_ACCESS_FILES = [
-  '**/plugins/tenancy/infrastructure/tenant-repository.ts',
-  '**/plugins/tenancy/infrastructure/platform-store-lookup.ts',
-  '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
-  '**/plugins/tenancy/infrastructure/order-number.service.ts',
-  '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
-  // Reads Vendure's account-level `user` row to build the superadmin context (A2).
-  '**/plugins/tenancy/infrastructure/superadmin-context.factory.ts',
-  // `account_token` is an account-level table, not a tenant one (D24).
-  '**/plugins/auth/infrastructure/typeorm-account-token.repository.ts',
-  '**/plugins/auth/infrastructure/account-token-purge.task.ts',
-  // `session` is Vendure's account-level table, and SessionService has no single-session delete (D22).
-  '**/plugins/auth/infrastructure/session-terminator.ts',
-  // `administrator` is Vendure's account-level table, and the claim lock runs only an advisory lock (D41).
-  '**/plugins/auth/infrastructure/vendure-account-identity.ts',
-  '**/plugins/auth/infrastructure/email-claim-lock.ts',
-  // The profile reads and writes the same account-level `administrator` row.
-  '**/plugins/auth/infrastructure/vendure-account-profile.ts',
-  // `authentication_method` and `user` are Vendure's account-level tables (D36).
-  '**/plugins/auth/infrastructure/vendure-external-identity.ts',
-  // `administrator` is Vendure's account-level table; every read carries the caller's business.
-  '**/plugins/rbac/infrastructure/vendure-actor-directory.ts',
-  // Runs only the advisory lock (D70).
-  '**/plugins/rbac/infrastructure/rbac-lock.ts',
-  // `session` and `administrator` are Vendure's account-level tables (D55).
-  '**/plugins/rbac/infrastructure/role-session-flusher.ts',
-];
-const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
 
 /** Layers each layer may import, inside its own plugin (CLAUDE.md §3a.2). */
@@ -118,7 +86,9 @@ const boundaryPolicies = [
 ];
 
 /**
- * Forbids framework imports (type imports and dynamic `import()` included) in `files`.
+ * Forbids framework imports (type imports and dynamic `import()` included) in `files`. These files are also under the
+ * data access gate, whose `no-restricted-syntax` entries are repeated here because this block replaces that rule's
+ * options; the framework ban already covers the gate's `no-restricted-imports`.
  *
  * @param {string[]} files
  * @param {string} message
@@ -130,6 +100,7 @@ const frameworkFree = (files, message) => ({
     'no-restricted-syntax': [
       'error',
       { selector: 'ImportExpression', message: `Dynamic import() is not allowed: ${message}` },
+      ...RAW_DATA_SYNTAX,
     ],
   },
 });
@@ -194,8 +165,6 @@ export function codEslintConfig({ tsconfigRootDir }) {
           ],
         },
       },
-      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE),
-      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE),
       {
         files: BOUNDARY_FILES,
         plugins: { boundaries },
@@ -210,17 +179,9 @@ export function codEslintConfig({ tsconfigRootDir }) {
           'boundaries/no-unknown-files': 'error',
         },
       },
-      {
-        files: RAW_DATA_GUARDED_FILES,
-        ignores: RAW_DATA_ACCESS_FILES,
-        rules: {
-          'no-restricted-syntax': [
-            'error',
-            { selector: "MemberExpression[property.name='getRepository']", message: RAW_DATA_ACCESS_MESSAGE },
-            { selector: "MemberExpression[property.name='rawConnection']", message: RAW_DATA_ACCESS_MESSAGE },
-          ],
-        },
-      },
+      rawDataAccessConfig,
+      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE),
+      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE),
       {
         files: TEST_FILES,
         rules: { 'max-lines-per-function': 'off', '@typescript-eslint/no-magic-numbers': 'off' },
