@@ -160,7 +160,7 @@ Not fixed in this audit. Each has an owning session; the owner's brief gets a li
 | SRV-5, RL-4 | `apps/server/src/config/vendure-config.ts:10,28`, `env.ts:165` | `trustProxy` is a constant 1 and `CLIENT_IP_HEADER` is required in production only, not staging. | P3.S5 (needs its brief to allow the source edit) |
 | P3.S5 brief | `docs/roadmap/P3-storefront-checkout.md:323` | Six handoffs assign source changes to P3.S5, whose brief says it edits no plugin or app source: `/readyz` redaction, `trustProxy`, template gating, storefront cache safeguards, `/api/readyz`, `Referrer-Policy`. | Roadmap PR `docs/roadmap-audit-owners` |
 | TEN-13 | `plugins/tenancy/api/store.resolver.ts:150-157`, `plugins/rbac/domain/engine-grants.ts:4-10` | Found while fixing H6: `archiveStore` needs `DeleteTenantStore`, which no catalogue key maps to, so only an Owner can archive a store and no role can be granted it. `CreateTenantBusiness` and `DeleteTenantBusiness` guard no handler. The new server test pins the three names in a pending list. | User decision: a catalogue key with an `ENGINE_GRANTS` entry, or owner-only on record; then P1.S4 |
-| FLAKY-1 | `plugins/rbac/tests/integration/converge.int.test.ts:136`, `plugins/auth/tests/integration/shop-password-reset-guard.int.test.ts` | Two integration tests failed once each in CI on unrelated PRs (#103, #104) and passed on re-run. The first asserts that no session delete happens, and races the delayed second delete of an earlier test (D55, 500 ms); the second expects one captured mail and found none. | P1.S4 (auth and rbac are its prerequisites) |
+| FLAKY-1 | `plugins/rbac/tests/integration/converge.int.test.ts:136`, `plugins/auth/tests/integration/shop-password-reset-guard.int.test.ts` | Two integration tests failed once each in CI on unrelated PRs (#103, #104) and passed on re-run. The second is fixed in #104 (it now waits for the event); the first is open. The first asserts that no session delete happens, and races the delayed second delete of an earlier test (D55, 500 ms); the second expects one captured mail and found none. | P1.S4 (auth and rbac are its prerequisites) |
 | M3 | `scripts/evidence/template-screens.mjs:16-17`, `dashboard-screens.mjs:17`, `P1.S5-screens.mjs:23` | Evidence scripts import plugin dashboard constants by relative path; `scripts/` is outside the new entry-point gate. Found in the review of the M1 fix. | M.S1 |
 
 ## Low findings (follow-ups)
@@ -246,7 +246,7 @@ One small PR per module, each with a failing test first and a review by a second
 | Finding | Branch | PR | State |
 | --- | --- | --- | --- |
 | H1, CI-3 | `fix/audit-ci` | #100 | merged |
-| H2, H3, H4, H5 | `fix/audit-config` | FIX_CONFIG | FIX_CONFIG_STATE |
-| M2 | `fix/audit-tenancy` | FIX_TENANCY | FIX_TENANCY_STATE |
-| M1 | `fix/audit-server` | FIX_SERVER | FIX_SERVER_STATE |
-| H6 | `fix/audit-template` | FIX_TEMPLATE | FIX_TEMPLATE_STATE |
+| H2, H3, H4, H5 | `fix/audit-config` | #102 | merged |
+| M2 | `fix/audit-tenancy` | #103 | merged |
+| M1 | `fix/audit-server` | #104 | merged |
+| H6 | `fix/audit-template` | #105 | merged |
