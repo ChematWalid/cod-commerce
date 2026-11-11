@@ -31,7 +31,7 @@ Run from the repo root.
 | `pnpm lint` | ESLint (zero warnings) and a Prettier check |
 | `pnpm typecheck` | TypeScript across the workspace (via turbo) |
 | `pnpm test` | Unit tests across the workspace (via turbo) |
-| `pnpm test:arch` | Whole-repo gates: architecture rules, Vendure pin, CI workflow, branding |
+| `pnpm test:arch` | Whole-repo gates: architecture rules, Vendure pin, CI workflow, branding, `.env.example` completeness |
 | `pnpm test:integration` | Integration tests that need the data services |
 | `pnpm build` | Builds every package (via turbo, one at a time) |
 | `pnpm dev` | Runs every package's dev task: migrate, then the api (3100) and worker, and the storefront (3001) |
@@ -54,6 +54,32 @@ Run from the repo root.
 | Mailpit SMTP / web UI | 1026 / 8026 |
 
 Dev servers: API on port 3100 (3000 inside containers), storefront on port 3001.
+
+## Configuration
+Everything a deployment changes is an environment variable; nothing is edited in the source. Only `.env.example` files are committed, with placeholders and a one-line comment per variable. A real `.env` is git-ignored and never committed.
+
+| File | Read by | Validated by |
+|---|---|---|
+| `.env` (from `.env.example`) | `docker compose` and `scripts/verify-stack.sh` | the containers at boot, as below |
+| `apps/server/.env` (from `apps/server/.env.example`) | the host-run api, worker and migrate, and their tests | `loadEnv` (`apps/server/src/config/env.ts`): the process exits listing every invalid variable |
+| `apps/storefront/.env` (from `apps/storefront/.env.example`) | the host-run storefront | `loadStorefrontEnv` (`apps/storefront/src/config/storefront-env.ts`), from `instrumentation.ts`: the process exits listing every invalid variable |
+
+`pnpm test:arch` fails when a variable of either schema is missing from its `.env.example`, when `docker-compose.yml` reads a variable the root `.env.example` does not document, or when compose does not pass a schema variable to its containers.
+
+Compose lists each container's environment, so a variable reaches a container only through `docker-compose.yml`. An address or port as the containers see it has a `COMPOSE_` name, apart from the host-side value of the same setting (`API_PORT=3100` is the host-run api; `COMPOSE_API_PORT` is the port inside the api container). All are unset by default, which keeps the bundled services:
+
+| Variable | Default | Set it to |
+|---|---|---|
+| `COMPOSE_DATABASE_URL` | the bundled PgBouncer, from `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` | the pooled URL of a managed Postgres |
+| `COMPOSE_DATABASE_URL_DIRECT` | the bundled Postgres | its direct URL, for migrations |
+| `COMPOSE_REDIS_URL` | `redis://valkey:6379` | a managed Valkey or Redis (`rediss://` for TLS) |
+| `COMPOSE_S3_ENDPOINT` | `http://garage:3900` | another S3 endpoint, with `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_PRIVATE` and `S3_REGION` |
+| `COMPOSE_API_PORT`, `COMPOSE_WORKER_HEALTH_PORT` | `3000`, `3020` | other ports inside the containers; the published ports follow |
+| `COMPOSE_INTERNAL_API_URL` | `http://api:3000` | the API the storefront container asks for stores |
+
+The bundled Postgres, PgBouncer, Valkey and Garage still start when a `COMPOSE_` address points elsewhere: the api and the worker wait for them.
+
+Other deployment settings: `TRUSTED_PROXY_HOPS` (reverse proxies in front of the api, default 1), `CLIENT_IP_HEADER`, `PLATFORM_DOMAIN`, `LOG_LEVEL`, `DB_POOL_MAX` and `PGBOUNCER_DEFAULT_POOL_SIZE`. `SNOWFLAKE_WORKER_ID` is for tests only (`loadEnv` refuses it unless `APP_ENV` is `test`), so no `.env.example` lists it.
 
 ## Outgoing mail (SMTP)
 The server sends through whatever SMTP relay `.env` names; the code is the same for the local Mailpit and for a real relay such as Gmail. `loadEnv` validates the settings at boot (`apps/server/src/config/auth-env.ts`).
@@ -133,7 +159,7 @@ The Next.js storefront (`apps/storefront`) resolves the store from the `Host` he
 
 ```bash
 docker compose up -d --wait postgres pgbouncer valkey garage mailpit   # data services by name
-cp -n apps/storefront/.env.example apps/storefront/.env                 # host-run env: STOREFRONT_PORT, REDIS_URL, NEXT_DEPLOYMENT_ID, APP_ENV
+cp -n apps/storefront/.env.example apps/storefront/.env                 # host-run env; the storefront exits at boot on an invalid one
 pnpm dev                                                                # api (3100), worker and storefront (3001) together
 pnpm --filter @cod/storefront test:smoke      # host routing against a running storefront (STOREFRONT_URL overrides http://127.0.0.1:3001)
 pnpm --filter @cod/storefront test:browser    # headless Chromium; screenshots go to apps/storefront/test-results/
