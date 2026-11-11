@@ -1,0 +1,1 @@
+export const sql = 'PREPARE find_store (int) AS SELECT * FROM store WHERE id = $1';
