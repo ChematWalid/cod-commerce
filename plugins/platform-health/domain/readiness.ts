@@ -9,8 +9,11 @@ export interface ReadinessProbe {
   readonly name: ProbeName;
   /** The budget {@link ReadinessProbe.check} gets before it counts as failed. */
   readonly timeoutMs: number;
-  /** Resolves when the dependency is usable; rejects with the reason otherwise. */
-  check(): Promise<void>;
+  /**
+   * Resolves when the dependency is usable; rejects with the reason otherwise. `signal` aborts once the
+   * budget is spent: the probe must then stop its work (cancel the query, drop the request).
+   */
+  check(signal: AbortSignal): Promise<void>;
 }
 
 /** The result of running one probe. */
@@ -20,7 +23,7 @@ export interface ProbeOutcome {
 }
 
 /** A probe nobody registered fails, so a wiring mistake can never report ready. */
-const NOT_REGISTERED: HealthCheckResult = { ok: false, durationMs: 0, error: 'probe not registered' };
+const NOT_REGISTERED: HealthCheckResult = { ok: false, durationMs: 0, error: 'platform-health.probe-not-registered' };
 
 const resultOf = (outcomes: readonly ProbeOutcome[], name: ProbeName): HealthCheckResult =>
   outcomes.find((outcome) => outcome.name === name)?.result ?? NOT_REGISTERED;
