@@ -1,7 +1,7 @@
 import { RATE_LIMIT_POLICIES } from '@cod/plugin-rate-limit';
 import { EventBus, PasswordResetEvent } from '@vendure/core';
 import gql from 'graphql-tag';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAccountFlowKit } from './account-flow-kit';
 import { PASSWORD, uniqueEmail, uniqueIp } from './register-test-kit';
 
@@ -107,6 +107,9 @@ describe('Shop API requestPasswordReset (D21)', () => {
     // Assert
     expect(answer.body).toContain('"success":true');
     expect(await stockToken(email)).not.toBeNull();
-    expect(events).toHaveLength(1);
+    // The event reaches subscribers after the commit, which can be after the HTTP answer.
+    await vi.waitFor(() => {
+      expect(events).toHaveLength(1);
+    });
   });
 });
