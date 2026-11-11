@@ -1,0 +1,1 @@
+export const sql = 'CREATE GLOBAL TEMPORARY TABLE scratch (id int)';
