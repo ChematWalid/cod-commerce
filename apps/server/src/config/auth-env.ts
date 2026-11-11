@@ -61,6 +61,7 @@ export const authEnvShape = {
   TURNSTILE_ENABLED: flag,
   TURNSTILE_SECRET_KEY: text,
   TURNSTILE_CHALLENGE_URL: url,
+  TURNSTILE_SITEVERIFY_URL: url,
 };
 
 type AuthEnv = z.infer<z.ZodObject<typeof authEnvShape>>;

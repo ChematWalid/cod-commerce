@@ -91,7 +91,13 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
     dashboardUrl: env.AUTH_DASHBOARD_URL,
     platformDomain: env.PLATFORM_DOMAIN,
     ...(env.TURNSTILE_ENABLED && env.TURNSTILE_SECRET_KEY !== undefined && env.TURNSTILE_CHALLENGE_URL !== undefined
-      ? { challenge: { secretKey: env.TURNSTILE_SECRET_KEY, challengeUrl: env.TURNSTILE_CHALLENGE_URL } }
+      ? {
+          challenge: {
+            secretKey: env.TURNSTILE_SECRET_KEY,
+            challengeUrl: env.TURNSTILE_CHALLENGE_URL,
+            siteverifyUrl: env.TURNSTILE_SITEVERIFY_URL,
+          },
+        }
       : {}),
     ...oauthOptions(env),
   });

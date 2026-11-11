@@ -40,6 +40,8 @@ const MIN_SUPERADMIN_PASSWORD_LENGTH = 8;
 const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
 const DEFAULT_S3_REGION = 'garage';
 const DEFAULT_PLATFORM_DOMAIN = 'localhost';
+/** The compose stack and the single-VPS deployment put exactly one reverse proxy in front of the api. */
+const DEFAULT_TRUSTED_PROXY_HOPS = 1;
 
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
 const GARAGE_ACCESS_KEY = /^GK[0-9a-f]{24}$/;
@@ -110,6 +112,9 @@ const baseSchema = z.object({
     .default('true')
     .transform((value) => value === 'true'),
   CORS_ORIGINS: csvList,
+  // How many reverse proxies sit in front of the api: Express trusts that many `X-Forwarded-For` hops for `req.ip`
+  // and the request protocol. 0 trusts none (the api is reached directly); too many lets a client forge its address.
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(DEFAULT_TRUSTED_PROXY_HOPS),
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
   // The request header that carries the client address behind the edge (`cf-connecting-ip`); blank uses `req.ip`,
@@ -121,6 +126,9 @@ const baseSchema = z.object({
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
+
+/** Every variable the server reads. The `.env.example` gate (`pnpm test:arch`) checks each one is documented. */
+export const SERVER_ENV_KEYS: readonly string[] = Object.keys(baseSchema.shape);
 
 const PLACEHOLDER_MESSAGE = 'is a placeholder from .env.example; set a real secret';
 
