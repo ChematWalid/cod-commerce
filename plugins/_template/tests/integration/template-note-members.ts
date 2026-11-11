@@ -71,6 +71,25 @@ export class NoteMembers {
     await this.client.asUserWithCredentials(member.email, member.password);
   }
 
+  /** Signs in as a new member of the business that holds no business role, on its first store. */
+  async signInWithoutRole(code: string): Promise<void> {
+    const member = await this.newMember(code);
+    this.client.setChannelToken(this.business.stores[0].channelToken);
+    await this.client.asUserWithCredentials(member.email, member.password);
+  }
+
+  /** Signs out and stays on the business's first store. */
+  async asAnonymous(): Promise<void> {
+    await this.client.asAnonymousUser();
+    this.client.setChannelToken(this.business.stores[0].channelToken);
+  }
+
+  /** The platform superadmin on the business's first store: every permission, and no tenant. */
+  async asSuperadmin(): Promise<void> {
+    await this.client.asSuperAdmin();
+    this.client.setChannelToken(this.business.stores[0].channelToken);
+  }
+
   /**
    * No API creates a member before the invitations session (P1.S4), so the administrator row comes from the
    * fixture, with a role that grants nothing. `setMemberAccess` then replaces that role with the business role's.

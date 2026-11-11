@@ -29,6 +29,18 @@ const SNOWFLAKE_ID = /^[1-9][0-9]{0,18}$/;
 const VIEW_KEY: PermissionKey = 'catalog.products.view';
 const CREATE_KEY: PermissionKey = 'catalog.products.create';
 
+/** Every handler, with a call to it and the plugin's other permission, which must not open it. */
+const HANDLERS = [
+  { handler: 'templateNote', document: NOTE_BY_ID, variables: { id: '1' }, granted: CREATE_KEY },
+  { handler: 'templateNotes', document: NOTES, variables: {}, granted: CREATE_KEY },
+  {
+    handler: 'createTemplateNote',
+    document: CREATE_NOTE,
+    variables: { input: { title: 'Not allowed', body: '' } },
+    granted: VIEW_KEY,
+  },
+] as const;
+
 const CREATE_NOTE_INPUT_FIELDS = gql`
   query {
     __type(name: "CreateTemplateNoteInput") {
@@ -52,6 +64,7 @@ describe('TemplateNote Admin API', () => {
   });
 
   let members: NoteMembers;
+  let count = 0;
 
   const asOwner = (): Promise<void> => members.asOwner();
 
@@ -133,16 +146,7 @@ describe('TemplateNote Admin API', () => {
 
   // Vendure runs a handler without `@Allow` for anyone, so every handler is checked, with a role that holds
   // the plugin's other permission: a handler guarded by the wrong permission fails too.
-  it.each([
-    { handler: 'templateNote', document: NOTE_BY_ID, variables: { id: '1' }, granted: CREATE_KEY },
-    { handler: 'templateNotes', document: NOTES, variables: {}, granted: CREATE_KEY },
-    {
-      handler: 'createTemplateNote',
-      document: CREATE_NOTE,
-      variables: { input: { title: 'Not allowed', body: '' } },
-      granted: VIEW_KEY,
-    },
-  ])('refuses $handler without its permission', async ({ handler, document, variables, granted }) => {
+  it.each(HANDLERS)('refuses $handler without its permission', async ({ handler, document, variables, granted }) => {
     // Arrange
     await members.signInWith(`lacks-${handler.toLowerCase()}`, { name: `Lacks ${handler}`, grants: [granted] });
 
@@ -151,6 +155,27 @@ describe('TemplateNote Admin API', () => {
 
     // Assert
     expect(failure.codes).toEqual(['FORBIDDEN']);
+  });
+
+  // Every plugin copies this file: the three callers no role covers are pinned on every handler.
+  describe.each([
+    { caller: 'an anonymous caller', arrange: () => members.asAnonymous() },
+    {
+      caller: 'a member with no business role',
+      arrange: () => members.signInWithoutRole(`no-role-${String(++count)}`),
+    },
+    { caller: 'the superadmin, who has no tenant,', arrange: () => members.asSuperadmin() },
+  ])('$caller', ({ arrange }) => {
+    it.each(HANDLERS)('is refused $handler on a store of the business', async ({ document, variables }) => {
+      // Arrange
+      await arrange();
+
+      // Act
+      const failure = await failureOf(adminClient.query(document, variables));
+
+      // Assert
+      expect(failure.codes).toEqual(['FORBIDDEN']);
+    });
   });
 
   it('has no businessId input', async () => {
