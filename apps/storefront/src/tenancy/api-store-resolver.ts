@@ -1,3 +1,4 @@
+import { readInternalApiUrl } from '../config/storefront-env';
 import { normalizeHost, type NormalizedHost } from './host';
 import { toStoreLocale } from './store-locale';
 import type { ResolvedStore, StoreResolver } from './store-resolver';
@@ -47,16 +48,9 @@ function toResolvedStore(body: unknown): ResolvedStore {
   };
 }
 
-/** Read per call, not at module load: this module is evaluated during `next build`, where the API does not exist. */
-function internalApiUrl(): string {
-  const url = process.env['INTERNAL_API_URL'];
-  if (!url) throw new StoreResolverError('INTERNAL_API_URL is not set');
-  return url;
-}
-
 /** Finds stores through the API, which owns the caches and their invalidation (D12). */
 export class ApiStoreResolver implements StoreResolver {
-  /** @throws StoreResolverError or a network error when the API cannot answer */
+  /** @throws StoreResolverError or a network error when the API cannot answer; StorefrontEnvError without a usable `INTERNAL_API_URL` */
   resolveByHost(host: NormalizedHost): Promise<ResolvedStore | null> {
     return this.fetchStore(`/store/resolve?host=${encodeURIComponent(host)}`);
   }
@@ -67,7 +61,9 @@ export class ApiStoreResolver implements StoreResolver {
   }
 
   private async fetchStore(path: string): Promise<ResolvedStore | null> {
-    const response = await fetch(new URL(path, internalApiUrl()), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+    // Read per call, not at module load: this module is evaluated during `next build`, where the API does not exist.
+    const apiUrl = readInternalApiUrl(process.env);
+    const response = await fetch(new URL(path, apiUrl), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
     if (response.status === NOT_FOUND) return null;
     if (!response.ok) throw new StoreResolverError(`GET ${path} answered ${String(response.status)}`);
     return toResolvedStore(await response.json());
