@@ -32,16 +32,12 @@ const HOW_TO_FIX =
 const GRANTABLE: ReadonlySet<string> = new Set(enginePermissionsFor(PERMISSION_CATALOG.map((entry) => entry.key)));
 
 /**
- * Tenancy permissions that reach an Owner and no other role today. D59 maps five tenancy permissions to catalogue
- * keys and leaves these out: `archiveStore` is guarded by `DeleteTenantStore` and the catalogue has no key for it,
- * and the other two guard no handler. Each needs a product decision (a catalogue key and an `ENGINE_GRANTS` entry,
- * or the platform-only list); until then they are named here so that nothing new joins them unnoticed.
+ * Tenancy permissions that reach an Owner and no other role today. D59 and D96 map six tenancy permissions to
+ * catalogue keys and leave these two out: they guard no handler. Each needs a product decision (a catalogue key and
+ * an `ENGINE_GRANTS` entry, or the platform-only list); until then they are named here so that nothing new joins
+ * them unnoticed.
  */
-const OWNER_ONLY_PENDING_DECISION: readonly string[] = [
-  'CreateTenantBusiness',
-  'DeleteTenantBusiness',
-  'DeleteTenantStore',
-];
+const OWNER_ONLY_PENDING_DECISION: readonly string[] = ['CreateTenantBusiness', 'DeleteTenantBusiness'];
 
 /** The custom permissions of a process started with `ROLE=role`, after every plugin's `configuration` ran. */
 async function customPermissionsOf(role: ServerRole): Promise<Parameters<typeof ownerRolePermissions>[0]> {

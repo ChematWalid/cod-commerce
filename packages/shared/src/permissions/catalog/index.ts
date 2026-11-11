@@ -25,7 +25,7 @@ export type PermissionKey = (typeof DECLARED)[number]['key'];
 /** One entry of {@link PERMISSION_CATALOG}. */
 export type PermissionDefinitionEntry = PermissionDefinition<PermissionKey>;
 
-/** The 93 permissions, grouped by area in display order. */
+/** The 94 permissions, grouped by area in display order. */
 export const PERMISSION_CATALOG: readonly PermissionDefinitionEntry[] = DECLARED;
 
 const KEY_SET: ReadonlySet<string> = new Set(DECLARED.map((entry) => entry.key));
