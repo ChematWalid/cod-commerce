@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions } from '@cod/plugin-auth';
+import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
@@ -71,12 +71,21 @@ function oauthOptions(env: AppEnv): Pick<AuthPluginOptions, 'oauth'> {
   };
 }
 
+/** The SMTP relay; `loadEnv` has checked that the username and the password come together. */
+function smtpOptions(env: AppEnv): SmtpOptions {
+  const relay = { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM, tls: env.SMTP_TLS };
+  if (env.SMTP_USERNAME === undefined || env.SMTP_PASSWORD === undefined) {
+    return relay;
+  }
+  return { ...relay, auth: { user: env.SMTP_USERNAME, pass: env.SMTP_PASSWORD } };
+}
+
 /** The account plugin with its secret and the mail side: SMTP settings and the wording (D32). */
 const authPlugin = (env: AppEnv): VendurePluginEntry =>
   AuthPlugin.init({
     tokenSecret: env.AUTH_TOKEN_SECRET,
     email: {
-      smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
+      smtp: smtpOptions(env),
       templates: authEmailTemplates,
     },
     dashboardUrl: env.AUTH_DASHBOARD_URL,

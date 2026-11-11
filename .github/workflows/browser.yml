@@ -89,6 +89,7 @@ jobs:
       SMTP_HOST: localhost
       SMTP_PORT: '1025'
       SMTP_FROM: no-reply@localhost
+      SMTP_TLS: none
       MAILPIT_URL: http://localhost:8025
       DEMO_OWNER_PASSWORD: synthetic-demo-owner
       NODE_OPTIONS: --max-old-space-size=2048

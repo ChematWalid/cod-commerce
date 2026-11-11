@@ -54,12 +54,38 @@ describe('buildPlugins', () => {
         dashboardUrl: 'http://localhost:3100/dashboard',
         platformDomain: env.PLATFORM_DOMAIN,
         email: {
-          smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
+          smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM, tls: 'none' },
           templates: authEmailTemplates,
         },
       });
     },
   );
+
+  it('hands the SMTP relay account and the TLS mode to AuthPlugin', () => {
+    // Arrange
+    const env = loadEnv({
+      ...valid,
+      ROLE: 'worker',
+      SMTP_HOST: 'smtp.example.test',
+      SMTP_PORT: '587',
+      SMTP_FROM: 'user@example.test',
+      SMTP_TLS: 'starttls',
+      SMTP_USERNAME: 'user@example.test',
+      SMTP_PASSWORD: 'not-a-real-password',
+    });
+
+    // Act
+    buildPlugins(env, 'worker');
+
+    // Assert
+    expect(AuthPlugin.options?.email.smtp).toEqual({
+      host: 'smtp.example.test',
+      port: 587,
+      from: 'user@example.test',
+      tls: 'starttls',
+      auth: { user: 'user@example.test', pass: 'not-a-real-password' },
+    });
+  });
 
   it.each(SERVER_ROLES)('registers TenancyPlugin for the %s role', (role: ServerRole) => {
     // Arrange

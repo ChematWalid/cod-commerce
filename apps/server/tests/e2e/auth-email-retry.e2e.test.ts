@@ -14,6 +14,7 @@ import {
   removeBullKeys,
   VENDURE_BULLMQ_QUEUE,
 } from './support/e2e-config';
+import { PLAIN_SMTP_ENV } from './support/mailpit';
 import { E2E_PORTS } from './support/ports';
 
 const SUITE = 'auth-email-retry';
@@ -25,7 +26,7 @@ const POLL_MS = 100;
 const DEAD_SMTP_PORT = '1';
 
 describe('account email retries on the BullMQ queue', () => {
-  const env = { SMTP_HOST: '127.0.0.1', SMTP_PORT: DEAD_SMTP_PORT };
+  const env = { SMTP_HOST: '127.0.0.1', SMTP_PORT: DEAD_SMTP_PORT, ...PLAIN_SMTP_ENV };
   const { server } = createTestEnvironment(buildE2eConfig({}, { suite: SUITE, port: E2E_PORTS.authEmailRetry, env }));
   const redis = e2eRedis();
   const bullQueue = new Queue(VENDURE_BULLMQ_QUEUE, { prefix: PREFIX, connection: redis });
