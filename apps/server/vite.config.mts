@@ -2,8 +2,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
 import { defaultClientConditions, defineConfig, type Plugin, searchForWorkspaceRoot } from 'vite';
 import { dashboardBrandingPlugin } from './src/config/dashboard-branding.vite.js';
+import { dashboardDevApi } from './src/config/dashboard-dev-api.js';
 import { DASHBOARD_BASE_PATH } from './src/config/dashboard-route.js';
-import { DEV_API_PORT } from './src/config/ports.js';
 
 /**
  * Workspace packages are read from their source, like the host-run server does. `vendureDashboardPlugin`
@@ -29,10 +29,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vendureDashboardPlugin({
         vendureConfigPath: pathToFileURL('./src/vendure-config.ts'),
-        // The built dashboard calls the api that serves it; `vite dev` calls the host-run api.
-        api: production
-          ? { host: 'auto', port: 'auto' }
-          : { host: 'http://localhost', port: Number(process.env['API_PORT'] ?? DEV_API_PORT) },
+        // The built dashboard calls the api that serves it; `vite dev` calls the host-run api (API_HOST, API_PORT).
+        api: production ? { host: 'auto', port: 'auto' } : dashboardDevApi(process.env),
         gqlOutputPath: './src/gql',
         // The plugin guesses the folder from where @vendure/core resolves, which under pnpm is the store; the
         // workspace plugins are linked into this package's node_modules, so it must scan this one.
