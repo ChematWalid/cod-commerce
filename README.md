@@ -63,7 +63,7 @@ The server sends through whatever SMTP relay `.env` names; the code is the same 
 | `SMTP_HOST`, `SMTP_PORT` | The relay. Required when `APP_ENV` is `staging` or `production`; a development server falls back to `localhost:1026` (Mailpit). |
 | `SMTP_FROM` | The sender address. Required when deployed. |
 | `SMTP_USERNAME`, `SMTP_PASSWORD` | The relay account, both or neither. Empty for Mailpit. |
-| `SMTP_TLS` | `none` (plain SMTP), `starttls` (must upgrade, or the send fails) or `implicit` (TLS from the first byte). Empty means `implicit` on port 465, else `starttls` when deployed, else `none`. |
+| `SMTP_TLS` | `none` (TLS not required (the connection still upgrades if the server offers STARTTLS)), `starttls` (must upgrade, or the send fails) or `implicit` (TLS from the first byte). Port 465 with `starttls` and port 587 with `implicit` are refused at boot. Empty means `implicit` on port 465, else `starttls` when deployed, else `none`. |
 
 The server refuses to boot with an account and `SMTP_TLS=none` unless `SMTP_HOST` is local (`localhost`, `127.0.0.1`, `::1`, `*.localhost` or the compose service `mailpit`): a password never crosses a network in clear text.
 
@@ -84,7 +84,7 @@ SMTP_USERNAME=you@gmail.com
 SMTP_PASSWORD=<app password>
 SMTP_FROM=you@gmail.com
 ```
-Gmail needs an app password (the account password is refused) and rewrites a `From` that is not the signed-in address.
+Gmail needs an app password (the account password is refused), written without spaces, and rewrites a `From` that is not the signed-in address.
 
 ## Server (Vendure) dev
 ```bash
