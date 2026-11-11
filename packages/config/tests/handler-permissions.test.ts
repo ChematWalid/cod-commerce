@@ -10,6 +10,8 @@ const VENDURE = "import { Allow, Permission } from '@vendure/core';";
 const RBAC = "import { requirePermission } from '@cod/plugin-rbac';";
 const LOCAL_GUARD = 'function requirePermission(key: string): MethodDecorator { return () => { void key; }; }';
 
+const RELATIVE_GUARD_USE = "@Resolver() class A { @Query() @requirePermission('a.b') f() {} }";
+
 const scan = (text: string): string[] => findUnguardedHandlers([{ path: 'x.ts', text }]);
 
 describe('handler permissions gate', () => {
@@ -71,6 +73,16 @@ describe('handler permissions gate', () => {
       'x.ts: A.f',
     ],
     ['a class expression', 'export const A = class { @Query() f() {} };', 'x.ts: A.f'],
+    [
+      'an empty @Allow listed before requirePermission: decorators apply bottom-up, so the empty one wins',
+      `${VENDURE} ${RBAC} @Resolver() class A { @Query() @Allow() @requirePermission('a.b') f() {} }`,
+      'x.ts: A.f',
+    ],
+    [
+      'an empty @Allow listed before the one that names a permission',
+      `${VENDURE} @Resolver() class A { @Query() @Allow() @Allow(Permission.Owner) f() {} }`,
+      'x.ts: A.f',
+    ],
     ['a spread @Allow', `${VENDURE} @Resolver() class A { @Query() @Allow(...[]) f() {} }`, 'x.ts: A.f'],
     ['a property handler', '@Resolver() class A { @Query() f = () => 1; }', 'x.ts: A.f'],
     [
@@ -103,6 +115,25 @@ describe('handler permissions gate', () => {
     expect(scan(text)).toEqual([expected]);
   });
 
+  it.each(['plugins/rbac/api/roles.resolver.ts', 'plugins/rbac/api/nested/roles.resolver.ts'])(
+    'accepts requirePermission imported by path from its own file, in %s',
+    (path) => {
+      const specifier = path.includes('nested') ? '../require-permission.decorator' : './require-permission.decorator';
+      const text = `import { requirePermission } from '${specifier}'; ${RELATIVE_GUARD_USE}`;
+
+      expect(findUnguardedHandlers([{ path, text }])).toEqual([]);
+    },
+  );
+
+  it.each(['plugins/evil/api/a.resolver.ts', 'plugins/rbac/infrastructure/a.resolver.ts', 'x.ts'])(
+    'reports a look-alike ./require-permission.decorator in %s',
+    (path) => {
+      const text = `import { requirePermission } from './require-permission.decorator'; ${RELATIVE_GUARD_USE}`;
+
+      expect(findUnguardedHandlers([{ path, text }])).toEqual([`${path}: A.f`]);
+    },
+  );
+
   it.each([
     ['an explicit public', `${VENDURE} @Controller() class A { @Get() @Allow(Permission.Public) f() {} }`],
     [
@@ -120,8 +151,12 @@ describe('handler permissions gate', () => {
     ['requirePermission on the handler', `${RBAC} @Resolver() class A { @Query() @requirePermission('a.b') f() {} }`],
     ['requirePermission on the class', `${RBAC} @requirePermission('a.b') @Resolver() class A { @Query() f() {} }`],
     [
-      'requirePermission imported from its file inside rbac',
-      "import { requirePermission } from './require-permission.decorator'; @Resolver() class A { @Query() @requirePermission('a.b') f() {} }",
+      'an empty @Allow listed after the @Allow that names a permission, which is applied last and wins',
+      `${VENDURE} @Resolver() class A { @Query() @Allow(Permission.Owner) @Allow() f() {} }`,
+    ],
+    [
+      'an empty @Allow listed after requirePermission, which is applied last and wins',
+      `${VENDURE} ${RBAC} @Resolver() class A { @Query() @requirePermission('a.b') @Allow() f() {} }`,
     ],
     [
       'a handler naming its own permission under a class-level requirePermission',
