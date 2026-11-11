@@ -91,7 +91,7 @@ link and stop without merging.
 | **Model / size** | Opus · L |
 | **External needs** | The P3.S5 staging environment: k6 runs through Cloudflare against staging (infrastructure.md §3); if a target needs Growth-size capacity, the user approves scaling staging for the test window, and the size used is recorded with the results. |
 
-**Inventory rows covered** (audited): Roles: 7 built-in templates; custom roles with 93 permissions; Over-quota masking; Anti-bot signals on submit; Spam engine; Public Admin API; every other row's data access path.
+**Inventory rows covered** (audited): Roles: 7 built-in templates; custom roles with 94 permissions; Over-quota masking; Anti-bot signals on submit; Spam engine; Public Admin API; every other row's data access path.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
@@ -102,7 +102,7 @@ link and stop without merging.
 
 **High-level plan**
 1. Tenant isolation audit: enumerate every entity, resolver, REST route, job, webhook and file/CDN path; generate a checklist in `docs/security/tenant-audit.md`; add an automated test that fails if an entity lacks `businessId` or a resolver lacks the guard; fix gaps; run the RLS spike from ADR 0002 on cod_order, tenant_secret, customer_profile, activity_log (SET LOCAL app.business_id in the repository helper) and record overhead; adopt if < 5 % p95 → commit `fix(tenancy): close isolation gaps from audit`
-2. Authorization audit against the 93 permissions: matrix test per permission area (None/View/Full) over every mutation/query, including exports, bulk actions, AI tools and API keys; sensitive-flag permissions → commit `fix(rbac): enforce permission matrix`
+2. Authorization audit against the 94 permissions: matrix test per permission area (None/View/Full) over every mutation/query, including exports, bulk actions, AI tools and API keys; sensitive-flag permissions → commit `fix(rbac): enforce permission matrix`
 3. Public endpoint abuse: rate limits and body-size caps on order intake, quotes, abandoned checkout, visitors/beacon, login/reset/OTP, webhooks; quote-token tamper/replay tests; input validation (zod/class-validator) and output encoding → commit `fix(security): rate limits and validation on public endpoints`
 4. Secrets/PII: encryption-at-rest check for all provider tokens, log redaction (phones, tokens), masked phone never in exports/logs/webhook payloads, CSP and security headers on storefront and dashboard, cookie flags, CSRF, SSRF guard for product-link scraping and webhooks → commit `fix(security): secrets, pii and headers`
 5. Dependency and OWASP pass: `npm audit`/OSV, secret scanning, OWASP Top 10 checklist with results; findings fixed or filed as issues labelled `security` → commit `chore(security): dependency audit and owasp checklist`
@@ -113,7 +113,7 @@ link and stop without merging.
 
 **Acceptance criteria**
 - [ ] Automated test fails when a new entity is added without `businessId` or a resolver without the tenant guard (prove by temporarily adding one).
-- [ ] Permission matrix test passes for all 93 permissions; a role with "View" cannot call a "Full" mutation.
+- [ ] Permission matrix test passes for all 94 permissions; a role with "View" cannot call a "Full" mutation.
 - [ ] Order intake turns bursts above the configured per-(store, device) and per-store rates into holds (never a 429 or a dropped order), only abuse-level per-IP limits return 429 at the edge; tampered or expired quote tokens are rejected (400/409).
 - [ ] The RLS spike result (overhead per table, adopt or not) is recorded in an ADR 0002 addendum.
 - [ ] No raw phone, token or secret appears in logs, error responses, exports (masked orders) or webhook logs (grep test on captured logs).

@@ -54,6 +54,7 @@ describe('enginePermissionsFor', () => {
   it.each([
     ['store.stores.view', 'ReadTenantStore'],
     ['store.stores.create', 'CreateTenantStore'],
+    ['store.stores.archive', 'DeleteTenantStore'],
     ['store.settings.edit', 'UpdateTenantStore'],
     ['settings.business.view', 'ReadTenantBusiness'],
     ['settings.business.edit', 'UpdateTenantBusiness'],

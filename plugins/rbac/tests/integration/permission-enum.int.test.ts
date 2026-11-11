@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createRbacTestEnvironment } from './rbac-test-environment';
 
 const SNOWFLAKE_WORKER_ID = 1009;
-const CATALOG_SIZE = 93;
+const CATALOG_SIZE = 94;
 const PERMISSION_NAME_PREFIX = /^Cod/;
 
 const PERMISSION_ENUM = gql`
@@ -60,7 +60,7 @@ describe('the Permission enum', () => {
     await server.destroy();
   });
 
-  it('lists the 93 catalog names and no other of ours', async () => {
+  it('lists the 94 catalog names and no other of ours', async () => {
     // Act
     const { __type } = await adminClient.query<PermissionEnum>(PERMISSION_ENUM);
 

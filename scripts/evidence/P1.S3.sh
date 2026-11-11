@@ -235,16 +235,16 @@ limited_admin=$(admin_id "$LIMITED"); owner_admin=$(admin_id "$OWNER"); second_a
 
 # --- catalog.md -------------------------------------------------------------------------------
 f="$out/api/catalog.md"
-begin "$f" "Permission catalog" "Every signed-in member reads it. 93 permissions in 12 areas."
-gql "$Q_CATALOG" '{}' "$limited" "$demo"; expect_ok catalog; assert_js catalog 'b.data.permissionCatalog.permissions.length===93 && b.data.permissionCatalog.areas.length===12' "$work/b"
+begin "$f" "Permission catalog" "Every signed-in member reads it. 94 permissions in 12 areas."
+gql "$Q_CATALOG" '{}' "$limited" "$demo"; expect_ok catalog; assert_js catalog 'b.data.permissionCatalog.permissions.length===94 && b.data.permissionCatalog.areas.length===12' "$work/b"
 emit "$f" "permissionCatalog" "$Q_CATALOG" '{}' "$limited" "$demo"
-rest GET /permissions/catalog - "$limited" "$demo"; expect_status "rest catalog" 200; assert_js "rest catalog" 'b.permissions.length===93' "$work/b"
+rest GET /permissions/catalog - "$limited" "$demo"; expect_status "rest catalog" 200; assert_js "rest catalog" 'b.permissions.length===94' "$work/b"
 emit_rest "$f" "GET /permissions/catalog" GET /permissions/catalog -
 
 # --- effective.md -----------------------------------------------------------------------------
 f="$out/api/effective.md"
 begin "$f" "Effective permissions" "What the caller holds on the active store. The dashboard hides controls from this answer and enforces nothing."
-gql "$Q_EFFECTIVE" '{}' "$owner" "$demo"; expect_ok effective; assert_js effective 'b.data.effectivePermissions.permissions.length===93 && b.data.effectivePermissions.storeAccess==="all"' "$work/b"
+gql "$Q_EFFECTIVE" '{}' "$owner" "$demo"; expect_ok effective; assert_js effective 'b.data.effectivePermissions.permissions.length===94 && b.data.effectivePermissions.storeAccess==="all"' "$work/b"
 emit "$f" "effectivePermissions, the owner" "$Q_EFFECTIVE" '{}' "$owner" "$demo"
 gql "$Q_EFFECTIVE" '{}' "$limited" "$demo"; expect_ok effective2; assert_js effective2 'b.data.effectivePermissions.permissions.length===2 && b.data.effectivePermissions.storeAccess==="selected"' "$work/b"
 emit "$f" "effectivePermissions, a limited member on a selected store" "$Q_EFFECTIVE" '{}' "$limited" "$demo"

@@ -28,6 +28,7 @@ const MANAGER_EXCLUDES = [
   'delivery.pricing.delete',
   'store.landing-pages.delete',
   'store.domains.remove',
+  'store.stores.archive',
   'apps.disconnect',
   'settings.business.edit',
 ];
@@ -49,7 +50,7 @@ describe('built-in roles', () => {
   it('has the documented sizes', () => {
     const sizes = BUILT_IN_ROLES.map((r) => r.permissions.length);
 
-    expect(sizes).toEqual([93, 77, 19, 12, 11, 3, 23]);
+    expect(sizes).toEqual([94, 77, 19, 12, 11, 3, 23]);
   });
 
   it('holds only unique catalog keys, sorted', () => {
@@ -60,10 +61,24 @@ describe('built-in roles', () => {
     }
   });
 
-  it('gives the manager everything except the 16 excluded keys', () => {
+  it('gives the manager everything except the 17 excluded keys', () => {
     const missing = PERMISSION_CATALOG.map((e) => e.key).filter((k) => !role('manager').permissions.includes(k));
 
     expect([...missing].sort()).toEqual([...MANAGER_EXCLUDES].sort());
+  });
+
+  it('lets only the owner archive stores', () => {
+    const holders = BUILT_IN_ROLES.filter((r) => r.permissions.includes('store.stores.archive')).map((r) => r.key);
+
+    expect(holders).toEqual(['owner']);
+  });
+
+  it('gives the store manager every Store and Products key except archiving stores', () => {
+    const inAreas = PERMISSION_CATALOG.filter((e) => e.area === 'store' || e.area === 'catalog').map((e) => e.key);
+    const missing = inAreas.filter((k) => !role('store-manager').permissions.includes(k));
+
+    expect(missing).toEqual(['store.stores.archive']);
+    expect(role('store-manager').permissions).toHaveLength(inAreas.length - missing.length);
   });
 
   it('gives the accountant finance, order views and view-all', () => {
