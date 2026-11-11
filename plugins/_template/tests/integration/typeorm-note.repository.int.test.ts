@@ -7,12 +7,13 @@ import { NoteEntity } from '../../infrastructure/note.entity';
 import { TypeOrmNoteRepository } from '../../infrastructure/typeorm-note.repository';
 import { TemplatePlugin } from '../../template.plugin';
 import { describeNoteRepositoryContract } from '../contract/note-repository.contract';
-import { TEST_REDIS_URL } from './template-note-operations';
+import { TEST_REDIS_URL, testRateLimitPlugin } from './template-note-operations';
 
 const LIST_INDEX_COLUMNS = '("businessId", "createdAt", id)';
 
 const { server } = createPluginTestEnvironment({
   plugins: [
+    testRateLimitPlugin(),
     TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1006 }),
     RbacPlugin,
     TemplatePlugin,

@@ -7,10 +7,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
 import { hostCacheKey } from '../../domain/constants';
 import { CustomDomainEntity } from '../../infrastructure/custom-domain.entity';
-import { TenancyPlugin } from '../../tenancy.plugin';
 import { ARCHIVE_STORE, CREATE_STORE, type StoreView } from './admin-api-operations';
 import { actAsOwner } from './admin-api-session';
-import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, TEST_REDIS_URL, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const FIELD_SET = ['businessId', 'language', 'logo', 'name', 'primaryHost', 'status', 'storeId'];
 const CACHED_HOSTS = [
@@ -24,7 +23,7 @@ const CACHED_HOSTS = [
 
 describe('store resolution over REST', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1011 })],
+    plugins: tenancyTestPlugins(1011),
     db: loadPluginTestDbConfig(process.env),
   });
   const probe = new Redis(TEST_REDIS_URL);
