@@ -18,7 +18,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "test:arch": "vitest run tests/architecture.test.ts tests/handler-permissions.test.ts tests/vendure-pins.test.ts tests/ci-workflow.test.ts tests/ci-dashboard-env.test.ts tests/browser-workflow.test.ts tests/turbo-config.test.ts tests/branding.test.ts tests/dockerfile.test.ts tests/eslint-rules.test.ts tests/eslint-raw-data.test.ts tests/eslint-size-rules.test.ts tests/tenant-sql-gate.test.ts tests/dashboard-styles.test.ts",
+    "test:arch": "vitest run tests/architecture.test.ts tests/handler-permissions.test.ts tests/vendure-pins.test.ts tests/ci-workflow.test.ts tests/workflow-hygiene.test.ts tests/ci-dashboard-env.test.ts tests/browser-workflow.test.ts tests/turbo-config.test.ts tests/branding.test.ts tests/dockerfile.test.ts tests/eslint-rules.test.ts tests/eslint-raw-data.test.ts tests/eslint-size-rules.test.ts tests/tenant-sql-gate.test.ts tests/dashboard-styles.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
