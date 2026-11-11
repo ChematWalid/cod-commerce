@@ -64,7 +64,7 @@ Everything a deployment changes is an environment variable; nothing is edited in
 | `apps/server/.env` (from `apps/server/.env.example`) | the host-run api, worker and migrate, and their tests | `loadEnv` (`apps/server/src/config/env.ts`): the process exits listing every invalid variable |
 | `apps/storefront/.env` (from `apps/storefront/.env.example`) | the host-run storefront | `loadStorefrontEnv` (`apps/storefront/src/config/storefront-env.ts`), from `instrumentation.ts`: the process exits listing every invalid variable |
 
-`pnpm test:arch` fails when a variable of either schema is missing from its `.env.example`, when `docker-compose.yml` reads a variable the root `.env.example` does not document, or when compose does not pass a schema variable to its containers.
+`pnpm test:arch` fails when a variable of either schema is missing from its `.env.example`, when `docker-compose.yml` reads a variable the root `.env.example` does not document, or when compose does not pass a schema variable to its containers. `pnpm lint` fails on a read of `process.env` in the server app, the storefront or a plugin outside the env modules (`packages/config/eslint/process-env.mjs` lists them).
 
 Compose lists each container's environment, so a variable reaches a container only through `docker-compose.yml`. An address or port as the containers see it has a `COMPOSE_` name, apart from the host-side value of the same setting (`API_PORT=3100` is the host-run api; `COMPOSE_API_PORT` is the port inside the api container). All are unset by default, which keeps the bundled services:
 
