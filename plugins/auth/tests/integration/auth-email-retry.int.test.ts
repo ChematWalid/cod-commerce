@@ -9,7 +9,7 @@ import { createAuthTestEnvironment } from './auth-test-environment';
 
 const TOKEN_SECRET = 'integration-test-only-secret-0000000000';
 /** Nothing listens here, so every connection is refused. */
-const DEAD_SMTP = { host: '127.0.0.1', port: 1, from: 'no-reply@localhost' };
+const DEAD_SMTP = { host: '127.0.0.1', port: 1, from: 'no-reply@localhost', tls: 'none' } as const;
 const WAIT_MS = 60_000;
 const POLL_MS = 200;
 
