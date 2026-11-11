@@ -95,7 +95,8 @@ export class DeliveryRunner {
   ): Promise<void> {
     const parked = error instanceof OutboxParkError;
     const last = job.attempts > job.retries;
-    if (!parked && !last) throw error;
+    // The queue stores and logs what is thrown, so a retry gets the same message-free text a delivery keeps (D105).
+    if (!parked && !last) throw new Error(describeFailure(error));
     const lastError = describeFailure(error);
     await this.ports.scopes.plain(toBusinessId(data.businessId), (scope) =>
       this.ports.store.finishDelivery(
