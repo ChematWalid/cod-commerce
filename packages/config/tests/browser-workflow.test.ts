@@ -103,7 +103,7 @@ describe('browser.yml', () => {
     const steps = job.steps ?? [];
     const order = [
       steps.findIndex((step) => step.uses === './.github/actions/setup'),
-      index('playwright-core install --with-deps chromium-headless-shell'),
+      index('playwright-core install chromium-headless-shell'),
       index('pnpm build'),
       index('build:dashboard'),
       index('apps/server/dist/main-migrate.js'),
