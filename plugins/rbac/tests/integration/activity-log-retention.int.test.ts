@@ -154,18 +154,35 @@ describe('activity_log partitioning, retention and append-only', () => {
     expect(asB.items.map((item) => item.entityId)).toEqual([idB]);
   });
 
-  it('keeps a partition 24 months old, with the archive reason, while no archive target exists', async () => {
-    // Act
-    const report = await maintain('2033-03-10T00:00:00.000Z');
+  it('keeps the current month and 24 before it as live, not as kept-past-retention', async () => {
+    // Act: March 2032 retains back to March 2030 inclusive
+    const report = await maintain('2032-03-10T00:00:00.000Z');
 
     // Assert
-    expect(report.kept).toContainEqual({
-      partition: 'activity_log_p203003',
-      reason: ACTIVITY_LOG_ARCHIVE_PENDING_REASON,
-    });
-    expect(ACTIVITY_LOG_ARCHIVE_PENDING_REASON).toBe('archive target not built (ADR 0016: archive (security))');
-    expect(report.dropped).not.toContain('activity_log_p203003');
+    const keptNames = report.kept.map((entry) => entry.partition);
+    expect(keptNames).not.toContain('activity_log_p203003');
+    expect(keptNames).not.toContain('activity_log_p203004');
+    expect(report.dropped).toEqual([]);
     expect(await partitions()).toContain('activity_log_p203003');
+  });
+
+  it('keeps the first partition past 24 months, with the archive reason, while no archive target exists', async () => {
+    // Arrange: April 2032 puts March 2030 one month past the 24 retained
+    const before = await partitions();
+    const pastRetention = before.filter((name) => name.slice(-6) < '203004');
+
+    // Act
+    const report = await maintain('2032-04-10T00:00:00.000Z');
+
+    // Assert: exactly the partitions that ended by 2030-04-01, none younger
+    expect(pastRetention).toContain('activity_log_p203003');
+    expect(report.kept).toEqual(
+      pastRetention.map((partition) => ({ partition, reason: ACTIVITY_LOG_ARCHIVE_PENDING_REASON })),
+    );
+    expect(report.kept.map((entry) => entry.partition)).not.toContain('activity_log_p203004');
+    expect(ACTIVITY_LOG_ARCHIVE_PENDING_REASON).toBe('archive target not built (ADR 0016: archive (security))');
+    expect(report.dropped).toEqual([]);
+    expect(await partitions()).toEqual(expect.arrayContaining(pastRetention));
   });
 
   it('lets TRUNCATE through, for test resets', async () => {
