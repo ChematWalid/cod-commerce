@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
+import { TEMPLATE_HOLE, withoutSqlComments } from './sql-text';
+import { FORBIDDEN_SQL } from './tenant-sql-rules';
 
 /** A string in the sources that opens session-scoped Postgres state. */
 export interface TenantSqlViolation {
@@ -12,6 +14,9 @@ export interface TenantSqlViolation {
 /** Where SQL can live, relative to the repository root. */
 const SCANNED_ROOTS = ['plugins', 'apps/server/src'];
 
+/** TypeScript and JavaScript sources, wherever SQL strings can be written. */
+const SOURCE_FILE = /\.(?:ts|tsx|mts|cts|js|mjs|cjs)$/;
+
 /** Generated code, skipped at any depth. */
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', '.turbo', '.vendure']);
 
@@ -20,30 +25,6 @@ const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', '.turbo', '.vendure
  * no SQL), skipped only as direct children of `plugins/<name>/`, so a folder of that name deeper down is scanned.
  */
 const SKIPPED_PLUGIN_FOLDERS = new Set(['tests', 'dashboard']);
-
-/** A session `SET`: the forms without `=`/`TO`, or an assignment that is not `SET LOCAL`. */
-const SESSION_SET = /(?:^|;)\s*SET\s+(?:(?:SESSION|ROLE|SCHEMA|NAMES|TIME\s+ZONE)\s|(?!LOCAL\b)[\w."]+\s*(?:=|TO\b))/i;
-
-/**
- * PgBouncer hands a backend to the next client between transactions, so session state crosses tenants (ADR 0016
- * §6). Keywords match in any letter case; each pattern needs SQL shape (an assignment, a name then `AS`, a
- * statement end), so prose such as "Set your subdomain" or "Listen to the webhook" does not match.
- */
-const FORBIDDEN_SQL: readonly { readonly rule: string; readonly pattern: RegExp }[] = [
-  { rule: 'session-set', pattern: SESSION_SET },
-  { rule: 'session-set-config', pattern: /\bset_config\s*\(.*?,\s*false\s*\)/is },
-  { rule: 'session-advisory-lock', pattern: /\bpg_(?:try_)?advisory_lock(?:_shared)?\s*\(/i },
-  { rule: 'listen', pattern: /(?:^|;)\s*LISTEN\s+[\w"]+\s*(?:;|$)/i },
-  {
-    rule: 'temporary-table',
-    pattern: /\bCREATE\s+(?:(?:GLOBAL|LOCAL)\s+)?(?:TEMP|TEMPORARY)\s+TABLE\b(?![^;]*\bON\s+COMMIT\s+DROP\b)/i,
-  },
-  { rule: 'prepared-statement', pattern: /(?:^|;)\s*PREPARE\s+[\w"]+\s*(?:\(|AS\b)/i },
-  { rule: 'cursor-with-hold', pattern: /\bCURSOR\s+WITH\s+HOLD\b/i },
-];
-
-/** SQL comments hide nothing: a statement after `-- note` or `/* note *\/` is still a statement. */
-const withoutSqlComments = (sql: string): string => sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, ' ');
 
 /** The migrate role's lock runs on a direct connection of its own, which ADR 0016 §6 allows. */
 const DIRECT_CONNECTION_EXCEPTIONS: readonly { readonly file: string; readonly rule: string }[] = [
@@ -63,19 +44,21 @@ function stringsOf(source: ts.SourceFile): readonly ts.Node[] {
   return found;
 }
 
-/** A template's text with its `${}` holes replaced, so a keyword after a hole is still seen. */
+/** A template's text with each `${}` hole replaced by an identifier, so a dynamic name keeps its SQL shape. */
 function textOf(node: ts.Node): string {
   if (!ts.isTemplateExpression(node)) return (node as ts.StringLiteralLike).text;
-  return [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join('$');
+  return [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join(TEMPLATE_HOLE);
 }
+
+const scriptKindOf = (file: string): ts.ScriptKind => (file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 
 /** The forbidden statements in one file's string literals and templates. */
 export function findForbiddenSql(file: string, content: string): TenantSqlViolation[] {
-  const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true, scriptKindOf(file));
   return stringsOf(source).flatMap((node) => {
     const text = withoutSqlComments(textOf(node));
     const line = source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
-    return FORBIDDEN_SQL.filter(({ pattern }) => pattern.test(text)).map(({ rule }) => ({ file, line, rule }));
+    return FORBIDDEN_SQL.filter(({ matches }) => matches(text)).map(({ rule }) => ({ file, line, rule }));
   });
 }
 
@@ -92,7 +75,7 @@ function sourceFilesUnder(repoRoot: string, directory: string): string[] {
       const skipped = SKIPPED_DIRECTORIES.has(entry.name) || isSkippedPluginFolder(relative(repoRoot, path));
       return skipped ? [] : sourceFilesUnder(repoRoot, path);
     }
-    return entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts') ? [path] : [];
+    return SOURCE_FILE.test(entry.name) && !entry.name.endsWith('.d.ts') ? [path] : [];
   });
 }
 
