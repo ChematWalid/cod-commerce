@@ -12,10 +12,14 @@ import type {
 import type { OutboxConsumerRegistry } from './consumer-registry';
 import type { JobAttemptInfo, OutboxEnvironment, OutboxPorts } from './ports';
 
-/** What a delivery keeps of a failure: its name and message, cut to the column. Never the payload (D105). */
-function describeFailure(error: unknown): string {
-  const text = error instanceof Error ? `${error.name}: ${error.message}` : typeof error;
-  return text.slice(0, OUTBOX_LAST_ERROR_MAX_LENGTH);
+/**
+ * What a delivery keeps of a failure: the error class and its domain code, cut to the column. Never the message, which
+ * can quote payload or personal values (D105).
+ */
+export function describeFailure(error: unknown): string {
+  const kind = error instanceof Error ? error.constructor.name : typeof error;
+  const code = error instanceof DomainError ? error.code : 'unexpected';
+  return `${kind} (${code})`.slice(0, OUTBOX_LAST_ERROR_MAX_LENGTH);
 }
 
 function deliveryOf(data: OutboxDeliveryJobData, event: OutboxEventRecord, attempt: number): OutboxDelivery {

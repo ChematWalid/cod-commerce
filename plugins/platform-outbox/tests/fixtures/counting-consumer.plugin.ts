@@ -24,13 +24,10 @@ export class CountingSeenEntity {
 /** What each delivery's handler saw through its scope: the outbox event ids the scope's business can read. */
 export const seenThroughScope = new Map<string, string[]>();
 
-/** A message far over the 500 characters `lastError` keeps, with no part of any payload in it. */
-export const LONG_FAILURE_MESSAGE = `boom ${'x'.repeat(2000)}`;
-
 /**
  * Four consumers. `counting` (`platform.demo`, queue `order-effects`) records its run and fails while the payload's
  * `failUntilAttempt` is not reached; `bystander` listens to another topic; `always-failing` (`product.changed`, queue
- * `analytics`) never succeeds; `parking` parks its delivery.
+ * `analytics`) never succeeds and puts the payload's `note` in its error message; `parking` parks its delivery.
  */
 @VendurePlugin({
   imports: [PluginCommonModule, TenancyPlugin, PlatformOutboxPlugin],
@@ -50,7 +47,7 @@ export class CountingConsumerPlugin {
       name: 'always-failing',
       topics: ['product.changed'],
       queue: 'analytics',
-      handle: () => Promise.reject(new Error(LONG_FAILURE_MESSAGE)),
+      handle: (delivery) => Promise.reject(new Error(`boom ${String(delivery.payload['note'])}`)),
     });
     this.registry.register({
       name: 'parking',

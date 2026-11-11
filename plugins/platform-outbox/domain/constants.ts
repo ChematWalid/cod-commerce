@@ -26,5 +26,8 @@ export const OUTBOX_DEDUPE_KEY_MAX_LENGTH = 200;
 /** An id of an outbox event or aggregate: a snowflake in decimal form. */
 export const OUTBOX_ID_FORMAT = /^[1-9][0-9]{0,18}$/;
 
+/** The largest value of the `bigint` columns an id lands in. */
+export const OUTBOX_ID_MAX = 9223372036854775807n;
+
 /** The queue of relay jobs (D101). */
 export const OUTBOX_RELAY_QUEUE = 'outbox-relay' as const;

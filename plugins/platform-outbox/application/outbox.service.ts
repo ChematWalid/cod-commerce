@@ -1,12 +1,13 @@
-import { type OutboxPayload, type TenantScope, validateOutboxPayload } from '@cod/shared';
-import { OUTBOX_DEDUPE_KEY_MAX_LENGTH, OUTBOX_ID_FORMAT } from '../domain/constants';
+import { isOutboxTopic, type OutboxPayload, type TenantScope, validateOutboxPayload } from '@cod/shared';
+import { OUTBOX_DEDUPE_KEY_MAX_LENGTH, OUTBOX_ID_FORMAT, OUTBOX_ID_MAX } from '../domain/constants';
 import { OutboxInputInvalidError } from '../domain/errors';
 import type { OutboxEventInput, OutboxEventRef } from '../domain/outbox-event';
 import type { OutboxAnnouncerPort, OutboxClock, OutboxIdSource, OutboxStorePort } from './ports';
 
 function checkId(field: string, value: string | undefined): string | null {
   if (value === undefined) return null;
-  if (!OUTBOX_ID_FORMAT.test(value)) throw new OutboxInputInvalidError(`${field} is not an id`);
+  if (!OUTBOX_ID_FORMAT.test(value) || BigInt(value) > OUTBOX_ID_MAX)
+    throw new OutboxInputInvalidError(`${field} is not an id`);
   return value;
 }
 
@@ -33,9 +34,10 @@ export class OutboxService {
   /**
    * Writes one event for the scope's business. The business is never read from the payload.
    * @throws OutboxTransactionRequiredError outside a transaction, OutboxPayloadRejectedError for a payload the
-   * outbox refuses and OutboxInputInvalidError for a malformed id or key.
+   * outbox refuses and OutboxInputInvalidError for a malformed id or key or an unregistered topic.
    */
   async add(scope: TenantScope, input: OutboxEventInput): Promise<OutboxEventRef> {
+    if (!isOutboxTopic(input.topic)) throw new OutboxInputInvalidError('topic is not registered');
     const payload: OutboxPayload = validateOutboxPayload(input.payload);
     const storeId = checkId('storeId', input.storeId);
     const aggregateId = checkId('aggregateId', input.aggregateId);

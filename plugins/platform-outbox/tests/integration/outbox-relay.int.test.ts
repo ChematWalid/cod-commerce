@@ -2,11 +2,9 @@ import { PLUGIN_TEST_INITIAL_DATA, createTwoBusinesses, type TwoBusinesses } fro
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DeliveryRunner } from '../../application/delivery-runner';
 import { OutboxRelayService } from '../../application/outbox-relay.service';
-import { LONG_FAILURE_MESSAGE } from '../fixtures/counting-consumer.plugin';
 import { createOutboxTestEnvironment, outboxKit, until } from './outbox-kit';
 
 const SNOWFLAKE_WORKER_ID = 1021;
-const LAST_ERROR_MAX = 500;
 
 interface DeliveryRow {
   consumer: string;
@@ -82,18 +80,16 @@ describe('outbox relay and delivery', () => {
     await settled(ref.id, 1);
 
     // Act
-    await server.app
-      .get(DeliveryRunner)
-      .run(
-        {
-          jobId: `od-${ref.id}-counting`,
-          outboxId: ref.id,
-          createdAt: ref.createdAt,
-          businessId: businesses.a.businessId,
-          consumer: 'counting',
-        },
-        { attempts: 1, retries: 7 },
-      );
+    await server.app.get(DeliveryRunner).run(
+      {
+        jobId: `od-${ref.id}-counting`,
+        outboxId: ref.id,
+        createdAt: ref.createdAt,
+        businessId: businesses.a.businessId,
+        consumer: 'counting',
+      },
+      { attempts: 1, retries: 7 },
+    );
 
     // Assert
     expect(await seen(`${ref.id}:counting`)).toBe(1);
@@ -115,7 +111,7 @@ describe('outbox relay and delivery', () => {
     expect(await seen(`${ref.id}:counting`)).toBe(1);
   });
 
-  it('ends failed on the last attempt with a truncated error that holds no payload', async () => {
+  it('ends failed on the last attempt with an error that holds no payload', async () => {
     // Arrange
     const ref = await kit.commitEvent(businesses.a.businessId, {
       topic: 'product.changed',
@@ -127,10 +123,7 @@ describe('outbox relay and delivery', () => {
 
     // Assert
     expect(rows).toMatchObject([{ consumer: 'always-failing', status: 'failed', attempts: 3 }]);
-    const lastError = rows[0]?.lastError ?? '';
-    expect(lastError).toHaveLength(LAST_ERROR_MAX);
-    expect(lastError).toContain(LONG_FAILURE_MESSAGE.slice(0, 20));
-    expect(lastError).not.toContain('PAYLOAD-MARKER');
+    expect(rows[0]?.lastError).toBe('Error (unexpected)');
   });
 
   it('parks a delivery whose handler asks to', async () => {
