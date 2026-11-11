@@ -87,6 +87,21 @@ export class InProcessBucket {
     return { locked: true, retryAfterSeconds: durationSeconds };
   }
 
+  /**
+   * Records a lockout decided elsewhere (in Valkey) that ends `remainingSeconds` from now, so it still holds
+   * here if Valkey becomes unreachable. Never shortens a lockout this process already holds.
+   */
+  holdLockout(key: string, remainingSeconds: number): void {
+    const nowMs = this.now();
+    const previous = this.lockouts.get(key);
+    const lockedUntilMs = Math.max(previous?.lockedUntilMs ?? 0, nowMs + remainingSeconds * MS_PER_SECOND);
+    const forgetAtMs = lockedUntilMs + LOCKOUT_MEMORY_SECONDS * MS_PER_SECOND;
+    const longest = Math.max(previous?.durationSeconds ?? 0, remainingSeconds);
+    this.lockouts.delete(key);
+    this.lockouts.set(key, { lockedUntilMs, durationSeconds: longest, forgetAtMs, expiresAtMs: forgetAtMs });
+    prune(this.lockouts, this.maxEntries, nowMs);
+  }
+
   /** Whether `key` is locked out now, and for how many more seconds. */
   isLocked(key: string): LockoutStatus {
     const lockout = this.lockouts.get(key);
