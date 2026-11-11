@@ -6,6 +6,10 @@ const FRAMEWORK_MODULES = '^(@nestjs|@vendure)/|^typeorm(/|$)|node_modules/(@nes
 /** The tenancy entry point that exposes the superadmin context and the unscoped business directory. */
 const TENANCY_PROVISIONING_ENTRY = '^plugins/tenancy/provisioning[.]ts$';
 
+/** The platform plugins whose entry points the others may import from infrastructure/ and api/ (D121). */
+const PLATFORM_ENTRY =
+  '^plugins/(platform-jobs|platform-outbox|platform-partitions|platform-secrets|platform-flags)/index[.]ts$';
+
 /** The rbac entry point that exposes `requirePermission` and nothing else (D58). */
 const RBAC_GUARD_ENTRY = '^plugins/rbac/guard[.]ts$';
 
@@ -58,15 +62,15 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'plugin-core-no-tenancy-entry',
     comment:
-      'domain/ and application/ stay framework-free: the tenancy and rate-limit entry points export TypeORM and Vendure classes.',
+      'domain/ and application/ stay framework-free: the tenancy, rate-limit and platform entry points export TypeORM and Vendure classes (D121).',
     severity: 'error',
     from: { path: '^plugins/[^/]+/(domain|application)/' },
-    to: { path: '^plugins/(tenancy|rate-limit)/index[.]ts$' },
+    to: { path: `^plugins/(tenancy|rate-limit)/index[.]ts$|${PLATFORM_ENTRY}` },
   },
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points and the rbac guard entry (D58), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121) and the rbac guard entry (D58), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -74,6 +78,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
       pathNot: [
         '^plugins/$1/',
         '^plugins/(tenancy|rate-limit)/index[.]ts$',
+        PLATFORM_ENTRY,
         TENANCY_PROVISIONING_ENTRY,
         RBAC_GUARD_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,

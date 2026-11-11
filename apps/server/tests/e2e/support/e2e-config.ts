@@ -1,4 +1,5 @@
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import { type QueuePool, toPostgresFields } from '@cod/shared';
 import {
   DefaultLogger,
@@ -9,7 +10,7 @@ import {
   type VendureConfig,
 } from '@vendure/core';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
-import { PostgresInitializer, registerInitializer, testConfig } from '@vendure/testing';
+import { PostgresInitializer, registerInitializer, type TestServer, testConfig } from '@vendure/testing';
 import { Redis } from 'ioredis';
 import { buildDbConfig } from '../../../src/config/db.config';
 import { type AppEnv, loadEnv, type ServerRole } from '../../../src/config/env';
@@ -119,6 +120,14 @@ export function buildE2eConfig(overrides: Partial<VendureConfig>, options: E2eCo
   };
   const plugins = [...base.plugins, ...(overrides.plugins ?? [])];
   return mergeConfig(base, { ...overrides, plugins });
+}
+
+/**
+ * Makes the partitions an e2e file's writes need. An e2e boot runs the api role and never the migrate role's
+ * maintenance, so a file that writes to a partitioned table calls this after `server.init`, with the `now` of its rows.
+ */
+export async function afterE2eInit(server: TestServer, now: Date = new Date()): Promise<void> {
+  await server.app.get(PartitionMaintenanceService).maintain(now);
 }
 
 /** Algeria and its zero tax rate: the minimum Vendure's test population needs. */

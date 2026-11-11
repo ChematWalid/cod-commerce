@@ -3,6 +3,7 @@ import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOpt
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
@@ -40,6 +41,14 @@ const hardenPlugin = (env: AppEnv): VendurePluginEntry =>
   HardenPlugin.init({
     maxQueryComplexity: HARDEN_MAX_QUERY_COMPLEXITY,
     apiMode: env.APP_ENV === 'production' ? 'prod' : 'dev',
+  });
+
+/** The readiness probes; only the worker serves its own health port. */
+const healthPlugin = (env: AppEnv, role: ServerRole): VendurePluginEntry =>
+  PlatformHealthPlugin.init({
+    redisUrl: env.REDIS_URL,
+    workerHealthPort: env.WORKER_HEALTH_PORT,
+    serveWorkerHealth: role === 'worker',
   });
 
 /** The OAuth flag: the options stay absent while it is off, and that absence is what switches the feature off (D36). */
@@ -114,17 +123,15 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     // Right after BullMQ's plugin: its configuration replaces the stock strategy and index task with the pooled
     // ones (D100), and the stock plugin keeps providing the Redis health indicator the pools use.
     PlatformJobsPlugin.init({ redisUrl: env.REDIS_URL, appEnv: env.APP_ENV, pooledQueues: bullMqOptions(env) }),
+    // Owning plugins register their tables' partition policies in `onModuleInit`; the registry closes at bootstrap.
+    PlatformPartitionsPlugin,
     // Sessions live in this cache, so environments sharing a Valkey must never read each other's keys.
     RedisCachePlugin.init({
       redisOptions: redisOptionsFromUrl(env.REDIS_URL),
       namespace: `${CACHE_NAMESPACE_PREFIX}:${env.APP_ENV}`,
     }),
     DefaultSchedulerPlugin.init(),
-    PlatformHealthPlugin.init({
-      redisUrl: env.REDIS_URL,
-      workerHealthPort: env.WORKER_HEALTH_PORT,
-      serveWorkerHealth: role === 'worker',
-    }),
+    healthPlugin(env, role),
     TemplatePlugin,
     // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),

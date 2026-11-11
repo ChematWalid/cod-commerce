@@ -6,6 +6,7 @@ import {
   RbacConvergeService,
   SESSION_FLUSH_SETTLE_MS,
 } from '@cod/plugin-rbac';
+import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import { toPostgresFields } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
 import { bootstrapWorker, Logger, type MigrationDiagnostic, runMigrations } from '@vendure/core';
@@ -153,21 +154,32 @@ async function convergeRoles(app: INestApplicationContext): Promise<ConvergeRepo
 }
 
 /**
+ * Makes the next partitions and drops the expired ones, once after the migrations (D106), so a fresh database has
+ * today's partitions before the first api request. A table that fails rejects this and the migrate exits non-zero.
+ */
+async function maintainPartitions(app: INestApplicationContext): Promise<void> {
+  const report = await app.get(PartitionMaintenanceService).maintain(new Date());
+  Logger.info(
+    `Partitions: ${String(report.created.length)} created, ${String(report.dropped.length)} dropped, ` +
+      `${String(report.kept.length)} kept, ${String(report.scrubbed.length)} scrubbed`,
+    CONVERGE_LOG_CONTEXT,
+  );
+}
+
+/**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
- * queue to seed the platform defaults and converge the roles of existing businesses. Concurrent runs are serialised, so each migration applies once; one that cannot get the lock in time throws
+ * queue to seed the platform defaults, converge the roles of existing businesses and maintain the partitions. Concurrent runs are serialised, so each migration applies once; one that cannot get the lock in time throws
  * {@link MigrationLockTimeoutError}.
  */
-export async function runMigrate(
-  env: AppEnv,
-  options: { lockWaitMs?: number } = {},
-): Promise<MigrateReport> {
+export async function runMigrate(env: AppEnv, options: { lockWaitMs?: number } = {}): Promise<MigrateReport> {
   return withMigrateLock(env, options.lockWaitMs ?? MIGRATE_LOCK_WAIT_MS, async () => {
     const migrationsRun = await runMigrationsOrThrow(buildVendureConfig(env, 'migrate'));
     const worker = await bootstrapWorker(buildVendureConfig(env, 'migrate'));
     try {
       const seed = await seedPlatformDefaults(worker.app);
       const rbacConverged = await convergeRoles(worker.app);
+      await maintainPartitions(worker.app);
       return { migrationsRun, seed, rbacConverged };
     } finally {
       await worker.app.close();

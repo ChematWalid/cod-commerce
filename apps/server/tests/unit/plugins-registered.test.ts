@@ -1,5 +1,6 @@
 import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
@@ -37,6 +38,18 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TemplatePlugin);
+  });
+
+  // The migrate role runs the first maintenance, and every role needs the registry that owning plugins fill.
+  it.each(SERVER_ROLES)('registers PlatformPartitionsPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformPartitionsPlugin);
   });
 
   it.each(SERVER_ROLES)(
