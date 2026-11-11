@@ -25,6 +25,7 @@ import { CANCEL_ORDER } from './built-in-roles-kit';
 import { createConvergeKit, UPDATE_STORE } from './converge-kit';
 import { actAs } from './rbac-kit';
 import { createRbacTestEnvironment } from './rbac-test-environment';
+import { settleSessionFlushes } from './session-kit';
 
 const SNOWFLAKE_WORKER_ID = 1015;
 const BUILT_IN_COUNT = 7;
@@ -117,6 +118,8 @@ describe('Converging the roles of existing businesses', () => {
 
     it('changes nothing and flushes nobody on a second run', async () => {
       const before = await Promise.all([rolesOf(businesses.a.businessId), rolesOf(businesses.b.businessId)]);
+      // The first test's flush repeats its delete later; a spy installed before that would count it as ours.
+      await settleSessionFlushes();
       const deleted = spyOnCacheDelete();
       const writes = [
         vi.spyOn(engine(), 'updatePermissions'),
