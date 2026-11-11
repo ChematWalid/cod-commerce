@@ -3,6 +3,11 @@ export interface WarnLogger {
   warn(message: string, context?: string): void;
 }
 
+/** The part of a Vendure-style logger the readiness service uses to record why a probe failed. */
+export interface ErrorLogger {
+  error(message: string, context?: string): void;
+}
+
 /** Reads Valkey's `maxmemory-policy`. */
 export interface EvictionPolicyReader {
   /**
