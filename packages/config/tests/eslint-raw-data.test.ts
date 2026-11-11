@@ -85,6 +85,7 @@ const RAW_DATA_ALLOWED_FILES = [
   'plugins/rbac/infrastructure/vendure-actor-directory.ts',
   'plugins/platform-partitions/infrastructure/postgres-partition-catalog.ts',
   'plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
+  'plugins/platform-outbox/infrastructure/outbox-due-scan.ts',
   'plugins/platform-health/platform-health.plugin.ts',
   'plugins/platform-health/infrastructure/postgres.probe.ts',
   'plugins/platform-health/infrastructure/migrations.probe.ts',

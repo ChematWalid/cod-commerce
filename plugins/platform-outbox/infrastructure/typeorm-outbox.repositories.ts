@@ -139,6 +139,14 @@ export class TypeOrmOutboxStore implements OutboxStorePort {
     return (await this.deliveries.findOne(scope, deliveryWhere(key)))?.attempts ?? null;
   }
 
+  async markReenqueued(scope: TenantScope, key: OutboxDeliveryKey, at: Date): Promise<void> {
+    await this.deliveries.update(
+      scope,
+      { ...deliveryWhere(key), status: In(OPEN_STATUSES) as never },
+      { status: 'enqueued', enqueuedAt: at, updatedAt: at },
+    );
+  }
+
   async finishDelivery(
     scope: TenantScope,
     key: OutboxDeliveryKey,

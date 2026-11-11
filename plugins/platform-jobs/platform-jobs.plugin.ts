@@ -1,14 +1,17 @@
 import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import type { BullMQPluginOptions } from '@vendure/job-queue-plugin/package/bullmq';
 import { JOB_PRESENCE, TASK_HEARTBEAT_WRITER } from './application/tokens';
+import { JobReconciler } from './application/job-reconciler';
 import { PlatformQueues } from './application/platform-queues';
 import { CircuitBreaker } from './domain/breaker';
 import { PLATFORM_CLOCK, type PlatformClock, SYSTEM_CLOCK } from './domain/clock.port';
-import { CLEAN_JOB_QUEUE_INDEX_TASK_ID } from './domain/constants';
+import { CLEAN_JOB_QUEUE_INDEX_TASK_ID, JOB_RECONCILER_TASK_ID } from './domain/constants';
+import type { JobPresencePort } from './domain/job-presence.port';
 import { BusinessSemaphore } from './domain/semaphore';
 import { TaskHeartbeatReader } from './domain/task-heartbeat.port';
 import { BullMqJobPresence } from './infrastructure/bullmq-job-presence';
 import { cleanPoolIndexesTask } from './infrastructure/clean-pool-indexes.task';
+import { jobReconcilerTask } from './infrastructure/job-reconciler.task';
 import { PooledJobQueueStrategy } from './infrastructure/pooled-job-queue.strategy';
 import { TaskHeartbeatEntity } from './infrastructure/task-heartbeat.entity';
 import { TaskHeartbeatRepository } from './infrastructure/task-heartbeat.repository';
@@ -30,7 +33,8 @@ export interface PlatformJobsPluginOptions {
 
 /**
  * Installs the pooled strategy and the index task of every pool in place of the stock ones that
- * `BullMQJobQueuePlugin` set, which is why this plugin is listed after it (D100).
+ * `BullMQJobQueuePlugin` set, which is why this plugin is listed after it (D100), and the job reconciler task, which
+ * reads job presence from the pooled strategy (D105).
  */
 export function configurePlatformJobs(
   config: RuntimeVendureConfig,
@@ -42,8 +46,11 @@ export function configurePlatformJobs(
     bullMq: options.pooledQueues,
   });
   config.schedulerOptions.tasks = [
-    ...config.schedulerOptions.tasks.filter((task) => task.id !== CLEAN_JOB_QUEUE_INDEX_TASK_ID),
+    ...config.schedulerOptions.tasks.filter(
+      (task) => task.id !== CLEAN_JOB_QUEUE_INDEX_TASK_ID && task.id !== JOB_RECONCILER_TASK_ID,
+    ),
     cleanPoolIndexesTask,
+    jobReconcilerTask,
   ];
   return config;
 }
@@ -82,6 +89,24 @@ function createPlatformValkey(clock: PlatformClock): PlatformValkey {
     { provide: JOB_PRESENCE, useClass: BullMqJobPresence },
     { provide: PLATFORM_CLOCK, useFactory: () => PlatformJobsPlugin.options?.clock ?? SYSTEM_CLOCK },
     { provide: PlatformQueues, useClass: VendurePlatformQueues },
+    {
+      provide: JobReconciler,
+      useFactory: (presence: JobPresencePort, queues: PlatformQueues, clock: PlatformClock) =>
+        new JobReconciler({
+          presence,
+          queues,
+          clock,
+          logger: {
+            error: (message) => {
+              Logger.error(message, LOG_CONTEXT);
+            },
+            warn: (message) => {
+              Logger.warn(message, LOG_CONTEXT);
+            },
+          },
+        }),
+      inject: [JOB_PRESENCE, PlatformQueues, PLATFORM_CLOCK],
+    },
     TaskHeartbeatRepository,
     { provide: TaskHeartbeatReader, useExisting: TaskHeartbeatRepository },
     { provide: TASK_HEARTBEAT_WRITER, useExisting: TaskHeartbeatRepository },
@@ -99,7 +124,16 @@ function createPlatformValkey(clock: PlatformClock): PlatformValkey {
       inject: [PlatformValkey, PLATFORM_CLOCK],
     },
   ],
-  exports: [JOB_PRESENCE, PLATFORM_CLOCK, BusinessSemaphore, CircuitBreaker, PlatformQueues, TaskHeartbeatReader],
+  exports: [
+    JOB_PRESENCE,
+    PLATFORM_CLOCK,
+    BusinessSemaphore,
+    CircuitBreaker,
+    JobReconciler,
+    PlatformQueues,
+    TASK_HEARTBEAT_WRITER,
+    TaskHeartbeatReader,
+  ],
   compatibility: '^3.8.0',
 })
 // A Vendure plugin is a decorated class; its body stays empty when its metadata is the whole plugin.

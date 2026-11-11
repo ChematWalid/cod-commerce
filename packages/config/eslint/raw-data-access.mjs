@@ -56,6 +56,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-partitions/infrastructure/postgres-partition-catalog.ts',
   // `keepIf` reads per partition whether an outbox row is still open: a cross-tenant check that names no business and returns no row (D107).
   '**/plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
+  // Platform scan of due outbox rows for the sweeper, the reconciler and the jobs health: ids, `businessId`, statuses and times only (D125).
+  '**/plugins/platform-outbox/infrastructure/outbox-due-scan.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.

@@ -1,4 +1,4 @@
-import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformJobsPlugin, type PlatformClock } from '@cod/plugin-platform-jobs';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RequestTenantScope, TenancyPlugin } from '@cod/plugin-tenancy';
@@ -25,10 +25,14 @@ type Environment = ReturnType<typeof createPluginTestEnvironment>;
  * A Vendure test server with tenancy, the outbox and the counting consumers. `synchronize` cannot make the
  * partitioned tables, so `server.init` also creates them and their current partitions (D106).
  */
-export function createOutboxTestEnvironment(snowflakeWorkerId: number): Environment {
+export function createOutboxTestEnvironment(snowflakeWorkerId: number, clock?: PlatformClock): Environment {
   const environment = createPluginTestEnvironment({
     plugins: [
-      PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: 'test-platform-outbox' }),
+      PlatformJobsPlugin.init({
+        redisUrl: TEST_REDIS_URL,
+        appEnv: 'test-platform-outbox',
+        ...(clock === undefined ? {} : { clock }),
+      }),
       PlatformPartitionsPlugin,
       // Tenancy keys its limiter by `req.ip`: these tests send no client address header.
       RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: '' }),

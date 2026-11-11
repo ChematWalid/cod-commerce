@@ -1,4 +1,5 @@
 export { OutboxConsumerRegistry } from './application/consumer-registry';
+export { OutboxSweeper } from './application/outbox-sweeper';
 export { OutboxService } from './application/outbox.service';
 export { OUTBOX_RELAY_QUEUE } from './domain/constants';
 export { DELIVERY_STATUSES, type DeliveryStatus, EVENT_STATUSES, type EventStatus } from './domain/delivery-status';

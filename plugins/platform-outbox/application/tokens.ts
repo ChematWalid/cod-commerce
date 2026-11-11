@@ -8,3 +8,4 @@ export const OUTBOX_IDS = Symbol('OUTBOX_IDS');
 export const OUTBOX_CLOCK = Symbol('OUTBOX_CLOCK');
 export const OUTBOX_PORTS = Symbol('OUTBOX_PORTS');
 export const OUTBOX_ENVIRONMENT = Symbol('OUTBOX_ENVIRONMENT');
+export const OUTBOX_DUE_SCAN = Symbol('OUTBOX_DUE_SCAN');

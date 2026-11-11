@@ -2,6 +2,7 @@ import { type RuntimeVendureConfig, ScheduledTask } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { CLEAN_JOB_QUEUE_INDEX_TASK_ID } from '../../domain/constants';
 import { cleanPoolIndexesTask } from '../../infrastructure/clean-pool-indexes.task';
+import { jobReconcilerTask } from '../../infrastructure/job-reconciler.task';
 import { PooledJobQueueStrategy } from '../../infrastructure/pooled-job-queue.strategy';
 import { configurePlatformJobs } from '../../platform-jobs.plugin';
 
@@ -25,7 +26,7 @@ const configWithStockQueue = (): RuntimeVendureConfig =>
   }) as unknown as RuntimeVendureConfig;
 
 describe('configurePlatformJobs', () => {
-  it('installs the pooled strategy and the index task of every pool', () => {
+  it('installs the pooled strategy, the index task of every pool and the job reconciler', () => {
     // Act
     const config = configurePlatformJobs(configWithStockQueue(), {
       redisUrl: 'redis://valkey:6379',
@@ -35,7 +36,7 @@ describe('configurePlatformJobs', () => {
 
     // Assert
     expect(config.jobQueueOptions.jobQueueStrategy).toBeInstanceOf(PooledJobQueueStrategy);
-    expect(config.schedulerOptions.tasks).toEqual([otherTask, cleanPoolIndexesTask]);
+    expect(config.schedulerOptions.tasks).toEqual([otherTask, cleanPoolIndexesTask, jobReconcilerTask]);
     expect(cleanPoolIndexesTask.id).toBe(CLEAN_JOB_QUEUE_INDEX_TASK_ID);
   });
 

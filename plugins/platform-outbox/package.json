@@ -21,7 +21,9 @@
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
+    "@nestjs/graphql": "14.0.3",
     "@vendure/core": "3.8.1",
+    "graphql-tag": "2.12.7",
     "typeorm": "0.3.31"
   },
   "devDependencies": {

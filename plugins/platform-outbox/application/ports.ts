@@ -47,6 +47,8 @@ export interface OutboxStorePort {
   lockDelivery(scope: TenantScope, key: OutboxDeliveryKey): Promise<OutboxDeliveryRecord | null>;
   /** Adds one to `attempts` of a delivery that is not terminal and returns the new count, or null when it is. */
   recordAttempt(scope: TenantScope, key: OutboxDeliveryKey, at: Date): Promise<number | null>;
+  /** Moves `enqueuedAt` of a `pending` or `enqueued` delivery to `at` and marks it `enqueued`: its job was added again. */
+  markReenqueued(scope: TenantScope, key: OutboxDeliveryKey, at: Date): Promise<void>;
   /** Ends a delivery that is not terminal. `lastError` is already truncated and free of the payload. */
   finishDelivery(
     scope: TenantScope,
@@ -110,4 +112,46 @@ export interface OutboxPorts {
 export interface OutboxEnvironment {
   readonly logger: OutboxLogger;
   readonly clock: OutboxClock;
+}
+
+/** A pending event as the sweeper sees it: a key and its business, nothing of the payload. */
+export interface PendingEventRow {
+  readonly id: string;
+  readonly createdAt: Date;
+  readonly businessId: string;
+}
+
+/** An open delivery as the reconciler sees it. */
+export interface DueDeliveryRow {
+  readonly createdAt: Date;
+  readonly outboxId: string;
+  readonly consumer: string;
+  readonly businessId: string;
+  readonly attempts: number;
+  readonly stuckSince: Date;
+  readonly nextAttemptAt: Date | null;
+}
+
+/** How many events wait to be relayed, and since when. */
+export interface PendingSummary {
+  readonly pending: number;
+  readonly oldest: Date | null;
+}
+
+/** The platform's view across businesses of what is still open: ids, businesses, statuses and times only. */
+export interface OutboxDueScanPort {
+  /**
+   * Runs `work` on the next batch of `pending` events created in `[from, to)` after `after` (oldest first), holding
+   * their row locks until `work` returns, and skipping rows another sweeper holds. Returns the batch.
+   */
+  sweepBatch(
+    range: { readonly from: Date; readonly to: Date },
+    after: PendingEventRow | null,
+    limit: number,
+    work: (rows: readonly PendingEventRow[]) => Promise<void>,
+  ): Promise<readonly PendingEventRow[]>;
+  /** `pending` and `enqueued` deliveries last touched at or before `touchedBefore`, oldest first. */
+  dueDeliveries(since: Date, touchedBefore: Date, limit: number): Promise<readonly DueDeliveryRow[]>;
+  /** Every pending event of every business. */
+  pendingSummary(): Promise<PendingSummary>;
 }

@@ -1,14 +1,17 @@
-import { PLATFORM_CLOCK, PlatformJobsPlugin, type PlatformClock } from '@cod/plugin-platform-jobs';
+import { JobReconciler, PLATFORM_CLOCK, PlatformJobsPlugin, type PlatformClock } from '@cod/plugin-platform-jobs';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
 import { Inject } from '@nestjs/common';
 import { Logger, PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { OutboxConsumerRegistry } from './application/consumer-registry';
 import { DeliveryRunner } from './application/delivery-runner';
+import { OutboxReconcileSource } from './application/outbox-reconcile-source';
 import { OutboxRelayService } from './application/outbox-relay.service';
+import { OutboxSweeper } from './application/outbox-sweeper';
 import { OutboxService } from './application/outbox.service';
 import type {
   OutboxAnnouncerPort,
+  OutboxDueScanPort,
   OutboxClock,
   OutboxEnvironment,
   OutboxIdSource,
@@ -21,6 +24,7 @@ import type {
 import {
   OUTBOX_ANNOUNCER,
   OUTBOX_CLOCK,
+  OUTBOX_DUE_SCAN,
   OUTBOX_ENVIRONMENT,
   OUTBOX_IDS,
   OUTBOX_LOGGER,
@@ -29,12 +33,16 @@ import {
   OUTBOX_SCOPES,
   OUTBOX_STORE,
 } from './application/tokens';
-import { OUTBOX_LOG_CONTEXT } from './domain/constants';
+import { jobsHealthSchema } from './api/jobs-health.schema';
+import { JobsHealthResolver } from './api/jobs-health.resolver';
+import { OUTBOX_LOG_CONTEXT, OUTBOX_SWEEPER_TASK_ID } from './domain/constants';
 import { AfterCommitRelaySubscriber } from './infrastructure/after-commit-relay.subscriber';
 import { EventBusOutboxAnnouncer } from './infrastructure/event-bus-outbox-announcer';
 import { OutboxDeliveryEntity } from './infrastructure/outbox-delivery.entity';
 import { OutboxEventEntity } from './infrastructure/outbox-event.entity';
 import { OutboxBootstrap } from './infrastructure/outbox-bootstrap';
+import { PostgresOutboxDueScan } from './infrastructure/outbox-due-scan';
+import { outboxSweeperTask } from './infrastructure/outbox-tasks';
 import { PlatformOutboxQueues } from './infrastructure/platform-outbox-queues';
 import { TypeOrmOutboxStore } from './infrastructure/typeorm-outbox.repositories';
 import { VendureOutboxScopes } from './infrastructure/vendure-outbox-scopes';
@@ -56,7 +64,17 @@ const outboxLogger: OutboxLogger = {
 @VendurePlugin({
   imports: [PluginCommonModule, TenancyPlugin, PlatformJobsPlugin, PlatformPartitionsPlugin],
   entities: [OutboxEventEntity, OutboxDeliveryEntity],
+  configuration: (config) => {
+    config.schedulerOptions.tasks = [
+      ...config.schedulerOptions.tasks.filter((task) => task.id !== OUTBOX_SWEEPER_TASK_ID),
+      outboxSweeperTask,
+    ];
+    return config;
+  },
+  adminApiExtensions: { schema: jobsHealthSchema, resolvers: [JobsHealthResolver] },
   providers: [
+    PostgresOutboxDueScan,
+    { provide: OUTBOX_DUE_SCAN, useExisting: PostgresOutboxDueScan },
     TypeOrmOutboxStore,
     { provide: OUTBOX_STORE, useExisting: TypeOrmOutboxStore },
     { provide: OUTBOX_SCOPES, useClass: VendureOutboxScopes },
@@ -100,6 +118,22 @@ const outboxLogger: OutboxLogger = {
       inject: [OUTBOX_PORTS, OutboxConsumerRegistry, OUTBOX_ENVIRONMENT],
     },
     {
+      provide: OutboxSweeper,
+      useFactory: (scan: OutboxDueScanPort, queues: OutboxQueuesPort, environment: OutboxEnvironment) =>
+        new OutboxSweeper(scan, queues, environment),
+      inject: [OUTBOX_DUE_SCAN, OUTBOX_QUEUES, OUTBOX_ENVIRONMENT],
+    },
+    {
+      provide: OutboxReconcileSource,
+      useFactory: (
+        scan: OutboxDueScanPort,
+        ports: OutboxPorts,
+        registry: OutboxConsumerRegistry,
+        environment: OutboxEnvironment,
+      ) => new OutboxReconcileSource(scan, ports, registry, environment),
+      inject: [OUTBOX_DUE_SCAN, OUTBOX_PORTS, OutboxConsumerRegistry, OUTBOX_ENVIRONMENT],
+    },
+    {
       // Built at module start, which binds it to the registry: every consumer queue then runs deliveries through it.
       provide: DeliveryRunner,
       useFactory: (ports: OutboxPorts, registry: OutboxConsumerRegistry, environment: OutboxEnvironment) =>
@@ -107,11 +141,20 @@ const outboxLogger: OutboxLogger = {
       inject: [OUTBOX_PORTS, OutboxConsumerRegistry, OUTBOX_ENVIRONMENT],
     },
   ],
-  exports: [OutboxService, OutboxConsumerRegistry],
+  exports: [OutboxService, OutboxConsumerRegistry, OUTBOX_DUE_SCAN],
   compatibility: '^3.8.0',
 })
 export class PlatformOutboxPlugin {
-  constructor(@Inject(OutboxConsumerRegistry) private readonly registry: OutboxConsumerRegistry) {}
+  constructor(
+    @Inject(OutboxConsumerRegistry) private readonly registry: OutboxConsumerRegistry,
+    @Inject(JobReconciler) private readonly reconciler: JobReconciler,
+    @Inject(OutboxReconcileSource) private readonly reconcileSource: OutboxReconcileSource,
+  ) {}
+
+  /** The reconciler checks the outbox's deliveries too (D105). */
+  onModuleInit(): void {
+    this.reconciler.registerSource(this.reconcileSource);
+  }
 
   /** Every `onModuleInit` has run: consumers can no longer register. */
   onApplicationBootstrap(): void {

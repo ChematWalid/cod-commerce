@@ -54,3 +54,16 @@ export const TASK_ID_MAX_LENGTH = 100;
 
 /** How much a continuation's count grows over the job it continues. */
 export const CONTINUATION_STEP = 1;
+
+/** Rows the reconciler takes from a source in one batch (D105). */
+export const RECONCILE_BATCH_SIZE = 500;
+/** How long one reconciler run keeps taking batches (D105). */
+export const RECONCILE_BUDGET_MS = 40_000;
+/** The reconciler's scheduled task. */
+export const JOB_RECONCILER_TASK_ID = 'job-reconciler';
+
+const FIVE_MINUTES_MS = 300_000;
+const THIRTY_MINUTES_MS = 1_800_000;
+
+/** How long a live job may sit without finishing before the reconciler replaces it, by pool (D105). */
+export const RECONCILE_SLA_MS = { critical: FIVE_MINUTES_MS, bulk: THIRTY_MINUTES_MS } as const;

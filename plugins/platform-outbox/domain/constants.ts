@@ -31,3 +31,27 @@ export const OUTBOX_ID_MAX = 9223372036854775807n;
 
 /** The queue of relay jobs (D101). */
 export const OUTBOX_RELAY_QUEUE = 'outbox-relay' as const;
+
+/** A pending event or an open delivery is left to the relay and the wrappers for this long before it is swept (D104). */
+export const OUTBOX_SWEEP_AFTER_MS = 60_000;
+
+const DAY_MS = 86_400_000;
+const RETENTION_DAYS = 7;
+
+/** The sweeper and the reconciler look no further back than the retention window (D107). */
+export const OUTBOX_SWEEP_WINDOW_MS = RETENTION_DAYS * DAY_MS;
+
+/** Rows the sweeper takes per transaction. */
+export const OUTBOX_SWEEP_BATCH_SIZE = 500;
+
+/** How long one sweeper run keeps taking batches. */
+export const OUTBOX_SWEEP_BUDGET_MS = 40_000;
+
+/** The sweeper's scheduled task. */
+export const OUTBOX_SWEEPER_TASK_ID = 'outbox-sweeper';
+
+/** The name of the outbox's rows in the reconciler. */
+export const OUTBOX_RECONCILE_SOURCE = 'outbox-delivery';
+
+/** What the reconciler writes to `lastError` of a delivery that used every attempt (D105). */
+export const OUTBOX_EXHAUSTED_ERROR = 'reconciler: attempts exhausted';
