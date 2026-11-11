@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - name: Install the browser
-        run: pnpm --filter @cod/server exec playwright-core install --with-deps chromium-headless-shell
+        run: pnpm --filter @cod/server exec playwright-core install chromium-headless-shell
       # The storefront's next build needs a deployment id: turbo's strict env mode hides APP_ENV from it.
       - name: Build
         run: pnpm build
