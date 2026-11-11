@@ -57,7 +57,7 @@ export class EventBusAuthEmailQueue implements AuthEmailQueuePort, PasswordReset
 
 /**
  * The `auth-email` job queue. Every process creates it; a worker of the `critical` pool (or `all`) consumes it
- * (D42, D97). On BullMQ the queue registry sets the attempts and backoff (D98); the per-call `retries` below
+ * (D42, D100). On BullMQ the queue registry sets the attempts and backoff (D101); the per-call `retries` below
  * stays because the in-memory strategy of the plugin tests honours only that.
  */
 @Injectable()

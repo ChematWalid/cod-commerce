@@ -1,6 +1,6 @@
 import { DomainError } from '@cod/shared';
 
-/** A job queue whose name is not in the queue registry (`QUEUES` in `@cod/shared`), so it has no pool (D97). */
+/** A job queue whose name is not in the queue registry (`QUEUES` in `@cod/shared`), so it has no pool (D100). */
 export class UnregisteredQueueError extends DomainError {
   readonly code = 'platform-jobs.unregistered-queue';
 
@@ -9,7 +9,7 @@ export class UnregisteredQueueError extends DomainError {
   }
 }
 
-/** The business already runs as many jobs on the queue as its semaphore allows; retry after `retryAfterMs` (D100). */
+/** The business already runs as many jobs on the queue as its semaphore allows; retry after `retryAfterMs` (D103). */
 export class SemaphoreBusyError extends DomainError {
   readonly code = 'jobs.semaphore-busy';
 
@@ -18,7 +18,7 @@ export class SemaphoreBusyError extends DomainError {
   }
 }
 
-/** The provider account's breaker is open; nothing was called. Retry after `retryAfterMs` (D100). */
+/** The provider account's breaker is open; nothing was called. Retry after `retryAfterMs` (D103). */
 export class CircuitOpenError extends DomainError {
   readonly code = 'jobs.circuit-open';
 
@@ -27,7 +27,7 @@ export class CircuitOpenError extends DomainError {
   }
 }
 
-/** A queue name was defined twice; every queue has one processor (D96). */
+/** A queue name was defined twice; every queue has one processor (D99). */
 export class QueueAlreadyDefinedError extends DomainError {
   readonly code = 'platform-jobs.queue-already-defined';
 

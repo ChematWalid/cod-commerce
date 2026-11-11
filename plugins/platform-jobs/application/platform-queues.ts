@@ -18,7 +18,7 @@ export function isLastAttempt(job: JobAttempt): boolean {
 export type QueueProcessor<Data extends DurableJobData> = (data: Data, job: JobAttempt) => Promise<void>;
 
 /**
- * The one way plugins create and feed the platform's queues (D96, D99). A queue is a name of the queue registry in
+ * The one way plugins create and feed the platform's queues (D99, D102). A queue is a name of the queue registry in
  * `@cod/shared`, so its pool, attempts and backoff come from there; a durable job carries its id in `data.jobId`.
  * Processors see the raw BullMQ id; only jobs listed through the strategy carry `{pool}.{id}`.
  */
@@ -43,7 +43,7 @@ export abstract class PlatformQueues {
   /**
    * Hands the work of a job a busy semaphore or an open breaker turned away to a new job that starts in `delayMs`.
    * The continuation's id is `{jobId}-r{n}` with n one above the current suffix; the caller then completes the
-   * current job, because Vendure's job API cannot move a running job to delayed (D100).
+   * current job, because Vendure's job API cannot move a running job to delayed (D103).
    */
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- see `add`
   requeueWithDelay<Data extends DurableJobData>(name: QueueName, data: Data, delayMs: number): Promise<void> {

@@ -7,7 +7,7 @@ export const PROBE_QUEUES = ['probe-critical', 'probe-bulk'] as const;
 /** One of the {@link PROBE_QUEUES}. */
 export type ProbeQueueName = (typeof PROBE_QUEUES)[number];
 
-/** Registry queues the pool probes use: `order-effects` is critical, `analytics` is bulk (D97, D98). */
+/** Registry queues the pool probes use: `order-effects` is critical, `analytics` is bulk (D100, D101). */
 export const POOL_PROBE_QUEUES = ['order-effects', 'analytics'] as const;
 
 /** One of the {@link POOL_PROBE_QUEUES}. */

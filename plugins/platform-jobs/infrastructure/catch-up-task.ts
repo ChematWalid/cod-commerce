@@ -31,7 +31,7 @@ export interface CatchUpTaskConfig {
 /**
  * A scheduled task that catches up: the scheduler only says "now", and `run` finds what is due from the data
  * (a missed run is made up by the next). `now` comes from the platform clock. After a run that does not throw, the
- * task's heartbeat moves to that `now`; a throw is logged and rethrown and leaves the heartbeat alone (D117).
+ * task's heartbeat moves to that `now`; a throw is logged and rethrown and leaves the heartbeat alone (D120).
  * @throws InvalidTaskIdError for an id the heartbeat table cannot store.
  */
 export function catchUpTask(config: CatchUpTaskConfig): ScheduledTask {

@@ -4,10 +4,21 @@ import prettierConfig from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 import { LINT_LIMITS } from './lint-limits.mjs';
+import { PLUGIN_ENTRY_IMPORT_PATTERNS, PLUGIN_ENTRY_SYNTAX, pluginEntryConfig } from './plugin-entry.mjs';
+import { pluginStaticOptionsConfig } from './plugin-static-options.mjs';
+import { processEnvConfig } from './process-env.mjs';
+import {
+  RAW_DATA_IMPORT_PATHS,
+  RAW_DATA_IMPORT_PATTERNS,
+  RAW_DATA_SYNTAX,
+  rawDataAccessConfig,
+  SERVER_SHARED_DASHBOARD_FILES,
+} from './raw-data-access.mjs';
 
 const TS_FILES = ['**/*.{ts,tsx,mts}'];
 const JS_FILES = ['**/*.{js,mjs,cjs}'];
-const DOMAIN_FILES = ['**/plugins/*/domain/**', 'packages/shared/src/**'];
+const DOMAIN_FILES = ['**/plugins/*/domain/**'];
+const SHARED_FILES = ['packages/shared/src/**'];
 const MAGIC_NUMBER_FILES = ['**/plugins/*/domain/**', '**/plugins/*/application/**', 'packages/shared/src/**'];
 // queues.ts is the queue registry: a table of named policy numbers (ADR 0013), the constants themselves.
 const MAGIC_NUMBER_EXEMPT = [
@@ -20,53 +31,27 @@ const TEST_FILES = ['**/*.test.ts', '**/tests/**'];
 const MIGRATION_FILES = ['apps/server/src/migrations/**'];
 const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];
 const FRAMEWORK_MODULES = ['@nestjs/*', '@vendure/*', 'typeorm', 'typeorm/*'];
+/** The same modules as an esquery regex, for `import('@vendure/core').X` types, which `no-restricted-imports` skips. */
+const FRAMEWORK_MODULE = '/^(@nestjs\\/|@vendure\\/|typeorm(\\/|$))/';
+const FRAMEWORK_IMPORT_TYPES = [
+  `TSImportType > TSLiteralType.argument > Literal[value=${FRAMEWORK_MODULE}]`,
+  `TSImportType > Literal.source[value=${FRAMEWORK_MODULE}]`,
+];
 const DOMAIN_PURITY_MESSAGE = 'domain/ and @cod/shared stay framework-free (CLAUDE.md §3a.1)';
 const APPLICATION_FILES = ['**/plugins/*/application/**'];
 const APPLICATION_PURITY_MESSAGE =
   'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM (CLAUDE.md §3a.2)';
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
-/** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
+/** What a root file registers. `tests/` and `dashboard/` are outside the permission and data access gates. */
+const SERVER_LAYERS = ['domain', 'application', 'infrastructure', 'api'];
+/** The only files a plugin may keep outside its layer folders: entries, Nest module and tool configs. */
 const PLUGIN_ROOT_FILES = [
   '**/plugins/*/index.ts',
+  '**/plugins/*/guard.ts',
   '**/plugins/*/provisioning.ts',
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',
 ];
-const RAW_DATA_GUARDED_FILES = ['**/plugins/*/infrastructure/**', '**/plugins/*/api/**'];
-/**
- * The files that may reach TypeORM directly (ADR 0002, A7, A10). Any other adapter goes through `TenantRepository`.
- * `platform-store-lookup` is the unscoped read path and `tenant-transaction` runs only `set_config`. `order-number.service` updates the sequence row, which is keyed by the business itself.
- */
-const RAW_DATA_ACCESS_FILES = [
-  '**/plugins/tenancy/infrastructure/tenant-repository.ts',
-  '**/plugins/tenancy/infrastructure/platform-store-lookup.ts',
-  '**/plugins/tenancy/infrastructure/tenant-transaction.ts',
-  '**/plugins/tenancy/infrastructure/order-number.service.ts',
-  '**/plugins/tenancy/infrastructure/vendure-channel-provisioner.ts',
-  // Reads Vendure's account-level `user` row to build the superadmin context (A2).
-  '**/plugins/tenancy/infrastructure/superadmin-context.factory.ts',
-  // `account_token` is an account-level table, not a tenant one (D24).
-  '**/plugins/auth/infrastructure/typeorm-account-token.repository.ts',
-  '**/plugins/auth/infrastructure/account-token-purge.task.ts',
-  // `session` is Vendure's account-level table, and SessionService has no single-session delete (D22).
-  '**/plugins/auth/infrastructure/session-terminator.ts',
-  // `administrator` is Vendure's account-level table, and the claim lock runs only an advisory lock (D41).
-  '**/plugins/auth/infrastructure/vendure-account-identity.ts',
-  '**/plugins/auth/infrastructure/email-claim-lock.ts',
-  // The profile reads and writes the same account-level `administrator` row.
-  '**/plugins/auth/infrastructure/vendure-account-profile.ts',
-  // `authentication_method` and `user` are Vendure's account-level tables (D36).
-  '**/plugins/auth/infrastructure/vendure-external-identity.ts',
-  // `administrator` is Vendure's account-level table; every read carries the caller's business.
-  '**/plugins/rbac/infrastructure/vendure-actor-directory.ts',
-  // Runs only the advisory lock (D70).
-  '**/plugins/rbac/infrastructure/rbac-lock.ts',
-  // `session` and `administrator` are Vendure's account-level tables (D55).
-  '**/plugins/rbac/infrastructure/role-session-flusher.ts',
-  // `platform_task_heartbeat` is a platform table, one row per scheduled task (D105, D117).
-  '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
-];
-const RAW_DATA_ACCESS_MESSAGE = 'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 const SAME_PLUGIN = '{{ from.element.captured.plugin }}';
 
 /** Layers each layer may import, inside its own plugin (CLAUDE.md §3a.2). */
@@ -100,6 +85,7 @@ const SHELL_API_FILE = '**/plugins/merchant-shell/dashboard/shell-api.ts';
 const boundaryFiles = [
   { pattern: PLUGIN_ROOT_FILES, category: 'plugin-root', capture: ['root', 'plugin'] },
   { pattern: SHELL_API_FILE, category: 'shell-api' },
+  { pattern: SERVER_SHARED_DASHBOARD_FILES, category: 'dashboard-shared', capture: ['root', 'plugin'] },
 ];
 
 const SAME_ROOT_PLUGIN = '{{ from.file.captured.plugin }}';
@@ -117,27 +103,64 @@ const boundaryPolicies = [
     from: { element: { type: 'tests' } },
     allow: { to: { file: { categories: 'plugin-root', captured: { plugin: SAME_PLUGIN } } } },
   },
-  // Root files (entry, Nest module, tool configs) may import every layer and each other, inside their own plugin.
+  // Root files (entry, Nest module, tool configs) may import the server layers and each other, inside their own
+  // plugin: never tests/, and of dashboard/ only the framework-free files an entry point re-exports.
   {
     from: { file: { categories: 'plugin-root' } },
-    allow: { to: { element: { type: PLUGIN_LAYERS, captured: { plugin: SAME_ROOT_PLUGIN } } } },
+    allow: { to: { element: { type: SERVER_LAYERS, captured: { plugin: SAME_ROOT_PLUGIN } } } },
+  },
+  {
+    from: { file: { categories: 'plugin-root' } },
+    allow: { to: { file: { categories: 'dashboard-shared', captured: { plugin: SAME_ROOT_PLUGIN } } } },
   },
   { from: { file: { categories: 'plugin-root' } }, allow: { to: { file: ROOT_FILE } } },
 ];
 
+/** The data access gate's entries, for the framework-free plugin layers that are also under that gate. */
+const RAW_DATA_GATE = { syntax: RAW_DATA_SYNTAX, paths: RAW_DATA_IMPORT_PATHS, patterns: RAW_DATA_IMPORT_PATTERNS };
 /**
- * Forbids framework imports (type imports and dynamic `import()` included) in `files`.
+ * `@cod/shared` is framework-free but not under the data access gate: it holds contracts and has no connection. Like
+ * every package it is under the plugin entry gate.
+ */
+const PLUGIN_ENTRY_GATE = { syntax: PLUGIN_ENTRY_SYNTAX, paths: [], patterns: PLUGIN_ENTRY_IMPORT_PATTERNS };
+
+/** The server app is under both gates; this block follows the two it merges, with the data access gate's exemptions. */
+const serverAppGatesConfig = {
+  files: ['apps/server/src/**'],
+  ignores: rawDataAccessConfig.ignores,
+  rules: {
+    'no-restricted-syntax': ['error', ...RAW_DATA_SYNTAX, ...PLUGIN_ENTRY_SYNTAX],
+    'no-restricted-imports': [
+      'error',
+      { paths: RAW_DATA_IMPORT_PATHS, patterns: [...RAW_DATA_IMPORT_PATTERNS, ...PLUGIN_ENTRY_IMPORT_PATTERNS] },
+    ],
+  },
+};
+
+/**
+ * Forbids framework imports (type imports, `import('…')` types and dynamic `import()` included) in `files`. This block
+ * replaces the options of both rules, so a file group that is also under the data access gate passes that gate's
+ * entries as `gate` and gets them merged in.
  *
  * @param {string[]} files
  * @param {string} message
+ * @param {typeof RAW_DATA_GATE | typeof PLUGIN_ENTRY_GATE} gate
  */
-const frameworkFree = (files, message) => ({
+const frameworkFree = (files, message, gate) => ({
   files,
   rules: {
-    'no-restricted-imports': ['error', { patterns: [{ group: FRAMEWORK_MODULES, allowTypeImports: false, message }] }],
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: gate.paths,
+        patterns: [{ group: FRAMEWORK_MODULES, allowTypeImports: false, message }, ...gate.patterns],
+      },
+    ],
     'no-restricted-syntax': [
       'error',
       { selector: 'ImportExpression', message: `Dynamic import() is not allowed: ${message}` },
+      ...FRAMEWORK_IMPORT_TYPES.map((selector) => ({ selector, message })),
+      ...gate.syntax,
     ],
   },
 });
@@ -202,8 +225,6 @@ export function codEslintConfig({ tsconfigRootDir }) {
           ],
         },
       },
-      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE),
-      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE),
       {
         files: BOUNDARY_FILES,
         plugins: { boundaries },
@@ -218,17 +239,14 @@ export function codEslintConfig({ tsconfigRootDir }) {
           'boundaries/no-unknown-files': 'error',
         },
       },
-      {
-        files: RAW_DATA_GUARDED_FILES,
-        ignores: RAW_DATA_ACCESS_FILES,
-        rules: {
-          'no-restricted-syntax': [
-            'error',
-            { selector: "MemberExpression[property.name='getRepository']", message: RAW_DATA_ACCESS_MESSAGE },
-            { selector: "MemberExpression[property.name='rawConnection']", message: RAW_DATA_ACCESS_MESSAGE },
-          ],
-        },
-      },
+      pluginEntryConfig,
+      rawDataAccessConfig,
+      serverAppGatesConfig,
+      pluginStaticOptionsConfig,
+      processEnvConfig,
+      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE, RAW_DATA_GATE),
+      frameworkFree(SHARED_FILES, DOMAIN_PURITY_MESSAGE, PLUGIN_ENTRY_GATE),
+      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE, RAW_DATA_GATE),
       {
         files: TEST_FILES,
         rules: { 'max-lines-per-function': 'off', '@typescript-eslint/no-magic-numbers': 'off' },

@@ -1,0 +1,7 @@
+export class StoreReader {
+  constructor(private readonly connection: { findByIdsInChannel(ctx: object, entity: string, ids: string[]): unknown }) {}
+
+  some(ctx: object, ids: string[]): unknown {
+    return this.connection.findByIdsInChannel(ctx, 'store', ids);
+  }
+}

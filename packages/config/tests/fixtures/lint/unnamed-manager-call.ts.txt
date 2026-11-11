@@ -1,0 +1,2 @@
+export const all = (thing: { manager: { findOneBy(entity: string, where: object): unknown } }): unknown =>
+  thing.manager.findOneBy('store', {});

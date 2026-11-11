@@ -63,7 +63,7 @@ export function createPlatformRedis(url: string): PlatformRedis {
 
 /**
  * The semaphore's and the breaker's way to Valkey. A failed command answers `undefined`, which they read as
- * "fail open": system-design §10 accepts losing their state, and an outage must not stop work (D100). Faults are
+ * "fail open": system-design §10 accepts losing their state, and an outage must not stop work (D103). Faults are
  * logged at most every 30 s, and Valkey is not asked again for 2 s after one, except for cleanup commands.
  */
 export class PlatformValkey implements OnApplicationBootstrap, OnApplicationShutdown {

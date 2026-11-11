@@ -89,7 +89,7 @@ class WorkerInjector extends Injector {
   }
 }
 
-describe('worker pools on BullMQ (D97)', () => {
+describe('worker pools on BullMQ (D100)', () => {
   const env = e2eEnv({ env: { REDIS_URL: onTestDatabase(e2eEnv().REDIS_URL) } });
   const { server, adminClient } = createTestEnvironment(
     buildE2eConfig(

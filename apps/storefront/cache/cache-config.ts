@@ -57,3 +57,17 @@ export function requireRedisUrl(env: NodeJS.Dict<string>): string {
 export function readCacheConfig(env: NodeJS.Dict<string>): CacheConfig {
   return { redisUrl: requireRedisUrl(env), deploymentId: requireDeploymentId(env) };
 }
+
+/**
+ * The cache configuration of this process. The cache handlers read the environment here and nowhere else.
+ *
+ * @throws CacheConfigError see {@link readCacheConfig}
+ */
+export function processCacheConfig(): CacheConfig {
+  return readCacheConfig(process.env);
+}
+
+/** Whether this process is `next build` (see {@link isNextBuildPhase}). */
+export function inNextBuildPhase(): boolean {
+  return isNextBuildPhase(process.env);
+}

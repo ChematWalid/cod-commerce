@@ -28,7 +28,7 @@ interface BreakerKeys {
   readonly failures: string;
 }
 
-/** A breaker record at `{APP_ENV}:cb:{provider}:{accountId}` and its failures beside it, moved by scripts (D100). */
+/** A breaker record at `{APP_ENV}:cb:{provider}:{accountId}` and its failures beside it, moved by scripts (D103). */
 export class ValkeyCircuitBreaker extends CircuitBreaker {
   constructor(
     private readonly valkey: PlatformValkey,

@@ -89,14 +89,17 @@ jobs:
       SMTP_HOST: localhost
       SMTP_PORT: '1025'
       SMTP_FROM: no-reply@localhost
+      SMTP_TLS: none
       MAILPIT_URL: http://localhost:8025
       DEMO_OWNER_PASSWORD: synthetic-demo-owner
       NODE_OPTIONS: --max-old-space-size=2048
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
+      # No --with-deps: the runner image already has the libraries headless Chromium needs, and the apt step hung
+      # every job for ten minutes when the Ubuntu mirror was unreachable (2026-11-11).
       - name: Install the browser
-        run: pnpm --filter @cod/server exec playwright-core install --with-deps chromium-headless-shell
+        run: pnpm --filter @cod/server exec playwright-core install chromium-headless-shell
       # The storefront's next build needs a deployment id: turbo's strict env mode hides APP_ENV from it.
       - name: Build
         run: pnpm build

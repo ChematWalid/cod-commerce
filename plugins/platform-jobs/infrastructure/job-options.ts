@@ -5,7 +5,7 @@ import type { BullMQPluginOptions } from '@vendure/job-queue-plugin/package/bull
 type SetJobOptions = NonNullable<BullMQPluginOptions['setJobOptions']>;
 type BullJobOptions = ReturnType<SetJobOptions>;
 
-/** The fields of a job's data that steer BullMQ: a durable id and a start delay (D99, `DurableJobData`). */
+/** The fields of a job's data that steer BullMQ: a durable id and a start delay (D102, `DurableJobData`). */
 function durableOptionsOf(data: unknown): Pick<NonNullable<BullJobOptions>, 'jobId' | 'delay'> {
   if (typeof data !== 'object' || data === null) return {};
   const { jobId, delayMs } = data as { jobId?: unknown; delayMs?: unknown };
@@ -18,7 +18,7 @@ function durableOptionsOf(data: unknown): Pick<NonNullable<BullJobOptions>, 'job
 /**
  * BullMQ's per-job options from the queue registry: total attempts and backoff of the job's queue, plus `jobId`
  * and `delay` from `data.jobId` (a string) and `data.delayMs` (a non-negative integer). A queue outside the
- * registry keeps the stock options; the pooled strategy refuses such a queue anyway (D97, D98).
+ * registry keeps the stock options; the pooled strategy refuses such a queue anyway (D100, D101).
  */
 export function bullMqJobOptions(): SetJobOptions {
   return (queueName: string, job: Job): BullJobOptions => {

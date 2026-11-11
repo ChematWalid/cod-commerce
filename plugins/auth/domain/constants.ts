@@ -32,10 +32,10 @@ const DAY_MS = 86_400_000;
 /** Finished tokens stay this long after expiry or consumption, then the purge removes them (D43). */
 export const ACCOUNT_TOKEN_RETENTION_MS = 7 * DAY_MS;
 
-/** The worker queue of the account emails (D42), a critical queue of the registry (D98). */
+/** The worker queue of the account emails (D42), a critical queue of the registry (D101). */
 export const AUTH_EMAIL_QUEUE = 'auth-email' satisfies keyof typeof QUEUES;
 
-/** Delivery attempts per email, from the queue registry: the first try and four retries (D98). */
+/** Delivery attempts per email, from the queue registry: the first try and four retries (D101). */
 export const AUTH_EMAIL_ATTEMPTS = QUEUES[AUTH_EMAIL_QUEUE].attempts;
 
 /** Domain separator of the recipient hash in logs. */

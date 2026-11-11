@@ -1,0 +1,2 @@
+import { env } from 'node:process';
+export const level = env.LOG_LEVEL;

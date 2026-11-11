@@ -5,7 +5,15 @@ import { describe, expect, it } from 'vitest';
 const repoRoot = resolve(__dirname, '../../..');
 interface TurboConfig {
   extends?: string[];
-  tasks: Record<string, { outputs?: string[]; env?: string[]; inputs?: string[]; dependsOn?: string[] }>;
+  tasks: Record<string, TurboTask>;
+}
+interface TurboTask {
+  outputs?: string[];
+  env?: string[];
+  inputs?: string[];
+  dependsOn?: string[];
+  cache?: boolean;
+  persistent?: boolean;
 }
 const readJson = (path: string): TurboConfig => JSON.parse(readFileSync(join(repoRoot, path), 'utf8')) as TurboConfig;
 
@@ -46,5 +54,44 @@ describe('turbo build cache outputs', () => {
     // Turbopack bundles @cod/shared from its dist (it ignores the @cod/source condition), so a fresh clone's
     // root `pnpm dev` failed until packages/shared was built.
     expect(readJson('apps/storefront/turbo.json').tasks['dev']?.dependsOn).toEqual(['^build']);
+  });
+});
+
+describe('turbo cache of the config package', () => {
+  it.each(['typecheck', 'test'])('never caches %s, which reads files across the repository', (name) => {
+    // Its tests import apps/server and apps/storefront sources and read compose, the workflows and the plugins by
+    // path, none of which is in its hash. A cached pass hid a failing typecheck on main (the server's env schema
+    // had started to import a plugin's type).
+    const config = readJson('packages/config/turbo.json');
+
+    expect(config.extends).toEqual(['//']);
+    expect(config.tasks[name]?.cache).toBe(false);
+  });
+});
+
+/** True when the task's hash folds in the workspace dependencies: a `^` entry of its own, or of a task it depends on. */
+const hashesWorkspaceDependencies = (tasks: TurboConfig['tasks'], name: string, seen = new Set<string>()): boolean => {
+  if (seen.has(name)) return false;
+  seen.add(name);
+  const dependsOn = tasks[name]?.dependsOn ?? [];
+  return dependsOn.some((entry) => entry.startsWith('^') || hashesWorkspaceDependencies(tasks, entry, seen));
+};
+
+describe('turbo task cache keys', () => {
+  const { tasks } = readJson('turbo.json');
+  const isCached = (task: TurboTask): boolean => task.cache !== false && task.persistent !== true;
+  const cachedTasks = Object.keys(tasks).filter((name) => {
+    const task = tasks[name];
+    return task !== undefined && isCached(task);
+  });
+
+  it('typecheck and test are cached, so their cache keys matter', () => {
+    expect(cachedTasks).toEqual(expect.arrayContaining(['typecheck', 'test']));
+  });
+
+  it.each(cachedTasks)('the cached %s task hashes the workspace dependencies it reads from source', (name) => {
+    // Packages resolve workspace dependencies to their source (the @cod/source condition), and turbo only folds a
+    // dependency into a task hash through dependsOn. Without it a change in packages/shared replays a stale pass.
+    expect(hashesWorkspaceDependencies(tasks, name)).toBe(true);
   });
 });

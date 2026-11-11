@@ -101,6 +101,9 @@ jobs:
           SMTP_HOST: ''
           SMTP_PORT: ''
           SMTP_FROM: ''
+          SMTP_USERNAME: ''
+          SMTP_PASSWORD: ''
+          SMTP_TLS: ''
         run: |
           set -o pipefail
           docker compose config --format json | node scripts/check-compose-portability.mjs

@@ -7,14 +7,11 @@ import {
 } from '@cod/shared';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
-import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT } from './ports';
+import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
+import { SERVER_ROLES, type ServerRole } from './roles';
 
-/** The process roles of the one server image. */
-export const SERVER_ROLES = ['api', 'worker', 'migrate'] as const;
-
-/** One of the {@link SERVER_ROLES}. */
-export type ServerRole = (typeof SERVER_ROLES)[number];
+export { SERVER_ROLES, type ServerRole };
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
@@ -40,12 +37,18 @@ export function isPlaceholderSecret(value: string): boolean {
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;
 
-const MAX_PORT = 65535;
 const MIN_COOKIE_SECRET_LENGTH = 32;
 const MIN_SUPERADMIN_PASSWORD_LENGTH = 8;
 const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
 const DEFAULT_S3_REGION = 'garage';
 const DEFAULT_PLATFORM_DOMAIN = 'localhost';
+/**
+ * One reverse proxy in front of the api, the layout the deployment plan uses (ADR 0012). The compose file itself
+ * runs no proxy: it publishes the api on `API_BIND_ADDR`, loopback unless an operator widens it.
+ */
+const DEFAULT_TRUSTED_PROXY_HOPS = 1;
+/** More hops than a real chain of proxies has (edge, load balancer, reverse proxy, with room to spare). */
+export const MAX_TRUSTED_PROXY_HOPS = 5;
 
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
 const GARAGE_ACCESS_KEY = /^GK[0-9a-f]{24}$/;
@@ -56,8 +59,9 @@ const DNS_NAME_MAX_LENGTH = 253;
 /** An HTTP header field name (RFC 9110 token, restricted to the characters real headers use). */
 const HEADER_NAME = /^[A-Za-z0-9-]+$/;
 
+/** `isPort` is the rule the container healthcheck applies too (`health-env.ts`). */
 const port = (fallback: number): z.ZodDefault<z.ZodCoercedNumber> =>
-  z.coerce.number().int().min(1).max(MAX_PORT).default(fallback);
+  z.coerce.number().refine(isPort, 'must be a port (1 to 65535)').default(fallback);
 
 const splitCsv = (value: string): string[] =>
   value
@@ -101,7 +105,7 @@ const baseSchema = z.object({
   DB_POOL_MAX: z.coerce.number().int().min(1).optional(),
   REDIS_URL: redisUrl,
   WORKER_POOL: z.enum(WORKER_POOLS).default('all'),
-  // Replaced by WORKER_POOL (D97). Blank is dropped before parsing, so an old `.env` with `WORKER_ACTIVE_QUEUES=`
+  // Replaced by WORKER_POOL (D100). Blank is dropped before parsing, so an old `.env` with `WORKER_ACTIVE_QUEUES=`
   // still boots; any value fails, because the stock strategy fails the jobs of inactive queues.
   WORKER_ACTIVE_QUEUES: z
     .string()
@@ -122,6 +126,10 @@ const baseSchema = z.object({
     .default('true')
     .transform((value) => value === 'true'),
   CORS_ORIGINS: csvList,
+  // The number of reverse proxies the operator controls in front of the api: Express trusts that many
+  // `X-Forwarded-For` hops for `req.ip` and the request protocol. It must equal that number exactly. Above it, a
+  // client writes its own address into the header and walks past the rate limiter; 0 is for an api reached directly.
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(MAX_TRUSTED_PROXY_HOPS).default(DEFAULT_TRUSTED_PROXY_HOPS),
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
   // The request header that carries the client address behind the edge (`cf-connecting-ip`); blank uses `req.ip`,
@@ -133,6 +141,9 @@ const baseSchema = z.object({
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
+
+/** Every variable the server reads. The `.env.example` gate (`pnpm test:arch`) checks each one is documented. */
+export const SERVER_ENV_KEYS: readonly string[] = Object.keys(baseSchema.shape);
 
 const PLACEHOLDER_MESSAGE = 'is a placeholder from .env.example; set a real secret';
 
@@ -193,16 +204,19 @@ function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): vo
   }
 }
 
+/** Staging and production: where a development fallback is a misconfiguration. */
+const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
+
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(requireClientIpHeader)
   .superRefine((env, context) => {
-    requireAuthSettings(env, PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV), context);
+    requireAuthSettings(env, isDeployed(env), context);
   })
   .transform((env) => ({
     ...env,
-    ...authDefaults(env),
+    ...authDefaults(env, isDeployed(env)),
     PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
     DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
   }));
@@ -226,7 +240,10 @@ const withoutBlanks = (source: NodeJS.ProcessEnv): NodeJS.ProcessEnv =>
   Object.fromEntries(Object.entries(source).filter(([, value]) => value !== ''));
 
 /**
- * Validates `source` and returns the typed environment. This is the only module that reads `process.env`.
+ * Validates `source` and returns the typed environment. Every server role reads `process.env` through this
+ * function and nowhere else. The one other reader is the container healthcheck, a separate short process:
+ * `readHealthEnv` (`health-env.ts`) reads `ROLE`, `API_PORT` and `WORKER_HEALTH_PORT` under the same rules, and
+ * a test pins it to this schema.
  *
  * @throws {EnvValidationError} listing every invalid variable.
  */

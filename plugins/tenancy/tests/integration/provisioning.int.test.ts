@@ -7,8 +7,7 @@ import { asOperationContext } from '../../domain/ports/operation-context';
 import { BusinessOrderSequenceEntity } from '../../infrastructure/business-order-sequence.entity';
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
-import { TenancyPlugin } from '../../tenancy.plugin';
-import { TEST_REDIS_URL } from './tenant-fixtures';
+import { tenancyTestPlugins } from './tenant-fixtures';
 
 const SUPER_ADMIN_ROLE = '__super_admin_role__';
 const CUSTOMER_ROLE = '__customer_role__';
@@ -123,7 +122,7 @@ const commandFor = (slug: string, language = 'ar'): ProvisionBusinessCommand => 
 
 describe('Business provisioning', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1000 })],
+    plugins: tenancyTestPlugins(1000),
     db: loadPluginTestDbConfig(process.env),
   });
 

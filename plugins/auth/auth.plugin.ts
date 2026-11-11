@@ -61,11 +61,12 @@ import { AuthEmailJobs, EventBusAuthEmailQueue } from './infrastructure/auth-ema
 import { EmailClaimLock } from './infrastructure/email-claim-lock';
 import { HmacSecretHasher } from './infrastructure/hmac-secret-hasher';
 import { NoopBotChallenge } from './infrastructure/noop-bot-challenge';
-import { NodemailerEmailSender, type SmtpOptions } from './infrastructure/nodemailer-email-sender';
+import { NodemailerEmailSender } from './infrastructure/nodemailer-email-sender';
 import { OAuthAuthenticationStrategy } from './infrastructure/oauth-authentication.strategy';
 import { type AuthOAuthOptions, oauthProviders } from './infrastructure/oauth.providers';
 import { SealedPayloadCodec } from './infrastructure/sealed-payload';
 import { SessionTerminator } from './infrastructure/session-terminator';
+import type { SmtpOptions } from './infrastructure/smtp-transport-options';
 import { ThrottledNativeAuthenticationStrategy } from './infrastructure/throttled-native-authentication.strategy';
 import { TurnstileBotChallenge } from './infrastructure/turnstile-bot-challenge';
 import { TypeOrmAccountTokenRepository } from './infrastructure/typeorm-account-token.repository';
@@ -95,11 +96,13 @@ export interface AuthChallengeOptions {
   readonly secretKey: string;
   /** The page holding the widget, loaded in an iframe. */
   readonly challengeUrl: string;
+  /** `TURNSTILE_SITEVERIFY_URL`: where tokens are checked. It defaults to the provider's own endpoint. */
+  readonly siteverifyUrl?: string | undefined;
 }
 
 /** The mail side of {@link AuthPluginOptions}. */
 export interface AuthEmailOptions {
-  /** `SMTP_HOST`, `SMTP_PORT` and `SMTP_FROM`. */
+  /** `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `SMTP_TLS` and the optional `SMTP_USERNAME` with `SMTP_PASSWORD`. */
   readonly smtp: SmtpOptions;
   /** The wording of the emails; the server owns it (D32). */
   readonly templates: AuthEmailTemplatesPort;
@@ -117,7 +120,10 @@ function requireOptions(): AuthPluginOptions {
 
 function createBotChallenge(): BotChallengePort {
   const { challenge } = requireOptions();
-  return challenge === undefined ? new NoopBotChallenge() : new TurnstileBotChallenge(challenge.secretKey);
+  if (challenge === undefined) {
+    return new NoopBotChallenge();
+  }
+  return new TurnstileBotChallenge(challenge.secretKey, challenge.siteverifyUrl);
 }
 
 function publicConfig(): AuthPublicConfig {

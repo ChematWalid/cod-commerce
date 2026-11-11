@@ -4,8 +4,7 @@ import { RequestContextService, TransactionalConnection, type RequestContext } f
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BusinessNotFoundError, TransactionRequiredError } from '../../domain/errors';
 import { OrderNumberService } from '../../infrastructure/order-number.service';
-import { TenancyPlugin } from '../../tenancy.plugin';
-import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const CONCURRENT_ON_A = 50;
 const CONCURRENT_ON_B = 10;
@@ -19,7 +18,7 @@ const numbering = (count: number): string[] =>
 
 describe('Per-business order numbers', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1000 })],
+    plugins: tenancyTestPlugins(1000),
     db: loadPluginTestDbConfig(process.env),
     poolSize: POOL_SIZE,
   });

@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions } from '@cod/plugin-auth';
+import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
@@ -72,18 +72,33 @@ function oauthOptions(env: AppEnv): Pick<AuthPluginOptions, 'oauth'> {
   };
 }
 
+/** The SMTP relay; `loadEnv` has checked that the username and the password come together. */
+function smtpOptions(env: AppEnv): SmtpOptions {
+  const relay = { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM, tls: env.SMTP_TLS };
+  if (env.SMTP_USERNAME === undefined || env.SMTP_PASSWORD === undefined) {
+    return relay;
+  }
+  return { ...relay, auth: { user: env.SMTP_USERNAME, pass: env.SMTP_PASSWORD } };
+}
+
 /** The account plugin with its secret and the mail side: SMTP settings and the wording (D32). */
 const authPlugin = (env: AppEnv): VendurePluginEntry =>
   AuthPlugin.init({
     tokenSecret: env.AUTH_TOKEN_SECRET,
     email: {
-      smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, from: env.SMTP_FROM },
+      smtp: smtpOptions(env),
       templates: authEmailTemplates,
     },
     dashboardUrl: env.AUTH_DASHBOARD_URL,
     platformDomain: env.PLATFORM_DOMAIN,
     ...(env.TURNSTILE_ENABLED && env.TURNSTILE_SECRET_KEY !== undefined && env.TURNSTILE_CHALLENGE_URL !== undefined
-      ? { challenge: { secretKey: env.TURNSTILE_SECRET_KEY, challengeUrl: env.TURNSTILE_CHALLENGE_URL } }
+      ? {
+          challenge: {
+            secretKey: env.TURNSTILE_SECRET_KEY,
+            challengeUrl: env.TURNSTILE_CHALLENGE_URL,
+            siteverifyUrl: env.TURNSTILE_SITEVERIFY_URL,
+          },
+        }
       : {}),
     ...oauthOptions(env),
   });
@@ -96,7 +111,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
   const everyRole: VendurePluginEntry[] = [
     BullMQJobQueuePlugin.init(bullMqOptions(env)),
     // Right after BullMQ's plugin: its configuration replaces the stock strategy and index task with the pooled
-    // ones (D97), and the stock plugin keeps providing the Redis health indicator the pools use.
+    // ones (D100), and the stock plugin keeps providing the Redis health indicator the pools use.
     PlatformJobsPlugin.init({ redisUrl: env.REDIS_URL, appEnv: env.APP_ENV, pooledQueues: bullMqOptions(env) }),
     // Sessions live in this cache, so environments sharing a Valkey must never read each other's keys.
     RedisCachePlugin.init({
@@ -110,8 +125,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       serveWorkerHealth: role === 'worker',
     }),
     TemplatePlugin,
-    // The order is free: tenancy's `init` only fills rate-limit options that are still unset, and this call
-    // replaces them either way.
+    // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
     TenancyPlugin.init({
       redisUrl: env.REDIS_URL,

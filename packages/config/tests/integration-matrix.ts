@@ -21,11 +21,11 @@ export const groupedCommand = (names: readonly string[]): string =>
 const SERVER = '@cod/server';
 const AUTH = '@cod/plugin-auth';
 const RBAC = '@cod/plugin-rbac';
-/** The platform plugins of part `platform-1` (D115); partitions and outbox join when their suites exist. */
+/** The platform plugins of part `platform-1` (D118); partitions and outbox join when their suites exist. */
 const PLATFORM_1 = ['@cod/plugin-platform-jobs'] as const;
 const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1].map((name) => `--filter=!${name}`).join(' ');
 
-/** The parts of the matrix, in order (D51, D69, D115). */
+/** The parts of the matrix, in order (D51, D69, D118). */
 export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'others', command: `pnpm test:integration ${othersExclusions}` },
   { part: 'server-e2e', command: unshardedCommand(SERVER) },

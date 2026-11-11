@@ -503,7 +503,7 @@ LLM data handling: prompts contain business data. Buyer phone numbers and names 
 **AuthN/Z matrix**: full table in ADR 0008. Summary:
 | Actor | AuthN | AuthZ | Tenant source |
 |---|---|---|---|
-| Dashboard users | Vendure session (bearer), social strategies, TOTP for staff | channel Roles + 93-permission catalog + plan gates | Administrator → business; channel ∈ business |
+| Dashboard users | Vendure session (bearer), social strategies, TOTP for staff | channel Roles + 94-permission catalog + plan gates | Administrator → business; channel ∈ business |
 | Storefront public | none; Turnstile on submit; device id = signal | public endpoints only; quote token = price commitment | host via storefront proxy (HMAC) |
 | Public API keys | hashed key, scopes | scopes ∩ creator permissions | key → business |
 | MCP | OAuth 2.1 + PKCE + DCR | scopes ∩ approving user's permissions | grant → business |

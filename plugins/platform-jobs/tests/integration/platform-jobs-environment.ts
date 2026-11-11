@@ -6,7 +6,7 @@ const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 
 /**
  * A Vendure test server with the platform-jobs plugin and a Postgres database of its own. Without `pooledQueues`
- * the plugin leaves Vendure's in-memory queue strategy, which runs jobs in-process (D100 tests).
+ * the plugin leaves Vendure's in-memory queue strategy, which runs jobs in-process (D103 tests).
  * @param clock the platform clock; the system clock when omitted.
  * @param extraPlugins registered after the platform-jobs plugin, so their `onModuleInit` runs after its own.
  */

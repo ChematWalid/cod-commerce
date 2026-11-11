@@ -15,7 +15,7 @@ export interface ValkeySemaphoreOptions {
   readonly random?: () => number;
 }
 
-/** Leases in a Valkey sorted set at `{APP_ENV}:sem:{queue}:b:{businessId}`, taken by one script (D100). */
+/** Leases in a Valkey sorted set at `{APP_ENV}:sem:{queue}:b:{businessId}`, taken by one script (D103). */
 export class ValkeyBusinessSemaphore extends BusinessSemaphore {
   private readonly random: () => number;
 

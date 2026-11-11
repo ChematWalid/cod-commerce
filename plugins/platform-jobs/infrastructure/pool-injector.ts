@@ -1,7 +1,7 @@
 import type { Type } from '@nestjs/common';
 import { Injector, ProcessContext } from '@vendure/core';
 import type { BullMQPluginOptions } from '@vendure/job-queue-plugin/package/bullmq';
-// D97: deep imports into the job-queue plugin (it has no `exports` map). The stock strategy reads its options
+// D100: deep imports into the job-queue plugin (it has no `exports` map). The stock strategy reads its options
 // and its job list index through the injector, under these two tokens.
 import { BULLMQ_PLUGIN_OPTIONS } from '@vendure/job-queue-plugin/package/bullmq/constants';
 import { JobListIndexService } from '@vendure/job-queue-plugin/package/bullmq/job-list-index.service';
@@ -11,7 +11,7 @@ type Token = Type<unknown> | string | symbol;
 /**
  * The injector one pool's stock `BullMQJobQueueStrategy` is initialised with: it answers that pool's options
  * and a job list index of its own (the plugin's singleton index keeps one queue and one prefix), and passes
- * every other token to the app's injector (D97).
+ * every other token to the app's injector (D100).
  */
 export class PoolInjector extends Injector {
   /** The job list index of this pool; the pooled index-cleaning task runs it. */

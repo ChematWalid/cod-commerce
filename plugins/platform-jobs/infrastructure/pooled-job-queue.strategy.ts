@@ -10,7 +10,7 @@ import {
   type PaginatedList,
 } from '@vendure/core';
 import type { BullMQPluginOptions } from '@vendure/job-queue-plugin/package/bullmq';
-// D97: deep imports into the job-queue plugin (it has no `exports` map): one stock strategy per pool, and the
+// D100: deep imports into the job-queue plugin (it has no `exports` map): one stock strategy per pool, and the
 // name and default concurrency of the one BullMQ queue that strategy keeps every Vendure queue in.
 import { BullMQJobQueueStrategy } from '@vendure/job-queue-plugin/package/bullmq/bullmq-job-queue-strategy';
 import { DEFAULT_CONCURRENCY, QUEUE_NAME } from '@vendure/job-queue-plugin/package/bullmq/constants';
@@ -40,7 +40,7 @@ interface Pool {
   readonly options: BullMQPluginOptions;
 }
 
-/** The BullMQ key prefix of one pool: `bull:{APP_ENV}:{pool}` (D97). */
+/** The BullMQ key prefix of one pool: `bull:{APP_ENV}:{pool}` (D100). */
 export const poolPrefix = (appEnv: string, pool: QueuePool): string => `${BULL_PREFIX_ROOT}:${appEnv}:${pool}`;
 
 const concurrencyOf = (queueName: string): number =>
@@ -98,7 +98,7 @@ function withPooledId<Data extends JobData<Data>>(pool: QueuePool, job: Job<Data
 
 /**
  * Routes every queue of the registry to one stock BullMQ strategy per pool, each with its own prefix, options
- * and job list index (ADR 0013 addendum, D97). A process starts workers only for its pools, so jobs of another
+ * and job list index (ADR 0013 addendum, D100). A process starts workers only for its pools, so jobs of another
  * pool wait in their own BullMQ queue instead of failing. Jobs leave the strategy with id `{pool}.{bullId}`.
  */
 export class PooledJobQueueStrategy implements InspectableJobQueueStrategy {
@@ -210,7 +210,7 @@ export class PooledJobQueueStrategy implements InspectableJobQueueStrategy {
     return results.flat();
   }
 
-  /** The BullMQ queue of a pool, for reading and removing jobs by their BullMQ id (job presence, D102). */
+  /** The BullMQ queue of a pool, for reading and removing jobs by their BullMQ id (job presence, D105). */
   bullQueueOf(pool: QueuePool): Queue {
     const existing = this.presenceQueues.get(pool);
     if (existing !== undefined) return existing;

@@ -5,7 +5,7 @@ import type { Queue } from 'bullmq';
 import { type JobPresence, type JobPresencePort, presenceOf } from '../domain/job-presence.port';
 import { PooledJobQueueStrategy } from './pooled-job-queue.strategy';
 
-/** Job presence read from the BullMQ queue of the job's pool (D102). Needs the pooled strategy. */
+/** Job presence read from the BullMQ queue of the job's pool (D105). Needs the pooled strategy. */
 @Injectable()
 export class BullMqJobPresence implements JobPresencePort {
   constructor(private readonly config: ConfigService) {}

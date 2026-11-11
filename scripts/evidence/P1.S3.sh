@@ -23,6 +23,8 @@ export STOREFRONT_HOST_PORT=23001 PLATFORM_DOMAIN=localhost
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
 export AUTH_TOKEN_SECRET=${AUTH_TOKEN_SECRET:-evidence-auth-token-secret-synthetic-0123456789}
 export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBOARD_URL=http://127.0.0.1:$API_HOST_PORT/dashboard
+# Set, not unset: compose would otherwise read a Gmail block from a local .env and require TLS from Mailpit.
+export SMTP_TLS=none SMTP_USERNAME='' SMTP_PASSWORD=''
 export DEMO_OWNER_PASSWORD=${DEMO_OWNER_PASSWORD:-evidence-demo-owner-password}
 export EV_RUN=${EV_RUN:-$(date +%s)}
 
@@ -100,7 +102,7 @@ seed >"$work/seed2.log" 2>&1 || fail "the second seed failed: $(command tail -20
 command grep -q '"created":\[\]' "$work/seed2.log" || fail "the second seed changed something: $(command tail -3 "$work/seed2.log")"
 
 # --- a second api process on the same Valkey and Postgres ----------------------------------
-timeout 60 docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:3000" -e AUTH_DASHBOARD_URL="$api2/dashboard" api >/dev/null
+timeout 60 docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:${COMPOSE_API_PORT:-3000}" -e AUTH_DASHBOARD_URL="$api2/dashboard" api >/dev/null
 wait_http 200 "$api2/readyz" 240 || fail "second api /readyz"
 
 reset_limits() { # Between phases only: every call from this host shares one client address.
@@ -233,16 +235,16 @@ limited_admin=$(admin_id "$LIMITED"); owner_admin=$(admin_id "$OWNER"); second_a
 
 # --- catalog.md -------------------------------------------------------------------------------
 f="$out/api/catalog.md"
-begin "$f" "Permission catalog" "Every signed-in member reads it. 93 permissions in 12 areas."
-gql "$Q_CATALOG" '{}' "$limited" "$demo"; expect_ok catalog; assert_js catalog 'b.data.permissionCatalog.permissions.length===93 && b.data.permissionCatalog.areas.length===12' "$work/b"
+begin "$f" "Permission catalog" "Every signed-in member reads it. 94 permissions in 12 areas."
+gql "$Q_CATALOG" '{}' "$limited" "$demo"; expect_ok catalog; assert_js catalog 'b.data.permissionCatalog.permissions.length===94 && b.data.permissionCatalog.areas.length===12' "$work/b"
 emit "$f" "permissionCatalog" "$Q_CATALOG" '{}' "$limited" "$demo"
-rest GET /permissions/catalog - "$limited" "$demo"; expect_status "rest catalog" 200; assert_js "rest catalog" 'b.permissions.length===93' "$work/b"
+rest GET /permissions/catalog - "$limited" "$demo"; expect_status "rest catalog" 200; assert_js "rest catalog" 'b.permissions.length===94' "$work/b"
 emit_rest "$f" "GET /permissions/catalog" GET /permissions/catalog -
 
 # --- effective.md -----------------------------------------------------------------------------
 f="$out/api/effective.md"
 begin "$f" "Effective permissions" "What the caller holds on the active store. The dashboard hides controls from this answer and enforces nothing."
-gql "$Q_EFFECTIVE" '{}' "$owner" "$demo"; expect_ok effective; assert_js effective 'b.data.effectivePermissions.permissions.length===93 && b.data.effectivePermissions.storeAccess==="all"' "$work/b"
+gql "$Q_EFFECTIVE" '{}' "$owner" "$demo"; expect_ok effective; assert_js effective 'b.data.effectivePermissions.permissions.length===94 && b.data.effectivePermissions.storeAccess==="all"' "$work/b"
 emit "$f" "effectivePermissions, the owner" "$Q_EFFECTIVE" '{}' "$owner" "$demo"
 gql "$Q_EFFECTIVE" '{}' "$limited" "$demo"; expect_ok effective2; assert_js effective2 'b.data.effectivePermissions.permissions.length===2 && b.data.effectivePermissions.storeAccess==="selected"' "$work/b"
 emit "$f" "effectivePermissions, a limited member on a selected store" "$Q_EFFECTIVE" '{}' "$limited" "$demo"

@@ -4,7 +4,7 @@ export const ADMIT_PROBE = 1;
 export const ADMIT_REJECT = 2;
 
 /**
- * Decides whether a call may go through a breaker (D100). KEYS[1] the breaker record (hash: `openedAt`, and
+ * Decides whether a call may go through a breaker (D103). KEYS[1] the breaker record (hash: `openedAt`, and
  * `probeUntil` and `probeToken` while a probe runs). ARGV: now in ms, open duration in ms, probe lease in ms,
  * the caller's token (kept when it becomes the probe, so only that probe's outcome counts).
  * Returns {decision, retryAfterMs}: closed calls go through; an open breaker rejects until it has been open for the
@@ -29,7 +29,7 @@ return {${String(ADMIT_PROBE)}, 0}
 `;
 
 /**
- * Records a failed call (D100). KEYS[1] the breaker record, KEYS[2] the failure set (scored by failure time).
+ * Records a failed call (D103). KEYS[1] the breaker record, KEYS[2] the failure set (scored by failure time).
  * ARGV: now in ms, the probe token ('' when the call was not a probe), threshold, window in ms, failure token,
  * record TTL in ms. A failed probe reopens the breaker from now, unless its lease ran out and another probe took
  * over (its token no longer matches). A closed breaker counts failures in the window (now - window, now] and
@@ -65,7 +65,7 @@ return 0
 `;
 
 /**
- * Closes a breaker after a successful probe (D100), only while that probe still holds the probe lease: a late
+ * Closes a breaker after a successful probe (D103), only while that probe still holds the probe lease: a late
  * success of a probe whose lease ran out must not close a breaker that a newer probe has reopened.
  * KEYS[1] the breaker record, KEYS[2] the failure set; ARGV[1] the probe token. Returns 1 when it closed.
  */

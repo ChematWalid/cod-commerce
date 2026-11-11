@@ -2,7 +2,7 @@
 export const LEASE_TAKEN = 1;
 
 /**
- * Takes one lease of a business semaphore in one round trip (D100). The set holds one member per holder, scored by
+ * Takes one lease of a business semaphore in one round trip (D103). The set holds one member per holder, scored by
  * the time its lease ends, so a holder whose process died stops counting once its lease is over.
  *
  * KEYS[1] the lease set; ARGV: now in ms, limit, lease in ms, holder token. Returns 1 when taken, 0 when busy.

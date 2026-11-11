@@ -9,10 +9,9 @@ import type { ObjectLiteral, Repository } from 'typeorm';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
 import { StoreEntity } from '../../infrastructure/store.entity';
-import { TenancyPlugin } from '../../tenancy.plugin';
 import { CREATE_STORE, type StoreView } from './admin-api-operations';
 import { actAsOwner } from './admin-api-session';
-import { provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { provisionBusiness, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 type TestEnvironment = ReturnType<typeof createPluginTestEnvironment>;
 
@@ -32,7 +31,7 @@ export interface StoreApi {
 /** Starts a server with businesses `alpha` and `bravo`, one store each, and resets the client after every test. */
 export function useStoreApi(snowflakeWorkerId: number): StoreApi {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId })],
+    plugins: tenancyTestPlugins(snowflakeWorkerId),
     db: loadPluginTestDbConfig(process.env),
   });
   const raw = () => server.app.get(TransactionalConnection).rawConnection;

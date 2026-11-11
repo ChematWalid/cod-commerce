@@ -1,7 +1,8 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { RequestTenantScope, TenantScoped, tenantOf } from '@cod/plugin-tenancy';
+import { requirePermission } from '@cod/plugin-rbac/guard';
+import { RequestTenantScope, tenantOf } from '@cod/plugin-tenancy';
 import type { TenantScope } from '@cod/shared';
-import { Allow, Ctx, type RequestContext, Transaction } from '@vendure/core';
+import { Ctx, type RequestContext, Transaction } from '@vendure/core';
 import { CreateNoteService } from '../application/create-note.service';
 import { GetNotesService } from '../application/get-notes.service';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../domain/constants';
@@ -15,7 +16,7 @@ import {
   toTemplateNoteDto,
 } from './dto';
 import { mapDomainError } from './error-mapping';
-import { templateNotePermission } from './permissions';
+import { NOTE_PERMISSIONS } from './permissions';
 
 /** The page a list call reads: `take` defaults to {@link DEFAULT_PAGE_SIZE} and is capped at {@link MAX_PAGE_SIZE}. */
 function toPage(args: TemplateNotesArgs): NotePage {
@@ -23,9 +24,11 @@ function toPage(args: TemplateNotesArgs): NotePage {
   return { take, skip: Math.max(args.skip ?? 0, 0) };
 }
 
-/** The Admin API of the template notes; each handler runs in the caller's tenant scope. */
+/**
+ * The Admin API of the template notes. `requirePermission` asks for the catalogue permission on the active store
+ * and for a tenant, so each handler runs in the caller's tenant scope.
+ */
 @Resolver()
-@TenantScoped()
 export class TemplateNoteResolver {
   constructor(
     private readonly createNote: CreateNoteService,
@@ -34,7 +37,7 @@ export class TemplateNoteResolver {
 
   /** A note of the caller's business by id, or `null` (another business's note is never found). */
   @Query()
-  @Allow(templateNotePermission.Read)
+  @requirePermission(NOTE_PERMISSIONS.view)
   templateNote(@Ctx() ctx: RequestContext, @Args() args: TemplateNoteArgs): Promise<TemplateNoteDto | null> {
     return this.inScope(ctx, async (scope) => {
       const note = await this.getNotes.byId(scope, toNoteId(args.id));
@@ -44,7 +47,7 @@ export class TemplateNoteResolver {
 
   /** One page of the caller's notes, newest first. */
   @Query()
-  @Allow(templateNotePermission.Read)
+  @requirePermission(NOTE_PERMISSIONS.view)
   templateNotes(@Ctx() ctx: RequestContext, @Args() args: TemplateNotesArgs): Promise<TemplateNoteDto[]> {
     return this.inScope(ctx, async (scope) => {
       const notes = await this.getNotes.list(scope, toPage(args));
@@ -55,7 +58,7 @@ export class TemplateNoteResolver {
   /** Creates a note for the caller's business; an invalid title or body is a typed input error. */
   @Transaction()
   @Mutation()
-  @Allow(templateNotePermission.Create)
+  @requirePermission(NOTE_PERMISSIONS.create)
   createTemplateNote(@Ctx() ctx: RequestContext, @Args() args: CreateTemplateNoteArgs): Promise<TemplateNoteDto> {
     return this.inScope(ctx, async (scope) => toTemplateNoteDto(await this.createNote.execute(scope, args.input)));
   }

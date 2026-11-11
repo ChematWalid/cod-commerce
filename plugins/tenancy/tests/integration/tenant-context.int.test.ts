@@ -6,9 +6,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
-import { TenancyPlugin } from '../../tenancy.plugin';
 import { TenantProbePlugin } from './tenant-probe.plugin';
-import { OWNER_PASSWORD, provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { OWNER_PASSWORD, provisionBusiness, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const DEFAULT_CHANNEL = '__default_channel__';
 
@@ -20,10 +19,7 @@ const WITH_TRANSACTION_PROBE = gql`query { tenantProbeWithTransaction { ${PROBE_
 
 describe('Tenant context', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [
-      TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1001 }),
-      TenantProbePlugin,
-    ],
+    plugins: [...tenancyTestPlugins(1001), TenantProbePlugin],
     db: loadPluginTestDbConfig(process.env),
   });
 

@@ -10,7 +10,7 @@ export interface BreakerKey {
 export type BreakerState = 'closed' | 'open' | 'half-open';
 
 /**
- * Stops calling a provider account that keeps failing (D100): opens after 5 failures within 120 s, lets one
+ * Stops calling a provider account that keeps failing (D103): opens after 5 failures within 120 s, lets one
  * probe through 60 s later; the probe's success closes it, its failure opens it again.
  * Throws `CircuitOpenError` while open.
  */

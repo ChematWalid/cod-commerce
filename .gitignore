@@ -25,6 +25,8 @@ apps/storefront/next-env.d.ts
 # Environment (only .env.example is committed)
 .env
 .env.*
+*.env
+.envrc
 !.env.example
 
 # Local assets / uploads
@@ -55,3 +57,6 @@ Thumbs.db
 
 # Vendure telemetry directory (created at the cwd of a host-run api)
 .vendure/
+
+# Architecture fixture workspace: relative symlinks that let `@cod/plugin-*` resolve the way pnpm links do
+!packages/config/tests/fixtures/arch/node_modules/

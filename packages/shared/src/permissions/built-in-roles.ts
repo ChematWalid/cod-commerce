@@ -46,9 +46,16 @@ const MANAGER_EXCLUDED: ReadonlySet<PermissionKey> = new Set<PermissionKey>([
   'delivery.pricing.delete',
   'store.landing-pages.delete',
   'store.domains.remove',
+  'store.stores.archive',
   'apps.disconnect',
   'settings.business.edit',
 ]);
+
+/**
+ * Archiving a store takes it offline for its buyers, so no built-in role but Owner holds it; a business hands it
+ * out through a custom role (D97).
+ */
+const STORE_MANAGER_EXCLUDED: ReadonlySet<PermissionKey> = new Set<PermissionKey>(['store.stores.archive']);
 
 const orderViewKeys = (): PermissionKey[] =>
   PERMISSION_CATALOG.filter((e) => e.area === 'orders' && e.level === 'view' && !e.sensitive).map((e) => e.key);
@@ -118,6 +125,6 @@ export const BUILT_IN_ROLES: readonly BuiltInRoleDefinition[] = [
       en: 'Can run the storefront, its pages and domains, and maintain products and collections.',
       ar: 'يدير واجهة المتجر وصفحاته ونطاقاته، ويصون المنتجات والتشكيلات.',
     },
-    permissions: sorted(keysIn('store', 'catalog')),
+    permissions: sorted(keysIn('store', 'catalog').filter((key) => !STORE_MANAGER_EXCLUDED.has(key))),
   },
 ];

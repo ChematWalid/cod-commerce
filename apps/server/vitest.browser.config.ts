@@ -5,6 +5,12 @@ import { defineConfig } from 'vitest/config';
 const BROWSER_TEST_TIMEOUT_MS = 60_000;
 
 /**
+ * How long `expect.poll` waits for the page to settle. Vitest's default of one second is shorter than a store
+ * switch after a deep link on a slow CI runner, which failed `store-switcher` on main four runs in a row.
+ */
+const BROWSER_POLL_TIMEOUT_MS = 10_000;
+
+/**
  * Browser tests against a running api (`pnpm test:browser`). They take the Vendure preset's resolution,
  * because they import `@cod/plugin-merchant-shell`, whose entry loads `@vendure/core`, but not its SWC
  * transform: SWC targets ES5 there, and a function handed to `page.evaluate` runs in the browser without the
@@ -21,6 +27,7 @@ export default defineConfig({
     setupFiles: ['tests/setup-env.ts'],
     testTimeout: BROWSER_TEST_TIMEOUT_MS,
     hookTimeout: BROWSER_TEST_TIMEOUT_MS,
+    expect: { poll: { timeout: BROWSER_POLL_TIMEOUT_MS } },
     fileParallelism: false,
   },
 });

@@ -79,7 +79,7 @@ describe('Built-in roles at provisioning', () => {
       const sizes = Object.fromEntries(rows.map((row) => [row.builtInKey ?? '', row.permissions.length]));
       expect(rows).toHaveLength(BUILT_IN_COUNT);
       expect(sizes).toEqual({
-        owner: 93,
+        owner: 94,
         manager: 77,
         'order-manager': 19,
         'inventory-manager': 12,

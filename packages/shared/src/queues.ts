@@ -93,7 +93,7 @@ export const DURABLE_JOB_KINDS = {
 } as const;
 export type DurableJobKind = (typeof DURABLE_JOB_KINDS)[keyof typeof DURABLE_JOB_KINDS];
 
-/** The ending a continuation job id has (`{jobId}-r{n}`, D100); no durable id may end like it. */
+/** The ending a continuation job id has (`{jobId}-r{n}`, D103); no durable id may end like it. */
 const CONTINUATION_LIKE_SUFFIX = /-r\d+$/;
 
 /** Job data every durable queue carries: the id BullMQ must use, and an optional start delay. */

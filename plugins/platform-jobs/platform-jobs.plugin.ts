@@ -30,7 +30,7 @@ export interface PlatformJobsPluginOptions {
 
 /**
  * Installs the pooled strategy and the index task of every pool in place of the stock ones that
- * `BullMQJobQueuePlugin` set, which is why this plugin is listed after it (D97).
+ * `BullMQJobQueuePlugin` set, which is why this plugin is listed after it (D100).
  */
 export function configurePlatformJobs(
   config: RuntimeVendureConfig,
@@ -58,7 +58,7 @@ function requireOptions(): PlatformJobsPluginOptions {
   return options;
 }
 
-/** The Valkey client of the semaphore and the breaker, with its outage guard (D100). */
+/** The Valkey client of the semaphore and the breaker, with its outage guard (D103). */
 function createPlatformValkey(clock: PlatformClock): PlatformValkey {
   return new PlatformValkey(createPlatformRedis(requireOptions().redisUrl), {
     clock,
@@ -71,8 +71,8 @@ function createPlatformValkey(clock: PlatformClock): PlatformValkey {
 }
 
 /**
- * Queue pools on BullMQ (`WORKER_POOL`), job options from the queue registry, job presence (D96-D99), the business
- * semaphore and the circuit breaker (D100), durable job helpers and the task heartbeat (D117).
+ * Queue pools on BullMQ (`WORKER_POOL`), job options from the queue registry, job presence (D99-D102), the business
+ * semaphore and the circuit breaker (D103), durable job helpers and the task heartbeat (D120).
  */
 @VendurePlugin({
   imports: [PluginCommonModule],

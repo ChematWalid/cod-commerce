@@ -6,7 +6,7 @@ const LOG_CONTEXT = 'PlatformJobsPlugin';
 
 /**
  * Replaces the stock `clean-job-queue-index` task (same id), which cleans only the plugin's singleton index:
- * this one cleans the job list index of every pool (D97).
+ * this one cleans the job list index of every pool (D100).
  */
 export const cleanPoolIndexesTask = new ScheduledTask({
   id: CLEAN_JOB_QUEUE_INDEX_TASK_ID,

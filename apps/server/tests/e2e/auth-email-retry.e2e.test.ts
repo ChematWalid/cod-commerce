@@ -16,11 +16,12 @@ import {
   useE2ePlatformJobs,
   VENDURE_BULLMQ_QUEUE,
 } from './support/e2e-config';
+import { PLAIN_SMTP_ENV } from './support/mailpit';
 import { E2E_PORTS } from './support/ports';
 
 const SUITE = 'auth-email-retry';
 const PREFIX = e2eBullPrefix(SUITE);
-/** `auth-email` is a critical queue, so its jobs live under the critical pool's prefix (D97). */
+/** `auth-email` is a critical queue, so its jobs live under the critical pool's prefix (D100). */
 const CRITICAL_PREFIX = e2ePoolPrefix(SUITE, 'critical');
 /** The registry's job options with a short delay, so five attempts fit in a test. */
 const TEST_BACKOFF_MS = 50;
@@ -29,7 +30,7 @@ const POLL_MS = 100;
 const DEAD_SMTP_PORT = '1';
 
 describe('account email retries on the BullMQ queue', () => {
-  const env = { SMTP_HOST: '127.0.0.1', SMTP_PORT: DEAD_SMTP_PORT };
+  const env = { SMTP_HOST: '127.0.0.1', SMTP_PORT: DEAD_SMTP_PORT, ...PLAIN_SMTP_ENV };
   const { server } = createTestEnvironment(buildE2eConfig({}, { suite: SUITE, port: E2E_PORTS.authEmailRetry, env }));
   const redis = e2eRedis();
   const bullQueue = new Queue(VENDURE_BULLMQ_QUEUE, { prefix: CRITICAL_PREFIX, connection: redis });

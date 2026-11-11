@@ -2,7 +2,7 @@
   "name": "@cod/plugin-platform-jobs",
   "version": "0.0.0",
   "private": true,
-  "description": "Queue pools on BullMQ, job options from the queue registry, job presence, the business semaphore, the circuit breaker, durable job helpers and the task heartbeat (ADR 0013, D96-D100, D117).",
+  "description": "Queue pools on BullMQ, job options from the queue registry, job presence, the business semaphore, the circuit breaker, durable job helpers and the task heartbeat (ADR 0013, D99-D103, D120).",
   "exports": {
     ".": {
       "@cod/source": "./index.ts",

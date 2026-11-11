@@ -2,7 +2,7 @@ import type { QueueName } from '@cod/shared';
 
 /**
  * What BullMQ keeps of a job: nothing (`missing`, e.g. lost with Valkey), a job still to run (`live`: waiting,
- * active, delayed, prioritized), or a settled job it still holds (`failed`, `completed`). Read by the reconciler (D102).
+ * active, delayed, prioritized), or a settled job it still holds (`failed`, `completed`). Read by the reconciler (D105).
  */
 export type JobPresence = 'missing' | 'live' | 'failed' | 'completed';
 

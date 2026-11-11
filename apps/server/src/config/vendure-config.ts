@@ -6,9 +6,6 @@ import type { AppEnv, LogLevelName, ServerRole } from './env';
 import { assertPooledJobQueue, buildJobQueueConfig } from './job-queue.config';
 import { buildPlugins } from './plugins.config';
 
-/** The api sits behind exactly one reverse proxy, whose `X-Forwarded-For` hop it trusts. */
-const TRUSTED_PROXY_HOPS = 1;
-
 const VENDURE_LOG_LEVELS: Record<LogLevelName, LogLevel> = {
   error: LogLevel.Error,
   warn: LogLevel.Warn,
@@ -27,7 +24,7 @@ export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig
   const config: VendureConfig = {
     apiOptions: {
       port: env.API_PORT,
-      trustProxy: TRUSTED_PROXY_HOPS,
+      trustProxy: env.TRUSTED_PROXY_HOPS,
       cors: { origin: env.CORS_ORIGINS, credentials: true },
     },
     authOptions: buildAuthConfig(env),

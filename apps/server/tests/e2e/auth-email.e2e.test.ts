@@ -4,7 +4,7 @@ import { RequestContext } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildE2eConfig, E2E_INITIAL_DATA, e2eBullPrefix, removeBullKeys } from './support/e2e-config';
-import { MAILPIT_SMTP_PORT, waitForMessageTo } from './support/mailpit';
+import { MAILPIT_SMTP_PORT, PLAIN_SMTP_ENV, waitForMessageTo } from './support/mailpit';
 import { E2E_PORTS } from './support/ports';
 
 const SUITE = 'auth-email';
@@ -13,14 +13,14 @@ const LINK_TOKEN = 'e2e-link-token-0123456789';
 const OTP = '482913';
 
 describe('account email through the BullMQ worker queue', () => {
-  // The test server runs every queue (`activeQueues` unset), `auth-email` among them in the critical pool (D42, D97).
+  // The test server runs every queue (`activeQueues` unset), `auth-email` among them in the critical pool (D42, D100).
   const { server } = createTestEnvironment(
     buildE2eConfig(
       {},
       {
         suite: SUITE,
         port: E2E_PORTS.authEmail,
-        env: { SMTP_HOST: 'localhost', SMTP_PORT: MAILPIT_SMTP_PORT, WORKER_POOL: 'all' },
+        env: { SMTP_HOST: 'localhost', SMTP_PORT: MAILPIT_SMTP_PORT, ...PLAIN_SMTP_ENV, WORKER_POOL: 'all' },
       },
     ),
   );

@@ -6,8 +6,14 @@ const FRAMEWORK_MODULES = '^(@nestjs|@vendure)/|^typeorm(/|$)|node_modules/(@nes
 /** The tenancy entry point that exposes the superadmin context and the unscoped business directory. */
 const TENANCY_PROVISIONING_ENTRY = '^plugins/tenancy/provisioning[.]ts$';
 
+/** The rbac entry point that exposes `requirePermission` and nothing else (D58). */
+const RBAC_GUARD_ENTRY = '^plugins/rbac/guard[.]ts$';
+
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
+
+/** The dashboard files a plugin's entry point may re-export: route paths, test ids and language lists. */
+const SERVER_SHARED_DASHBOARD_FILES = 'dashboard/(constants|document-lang)[.]ts$';
 
 /**
  * The dependency rules of CLAUDE.md §3a.1–2, checked by dependency-cruiser.
@@ -19,6 +25,13 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     comment: 'domain/ has no Nest, Vendure or TypeORM dependency, type-only imports included.',
     severity: 'error',
     from: { path: '^plugins/[^/]+/domain/' },
+    to: { path: FRAMEWORK_MODULES },
+  },
+  {
+    name: 'application-is-pure',
+    comment: 'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM, type-only imports included.',
+    severity: 'error',
+    from: { path: '^plugins/[^/]+/application/' },
     to: { path: FRAMEWORK_MODULES },
   },
   {
@@ -53,7 +66,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points and the rbac guard entry (D58), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -62,6 +75,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         '^plugins/$1/',
         '^plugins/(tenancy|rate-limit)/index[.]ts$',
         TENANCY_PROVISIONING_ENTRY,
+        RBAC_GUARD_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -75,12 +89,75 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     to: { path: '^plugins/$1/(domain|application|infrastructure|api)/' },
   },
   {
+    name: 'dashboard-no-server-entry',
+    comment:
+      "dashboard/ imports no server layer (ADR 0017, D92): never a plugin's entry point or provisioning entry, its own included. The merchant shell's shell-api stays the one cross-plugin import (D83).",
+    severity: 'error',
+    from: { path: '^plugins/[^/]+/dashboard/' },
+    to: { path: '^plugins/[^/]+/(index|provisioning)[.]ts$' },
+  },
+  {
+    name: 'layers-no-own-entry',
+    comment:
+      "A layer never imports its own plugin's root files (entry point, Nest module), by path or through the package name: they import every layer.",
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/(domain|application|infrastructure|api|dashboard)/' },
+    to: { path: '^plugins/$1/[^/]+[.]ts$' },
+  },
+  {
+    name: 'no-unresolved-workspace-import',
+    comment:
+      'Every rule here matches resolved paths, so a @cod/* import that the cruise cannot resolve would be checked by none of them.',
+    severity: 'error',
+    from: { path: '^(apps|plugins)/' },
+    to: { path: '^@cod/', couldNotResolve: true },
+  },
+  {
+    name: 'production-no-tests',
+    comment:
+      "Nothing outside a tests/ folder imports a plugin's tests/: the permission and data access gates do not scan it, so code registered from there would pass them.",
+    severity: 'error',
+    from: { pathNot: '(^|/)tests/' },
+    to: { path: '^plugins/[^/]+/tests/' },
+  },
+  {
+    name: 'layers-no-dashboard',
+    comment: 'A server layer never imports dashboard/ (ADR 0017): the permission and data access gates do not scan it.',
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/(domain|application|infrastructure|api)/' },
+    to: { path: '^plugins/$1/dashboard/' },
+  },
+  {
+    name: 'plugin-root-no-dashboard',
+    comment:
+      "A plugin's root file reaches its dashboard through the path string Vendure compiles, never an import; the one exception is re-exporting the framework-free constants files.",
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/[^/]+$' },
+    to: { path: '^plugins/$1/dashboard/', pathNot: `^plugins/$1/${SERVER_SHARED_DASHBOARD_FILES}` },
+  },
+  {
+    name: 'dashboard-shared-is-pure',
+    comment:
+      'The dashboard files an entry point may re-export import no framework and no other plugin file, so nothing else in dashboard/ becomes reachable from server code through them.',
+    severity: 'error',
+    from: { path: `^plugins/([^/]+)/${SERVER_SHARED_DASHBOARD_FILES}` },
+    to: { path: [FRAMEWORK_MODULES, '^plugins/'], pathNot: `^plugins/$1/${SERVER_SHARED_DASHBOARD_FILES}` },
+  },
+  {
     name: 'tenancy-provisioning-entry-restricted',
     comment:
       'The tenancy provisioning entry exports the superadmin context factory and the cross-business directory: only rbac/infrastructure (D56, D57) may import it.',
     severity: 'error',
     from: { pathNot: ['^plugins/rbac/infrastructure/', '^plugins/tenancy/'] },
     to: { path: TENANCY_PROVISIONING_ENTRY },
+  },
+  {
+    name: 'rbac-guard-entry-api-only',
+    comment:
+      'The rbac guard entry exports requirePermission, which decorates handlers: outside rbac only an api/ layer may import it (D58).',
+    severity: 'error',
+    from: { pathNot: ['^plugins/[^/]+/api/', '^plugins/rbac/'] },
+    to: { path: RBAC_GUARD_ENTRY },
   },
   {
     name: 'apps-no-plugin-internals',

@@ -190,11 +190,11 @@ Tests  11 passed | 1 expected fail (12)
 
 - `packages/shared/src/queues.ts` is the single registry of queue names with pool, concurrency per worker, total attempts and backoff. The taxonomy table above is its source; "retries" is read as total attempts.
 - Added to the table: `outbox-relay` (critical), `platform-maintenance` (bulk), `auth-email` (critical, 5 attempts, exponential 30 s; closes D42) and the stock queues `apply-collection-filters`, `clean-sessions`, `update-search-index` (critical, one attempt).
-- The pool split follows option (c) of the activeQueues addendum: one BullMQ prefix per pool (`WORKER_POOL=critical|bulk|all`, default `all`), replacing `WORKER_ACTIVE_QUEUES`. Reasoning and cost: `docs/roadmap/P1-decisions.md` (D96, D97, D98).
-- Durable job ids are `ob-`, `od-`, `iw-`, `kek-` plus dash-joined parts, because BullMQ refuses integer ids and ids containing `:` (D99).
+- The pool split follows option (c) of the activeQueues addendum: one BullMQ prefix per pool (`WORKER_POOL=critical|bulk|all`, default `all`), replacing `WORKER_ACTIVE_QUEUES`. Reasoning and cost: `docs/roadmap/P1-decisions.md` (D99, D100, D101).
+- Durable job ids are `ob-`, `od-`, `iw-`, `kek-` plus dash-joined parts, because BullMQ refuses integer ids and ids containing `:` (D102).
 
 
-## Addendum (2026-11-10): Settled in P1.S6 (D97)
+## Addendum (2026-11-10): Settled in P1.S6 (D100)
 
 **Status**: Accepted (2026-11-10, standing user authorization for P1)
 

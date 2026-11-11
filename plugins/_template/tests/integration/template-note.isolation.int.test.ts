@@ -1,3 +1,4 @@
+import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import {
   adminOperationsOf,
@@ -15,7 +16,14 @@ import {
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { adminApiSchema } from '../../api/schema';
 import { TemplatePlugin } from '../../template.plugin';
-import { CREATE_NOTE, NOTE_BY_ID, type NoteResult, NOTES, TEST_REDIS_URL } from './template-note-operations';
+import {
+  CREATE_NOTE,
+  NOTE_BY_ID,
+  type NoteResult,
+  NOTES,
+  TEST_REDIS_URL,
+  testRateLimitPlugin,
+} from './template-note-operations';
 
 type NoteIdsOf = (value: unknown) => readonly string[];
 
@@ -40,7 +48,9 @@ const idsOfNotes: NoteIdsOf = (value) => (value as NoteResult[]).map((note) => n
 describe('TemplateNote isolation between two businesses', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
+      testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1004 }),
+      RbacPlugin,
       TemplatePlugin,
     ],
     db: loadPluginTestDbConfig(process.env),

@@ -8,7 +8,7 @@ export interface SemaphoreKey {
 }
 
 /**
- * Limits how many jobs of one business run at once on a queue, so one busy merchant cannot fill a pool (D100).
+ * Limits how many jobs of one business run at once on a queue, so one busy merchant cannot fill a pool (D103).
  * Throws `SemaphoreBusyError` when the business is at its limit; the caller re-queues the job.
  */
 export abstract class BusinessSemaphore {
