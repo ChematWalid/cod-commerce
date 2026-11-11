@@ -1,5 +1,5 @@
 import { DomainError, type HealthCheckResult } from '@cod/shared';
-import { LOGGER_CONTEXT, PROBE_FAILED_REASON } from '../domain/constants';
+import { LOGGER_CONTEXT, PROBE_FAILED_CODE, PROBE_FAILURE_LOG_INTERVAL_MS, type ProbeName } from '../domain/constants';
 import type { ErrorLogger } from '../domain/ports';
 import { evaluateReadiness, type ProbeOutcome, type ReadinessProbe, type ReadinessReport } from '../domain/readiness';
 import { withTimeout } from '../domain/with-timeout';
@@ -9,13 +9,15 @@ const elapsedSince = (startedAt: number): number => Math.round(performance.now()
 const describeFailure = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /**
- * What the anonymous `/readyz` body may say: our own domain errors carry fixed, safe messages; anything else
- * is driver text (it can hold a host, a port, a user) and stays in the log.
+ * What the anonymous `/readyz` body may say: a fixed code. Our domain errors name their own; anything else is
+ * driver text (it can hold a host, a port, a user), so it gets a generic code and stays in the log.
  */
-const publicReason = (error: unknown): string => (error instanceof DomainError ? error.message : PROBE_FAILED_REASON);
+const publicReason = (error: unknown): string => (error instanceof DomainError ? error.code : PROBE_FAILED_CODE);
 
 /** Answers `/readyz`: is every dependency of this process usable right now? */
 export class ReadinessService {
+  private readonly lastLoggedAt = new Map<ProbeName, number>();
+
   constructor(
     private readonly probes: readonly ReadinessProbe[],
     private readonly logger: ErrorLogger,
@@ -34,9 +36,19 @@ export class ReadinessService {
       await withTimeout((signal) => probe.check(signal), probe.timeoutMs);
       result = { ok: true, durationMs: elapsedSince(startedAt) };
     } catch (error) {
-      this.logger.error(`Readiness probe "${probe.name}" failed: ${describeFailure(error)}`, LOGGER_CONTEXT);
+      this.logFailure(probe.name, error);
       result = { ok: false, durationMs: elapsedSince(startedAt), error: publicReason(error) };
     }
     return { name: probe.name, result };
+  }
+
+  /** The full error goes to the log, at most once per probe per {@link PROBE_FAILURE_LOG_INTERVAL_MS}. */
+  private logFailure(name: ProbeName, error: unknown): void {
+    const now = Date.now();
+    if (now - (this.lastLoggedAt.get(name) ?? Number.NEGATIVE_INFINITY) < PROBE_FAILURE_LOG_INTERVAL_MS) {
+      return;
+    }
+    this.lastLoggedAt.set(name, now);
+    this.logger.error(`Readiness probe "${name}" failed: ${describeFailure(error)}`, LOGGER_CONTEXT);
   }
 }

@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toHealthResponse } from '../api/health-response';
 import { LivenessService } from '../application/liveness.service';
 import { ReadinessService } from '../application/readiness.service';
-import { LOGGER_CONTEXT, PROBE_FAILED_REASON, PROBE_TIMEOUT_MS, type ProbeName } from '../domain/constants';
+import {
+  LOGGER_CONTEXT,
+  PROBE_FAILED_CODE,
+  PROBE_FAILURE_LOG_INTERVAL_MS,
+  PROBE_TIMEOUT_MS,
+  type ProbeName,
+} from '../domain/constants';
 import type { ReadinessProbe } from '../domain/readiness';
 import { MigrationsProbe } from '../infrastructure/migrations.probe';
 import { PostgresProbe } from '../infrastructure/postgres.probe';
@@ -59,7 +65,7 @@ describe('ReadinessService', () => {
     const response = toHealthResponse(await service.check());
 
     expect(response.statusCode).toBe(503);
-    expect(response.body.checks.postgres).toMatchObject({ ok: false, error: PROBE_FAILED_REASON });
+    expect(response.body.checks.postgres).toMatchObject({ ok: false, error: PROBE_FAILED_CODE });
     expect(response.body.checks.redis.ok).toBe(true);
   });
 
@@ -92,6 +98,33 @@ describe('ReadinessService', () => {
       expect.stringMatching(/"postgres".*db-primary\.internal:5432/),
       LOGGER_CONTEXT,
     );
+  });
+
+  it('logs a probe that keeps failing once per interval, not once per request', async () => {
+    const logger = silent();
+    const service = new ReadinessService(
+      [failing('postgres', 'down'), passing('redis'), passing('migrations')],
+      logger,
+    );
+
+    await service.check();
+    await service.check();
+    vi.advanceTimersByTime(PROBE_FAILURE_LOG_INTERVAL_MS);
+    await service.check();
+
+    expect(logger.error).toHaveBeenCalledTimes(2);
+  });
+
+  it('logs each failing probe on its own interval', async () => {
+    const logger = silent();
+    const service = new ReadinessService(
+      [failing('postgres', 'down'), failing('redis', 'down'), passing('migrations')],
+      logger,
+    );
+
+    await service.check();
+
+    expect(logger.error).toHaveBeenCalledTimes(2);
   });
 
   it('logs nothing when every probe passes', async () => {
@@ -146,7 +179,7 @@ describe('ReadinessService', () => {
     const report = await pending;
 
     expect(report.status).toBe('not_ready');
-    expect(report.checks.redis).toEqual({ ok: false, durationMs: 200, error: 'timed out after 200 ms' });
+    expect(report.checks.redis).toEqual({ ok: false, durationMs: 200, error: 'platform-health.probe-timeout' });
   });
 
   it('is not ready while migrations are pending', async () => {
@@ -156,7 +189,7 @@ describe('ReadinessService', () => {
     const response = toHealthResponse(await service.check());
 
     expect(response.statusCode).toBe(503);
-    expect(response.body.checks.migrations).toMatchObject({ ok: false, error: 'migrations are pending' });
+    expect(response.body.checks.migrations).toMatchObject({ ok: false, error: 'platform-health.pending-migrations' });
   });
 
   it('stops asking for migrations once none are pending', async () => {
@@ -195,5 +228,14 @@ describe('PostgresProbe', () => {
     await new PostgresProbe({ query }).check();
 
     expect(query).toHaveBeenCalledWith(`SET LOCAL statement_timeout = ${String(PROBE_TIMEOUT_MS.postgres)}; SELECT 1`);
+  });
+
+  it('does not start its query once its signal is aborted', async () => {
+    const query = vi.fn((sql: string) => Promise.resolve([sql]));
+
+    const outcome = await new PostgresProbe({ query }).check(AbortSignal.abort()).catch((error: unknown) => error);
+
+    expect(outcome).toBeInstanceOf(Error);
+    expect(query).not.toHaveBeenCalled();
   });
 });

@@ -23,7 +23,7 @@ export interface ProbeOutcome {
 }
 
 /** A probe nobody registered fails, so a wiring mistake can never report ready. */
-const NOT_REGISTERED: HealthCheckResult = { ok: false, durationMs: 0, error: 'probe not registered' };
+const NOT_REGISTERED: HealthCheckResult = { ok: false, durationMs: 0, error: 'platform-health.probe-not-registered' };
 
 const resultOf = (outcomes: readonly ProbeOutcome[], name: ProbeName): HealthCheckResult =>
   outcomes.find((outcome) => outcome.name === name)?.result ?? NOT_REGISTERED;

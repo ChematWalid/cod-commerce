@@ -15,7 +15,8 @@ export class PostgresProbe implements ReadinessProbe {
   constructor(private readonly database: SqlQueryRunner) {}
 
   /** The statement timeout makes Postgres cancel the query when the probe's budget is spent. */
-  async check(): Promise<void> {
+  async check(signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
     await this.database.query(withStatementTimeout('SELECT 1', this.timeoutMs));
   }
 }

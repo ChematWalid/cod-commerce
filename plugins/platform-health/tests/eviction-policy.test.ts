@@ -149,6 +149,16 @@ describe('RedisProbe after boot', () => {
     expect(readPolicy).toHaveBeenCalledTimes(3);
   });
 
+  it('shares one policy read between concurrent re-checks', async () => {
+    const reader = scriptedReader(policy('noeviction'));
+    const readPolicy = vi.spyOn(reader, 'readEvictionPolicy');
+    const verifier = new EvictionPolicyVerifier(reader, { warn: vi.fn() });
+
+    await Promise.all([verifier.verify(), verifier.verify(), verifier.verify()]);
+
+    expect(readPolicy).toHaveBeenCalledOnce();
+  });
+
   it('does not re-read the policy within the re-check interval', async () => {
     vi.useFakeTimers();
     const reader = scriptedReader(policy('noeviction'));

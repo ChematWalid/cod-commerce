@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { EventLoopLagMonitor } from '../infrastructure/event-loop-lag.monitor';
 
-const STALL_MS = 150;
+const STALL_MS = 300;
 const WINDOW_MS = 60_000;
 
 const blockEventLoop = (ms: number): void => {
@@ -43,7 +43,7 @@ describe('EventLoopLagMonitor', () => {
     blockEventLoop(STALL_MS);
     await nextTicks(shortWindowMs * 3);
 
-    expect(monitor.sample()).toBeLessThan(STALL_MS * 0.8);
+    expect(monitor.sample()).toBeLessThan(STALL_MS / 2);
   });
 
   it('reports no lag before it starts', () => {

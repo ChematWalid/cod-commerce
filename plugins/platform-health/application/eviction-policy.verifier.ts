@@ -17,6 +17,7 @@ const describeFailure = (error: unknown): string => (error instanceof Error ? er
  */
 export class EvictionPolicyVerifier implements EvictionPolicyCheck {
   private verifiedAt: number | undefined;
+  private inFlight: Promise<void> | undefined;
 
   constructor(
     private readonly reader: EvictionPolicyReader,
@@ -27,7 +28,7 @@ export class EvictionPolicyVerifier implements EvictionPolicyCheck {
 
   /** True while the last read of the policy said `noeviction` and is younger than the re-check interval. */
   get verified(): boolean {
-    return this.verifiedAt !== undefined && Date.now() - this.verifiedAt < this.recheckMs;
+    return this.verifiedAt !== undefined && performance.now() - this.verifiedAt < this.recheckMs;
   }
 
   /**
@@ -35,10 +36,22 @@ export class EvictionPolicyVerifier implements EvictionPolicyCheck {
    * @throws {RedisConfigUnavailableError} when Valkey refuses `CONFIG GET`.
    * @throws {ProbeTimeoutError} or the connection error when Valkey is out of reach.
    */
-  async verify(): Promise<void> {
-    this.verifiedAt = undefined;
-    assertNoEvictionPolicy(await withTimeout(() => this.reader.readEvictionPolicy(), this.timeoutMs));
-    this.verifiedAt = Date.now();
+  verify(): Promise<void> {
+    // Concurrent `/readyz` calls share one `CONFIG GET` instead of each sending their own.
+    this.inFlight ??= this.readAndRecord().finally(() => {
+      this.inFlight = undefined;
+    });
+    return this.inFlight;
+  }
+
+  private async readAndRecord(): Promise<void> {
+    try {
+      assertNoEvictionPolicy(await withTimeout(() => this.reader.readEvictionPolicy(), this.timeoutMs));
+    } catch (error) {
+      this.verifiedAt = undefined;
+      throw error;
+    }
+    this.verifiedAt = performance.now();
   }
 
   /**
