@@ -254,6 +254,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P1.S4-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S2.md`, `docs/roadmap/handoff/P1.S3.md`.
 - `docs/research/dashboard-captures.md` "Team": members tabs and columns (Employee, Roles, Salary (DZD), Status, Orders, Store access, Joined, Actions: Pay salary, View Details, Edit, Set limit, Stop receiving orders) and "Invite dialog: Email*, Roles*, Store access (All / Only these stores), Base Salary (DZD)*, Commission Structures (Add Commission)".
 - `docs/research/api-surface.md` "Team" (`/employees`, `/employees/:id`, `/employees/:id/pay`, `/employees/:id/revoke-invitation`, `/employees/resend-invitation`, `/employees/analytics/:id`, `/commissions/configs(/:id)`, `/commissions/configs/actions`, `/employees/order-managers`).
