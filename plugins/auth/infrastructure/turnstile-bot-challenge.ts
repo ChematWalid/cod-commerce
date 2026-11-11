@@ -35,7 +35,7 @@ export class TurnstileBotChallenge implements BotChallengePort {
   /** @param siteverifyUrl where tokens are checked; the provider's own endpoint unless a deployment overrides it */
   constructor(
     private readonly secretKey: string,
-    private readonly siteverifyUrl: string | undefined = undefined,
+    private readonly siteverifyUrl?: string,
   ) {}
 
   async verify(token: string | undefined): Promise<BotChallengeOutcome> {

@@ -25,9 +25,12 @@ export interface StorefrontEnv {
 
 /** The environment is invalid. The issues name variables and rules, never values: a URL can hold a password. */
 export class StorefrontEnvError extends Error {
-  constructor(readonly issues: readonly string[]) {
+  readonly issues: readonly string[];
+
+  constructor(issues: readonly string[]) {
     super(`Invalid environment: ${issues.join('; ')}`);
     this.name = 'StorefrontEnvError';
+    this.issues = issues;
   }
 }
 
