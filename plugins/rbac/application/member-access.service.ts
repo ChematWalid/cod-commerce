@@ -1,14 +1,8 @@
-import { ACTIVITY_ACTIONS, type PermissionKey, type Snowflake, type StoreId, type TenantScope } from '@cod/shared';
+import { ACTIVITY_ACTIONS, type TenantScope } from '@cod/shared';
 import type { BusinessRole, MemberAssignment } from '../domain/business-role';
-import { ALL_STORES_SCOPE, type MemberStoreAccess } from '../domain/constants';
+import type { MemberStoreAccess } from '../domain/constants';
 import { MemberNotFoundError, RoleNotFoundError } from '../domain/errors';
-import {
-  assertCanChangeTarget,
-  assertCanGrantAccess,
-  assertNotSelf,
-  assertOwnerChangeAllowed,
-  assertOwnerKept,
-} from '../domain/escalation-rules';
+import { assertNotSelf } from '../domain/escalation-rules';
 import type { ActorDirectoryPort } from '../domain/ports/actor-directory.port';
 import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
 import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-repository.port';
@@ -20,21 +14,17 @@ import type { OperationContext } from '../domain/ports/operation-context';
 import type { RbacLockPort } from '../domain/ports/rbac-lock.port';
 import type { SessionFlusherPort } from '../domain/ports/session-flusher.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
+import { type ResolvedStoreAccess, resolveStoreAccess, sameReach, storeRowId } from '../domain/store-access';
 import {
-  accessChange,
-  activeStoreIdsOf,
-  type Actor,
-  buildActor,
-  holdsAllAccess,
-  type RequestedStoreAccess,
-  type ResolvedStoreAccess,
-  type RoleOnStore,
-  resolveStoreAccess,
-  sameReach,
-  storeRowId,
-} from '../domain/store-access';
+  type AccessWorld,
+  checkAccessRules,
+  loadAccessWorld,
+  type SetMemberAccessCommand,
+} from './access-world';
 import type { ActivityLogService } from './activity-log.service';
 import type { BindingProjector } from './binding-projector.service';
+
+export type { MemberAccessActor, SetMemberAccessCommand } from './access-world';
 
 /** What the service reads and writes through. */
 export interface MemberAccessPorts {
@@ -52,39 +42,12 @@ export interface MemberAccessPorts {
   readonly clock: ClockPort;
 }
 
-/** Who is making the change and from where, as the activity row keeps it. */
-export interface MemberAccessActor {
-  readonly administratorId: number;
-  readonly scope: TenantScope;
-  readonly ip: string | null;
-  readonly userAgent: string | null;
-}
-
-/** Replaces a member's roles and store access (D54). */
-export interface SetMemberAccessCommand extends RequestedStoreAccess {
-  readonly actor: MemberAccessActor;
-  readonly administratorId: number;
-  readonly roleIds: readonly string[];
-}
-
 /** A member's roles and store access as clients read them. */
 export interface MemberAccessView {
   readonly administratorId: string;
   readonly roles: readonly { readonly id: string; readonly name: string }[];
   readonly storeAccess: MemberStoreAccess;
   readonly storeIds: readonly string[];
-}
-
-/** Everything the rules read, loaded under the lock. */
-interface AccessWorld {
-  readonly stores: Awaited<ReturnType<BusinessDirectoryPort['stores']>>;
-  readonly activeStoreIds: readonly StoreId[];
-  readonly roles: ReadonlyMap<string, BusinessRole>;
-  readonly owner: BusinessRole;
-  readonly businessOwnerId: number | null;
-  readonly actor: Actor;
-  readonly target: Actor;
-  readonly before: readonly MemberAssignment[];
 }
 
 const rolesInOrder = (ids: readonly string[], roles: ReadonlyMap<string, BusinessRole>): readonly BusinessRole[] =>
@@ -129,37 +92,14 @@ export class MemberAccessService {
     await this.ports.lock.acquire(ctx, scope.businessId);
     if (!(await this.ports.members.isMember(ctx, scope, command.administratorId))) throw new MemberNotFoundError();
     assertNotSelf(command.actor.administratorId, command.administratorId);
-    const world = await this.loadWorld(ctx, command);
+    const world = await loadAccessWorld(this.ports, ctx, command);
     const roles = rolesInOrder(command.roleIds, world.roles);
     const access = resolveStoreAccess(command, world.stores);
     const after = this.nextRows(command, roles, access);
-    await this.checkRules(ctx, command, world, after);
+    await checkAccessRules(this.ports, ctx, { command, world, after });
     if (this.isUnchanged(world.before, after)) return this.viewOf(command.administratorId, after, world.roles);
     await this.write(ctx, command, world, after);
     return this.viewOf(command.administratorId, after, world.roles);
-  }
-
-  private async loadWorld(ctx: OperationContext, command: SetMemberAccessCommand): Promise<AccessWorld> {
-    const { directory, roles: roleRows, assignments } = this.ports;
-    const { scope } = command.actor;
-    const stores = await directory.stores(ctx, scope.businessId);
-    const activeStoreIds = activeStoreIdsOf(stores);
-    const all = await roleRows.all(ctx, scope);
-    const roles = new Map(all.map((role) => [role.id as string, role]));
-    const owner = all.find((role) => role.builtInKey === 'owner');
-    if (owner === undefined) throw new Error('The business has no owner role');
-    const actorRows = await assignments.ofAdministrator(ctx, scope, command.actor.administratorId);
-    const before = await assignments.ofAdministrator(ctx, scope, command.administratorId);
-    return {
-      stores,
-      activeStoreIds,
-      roles,
-      owner,
-      businessOwnerId: await directory.ownerAdministratorOf(ctx, scope.businessId),
-      actor: buildActor(command.actor.administratorId, actorRows, roles, activeStoreIds),
-      target: buildActor(command.administratorId, before, roles, activeStoreIds),
-      before,
-    };
   }
 
   private nextRows(
@@ -177,46 +117,6 @@ export class MemberAccessService {
       storeIds: access.storeIds.map(storeRowId),
       createdAt: now,
     }));
-  }
-
-  /** Who may touch Owner first, so a non-holder cannot probe who the owner is; then D60.8, .4, .3. */
-  private async checkRules(
-    ctx: OperationContext,
-    command: SetMemberAccessCommand,
-    world: AccessWorld,
-    after: readonly MemberAssignment[],
-  ): Promise<void> {
-    const { actor, target, owner, activeStoreIds, before, roles } = world;
-    const ownerBefore = before.find((row) => row.businessRoleId === owner.id);
-    const ownerAfter = after.find((row) => row.businessRoleId === owner.id);
-    assertOwnerChangeAllowed(actor, !sameReach(ownerBefore, ownerAfter));
-    assertOwnerKept({
-      isBusinessOwner: command.administratorId === world.businessOwnerId,
-      heldOwner: ownerBefore !== undefined,
-      keepsOwnerOnAllStores: ownerAfter?.storeAccess === ALL_STORES_SCOPE,
-      otherAllAccessHolders: await this.otherAllAccessOwners(ctx, command, owner.id),
-    });
-    assertCanChangeTarget(actor, target);
-    assertCanGrantAccess(actor, {
-      wantsAllStores: command.storeAccess === ALL_STORES_SCOPE,
-      grants: accessChange(before, after, activeStoreIds).map((pair) => this.grantOf(pair, roles)),
-    });
-  }
-
-  private grantOf(
-    { businessRoleId, storeId }: RoleOnStore,
-    roles: ReadonlyMap<string, BusinessRole>,
-  ): { readonly storeId: StoreId; readonly permissions: readonly PermissionKey[] } {
-    return { storeId, permissions: roles.get(businessRoleId)?.permissions ?? [] };
-  }
-
-  private async otherAllAccessOwners(
-    ctx: OperationContext,
-    command: SetMemberAccessCommand,
-    ownerRoleId: Snowflake,
-  ): Promise<number> {
-    const holders = await this.ports.assignments.ofRoles(ctx, command.actor.scope, [ownerRoleId]);
-    return holders.filter((row) => row.administratorId !== command.administratorId && holdsAllAccess([row])).length;
   }
 
   private isUnchanged(before: readonly MemberAssignment[], after: readonly MemberAssignment[]): boolean {
