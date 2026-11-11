@@ -250,3 +250,4 @@ One small PR per module, each with a failing test first and a review by a second
 | M2 | `fix/audit-tenancy` | #103 | merged |
 | M1 | `fix/audit-server` | #104 | merged |
 | H6 | `fix/audit-template` | #105 | merged |
+| Browser run on `main` (one store-switcher test timing out on slow runners) | `fix/audit-browser` | #106 | merged |
