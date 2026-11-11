@@ -1,7 +1,7 @@
 import type { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { Logger } from '@vendure/core';
 import type { Redis } from 'ioredis';
-import { HOST_INVALIDATE_CHANNEL } from '../domain/constants';
+import { HOST_CACHE_DEFAULT_NAMESPACE, hostInvalidateChannel } from '../domain/constants';
 import type { HostCachePort } from '../domain/ports/host-cache.port';
 
 const LOG_CONTEXT = 'HostInvalidationSubscriber';
@@ -22,6 +22,7 @@ export class HostInvalidationSubscriber implements OnApplicationBootstrap, OnApp
   constructor(
     private readonly redis: Redis,
     private readonly local: HostCachePort,
+    private readonly namespace: string = HOST_CACHE_DEFAULT_NAMESPACE,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -35,9 +36,9 @@ export class HostInvalidationSubscriber implements OnApplicationBootstrap, OnApp
       void this.drop(message);
     });
     try {
-      await this.redis.subscribe(HOST_INVALIDATE_CHANNEL);
+      await this.redis.subscribe(hostInvalidateChannel(this.namespace));
     } catch (error) {
-      Logger.error(`Could not subscribe to ${HOST_INVALIDATE_CHANNEL}: ${String(error)}`, LOG_CONTEXT);
+      Logger.error(`Could not subscribe to ${hostInvalidateChannel(this.namespace)}: ${String(error)}`, LOG_CONTEXT);
     }
   }
 

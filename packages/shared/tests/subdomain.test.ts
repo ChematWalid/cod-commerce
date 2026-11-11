@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RESERVED_SUBDOMAINS, SUBDOMAIN_MAX_LENGTH, SUBDOMAIN_MIN_LENGTH, classifySubdomain } from '../src/index';
 
@@ -49,5 +51,25 @@ describe('classifySubdomain', () => {
     ['free-name', null],
   ])('gives %s the reason code %s', (raw, code) => {
     expect(classifySubdomain(raw).reasonCode).toBe(code);
+  });
+});
+
+describe('reserved subdomains of ADR 0012', () => {
+  /** The names after "Reserved:" in the wildcard row of ADR 0012's host table. */
+  const adrReservedNames = (): string[] => {
+    const adr = readFileSync(join(__dirname, '../../../docs/adr/0012-edge-tls-custom-domains.md'), 'utf8');
+    const list = /Reserved: ([a-z, ]+)\|/.exec(adr)?.[1] ?? '';
+    return list
+      .split(',')
+      .map((name) => name.trim())
+      .filter((name) => name !== '');
+  };
+
+  it('reads a list from the ADR', () => {
+    expect(adrReservedNames().length).toBeGreaterThanOrEqual(14);
+  });
+
+  it.each(adrReservedNames())('reports %s as reserved', (name) => {
+    expect(classifySubdomain(name).status).toBe('reserved');
   });
 });

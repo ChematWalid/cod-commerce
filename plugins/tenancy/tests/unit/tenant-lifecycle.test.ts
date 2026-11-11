@@ -12,6 +12,7 @@ import {
   openAssets,
   RecordingLifecycleHook,
   SequentialIdGenerator,
+  RecordingHostInvalidator,
 } from '../fakes/fakes';
 
 const ctx = asOperationContext({});
@@ -64,7 +65,7 @@ function setUp(journal: string[]): {
     lifecycle: registry,
     clock: (): Date => NOW,
   };
-  const stores = new CreateStoreService(ports);
+  const stores = new CreateStoreService(ports, new RecordingHostInvalidator());
   return { registry, provision: new ProvisionBusinessService(ports, stores), stores };
 }
 

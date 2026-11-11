@@ -1,3 +1,4 @@
+import type { StoreHostChange, StoreHostInvalidatorPort } from '../../domain/ports/store-host-invalidator.port';
 import { type Snowflake, toSnowflake } from '@cod/shared';
 import type { Business } from '../../domain/business';
 import type {
@@ -163,3 +164,13 @@ export class RecordingLifecycleHook implements TenantLifecycleHook {
 
 /** A lifecycle that nobody registered on. */
 export const noLifecycle: TenantLifecycleHook = new TenantLifecycleRegistry();
+
+/** Records every host invalidation, and can be told when the transaction it follows committed. */
+export class RecordingHostInvalidator implements StoreHostInvalidatorPort {
+  readonly changes: StoreHostChange[] = [];
+
+  invalidate(change: StoreHostChange): Promise<void> {
+    this.changes.push(change);
+    return Promise.resolve();
+  }
+}

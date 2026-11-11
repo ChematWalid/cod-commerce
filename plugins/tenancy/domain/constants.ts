@@ -46,8 +46,14 @@ export const HOST_LRU_TTL_MS = 60_000;
 /** How long after an invalidation the hosts are deleted again, for a resolver that read before the commit. */
 export const HOST_REDELETE_DELAY_MS = 500;
 
-/** The Valkey channel that tells every process to drop hosts from memory. */
-export const HOST_INVALIDATE_CHANNEL = 'host-invalidate';
+/**
+ * The namespace of host keys and invalidations when the host passes none. The server passes `APP_ENV`, so two
+ * environments that share a Valkey never read each other's store resolutions (TEN-11).
+ */
+export const HOST_CACHE_DEFAULT_NAMESPACE = 'development';
+
+/** The Valkey channel that tells every process of `namespace` to drop hosts from memory. */
+export const hostInvalidateChannel = (namespace: string): string => `host-invalidate:${namespace}`;
 
 /** How many more times a failed delete is retried, doubling from {@link HOST_INVALIDATE_RETRY_BASE_MS}: about 30 s. */
 export const HOST_INVALIDATE_RETRIES = 5;
@@ -62,4 +68,4 @@ export const HOST_CACHE_TTL_SECONDS = 86_400;
 export const HOST_CACHE_COMMAND_TIMEOUT_MS = 200;
 
 /** The Valkey key of a host's cached store. Invalidation removes it; {@link HOST_CACHE_TTL_SECONDS} is the backstop. */
-export const hostCacheKey = (host: string): string => `host:${host}`;
+export const hostCacheKey = (namespace: string, host: string): string => `host:${namespace}:${host}`;

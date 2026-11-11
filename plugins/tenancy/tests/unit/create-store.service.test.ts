@@ -15,6 +15,7 @@ import {
   InMemoryPlatformStore,
   openAssets,
   inlineTransaction,
+  RecordingHostInvalidator,
   noLifecycle,
   SequentialIdGenerator,
 } from '../fakes/fakes';
@@ -40,19 +41,24 @@ const business: Business = {
 describe('CreateStoreService', () => {
   let provisioner: FakeChannelProvisioner;
   let platform: InMemoryPlatformStore;
+  let hosts: RecordingHostInvalidator;
 
   const serviceWith = (channels: FakeChannelProvisioner): CreateStoreService =>
-    new CreateStoreService({
-      channels,
-      platform,
-      transaction: inlineTransaction,
-      ids: new SequentialIdGenerator('500'),
-      assets: openAssets,
-      lifecycle: noLifecycle,
-      clock: () => NOW,
-    });
+    new CreateStoreService(
+      {
+        channels,
+        platform,
+        transaction: inlineTransaction,
+        ids: new SequentialIdGenerator('500'),
+        assets: openAssets,
+        lifecycle: noLifecycle,
+        clock: () => NOW,
+      },
+      hosts,
+    );
 
   beforeEach(() => {
+    hosts = new RecordingHostInvalidator();
     provisioner = new FakeChannelProvisioner();
     platform = new InMemoryPlatformStore();
     platform.businesses.set(BUSINESS_ID, business);
@@ -140,5 +146,26 @@ describe('CreateStoreService', () => {
     // Assert
     await expect(creating).rejects.toBeInstanceOf(BusinessNotFoundError);
     expect(provisioner.calls).toBe(0);
+  });
+
+  it('forgets any cached host of the new subdomain once the store is created (TEN-2)', async () => {
+    // Act
+    const store = await serviceWith(provisioner).create(ctx, BUSINESS_ID, INPUT);
+
+    // Assert
+    expect(hosts.changes).toEqual([{ storeId: store.id, subdomains: ['atlas'] }]);
+  });
+
+  it('forgets no host when the store could not be created', async () => {
+    // Arrange
+    platform.businesses.clear();
+
+    // Act
+    await serviceWith(provisioner)
+      .create(ctx, BUSINESS_ID, INPUT)
+      .catch(() => undefined);
+
+    // Assert
+    expect(hosts.changes).toEqual([]);
   });
 });

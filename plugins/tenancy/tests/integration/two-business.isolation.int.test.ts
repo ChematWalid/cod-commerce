@@ -33,6 +33,7 @@ import {
   type AdminApiEntry,
   ADMIN_API_REGISTRY,
   ATTACK_CASES,
+  CONTROLLED_ATTACK_CASES,
   declaredRoutes,
   GUARDED_ENTRIES,
   leaksOf,
@@ -151,7 +152,7 @@ describe('two-business isolation', () => {
   });
 
   describe('positive controls: each attack aims at something real', () => {
-    it.each(ATTACK_CASES)('$name has a real target in B', async ({ entry, victimIndex }) => {
+    it.each(CONTROLLED_ATTACK_CASES)('$name has a real target in B', async ({ entry, victimIndex }) => {
       // Arrange
       const probe = probeOf(victimIndex);
       const { control } = entry;

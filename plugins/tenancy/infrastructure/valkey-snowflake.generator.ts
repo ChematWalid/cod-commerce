@@ -103,6 +103,9 @@ export class ValkeySnowflakeGenerator implements IdGeneratorPort, OnApplicationB
       await this.acquireLogged();
       return;
     }
+    // Taken before the call: the TTL runs in Valkey from when it receives the command, so a slow reply must not
+    // stretch the local expiry past the real one (TEN-7).
+    const sentAt = this.now();
     try {
       const renewed = await this.redis.eval(
         RENEW_IF_OWNED,
@@ -112,7 +115,7 @@ export class ValkeySnowflakeGenerator implements IdGeneratorPort, OnApplicationB
         WORKER_LEASE_TTL_MS,
       );
       if (renewed === 1) {
-        lease.expiresAt = this.now() + WORKER_LEASE_TTL_MS;
+        lease.expiresAt = sentAt + WORKER_LEASE_TTL_MS;
         return;
       }
       Logger.warn(`Lost the lease on worker id ${String(lease.workerId)}`, LOG_CONTEXT);
@@ -152,9 +155,10 @@ export class ValkeySnowflakeGenerator implements IdGeneratorPort, OnApplicationB
 
   private async acquire(): Promise<WorkerLease> {
     for (let workerId = this.firstWorkerId; workerId <= this.lastWorkerId; workerId += 1) {
+      const sentAt = this.now();
       const taken = await this.redis.set(workerLeaseKey(workerId), this.instance, 'PX', WORKER_LEASE_TTL_MS, 'NX');
       if (taken === 'OK') {
-        return this.leaseOn(workerId, this.now() + WORKER_LEASE_TTL_MS);
+        return this.leaseOn(workerId, sentAt + WORKER_LEASE_TTL_MS);
       }
     }
     throw new NoWorkerIdAvailableError();

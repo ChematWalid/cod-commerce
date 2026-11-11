@@ -42,11 +42,19 @@ export class ProvisionBusinessService {
    */
   async provision(ctx: OperationContext, command: ProvisionBusinessCommand): Promise<ProvisionedBusiness> {
     assertValidName(command.name);
-    await this.stores.assertCreatable(ctx, command.store);
-    return this.ports.transaction.run(ctx, (transactional) => this.provisionIn(transactional, command));
+    const subdomain = await this.stores.assertCreatable(ctx, command.store);
+    const provisioned = await this.ports.transaction.run(ctx, (transactional) =>
+      this.provisionIn(transactional, command, subdomain),
+    );
+    await this.stores.forgetHost(provisioned.store);
+    return provisioned;
   }
 
-  private async provisionIn(ctx: OperationContext, command: ProvisionBusinessCommand): Promise<ProvisionedBusiness> {
+  private async provisionIn(
+    ctx: OperationContext,
+    command: ProvisionBusinessCommand,
+    subdomain: string,
+  ): Promise<ProvisionedBusiness> {
     const sellerId = await this.ports.channels.createSeller(ctx, command.name);
     const business = newBusiness({ id: this.ports.ids.next(), name: command.name, sellerId, now: this.ports.clock() });
     await this.ports.platform.saveBusiness(ctx, business);
@@ -54,7 +62,7 @@ export class ProvisionBusinessService {
     // Saved before the store: CreateStoreService reads it to put the role on the new channel.
     const ownerRoleId = await this.ports.channels.createOwnerRole(ctx, business.id);
     await this.ports.platform.updateBusinessOwner(ctx, business.id, { ownerRoleId });
-    const store = await this.stores.create(ctx, business.id, command.store);
+    const store = await this.stores.createIn(ctx, business.id, subdomain, command.store);
     const administratorId = await this.ports.channels.createAdministrator(ctx, {
       ...command.owner,
       roleId: ownerRoleId,
