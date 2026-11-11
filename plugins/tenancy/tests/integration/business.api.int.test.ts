@@ -7,7 +7,6 @@ import {
 } from '@cod/testing';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
-import { TenancyPlugin } from '../../tenancy.plugin';
 import {
   ACTIVE_BUSINESS,
   BUSINESS,
@@ -16,11 +15,11 @@ import {
   UPDATE_BUSINESS,
 } from './admin-api-operations';
 import { actAsOwner } from './admin-api-session';
-import { OWNER_PASSWORD, provisionBusiness, TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { OWNER_PASSWORD, provisionBusiness, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 describe('Business Admin API', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1001 })],
+    plugins: tenancyTestPlugins(1001),
     db: loadPluginTestDbConfig(process.env),
   });
   let alpha: ProvisionedBusiness;

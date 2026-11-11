@@ -5,6 +5,7 @@ import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 import { LINT_LIMITS } from './lint-limits.mjs';
 import { PLUGIN_ENTRY_IMPORT_PATTERNS, PLUGIN_ENTRY_SYNTAX, pluginEntryConfig } from './plugin-entry.mjs';
+import { pluginStaticOptionsConfig } from './plugin-static-options.mjs';
 import {
   RAW_DATA_IMPORT_PATHS,
   RAW_DATA_IMPORT_PATTERNS,
@@ -233,6 +234,7 @@ export function codEslintConfig({ tsconfigRootDir }) {
       pluginEntryConfig,
       rawDataAccessConfig,
       serverAppGatesConfig,
+      pluginStaticOptionsConfig,
       frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE, RAW_DATA_GATE),
       frameworkFree(SHARED_FILES, DOMAIN_PURITY_MESSAGE, PLUGIN_ENTRY_GATE),
       frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE, RAW_DATA_GATE),

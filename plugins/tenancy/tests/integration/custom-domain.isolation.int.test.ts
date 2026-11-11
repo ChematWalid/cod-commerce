@@ -11,8 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CustomDomainEntity } from '../../infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from '../../infrastructure/platform-store-lookup';
 import { type TenantRepository, TenantRepositoryFactory } from '../../infrastructure/tenant-repository';
-import { TenancyPlugin } from '../../tenancy.plugin';
-import { TEST_REDIS_URL } from './tenant-fixtures';
+import { tenancyTestPlugins } from './tenant-fixtures';
 
 const DOMAIN_OF_A = { id: '7100000000000000001', host: 'a-shop.example.test' };
 const DOMAIN_OF_B = { id: '7100000000000000002', host: 'b-shop.example.test' };
@@ -20,7 +19,7 @@ const HIJACKED_HOST = 'hijacked.example.test';
 
 describe('custom_domain isolation', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1012 })],
+    plugins: tenancyTestPlugins(1012),
     db: loadPluginTestDbConfig(process.env),
   });
   let fixtures: TwoBusinesses;

@@ -17,7 +17,6 @@ import {
 } from '@cod/testing';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { adminApiSchema } from '../../api/schema';
-import { TenancyPlugin } from '../../tenancy.plugin';
 import {
   ACTIVE_BUSINESS,
   type BusinessSnapshot,
@@ -40,13 +39,13 @@ import {
   type Probe,
   REST_ROUTE_REGISTRY,
 } from './endpoint-registry';
-import { TEST_REDIS_URL } from './tenant-fixtures';
+import { tenancyTestPlugins } from './tenant-fixtures';
 
 const SAME_PHONE = '+213555000111';
 
 describe('two-business isolation', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1003 })],
+    plugins: tenancyTestPlugins(1003),
     db: loadPluginTestDbConfig(process.env),
   });
   let fixtures: TwoBusinesses;
