@@ -16,7 +16,11 @@ const PLUGIN_PACKAGE_PREFIX = '@cod/plugin-';
  * The sub-entries the plugins declare in their package.json `exports`, beside the root entry. A test compares this
  * list with the manifests, so a new sub-entry is added here on purpose.
  */
-export const PLUGIN_SUB_ENTRIES = ['@cod/plugin-merchant-shell/shell-api', '@cod/plugin-tenancy/provisioning'];
+export const PLUGIN_SUB_ENTRIES = [
+  '@cod/plugin-merchant-shell/shell-api',
+  '@cod/plugin-rbac/guard',
+  '@cod/plugin-tenancy/provisioning',
+];
 
 export const PLUGIN_ENTRY_MESSAGE =
   "Import the plugin's package entry (@cod/plugin-<name>) instead: only entry points cross a plugin boundary (CLAUDE.md §3a.2)";
