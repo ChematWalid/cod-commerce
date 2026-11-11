@@ -1,5 +1,6 @@
 import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
@@ -50,6 +51,18 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(PlatformPartitionsPlugin);
+  });
+
+  // The outbox declares entities, so every role registers it (the migrate role creates its tables).
+  it.each(SERVER_ROLES)('registers PlatformOutboxPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformOutboxPlugin);
   });
 
   it.each(SERVER_ROLES)(

@@ -134,7 +134,7 @@ jobs:
       matrix:
         include:
           - part: others
-            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions
+            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox
           - part: server-e2e
             command: pnpm exec turbo run test:integration --filter=@cod/server
           - part: auth-1
@@ -146,7 +146,7 @@ jobs:
           - part: rbac-2
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-rbac -- --shard=2/2
           - part: platform-1
-            command: pnpm exec turbo run test:integration --filter=@cod/plugin-platform-jobs --filter=@cod/plugin-platform-partitions
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-platform-jobs --filter=@cod/plugin-platform-partitions --filter=@cod/plugin-platform-outbox
     # Same images as docker-compose.yml (a test pins them equal). Valkey's default eviction policy is already noeviction.
     services:
       postgres:

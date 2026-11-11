@@ -54,6 +54,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
   // DDL and catalog reads of partition maintenance (`SET LOCAL`, `pg_advisory_xact_lock`); no tenant row (D106).
   '**/plugins/platform-partitions/infrastructure/postgres-partition-catalog.ts',
+  // `keepIf` reads per partition whether an outbox row is still open: a cross-tenant check that names no business and returns no row (D107).
+  '**/plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.

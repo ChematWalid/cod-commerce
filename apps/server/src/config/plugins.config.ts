@@ -3,6 +3,7 @@ import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOpt
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
@@ -140,6 +141,8 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
     }),
+    // After tenancy (its tables are tenant-scoped), jobs and partitions (the relay queue and the retention policies).
+    PlatformOutboxPlugin,
     RbacPlugin,
     authPlugin(env),
     assetServerPlugin(env),

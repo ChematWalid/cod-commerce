@@ -24,3 +24,5 @@ export * from './auth/normalize-email';
 export * from './auth/schemas';
 export * from './permissions';
 export * from './queues';
+export * from './outbox/topics';
+export * from './outbox/payload';

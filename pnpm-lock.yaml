@@ -89,6 +89,9 @@ importers:
       '@cod/plugin-platform-jobs':
         specifier: workspace:*
         version: link:../../plugins/platform-jobs
+      '@cod/plugin-platform-outbox':
+        specifier: workspace:*
+        version: link:../../plugins/platform-outbox
       '@cod/plugin-platform-partitions':
         specifier: workspace:*
         version: link:../../plugins/platform-partitions
@@ -569,6 +572,55 @@ importers:
       '@cod/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@cod/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+      '@nestjs/core':
+        specifier: 12.4.0
+        version: 12.4.0(@nestjs/common@12.4.0(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.4.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: 7.3.7
+        version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+
+  plugins/platform-outbox:
+    dependencies:
+      '@cod/plugin-platform-jobs':
+        specifier: workspace:*
+        version: link:../platform-jobs
+      '@cod/plugin-platform-partitions':
+        specifier: workspace:*
+        version: link:../platform-partitions
+      '@cod/plugin-tenancy':
+        specifier: workspace:*
+        version: link:../tenancy
+      '@cod/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@nestjs/common':
+        specifier: 12.4.0
+        version: 12.4.0(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@vendure/core':
+        specifier: 3.8.1
+        version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
+      typeorm:
+        specifier: 0.3.31
+        version: 0.3.31(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))
+    devDependencies:
+      '@cod/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@cod/plugin-rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@cod/testing':
         specifier: workspace:*
         version: link:../../packages/testing
@@ -10827,7 +10879,7 @@ snapshots:
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5(jiti@2.7.0))
@@ -10864,7 +10916,7 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.13.0
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -10918,7 +10970,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.2.0

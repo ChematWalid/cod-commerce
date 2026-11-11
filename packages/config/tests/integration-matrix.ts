@@ -21,8 +21,12 @@ export const groupedCommand = (names: readonly string[]): string =>
 const SERVER = '@cod/server';
 const AUTH = '@cod/plugin-auth';
 const RBAC = '@cod/plugin-rbac';
-/** The platform plugins of part `platform-1` (D118); outbox joins when its suite exists. */
-const PLATFORM_1 = ['@cod/plugin-platform-jobs', '@cod/plugin-platform-partitions'] as const;
+/** The platform plugins of part `platform-1` (D118). */
+const PLATFORM_1 = [
+  '@cod/plugin-platform-jobs',
+  '@cod/plugin-platform-partitions',
+  '@cod/plugin-platform-outbox',
+] as const;
 const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1].map((name) => `--filter=!${name}`).join(' ');
 
 /** The parts of the matrix, in order (D51, D69, D118). */
