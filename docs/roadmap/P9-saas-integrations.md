@@ -47,6 +47,9 @@
 - `docs/research/dashboard-captures.md` → "Store settings" (Plan & Billing tab), "Business settings".
 - `docs/research/api-surface.md` → "Billing & credits".
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #130 PKG-11 (medium): fix(shared): make requireFeature fail closed and ban node: imports
+
 **High-level plan**
 1. Plan data model + seed: `Plan` (id, billingCycle, termMonths 1/3/6/12, prices DZD and EUR, creditsPerCycle, `features`, `limitations`), seeded Free trial (everything unlimited, 7 days), Starter, Basic, Advanced with term discounts −10/−15/−20% → commit `feat(billing): plans as data with term pricing`
 2. `Subscription` entity (provider, planId, status, currentPeriodStart/End, trialEnd, cancelAtPeriodEnd, scheduledChange) + auto 7-day trial at business signup, no card; expiry job → commit `feat(billing): subscription and 7-day trial`

@@ -41,6 +41,9 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 - `docs/research/api-surface.md` → "Delivery" (`/delivery-fees`, `/overrides`, `/sync-default`), `/provinces`
 - `docs/research/second-pass.md` → "Carriers (connect forms)" (overweight allowance + rate)
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #153 TEN-4 (low): fix(tenancy): check ownership of default carrier and fee group ids
+
 **High-level plan**
 1. Shared types/zod: `Province`, `Town`, `DeliveryFeeGroup`, `ShippingQuote` in `packages/shared` → commit `feat(shared): geo and delivery-fee types`
 2. `geo` plugin: Province/Town entities (global reference data, not tenant-owned), migration, idempotent seed from the ONS list (58 wilayas with `arabicName`, `names[]` aliases; communes with `codeOns`, `isStopdesk`, `isHomeDelivery`) → commit `feat(geo): wilaya and commune seed`
@@ -111,6 +114,16 @@ link and stop without merging.
 - `docs/research/api-surface.md` → "Catalog & store" and "Added in the second pass → Storefront" (`/store/products`, `/store/product/:slug`, `/store/product/search`)
 - `docs/research/second-pass.md` → "Storefront order → delivered" step 1, "Builder page templates" (page list and default section order), "Collections"
 - `docs/research/dashboard-captures.md` → "Store settings" (Profile)
+
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #120 SF-2 (medium): feat(storefront): add the deferred cache safeguards
+- #121 SF-4 (medium): fix(storefront): bound cache commands with a socket timeout
+- #180 SF-3 (low): fix(storefront): cache unknown hosts negatively
+- #181 SF-5 (low): docs(evidence): refresh the stale P0.S2b-5 storefront evidence
+- #182 SF-6 (low): ci: run the storefront cross-tenant smoke test on pull requests
+- #183 SF-7 (low): fix(storefront): prune ISR tag sets
+- #184 SF-8 (low): fix(storefront): stop returning raw error text from /readyz
+- #209 CO-8 (low): feat(storefront): check that a /_t/[storeId] page matches the host
 
 **High-level plan**
 1. Per-request store context on top of the host resolver that P1.S1 already wired into proxy.ts: proxy.ts rewrites to the internal route /_t/[storeId]/[locale]/… so the tenant is a route param (never read headers()/cookies() in page renders) (`GET /store/resolve?host=`; extend it, do not write a second resolver): store settings loaded once per request, custom-domain lookup stays stubbed for P8.S9; unknown host → 404 → commit `feat(storefront): per-request store context`
@@ -259,6 +272,12 @@ link and stop without merging.
 - `docs/research/data-model.md` → "Storefront ordering protocol" items 4–5 and the trailing paragraph (abandoned and public order payloads/responses), "Order (dashboard)" (target shape), "Spam hold" (hold happens before a number exists)
 - `docs/research/second-pass.md` → "Storefront order → delivered" steps 2–4 (abandoned recorded early; number assigned on release when held)
 - `docs/research/api-surface.md` → "Added in the second pass → Storefront"
+
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #127 PKG-8 (medium): feat(config): add the id lint and shared Id schema of ADR 0003
+- #149 AUTH-7 (low): fix(auth): throttle the Shop customer account branches
+- #150 AUTH-8 (low): fix(auth): check hostname and action in the Turnstile response
+- #202 CO-1 (low): feat(auth): decide Turnstile on sign-up and settle ADR 0008 vs 0012
 
 **High-level plan**
 1. Shared: `OrderPlaced` event + payload type, `OrderIntakePayload` zod schema, source/channel enums → commit `feat(shared): order intake schemas and OrderPlaced event`

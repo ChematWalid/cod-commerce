@@ -598,6 +598,10 @@ link and stop without merging.
 - `docs/research/second-pass.md` → "Onboarding" (live "is available" subdomain check); `docs/feature-inventory.md` section X (Custom domain inline connect)
 - ADRs on multi-tenancy and host routing in `docs/adr/`: 0002, 0006 (host map), 0012 (edge, TLS, custom domains); handoff `P3.S5` (Cloudflare modules, staging zone); `docs/architecture/system-design.md` §3 (edge), `infrastructure.md` §2
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #159 TEN-12 (low): fix(tenancy): tighten the custom_domain stub and index it
+- #206 CO-5 (low): feat(tenancy): add the release job for archived subdomains
+
 **High-level plan**
 1. Domain strategy: host → store resolution cache, reserved subdomains list, verification method (TXT record at `_verify.<domain>` plus CNAME/A target), Cloudflare for SaaS custom hostnames per ADR 0012 (platform domain is a `.com.dz`, store subdomains `<store>.<platform>.com.dz`, ADR 0011; merchants' own domains, `.com.dz` included; CNAME to stores.<root>, Cloudflare DCV + our _verify TXT ownership check, apex via CNAME flattening/ALIAS or registrar forwarding to www); record the decision as an addendum to ADR 0012 rather than a new ADR → commit `docs(adr): 0012 addendum custom domain strategy`
 2. `Domain` entity (businessId, storeId, host, kind subdomain/custom, status pending/verified/failed, primary, enabled, verificationToken) and APIs: subdomain availability check + change (format, length, reserved, uniqueness, old subdomain redirects for a grace period), connect, remove → commit `feat(domains): entities and subdomain api`
