@@ -4,11 +4,17 @@ import prettierConfig from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 import { LINT_LIMITS } from './lint-limits.mjs';
-import { RAW_DATA_SYNTAX, rawDataAccessConfig } from './raw-data-access.mjs';
+import {
+  RAW_DATA_IMPORT_PATHS,
+  RAW_DATA_IMPORT_PATTERNS,
+  RAW_DATA_SYNTAX,
+  rawDataAccessConfig,
+} from './raw-data-access.mjs';
 
 const TS_FILES = ['**/*.{ts,tsx,mts}'];
 const JS_FILES = ['**/*.{js,mjs,cjs}'];
-const DOMAIN_FILES = ['**/plugins/*/domain/**', 'packages/shared/src/**'];
+const DOMAIN_FILES = ['**/plugins/*/domain/**'];
+const SHARED_FILES = ['packages/shared/src/**'];
 const MAGIC_NUMBER_FILES = ['**/plugins/*/domain/**', '**/plugins/*/application/**', 'packages/shared/src/**'];
 const MAGIC_NUMBER_EXEMPT = ['**/constants.ts', 'packages/shared/src/wilayas/**', 'packages/shared/src/platform/**'];
 const TEST_FILES = ['**/*.test.ts', '**/tests/**'];
@@ -91,23 +97,35 @@ const boundaryPolicies = [
   { from: { file: { categories: 'plugin-root' } }, allow: { to: { file: ROOT_FILE } } },
 ];
 
+/** The data access gate's entries, for the framework-free plugin layers that are also under that gate. */
+const RAW_DATA_GATE = { syntax: RAW_DATA_SYNTAX, paths: RAW_DATA_IMPORT_PATHS, patterns: RAW_DATA_IMPORT_PATTERNS };
+/** `@cod/shared` is framework-free but not under the data access gate: it holds contracts and has no connection. */
+const NO_GATE = { syntax: [], paths: [], patterns: [] };
+
 /**
- * Forbids framework imports (type imports, `import('…')` types and dynamic `import()` included) in `files`. These files are also under the
- * data access gate, whose `no-restricted-syntax` entries are repeated here because this block replaces that rule's
- * options; the framework ban already covers the gate's `no-restricted-imports`.
+ * Forbids framework imports (type imports, `import('…')` types and dynamic `import()` included) in `files`. This block
+ * replaces the options of both rules, so a file group that is also under the data access gate passes that gate's
+ * entries as `gate` and gets them merged in.
  *
  * @param {string[]} files
  * @param {string} message
+ * @param {typeof RAW_DATA_GATE | typeof NO_GATE} gate
  */
-const frameworkFree = (files, message) => ({
+const frameworkFree = (files, message, gate) => ({
   files,
   rules: {
-    'no-restricted-imports': ['error', { patterns: [{ group: FRAMEWORK_MODULES, allowTypeImports: false, message }] }],
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: gate.paths,
+        patterns: [{ group: FRAMEWORK_MODULES, allowTypeImports: false, message }, ...gate.patterns],
+      },
+    ],
     'no-restricted-syntax': [
       'error',
       { selector: 'ImportExpression', message: `Dynamic import() is not allowed: ${message}` },
       ...FRAMEWORK_IMPORT_TYPES.map((selector) => ({ selector, message })),
-      ...RAW_DATA_SYNTAX,
+      ...gate.syntax,
     ],
   },
 });
@@ -187,8 +205,9 @@ export function codEslintConfig({ tsconfigRootDir }) {
         },
       },
       rawDataAccessConfig,
-      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE),
-      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE),
+      frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE, RAW_DATA_GATE),
+      frameworkFree(SHARED_FILES, DOMAIN_PURITY_MESSAGE, NO_GATE),
+      frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE, RAW_DATA_GATE),
       {
         files: TEST_FILES,
         rules: { 'max-lines-per-function': 'off', '@typescript-eslint/no-magic-numbers': 'off' },

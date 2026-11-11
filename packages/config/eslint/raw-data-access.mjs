@@ -45,20 +45,33 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-health/infrastructure/postgres.probe.ts',
   // Reads only TypeORM's migrations table, which holds no tenant row.
   '**/plugins/platform-health/infrastructure/migrations.probe.ts',
-  // Seeds write platform rows (zone, tax, default channel, superadmin, demo accounts) before any tenant exists.
-  'apps/server/src/seed/**',
-  // Takes only the migration advisory lock on a `pg` client; it reads no table.
+  // The seeds below write platform rows before any tenant exists; a seed file not listed here is under the gate.
+  // Vendure's `country` and `zone` rows for Algeria.
+  'apps/server/src/seed/ensure-algeria-zone.ts',
+  // Reads the Algeria `zone` and Vendure's default `channel`.
+  'apps/server/src/seed/ensure-default-channel.ts',
+  // Vendure's `tax_category` and `tax_rate` rows of the zero tax.
+  'apps/server/src/seed/ensure-zero-tax.ts',
+  // Reads Vendure's account-level `user` row of the superadmin.
+  'apps/server/src/seed/seed-platform-defaults.ts',
+  // Reads Vendure's account-level `administrator` rows to find the demo owners.
+  'apps/server/src/seed/seed-demo-businesses.ts',
+  // Reads and writes Vendure's account-level `administrator` rows of the demo members.
+  'apps/server/src/seed/seed-demo-members.ts',
+  // Takes only the migration advisory lock on its own `pg` client (the one file that imports `pg`); it reads no table.
   'apps/server/src/roles/migrate.role.ts',
 ];
 
 export const RAW_DATA_ACCESS_MESSAGE =
   'Tenant tables are reached only through TenantRepository or tenantQuery (ADR 0002)';
 
-/** Members of a TypeORM `DataSource`/`EntityManager` or Vendure `TransactionalConnection` that reach any table. */
+/**
+ * Members of a TypeORM `DataSource`/`EntityManager` or Vendure `TransactionalConnection` that reach any table. The
+ * names are specific enough to ban on any receiver.
+ */
 const RAW_MEMBERS = [
   'getRepository',
   'rawConnection',
-  'manager',
   'createQueryBuilder',
   'createQueryRunner',
   'getEntityOrThrow',
@@ -69,6 +82,20 @@ const RAW_MEMBER = `/^(${RAW_MEMBERS})$/`;
 /** Receivers whose `query()` is raw SQL. `TenantRepository.query(scope, alias)` is the scoped one and stays allowed. */
 const SQL_RECEIVER = '/^(ds|dataSource|connection|rawConnection|manager|entityManager|queryRunner)$/i';
 const QUERY_CALL = "CallExpression[callee.property.name='query']";
+/**
+ * `manager` is also an ordinary word (the `manager` role key), so it is banned only where it is an `EntityManager`:
+ * read from a data-source-like receiver, or called with an `EntityManager` method.
+ */
+const MANAGER_OWNER = '/^(ds|dataSource|connection|rawConnection|queryRunner|repository|repo)$/i';
+const MANAGER_METHODS = [
+  'find|findBy|findOne|findOneBy|findOneOrFail|findOneByOrFail|findAndCount|findAndCountBy|count|countBy|exists|existsBy',
+  'save|insert|update|upsert|delete|remove|softDelete|softRemove|restore|recover|increment|decrement|clear',
+  'query|createQueryBuilder|getRepository|getTreeRepository|getMongoRepository|withRepository|transaction|release',
+].join('|');
+const MANAGER = "MemberExpression[property.name='manager']";
+const MANAGER_KEY = "ObjectPattern > Property[key.name='manager']";
+/** The modules that hand out an unscoped connection, for `import()` and `import('…')` types. */
+const RAW_MODULE = '/^(typeorm|@nestjs\\/typeorm|pg)(\\/|$)/';
 
 const RAW_DATA_SELECTORS = [
   // connection.getRepository(...), connection['rawConnection'], connection[`rawConnection`]
@@ -78,34 +105,71 @@ const RAW_DATA_SELECTORS = [
   // const { rawConnection } = connection; const { 'getRepository': repositoryOf } = connection;
   `ObjectPattern > Property[key.name=${RAW_MEMBER}]`,
   `ObjectPattern > Property[key.value=${RAW_MEMBER}]`,
+  // dataSource.manager, this.ds.manager, repository.manager, anything.manager.find(...)
+  `${MANAGER}[object.name=${MANAGER_OWNER}]`,
+  `${MANAGER}[object.property.name=${MANAGER_OWNER}]`,
+  `MemberExpression[property.name=/^(${MANAGER_METHODS})$/] > ${MANAGER}.object`,
+  // const { manager } = dataSource; const { manager } = this.ds;
+  `VariableDeclarator[init.name=${MANAGER_OWNER}] > ${MANAGER_KEY}`,
+  `VariableDeclarator[init.property.name=${MANAGER_OWNER}] > ${MANAGER_KEY}`,
   // dataSource.query(SQL), this.ds.query(SQL), anything.query('select …'), anything.query(`select …`)
   `${QUERY_CALL}[callee.object.name=${SQL_RECEIVER}]`,
   `${QUERY_CALL}[callee.object.property.name=${SQL_RECEIVER}]`,
   `${QUERY_CALL}[arguments.0.type=/^(Literal|TemplateLiteral)$/]`,
+  // (await import('typeorm')).DataSource, and the type form import('typeorm').DataSource
+  `ImportExpression[source.value=${RAW_MODULE}]`,
+  `TSImportType > TSLiteralType.argument > Literal[value=${RAW_MODULE}]`,
+  `TSImportType > Literal.source[value=${RAW_MODULE}]`,
 ];
 
 /** `no-restricted-syntax` entries of the data access gate, to merge with a file group's other entries. */
 export const RAW_DATA_SYNTAX = RAW_DATA_SELECTORS.map((selector) => ({ selector, message: RAW_DATA_ACCESS_MESSAGE }));
 
-/** `no-restricted-imports` paths of the data access gate: the injectables that hand out an unscoped connection. */
+/** TypeORM exports that are, or hand out, an unscoped connection: classes, active-record base and global getters. */
+const TYPEORM_NAMES = [
+  'default',
+  'DataSource',
+  'EntityManager',
+  'Connection',
+  'BaseEntity',
+  'getRepository',
+  'getManager',
+  'getConnection',
+  'getConnectionManager',
+  'createConnection',
+  'createQueryBuilder',
+  'getMongoRepository',
+  'getTreeRepository',
+  'getCustomRepository',
+];
+/** The type-only deep paths the repository really uses; every other `typeorm/…` path is a way around the names above. */
+const TYPEORM_TYPE_PATHS = 'query-builder/QueryPartialEntity|driver/postgres/PostgresConnectionOptions';
+
+/** `no-restricted-imports` paths of the data access gate, to merge with a file group's other entries. */
 export const RAW_DATA_IMPORT_PATHS = [
-  { name: 'typeorm', importNames: ['DataSource', 'EntityManager', 'Connection'], message: RAW_DATA_ACCESS_MESSAGE },
-  {
-    name: '@nestjs/typeorm',
-    importNames: ['InjectDataSource', 'InjectRepository', 'InjectEntityManager', 'InjectConnection'],
-    message: RAW_DATA_ACCESS_MESSAGE,
-  },
+  { name: 'typeorm', importNames: TYPEORM_NAMES, message: RAW_DATA_ACCESS_MESSAGE },
+  // Injection decorators, token getters and the module itself: no guarded file needs any of it.
+  { name: '@nestjs/typeorm', message: RAW_DATA_ACCESS_MESSAGE },
+  // The driver: a `pg` client or pool is a connection no tenant scope applies to.
+  { name: 'pg', message: RAW_DATA_ACCESS_MESSAGE },
+];
+
+/** `no-restricted-imports` patterns of the data access gate: the deep paths of the same modules. */
+export const RAW_DATA_IMPORT_PATTERNS = [
+  { regex: `^typeorm/(?!(${TYPEORM_TYPE_PATHS})$)`, message: RAW_DATA_ACCESS_MESSAGE },
+  { regex: `^typeorm/(${TYPEORM_TYPE_PATHS})$`, allowTypeImports: true, message: RAW_DATA_ACCESS_MESSAGE },
+  { regex: '^(@nestjs/typeorm|pg)/', message: RAW_DATA_ACCESS_MESSAGE },
 ];
 
 /**
  * The data access gate (CLAUDE.md §3a.9). A flat config block REPLACES the options of a rule set by an earlier block,
- * so this block comes before the framework-free ones, which carry {@link RAW_DATA_SYNTAX} beside their own entries.
+ * so this block comes before the framework-free ones, which merge the gate's entries with their own.
  */
 export const rawDataAccessConfig = {
   files: RAW_DATA_GUARDED_FILES,
   ignores: [...RAW_DATA_UNGUARDED_FILES, ...RAW_DATA_ACCESS_FILES],
   rules: {
     'no-restricted-syntax': ['error', ...RAW_DATA_SYNTAX],
-    'no-restricted-imports': ['error', { paths: RAW_DATA_IMPORT_PATHS }],
+    'no-restricted-imports': ['error', { paths: RAW_DATA_IMPORT_PATHS, patterns: RAW_DATA_IMPORT_PATTERNS }],
   },
 };
