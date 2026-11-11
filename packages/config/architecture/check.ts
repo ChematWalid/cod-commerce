@@ -19,9 +19,16 @@ export interface ArchitectureReport {
 const TS_CONFIG_FILE = join(__dirname, '../tsconfig.base.json');
 /**
  * Whole path segments only, so `district-pricing.service.ts` is still cruised. `.next/` holds the storefront's
- * generated build output, not sources.
+ * generated build output, not sources. Nothing under `node_modules` is excluded, its `dist/` folders included: an
+ * excluded module leaves the graph, and the purity rules could then never match a framework import that resolves.
+ * `node_modules` is not followed instead.
  */
-const EXCLUDED_PATHS = '(^|/)(node_modules|dist|\\.next)/|\\.test\\.ts$';
+const OUTSIDE_NODE_MODULES = '^(?!.*node_modules/)';
+const EXCLUDED_PATHS = [
+  `${OUTSIDE_NODE_MODULES}(dist|\\.next)/`,
+  `${OUTSIDE_NODE_MODULES}.*/(dist|\\.next)/`,
+  '\\.test\\.ts$',
+];
 const NOT_FOLLOWED_PATHS = '(^|/)node_modules/';
 /**
  * Workspace packages export their sources under the `@cod/source` condition, and some entries (the merchant shell's
