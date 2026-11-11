@@ -1,9 +1,10 @@
 import { type PermissionKey, vendurePermissionName } from '@cod/shared';
 
-/** Plugin permissions a catalog key also carries, so existing tenancy handlers keep working (D59). */
+/** Plugin permissions a catalog key also carries, so existing tenancy handlers keep working (D59, D97). */
 export const ENGINE_GRANTS: Readonly<Partial<Record<PermissionKey, readonly string[]>>> = {
   'store.stores.view': ['ReadTenantStore'],
   'store.stores.create': ['CreateTenantStore'],
+  'store.stores.archive': ['DeleteTenantStore'],
   'store.settings.edit': ['UpdateTenantStore'],
   'settings.business.view': ['ReadTenantBusiness'],
   'settings.business.edit': ['UpdateTenantBusiness'],

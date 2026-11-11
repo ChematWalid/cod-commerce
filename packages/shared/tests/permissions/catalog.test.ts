@@ -16,7 +16,7 @@ const AREA_COUNTS: Record<string, number> = {
   analytics: 2,
   team: 12,
   delivery: 8,
-  store: 15,
+  store: 16,
   apps: 8,
   settings: 3,
 };
@@ -40,6 +40,7 @@ const SENSITIVE_KEYS = [
   'team.commissions.delete',
   'delivery.carriers.delete',
   'delivery.pricing.delete',
+  'store.stores.archive',
   'store.publish',
   'store.discard',
   'store.landing-pages.delete',
@@ -52,11 +53,11 @@ const ARABIC_SCRIPT = /[؀-ۿ]/;
 const GRAPHQL_NAME = /^[_A-Za-z][_0-9A-Za-z]*$/;
 
 describe('permission catalog', () => {
-  it('holds exactly 93 unique keys', () => {
+  it('holds exactly 94 unique keys', () => {
     const keys = PERMISSION_CATALOG.map((entry) => entry.key);
 
-    expect(keys).toHaveLength(93);
-    expect(new Set(keys).size).toBe(93);
+    expect(keys).toHaveLength(94);
+    expect(new Set(keys).size).toBe(94);
   });
 
   it('has the documented count per area and 12 ordered areas', () => {
@@ -72,7 +73,7 @@ describe('permission catalog', () => {
     for (const entry of PERMISSION_CATALOG) expect(entry.key.startsWith(`${entry.area}.`)).toBe(true);
   });
 
-  it('marks exactly the 24 documented keys as sensitive', () => {
+  it('marks exactly the 25 documented keys as sensitive', () => {
     const sensitive = PERMISSION_CATALOG.filter((entry) => entry.sensitive).map((entry) => entry.key);
 
     expect([...sensitive].sort()).toEqual([...SENSITIVE_KEYS].sort());
@@ -96,7 +97,7 @@ describe('permission catalog', () => {
   it('gives each key a distinct English label inside its area', () => {
     const seen = new Set(PERMISSION_CATALOG.map((entry) => `${entry.area}|${entry.label.en}`));
 
-    expect(seen.size).toBe(93);
+    expect(seen.size).toBe(94);
   });
 });
 
@@ -105,7 +106,7 @@ describe('vendurePermissionName', () => {
     const names = PERMISSION_CATALOG.map((entry) => vendurePermissionName(entry.key));
 
     for (const name of names) expect(name).toMatch(GRAPHQL_NAME);
-    expect(new Set(names).size).toBe(93);
+    expect(new Set(names).size).toBe(94);
   });
 
   it('uses Cod plus PascalCase of the segments', () => {

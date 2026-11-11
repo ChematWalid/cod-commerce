@@ -59,7 +59,7 @@ describe('SeedBuiltInRolesService', () => {
     await seed();
 
     expect(roles.map((role) => role.builtInKey)).toEqual(BUILT_IN_ROLES.map((template) => template.key));
-    expect(roles.map((role) => role.permissions.length)).toEqual([93, 77, 19, 12, 11, 3, 23]);
+    expect(roles.map((role) => role.permissions.length)).toEqual([94, 77, 19, 12, 11, 3, 23]);
     expect(roles[0]).toMatchObject({ name: 'Owner', nameKey: 'owner', createdAt: NOW, updatedAt: NOW });
   });
 
