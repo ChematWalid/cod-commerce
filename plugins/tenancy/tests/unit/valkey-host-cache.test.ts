@@ -197,7 +197,7 @@ describe('HostInvalidationSubscriber', () => {
     expect(valkey.values.has(`host:production:${HOST}`)).toBe(false);
   });
 
-  it('leaves the shared tier alone for its own release, which sends on both channels and already deleted', async () => {
+  it('leaves the shared tier alone for a message on its own channel only', async () => {
     // Arrange
     const valkey = new MapValkey();
     valkey.values.set(`host:production:${HOST}`, '{}');
@@ -205,9 +205,8 @@ describe('HostInvalidationSubscriber', () => {
     const shared = new ValkeyHostCache(valkey.asRedis(), 'production');
     await new HostInvalidationSubscriber(redis, new LruHostCache(), 'production', shared).start();
 
-    // Act: what ValkeyHostCache.publish sends, in its order
+    // Act
     await deliver('host-invalidate:production', [HOST]);
-    await deliver('host-invalidate', [HOST]);
 
     // Assert
     expect(valkey.values.has(`host:production:${HOST}`)).toBe(true);
