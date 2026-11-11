@@ -19,8 +19,12 @@ export interface DueJob {
  */
 export interface ReconcileSource {
   readonly name: string;
-  /** Non-terminal rows, oldest first, at most `limit`; rows touched in the last minute are left out. */
-  findDue(now: Date, limit: number): Promise<readonly DueJob[]>;
+  /**
+   * Non-terminal rows, oldest first, at most `limit`; rows touched in the last minute are left out. `after` is the
+   * last row of the previous batch: the source returns the rows that sort after it, so a run can page past rows the
+   * reconciler left alone.
+   */
+  findDue(now: Date, limit: number, after?: DueJob): Promise<readonly DueJob[]>;
   /** The jobs were added again at `now`. */
   markEnqueued(jobs: readonly DueJob[], now: Date): Promise<void>;
   /** The rows used every attempt and are past due: end them as failed, with the reconciler's `lastError`. */

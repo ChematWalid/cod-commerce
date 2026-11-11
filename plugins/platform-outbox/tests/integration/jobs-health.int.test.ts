@@ -10,6 +10,14 @@ const SECOND_MS = 1000;
 const OLDEST_AGE_SECONDS = 600;
 const HEARTBEAT_AGE_SECONDS = 90;
 const PENDING_ROWS = 3;
+const DAY_MS = 86_400_000;
+
+/**
+ * The partitions cover today only, so the oldest back-dated row must stay inside today UTC: just after midnight the
+ * test clock starts a little later than the real one instead.
+ */
+const startOfTodayUtc = (): number => Math.floor(Date.now() / DAY_MS) * DAY_MS;
+const clockStart = (): number => Math.max(Date.now(), startOfTodayUtc() + (OLDEST_AGE_SECONDS + 1) * 1000);
 
 const JOBS_HEALTH = gql`
   query {
@@ -33,7 +41,7 @@ interface Health {
 }
 
 describe('platform jobs health', () => {
-  const clock = new ManualClock();
+  const clock = new ManualClock(clockStart());
   const { server, adminClient } = createOutboxTestEnvironment(SNOWFLAKE_WORKER_ID, clock);
   const kit = outboxKit(server);
   let businesses: TwoBusinesses;

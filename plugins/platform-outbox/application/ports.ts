@@ -150,8 +150,16 @@ export interface OutboxDueScanPort {
     limit: number,
     work: (rows: readonly PendingEventRow[]) => Promise<void>,
   ): Promise<readonly PendingEventRow[]>;
-  /** `pending` and `enqueued` deliveries last touched at or before `touchedBefore`, oldest first. */
-  dueDeliveries(since: Date, touchedBefore: Date, limit: number): Promise<readonly DueDeliveryRow[]>;
+  /**
+   * `pending` and `enqueued` deliveries last touched at or before `touchedBefore`, oldest first; with `after`, only
+   * those that sort after that row (keyset on touched time, `createdAt`, `outboxId`).
+   */
+  dueDeliveries(
+    since: Date,
+    touchedBefore: Date,
+    limit: number,
+    after?: DueDeliveryRow,
+  ): Promise<readonly DueDeliveryRow[]>;
   /** Every pending event of every business. */
   pendingSummary(): Promise<PendingSummary>;
 }

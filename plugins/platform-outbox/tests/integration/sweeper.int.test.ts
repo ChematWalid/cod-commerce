@@ -10,6 +10,7 @@ const SNOWFLAKE_WORKER_ID = 1023;
 const SECOND_MS = 1000;
 const FIRST_EVENT_ID = '7100000000000000001';
 const RELAYED_EVENT_ID = '7100000000000000002';
+const SECOND_BUSINESS_EVENT_ID = '7100000000000000003';
 const BULK_BASE = 7_200_000_000_000_000_000n;
 const BULK_ROWS = 1200;
 
@@ -20,11 +21,16 @@ describe('outbox sweeper', () => {
   const T = new Date();
   let businesses: TwoBusinesses;
 
-  const insertEvent = (id: string, status: 'pending' | 'relayed', at: Date): Promise<unknown> =>
+  const insertEvent = (
+    id: string,
+    status: 'pending' | 'relayed',
+    at: Date,
+    business: 'a' | 'b' = 'a',
+  ): Promise<unknown> =>
     kit.sql(
       `INSERT INTO "outbox_event" ("businessId", "id", "createdAt", "topic", "payload", "status")
        VALUES ($1, $2, $3, 'order.delivered', '{}', $4)`,
-      [businesses.a.businessId, id, at, status],
+      [businesses[business].businessId, id, at, status],
     );
 
   const relayJobIds = async (): Promise<string[]> =>
@@ -35,6 +41,7 @@ describe('outbox sweeper', () => {
     businesses = await createTwoBusinesses(adminClient);
     await insertEvent(FIRST_EVENT_ID, 'pending', T);
     await insertEvent(RELAYED_EVENT_ID, 'relayed', T);
+    await insertEvent(SECOND_BUSINESS_EVENT_ID, 'pending', T, 'b');
   }, 120_000);
 
   afterAll(async () => {
@@ -55,15 +62,35 @@ describe('outbox sweeper', () => {
     const result = await sweeper().sweep(new Date(T.getTime() + 61 * SECOND_MS));
 
     // Assert
-    expect(result).toEqual({ enqueued: 1 });
+    expect(result).toEqual({ enqueued: 2 });
     const ids = await relayJobIds();
     expect(ids).toContain(`ob-${FIRST_EVENT_ID}`);
+    expect(ids).toContain(`ob-${SECOND_BUSINESS_EVENT_ID}`);
     expect(ids).not.toContain(`ob-${RELAYED_EVENT_ID}`);
     const relayed = await until(async () => {
       const rows = await kit.sql(`SELECT "status" FROM "outbox_event" WHERE "id" = $1`, [FIRST_EVENT_ID]);
       return rows[0]?.['status'] === 'relayed' ? true : undefined;
     });
     expect(relayed).toBe(true);
+  });
+
+  it('relays each business event under its own business', async () => {
+    // Act
+    const jobs = await kit.jobsOf('outbox-relay');
+    const businessOf = (eventId: string): unknown =>
+      jobs.find((job) => job.data['jobId'] === `ob-${eventId}`)?.data['businessId'];
+
+    // Assert
+    expect(businessOf(FIRST_EVENT_ID)).toBe(businesses.a.businessId);
+    expect(businessOf(SECOND_BUSINESS_EVENT_ID)).toBe(businesses.b.businessId);
+    const row = await until(async () => {
+      const rows = await kit.sql(
+        `SELECT "businessId"::text AS "businessId", "status" FROM "outbox_event" WHERE "id" = $1`,
+        [SECOND_BUSINESS_EVENT_ID],
+      );
+      return rows[0]?.['status'] === 'relayed' ? rows[0] : undefined;
+    });
+    expect(row).toEqual({ businessId: businesses.b.businessId, status: 'relayed' });
   });
 
   it('queues every one of 1 200 pending rows in one run', async () => {

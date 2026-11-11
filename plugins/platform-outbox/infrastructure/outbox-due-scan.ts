@@ -53,16 +53,23 @@ export class PostgresOutboxDueScan implements OutboxDueScanPort {
     });
   }
 
-  async dueDeliveries(since: Date, touchedBefore: Date, limit: number): Promise<readonly DueDeliveryRow[]> {
+  async dueDeliveries(
+    since: Date,
+    touchedBefore: Date,
+    limit: number,
+    after?: DueDeliveryRow,
+  ): Promise<readonly DueDeliveryRow[]> {
+    const cursor = after ?? { stuckSince: new Date(0), createdAt: new Date(0), outboxId: BEFORE_EVERYTHING };
     return this.connection.rawConnection.query<DeliveryRowShape[]>(
       `SELECT "createdAt", "outboxId"::text AS "outboxId", "consumer", "businessId"::text AS "businessId",
               "attempts", "nextAttemptAt", COALESCE("enqueuedAt", "updatedAt") AS "stuckSince"
          FROM "outbox_delivery"
         WHERE "status" IN ('pending', 'enqueued') AND "createdAt" >= $1
           AND COALESCE("enqueuedAt", "updatedAt") <= $2
+          AND (COALESCE("enqueuedAt", "updatedAt"), "createdAt", "outboxId") > ($4, $5, $6::bigint)
         ORDER BY COALESCE("enqueuedAt", "updatedAt"), "createdAt", "outboxId"
         LIMIT $3`,
-      [since, touchedBefore, limit],
+      [since, touchedBefore, limit, cursor.stuckSince, cursor.createdAt, cursor.outboxId],
     );
   }
 

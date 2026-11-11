@@ -42,22 +42,38 @@ export class JobReconciler {
     this.sources.push(source);
   }
 
-  /** One catch-up run as of `now`: batches until nothing changes, the batch is short, or the 40 s budget is spent. */
+  /**
+   * One catch-up run as of `now`: pages through each source with a keyset cursor until a batch is short or the 40 s
+   * budget is spent. Rows left alone (live, within SLA) are paged past, so they cannot hide lost jobs behind them.
+   */
   async reconcile(now: Date): Promise<ReconcileResult> {
     const deadline = this.deps.clock.now() + RECONCILE_BUDGET_MS;
     let reenqueued = 0;
     let exhausted = 0;
     for (const source of this.sources) {
-      for (;;) {
-        const batch = await source.findDue(now, RECONCILE_BATCH_SIZE);
-        const outcome = await this.process(source, batch, now);
-        reenqueued += outcome.readded.length;
-        exhausted += outcome.exhausted.length;
-        const changed = outcome.readded.length + outcome.exhausted.length;
-        if (batch.length < RECONCILE_BATCH_SIZE || changed === 0 || this.deps.clock.now() >= deadline) break;
+      try {
+        const done = await this.scan(source, now, deadline);
+        reenqueued += done.reenqueued;
+        exhausted += done.exhausted;
+      } catch (error: unknown) {
+        this.logFailure(`Reconciler could not scan ${source.name}`, error);
       }
     }
     return { reenqueued, exhausted };
+  }
+
+  private async scan(source: ReconcileSource, now: Date, deadline: number): Promise<ReconcileResult> {
+    let reenqueued = 0;
+    let exhausted = 0;
+    let after: DueJob | undefined;
+    for (;;) {
+      const batch = await source.findDue(now, RECONCILE_BATCH_SIZE, after);
+      const outcome = await this.process(source, batch, now);
+      reenqueued += outcome.readded.length;
+      exhausted += outcome.exhausted.length;
+      after = batch[batch.length - 1];
+      if (batch.length < RECONCILE_BATCH_SIZE || this.deps.clock.now() >= deadline) return { reenqueued, exhausted };
+    }
   }
 
   private async process(source: ReconcileSource, batch: readonly DueJob[], now: Date): Promise<BatchOutcome> {
@@ -69,14 +85,31 @@ export class JobReconciler {
         if (verdict === 'exhausted') exhausted.push(job);
         else if (await this.requeue(job, verdict)) readded.push(job);
       } catch (error: unknown) {
-        this.deps.logger.error(
-          `Reconciler could not requeue ${job.data.jobId} of ${source.name}: ${error instanceof Error ? error.name : typeof error}`,
-        );
+        this.logFailure(`Reconciler could not requeue ${job.data.jobId} of ${source.name}`, error);
       }
     }
-    if (readded.length > 0) await source.markEnqueued(readded, now);
-    if (exhausted.length > 0) await source.markExhausted(exhausted, now);
+    await this.record(source, 'markEnqueued', readded, now);
+    await this.record(source, 'markExhausted', exhausted, now);
     return { readded, exhausted };
+  }
+
+  /** A source that cannot record an outcome is logged; the next run finds the rows again. */
+  private async record(
+    source: ReconcileSource,
+    method: 'markEnqueued' | 'markExhausted',
+    jobs: readonly DueJob[],
+    now: Date,
+  ): Promise<void> {
+    if (jobs.length === 0) return;
+    try {
+      await source[method](jobs, now);
+    } catch (error: unknown) {
+      this.logFailure(`Reconciler could not record ${method} for ${source.name}`, error);
+    }
+  }
+
+  private logFailure(message: string, error: unknown): void {
+    this.deps.logger.error(`${message}: ${error instanceof Error ? error.name : typeof error}`);
   }
 
   /** Adds the job again (after removing the settled one it replaces); false when it is left alone. */

@@ -30,6 +30,16 @@ const keyOf = (job: DueDeliveryJob): OutboxDeliveryKey => ({
   consumer: job.data.consumer,
 });
 
+const cursorOf = (job: DueDeliveryJob): DueDeliveryRow => ({
+  createdAt: new Date(job.data.createdAt),
+  outboxId: job.data.outboxId,
+  consumer: job.data.consumer,
+  businessId: job.data.businessId,
+  attempts: job.attempts,
+  stuckSince: job.stuckSince,
+  nextAttemptAt: job.nextAttemptAt,
+});
+
 /**
  * The outbox's rows for the job reconciler (D105): every `pending` or `enqueued` delivery that has been quiet for a
  * minute. The reconciler decides from BullMQ what to do; this class finds the rows and records the outcome.
@@ -44,11 +54,12 @@ export class OutboxReconcileSource {
     private readonly environment: OutboxEnvironment,
   ) {}
 
-  async findDue(now: Date, limit: number): Promise<readonly DueDeliveryJob[]> {
+  async findDue(now: Date, limit: number, after?: DueDeliveryJob): Promise<readonly DueDeliveryJob[]> {
     const rows = await this.scan.dueDeliveries(
       new Date(now.getTime() - OUTBOX_SWEEP_WINDOW_MS),
       new Date(now.getTime() - OUTBOX_SWEEP_AFTER_MS),
       limit,
+      after === undefined ? undefined : cursorOf(after),
     );
     const jobs: DueDeliveryJob[] = [];
     for (const row of rows) {
@@ -101,7 +112,13 @@ export class OutboxReconcileSource {
     apply: (scope: Parameters<Parameters<OutboxScopesPort['plain']>[1]>[0], job: DueDeliveryJob) => Promise<void>,
   ): Promise<void> {
     for (const job of jobs) {
-      await this.ports.scopes.plain(toBusinessId(job.data.businessId), (scope) => apply(scope, job));
+      try {
+        await this.ports.scopes.plain(toBusinessId(job.data.businessId), (scope) => apply(scope, job));
+      } catch (error: unknown) {
+        this.environment.logger.error(
+          `Outbox delivery ${job.data.outboxId}:${job.data.consumer} of business ${job.data.businessId} could not be recorded: ${error instanceof Error ? error.name : typeof error}`,
+        );
+      }
     }
   }
 }

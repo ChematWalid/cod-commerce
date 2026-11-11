@@ -63,20 +63,61 @@ describe('JobReconciler', () => {
     expect(added).toHaveLength(RECONCILE_BATCH_SIZE + 1);
   });
 
-  it('stops a source whose full batch needs nothing, instead of asking again forever', async () => {
+  it('pages past a full batch of live rows to reach a lost job behind them', async () => {
     // Arrange
-    const full = Array.from({ length: RECONCILE_BATCH_SIZE }, (_, index) => jobOf(`a${String(index)}`));
     const fresh = new Date(NOW.getTime() - 1000);
-    const live = full.map((job) => ({ ...job, stuckSince: fresh }));
-    const { source: liveSource } = sourceOf([live, live, live]);
-    const { reconciler } = reconcilerOf(() => 'live');
-    reconciler.registerSource(liveSource);
+    const live = Array.from({ length: RECONCILE_BATCH_SIZE }, (_, index) => ({
+      ...jobOf(`live${String(index)}`),
+      stuckSince: fresh,
+    }));
+    const lost = jobOf('lost');
+    const all = [...live, lost];
+    const marked: string[] = [];
+    const source: ReconcileSource = {
+      name: 'test',
+      findDue: (_now, limit, after) => {
+        const start = after === undefined ? 0 : all.indexOf(after) + 1;
+        return Promise.resolve(all.slice(start, start + limit));
+      },
+      markEnqueued: (jobs) => {
+        marked.push(...jobs.map((job) => job.data.jobId));
+        return Promise.resolve();
+      },
+      markExhausted: () => Promise.resolve(),
+    };
+    const { reconciler, added } = reconcilerOf((id) => (id === 'lost' ? 'missing' : 'live'));
+    reconciler.registerSource(source);
 
     // Act
     const result = await reconciler.reconcile(NOW);
 
     // Assert
-    expect(result).toEqual({ reenqueued: 0, exhausted: 0 });
+    expect(result).toEqual({ reenqueued: 1, exhausted: 0 });
+    expect(added).toEqual(['lost']);
+    expect(marked).toEqual(['lost']);
+  });
+
+  it('goes on to the next source when one source cannot mark its rows', async () => {
+    // Arrange
+    const { source: second, marked } = sourceOf([[jobOf('ok')]]);
+    const broken: ReconcileSource = {
+      name: 'broken',
+      findDue: () => Promise.resolve([jobOf('x')]),
+      markEnqueued: () => Promise.reject(new Error('secret=hunter2')),
+      markExhausted: () => Promise.resolve(),
+    };
+    const { reconciler, errors } = reconcilerOf(() => 'missing');
+    reconciler.registerSource(broken);
+    reconciler.registerSource(second);
+
+    // Act
+    const result = await reconciler.reconcile(NOW);
+
+    // Assert
+    expect(marked).toEqual(['ok']);
+    expect(result.reenqueued).toBe(2);
+    expect(errors.some((message) => message.includes('broken'))).toBe(true);
+    expect(errors.join(' ')).not.toContain('hunter2');
   });
 
   it('logs a row it cannot add without its error message, leaves it unmarked and goes on', async () => {

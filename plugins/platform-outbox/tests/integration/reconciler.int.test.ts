@@ -4,6 +4,8 @@ import { PLUGIN_TEST_INITIAL_DATA, createTwoBusinesses, type TwoBusinesses } fro
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { OUTBOX_EXHAUSTED_ERROR } from '../../domain/constants';
 import { OutboxReconcileSource } from '../../application/outbox-reconcile-source';
+import type { OutboxDueScanPort } from '../../application/ports';
+import { OUTBOX_DUE_SCAN } from '../../application/tokens';
 import { createOutboxTestEnvironment, outboxKit } from './outbox-kit';
 
 const SNOWFLAKE_WORKER_ID = 1019;
@@ -43,7 +45,7 @@ describe('outbox delivery reconciler', () => {
   /** An open delivery row whose last activity was at T. */
   async function seed(
     consumer: string,
-    extra: { status?: string; attempts?: number; nextAttemptAt?: Date | null } = {},
+    extra: { status?: string; attempts?: number; nextAttemptAt?: Date | null; business?: 'a' | 'b' } = {},
   ): Promise<{ id: string; jobId: string }> {
     nextId += 1n;
     const id = nextId.toString();
@@ -52,7 +54,7 @@ describe('outbox delivery reconciler', () => {
          ("businessId", "createdAt", "outboxId", "consumer", "status", "attempts", "enqueuedAt", "nextAttemptAt", "updatedAt")
        VALUES ($1, $2, $3, $4, $5, $6, $2, $7, $2)`,
       [
-        businesses.a.businessId,
+        businesses[extra.business ?? 'a'].businessId,
         T,
         id,
         consumer,
@@ -239,5 +241,60 @@ describe('outbox delivery reconciler', () => {
     // Assert
     expect(result).toEqual({ reenqueued: 0, exhausted: 0 });
     expect(calls).toEqual([]);
+  });
+
+  it('records each outcome under its own business and leaves the other business untouched', async () => {
+    // Arrange
+    const lostA = await seed(BULK_CONSUMER);
+    const lostB = await seed(BULK_CONSUMER, { business: 'b' });
+    const spentB = await seed(CRITICAL_CONSUMER, { business: 'b', attempts: 8 });
+    const spentA = await seed(CRITICAL_CONSUMER, { attempts: 8, status: 'enqueued' });
+
+    // Act
+    const result = await reconciler.reconcile(at(6 * MINUTE_MS));
+
+    // Assert
+    expect(result).toEqual({ reenqueued: 2, exhausted: 2 });
+    expect((await row(lostA.id))['businessId']).toBe(businesses.a.businessId);
+    expect((await row(lostB.id))['businessId']).toBe(businesses.b.businessId);
+    expect((await row(lostB.id))['enqueuedAt']).toEqual(at(6 * MINUTE_MS));
+    expect((await row(lostA.id))['enqueuedAt']).toEqual(at(6 * MINUTE_MS));
+    expect((await row(spentB.id))['status']).toBe('failed');
+    expect((await row(spentB.id))['businessId']).toBe(businesses.b.businessId);
+    expect((await row(spentA.id))['status']).toBe('failed');
+    expect(
+      calls
+        .filter(([kind]) => kind === 'add')
+        .map(([, , jobId]) => jobId)
+        .sort(),
+    ).toEqual([lostA.jobId, lostB.jobId].sort());
+  });
+
+  it('pages the due scan past the row it was given', async () => {
+    // Arrange
+    const first = await seed(BULK_CONSUMER);
+    const second = await seed(BULK_CONSUMER, { business: 'b' });
+    const scan = server.app.get<OutboxDueScanPort>(OUTBOX_DUE_SCAN);
+    const since = at(-MINUTE_MS);
+    const before = at(MINUTE_MS);
+
+    // Act
+    const page1 = await scan.dueDeliveries(since, before, 1);
+    const page2 = await scan.dueDeliveries(since, before, 1, page1[0]);
+    const page3 = await scan.dueDeliveries(since, before, 1, page2[0]);
+
+    // Assert
+    expect([page1[0]?.outboxId, page2[0]?.outboxId]).toEqual([first.id, second.id]);
+    expect(page2[0]?.businessId).toBe(businesses.b.businessId);
+    expect(page3).toEqual([]);
+  });
+
+  it('is registered by the plugin with the application reconciler', () => {
+    // Arrange: no pooled queue strategy here, so the real presence port cannot run; read the registration instead.
+    const application: unknown = server.app.get(JobReconciler);
+    const real = application as { sources: readonly unknown[] };
+
+    // Assert
+    expect(real.sources).toContain(server.app.get(OutboxReconcileSource));
   });
 });
