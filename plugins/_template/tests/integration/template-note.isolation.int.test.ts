@@ -1,3 +1,4 @@
+import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import {
   adminOperationsOf,
@@ -41,6 +42,7 @@ describe('TemplateNote isolation between two businesses', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1004 }),
+      RbacPlugin,
       TemplatePlugin,
     ],
     db: loadPluginTestDbConfig(process.env),

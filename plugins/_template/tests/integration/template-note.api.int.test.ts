@@ -1,7 +1,7 @@
+import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
+import type { PermissionKey } from '@cod/shared';
 import {
-  type BusinessFixture,
-  createMember,
   createPluginTestEnvironment,
   createTwoBusinesses,
   failureOf,
@@ -12,10 +12,15 @@ import {
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { TemplatePlugin } from '../../template.plugin';
+import { NoteMembers } from './template-note-members';
 import { CREATE_NOTE, NOTE_BY_ID, type NoteResult, NOTES, TEST_REDIS_URL } from './template-note-operations';
 
 /** ADR 0003: our ids are positive 63-bit integers, sent as decimal strings. */
 const SNOWFLAKE_ID = /^[1-9][0-9]{0,18}$/;
+
+/** The catalogue keys the template's handlers require (`api/template-note.resolver.ts`). */
+const VIEW_KEY: PermissionKey = 'catalog.products.view';
+const CREATE_KEY: PermissionKey = 'catalog.products.create';
 
 const CREATE_NOTE_INPUT_FIELDS = gql`
   query {
@@ -31,29 +36,21 @@ describe('TemplateNote Admin API', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1005 }),
+      // The catalogue permissions the handlers require, and the business roles that grant them.
+      RbacPlugin,
       TemplatePlugin,
     ],
     db: loadPluginTestDbConfig(process.env),
   });
 
-  let business: BusinessFixture;
+  let members: NoteMembers;
 
-  async function asOwner(): Promise<void> {
-    adminClient.setChannelToken(business.stores[0].channelToken);
-    await adminClient.asUserWithCredentials(business.owner.email, business.owner.password);
-  }
-
-  /** Signs in as a new member of the business whose only role grants `permissions` on its first store. */
-  async function signInWith(code: string, permissions: readonly string[]): Promise<void> {
-    const [store] = business.stores;
-    const member = await createMember(server.app, adminClient, { code, business, store, permissions });
-    adminClient.setChannelToken(store.channelToken);
-    await adminClient.asUserWithCredentials(member.email, member.password);
-  }
+  const asOwner = (): Promise<void> => members.asOwner();
 
   beforeAll(async () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
-    ({ a: business } = await createTwoBusinesses(adminClient));
+    const { a: business } = await createTwoBusinesses(adminClient);
+    members = new NoteMembers(server.app, adminClient, business);
   });
 
   afterEach(async () => {
@@ -96,38 +93,50 @@ describe('TemplateNote Admin API', () => {
     expect(failure).toEqual({ codes: ['TEMPLATE_NOTE_INVALID_TITLE'], data: null });
   });
 
-  it('requires the ReadTemplateNote permission', async () => {
+  it('lets a member whose built-in role holds the catalogue permission read notes', async () => {
     // Arrange
     await asOwner();
     const { createTemplateNote: own } = await adminClient.query<{ createTemplateNote: NoteResult }>(CREATE_NOTE, {
-      input: { title: 'Readable by a note reader', body: '' },
+      input: { title: 'Readable by the inventory manager', body: '' },
     });
-    await signInWith('catalog-reader', ['ReadCatalog']);
+    await members.signInWith('inventory-manager', { builtIn: 'inventory-manager' });
+
+    // Act
+    const { templateNotes: listed } = await adminClient.query<{ templateNotes: NoteResult[] }>(NOTES);
+    const { templateNote: byId } = await adminClient.query<{ templateNote: NoteResult | null }>(NOTE_BY_ID, {
+      id: own.id,
+    });
+
+    // Assert
+    expect(listed).toContainEqual(own);
+    expect(byId).toEqual(own);
+  });
+
+  it('refuses a member whose built-in role lacks the catalogue permission', async () => {
+    // Arrange
+    await members.signInWith('order-tracker', { builtIn: 'order-tracker' });
 
     // Act
     const failure = await failureOf(adminClient.query(NOTES));
-    await signInWith('note-reader', ['ReadTemplateNote']);
-    const allowed = await adminClient.query<{ templateNote: NoteResult | null }>(NOTE_BY_ID, { id: own.id });
 
     // Assert
     expect(failure.codes).toEqual(['FORBIDDEN']);
-    expect(allowed.templateNote).toEqual(own);
   });
 
   // Vendure runs a handler without `@Allow` for anyone, so every handler is checked, with a role that holds
   // the plugin's other permission: a handler guarded by the wrong permission fails too.
   it.each([
-    { handler: 'templateNote', document: NOTE_BY_ID, variables: { id: '1' }, granted: 'CreateTemplateNote' },
-    { handler: 'templateNotes', document: NOTES, variables: {}, granted: 'CreateTemplateNote' },
+    { handler: 'templateNote', document: NOTE_BY_ID, variables: { id: '1' }, granted: CREATE_KEY },
+    { handler: 'templateNotes', document: NOTES, variables: {}, granted: CREATE_KEY },
     {
       handler: 'createTemplateNote',
       document: CREATE_NOTE,
       variables: { input: { title: 'Not allowed', body: '' } },
-      granted: 'ReadTemplateNote',
+      granted: VIEW_KEY,
     },
   ])('refuses $handler without its permission', async ({ handler, document, variables, granted }) => {
     // Arrange
-    await signInWith(`lacks-${handler.toLowerCase()}`, [granted]);
+    await members.signInWith(`lacks-${handler.toLowerCase()}`, { name: `Lacks ${handler}`, grants: [granted] });
 
     // Act
     const failure = await failureOf(adminClient.query(document, variables));
