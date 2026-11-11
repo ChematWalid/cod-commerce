@@ -1,0 +1,7 @@
+export class StoreReader {
+  constructor(private readonly ds: { query(sql: string): unknown }) {}
+
+  all(): unknown {
+    return this.ds.query('select * from store');
+  }
+}

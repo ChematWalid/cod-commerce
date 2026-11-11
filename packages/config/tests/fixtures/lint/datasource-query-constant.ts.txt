@@ -1,0 +1,9 @@
+const ALL_STORES_SQL = 'select * from store';
+
+export class StoreReader {
+  constructor(private readonly dataSource: { query(sql: string): unknown }) {}
+
+  all(): unknown {
+    return this.dataSource.query(ALL_STORES_SQL);
+  }
+}

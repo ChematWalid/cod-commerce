@@ -1,0 +1,7 @@
+export class StoreReader {
+  constructor(private readonly ds: { createQueryRunner(): unknown }) {}
+
+  all(): unknown {
+    return this.ds.createQueryRunner();
+  }
+}
