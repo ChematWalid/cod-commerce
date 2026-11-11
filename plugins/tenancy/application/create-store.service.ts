@@ -89,7 +89,7 @@ export class CreateStoreService {
    * entry that outlived its invalidation (retries ran out, or the process died between commit and delete) would
    * send the new store's buyers to the old store for up to a day (TEN-2).
    */
-  async forgetHost(store: Store): Promise<void> {
+  async forgetHost(store: Pick<Store, 'id' | 'subdomain'>): Promise<void> {
     await this.hosts.invalidate({ storeId: store.id, subdomains: [store.subdomain] });
   }
 

@@ -39,14 +39,22 @@ function harness(options: { challenge?: BotChallengeOutcome; taken?: boolean } =
     inTransaction: vi.fn(
       (_ctx: OperationContext, work: (t: OperationContext) => Promise<unknown>): Promise<unknown> => {
         calls.push('begin');
-        return work(TRANSACTIONAL);
+        return work(TRANSACTIONAL).then((value) => {
+          calls.push('commit');
+          return value;
+        });
       },
     ),
     isEmailTaken: track('duplicate-check', options.taken ?? false),
     setEmailLocale: track('set-locale', undefined),
     userIdOfAdministrator: track('user-of', 41),
     claim: track('claim', undefined),
-    provision: track('provision', { business: { id: 'b1' }, store: { id: 's1' }, administratorId: 7 } as never),
+    provision: track('provision', {
+      business: { id: 'b1' },
+      store: { id: 's1', subdomain: 'atlas' },
+      administratorId: 7,
+    } as never),
+    forgetStoreHost: track('forget-host', undefined),
     issue: track('issue', issued),
     enqueue: vi.fn((_ctx: OperationContext, request: AuthEmailRequest) => {
       calls.push('enqueue');
@@ -64,7 +72,7 @@ function harness(options: { challenge?: BotChallengeOutcome; taken?: boolean } =
       userIdOfAdministrator: mocks.userIdOfAdministrator,
     },
     claims: { claim: mocks.claim },
-    provisioner: { provision: mocks.provision },
+    provisioner: { provision: mocks.provision, forgetStoreHost: mocks.forgetStoreHost },
     tokens: { issue: mocks.issue },
     emails: { enqueue: mocks.enqueue },
     dashboardUrl: 'https://dash.example.test/dashboard/',
@@ -91,6 +99,8 @@ describe('RegisterMerchantService', () => {
       'user-of',
       'issue',
       'enqueue',
+      'commit',
+      'forget-host',
     ]);
   });
 

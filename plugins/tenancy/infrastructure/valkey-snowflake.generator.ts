@@ -21,6 +21,10 @@ export interface WorkerIdOptions {
   readonly lastWorkerId?: number;
   /** Uses this id without a lease: tests and scripts only, from the reserved range. */
   readonly pinnedWorkerId?: number;
+  /**
+   * The clock the lease is timed with, in ms. Monotonic by default (`performance.now`): a wall clock stepped
+   * back by NTP would stretch the local expiry past Valkey's, which counts down on its own timer.
+   */
   readonly now?: () => number;
 }
 
@@ -49,7 +53,7 @@ export class ValkeySnowflakeGenerator implements IdGeneratorPort, OnApplicationB
   ) {
     this.firstWorkerId = options.firstWorkerId ?? 0;
     this.lastWorkerId = options.lastWorkerId ?? LEASED_WORKER_ID_MAX;
-    this.now = options.now ?? Date.now;
+    this.now = options.now ?? (() => performance.now());
   }
 
   /** The worker id in use, or `undefined` without a lease. */

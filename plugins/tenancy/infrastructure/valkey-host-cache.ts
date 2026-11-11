@@ -6,6 +6,8 @@ import {
   HOST_CACHE_TTL_SECONDS,
   hostCacheKey,
   hostInvalidateChannel,
+  LEGACY_HOST_INVALIDATE_CHANNEL,
+  legacyHostCacheKey,
 } from '../domain/constants';
 import type { HostCachePort } from '../domain/ports/host-cache.port';
 import { isStoreResolution, type StoreResolution } from '../domain/store-resolution';
@@ -58,12 +60,15 @@ export class ValkeyHostCache implements HostCachePort {
   }
 
   async delete(hosts: readonly string[]): Promise<void> {
-    await this.redis.del(...hosts.map((host) => this.keyOf(host)));
+    // The legacy keys too: a process of the previous release may still write them during the deploy (D309).
+    await this.redis.del(...hosts.flatMap((host) => [this.keyOf(host), legacyHostCacheKey(host)]));
   }
 
   /** Tells every process to drop `hosts` from memory. */
   async publish(hosts: readonly string[]): Promise<void> {
-    await this.redis.publish(hostInvalidateChannel(this.namespace), JSON.stringify(hosts));
+    const message = JSON.stringify(hosts);
+    await this.redis.publish(hostInvalidateChannel(this.namespace), message);
+    await this.redis.publish(LEGACY_HOST_INVALIDATE_CHANNEL, message);
   }
 
   private keyOf(host: string): string {

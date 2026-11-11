@@ -55,14 +55,15 @@ describe('classifySubdomain', () => {
 });
 
 describe('reserved subdomains of ADR 0012', () => {
-  /** The names after "Reserved:" in the wildcard row of ADR 0012's host table. */
+  /**
+   * The names after "Reserved:" in the wildcard row of ADR 0012's host table, and every platform host the ADR
+   * names anywhere (`challenge.ourdomain`, `stores.ourdomain`, …).
+   */
   const adrReservedNames = (): string[] => {
     const adr = readFileSync(join(__dirname, '../../../docs/adr/0012-edge-tls-custom-domains.md'), 'utf8');
-    const list = /Reserved: ([a-z, ]+)\|/.exec(adr)?.[1] ?? '';
-    return list
-      .split(',')
-      .map((name) => name.trim())
-      .filter((name) => name !== '');
+    const list = (/Reserved: ([a-z, ]+)\|/.exec(adr)?.[1] ?? '').split(',');
+    const hosts = [...adr.matchAll(/\b([a-z0-9-]+)\.ourdomain\b/g)].map((match) => match[1] ?? '');
+    return [...new Set([...list, ...hosts].map((name) => name.trim()).filter((name) => name !== ''))];
   };
 
   it('reads a list from the ADR', () => {

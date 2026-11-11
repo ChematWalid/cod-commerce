@@ -50,6 +50,14 @@ export class ProvisionBusinessService {
     return provisioned;
   }
 
+  /**
+   * Forgets any cached resolution of a provisioned store's host. For a caller whose transaction `provision`
+   * joined: {@link provision} forgets it too, but before that outer transaction commits.
+   */
+  async forgetStoreHost(store: Pick<Store, 'id' | 'subdomain'>): Promise<void> {
+    await this.stores.forgetHost(store);
+  }
+
   private async provisionIn(
     ctx: OperationContext,
     command: ProvisionBusinessCommand,

@@ -28,6 +28,7 @@ export const RESERVED_SUBDOMAINS: readonly string[] = [
   'staging',
   'docs',
   'blog',
+  'challenge',
 ];
 
 export type SubdomainStatus = 'available' | 'taken' | 'reserved' | 'invalid';

@@ -77,4 +77,18 @@ describe('ValkeySnowflakeGenerator lease expiry', () => {
     // Assert
     expect(generator.next()).toBeTruthy();
   });
+
+  it('extends the lease on renewal, past the expiry of the first lease', async () => {
+    // Arrange
+    const clock = { now: STARTED_AT };
+    const generator = await start(clock);
+    const renewalSentAt = clock.now;
+    await generator.renew();
+
+    // Act: after the first lease would have ended, before the renewed one does
+    clock.now = renewalSentAt + WORKER_LEASE_TTL_MS - 1;
+
+    // Assert
+    expect(generator.next()).toBeTruthy();
+  });
 });
