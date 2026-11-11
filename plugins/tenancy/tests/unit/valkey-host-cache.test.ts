@@ -60,10 +60,13 @@ describe('ValkeyHostCache', () => {
   });
 
   it.each([
-    ['a non-JSON value', 'not json'],
+    // TEN-11: well-formed JSON that is not a store resolution.
     ['a JSON value of the wrong shape', JSON.stringify({ storeId: 500, status: 'active' })],
     ['an archived store', JSON.stringify({ ...RESOLUTION, status: 'archived' })],
     ['a missing field', JSON.stringify({ ...RESOLUTION, name: undefined })],
+    ['a logo that is not a string', JSON.stringify({ ...RESOLUTION, logo: 5 })],
+    // Already a miss before TEN-11, kept so it stays one.
+    ['a non-JSON value', 'not json'],
     ['null', 'null'],
   ])('treats %s as a miss', async (_case, raw) => {
     // Arrange
