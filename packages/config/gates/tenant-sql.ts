@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
+import { TEMPLATE_HOLE, withoutSqlComments } from './sql-text';
+import { FORBIDDEN_SQL } from './tenant-sql-rules';
 
 /** A string in the sources that opens session-scoped Postgres state. */
 export interface TenantSqlViolation {
@@ -12,38 +14,17 @@ export interface TenantSqlViolation {
 /** Where SQL can live, relative to the repository root. */
 const SCANNED_ROOTS = ['plugins', 'apps/server/src'];
 
-/** Generated code, and tests, which set session state on purpose to prove it leaks. */
-const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', '.turbo', '.vendure', 'tests', 'dashboard']);
+/** TypeScript and JavaScript sources, wherever SQL strings can be written. */
+const SOURCE_FILE = /\.(?:ts|tsx|mts|cts|js|mjs|cjs)$/;
 
-type KeywordCase = (keyword: string) => string;
-
-/** A session `SET` in one letter case: the forms without `=`/`TO`, or an assignment that is not `SET LOCAL`. */
-const sessionSetIn = (word: KeywordCase): string => {
-  const keywordForms = [
-    word('SESSION'),
-    word('ROLE'),
-    word('SCHEMA'),
-    word('NAMES'),
-    `${word('TIME')}\\s+${word('ZONE')}`,
-  ];
-  const assignment = `(?!${word('LOCAL')}\\b)[\\w."]+\\s*(?:=|${word('TO')}\\b)`;
-  return `${word('SET')}\\s+(?:(?:${keywordForms.join('|')})\\s|${assignment})`;
-};
-
-const SESSION_SET = new RegExp(
-  `(?:^|;)\\s*(?:${sessionSetIn((keyword) => keyword)}|${sessionSetIn((keyword) => keyword.toLowerCase())})`,
-);
+/** Generated code, skipped at any depth. */
+const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', '.turbo', '.vendure']);
 
 /**
- * PgBouncer hands a backend to the next client between transactions, so session state crosses tenants (ADR 0016
- * §6). Keywords match all upper or all lower case: prose such as "Set your subdomain" is not SQL.
+ * A plugin's own `tests/` (which set session state on purpose to prove it leaks) and `dashboard/` (browser code,
+ * no SQL), skipped only as direct children of `plugins/<name>/`, so a folder of that name deeper down is scanned.
  */
-const FORBIDDEN_SQL: readonly { readonly rule: string; readonly pattern: RegExp }[] = [
-  { rule: 'session-set', pattern: SESSION_SET },
-  { rule: 'session-set-config', pattern: /\bset_config\s*\(.*?,\s*false\s*\)/is },
-  { rule: 'session-advisory-lock', pattern: /\bpg_(?:try_)?advisory_lock(?:_shared)?\s*\(/i },
-  { rule: 'listen', pattern: /(?:^|;)\s*(?:LISTEN|listen)\s+\S/ },
-];
+const SKIPPED_PLUGIN_FOLDERS = new Set(['tests', 'dashboard']);
 
 /** The migrate role's lock runs on a direct connection of its own, which ADR 0016 §6 allows. */
 const DIRECT_CONNECTION_EXCEPTIONS: readonly { readonly file: string; readonly rule: string }[] = [
@@ -63,33 +44,44 @@ function stringsOf(source: ts.SourceFile): readonly ts.Node[] {
   return found;
 }
 
-/** A template's text with its `${}` holes replaced, so a keyword after a hole is still seen. */
+/** A template's text with each `${}` hole replaced by an identifier, so a dynamic name keeps its SQL shape. */
 function textOf(node: ts.Node): string {
   if (!ts.isTemplateExpression(node)) return (node as ts.StringLiteralLike).text;
-  return [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join('$');
+  return [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join(TEMPLATE_HOLE);
 }
+
+const scriptKindOf = (file: string): ts.ScriptKind => (file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 
 /** The forbidden statements in one file's string literals and templates. */
 export function findForbiddenSql(file: string, content: string): TenantSqlViolation[] {
-  const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true, scriptKindOf(file));
   return stringsOf(source).flatMap((node) => {
-    const text = textOf(node);
+    const text = withoutSqlComments(textOf(node));
     const line = source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
-    return FORBIDDEN_SQL.filter(({ pattern }) => pattern.test(text)).map(({ rule }) => ({ file, line, rule }));
+    return FORBIDDEN_SQL.filter(({ matches }) => matches(text)).map(({ rule }) => ({ file, line, rule }));
   });
 }
 
-function sourceFilesUnder(directory: string): string[] {
+/** True for `plugins/<name>/tests` and `plugins/<name>/dashboard`, given a path relative to the repository root. */
+const isSkippedPluginFolder = (relativePath: string): boolean => {
+  const parts = relativePath.split(sep);
+  return parts.length === 3 && parts[0] === 'plugins' && SKIPPED_PLUGIN_FOLDERS.has(parts[2] ?? '');
+};
+
+function sourceFilesUnder(repoRoot: string, directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) return SKIPPED_DIRECTORIES.has(entry.name) ? [] : sourceFilesUnder(path);
-    return entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts') ? [path] : [];
+    if (entry.isDirectory()) {
+      const skipped = SKIPPED_DIRECTORIES.has(entry.name) || isSkippedPluginFolder(relative(repoRoot, path));
+      return skipped ? [] : sourceFilesUnder(repoRoot, path);
+    }
+    return SOURCE_FILE.test(entry.name) && !entry.name.endsWith('.d.ts') ? [path] : [];
   });
 }
 
 /** Every violation under `plugins/` and `apps/server/src/`, with paths relative to `repoRoot`. */
 export function scanTenantSql(repoRoot: string): TenantSqlViolation[] {
-  return SCANNED_ROOTS.flatMap((root) => sourceFilesUnder(join(repoRoot, root)))
+  return SCANNED_ROOTS.flatMap((root) => sourceFilesUnder(repoRoot, join(repoRoot, root)))
     .flatMap((path) => findForbiddenSql(relative(repoRoot, path), readFileSync(path, 'utf8')))
     .filter((violation) => !isDirectConnectionException(violation));
 }
