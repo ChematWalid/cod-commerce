@@ -20,11 +20,16 @@ export interface ProvisionRequest {
 /** What registration reads back: the ids it returns and the administrator it finishes. */
 export interface ProvisionOutcome {
   readonly business: { readonly id: string };
-  readonly store: { readonly id: string };
+  readonly store: { readonly id: string; readonly subdomain: string };
   readonly administratorId: number;
 }
 
 /** Starts a business for the new owner; tenancy's one provisioning path (D5) sits behind it. */
 export interface BusinessProvisionerPort {
   provision(ctx: OperationContext, command: ProvisionRequest): Promise<ProvisionOutcome>;
+  /**
+   * Forgets any cached resolution of the new store's host. Registration calls it once its own transaction has
+   * committed: provisioning joins that transaction, so its own forget runs before the commit (TEN-2).
+   */
+  forgetStoreHost(store: ProvisionOutcome['store']): Promise<void>;
 }

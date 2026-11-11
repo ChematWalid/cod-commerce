@@ -13,6 +13,21 @@ export interface StoreResolution {
   readonly status: 'active';
 }
 
+const isString = (value: unknown): value is string => typeof value === 'string';
+
+/**
+ * True when `value` has the shape of a {@link StoreResolution}. A cached entry is data from outside the process
+ * (another version, another tool, a bad write), so it is checked before it is trusted (TEN-11).
+ */
+export function isStoreResolution(value: unknown): value is StoreResolution {
+  if (typeof value !== 'object' || value === null) return false;
+  const entry = value as Record<string, unknown>;
+  const textFields = [entry['storeId'], entry['businessId'], entry['language'], entry['name'], entry['primaryHost']];
+  return (
+    textFields.every(isString) && (entry['logo'] === null || isString(entry['logo'])) && entry['status'] === 'active'
+  );
+}
+
 const DNS_HOST = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
 
 /**

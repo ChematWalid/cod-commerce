@@ -142,7 +142,7 @@ describe('registration atomicity', () => {
     // Arrange
     const input = inputFor();
     const before = await counts();
-    vi.spyOn(server.app.get(CreateStoreService), 'create').mockRejectedValueOnce(new Error('forced store failure'));
+    vi.spyOn(server.app.get(CreateStoreService), 'createIn').mockRejectedValueOnce(new Error('forced store failure'));
 
     // Act
     const answer = await register(input);

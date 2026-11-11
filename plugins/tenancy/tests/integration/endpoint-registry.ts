@@ -207,6 +207,15 @@ export const ATTACK_CASES = ADMIN_API_REGISTRY.flatMap((entry) => [
   { name: `${entry.operation} against B2`, entry, victimIndex: 1 },
 ]);
 
+/** The attack cases whose control can point at something real in B. */
+export const CONTROLLED_ATTACK_CASES = ATTACK_CASES.filter(({ entry }) => entry.control.kind !== 'noForeignTarget');
+
+/**
+ * The operations that take no id of another business, so no positive control applies: they act on the caller's
+ * own business or make a new one. Listed so that adding one is a reviewed decision, not a silent pass (TEN-10).
+ */
+export const OPERATIONS_WITHOUT_FOREIGN_TARGET: readonly string[] = ['provisionBusiness', 'updateBusiness'];
+
 /** The entries that need a role on the channel; a public check answers on any. */
 export const GUARDED_ENTRIES = ADMIN_API_REGISTRY.filter((entry) => entry.outcome.kind !== 'sameForEveryCaller');
 

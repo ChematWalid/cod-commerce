@@ -439,7 +439,7 @@ Scaling is **manual from alerts** at every tier: provision a VM (runbook/Ansible
 | Visitor buffer | `{env}:visitors` stream (`XADD MAXLEN ~200000`), drained every 30 s by `visitor-flush` into `visitor_event` with multi-row inserts | until drained | single | `valkey-cache` (loss of ≤ 30 s of visitor events is accepted) |
 | Intake spool (degraded mode) | `{env}:intake:spool` stream, capped 50 k | until replayed | single | `valkey-queue` |
 | Pricing snapshot | `pricing:s:{storeId}:v{n}` | 24 h + version bump | single | `valkey-cache` |
-| Host map | `host:{host}` | none (explicit invalidation) + 7 d safety | single | `valkey-cache` |
+| Host map | `host:{APP_ENV}:{host}`, invalidated on `host-invalidate:{APP_ENV}` (D309) | 24 h backstop + explicit invalidation | single | `valkey-cache` |
 | Rate limits | `rl:{scope}:{key}` | window | single | `valkey-cache` |
 | Quote replay | `quote:used:{hash}` | 1 h | single | `valkey-queue` (must not be evicted) |
 | Spam velocity | `vel:s:{storeId}:dev:{deviceId}:24h` etc. (sorted sets / HLL) | window | single | `valkey-cache` |
