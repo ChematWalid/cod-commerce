@@ -22,6 +22,13 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     to: { path: FRAMEWORK_MODULES },
   },
   {
+    name: 'application-is-pure',
+    comment: 'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM, type-only imports included.',
+    severity: 'error',
+    from: { path: '^plugins/[^/]+/application/' },
+    to: { path: FRAMEWORK_MODULES },
+  },
+  {
     name: 'domain-no-outer-layers',
     comment: 'domain/ depends on nothing but itself.',
     severity: 'error',
@@ -73,6 +80,30 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     severity: 'error',
     from: { path: '^plugins/([^/]+)/dashboard/' },
     to: { path: '^plugins/$1/(domain|application|infrastructure|api)/' },
+  },
+  {
+    name: 'dashboard-no-server-entry',
+    comment:
+      "dashboard/ imports no server layer (ADR 0017, D92): never a plugin's entry point or provisioning entry, its own included. The merchant shell's shell-api stays the one cross-plugin import (D83).",
+    severity: 'error',
+    from: { path: '^plugins/[^/]+/dashboard/' },
+    to: { path: '^plugins/[^/]+/(index|provisioning)[.]ts$' },
+  },
+  {
+    name: 'layers-no-own-entry',
+    comment:
+      "A layer never imports its own plugin's root files (entry point, Nest module), by path or through the package name: they import every layer.",
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/(domain|application|infrastructure|api|dashboard)/' },
+    to: { path: '^plugins/$1/[^/]+[.]ts$' },
+  },
+  {
+    name: 'no-unresolved-workspace-import',
+    comment:
+      'Every rule here matches resolved paths, so a @cod/* import that the cruise cannot resolve would be checked by none of them.',
+    severity: 'error',
+    from: { path: '^(apps|plugins)/' },
+    to: { path: '^@cod/', couldNotResolve: true },
   },
   {
     name: 'tenancy-provisioning-entry-restricted',

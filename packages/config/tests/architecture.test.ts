@@ -82,7 +82,8 @@ describe('architecture rules', () => {
       });
 
       expect(describeViolations(real.violations)).toEqual([]);
-      expect(real.cruisedModules.filter((module) => module.startsWith('@cod/'))).toEqual([]);
+      // The one unresolved workspace import is the fixture that is unresolvable on purpose.
+      expect(real.cruisedModules.filter((module) => module.startsWith('@cod/'))).toEqual(['@cod/plugin-missing']);
       expect(real.cruisedModules).toContain('plugins/merchant-shell/dashboard/shell-api.ts');
       expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
       expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);

@@ -15,6 +15,12 @@ const TEST_FILES = ['**/*.test.ts', '**/tests/**'];
 const MIGRATION_FILES = ['apps/server/src/migrations/**'];
 const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];
 const FRAMEWORK_MODULES = ['@nestjs/*', '@vendure/*', 'typeorm', 'typeorm/*'];
+/** The same modules as an esquery regex, for `import('@vendure/core').X` types, which `no-restricted-imports` skips. */
+const FRAMEWORK_MODULE = '/^(@nestjs\\/|@vendure\\/|typeorm(\\/|$))/';
+const FRAMEWORK_IMPORT_TYPES = [
+  `TSImportType > TSLiteralType.argument > Literal[value=${FRAMEWORK_MODULE}]`,
+  `TSImportType > Literal.source[value=${FRAMEWORK_MODULE}]`,
+];
 const DOMAIN_PURITY_MESSAGE = 'domain/ and @cod/shared stay framework-free (CLAUDE.md §3a.1)';
 const APPLICATION_FILES = ['**/plugins/*/application/**'];
 const APPLICATION_PURITY_MESSAGE =
@@ -86,7 +92,7 @@ const boundaryPolicies = [
 ];
 
 /**
- * Forbids framework imports (type imports and dynamic `import()` included) in `files`. These files are also under the
+ * Forbids framework imports (type imports, `import('…')` types and dynamic `import()` included) in `files`. These files are also under the
  * data access gate, whose `no-restricted-syntax` entries are repeated here because this block replaces that rule's
  * options; the framework ban already covers the gate's `no-restricted-imports`.
  *
@@ -100,6 +106,7 @@ const frameworkFree = (files, message) => ({
     'no-restricted-syntax': [
       'error',
       { selector: 'ImportExpression', message: `Dynamic import() is not allowed: ${message}` },
+      ...FRAMEWORK_IMPORT_TYPES.map((selector) => ({ selector, message })),
       ...RAW_DATA_SYNTAX,
     ],
   },

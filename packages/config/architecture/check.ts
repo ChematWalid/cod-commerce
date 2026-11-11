@@ -23,6 +23,14 @@ const TS_CONFIG_FILE = join(__dirname, '../tsconfig.base.json');
  */
 const EXCLUDED_PATHS = '(^|/)(node_modules|dist|\\.next)/|\\.test\\.ts$';
 const NOT_FOLLOWED_PATHS = '(^|/)node_modules/';
+/**
+ * Workspace packages export their sources under the `@cod/source` condition, and some entries (the merchant shell's
+ * `shell-api`, D83) have no other one. Without it such an import stays unresolved and no path rule can match it.
+ */
+const RESOLVE_OPTIONS = {
+  exportsFields: ['exports'],
+  conditionNames: ['@cod/source', 'import', 'require', 'node', 'default'],
+};
 
 const toViolation = (violation: IViolation): ArchitectureViolation => ({
   rule: violation.rule.name,
@@ -52,6 +60,7 @@ export async function checkArchitecture(options: {
       tsConfig: { fileName: TS_CONFIG_FILE },
       exclude: { path: EXCLUDED_PATHS },
       doNotFollow: { path: NOT_FOLLOWED_PATHS },
+      enhancedResolveOptions: RESOLVE_OPTIONS,
     },
     {},
     { tsConfig: extractTSConfig(TS_CONFIG_FILE) },
