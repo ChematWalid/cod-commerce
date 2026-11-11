@@ -14,11 +14,10 @@ const switchable = (name: ProbeName, state: { up: boolean }): ReadinessProbe => 
 
 const start = (postgres: { up: boolean }): Promise<WorkerHealthServer> => {
   const always = { up: true };
-  const readiness = new ReadinessService([
-    switchable('postgres', postgres),
-    switchable('redis', always),
-    switchable('migrations', always),
-  ]);
+  const readiness = new ReadinessService(
+    [switchable('postgres', postgres), switchable('redis', always), switchable('migrations', always)],
+    { error: () => undefined },
+  );
   return startWorkerHealthServer({ port: 0, readiness, liveness: new LivenessService(() => 0) });
 };
 
