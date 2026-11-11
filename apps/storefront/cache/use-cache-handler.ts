@@ -1,7 +1,7 @@
 // A private path: next 16.4.5 exports no public type for the `cacheHandlers` interface. Type-only (nothing is
 // loaded at runtime) and next is pinned exactly, so an upgrade that moves it fails the typecheck, not production.
 import type { CacheEntry, CacheHandler } from 'next/dist/server/lib/cache-handlers/types';
-import { readCacheConfig } from './cache-config';
+import { processCacheConfig } from './cache-config';
 import { MS_PER_SECOND } from './constants';
 // Aliased: react-hooks/rules-of-hooks takes any `use…` call for a React hook.
 import { useCacheEntryKey as entryKeyOf, useCacheTagKey as tagKeyOf } from './keys';
@@ -133,5 +133,5 @@ export function createUseCacheHandler(deps: CacheHandlerDeps): UseCacheHandler {
 
 export default createUseCacheHandler({
   getClient: getCacheRedisClient,
-  deploymentId: readCacheConfig(process.env).deploymentId,
+  deploymentId: processCacheConfig().deploymentId,
 });

@@ -32,7 +32,11 @@ function errorCodesOf(answer: SiteverifyAnswer): readonly unknown[] {
 
 /** Server-side check of a Turnstile response. An outage lets sign-ups through and logs an error (D35). */
 export class TurnstileBotChallenge implements BotChallengePort {
-  constructor(private readonly secretKey: string) {}
+  /** @param siteverifyUrl where tokens are checked; the provider's own endpoint unless a deployment overrides it */
+  constructor(
+    private readonly secretKey: string,
+    private readonly siteverifyUrl?: string,
+  ) {}
 
   async verify(token: string | undefined): Promise<BotChallengeOutcome> {
     if (token === undefined || token === '') {
@@ -47,7 +51,7 @@ export class TurnstileBotChallenge implements BotChallengePort {
   }
 
   private async askProvider(token: string): Promise<BotChallengeOutcome> {
-    const response = await fetch(SITEVERIFY_URL, {
+    const response = await fetch(this.siteverifyUrl ?? SITEVERIFY_URL, {
       method: 'POST',
       body: new URLSearchParams({ secret: this.secretKey, response: token }),
       signal: AbortSignal.timeout(CHALLENGE_TIMEOUT_MS),

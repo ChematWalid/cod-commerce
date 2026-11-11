@@ -1,4 +1,4 @@
-import { readCacheConfig } from './cache-config';
+import { processCacheConfig } from './cache-config';
 import { CACHE_ENTRY_MAX_TTL_SECONDS, NEXT_CACHE_TAGS_HEADER } from './constants';
 import { deserializeIsrEntry, serializeIsrEntry } from './isr-serialization';
 import { isrEntryKey, isrTagKey } from './keys';
@@ -122,5 +122,5 @@ export function createIsrCacheHandler(deps: CacheHandlerDeps): new (options: unk
 
 export default createIsrCacheHandler({
   getClient: getCacheRedisClient,
-  deploymentId: readCacheConfig(process.env).deploymentId,
+  deploymentId: processCacheConfig().deploymentId,
 });

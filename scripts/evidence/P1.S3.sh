@@ -102,7 +102,7 @@ seed >"$work/seed2.log" 2>&1 || fail "the second seed failed: $(command tail -20
 command grep -q '"created":\[\]' "$work/seed2.log" || fail "the second seed changed something: $(command tail -3 "$work/seed2.log")"
 
 # --- a second api process on the same Valkey and Postgres ----------------------------------
-timeout 60 docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:3000" -e AUTH_DASHBOARD_URL="$api2/dashboard" api >/dev/null
+timeout 60 docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:${COMPOSE_API_PORT:-3000}" -e AUTH_DASHBOARD_URL="$api2/dashboard" api >/dev/null
 wait_http 200 "$api2/readyz" 240 || fail "second api /readyz"
 
 reset_limits() { # Between phases only: every call from this host shares one client address.

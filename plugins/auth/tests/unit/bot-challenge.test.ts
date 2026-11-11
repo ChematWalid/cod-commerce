@@ -43,6 +43,24 @@ describe('TurnstileBotChallenge', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('asks the provider at its own address unless another one is configured', async () => {
+    // Arrange
+    const fetchMock = stubFetch(new Response(JSON.stringify({ success: true })));
+    const override = 'http://turnstile-mock.test:8080/siteverify';
+
+    // Act
+    await new TurnstileBotChallenge(SECRET).verify('token');
+    await new TurnstileBotChallenge(SECRET, undefined).verify('token');
+    await new TurnstileBotChallenge(SECRET, override).verify('token');
+
+    // Assert
+    expect(fetchMock.mock.calls.map(([url]) => url as unknown)).toEqual([
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      override,
+    ]);
+  });
+
   it('fails when the provider refuses the token', async () => {
     // Arrange
     stubFetch(new Response(JSON.stringify({ success: false })));

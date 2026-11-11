@@ -96,6 +96,8 @@ export interface AuthChallengeOptions {
   readonly secretKey: string;
   /** The page holding the widget, loaded in an iframe. */
   readonly challengeUrl: string;
+  /** `TURNSTILE_SITEVERIFY_URL`: where tokens are checked. It defaults to the provider's own endpoint. */
+  readonly siteverifyUrl?: string | undefined;
 }
 
 /** The mail side of {@link AuthPluginOptions}. */
@@ -118,7 +120,10 @@ function requireOptions(): AuthPluginOptions {
 
 function createBotChallenge(): BotChallengePort {
   const { challenge } = requireOptions();
-  return challenge === undefined ? new NoopBotChallenge() : new TurnstileBotChallenge(challenge.secretKey);
+  if (challenge === undefined) {
+    return new NoopBotChallenge();
+  }
+  return new TurnstileBotChallenge(challenge.secretKey, challenge.siteverifyUrl);
 }
 
 function publicConfig(): AuthPublicConfig {
