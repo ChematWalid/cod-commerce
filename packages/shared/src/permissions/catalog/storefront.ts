@@ -6,8 +6,8 @@ const settings = definitionsFor('settings');
 
 export const STORE_PERMISSIONS = [
   store.full('store.stores.create', 'Open new stores', 'فتح متاجر جديدة'),
-  store.sensitive('store.stores.archive', 'Archive stores', 'أرشفة المتاجر'),
   store.view('store.stores.view', 'See stores', 'عرض المتاجر'),
+  store.sensitive('store.stores.archive', 'Archive stores', 'أرشفة المتاجر'),
   store.full('store.settings.edit', 'Edit store settings', 'تعديل إعدادات المتجر'),
   store.full('store.builder.open', 'Open the store builder', 'فتح أداة تصميم المتجر'),
   store.full('store.pages.edit', 'Edit store pages', 'تعديل صفحات المتجر'),
