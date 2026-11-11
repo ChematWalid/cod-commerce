@@ -10,10 +10,21 @@ const DEV_SMTP_HOST = 'localhost';
 const DEV_SMTP_PORT = 1026;
 const DEV_SMTP_FROM = 'no-reply@localhost';
 
-/** The values of `SMTP_TLS`; the auth plugin owns their meaning, and the type keeps this list in step with it. */
+/**
+ * The values `SMTP_TLS` accepts. The auth plugin gives them their meaning; the type only checks that each one is a
+ * mode the plugin knows, so a mode added there is added here by hand.
+ */
 const SMTP_TLS_MODES = ['none', 'starttls', 'implicit'] as const satisfies readonly SmtpTlsMode[];
 /** The port on which SMTP is TLS from the first byte. */
 const SMTPS_PORT = 465;
+/** The submission port, which starts plain and upgrades with STARTTLS. */
+const SUBMISSION_PORT = 587;
+/** The mode each conventional port cannot carry; every other port takes any mode. */
+const CONTRADICTED_TLS_BY_PORT: ReadonlyMap<number, { readonly mode: SmtpTlsMode; readonly portRole: string }> =
+  new Map([
+    [SMTPS_PORT, { mode: 'starttls', portRole: 'the implicit TLS port' }],
+    [SUBMISSION_PORT, { mode: 'implicit', portRole: 'the STARTTLS port' }],
+  ]);
 /** Hosts a clear-text password reaches without leaving the machine or the compose network: loopback and Mailpit. */
 const LOCAL_SMTP_HOSTS: readonly string[] = ['localhost', '127.0.0.1', '::1', 'mailpit'];
 const LOCALHOST_SUFFIX = '.localhost';
@@ -99,6 +110,20 @@ function smtpTlsOf(env: AuthEnv, deployed: boolean): SmtpTlsMode {
   return deployed ? 'starttls' : 'none';
 }
 
+/** A mode the port cannot speak would only show as a timeout on the first email, so it is refused here. */
+function rejectContradictoryPortAndTls(env: AuthEnv, context: z.RefinementCtx): void {
+  const port = env.SMTP_PORT ?? DEV_SMTP_PORT;
+  const contradicted = CONTRADICTED_TLS_BY_PORT.get(port);
+  if (contradicted === undefined || env.SMTP_TLS !== contradicted.mode) {
+    return;
+  }
+  context.addIssue({
+    code: 'custom',
+    path: ['SMTP_TLS'],
+    message: `${contradicted.mode} contradicts SMTP_PORT ${String(port)}, ${contradicted.portRole}`,
+  });
+}
+
 /** The relay account is a username with its password, and the password never crosses a network in clear text. */
 function requireSafeSmtpCredentials(env: AuthEnv, deployed: boolean, context: z.RefinementCtx): void {
   if (env.SMTP_USERNAME === undefined && env.SMTP_PASSWORD === undefined) {
@@ -124,6 +149,7 @@ export function requireAuthSettings(env: AuthEnv, deployed: boolean, context: z.
   if (deployed) {
     requireAll(env, DEPLOYED_REQUIRED, 'in this environment', context);
   }
+  rejectContradictoryPortAndTls(env, context);
   requireSafeSmtpCredentials(env, deployed, context);
   if (env.AUTH_OAUTH_ENABLED) {
     requireAll(env, OAUTH_REQUIRED, 'when AUTH_OAUTH_ENABLED is true', context);

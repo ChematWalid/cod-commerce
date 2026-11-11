@@ -27,6 +27,9 @@ const valid = {
   CLIENT_IP_HEADER: 'cf-connecting-ip',
 };
 
+/** A port with no conventional TLS mode. */
+const FREE_PORT = '2525';
+
 const credentials = { SMTP_USERNAME: SMTP_USER, SMTP_PASSWORD: SMTP_PASS };
 
 function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
@@ -45,7 +48,7 @@ const issuePaths = (error: EnvValidationError): string[] => error.issues.map((is
 
 describe('loadEnv, SMTP_TLS', () => {
   it.each(['none', 'starttls', 'implicit'])('accepts %s', (mode) => {
-    expect(loadEnv({ ...valid, SMTP_TLS: mode })).toMatchObject({ SMTP_TLS: mode });
+    expect(loadEnv({ ...valid, SMTP_PORT: FREE_PORT, SMTP_TLS: mode })).toMatchObject({ SMTP_TLS: mode });
   });
 
   it('rejects an unknown mode', () => {
@@ -79,10 +82,67 @@ describe('loadEnv, SMTP_TLS', () => {
     expect(env.SMTP_PASSWORD).toBeUndefined();
   });
 
-  it('keeps an explicit mode over the default of the port and the environment', () => {
-    const env = loadEnv({ ...valid, APP_ENV: 'production', SMTP_PORT: '465', SMTP_TLS: 'starttls' });
+  it('keeps an explicit mode over the default of the environment', () => {
+    const env = loadEnv({ ...valid, APP_ENV: 'production', SMTP_PORT: FREE_PORT, SMTP_TLS: 'none' });
 
+    expect(env.SMTP_TLS).toBe('none');
+  });
+
+  it('defaults to starttls for a Mailpit host left in a deployed environment', () => {
+    // Arrange
+    const source = { ...valid, APP_ENV: 'production', SMTP_HOST: 'mailpit', SMTP_PORT: '1025', SMTP_TLS: undefined };
+
+    // Act
+    const env = loadEnv(source);
+
+    // Assert
     expect(env.SMTP_TLS).toBe('starttls');
+  });
+
+  it('takes a blank mode, username and password for unset ones', () => {
+    // Arrange
+    const source = { ...valid, SMTP_TLS: '', SMTP_USERNAME: '', SMTP_PASSWORD: '' };
+
+    // Act
+    const env = loadEnv(source);
+
+    // Assert
+    expect(env.SMTP_TLS).toBe('none');
+    expect(env.SMTP_USERNAME).toBeUndefined();
+    expect(env.SMTP_PASSWORD).toBeUndefined();
+  });
+
+  it.each([
+    { port: '465', mode: 'starttls', message: 'starttls contradicts SMTP_PORT 465, the implicit TLS port' },
+    { port: '587', mode: 'implicit', message: 'implicit contradicts SMTP_PORT 587, the STARTTLS port' },
+  ])('refuses SMTP_TLS=$mode on SMTP_PORT=$port, naming both variables', ({ port, mode, message }) => {
+    // Arrange
+    const overrides = { SMTP_PORT: port, SMTP_TLS: mode };
+
+    // Act
+    const failure = failureOf(overrides);
+
+    // Assert
+    expect(failure.issues).toEqual([{ path: 'SMTP_TLS', message }]);
+    expect(failure.message).toContain('SMTP_TLS');
+    expect(failure.message).toContain('SMTP_PORT');
+  });
+
+  it.each([
+    { port: '25', mode: 'starttls' },
+    { port: '2465', mode: 'implicit' },
+    { port: '465', mode: 'implicit' },
+    { port: '587', mode: 'starttls' },
+    { port: '587', mode: 'none' },
+  ])('leaves SMTP_TLS=$mode free on SMTP_PORT=$port', ({ port, mode }) => {
+    // Arrange
+    const source = { ...valid, SMTP_PORT: port, SMTP_TLS: mode };
+
+    // Act
+    const env = loadEnv(source);
+
+    // Assert
+    expect(env).toMatchObject({ SMTP_PORT: Number(port), SMTP_TLS: mode });
   });
 });
 
@@ -135,6 +195,17 @@ describe('loadEnv, SMTP credentials', () => {
       expect(issuePaths(failureOf({ ...credentials, SMTP_HOST: host, SMTP_TLS: 'none' }))).toEqual(['SMTP_TLS']);
     },
   );
+
+  it.each(['localhost.', '[::1]'])('refuses them without TLS to %s, which is not spelled as a local host', (host) => {
+    // Arrange
+    const overrides = { ...credentials, SMTP_HOST: host, SMTP_TLS: 'none' };
+
+    // Act
+    const failure = failureOf(overrides);
+
+    // Assert
+    expect(issuePaths(failure)).toEqual(['SMTP_TLS']);
+  });
 
   it('rejects a placeholder SMTP_PASSWORD when deployed', () => {
     const failure = failureOf({
