@@ -46,7 +46,12 @@ const UNGUARDED_FILES = [
 ] as const;
 
 describe('process.env is read only by the env modules (CLAUDE.md §3a.5)', () => {
-  beforeAll(loadConfig, CONFIG_LOAD_TIMEOUT_MS);
+  // Both linters load the root config on first use, which takes seconds on a busy machine: neither load may fall
+  // inside a test's own timeout.
+  beforeAll(async () => {
+    await loadConfig();
+    await eslintAsCi.calculateConfigForFile(`${repoRoot}/${PLUGIN}/domain/x.ts`);
+  }, CONFIG_LOAD_TIMEOUT_MS);
 
   it.each(READS)('rejects %s in the server app', async (_name, fixture) => {
     expect(await lint(fixture, 'apps/server/src/config/vendure-config.ts')).toContain(RULE);
