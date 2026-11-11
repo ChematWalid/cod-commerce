@@ -1,0 +1,2 @@
+declare function read(source: NodeJS.ProcessEnv): string;
+export const level = read(process.env);

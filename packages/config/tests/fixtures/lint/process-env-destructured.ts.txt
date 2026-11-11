@@ -1,0 +1,2 @@
+const { env } = process;
+export const level = env.LOG_LEVEL;

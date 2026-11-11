@@ -1,4 +1,4 @@
-import { readInternalApiUrl } from '../config/storefront-env';
+import { internalApiUrl } from '../config/storefront-env';
 import { normalizeHost, type NormalizedHost } from './host';
 import { toStoreLocale } from './store-locale';
 import type { ResolvedStore, StoreResolver } from './store-resolver';
@@ -61,9 +61,7 @@ export class ApiStoreResolver implements StoreResolver {
   }
 
   private async fetchStore(path: string): Promise<ResolvedStore | null> {
-    // Read per call, not at module load: this module is evaluated during `next build`, where the API does not exist.
-    const apiUrl = readInternalApiUrl(process.env);
-    const response = await fetch(new URL(path, apiUrl), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+    const response = await fetch(new URL(path, internalApiUrl()), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
     if (response.status === NOT_FOUND) return null;
     if (!response.ok) throw new StoreResolverError(`GET ${path} answered ${String(response.status)}`);
     return toResolvedStore(await response.json());

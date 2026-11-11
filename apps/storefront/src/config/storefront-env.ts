@@ -45,8 +45,7 @@ function internalApiUrlIssue(url: string | undefined): string | undefined {
 }
 
 /**
- * `INTERNAL_API_URL` alone, for the store resolver: it reads per request because its module is also evaluated
- * during `next build`, where the API does not exist. The boot check has already refused a bad value.
+ * `INTERNAL_API_URL` alone, validated like the boot check validates it.
  *
  * @throws StorefrontEnvError when it is missing or not an http(s) URL
  */
@@ -55,6 +54,16 @@ export function readInternalApiUrl(env: NodeJS.Dict<string>): string {
   const issue = internalApiUrlIssue(url);
   if (issue !== undefined || url === undefined) throw new StorefrontEnvError([issue ?? 'INTERNAL_API_URL is required']);
   return url;
+}
+
+/**
+ * The API of this process, for the store resolver. Read on each call, not once at load: the resolver's module is
+ * also evaluated during `next build`, where the API does not exist. The boot check has already refused a bad value.
+ *
+ * @throws StorefrontEnvError when `INTERNAL_API_URL` is missing or not an http(s) URL
+ */
+export function internalApiUrl(): string {
+  return readInternalApiUrl(process.env);
 }
 
 /** Runs a cache rule, turning its typed error into an issue; any other error is a bug and propagates. */

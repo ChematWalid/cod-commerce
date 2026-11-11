@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { readCacheConfig } from './cache-config';
+import { processCacheConfig } from './cache-config';
 
 /** The message of anything thrown, for log lines. */
 export function errorMessage(error: unknown): string {
@@ -54,7 +54,7 @@ export type RedisProblemLogger = (event: 'client_error' | 'connect_failed', erro
  * @throws CacheConfigError when `REDIS_URL` is missing outside development
  */
 export function openLazyRedisConnection(log: RedisProblemLogger): LazyRedisConnection {
-  const client = newRedisClient(readCacheConfig(process.env).redisUrl);
+  const client = newRedisClient(processCacheConfig().redisUrl);
   const errors = createDistinctErrorLogger((error) => {
     log('client_error', error);
   });
