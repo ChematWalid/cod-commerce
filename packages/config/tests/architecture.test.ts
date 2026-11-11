@@ -18,6 +18,7 @@ describe('architecture rules', () => {
       expect(bad.violations.map((violation) => violation.rule).sort()).toEqual(
         [
           'application-no-concretes',
+          'application-no-concretes',
           'dashboard-no-plugin-core',
           'domain-is-pure',
           'domain-no-outer-layers',

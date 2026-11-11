@@ -17,8 +17,12 @@ export interface ArchitectureReport {
 
 /** tsconfig whose compiler options drive the TypeScript pre-compilation dependency scan. */
 const TS_CONFIG_FILE = join(__dirname, '../tsconfig.base.json');
-// .next/ holds the storefront's generated build output, not sources.
-const EXCLUDED_PATHS = 'node_modules|dist|\\.next/|\\.test\\.ts$';
+/**
+ * Whole path segments only, so `district-pricing.service.ts` is still cruised. `.next/` holds the storefront's
+ * generated build output, not sources.
+ */
+const EXCLUDED_PATHS = '(^|/)(node_modules|dist|\\.next)/|\\.test\\.ts$';
+const NOT_FOLLOWED_PATHS = '(^|/)node_modules/';
 
 const toViolation = (violation: IViolation): ArchitectureViolation => ({
   rule: violation.rule.name,
@@ -47,7 +51,7 @@ export async function checkArchitecture(options: {
       tsPreCompilationDeps: true,
       tsConfig: { fileName: TS_CONFIG_FILE },
       exclude: { path: EXCLUDED_PATHS },
-      doNotFollow: { path: 'node_modules' },
+      doNotFollow: { path: NOT_FOLLOWED_PATHS },
     },
     {},
     { tsConfig: extractTSConfig(TS_CONFIG_FILE) },
