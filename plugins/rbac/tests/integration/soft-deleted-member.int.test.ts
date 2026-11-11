@@ -101,6 +101,24 @@ describe('a soft-deleted administrator', () => {
     expect(twinCountBefore).toBeGreaterThan(0);
   });
 
+  it('is told apart from a live administrator of the other business, who never passes as live here', async () => {
+    // Arrange
+    const { a, b } = businesses;
+    const own = await member(a);
+    const foreign = await member(b);
+    const ids = [Number(own.id), Number(foreign.id)];
+
+    // Act
+    const liveInA = await directory().liveAdministratorIds(ctx, scopeOf(a), ids);
+    const liveInB = await directory().liveAdministratorIds(ctx, scopeOf(b), ids);
+
+    // Assert
+    expect(liveInA).toEqual([Number(own.id)]);
+    expect(liveInB).toEqual([Number(foreign.id)]);
+    expect(await directory().isMember(ctx, scopeOf(a), Number(foreign.id))).toBe(false);
+    expect(await directory().isMember(ctx, scopeOf(b), Number(own.id))).toBe(false);
+  });
+
   it('leaves a custom role it held free to delete', async () => {
     // Arrange
     const { a } = businesses;
