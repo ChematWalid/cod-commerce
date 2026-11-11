@@ -100,6 +100,11 @@ link and stop without merging.
 - `docs/research/data-model.md` → "Storefront ordering protocol" (public endpoints: quotes, abandoned checkout, order intake, visitors/beacon), "Spam hold", "Billing".
 - `docs/research/api-surface.md` (every endpoint family is a surface to audit), `dashboard-captures.md` → "Team" (permissions).
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #117 SRV-4 (medium): feat(server): add a repair path when one business fails to converge
+- #154 TEN-5 (low): fix(tenancy): build Owner permissions from an allow-list
+- #205 CO-4 (low): feat(tenancy): invalidate hosts when a business is suspended
+
 **High-level plan**
 1. Tenant isolation audit: enumerate every entity, resolver, REST route, job, webhook and file/CDN path; generate a checklist in `docs/security/tenant-audit.md`; add an automated test that fails if an entity lacks `businessId` or a resolver lacks the guard; fix gaps; run the RLS spike from ADR 0002 on cod_order, tenant_secret, customer_profile, activity_log (SET LOCAL app.business_id in the repository helper) and record overhead; adopt if < 5 % p95 → commit `fix(tenancy): close isolation gaps from audit`
 2. Authorization audit against the 94 permissions: matrix test per permission area (None/View/Full) over every mutation/query, including exports, bulk actions, AI tools and API keys; sensitive-flag permissions → commit `fix(rbac): enforce permission matrix`

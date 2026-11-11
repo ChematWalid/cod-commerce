@@ -41,6 +41,24 @@ Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUT
 - `docs/research/second-pass.md` "Products" (create, image upload, variants matrix with auto SKU `<sku>-n`, Custom Price, Hidden, edit-page sections Offers / Store page / Details-Add Landing Page tabs).
 - `docs/research/dashboard-captures.md` "Products `/stores/:storeId/products`" and "Store settings → Profile → Sold-out products"; `api-surface.md` "Catalog & store" (`/products`, `/products/categories`, `/product-tags`, `/product-highlights`, `/brands`, `/upload`, `/stores/:id/sold-out-products(+/stop-orders,/resume-orders)`, `/media`).
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #108 TEN-3 (medium): fix(tenancy): enforce archive and suspension on every handler
+- #122 TPL-2 (medium): fix(template): register the notes page through registerShellPage
+- #124 SHELL-3 (medium): fix(shared): close the gaps in i18n:check
+- #125 SHELL-4 (medium): fix(config): widen the dashboard style gate
+- #170 TPL-3 (low): fix(server): stop registering the template plugin in production
+- #171 TPL-5 (low): fix(template): reject a NUL character in a note title
+- #172 TPL-7 (low): test(template): give the createTemplateNote control row an assertion
+- #173 SHELL-1 (low): test(merchant-shell): check stock selectors and route ids on PRs
+- #174 SHELL-5 (low): docs(merchant-shell): record that browser tests replaced component tests
+- #175 SHELL-6 (low): fix(merchant-shell): remove the P0 placeholder route
+- #176 SHELL-7 (low): test(merchant-shell): use a real foreign store in the not-found test
+- #177 SHELL-8 (low): fix(merchant-shell): block a second Create Store submit after a timeout
+- #178 SHELL-9 (low): fix(merchant-shell): show the business logo on /settings
+- #179 SHELL-10 (low): fix(merchant-shell): stop importing a stock dashboard internal
+- #207 CO-6 (low): feat(merchant-shell): build the store profile settings UI
+- #210 CO-9 (low): feat(shared): add the tenantKey helper of ADR 0002
+
 **High-level plan**
 1. Map the model onto Vendure: Product/ProductVariant/ProductOption(Group) reused; custom fields on Product (oldPrice, nameInDelivery, isFragile, allowOutOfStockOrders, quantityRulesEnabled/minQuantity/quantityStep, allowParcelOpening, orderManagers[], cardCaption, label, status active|hidden|draft, highlights[] max 6, customFields[], brand, tags) and on Variant (oldPrice, isHidden); weight/width/height/length; every custom entity carries businessId/storeId; money as integer DZD per ADR 0004 → commit `feat(catalog): product and variant custom fields and tenant scoping`.
 2. Domain services: SKU auto-generation (`<sku>-n`), slug uniqueness per store, status rules (Hidden = reachable only by landing page, not listed), variant matrix generation from options × values keeping edits to existing variants, price/oldPrice validation → commit `feat(catalog): variant matrix, sku and slug services`.

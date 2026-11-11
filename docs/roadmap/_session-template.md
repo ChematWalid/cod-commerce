@@ -26,6 +26,9 @@ Every session in the phase files uses exactly this structure. A fresh Claude ses
 - Specific sections of `docs/research/*` (name the headings) and relevant ADRs in `docs/adr/`.
 - Specific sections of `docs/architecture/*` (system-design, infrastructure, tech-stack) when the session touches queues, events, webhooks, caching, secrets or deployment.
 
+**Audit issues to close** (only when open issues labelled `audit` name this session as owner; see CONTRIBUTING.md "Issues")
+- #N <ID> (<severity>): <title>
+
 **High-level plan** (4–8 steps; each step ends with a commit and is checkable — name the endpoint, screen, test or file it produces; the session expands this with the writing-plans skill before coding)
 1. … → commit `feat(<scope>): …`
 2. …

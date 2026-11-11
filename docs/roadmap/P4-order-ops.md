@@ -44,6 +44,9 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 - `docs/research/data-model.md` → "Order (dashboard)" (`status`, `statusColor`, `statusSince`, `statusHistory`, `cancelReason`, `cancelNote`, `cancelSource`, `scheduledDate`)
 - `docs/research/api-surface.md` → "Orders", "Added in the second pass" (confirm/cancel/schedule/comments/duplicate/mark-spam, `/cancel-reasons`, `/custom-status`)
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #208 CO-7 (low): test(server): tune query complexity limits on real list pages
+
 **High-level plan**
 1. Shared status catalogue + `OrderStatusChanged`/`OrderConfirmed` events and payloads → commit `feat(shared): order status catalogue and events`
 2. Custom Vendure `OrderProcess` per ADR 0009 (extending P3.S4's minimal process; no core edits): states pending, confirmed, scheduled, canceled, abandoned, dispatched, delivered, returned; merchant custom statuses are **data** (a per-business label on top of a state), never process states; legal transitions table; `statusHistory` with `{date, status, duration}` and `statusSince`; emit events. Cancel per ADR 0009: Vendure's built-in `cancelOrder()` zeroes line quantities and releases stock, so restore (cancelled → pending) needs our guard that re-applies the quantities, the default `checkAllItemsBeforeCancel` check is disabled, and our `→ Cancelled` hook skips zero-quantity lines so stock is never released twice (ADR 0009 addendum); `getNextOrderStates('Shipped')` returns `Delivered` twice in 3.8.1, so de-duplicate it → commit `feat(order-ops): cod order process and status history`

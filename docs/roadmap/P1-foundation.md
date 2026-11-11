@@ -259,6 +259,27 @@ link and stop without merging.
 - `docs/research/api-surface.md` "Team" (`/employees`, `/employees/:id`, `/employees/:id/pay`, `/employees/:id/revoke-invitation`, `/employees/resend-invitation`, `/employees/analytics/:id`, `/commissions/configs(/:id)`, `/commissions/configs/actions`, `/employees/order-managers`).
 - `docs/feature-inventory.md` "Still not covered" and "Left out of the read-only walkthrough" notes (invitation emails and the salary "Pay" dialog were not exercised in the source; mirror the placeholder).
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #110 AUTH-2 (medium): fix(auth): void a pre-set password on the first provider link
+- #111 AUTH-3 (medium): test(auth): cover otp-account limits against the real limiter
+- #114 RBAC-3 (medium): fix(rbac): ignore soft-deleted administrators in membership checks
+- #134 EV-3 (medium): docs(evidence): complete or note the single-viewport P1 screens
+- #138 TEN-13 (medium): fix(tenancy): decide the fate of the two unused business permissions
+- #139 FLAKY-1 (medium): test(rbac): stop the converge test racing a delayed session delete
+- #141 RL-1 (low): fix(auth): take the pair token before checking the password
+- #145 AUTH-1 (low): fix(auth): refuse an empty first name on the profile mutation
+- #146 AUTH-4 (low): fix(auth): remove provider links when an account is soft-deleted
+- #147 AUTH-5 (low): fix(auth): give the OAuth binding cookie the __Host- prefix
+- #148 AUTH-6 (low): feat(auth): send a notice after a password reset
+- #151 AUTH-9 (low): fix(auth): make OTP verification atomic
+- #152 AUTH-10 (low): test(auth): fix the wrong body of one endpoint registry fixture
+- #160 RBAC-4 (low): fix(rbac): apply reach checks to roles bound only to archived stores
+- #161 RBAC-5 (low): docs(evidence): make the store-filtered activity log section real
+- #162 RBAC-6 (low): fix(rbac): widen sanitizeDiff to the full D66 list
+- #163 RBAC-7 (low): test(rbac): extend the D59 engine-grants test to plugin permissions
+- #164 RBAC-8 (low): docs(rbac): record that templateOf was never built
+- #211 CO-10 (low): test(rbac): prove the cross-process session flush in a test
+
 **High-level plan**
 1. Entities: `TeamMember` (businessId, userId?, email, status invited|active|inactive, roleIds, storeAccess, baseSalary, maxOpenOrders?, receivingOrders, invitedAt, joinedAt), `Invitation` (token hash, expiry, resendCount), `CommissionConfig` (businessId, name, basis e.g. per confirmed / per delivered order, amount or %, scope) → commit `feat(team): member, invitation and commission config entities`.
 2. Invite flow: create invitation (email, roles, store access, salary, commissions), email via Mailpit, accept link creating or linking the user (reuses P1.S2 registration pieces), resend and revoke, expiry → commit `feat(team): invite, accept, resend and revoke`.
@@ -397,6 +418,36 @@ link and stop without merging.
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - `docs/roadmap/CONTRIBUTING.md`; handoffs `P1.S1.md`, `P0.S2b.md`; `docs/adr/` 0002, 0008 (internal HMAC), 0013, 0016 (outbox, gateway, partitioning, pooling outcome of spike D).
 - `docs/architecture/system-design.md` §2.3, §2.5, §5, §7 (tenant secrets), §10 (job reconciler, Valkey loss); `docs/architecture/README.md` "Review log" rows 1, 3, 4, 7.
+
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #107 TEN-2 (medium): fix(tenancy): invalidate host cache when a store is created
+- #109 TEN-1 (medium): fix(shared): reserve the five subdomains ADR 0012 names
+- #112 RL-3 (medium): test(rate-limit): cover the outage breaker and the return to Valkey
+- #113 RBAC-2 (medium): feat(rbac): give activity_log retention and an append-only grant
+- #115 SRV-2 (medium): fix(server): set lock_timeout and statement_timeout on migrations
+- #116 SRV-3 (medium): fix(server): require APP_ENV instead of defaulting to development
+- #118 HEALTH-1 (medium): fix(platform-health): stop returning raw driver errors from /readyz
+- #126 PKG-7 (medium): fix(config): close the bypasses in the session SQL gate
+- #136 RL-4 (medium): fix(server): require CLIENT_IP_HEADER in staging too
+- #142 RL-2 (low): fix(rate-limit): keep lockouts when one Valkey call fails
+- #143 RL-5 (low): fix(rate-limit): use the Valkey clock in the token bucket script
+- #144 RL-7 (low): test(rate-limit): cover aliased fields and RateLimitedFilter
+- #155 TEN-7 (low): fix(tenancy): compute the worker-id lease expiry before the call
+- #156 TEN-9 (low): docs(evidence): regenerate the P1.S1 availability transcript
+- #157 TEN-10 (low): test(tenancy): give the noForeignTarget isolation rows an assertion
+- #158 TEN-11 (low): fix(tenancy): validate and namespace host cache entries
+- #166 HEALTH-2 (low): fix(platform-health): log failed readiness probes
+- #167 HEALTH-3 (low): fix(platform-health): stop /livez callers resetting the lag sample
+- #168 HEALTH-4 (low): fix(platform-health): re-check the Valkey eviction policy
+- #169 HEALTH-5 (low): fix(platform-health): cancel the probe query on timeout
+- #185 SRV-6 (low): test(server): pin asset paths inside the assets/ prefix
+- #186 SRV-7 (low): test(server): run every migration down and up again
+- #187 SRV-8 (low): fix(server): validate secrets by strength, not by marker only
+- #188 SRV-9 (low): fix(server): refuse PLATFORM_DOMAIN=platform.invalid when deployed
+- #189 SRV-10 (low): fix(server): run the API in prod mode in staging
+- #190 SRV-11 (low): fix(server): set the session cookie Secure flag explicitly
+- #191 SRV-12 (low): fix(server): keep scheduled tasks off the migrate role
+- #192 SRV-13 (low): fix(server): add a timeout to the migrate advisory lock
 
 **High-level plan**
 1. Queue registry and pools in `packages/shared/src/queues.ts` (names, priorities, retries/backoff, pool membership), worker `activeQueues` from env `WORKER_POOL=critical|bulk|all`, `withBusinessSemaphore()` and `withCircuitBreaker()` helpers on Valkey → commit `feat(platform): queue registry, pools, semaphore and breaker helpers`

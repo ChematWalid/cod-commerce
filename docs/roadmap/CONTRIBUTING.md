@@ -63,6 +63,7 @@ GitHub Actions on every PR: install → lint → typecheck → unit/integration 
 ## Issues, milestones, releases
 - One issue per session: title `P{n}.S{m} <Title>`, label `phase-{n}`, milestone `P{n} <phase name>`, body = the session brief link.
 - Each PR closes its issue with `Closes #N`.
+- **Audit issues (user, 2026-11-11).** Issues labelled `audit` are findings of `docs/audits/P1-audit.md`; each names its owner session in its body. At the start of every session, list its own (`gh issue list --label audit --state open --search "owner session: P{n}.S{m}"`) together with the **Audit issues to close** block of its brief, add them to the plan, and fix each one test first. The session PR closes them with `Closes #N`. One that does not fit is moved to a named later session: edit that brief, comment on the issue, and say why in the handoff. Never close one unfixed.
 - When a phase's exit criteria (see `docs/roadmap/README.md`) are met, tag `v0.{phase}.0` on `main` and publish a GitHub release with the merged PR list.
 
 ## End of every session (in this order)
