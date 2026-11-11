@@ -1,14 +1,11 @@
 import { InvalidDatabaseUrlError, RESERVED_WORKER_ID_MAX, RESERVED_WORKER_ID_MIN, toPostgresFields } from '@cod/shared';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
-import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT } from './ports';
+import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
+import { SERVER_ROLES, type ServerRole } from './roles';
 
-/** The process roles of the one server image. */
-export const SERVER_ROLES = ['api', 'worker', 'migrate'] as const;
-
-/** One of the {@link SERVER_ROLES}. */
-export type ServerRole = (typeof SERVER_ROLES)[number];
+export { SERVER_ROLES, type ServerRole };
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
@@ -34,7 +31,6 @@ export function isPlaceholderSecret(value: string): boolean {
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;
 
-const MAX_PORT = 65535;
 const MIN_COOKIE_SECRET_LENGTH = 32;
 const MIN_SUPERADMIN_PASSWORD_LENGTH = 8;
 const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
@@ -52,8 +48,9 @@ const DNS_NAME_MAX_LENGTH = 253;
 /** An HTTP header field name (RFC 9110 token, restricted to the characters real headers use). */
 const HEADER_NAME = /^[A-Za-z0-9-]+$/;
 
+/** `isPort` is the rule the container healthcheck applies too (`health-env.ts`). */
 const port = (fallback: number): z.ZodDefault<z.ZodCoercedNumber> =>
-  z.coerce.number().int().min(1).max(MAX_PORT).default(fallback);
+  z.coerce.number().refine(isPort, 'must be a port (1 to 65535)').default(fallback);
 
 const splitCsv = (value: string): string[] =>
   value
@@ -225,7 +222,10 @@ const withoutBlanks = (source: NodeJS.ProcessEnv): NodeJS.ProcessEnv =>
   Object.fromEntries(Object.entries(source).filter(([, value]) => value !== ''));
 
 /**
- * Validates `source` and returns the typed environment. This is the only module that reads `process.env`.
+ * Validates `source` and returns the typed environment. Every server role reads `process.env` through this
+ * function and nowhere else. The one other reader is the container healthcheck, a separate short process:
+ * `readHealthEnv` (`health-env.ts`) reads `ROLE`, `API_PORT` and `WORKER_HEALTH_PORT` under the same rules, and
+ * a test pins it to this schema.
  *
  * @throws {EnvValidationError} listing every invalid variable.
  */
