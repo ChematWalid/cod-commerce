@@ -1,13 +1,10 @@
 /**
  * How the connection to the SMTP server is protected (`SMTP_TLS`):
- * - `none`: plain SMTP, as the local Mailpit speaks it; nothing requires encryption;
+ * - `none`: TLS not required (the connection still upgrades if the server offers STARTTLS), which is how the local Mailpit is reached;
  * - `starttls`: starts plain and must upgrade with STARTTLS, or the send fails (port 587);
  * - `implicit`: TLS from the first byte (port 465).
  */
-export const SMTP_TLS_MODES = ['none', 'starttls', 'implicit'] as const;
-
-/** One of the {@link SMTP_TLS_MODES}. */
-export type SmtpTlsMode = (typeof SMTP_TLS_MODES)[number];
+export type SmtpTlsMode = 'none' | 'starttls' | 'implicit';
 
 /** The account the server signs in to the SMTP relay with (`SMTP_USERNAME`, `SMTP_PASSWORD`). */
 export interface SmtpCredentials {

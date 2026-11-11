@@ -57,12 +57,26 @@ describe('smtpTransportOptions', () => {
     expect(options).toEqual({ host: 'smtp.gmail.com', port: 465, secure: true, auth: CREDENTIALS, ...TIMEOUTS });
   });
 
-  it('follows the TLS mode, not the port number', () => {
-    expect(
-      smtpTransportOptions({ host: 'relay.example.test', port: 465, from: 'a@example.test', tls: 'none' }),
-    ).toMatchObject({ secure: false });
-    expect(
-      smtpTransportOptions({ host: 'relay.example.test', port: 2465, from: 'a@example.test', tls: 'implicit' }),
-    ).toMatchObject({ secure: true });
+  it('does not open in TLS on port 465 when the mode is none', () => {
+    // Arrange
+    const relay: SmtpOptions = { host: 'relay.example.test', port: 465, from: 'a@example.test', tls: 'none' };
+
+    // Act
+    const options = smtpTransportOptions(relay);
+
+    // Assert
+    expect(options).toMatchObject({ secure: false });
+    expect(options).not.toHaveProperty('requireTLS');
+  });
+
+  it('opens in TLS on another port when the mode is implicit', () => {
+    // Arrange
+    const relay: SmtpOptions = { host: 'relay.example.test', port: 2465, from: 'a@example.test', tls: 'implicit' };
+
+    // Act
+    const options = smtpTransportOptions(relay);
+
+    // Assert
+    expect(options).toMatchObject({ secure: true });
   });
 });

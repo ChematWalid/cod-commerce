@@ -26,11 +26,6 @@ export {
   type AuthOAuthOptions,
   type AuthPluginOptions,
 } from './auth.plugin';
-export {
-  SMTP_TLS_MODES,
-  type SmtpCredentials,
-  type SmtpOptions,
-  type SmtpTlsMode,
-} from './infrastructure/smtp-transport-options';
+export type { SmtpCredentials, SmtpOptions, SmtpTlsMode } from './infrastructure/smtp-transport-options';
 export { RandomAssetNamingStrategy } from './infrastructure/random-asset-naming.strategy';
 export { REGISTER_FORM_TEST_ID, VERIFY_BANNER_TEST_ID } from './dashboard/constants';
