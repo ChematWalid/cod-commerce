@@ -9,6 +9,12 @@ export interface MailpitMessage {
   readonly HTML: string;
 }
 
+/**
+ * Plain SMTP without an account, whatever the developer's `.env` says: a Gmail block there would otherwise make
+ * the server require TLS from Mailpit.
+ */
+export const PLAIN_SMTP_ENV = { SMTP_TLS: 'none', SMTP_USERNAME: '', SMTP_PASSWORD: '' } as const;
+
 /** The compose Mailpit as seen from the host; CI publishes it on other ports and says so in the environment. */
 export const MAILPIT_SMTP_PORT = process.env['MAILPIT_SMTP_HOST_PORT'] ?? DEFAULT_MAILPIT_SMTP_PORT;
 
