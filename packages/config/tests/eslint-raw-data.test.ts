@@ -181,6 +181,13 @@ describe('data access gate (CLAUDE.md §3a.9)', () => {
     },
   );
 
+  it.each([`${PLUGIN}/dashboard/constants.ts`, `${PLUGIN}/dashboard/document-lang.ts`])(
+    'keeps %s under the gate: a plugin entry point may re-export it',
+    async (path) => {
+      expect(await lint('get-repository.ts.txt', path)).toContain('no-restricted-syntax');
+    },
+  );
+
   it('lets an adapter declare entities and query through TenantRepository', async () => {
     const rules = await lint('tenant-repository-query.ts.txt', `${PLUGIN}/infrastructure/adapter.ts`);
 

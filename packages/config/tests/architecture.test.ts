@@ -51,6 +51,11 @@ describe('architecture rules', () => {
       from: 'apps/bad/uses-plugin-internals.ts',
       to: 'plugins/good/infrastructure/repo.ts',
     });
+    expect(bad.violations).toContainEqual({
+      rule: 'production-no-tests',
+      from: 'apps/bad/uses-plugin-tests.ts',
+      to: 'plugins/good/tests/unit/helper.ts',
+    });
   });
 
   it('accepts a plugin that follows the dependency direction', async () => {
@@ -58,6 +63,14 @@ describe('architecture rules', () => {
 
     expect(good.violations).toEqual([]);
     expect(good.cruisedModules).toContain('plugins/good/dashboard/uses-shell-api.ts');
+    // An entry point may re-export its dashboard's constants, and tests may import the entry point.
+    expect(good.cruisedModules).toEqual(
+      expect.arrayContaining([
+        'plugins/good/index.ts',
+        'plugins/good/dashboard/constants.ts',
+        'plugins/good/tests/unit/helper.ts',
+      ]),
+    );
   });
 
   it('resolves package-name imports to the sources they name', async () => {

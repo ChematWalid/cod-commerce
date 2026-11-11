@@ -127,16 +127,20 @@ describe('plugin layer boundaries', () => {
     expect(offenders).toEqual(
       [
         'bad/api/uses-other-plugin.ts',
+        'bad/api/uses-dashboard-constants.ts',
         'bad/api/uses-shell-api.ts',
         'bad/application/district-pricing.service.ts',
         'bad/application/uses-infrastructure.ts',
         'bad/application/uses-rate-limit-entry.ts',
         'bad/application/uses-tenancy-entry.ts',
+        'bad/dashboard-leak.plugin.ts',
         'bad/dashboard/uses-domain.ts',
         'bad/dashboard/uses-shell-internals.ts',
         'bad/dashboard/uses-tenancy-entry.ts',
         'bad/domain/uses-application.ts',
         'bad/infrastructure/uses-provisioning-entry.ts',
+        'bad/infrastructure/uses-tests.ts',
+        'bad/tests-leak.plugin.ts',
       ].sort(),
     );
   });
