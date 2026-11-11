@@ -181,6 +181,17 @@ describe('root ESLint config', () => {
     },
   );
 
+  it.each([`${PLUGIN}/domain/rule.ts`, `${PLUGIN}/application/use-case.ts`, 'packages/shared/src/x.ts'])(
+    'bans a framework import type in %s',
+    async (path) => {
+      expect(await lint('import-type-framework.ts.txt', path)).toContain('no-restricted-syntax');
+      expect(await lint('import-type-local.ts.txt', path)).not.toContain('no-restricted-syntax');
+      expect(await lint('import-type-framework.ts.txt', `${PLUGIN}/infrastructure/adapter.ts`)).not.toContain(
+        'no-restricted-syntax',
+      );
+    },
+  );
+
   it('lets clean application code through', async () => {
     expect(await lint('clean-application.ts.txt', `${PLUGIN}/application/use-case.ts`)).not.toContain(
       'no-restricted-imports',
@@ -237,6 +248,7 @@ describe('plugin layer boundaries', () => {
         'bad/application/uses-tenancy-entry.ts',
         'bad/dashboard/uses-domain.ts',
         'bad/dashboard/uses-shell-internals.ts',
+        'bad/dashboard/uses-tenancy-entry.ts',
         'bad/domain/uses-application.ts',
         'bad/infrastructure/uses-provisioning-entry.ts',
       ].sort(),

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checkArchitecture } from '../architecture/check';
+import { BAD_FIXTURE_VIOLATIONS, describeViolations } from './arch-fixture-violations';
 
 /** dependency-cruiser walks the whole fixture tree; 7 s was observed under load, past Vitest's 5 s default. */
 const FULL_SCAN_TIMEOUT_MS = 60_000;
@@ -15,62 +16,13 @@ describe('architecture rules', () => {
     async () => {
       const bad = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins'] });
 
-      expect(bad.violations.map((violation) => violation.rule).sort()).toEqual(
-        [
-          'application-no-concretes',
-          'application-no-concretes',
-          'dashboard-no-plugin-core',
-          'domain-is-pure',
-          'domain-no-outer-layers',
-          'no-cross-plugin-internals',
-          'no-cross-plugin-internals',
-          'no-cross-plugin-internals',
-          'plugin-core-no-tenancy-entry',
-          'plugin-core-no-tenancy-entry',
-          'tenancy-provisioning-entry-restricted',
-        ].sort(),
-      );
-      expect(bad.violations).toContainEqual({
-        rule: 'plugin-core-no-tenancy-entry',
-        from: 'plugins/bad/application/uses-tenancy-entry.ts',
-        to: 'plugins/tenancy/index.ts',
-      });
-      expect(bad.violations).toContainEqual({
-        rule: 'plugin-core-no-tenancy-entry',
-        from: 'plugins/bad/application/uses-rate-limit-entry.ts',
-        to: 'plugins/rate-limit/index.ts',
-      });
-      expect(bad.violations).toContainEqual({
-        rule: 'tenancy-provisioning-entry-restricted',
-        from: 'plugins/bad/infrastructure/uses-provisioning-entry.ts',
-        to: 'plugins/tenancy/provisioning.ts',
-      });
+      expect(describeViolations(bad.violations)).toEqual(describeViolations(BAD_FIXTURE_VIOLATIONS));
       expect(bad.violations.map((violation) => violation.from)).not.toContain(
         'plugins/rbac/infrastructure/uses-provisioning-entry.ts',
       );
-      expect(bad.violations).toContainEqual({
-        rule: 'dashboard-no-plugin-core',
-        from: 'plugins/bad/dashboard/uses-domain.ts',
-        to: 'plugins/bad/domain/clean.ts',
-      });
-      expect(bad.violations).toContainEqual({
-        rule: 'no-cross-plugin-internals',
-        from: 'plugins/bad/api/uses-shell-api.ts',
-        to: 'plugins/merchant-shell/dashboard/shell-api.ts',
-      });
-      expect(bad.violations).toContainEqual({
-        rule: 'no-cross-plugin-internals',
-        from: 'plugins/bad/dashboard/uses-shell-internals.ts',
-        to: 'plugins/merchant-shell/dashboard/internal.ts',
-      });
-      expect(bad.violations.map((violation) => violation.from)).not.toContain(
-        'plugins/good/dashboard/uses-shell-api.ts',
-      );
-      expect(bad.violations).toContainEqual({
-        rule: 'domain-is-pure',
-        from: 'plugins/bad/domain/uses-vendure.ts',
-        to: '@vendure/core',
-      });
+      expect(
+        bad.violations.map((violation) => violation.from).filter((from) => from.startsWith('plugins/good/')),
+      ).toEqual([]);
     },
     FULL_SCAN_TIMEOUT_MS,
   );
@@ -107,6 +59,20 @@ describe('architecture rules', () => {
     expect(good.cruisedModules).toContain('plugins/good/dashboard/uses-shell-api.ts');
   });
 
+  it('resolves package-name imports to the sources they name', async () => {
+    const good = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins/good'] });
+
+    expect(good.cruisedModules).toEqual(
+      expect.arrayContaining([
+        'plugins/good/dashboard/uses-shell-api-package.ts',
+        'plugins/good/infrastructure/uses-tenancy-package.ts',
+        'plugins/merchant-shell/dashboard/shell-api.ts',
+        'plugins/tenancy/index.ts',
+      ]),
+    );
+    expect(good.cruisedModules.filter((module) => module.startsWith('@cod/'))).toEqual([]);
+  });
+
   it(
     'finds no violation in the workspace',
     async () => {
@@ -115,7 +81,9 @@ describe('architecture rules', () => {
         roots: ['apps', 'packages', 'plugins'].filter(existsInRepo),
       });
 
-      expect(real.violations).toEqual([]);
+      expect(describeViolations(real.violations)).toEqual([]);
+      expect(real.cruisedModules.filter((module) => module.startsWith('@cod/'))).toEqual([]);
+      expect(real.cruisedModules).toContain('plugins/merchant-shell/dashboard/shell-api.ts');
       expect(real.cruisedModules.some((module) => module.startsWith('packages/shared/src/'))).toBe(true);
       expect(real.cruisedModules.some((module) => module.startsWith('apps/server/src/'))).toBe(true);
       expect(real.cruisedModules).toEqual(
