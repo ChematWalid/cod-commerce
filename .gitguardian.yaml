@@ -15,7 +15,7 @@ secret:
       match: change-me-auth-000000000000000000000000000000000000000000000000
     - name: .env.example placeholder GARAGE_ADMIN_TOKEN for the local compose Garage only (not read by the server)
       match: change-me-garage-admin
-    - name: .env.example placeholder INTERNAL_HMAC_SECRET (not read by the server yet)
+    - name: .env.example placeholder INTERNAL_HMAC_SECRET (reserved for P1.S6; nothing reads it yet)
       match: change-me-hmac
     - name: deliberately broken database password fixture (RF5) in scripts/verify-stack.sh and the env unit test; never a credential
       match: p@ss/w:rd

@@ -8,6 +8,12 @@ name: ${COMPOSE_PROJECT_NAME:-cod}
 # APP_ENV comes from .env (development when copied from .env.example); without it, it falls back to
 # production, where loadEnv refuses the placeholders and needs real secrets. P3.S5 decides how a
 # production .env is produced.
+#
+# COMPOSE_* variables hold an address or port as the containers see it. They have their own names because
+# .env also holds the host-side values of the same settings (API_PORT=3100, INTERNAL_API_URL=http://localhost:3100)
+# for processes run on the host, and verify-stack.sh exports the whole file: a shared name would hand a container
+# the host's value. Unset, each one keeps the bundled service; set, it points the roles at a managed Postgres,
+# Valkey or S3 (the bundled services still start: api and worker wait for them).
 x-app: &app
   build:
     context: .
@@ -19,11 +25,12 @@ x-app: &app
   environment: &app-env
     TZ: UTC
     APP_ENV: ${APP_ENV:-production}
-    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
-    DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    REDIS_URL: redis://valkey:6379
+    DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}}
+    DATABASE_URL_DIRECT: ${COMPOSE_DATABASE_URL_DIRECT:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}}
+    DB_POOL_MAX: ${DB_POOL_MAX:-}
+    REDIS_URL: ${COMPOSE_REDIS_URL:-redis://valkey:6379}
     PLATFORM_DOMAIN: ${PLATFORM_DOMAIN:-platform.invalid}
-    S3_ENDPOINT: http://garage:3900
+    S3_ENDPOINT: ${COMPOSE_S3_ENDPOINT:-http://garage:3900}
     S3_REGION: ${S3_REGION:-garage}
     S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
     S3_ACCESS_KEY: ${S3_ACCESS_KEY}
@@ -32,6 +39,8 @@ x-app: &app
     COOKIE_SECRET: ${COOKIE_SECRET}
     CORS_ORIGINS: ${CORS_ORIGINS:-}
     CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
+    TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-}
+    LOG_LEVEL: ${LOG_LEVEL:-}
     AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET}
     AUTH_DASHBOARD_URL: ${AUTH_DASHBOARD_URL:-}
     SMTP_HOST: ${SMTP_HOST:-}
@@ -43,15 +52,23 @@ x-app: &app
     AUTH_OAUTH_ENABLED: ${AUTH_OAUTH_ENABLED:-false}
     GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
     GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+    GOOGLE_OAUTH_AUTHORIZE_URL: ${GOOGLE_OAUTH_AUTHORIZE_URL:-}
+    GOOGLE_OAUTH_TOKEN_URL: ${GOOGLE_OAUTH_TOKEN_URL:-}
+    GOOGLE_OAUTH_USERINFO_URL: ${GOOGLE_OAUTH_USERINFO_URL:-}
     FACEBOOK_OAUTH_CLIENT_ID: ${FACEBOOK_OAUTH_CLIENT_ID:-}
     FACEBOOK_OAUTH_CLIENT_SECRET: ${FACEBOOK_OAUTH_CLIENT_SECRET:-}
+    FACEBOOK_OAUTH_AUTHORIZE_URL: ${FACEBOOK_OAUTH_AUTHORIZE_URL:-}
+    FACEBOOK_OAUTH_TOKEN_URL: ${FACEBOOK_OAUTH_TOKEN_URL:-}
+    FACEBOOK_OAUTH_USERINFO_URL: ${FACEBOOK_OAUTH_USERINFO_URL:-}
     TURNSTILE_ENABLED: ${TURNSTILE_ENABLED:-false}
     TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
     TURNSTILE_CHALLENGE_URL: ${TURNSTILE_CHALLENGE_URL:-}
+    TURNSTILE_SITEVERIFY_URL: ${TURNSTILE_SITEVERIFY_URL:-}
     SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME}
     SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
-    API_PORT: '3000'
-    WORKER_HEALTH_PORT: '3020'
+    # The ports the roles listen on inside their containers; the published ports below follow them.
+    API_PORT: ${COMPOSE_API_PORT:-3000}
+    WORKER_HEALTH_PORT: ${COMPOSE_WORKER_HEALTH_PORT:-3020}
 
 x-app-healthcheck: &app-healthcheck
   test: ['CMD', 'node', 'apps/server/dist/healthcheck.js']
@@ -195,7 +212,7 @@ services:
       ROLE: api
     depends_on: *app-depends-on
     ports:
-      - '${API_BIND_ADDR:-127.0.0.1}:${API_HOST_PORT:-3100}:3000'
+      - '${API_BIND_ADDR:-127.0.0.1}:${API_HOST_PORT:-3100}:${COMPOSE_API_PORT:-3000}'
     healthcheck: *app-healthcheck
     restart: unless-stopped
 
@@ -208,7 +225,7 @@ services:
       WORKER_ACTIVE_QUEUES: ${WORKER_ACTIVE_QUEUES:-}
     depends_on: *app-depends-on
     ports:
-      - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:3020'
+      - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:${COMPOSE_WORKER_HEALTH_PORT:-3020}'
     healthcheck: *app-healthcheck
     restart: unless-stopped
 
@@ -220,9 +237,9 @@ services:
       TZ: UTC
       ROLE: storefront
       APP_ENV: ${APP_ENV:-production}
-      REDIS_URL: redis://valkey:6379
-      # Read by the proxy on each request to find the store behind a host (D12).
-      INTERNAL_API_URL: http://api:3000
+      REDIS_URL: ${COMPOSE_REDIS_URL:-redis://valkey:6379}
+      # Validated at boot and read by the proxy on each request to find the store behind a host (D12).
+      INTERNAL_API_URL: ${COMPOSE_INTERNAL_API_URL:-http://api:${COMPOSE_API_PORT:-3000}}
       # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
       # always match the deployment the assets were built for.
     depends_on:
