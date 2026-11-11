@@ -4,6 +4,7 @@ import prettierConfig from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 import { LINT_LIMITS } from './lint-limits.mjs';
+import { PLUGIN_ENTRY_IMPORT_PATTERNS, PLUGIN_ENTRY_SYNTAX, pluginEntryConfig } from './plugin-entry.mjs';
 import { pluginStaticOptionsConfig } from './plugin-static-options.mjs';
 import {
   RAW_DATA_IMPORT_PATHS,
@@ -110,8 +111,24 @@ const boundaryPolicies = [
 
 /** The data access gate's entries, for the framework-free plugin layers that are also under that gate. */
 const RAW_DATA_GATE = { syntax: RAW_DATA_SYNTAX, paths: RAW_DATA_IMPORT_PATHS, patterns: RAW_DATA_IMPORT_PATTERNS };
-/** `@cod/shared` is framework-free but not under the data access gate: it holds contracts and has no connection. */
-const NO_GATE = { syntax: [], paths: [], patterns: [] };
+/**
+ * `@cod/shared` is framework-free but not under the data access gate: it holds contracts and has no connection. Like
+ * every package it is under the plugin entry gate.
+ */
+const PLUGIN_ENTRY_GATE = { syntax: PLUGIN_ENTRY_SYNTAX, paths: [], patterns: PLUGIN_ENTRY_IMPORT_PATTERNS };
+
+/** The server app is under both gates; this block follows the two it merges, with the data access gate's exemptions. */
+const serverAppGatesConfig = {
+  files: ['apps/server/src/**'],
+  ignores: rawDataAccessConfig.ignores,
+  rules: {
+    'no-restricted-syntax': ['error', ...RAW_DATA_SYNTAX, ...PLUGIN_ENTRY_SYNTAX],
+    'no-restricted-imports': [
+      'error',
+      { paths: RAW_DATA_IMPORT_PATHS, patterns: [...RAW_DATA_IMPORT_PATTERNS, ...PLUGIN_ENTRY_IMPORT_PATTERNS] },
+    ],
+  },
+};
 
 /**
  * Forbids framework imports (type imports, `import('…')` types and dynamic `import()` included) in `files`. This block
@@ -120,7 +137,7 @@ const NO_GATE = { syntax: [], paths: [], patterns: [] };
  *
  * @param {string[]} files
  * @param {string} message
- * @param {typeof RAW_DATA_GATE | typeof NO_GATE} gate
+ * @param {typeof RAW_DATA_GATE | typeof PLUGIN_ENTRY_GATE} gate
  */
 const frameworkFree = (files, message, gate) => ({
   files,
@@ -215,10 +232,12 @@ export function codEslintConfig({ tsconfigRootDir }) {
           'boundaries/no-unknown-files': 'error',
         },
       },
+      pluginEntryConfig,
       rawDataAccessConfig,
+      serverAppGatesConfig,
       pluginStaticOptionsConfig,
       frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE, RAW_DATA_GATE),
-      frameworkFree(SHARED_FILES, DOMAIN_PURITY_MESSAGE, NO_GATE),
+      frameworkFree(SHARED_FILES, DOMAIN_PURITY_MESSAGE, PLUGIN_ENTRY_GATE),
       frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE, RAW_DATA_GATE),
       {
         files: TEST_FILES,
