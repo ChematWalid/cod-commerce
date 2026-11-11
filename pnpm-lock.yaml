@@ -667,6 +667,9 @@ importers:
       '@cod/plugin-merchant-shell':
         specifier: workspace:*
         version: link:../merchant-shell
+      '@cod/plugin-platform-partitions':
+        specifier: workspace:*
+        version: link:../platform-partitions
       '@cod/plugin-rate-limit':
         specifier: workspace:*
         version: link:../rate-limit

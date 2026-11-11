@@ -1,6 +1,8 @@
+import { PartitionRegistry, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
 import { BUILT_IN_ROLES } from '@cod/shared';
+import { Inject } from '@nestjs/common';
 import { PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } from '@vendure/core';
 import { ActivityLogResolver } from './api/activity-log.resolver';
 import { RBAC_PERMISSION_DEFINITIONS } from './api/permission-definitions';
@@ -45,6 +47,7 @@ import type { RbacLockPort } from './domain/ports/rbac-lock.port';
 import type { RoleBindingRepositoryPort } from './domain/ports/role-binding-repository.port';
 import type { SessionFlusherPort } from './domain/ports/session-flusher.port';
 import type { TransactionPort } from './domain/ports/transaction.port';
+import { ACTIVITY_LOG_PARTITION_POLICY } from './infrastructure/activity-log-partition-policy';
 import { ActivityLogEntity } from './infrastructure/activity-log.entity';
 import { ActivityRecordHandler } from './infrastructure/activity-record.handler';
 import { BusinessRoleEntity } from './infrastructure/business-role.entity';
@@ -75,7 +78,7 @@ const systemClock: ClockPort = { now: () => new Date() };
 /** The permission catalog on Vendure, the tables of business roles and the activity log. This module only wires the layers. */
 @VendurePlugin({
   // `RateLimitPlugin` exports the `ClientIpResolver` that `requestOrigin` takes.
-  imports: [PluginCommonModule, TenancyPlugin, RateLimitPlugin],
+  imports: [PluginCommonModule, TenancyPlugin, RateLimitPlugin, PlatformPartitionsPlugin],
   entities: [BusinessRoleEntity, RoleBindingEntity, MemberRoleAssignmentEntity, ActivityLogEntity],
   providers: [
     { provide: ACTIVITY_LOG, useClass: TypeOrmActivityLogRepository },
@@ -197,6 +200,11 @@ const systemClock: ClockPort = { now: () => new Date() };
   dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
-// A Vendure plugin is a decorated class; its body stays empty when its metadata is the whole plugin.
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-export class RbacPlugin {}
+export class RbacPlugin {
+  constructor(@Inject(PartitionRegistry) private readonly partitions: PartitionRegistry) {}
+
+  /** The registry closes at bootstrap, so the activity log registers its monthly policy here (D123). */
+  onModuleInit(): void {
+    this.partitions.register(ACTIVITY_LOG_PARTITION_POLICY);
+  }
+}

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@cod/plugin-merchant-shell": "workspace:*",
+    "@cod/plugin-platform-partitions": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
