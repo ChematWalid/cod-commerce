@@ -16,6 +16,7 @@
     "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
   },
   "dependencies": {
+    "@cod/plugin-rbac": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@lingui/react": "5.9.5",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",

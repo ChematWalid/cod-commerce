@@ -220,9 +220,6 @@ export class TenancyPlugin {
   /** Registers the plugin with its options. */
   static init(options: TenancyPluginOptions): typeof TenancyPlugin {
     TenancyPlugin.options = options;
-    // The server initialises the rate limiter itself, with its client address header; any other host (tests,
-    // scripts) gets it on the same Valkey, keyed by `req.ip`.
-    RateLimitPlugin.options ??= { redisUrl: options.redisUrl, clientIpHeader: '' };
     return TenancyPlugin;
   }
 }

@@ -1,6 +1,6 @@
+import { REGISTER_FORM_TEST_ID, VERIFY_BANNER_TEST_ID } from '@cod/plugin-auth';
 import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, beforeAll, beforeEach, afterEach, describe, expect, it } from 'vitest';
-import { REGISTER_FORM_TEST_ID, VERIFY_BANNER_TEST_ID } from '../../../../plugins/auth/dashboard/constants';
 import { DASHBOARD_URL } from './dashboard-pages';
 import { emailSecrets, waitForEmail } from './mailpit';
 

@@ -1,0 +1,14 @@
+{
+  "name": "@cod/plugin-merchant-shell",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    },
+    "./shell-api": {
+      "@cod/source": "./dashboard/shell-api.ts"
+    }
+  }
+}

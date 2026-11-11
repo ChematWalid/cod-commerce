@@ -106,8 +106,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       serveWorkerHealth: role === 'worker',
     }),
     TemplatePlugin,
-    // The order is free: tenancy's `init` only fills rate-limit options that are still unset, and this call
-    // replaces them either way.
+    // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
     TenancyPlugin.init({
       redisUrl: env.REDIS_URL,
