@@ -24,6 +24,8 @@ export STOREFRONT_HOST_PORT=23001 PLATFORM_DOMAIN=localhost
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
 export AUTH_TOKEN_SECRET=${AUTH_TOKEN_SECRET:-evidence-auth-token-secret-synthetic-0123456789}
 export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBOARD_URL=http://127.0.0.1:$API_HOST_PORT/dashboard
+# Set, not unset: compose would otherwise read a Gmail block from a local .env and require TLS from Mailpit.
+export SMTP_TLS=none SMTP_USERNAME='' SMTP_PASSWORD=''
 export DEMO_OWNER_PASSWORD=${DEMO_OWNER_PASSWORD:-evidence-demo-owner-password}
 # Synthetic; never printed (transcripts show [REDACTED]).
 export EV_PASSWORD=evidence-owner-password-one EV_NEW_PASSWORD=evidence-owner-password-two EV_RESET_PASSWORD=evidence-owner-password-three

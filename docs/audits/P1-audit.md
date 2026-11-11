@@ -137,7 +137,7 @@ Not fixed in this audit. Each has an owning session; the owner's brief gets a li
 | RL-3 | `plugins/rate-limit/tests/integration/valkey-outage.int.test.ts:69-80` | The outage breaker and the return to Valkey have no test that can fail; lockouts are not carried across the switch in either direction. | P1.S6 |
 | RBAC-2 | `apps/server/src/migrations/1794239245984-rbac.ts:6-10` | `activity_log` has no retention, no partitioning and is mutable by the app role. D65 defers to P1.S6, whose brief does not name the table. | P1.S6 (partition); P10.S2 (append-only grant) |
 | RBAC-3 | `plugins/rbac/infrastructure/vendure-actor-directory.ts:40-42` | Soft-deleted administrators keep their role assignments: roles stay "in use" and a deleted co-owner still counts as an Owner holder. Reachable today only by platform staff. | P1.S4 (member removal) |
-| SRV-1 | `apps/server/src/config/auth-env.ts:24-74`, `plugins/auth/infrastructure/nodemailer-email-sender.ts:26-33` | No authenticated SMTP relay can be configured, STARTTLS is opportunistic, and production boots with `SMTP_HOST=mailpit`. Mailpit binds to 127.0.0.1 by default, which is why this is not high. No session owned it. | P1.S4 |
+| SRV-1 | `apps/server/src/config/auth-env.ts:24-74`, `plugins/auth/infrastructure/nodemailer-email-sender.ts:26-33` | No authenticated SMTP relay can be configured, STARTTLS is opportunistic, and production boots with `SMTP_HOST=mailpit`. Mailpit binds to 127.0.0.1 by default, which is why this is not high. No session owned it. **Resolved 2026-11-11** (`fix/audit-smtp-config`, D96): `SMTP_USERNAME`, `SMTP_PASSWORD` and `SMTP_TLS` are validated at boot, `starttls` sets `requireTLS`, and a deployed server defaults to `starttls`, so mail to a Mailpit left in a production `.env` fails instead of leaving in clear. | Resolved |
 | SRV-2 | `apps/server/src/roles/migrate.role.ts:44-59` | ADR 0016 §5's `lock_timeout` and `statement_timeout` on migrations are not set; four migrations alter `administrator`. | P1.S6 |
 | SRV-3 | `apps/server/src/config/env.ts:90` | `APP_ENV` defaults to `development`, so the image started outside compose accepts placeholder secrets, enables introspection and sets an insecure OAuth cookie. | P1.S6 |
 | SRV-4 | `apps/server/src/roles/migrate.role.ts:99-111` | One business that cannot converge makes `migrate` exit 1, and no api or worker starts for anyone. By design (D57), but with no repair path. | P10.S2 |
@@ -191,7 +191,7 @@ Handoff items for which no brief named an owner. Each now has one in the tables 
 
 | Item | From | Owner now |
 |---|---|---|
-| SMTP credentials and required TLS | P1.S2 | P1.S4 (SRV-1) |
+| SMTP credentials and required TLS | P1.S2 | Resolved 2026-11-11 (SRV-1, D96) |
 | Turnstile on sign-up, and the ADR 0008 against ADR 0012 conflict | P1.S2 | P3.S4, as a user decision |
 | First run against real Google and Facebook | P1.S2 | user, when credentials exist |
 | French emails and labels; native review of Arabic copy | P1.S2, P1.S3, P1.S5 | user decision: a copy pass session |
