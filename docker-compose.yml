@@ -41,6 +41,8 @@ x-app: &app
     CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
     TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-}
     LOG_LEVEL: ${LOG_LEVEL:-}
+    # Retired by WORKER_POOL (D100): passed through only so boot refuses a value left in an old `.env`.
+    WORKER_ACTIVE_QUEUES: ${WORKER_ACTIVE_QUEUES:-}
     AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET}
     AUTH_DASHBOARD_URL: ${AUTH_DASHBOARD_URL:-}
     SMTP_HOST: ${SMTP_HOST:-}
