@@ -10,10 +10,14 @@ import { RedisEvictionPolicyError } from '../domain/eviction-policy';
 import { MigrationsProbe, PendingMigrationsError } from '../infrastructure/migrations.probe';
 import { RedisEvictionPolicyReader } from '../infrastructure/redis-eviction.guard';
 import { createProbeRedisClient, RedisProbe } from '../infrastructure/redis.probe';
+import { withStatementTimeout } from '../infrastructure/statement-timeout';
 
 /** A port nothing listens on, so connections are refused. */
 const CLOSED_PORT_REDIS_URL = 'redis://127.0.0.1:1';
 const CLOSED_PORT_DATABASE_URL = 'postgresql://cod:unused@127.0.0.1:1/cod';
+
+/** Postgres' SQLSTATE for a statement cancelled by `statement_timeout`. */
+const QUERY_CANCELED = '57014';
 
 const requireEnv = (name: string): string => {
   const value = process.env[name];
@@ -26,7 +30,7 @@ const requireEnv = (name: string): string => {
 /** Runs one probe through the readiness service, as `/readyz` does, and times it. */
 const runProbe = async (probe: ReadinessProbe): Promise<{ ok: boolean; elapsedMs: number }> => {
   const started = performance.now();
-  const report = await new ReadinessService([probe]).check();
+  const report = await new ReadinessService([probe], { error: () => undefined }).check();
   return { ok: report.checks[probe.name].ok, elapsedMs: performance.now() - started };
 };
 
@@ -75,6 +79,37 @@ describe('PostgresProbe', () => {
     const result = await runProbe(probe);
 
     expect(result.ok).toBe(true);
+  });
+
+  it('passes through the transaction-mode pooler (DATABASE_URL)', async () => {
+    const probe = new PostgresProbe(pool(requireEnv('DATABASE_URL')));
+
+    const result = await runProbe(probe);
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('has Postgres cancel a query that outlives the statement timeout, through the pooler', async () => {
+    const pooled = pool(requireEnv('DATABASE_URL'));
+
+    const outcome = await pooled
+      .query(withStatementTimeout('SELECT pg_sleep(2)', 100))
+      .catch((error: unknown) => error);
+
+    expect(outcome).toMatchObject({ code: QUERY_CANCELED });
+  });
+
+  it('does not leak the statement timeout to the next query on the same connection', async () => {
+    const direct = pool(requireEnv('DATABASE_URL_DIRECT'));
+    const client = await direct.connect();
+    try {
+      await client.query(withStatementTimeout('SELECT 1', 100));
+      const { rows } = await client.query<{ statement_timeout: string }>('SHOW statement_timeout');
+
+      expect(rows[0]?.statement_timeout).not.toBe('100ms');
+    } finally {
+      client.release();
+    }
   });
 
   it('fails within its budget against a closed port', async () => {
