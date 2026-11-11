@@ -32,7 +32,7 @@ const HOW_TO_FIX =
 const GRANTABLE: ReadonlySet<string> = new Set(enginePermissionsFor(PERMISSION_CATALOG.map((entry) => entry.key)));
 
 /**
- * Tenancy permissions that reach an Owner and no other role today. D59 and D96 map six tenancy permissions to
+ * Tenancy permissions that reach an Owner and no other role today. D59 and D97 map six tenancy permissions to
  * catalogue keys and leave these two out: they guard no handler. Each needs a product decision (a catalogue key and
  * an `ENGINE_GRANTS` entry, or the platform-only list); until then they are named here so that nothing new joins
  * them unnoticed.

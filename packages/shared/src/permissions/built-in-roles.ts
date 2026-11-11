@@ -53,7 +53,7 @@ const MANAGER_EXCLUDED: ReadonlySet<PermissionKey> = new Set<PermissionKey>([
 
 /**
  * Archiving a store takes it offline for its buyers, so no built-in role but Owner holds it; a business hands it
- * out through a custom role (D96).
+ * out through a custom role (D97).
  */
 const STORE_MANAGER_EXCLUDED: ReadonlySet<PermissionKey> = new Set<PermissionKey>(['store.stores.archive']);
 
