@@ -1,3 +1,9 @@
+const MIN_PORT = 1;
+const MAX_PORT = 65535;
+
+/** True for a TCP port number. The env schema and the container healthcheck share this one rule. */
+export const isPort = (value: number): boolean => Number.isInteger(value) && value >= MIN_PORT && value <= MAX_PORT;
+
 /** The api port inside a container. */
 export const DEFAULT_API_PORT = 3000;
 

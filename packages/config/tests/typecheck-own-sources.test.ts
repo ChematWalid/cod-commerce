@@ -9,6 +9,12 @@ type OwnDiagnostics = typeof import('../typecheck/own-sources.mjs').ownDiagnosti
 const ownDiagnostics: (...args: Parameters<OwnDiagnostics>) => Promise<ReturnType<OwnDiagnostics>> = async (path) =>
   (await import('../typecheck/own-sources.mjs')).ownDiagnostics(path);
 
+/**
+ * Each test loads the TypeScript compiler and type-checks a project, in this process or in a child one. That takes
+ * seconds when `pnpm test` runs another package next to this one, more than Vitest's default of five.
+ */
+const COMPILE_TIMEOUT_MS = 30_000;
+
 const scratch = mkdtempSync(join(tmpdir(), 'cod-typecheck-own-'));
 
 afterAll(() => {
@@ -30,7 +36,7 @@ const writeProject = (ownSource: string): string => {
   return join(root, 'tsconfig.json');
 };
 
-describe('ownDiagnostics', () => {
+describe('ownDiagnostics', { timeout: COMPILE_TIMEOUT_MS }, () => {
   it('ignores type errors in TypeScript sources a dependency ships', async () => {
     await expect(ownDiagnostics(writeProject(''))).resolves.toEqual([]);
   });
@@ -42,7 +48,7 @@ describe('ownDiagnostics', () => {
   });
 });
 
-describe('cod-typecheck-own bin', () => {
+describe('cod-typecheck-own bin', { timeout: COMPILE_TIMEOUT_MS }, () => {
   /** Runs the bin through a symlink, the way pnpm's node_modules/.bin reaches it. */
   const runBin = (tsconfigPath: string): { status: number | null; stderr: string } => {
     const link = join(mkdtempSync(join(scratch, 'bin-')), 'cod-typecheck-own');

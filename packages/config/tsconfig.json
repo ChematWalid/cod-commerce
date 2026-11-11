@@ -2,6 +2,11 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    // The gates import the server's env schema, which imports a type from a Vendure plugin, so this program
+    // parses plugin sources: they need the decorator settings of tsconfig.vendure.json.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
     // The typecheck bin runs under Node type stripping, which needs the real `.mts` import paths.
     "allowImportingTsExtensions": true
   },

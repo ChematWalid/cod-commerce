@@ -99,7 +99,7 @@ first=$(seed); second=$(seed)
 [[ "$second" == '{"event":"seed-demo.done","created":[]}' ]] || fail "second seed: $second"
 
 # --- the second api process -----------------------------------------------------------------
-docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:3000" api >/dev/null
+docker compose run -d --no-deps --name "$API2_NAME" -p "127.0.0.1:$API2_PORT:${COMPOSE_API_PORT:-3000}" api >/dev/null
 wait_http 200 "$api2/readyz" 240 || fail "second api /readyz"
 
 rm -rf "$out/api"

@@ -1,4 +1,4 @@
-import { isNextBuildPhase } from './cache-config';
+import { inNextBuildPhase } from './cache-config';
 import { CACHE_ENTRY_MAX_TTL_SECONDS, CACHE_ENTRY_MIN_TTL_SECONDS, CONNECT_TIMEOUT_MS } from './constants';
 import { errorMessage, type LazyRedisClient, openLazyRedisConnection } from './lazy-redis-client';
 
@@ -84,7 +84,7 @@ function openConnection(): LazyConnection {
  * for it at most {@link CONNECT_TIMEOUT_MS}; the client keeps reconnecting in the background.
  */
 export async function getCacheRedisClient(): Promise<CacheRedisClient | null> {
-  if (isNextBuildPhase(process.env)) return null;
+  if (inNextBuildPhase()) return null;
   connection ??= openConnection();
   await connection.ready;
   return connection.client.isReady ? connection.client : null;

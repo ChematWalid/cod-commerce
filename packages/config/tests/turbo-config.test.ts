@@ -57,6 +57,18 @@ describe('turbo build cache outputs', () => {
   });
 });
 
+describe('turbo cache of the config package', () => {
+  it.each(['typecheck', 'test'])('never caches %s, which reads files across the repository', (name) => {
+    // Its tests import apps/server and apps/storefront sources and read compose, the workflows and the plugins by
+    // path, none of which is in its hash. A cached pass hid a failing typecheck on main (the server's env schema
+    // had started to import a plugin's type).
+    const config = readJson('packages/config/turbo.json');
+
+    expect(config.extends).toEqual(['//']);
+    expect(config.tasks[name]?.cache).toBe(false);
+  });
+});
+
 /** True when the task's hash folds in the workspace dependencies: a `^` entry of its own, or of a task it depends on. */
 const hashesWorkspaceDependencies = (tasks: TurboConfig['tasks'], name: string, seen = new Set<string>()): boolean => {
   if (seen.has(name)) return false;

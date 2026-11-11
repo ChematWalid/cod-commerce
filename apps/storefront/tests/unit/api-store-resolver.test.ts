@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StorefrontEnvError } from '../../src/config/storefront-env';
 import { ApiStoreResolver, StoreResolverError } from '../../src/tenancy/api-store-resolver';
 import type { NormalizedHost } from '../../src/tenancy/host';
 import { InvalidStoreLocaleError } from '../../src/tenancy/store-locale';
@@ -107,6 +108,15 @@ describe('ApiStoreResolver', () => {
 
     // Act and Assert
     await expect(resolver.resolveByHost(HOST)).rejects.toThrow('INTERNAL_API_URL');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a malformed INTERNAL_API_URL with the typed env error, before any request', async () => {
+    // Arrange
+    vi.stubEnv('INTERNAL_API_URL', 'api.test:3000');
+
+    // Act and Assert
+    await expect(new ApiStoreResolver().resolveByHost(HOST)).rejects.toThrow(StorefrontEnvError);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
