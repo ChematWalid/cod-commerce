@@ -1,0 +1,11 @@
+{
+  "name": "@cod/plugin-rate-limit",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  }
+}

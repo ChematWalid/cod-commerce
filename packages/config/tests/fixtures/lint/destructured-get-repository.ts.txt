@@ -1,0 +1,8 @@
+export class StoreReader {
+  constructor(private readonly connection: { getRepository(name: string): unknown }) {}
+
+  all(): unknown {
+    const { getRepository: repositoryOf } = this.connection;
+    return repositoryOf('store');
+  }
+}

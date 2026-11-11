@@ -1,0 +1,8 @@
+const roles = { manager: 'manager', owner: 'owner' } as const;
+
+export const managerKey = roles.manager;
+
+export const pick = (): string => {
+  const { manager } = roles;
+  return manager;
+};
