@@ -17,6 +17,7 @@ import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
 import { BindingProjector } from './application/binding-projector.service';
 import { GetActivityLogService } from './application/get-activity-log.service';
+import { LiveMemberAssignments } from './application/live-member-assignments';
 import { ExtendAllBindingsService } from './application/extend-all-bindings.service';
 import { RbacConvergeService } from './application/rbac-converge.service';
 import { SeedBuiltInRolesService } from './application/seed-built-in-roles.service';
@@ -83,7 +84,13 @@ const systemClock: ClockPort = { now: () => new Date() };
     { provide: CLOCK, useValue: systemClock },
     { provide: BUSINESS_ROLES, useClass: TypeOrmBusinessRoleRepository },
     { provide: ROLE_BINDINGS, useClass: TypeOrmRoleBindingRepository },
-    { provide: MEMBER_ASSIGNMENTS, useClass: TypeOrmMemberAssignmentRepository },
+    TypeOrmMemberAssignmentRepository,
+    {
+      provide: MEMBER_ASSIGNMENTS,
+      useFactory: (rows: MemberAssignmentRepositoryPort, actors: ActorDirectoryPort) =>
+        new LiveMemberAssignments(rows, actors),
+      inject: [TypeOrmMemberAssignmentRepository, ACTOR_DIRECTORY],
+    },
     { provide: ENGINE_ROLES, useClass: VendureEngineRoles },
     { provide: SESSION_FLUSHER, useClass: RoleSessionFlusher },
     { provide: RBAC_LOCK, useClass: RbacLock },

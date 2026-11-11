@@ -2,13 +2,19 @@ import type { OperationContext } from '../domain/ports/operation-context';
 import type { TenantScope } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { Administrator, type RequestContext, TransactionalConnection } from '@vendure/core';
-import { type FindOptionsWhere, In, type Repository } from 'typeorm';
+import { type FindOptionsWhere, In, IsNull, type Repository } from 'typeorm';
 import type { ActorDirectoryPort } from '../domain/ports/actor-directory.port';
 import { toRequestContext } from './request-context';
 
 /** `customFields.businessId` is declared by tenancy, so the generated `where` type cannot know it. */
 const ofBusiness = (scope: TenantScope): FindOptionsWhere<Administrator> => ({
   customFields: { businessId: scope.businessId },
+});
+
+/** Vendure soft-deletes an administrator by stamping `deletedAt`, a plain column TypeORM does not filter by itself. */
+const liveOfBusiness = (scope: TenantScope): FindOptionsWhere<Administrator> => ({
+  ...ofBusiness(scope),
+  deletedAt: IsNull(),
 });
 
 /**
@@ -38,7 +44,20 @@ export class VendureActorDirectory implements ActorDirectoryPort {
   }
 
   isMember(ctx: OperationContext, scope: TenantScope, administratorId: number): Promise<boolean> {
-    return this.repository(toRequestContext(ctx)).existsBy({ ...ofBusiness(scope), id: administratorId });
+    return this.repository(toRequestContext(ctx)).existsBy({ ...liveOfBusiness(scope), id: administratorId });
+  }
+
+  async liveAdministratorIds(
+    ctx: OperationContext,
+    scope: TenantScope,
+    ids: readonly number[],
+  ): Promise<readonly number[]> {
+    if (ids.length === 0) return [];
+    const administrators = await this.repository(toRequestContext(ctx)).find({
+      where: { ...liveOfBusiness(scope), id: In([...ids]) },
+      select: { id: true },
+    });
+    return administrators.map((administrator) => Number(administrator.id));
   }
 
   private repository(ctx: RequestContext): Repository<Administrator> {
