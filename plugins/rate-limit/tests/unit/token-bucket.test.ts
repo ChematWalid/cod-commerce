@@ -76,7 +76,9 @@ describe('nextLockoutSeconds', () => {
   ])('follows %i s with %i s', (previous, expected) => {
     expect(nextLockoutSeconds(previous)).toBe(expected);
   });
+});
 
+describe('takeToken clock', () => {
   it('does not let a stamp from the future freeze refill (RL-5)', () => {
     const policy = RATE_LIMIT_POLICIES['login-pair'];
     const nowMs = 1_700_000_000_000;

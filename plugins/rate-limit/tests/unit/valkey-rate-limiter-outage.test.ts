@@ -118,4 +118,65 @@ describe('ValkeyRateLimiter lockouts across the switch', () => {
     // Assert
     expect(status.locked).toBe(false);
   });
+
+  it('asks Valkey for a lockout another process set even inside the outage window', async () => {
+    // Arrange
+    const { limiter, redis } = harness();
+    const other = new ValkeyRateLimiter(redis.asClient(), { logger: { error: () => undefined }, now: () => 0 });
+    await other.lockout(KEY);
+    redis.failing = true;
+    await limiter.consume('login-pair', KEY);
+    redis.failing = false;
+
+    // Act
+    const status = await limiter.isLocked(KEY);
+
+    // Assert
+    expect(status.locked).toBe(true);
+  });
+
+  it('keeps doubling from the last lockout Valkey reported during an outage', async () => {
+    // Arrange
+    const { limiter, redis } = harness();
+    await limiter.lockout(KEY);
+    redis.failing = true;
+
+    // Act
+    const duringOutage = await limiter.lockout(KEY);
+
+    // Assert
+    expect(duringOutage.retryAfterSeconds).toBe(120);
+  });
+
+  it('replays in Valkey a clear made during an outage', async () => {
+    // Arrange
+    const { limiter, redis, clock } = harness();
+    await limiter.lockout(KEY);
+    redis.failing = true;
+    await limiter.clearLockout(KEY);
+    redis.failing = false;
+
+    // Act
+    clock.advanceSeconds(OUTAGE_RETRY_MS / 1000);
+    const status = await limiter.isLocked(KEY);
+
+    // Assert
+    expect(status.locked).toBe(false);
+    expect(await redis.pttl(LOCK_KEY)).toBe(-2);
+  });
+
+  it('does not resurrect, during an outage, a lockout another process cleared', async () => {
+    // Arrange
+    const { limiter, redis } = harness();
+    await limiter.lockout(KEY);
+    redis.forget(LOCK_KEY);
+    await limiter.isLocked(KEY);
+
+    // Act
+    redis.failing = true;
+    const status = await limiter.isLocked(KEY);
+
+    // Assert
+    expect(status.locked).toBe(false);
+  });
 });

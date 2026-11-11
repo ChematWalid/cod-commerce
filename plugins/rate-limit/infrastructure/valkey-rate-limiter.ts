@@ -24,6 +24,10 @@ export const LOG_INTERVAL_MS = 30_000;
 export const STARTUP_WAIT_MS = 1000;
 
 const LOCK_PREFIX = `${KEY_PREFIX}:lockout`;
+const RESPECT_BREAKER = 'respect';
+const IGNORE_BREAKER = 'ignore';
+/** Whether a Valkey call is skipped inside the outage window, or tried anyway. */
+type BreakerUse = typeof RESPECT_BREAKER | typeof IGNORE_BREAKER;
 const LOCK_LEVEL_PREFIX = `${KEY_PREFIX}:lockout-level`;
 const PTTL_NO_KEY = -2;
 const NO_EXPIRY = -1;
@@ -81,15 +85,18 @@ export function createLimiterRedis(url: string): LimiterRedis {
  *
  * Lockouts survive the switch both ways on this process (RL-2). Every lockout Valkey reports is mirrored in
  * memory and honoured from there while Valkey is unreachable. A lockout made in memory during an outage is
- * still honoured once Valkey is back, until it ends or the key is cleared. While Valkey answers, the mirror is
- * not read, so a lockout cleared by another process (a correct login there) is cleared here too. A lockout
- * another process set in Valkey and this process never saw is not honoured during an outage.
+ * still honoured once Valkey is back, until it ends or the key is cleared, and keeps doubling from the last
+ * length Valkey reported. Lockout checks ask Valkey even inside the outage window. While Valkey answers, the
+ * mirror is not read, so a lockout cleared by another process (a correct login there) is cleared here too.
+ * A clear made during an outage is replayed in Valkey once it answers.
  */
 export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly now: () => number;
   private readonly fallback: InProcessBucket;
   /** Lockouts Valkey reported, read only while Valkey is unreachable. */
   private readonly valkeyLockouts: InProcessBucket;
+  /** Keys cleared while Valkey was unreachable, still to delete there. */
+  private readonly pendingClears = new Set<string>();
   private retryValkeyAtMs = 0;
   private lastLoggedAtMs = Number.NEGATIVE_INFINITY;
   private suppressedErrors = 0;
@@ -158,7 +165,8 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
       ),
     );
     if (seconds === undefined) {
-      return this.fallback.lockout(key);
+      // Keep doubling from the last lockout Valkey reported, not from 60 s.
+      return this.fallback.lockout(key, this.valkeyLockouts.lastLockoutSeconds(key));
     }
     this.valkeyLockouts.holdLockout(key, seconds);
     return { locked: true, retryAfterSeconds: seconds };
@@ -169,14 +177,20 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
    * unreachable, the lockouts it last reported count too. The longer wait wins.
    */
   async isLocked(key: string): Promise<LockoutStatus> {
+    await this.replayPendingClears();
     const fromValkey = (await this.lockoutInValkey(key)) ?? this.valkeyLockouts.isLocked(key);
     const fromOutage = this.fallback.isLocked(key);
     return fromOutage.retryAfterSeconds > fromValkey.retryAfterSeconds ? fromOutage : fromValkey;
   }
 
-  /** The lockout Valkey holds for `key`, mirrored into memory; `undefined` when Valkey is unavailable. */
+  /**
+   * The lockout Valkey holds for `key`, mirrored into memory; `undefined` when Valkey is unavailable. It asks
+   * Valkey even inside the outage window: a lockout another process set must not lapse for 2 s after one
+   * failed call here (RL-2). The cost is bounded: with no offline queue, a call to a down Valkey fails at once,
+   * and a hung one within the command timeout.
+   */
   private async lockoutInValkey(key: string): Promise<LockoutStatus | undefined> {
-    const remainingMs = await this.viaValkey(() => this.redis.pttl(`${LOCK_PREFIX}:${key}`));
+    const remainingMs = await this.viaValkey(() => this.redis.pttl(`${LOCK_PREFIX}:${key}`), IGNORE_BREAKER);
     if (remainingMs === undefined) {
       return undefined;
     }
@@ -189,15 +203,30 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
     return { locked: true, retryAfterSeconds };
   }
 
+  /** Forgets the key everywhere; a clear Valkey could not take is replayed once it answers again. */
   async clearLockout(key: string): Promise<void> {
     this.fallback.clearLockout(key);
     this.valkeyLockouts.clearLockout(key);
-    await this.viaValkey(() => this.redis.del(`${LOCK_PREFIX}:${key}`, `${LOCK_LEVEL_PREFIX}:${key}`));
+    this.pendingClears.add(key);
+    await this.replayPendingClears();
+  }
+
+  /** Deletes, in Valkey, the lockouts cleared while it was unreachable; stops at the first failure. */
+  private async replayPendingClears(): Promise<void> {
+    for (const key of this.pendingClears) {
+      const deleted = await this.viaValkey(() =>
+        this.redis.del(`${LOCK_PREFIX}:${key}`, `${LOCK_LEVEL_PREFIX}:${key}`),
+      );
+      if (deleted === undefined) {
+        return;
+      }
+      this.pendingClears.delete(key);
+    }
   }
 
   /** Runs `command`; `undefined` means Valkey is unavailable and the caller must use its fallback. */
-  private async viaValkey<T>(command: () => Promise<T>): Promise<T | undefined> {
-    if (this.now() < this.retryValkeyAtMs) {
+  private async viaValkey<T>(command: () => Promise<T>, breaker: BreakerUse = RESPECT_BREAKER): Promise<T | undefined> {
+    if (breaker === RESPECT_BREAKER && this.now() < this.retryValkeyAtMs) {
       return undefined;
     }
     try {
