@@ -36,8 +36,13 @@ const MIN_SUPERADMIN_PASSWORD_LENGTH = 8;
 const DEFAULT_LOG_LEVEL: LogLevelName = 'info';
 const DEFAULT_S3_REGION = 'garage';
 const DEFAULT_PLATFORM_DOMAIN = 'localhost';
-/** The compose stack and the single-VPS deployment put exactly one reverse proxy in front of the api. */
+/**
+ * One reverse proxy in front of the api, the layout the deployment plan uses (ADR 0012). The compose file itself
+ * runs no proxy: it publishes the api on `API_BIND_ADDR`, loopback unless an operator widens it.
+ */
 const DEFAULT_TRUSTED_PROXY_HOPS = 1;
+/** More hops than a real chain of proxies has (edge, load balancer, reverse proxy, with room to spare). */
+export const MAX_TRUSTED_PROXY_HOPS = 5;
 
 const POSTGRES_URL_SCHEME = /^postgres(ql)?:\/\//;
 const GARAGE_ACCESS_KEY = /^GK[0-9a-f]{24}$/;
@@ -109,9 +114,10 @@ const baseSchema = z.object({
     .default('true')
     .transform((value) => value === 'true'),
   CORS_ORIGINS: csvList,
-  // How many reverse proxies sit in front of the api: Express trusts that many `X-Forwarded-For` hops for `req.ip`
-  // and the request protocol. 0 trusts none (the api is reached directly); too many lets a client forge its address.
-  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(DEFAULT_TRUSTED_PROXY_HOPS),
+  // The number of reverse proxies the operator controls in front of the api: Express trusts that many
+  // `X-Forwarded-For` hops for `req.ip` and the request protocol. It must equal that number exactly. Above it, a
+  // client writes its own address into the header and walks past the rate limiter; 0 is for an api reached directly.
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(MAX_TRUSTED_PROXY_HOPS).default(DEFAULT_TRUSTED_PROXY_HOPS),
   LOG_LEVEL: z.enum(LOG_LEVELS).default(DEFAULT_LOG_LEVEL),
   PLATFORM_DOMAIN: z.string().max(DNS_NAME_MAX_LENGTH).regex(DNS_NAME, 'must be a lowercase DNS name').optional(),
   // The request header that carries the client address behind the edge (`cf-connecting-ip`); blank uses `req.ip`,

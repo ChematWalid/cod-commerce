@@ -79,7 +79,9 @@ Compose lists each container's environment, so a variable reaches a container on
 
 The bundled Postgres, PgBouncer, Valkey and Garage still start when a `COMPOSE_` address points elsewhere: the api and the worker wait for them.
 
-Other deployment settings: `TRUSTED_PROXY_HOPS` (reverse proxies in front of the api, default 1), `CLIENT_IP_HEADER`, `PLATFORM_DOMAIN`, `LOG_LEVEL`, `DB_POOL_MAX` and `PGBOUNCER_DEFAULT_POOL_SIZE`. `SNOWFLAKE_WORKER_ID` is for tests only (`loadEnv` refuses it unless `APP_ENV` is `test`), so no `.env.example` lists it.
+`TRUSTED_PROXY_HOPS` (0 to 5, default 1) must equal the number of reverse proxies you control in front of the api: the api trusts that many `X-Forwarded-For` hops for the client address. Set too high, a client forges its IP address in the header and gets past the rate limiter; set 0 when clients reach the api directly. The compose file runs no proxy itself (it publishes the api on `API_BIND_ADDR`), so the default of 1 expects you to put one in front.
+
+Other deployment settings: `CLIENT_IP_HEADER`, `PLATFORM_DOMAIN`, `LOG_LEVEL`, `DB_POOL_MAX` and `PGBOUNCER_DEFAULT_POOL_SIZE`. `SNOWFLAKE_WORKER_ID` is for tests only (`loadEnv` refuses it unless `APP_ENV` is `test`), so no `.env.example` lists it.
 
 ## Outgoing mail (SMTP)
 The server sends through whatever SMTP relay `.env` names; the code is the same for the local Mailpit and for a real relay such as Gmail. `loadEnv` validates the settings at boot (`apps/server/src/config/auth-env.ts`).

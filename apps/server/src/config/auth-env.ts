@@ -29,6 +29,22 @@ const CONTRADICTED_TLS_BY_PORT: ReadonlyMap<number, { readonly mode: SmtpTlsMode
 const LOCAL_SMTP_HOSTS: readonly string[] = ['localhost', '127.0.0.1', '::1', 'mailpit'];
 const LOCALHOST_SUFFIX = '.localhost';
 
+/**
+ * The provider endpoints a deployment may override. The server sends each one a secret (the Turnstile key, an
+ * OAuth client secret) or a user's token, or redirects a browser to it.
+ */
+const ENDPOINT_OVERRIDES = [
+  'TURNSTILE_SITEVERIFY_URL',
+  'GOOGLE_OAUTH_AUTHORIZE_URL',
+  'GOOGLE_OAUTH_TOKEN_URL',
+  'GOOGLE_OAUTH_USERINFO_URL',
+  'FACEBOOK_OAUTH_AUTHORIZE_URL',
+  'FACEBOOK_OAUTH_TOKEN_URL',
+  'FACEBOOK_OAUTH_USERINFO_URL',
+] as const;
+const HTTPS_PROTOCOL = 'https:';
+const WEB_PROTOCOLS: readonly string[] = ['http:', HTTPS_PROTOCOL];
+
 const flag = z
   .enum(['true', 'false'])
   .default('false')
@@ -145,6 +161,30 @@ function requireSafeSmtpCredentials(env: AuthEnv, deployed: boolean, context: z.
   }
 }
 
+/** The message for an endpoint override, or undefined when the server may call it. */
+function endpointIssue(value: string, deployed: boolean): string | undefined {
+  if (!URL.canParse(value)) {
+    // The schema's own URL check reports it; refinements still run on a value it refused.
+    return undefined;
+  }
+  const { protocol } = new URL(value);
+  if (!WEB_PROTOCOLS.includes(protocol)) {
+    return 'must be an http:// or https:// URL';
+  }
+  return deployed && protocol !== HTTPS_PROTOCOL ? 'must be an https:// URL in this environment' : undefined;
+}
+
+/** A secret never leaves a deployed server in clear text; `http://` is for a mock on a development machine. */
+function requireSafeEndpointOverrides(env: AuthEnv, deployed: boolean, context: z.RefinementCtx): void {
+  for (const name of ENDPOINT_OVERRIDES) {
+    const value = env[name];
+    const message = value === undefined ? undefined : endpointIssue(value, deployed);
+    if (message !== undefined) {
+      context.addIssue({ code: 'custom', path: [name], message });
+    }
+  }
+}
+
 /** A switched-on feature needs its credentials, and a deployed server its real mail and dashboard addresses. */
 export function requireAuthSettings(env: AuthEnv, deployed: boolean, context: z.RefinementCtx): void {
   if (deployed) {
@@ -152,6 +192,7 @@ export function requireAuthSettings(env: AuthEnv, deployed: boolean, context: z.
   }
   rejectContradictoryPortAndTls(env, context);
   requireSafeSmtpCredentials(env, deployed, context);
+  requireSafeEndpointOverrides(env, deployed, context);
   if (env.AUTH_OAUTH_ENABLED) {
     requireAll(env, OAUTH_REQUIRED, 'when AUTH_OAUTH_ENABLED is true', context);
   }
