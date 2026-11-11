@@ -19,3 +19,5 @@ secret:
       match: change-me-hmac
     - name: deliberately broken database password fixture (RF5) in scripts/verify-stack.sh and the env unit test; never a credential
       match: p@ss/w:rd
+    - name: fake SMTP relay password in the SMTP env and transport unit tests (with user@example.test); never a credential
+      match: not-a-real-password
