@@ -12,7 +12,14 @@ import {
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { TemplatePlugin } from '../../template.plugin';
-import { CREATE_NOTE, NOTE_BY_ID, type NoteResult, NOTES, TEST_REDIS_URL } from './template-note-operations';
+import {
+  CREATE_NOTE,
+  NOTE_BY_ID,
+  type NoteResult,
+  NOTES,
+  TEST_REDIS_URL,
+  testRateLimitPlugin,
+} from './template-note-operations';
 
 /** ADR 0003: our ids are positive 63-bit integers, sent as decimal strings. */
 const SNOWFLAKE_ID = /^[1-9][0-9]{0,18}$/;
@@ -30,6 +37,7 @@ const CREATE_NOTE_INPUT_FIELDS = gql`
 describe('TemplateNote Admin API', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
+      testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1005 }),
       TemplatePlugin,
     ],

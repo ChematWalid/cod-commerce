@@ -12,8 +12,7 @@ import type { TenantLifecycleHook } from '../../domain/ports/tenant-lifecycle.po
 import { BusinessOrderSequenceEntity } from '../../infrastructure/business-order-sequence.entity';
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { StoreEntity } from '../../infrastructure/store.entity';
-import { TenancyPlugin } from '../../tenancy.plugin';
-import { TEST_REDIS_URL, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
+import { tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
 const OWNER_PASSWORD = 'synthetic-owner-password';
 
@@ -25,7 +24,7 @@ const commandFor = (slug: string): Parameters<ProvisionBusinessService['provisio
 
 describe('Tenant lifecycle hooks', () => {
   const { server, adminClient } = createPluginTestEnvironment({
-    plugins: [TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1000 })],
+    plugins: tenancyTestPlugins(1000),
     db: loadPluginTestDbConfig(process.env),
   });
 
