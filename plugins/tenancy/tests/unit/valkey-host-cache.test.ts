@@ -144,6 +144,44 @@ const fakeSubscription = () => {
 };
 
 describe('HostInvalidationSubscriber', () => {
+  it('deletes the shared value before dropping memory, so a request in between cannot re-cache it', async () => {
+    // Arrange
+    const order: string[] = [];
+    const { redis, deliver } = fakeSubscription();
+    const local = {
+      get: () => Promise.resolve(null),
+      set: () => Promise.resolve(),
+      delete: () => (order.push('local'), Promise.resolve()),
+    };
+    const shared = { delete: () => (order.push('shared'), Promise.resolve()) };
+    await new HostInvalidationSubscriber(redis, local, 'production', shared).start();
+
+    // Act
+    await deliver('host-invalidate', [HOST]);
+
+    // Assert
+    expect(order).toEqual(['shared', 'local']);
+  });
+
+  it('still drops memory when the shared delete fails', async () => {
+    // Arrange
+    const order: string[] = [];
+    const { redis, deliver } = fakeSubscription();
+    const local = {
+      get: () => Promise.resolve(null),
+      set: () => Promise.resolve(),
+      delete: () => (order.push('local'), Promise.resolve()),
+    };
+    const shared = { delete: () => Promise.reject(new Error('Valkey down')) };
+    await new HostInvalidationSubscriber(redis, local, 'production', shared).start();
+
+    // Act
+    await deliver('host-invalidate', [HOST]);
+
+    // Assert
+    expect(order).toEqual(['local']);
+  });
+
   it('also deletes the namespaced key when a process of the previous release invalidates (D309)', async () => {
     // Arrange
     const valkey = new MapValkey();
@@ -159,7 +197,7 @@ describe('HostInvalidationSubscriber', () => {
     expect(valkey.values.has(`host:production:${HOST}`)).toBe(false);
   });
 
-  it('leaves the shared tier alone for a message of its own release, which already deleted it', async () => {
+  it('leaves the shared tier alone for its own release, which sends on both channels and already deleted', async () => {
     // Arrange
     const valkey = new MapValkey();
     valkey.values.set(`host:production:${HOST}`, '{}');
@@ -167,8 +205,9 @@ describe('HostInvalidationSubscriber', () => {
     const shared = new ValkeyHostCache(valkey.asRedis(), 'production');
     await new HostInvalidationSubscriber(redis, new LruHostCache(), 'production', shared).start();
 
-    // Act
+    // Act: what ValkeyHostCache.publish sends, in its order
     await deliver('host-invalidate:production', [HOST]);
+    await deliver('host-invalidate', [HOST]);
 
     // Assert
     expect(valkey.values.has(`host:production:${HOST}`)).toBe(true);

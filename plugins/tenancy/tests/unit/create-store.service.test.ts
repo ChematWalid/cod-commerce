@@ -15,6 +15,7 @@ import {
   InMemoryPlatformStore,
   openAssets,
   inlineTransaction,
+  journalingTransaction,
   RecordingHostInvalidator,
   noLifecycle,
   SequentialIdGenerator,
@@ -167,5 +168,28 @@ describe('CreateStoreService', () => {
 
     // Assert
     expect(hosts.changes).toEqual([]);
+  });
+
+  it('forgets the host only after the store transaction committed', async () => {
+    // Arrange
+    const journal: string[] = [];
+    const service = new CreateStoreService(
+      {
+        channels: provisioner,
+        platform,
+        transaction: journalingTransaction(journal),
+        ids: new SequentialIdGenerator('500'),
+        assets: openAssets,
+        lifecycle: noLifecycle,
+        clock: () => NOW,
+      },
+      new RecordingHostInvalidator(journal),
+    );
+
+    // Act
+    await service.create(ctx, BUSINESS_ID, INPUT);
+
+    // Assert
+    expect(journal).toEqual(['begin', 'commit', 'invalidate']);
   });
 });

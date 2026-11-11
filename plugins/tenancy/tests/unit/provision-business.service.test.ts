@@ -10,6 +10,7 @@ import {
   inlineTransaction,
   noLifecycle,
   SequentialIdGenerator,
+  journalingTransaction,
   RecordingHostInvalidator,
 } from '../fakes/fakes';
 
@@ -84,5 +85,29 @@ describe('ProvisionBusinessService', () => {
 
     // Assert
     expect(hosts.changes).toEqual([{ storeId: store.id, subdomains: ['atlas'] }]);
+  });
+
+  it("forgets the first store's host only after the provisioning transaction committed", async () => {
+    // Arrange
+    const journal: string[] = [];
+    const ports = {
+      channels: new FakeChannelProvisioner(),
+      platform: new InMemoryPlatformStore(),
+      transaction: journalingTransaction(journal),
+      ids: new SequentialIdGenerator('100'),
+      assets: openAssets,
+      lifecycle: noLifecycle,
+      clock: (): Date => NOW,
+    };
+    const service = new ProvisionBusinessService(
+      ports,
+      new CreateStoreService(ports, new RecordingHostInvalidator(journal)),
+    );
+
+    // Act
+    await service.provision(ctx, COMMAND);
+
+    // Assert
+    expect(journal).toEqual(['begin', 'commit', 'invalidate']);
   });
 });
