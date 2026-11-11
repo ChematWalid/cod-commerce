@@ -9,6 +9,9 @@ import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 
 const LOG_CONTEXT = 'ValkeySnowflakeGenerator';
 
+/** The default lease clock: monotonic, so an NTP step of the wall clock cannot move the lease expiry. */
+export const monotonicNow = (): number => performance.now();
+
 /** Renews the key only while this instance still owns it, so a lost lease is never taken back. */
 const RENEW_IF_OWNED = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end`;
 
@@ -53,7 +56,7 @@ export class ValkeySnowflakeGenerator implements IdGeneratorPort, OnApplicationB
   ) {
     this.firstWorkerId = options.firstWorkerId ?? 0;
     this.lastWorkerId = options.lastWorkerId ?? LEASED_WORKER_ID_MAX;
-    this.now = options.now ?? (() => performance.now());
+    this.now = options.now ?? monotonicNow;
   }
 
   /** The worker id in use, or `undefined` without a lease. */

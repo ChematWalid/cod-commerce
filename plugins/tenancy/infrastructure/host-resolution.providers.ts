@@ -43,13 +43,14 @@ export function hostResolutionProviders(options: () => HostResolutionOptions): P
     },
     {
       provide: HostInvalidationSubscriber,
-      useFactory: (local: HostCachePort) =>
+      useFactory: (local: HostCachePort, shared: HostCachePort) =>
         new HostInvalidationSubscriber(
           connect(options().redisUrl, { maxRetriesPerRequest: null }),
           local,
           options().cacheNamespace,
+          shared,
         ),
-      inject: [HOST_LOCAL_CACHE],
+      inject: [HOST_LOCAL_CACHE, HOST_SHARED_CACHE],
     },
     {
       provide: ResolveHostService,

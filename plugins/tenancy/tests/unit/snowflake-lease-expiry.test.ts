@@ -1,8 +1,8 @@
 import type { Redis } from 'ioredis';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WORKER_LEASE_TTL_MS } from '../../domain/constants';
 import { IdGeneratorNotReadyError } from '../../domain/errors';
-import { ValkeySnowflakeGenerator } from '../../infrastructure/valkey-snowflake.generator';
+import { monotonicNow, ValkeySnowflakeGenerator } from '../../infrastructure/valkey-snowflake.generator';
 
 const SLOW_REPLY_MS = 5000;
 const STARTED_AT = 1_700_000_000_000;
@@ -90,5 +90,21 @@ describe('ValkeySnowflakeGenerator lease expiry', () => {
 
     // Assert
     expect(generator.next()).toBeTruthy();
+  });
+
+  it('times the lease on a monotonic clock by default, so a wall-clock step cannot end or stretch it', async () => {
+    // Arrange: no clock option, and a Valkey that answers at once
+    const generator = new ValkeySnowflakeGenerator(new SlowValkey({ now: 0 }) as unknown as Redis);
+    generators.push(generator);
+    await generator.onApplicationBootstrap();
+    const wallClockAhead = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10 * WORKER_LEASE_TTL_MS);
+
+    // Act
+    const id = generator.next();
+
+    // Assert
+    expect(id).toBeTruthy();
+    expect(monotonicNow).toBeTypeOf('function');
+    wallClockAhead.mockRestore();
   });
 });

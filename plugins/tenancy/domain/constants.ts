@@ -70,7 +70,7 @@ export const HOST_CACHE_COMMAND_TIMEOUT_MS = 200;
 /**
  * The key and channel of releases before D309, still deleted and published, and still listened to, for one
  * release, so old and new processes running side by side during that deploy hear each other's invalidations.
- * Remove after the release that introduced the namespace (tracked in the P1.S6 handoff).
+ * Remove after the release that introduced the namespace (#223).
  */
 export const LEGACY_HOST_INVALIDATE_CHANNEL = 'host-invalidate';
 export const legacyHostCacheKey = (host: string): string => `host:${host}`;

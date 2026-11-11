@@ -122,7 +122,58 @@ describe('ValkeyHostCache', () => {
   });
 });
 
+/** A subscribed connection whose messages the test delivers by hand. */
+const fakeSubscription = () => {
+  const handlers: ((channel: string, message: string) => void)[] = [];
+  const subscribed: string[] = [];
+  const redis = {
+    on: (_event: string, handler: (channel: string, message: string) => void) => {
+      handlers.push(handler);
+      return redis;
+    },
+    subscribe: (...channels: string[]) => {
+      subscribed.push(...channels);
+      return Promise.resolve(channels.length);
+    },
+  };
+  const deliver = async (channel: string, hosts: string[]): Promise<void> => {
+    for (const handler of handlers) handler(channel, JSON.stringify(hosts));
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  return { redis: redis as unknown as Redis, subscribed, deliver };
+};
+
 describe('HostInvalidationSubscriber', () => {
+  it('also deletes the namespaced key when a process of the previous release invalidates (D309)', async () => {
+    // Arrange
+    const valkey = new MapValkey();
+    valkey.values.set(`host:production:${HOST}`, '{}');
+    const { redis, deliver } = fakeSubscription();
+    const shared = new ValkeyHostCache(valkey.asRedis(), 'production');
+    await new HostInvalidationSubscriber(redis, new LruHostCache(), 'production', shared).start();
+
+    // Act
+    await deliver('host-invalidate', [HOST]);
+
+    // Assert
+    expect(valkey.values.has(`host:production:${HOST}`)).toBe(false);
+  });
+
+  it('leaves the shared tier alone for a message of its own release, which already deleted it', async () => {
+    // Arrange
+    const valkey = new MapValkey();
+    valkey.values.set(`host:production:${HOST}`, '{}');
+    const { redis, deliver } = fakeSubscription();
+    const shared = new ValkeyHostCache(valkey.asRedis(), 'production');
+    await new HostInvalidationSubscriber(redis, new LruHostCache(), 'production', shared).start();
+
+    // Act
+    await deliver('host-invalidate:production', [HOST]);
+
+    // Assert
+    expect(valkey.values.has(`host:production:${HOST}`)).toBe(true);
+  });
+
   it('listens on its environment channel and the legacy one only', async () => {
     // Arrange
     const subscribed: string[] = [];
