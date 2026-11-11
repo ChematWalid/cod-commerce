@@ -1,10 +1,21 @@
 // @ts-check
 
+/**
+ * The dashboard files a plugin's entry point may re-export (route paths, test ids, language lists). They are reachable
+ * from server code, so they stay under this gate and framework-free (`dashboard-shared-is-pure`).
+ */
+export const SERVER_SHARED_DASHBOARD_FILES = [
+  '**/plugins/*/dashboard/constants.ts',
+  '**/plugins/*/dashboard/document-lang.ts',
+];
+
 /** Every plugin source and the server app; tests, dashboards and generated migrations are not production data paths. */
 export const RAW_DATA_GUARDED_FILES = ['**/plugins/*/**', 'apps/server/src/**'];
+/** No production file may import a plugin's `tests/`, or its `dashboard/` beyond the files above (architecture rules). */
 export const RAW_DATA_UNGUARDED_FILES = [
   '**/plugins/*/tests/**',
   '**/plugins/*/dashboard/**',
+  ...SERVER_SHARED_DASHBOARD_FILES.map((pattern) => `!${pattern}`),
   'apps/server/src/migrations/**',
 ];
 

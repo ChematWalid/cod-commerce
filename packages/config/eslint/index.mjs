@@ -9,6 +9,7 @@ import {
   RAW_DATA_IMPORT_PATTERNS,
   RAW_DATA_SYNTAX,
   rawDataAccessConfig,
+  SERVER_SHARED_DASHBOARD_FILES,
 } from './raw-data-access.mjs';
 
 const TS_FILES = ['**/*.{ts,tsx,mts}'];
@@ -32,6 +33,8 @@ const APPLICATION_FILES = ['**/plugins/*/application/**'];
 const APPLICATION_PURITY_MESSAGE =
   'application/ holds plain classes behind ports: no Nest, Vendure or TypeORM (CLAUDE.md §3a.2)';
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
+/** What a root file registers. `tests/` and `dashboard/` are outside the permission and data access gates. */
+const SERVER_LAYERS = ['domain', 'application', 'infrastructure', 'api'];
 /** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
 const PLUGIN_ROOT_FILES = [
   '**/plugins/*/index.ts',
@@ -72,6 +75,7 @@ const SHELL_API_FILE = '**/plugins/merchant-shell/dashboard/shell-api.ts';
 const boundaryFiles = [
   { pattern: PLUGIN_ROOT_FILES, category: 'plugin-root', capture: ['root', 'plugin'] },
   { pattern: SHELL_API_FILE, category: 'shell-api' },
+  { pattern: SERVER_SHARED_DASHBOARD_FILES, category: 'dashboard-shared', capture: ['root', 'plugin'] },
 ];
 
 const SAME_ROOT_PLUGIN = '{{ from.file.captured.plugin }}';
@@ -89,10 +93,15 @@ const boundaryPolicies = [
     from: { element: { type: 'tests' } },
     allow: { to: { file: { categories: 'plugin-root', captured: { plugin: SAME_PLUGIN } } } },
   },
-  // Root files (entry, Nest module, tool configs) may import every layer and each other, inside their own plugin.
+  // Root files (entry, Nest module, tool configs) may import the server layers and each other, inside their own
+  // plugin: never tests/, and of dashboard/ only the framework-free files an entry point re-exports.
   {
     from: { file: { categories: 'plugin-root' } },
-    allow: { to: { element: { type: PLUGIN_LAYERS, captured: { plugin: SAME_ROOT_PLUGIN } } } },
+    allow: { to: { element: { type: SERVER_LAYERS, captured: { plugin: SAME_ROOT_PLUGIN } } } },
+  },
+  {
+    from: { file: { categories: 'plugin-root' } },
+    allow: { to: { file: { categories: 'dashboard-shared', captured: { plugin: SAME_ROOT_PLUGIN } } } },
   },
   { from: { file: { categories: 'plugin-root' } }, allow: { to: { file: ROOT_FILE } } },
 ];

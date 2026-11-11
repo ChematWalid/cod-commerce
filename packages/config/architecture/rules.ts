@@ -9,6 +9,9 @@ const TENANCY_PROVISIONING_ENTRY = '^plugins/tenancy/provisioning[.]ts$';
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
+/** The dashboard files a plugin's entry point may re-export: route paths, test ids and language lists. */
+const SERVER_SHARED_DASHBOARD_FILES = 'dashboard/(constants|document-lang)[.]ts$';
+
 /**
  * The dependency rules of CLAUDE.md §3a.1–2, checked by dependency-cruiser.
  * Paths are relative to the cruise `baseDir`; `$1` refers back to the plugin captured in `from`.
@@ -104,6 +107,37 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     severity: 'error',
     from: { path: '^(apps|plugins)/' },
     to: { path: '^@cod/', couldNotResolve: true },
+  },
+  {
+    name: 'production-no-tests',
+    comment:
+      "Nothing outside a tests/ folder imports a plugin's tests/: the permission and data access gates do not scan it, so code registered from there would pass them.",
+    severity: 'error',
+    from: { pathNot: '(^|/)tests/' },
+    to: { path: '^plugins/[^/]+/tests/' },
+  },
+  {
+    name: 'layers-no-dashboard',
+    comment: 'A server layer never imports dashboard/ (ADR 0017): the permission and data access gates do not scan it.',
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/(domain|application|infrastructure|api)/' },
+    to: { path: '^plugins/$1/dashboard/' },
+  },
+  {
+    name: 'plugin-root-no-dashboard',
+    comment:
+      "A plugin's root file reaches its dashboard through the path string Vendure compiles, never an import; the one exception is re-exporting the framework-free constants files.",
+    severity: 'error',
+    from: { path: '^plugins/([^/]+)/[^/]+$' },
+    to: { path: '^plugins/$1/dashboard/', pathNot: `^plugins/$1/${SERVER_SHARED_DASHBOARD_FILES}` },
+  },
+  {
+    name: 'dashboard-shared-is-pure',
+    comment:
+      'The dashboard files an entry point may re-export import no framework and no other plugin file, so nothing else in dashboard/ becomes reachable from server code through them.',
+    severity: 'error',
+    from: { path: `^plugins/([^/]+)/${SERVER_SHARED_DASHBOARD_FILES}` },
+    to: { path: [FRAMEWORK_MODULES, '^plugins/'], pathNot: `^plugins/$1/${SERVER_SHARED_DASHBOARD_FILES}` },
   },
   {
     name: 'tenancy-provisioning-entry-restricted',
