@@ -31,8 +31,11 @@ const ENTRY_POINT_DECORATORS: ReadonlySet<string> = new Set([
 const ALLOW = 'Allow';
 const ALLOW_MODULE = '@vendure/core';
 const REQUIRE_PERMISSION = 'requirePermission';
-/** The decorator comes from the rbac entry point, or by path from its own file for a handler inside rbac. */
-const REQUIRE_PERMISSION_PACKAGE = '@cod/plugin-rbac';
+/**
+ * The decorator comes from the rbac guard entry (the one another plugin may import) or the rbac entry point, or by
+ * path from its own file for a handler inside rbac.
+ */
+const REQUIRE_PERMISSION_PACKAGES: ReadonlySet<string> = new Set(['@cod/plugin-rbac/guard', '@cod/plugin-rbac']);
 const REQUIRE_PERMISSION_FILE = 'plugins/rbac/api/require-permission.decorator';
 const SOURCE_EXTENSION = /\.[jt]s$/;
 const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set(['node_modules', 'dist', '.turbo']);
@@ -54,7 +57,7 @@ const importedFile = (fromPath: string, specifier: string): string =>
 /** A same-named file in another plugin is a look-alike, so a relative import must resolve to the real decorator. */
 function isRequirePermission(ref: DecoratorRef, path: string): boolean {
   if (ref.name !== REQUIRE_PERMISSION || ref.module === undefined) return false;
-  if (ref.module === REQUIRE_PERMISSION_PACKAGE) return true;
+  if (REQUIRE_PERMISSION_PACKAGES.has(ref.module)) return true;
   return ref.module.startsWith('.') && importedFile(path, ref.module) === REQUIRE_PERMISSION_FILE;
 }
 

@@ -35,9 +35,10 @@ const APPLICATION_PURITY_MESSAGE =
 const PLUGIN_LAYERS = ['domain', 'application', 'infrastructure', 'api', 'dashboard', 'tests'];
 /** What a root file registers. `tests/` and `dashboard/` are outside the permission and data access gates. */
 const SERVER_LAYERS = ['domain', 'application', 'infrastructure', 'api'];
-/** The only files a plugin may keep outside its layer folders: entry, Nest module and tool configs. */
+/** The only files a plugin may keep outside its layer folders: entries, Nest module and tool configs. */
 const PLUGIN_ROOT_FILES = [
   '**/plugins/*/index.ts',
+  '**/plugins/*/guard.ts',
   '**/plugins/*/provisioning.ts',
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',
