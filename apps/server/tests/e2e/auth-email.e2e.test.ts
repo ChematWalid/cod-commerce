@@ -4,7 +4,7 @@ import { RequestContext } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildE2eConfig, E2E_INITIAL_DATA, e2eBullPrefix, removeBullKeys } from './support/e2e-config';
-import { MAILPIT_SMTP_PORT, waitForMessageTo } from './support/mailpit';
+import { MAILPIT_SMTP_PORT, PLAIN_SMTP_ENV, waitForMessageTo } from './support/mailpit';
 import { E2E_PORTS } from './support/ports';
 
 const SUITE = 'auth-email';
@@ -20,7 +20,7 @@ describe('account email through the BullMQ worker queue', () => {
       {
         suite: SUITE,
         port: E2E_PORTS.authEmail,
-        env: { SMTP_HOST: 'localhost', SMTP_PORT: MAILPIT_SMTP_PORT, WORKER_ACTIVE_QUEUES: '' },
+        env: { SMTP_HOST: 'localhost', SMTP_PORT: MAILPIT_SMTP_PORT, ...PLAIN_SMTP_ENV, WORKER_ACTIVE_QUEUES: '' },
       },
     ),
   );

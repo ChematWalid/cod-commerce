@@ -181,16 +181,19 @@ function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): vo
   }
 }
 
+/** Staging and production: where a development fallback is a misconfiguration. */
+const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
+
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(requireClientIpHeader)
   .superRefine((env, context) => {
-    requireAuthSettings(env, PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV), context);
+    requireAuthSettings(env, isDeployed(env), context);
   })
   .transform((env) => ({
     ...env,
-    ...authDefaults(env),
+    ...authDefaults(env, isDeployed(env)),
     PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
     DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
   }));

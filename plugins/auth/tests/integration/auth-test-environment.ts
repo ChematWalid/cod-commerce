@@ -39,6 +39,7 @@ export function mailpitSmtp(): AuthEmailOptions['smtp'] {
     host: 'localhost',
     port: Number(process.env['MAILPIT_SMTP_HOST_PORT'] ?? DEFAULT_MAILPIT_SMTP_PORT),
     from: 'no-reply@localhost',
+    tls: 'none',
   };
 }
 
