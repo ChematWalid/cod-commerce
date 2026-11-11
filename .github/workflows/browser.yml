@@ -22,7 +22,9 @@ env:
 jobs:
   browser:
     name: browser (${{ matrix.part }})
-    runs-on: ubuntu-latest
+    # Pinned: on ubuntu-26.04 (ubuntu-latest since 2026-11) apt cannot resolve the Ubuntu archive while
+    # playwright installs its system packages, and the job times out before any test runs.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     # The dashboard suite alone took about 7 minutes on one machine (2026-11-10), which with the build does not fit the
     # ten-minute job budget (ADR 0001), so it runs in vitest shards, and the storefront tests in a part of their own.
