@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, posix, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { decoratorResolverOf, type DecoratorRef } from './decorator-refs';
 
@@ -31,8 +31,10 @@ const ENTRY_POINT_DECORATORS: ReadonlySet<string> = new Set([
 const ALLOW = 'Allow';
 const ALLOW_MODULE = '@vendure/core';
 const REQUIRE_PERMISSION = 'requirePermission';
-/** The rbac entry point, or the decorator's own file for a handler inside rbac. */
-const REQUIRE_PERMISSION_MODULE = /^@cod\/plugin-rbac$|(^|\/)require-permission\.decorator$/;
+/** The decorator comes from the rbac entry point, or by path from its own file for a handler inside rbac. */
+const REQUIRE_PERMISSION_PACKAGE = '@cod/plugin-rbac';
+const REQUIRE_PERMISSION_FILE = 'plugins/rbac/api/require-permission.decorator';
+const SOURCE_EXTENSION = /\.[jt]s$/;
 const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set(['node_modules', 'dist', '.turbo']);
 /** Not production server code, but only as a plugin's own folder: `api/dashboard/` is scanned. */
 const SKIPPED_PLUGIN_FOLDERS: ReadonlySet<string> = new Set(['tests', 'dashboard']);
@@ -45,8 +47,16 @@ function decoratorCalls(node: ts.Node): readonly ts.CallExpression[] {
   return (ts.getDecorators(node) ?? []).map((decorator) => decorator.expression).filter(ts.isCallExpression);
 }
 
-const isRequirePermission = (ref: DecoratorRef): boolean =>
-  ref.name === REQUIRE_PERMISSION && ref.module !== undefined && REQUIRE_PERMISSION_MODULE.test(ref.module);
+/** Where a relative import specifier points, as a repository path without extension. */
+const importedFile = (fromPath: string, specifier: string): string =>
+  posix.join(posix.dirname(fromPath.split(sep).join(posix.sep)), specifier.replace(SOURCE_EXTENSION, ''));
+
+/** A same-named file in another plugin is a look-alike, so a relative import must resolve to the real decorator. */
+function isRequirePermission(ref: DecoratorRef, path: string): boolean {
+  if (ref.name !== REQUIRE_PERMISSION || ref.module === undefined) return false;
+  if (ref.module === REQUIRE_PERMISSION_PACKAGE) return true;
+  return ref.module.startsWith('.') && importedFile(path, ref.module) === REQUIRE_PERMISSION_FILE;
+}
 
 const isAllow = (ref: DecoratorRef): boolean => ref.name === ALLOW && ref.module === ALLOW_MODULE;
 
@@ -54,15 +64,24 @@ const isAllow = (ref: DecoratorRef): boolean => ref.name === ALLOW && ref.module
 const namesPermission = (call: ts.CallExpression): boolean =>
   call.arguments.some((argument) => !ts.isSpreadElement(argument));
 
+/** What one file's decorators mean: resolved through its imports and, for a relative import, its own path. */
+interface FileGuards {
+  readonly path: string;
+  readonly resolve: Resolve;
+}
+
 /**
- * A class-level `requirePermission` writes its `@Allow` on every prototype method that has none of its own: a method's
- * own `@Allow`, even an empty one, survives and wins, and a property is not on the prototype.
+ * Whether the guard that takes effect on `member` names a permission. Both guards write the same metadata key and
+ * decorators apply bottom-up, so the first-listed one is applied last and wins: `@Allow() @requirePermission('a')`
+ * leaves the handler with no permission. With no guard of its own, a prototype method takes the class-level
+ * `requirePermission`, which skips a method that already has an `@Allow`; a property is not on the prototype.
  */
-function isGuarded(member: ts.ClassElement, classIsGuarded: boolean, resolve: Resolve): boolean {
-  const calls = decoratorCalls(member);
-  if (calls.some((call) => isRequirePermission(resolve(call)))) return true;
-  const allows = calls.filter((call) => isAllow(resolve(call)));
-  if (allows.length > 0) return allows.some(namesPermission);
+function isGuarded(member: ts.ClassElement, classIsGuarded: boolean, guards: FileGuards): boolean {
+  for (const call of decoratorCalls(member)) {
+    const ref = guards.resolve(call);
+    if (isRequirePermission(ref, guards.path)) return true;
+    if (isAllow(ref)) return namesPermission(call);
+  }
   return classIsGuarded && ts.isMethodDeclaration(member);
 }
 
@@ -73,12 +92,12 @@ function nameOfClass(node: ClassNode): string {
 }
 
 /** Nest registers inherited handlers too, so a handler counts on any class, decorated as a handler class or not. */
-function unguardedHandlersOf(node: ClassNode, path: string, resolve: Resolve): string[] {
-  const classIsGuarded = decoratorCalls(node).some((call) => isRequirePermission(resolve(call)));
+function unguardedHandlersOf(node: ClassNode, guards: FileGuards): string[] {
+  const classIsGuarded = decoratorCalls(node).some((call) => isRequirePermission(guards.resolve(call), guards.path));
   return node.members.flatMap((member) => {
-    const isEntryPoint = decoratorCalls(member).some((call) => ENTRY_POINT_DECORATORS.has(resolve(call).name));
-    if (!isEntryPoint || isGuarded(member, classIsGuarded, resolve)) return [];
-    return [`${path}: ${nameOfClass(node)}.${member.name?.getText() ?? ANONYMOUS}`];
+    const isEntryPoint = decoratorCalls(member).some((call) => ENTRY_POINT_DECORATORS.has(guards.resolve(call).name));
+    if (!isEntryPoint || isGuarded(member, classIsGuarded, guards)) return [];
+    return [`${guards.path}: ${nameOfClass(node)}.${member.name?.getText() ?? ANONYMOUS}`];
   });
 }
 
@@ -96,8 +115,8 @@ function classesIn(node: ts.Node): ClassNode[] {
 export function findUnguardedHandlers(sources: readonly SourceFile[]): string[] {
   return sources.flatMap((source) => {
     const file = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
-    const resolve = decoratorResolverOf(file);
-    return classesIn(file).flatMap((node) => unguardedHandlersOf(node, source.path, resolve));
+    const guards = { path: source.path, resolve: decoratorResolverOf(file) };
+    return classesIn(file).flatMap((node) => unguardedHandlersOf(node, guards));
   });
 }
 
