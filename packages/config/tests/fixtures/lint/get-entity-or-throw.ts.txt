@@ -1,0 +1,7 @@
+export class StoreReader {
+  constructor(private readonly connection: { getEntityOrThrow(ctx: object, entity: string, id: string): unknown }) {}
+
+  one(ctx: object, id: string): unknown {
+    return this.connection.getEntityOrThrow(ctx, 'store', id);
+  }
+}

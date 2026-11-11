@@ -1,0 +1,7 @@
+export class StoreReader {
+  constructor(private readonly connection: { rawConnection: unknown }) {}
+
+  raw(): unknown {
+    return this.connection['rawConnection'];
+  }
+}

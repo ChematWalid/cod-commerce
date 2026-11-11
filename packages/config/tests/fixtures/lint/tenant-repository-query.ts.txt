@@ -1,0 +1,13 @@
+import { Column, Entity } from 'typeorm';
+
+@Entity()
+export class NoteEntity {
+  @Column()
+  title = '';
+}
+
+interface TenantRepositoryLike {
+  query(scope: object, alias: string): unknown;
+}
+
+export const listed = (repository: TenantRepositoryLike, scope: object): unknown => repository.query(scope, 'note');

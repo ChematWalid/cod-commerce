@@ -1,14 +1,21 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { ESLint } from 'eslint';
-import tseslint from 'typescript-eslint';
 import { beforeAll, describe, expect, it } from 'vitest';
+import {
+  CONFIG_LOAD_TIMEOUT_MS,
+  DASHBOARD_PAGE,
+  eslint,
+  eslintAsCi,
+  lint,
+  lintWith,
+  loadConfig,
+  PLUGIN,
+  read,
+  repoRoot,
+} from './lint-fixtures';
 
-const repoRoot = resolve(__dirname, '../../..');
-const lintFixtures = join(__dirname, 'fixtures/lint');
 const archFixtures = join(__dirname, 'fixtures/arch/plugins');
-const PLUGIN = 'plugins/__lint_fixture__';
-const DASHBOARD_PAGE = `${PLUGIN}/dashboard/routes/page.tsx`;
 const PLUGIN_LAYER_FILES = [
   `${PLUGIN}/domain/x.ts`,
   `${PLUGIN}/application/x.ts`,
@@ -27,30 +34,8 @@ const TEMPLATE_PLUGIN_FILES = [
   'plugins/_template/tests/unit/note-title.test.ts',
 ] as const;
 
-const typeCheckOff = tseslint.configs.disableTypeChecked;
-/** Lints regardless of ignore patterns, like a file a developer opens in the editor. */
-const eslint = new ESLint({ cwd: repoRoot, ignore: false, overrideConfig: typeCheckOff });
-/** Lints exactly as `pnpm lint` does, ignore patterns included. */
-const eslintAsCi = new ESLint({ cwd: repoRoot, overrideConfig: typeCheckOff });
-
-/** Loading the root config imports eslint-config-next and its plugins, which takes seconds on a busy machine. */
-const CONFIG_LOAD_TIMEOUT_MS = 30_000;
-
-const read = (fixture: string): string => readFileSync(join(lintFixtures, fixture), 'utf8');
-
-const ruleIds = (results: ESLint.LintResult[]): (string | null)[] =>
-  results.flatMap((result) => result.messages.map((message) => message.ruleId));
-
-const lintWith = async (linter: ESLint, fixture: string, virtualPath: string): Promise<(string | null)[]> =>
-  ruleIds(await linter.lintText(read(fixture), { filePath: join(repoRoot, virtualPath) }));
-
-const lint = (fixture: string, virtualPath: string): Promise<(string | null)[]> =>
-  lintWith(eslint, fixture, virtualPath);
-
 describe('root ESLint config', () => {
-  beforeAll(async () => {
-    await eslint.calculateConfigForFile(join(repoRoot, `${PLUGIN}/domain/x.ts`));
-  }, CONFIG_LOAD_TIMEOUT_MS);
+  beforeAll(loadConfig, CONFIG_LOAD_TIMEOUT_MS);
 
   it('applies the Next.js rules to the storefront only', async () => {
     // Arrange
@@ -82,28 +67,16 @@ describe('root ESLint config', () => {
     },
   );
 
-  it.each(['get-repository.ts.txt', 'raw-connection.ts.txt'])(
-    'bans direct data access in infrastructure: %s',
-    async (fixture) => {
-      expect(await lint(fixture, `${PLUGIN}/infrastructure/adapter.ts`)).toContain('no-restricted-syntax');
+  it.each([`${PLUGIN}/domain/rule.ts`, `${PLUGIN}/application/use-case.ts`, 'packages/shared/src/x.ts'])(
+    'bans a framework import type in %s',
+    async (path) => {
+      expect(await lint('import-type-framework.ts.txt', path)).toContain('no-restricted-syntax');
+      expect(await lint('import-type-local.ts.txt', path)).not.toContain('no-restricted-syntax');
+      expect(await lint('import-type-framework.ts.txt', `${PLUGIN}/infrastructure/adapter.ts`)).not.toContain(
+        'no-restricted-syntax',
+      );
     },
   );
-
-  it.each(['get-repository.ts.txt', 'get-repository-with-context.ts.txt', 'raw-connection.ts.txt'])(
-    'bans direct data access in api: %s',
-    async (fixture) => {
-      expect(await lint(fixture, `${PLUGIN}/api/x.resolver.ts`)).toContain('no-restricted-syntax');
-    },
-  );
-
-  it.each([
-    'plugins/tenancy/infrastructure/tenant-repository.ts',
-    'plugins/tenancy/infrastructure/platform-store-lookup.ts',
-    'plugins/tenancy/infrastructure/tenant-transaction.ts',
-    'plugins/rbac/infrastructure/vendure-actor-directory.ts',
-  ])('allows direct data access in %s', async (path) => {
-    expect(await lint('get-repository.ts.txt', path)).not.toContain('no-restricted-syntax');
-  });
 
   it('lets clean application code through', async () => {
     expect(await lint('clean-application.ts.txt', `${PLUGIN}/application/use-case.ts`)).not.toContain(
@@ -154,14 +127,20 @@ describe('plugin layer boundaries', () => {
     expect(offenders).toEqual(
       [
         'bad/api/uses-other-plugin.ts',
+        'bad/api/uses-dashboard-constants.ts',
         'bad/api/uses-shell-api.ts',
+        'bad/application/district-pricing.service.ts',
         'bad/application/uses-infrastructure.ts',
         'bad/application/uses-rate-limit-entry.ts',
         'bad/application/uses-tenancy-entry.ts',
+        'bad/dashboard-leak.plugin.ts',
         'bad/dashboard/uses-domain.ts',
         'bad/dashboard/uses-shell-internals.ts',
+        'bad/dashboard/uses-tenancy-entry.ts',
         'bad/domain/uses-application.ts',
         'bad/infrastructure/uses-provisioning-entry.ts',
+        'bad/infrastructure/uses-tests.ts',
+        'bad/tests-leak.plugin.ts',
       ].sort(),
     );
   });

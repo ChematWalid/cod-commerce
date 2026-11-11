@@ -1,0 +1,4 @@
+const ALL_STORES_SQL = 'select * from store';
+
+export const all = (repository: { manager: { query(sql: string): unknown } }): unknown =>
+  repository.manager.query(ALL_STORES_SQL);
