@@ -6,6 +6,9 @@ const FRAMEWORK_MODULES = '^(@nestjs|@vendure)/|^typeorm(/|$)|node_modules/(@nes
 /** The tenancy entry point that exposes the superadmin context and the unscoped business directory. */
 const TENANCY_PROVISIONING_ENTRY = '^plugins/tenancy/provisioning[.]ts$';
 
+/** The rbac entry point that exposes `requirePermission` and nothing else (D58). */
+const RBAC_GUARD_ENTRY = '^plugins/rbac/guard[.]ts$';
+
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
@@ -63,7 +66,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points and the rbac guard entry (D58), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -72,6 +75,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         '^plugins/$1/',
         '^plugins/(tenancy|rate-limit)/index[.]ts$',
         TENANCY_PROVISIONING_ENTRY,
+        RBAC_GUARD_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -146,6 +150,14 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     severity: 'error',
     from: { pathNot: ['^plugins/rbac/infrastructure/', '^plugins/tenancy/'] },
     to: { path: TENANCY_PROVISIONING_ENTRY },
+  },
+  {
+    name: 'rbac-guard-entry-api-only',
+    comment:
+      'The rbac guard entry exports requirePermission, which decorates handlers: outside rbac only an api/ layer may import it (D58).',
+    severity: 'error',
+    from: { pathNot: ['^plugins/[^/]+/api/', '^plugins/rbac/'] },
+    to: { path: RBAC_GUARD_ENTRY },
   },
   {
     name: 'apps-no-plugin-internals',

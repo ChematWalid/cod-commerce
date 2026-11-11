@@ -1,3 +1,4 @@
+import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { TransactionalConnection } from '@vendure/core';
@@ -14,6 +15,7 @@ const { server } = createPluginTestEnvironment({
   plugins: [
     testRateLimitPlugin(),
     TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1006 }),
+    RbacPlugin,
     TemplatePlugin,
   ],
   db: loadPluginTestDbConfig(process.env),
