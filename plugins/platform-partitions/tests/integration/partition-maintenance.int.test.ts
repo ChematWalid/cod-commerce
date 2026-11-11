@@ -97,6 +97,18 @@ afterAll(async () => {
 });
 
 describe('partition maintenance', () => {
+  it('leaves an existing partitioned table alone when the schema is ensured again', async () => {
+    // Act
+    const again = ensurePartitionedSchema(dataSource(), [PROBE_SCHEMA]);
+
+    // Assert
+    await expect(again).resolves.toBeUndefined();
+    const found: { found: string | null }[] = await dataSource().query('SELECT to_regclass($1) AS found', [
+      PROBE_TABLE,
+    ]);
+    expect(found[0]?.found).toBe(PROBE_TABLE);
+  });
+
   it('creates the current day and seven more, and none on a second run', async () => {
     // Act
     const first = await maintain('2030-03-10T00:00:00.000Z');
