@@ -42,10 +42,19 @@ export class PartitionMaintenanceService {
     const failures: { table: string; reason: string }[] = [];
     for (const policy of this.registry.policies()) {
       try {
+        // Creation commits on its own, so a failing guard or scrub below never costs the table its premade days.
+        await this.catalog.inTableTransaction(policy.table, async (session) => {
+          const listed = await session.list();
+          const created: string[] = [];
+          for (const partition of missing(plannedPartitions(policy, now), listed)) {
+            await session.create(partition, policy.column);
+            created.push(partition.name);
+          }
+          total.created.push(...created);
+        });
         const done = await this.catalog.inTableTransaction(policy.table, (session) =>
-          this.maintainTable(policy, session, now),
+          this.retireTable(policy, session, now),
         );
-        total.created.push(...done.created);
         total.dropped.push(...done.dropped);
         total.kept.push(...done.kept);
         total.scrubbed.push(...done.scrubbed);
@@ -59,17 +68,10 @@ export class PartitionMaintenanceService {
     return total;
   }
 
-  private async maintainTable(
-    policy: PartitionPolicy,
-    session: PartitionTableSession,
-    now: Date,
-  ): Promise<TableReport> {
+  /** Drops, keeps and scrubs the old partitions in one transaction, listing them again under the table's lock. */
+  private async retireTable(policy: PartitionPolicy, session: PartitionTableSession, now: Date): Promise<TableReport> {
     const report = emptyReport();
     const existing = await session.list();
-    for (const partition of missing(plannedPartitions(policy, now), existing)) {
-      await session.create(partition, policy.column);
-      report.created.push(partition.name);
-    }
     const dropped = await this.dropExpired(policy, session, expiredPartitions(policy, existing, now), report);
     const remaining = existing.filter((partition) => !dropped.has(partition.name));
     const { scrub } = policy;
