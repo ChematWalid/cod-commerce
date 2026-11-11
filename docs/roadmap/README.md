@@ -466,7 +466,7 @@ Rows refer to [../feature-inventory.md](../feature-inventory.md). Inventory text
 | Members list | P1.S4 |
 | Invite with roles, store access, salary, commissions | P1.S4 |
 | Member actions (limit, stop receiving, pay salary) | P1.S4 (pay = record salary expense, wired to P6.S4) |
-| Roles: templates, custom, 93 permissions | P1.S3 |
+| Roles: templates, custom, 94 permissions | P1.S3 |
 | Order distribution | P4.S4 |
 | Team stats report and commissions | P7.S1 (stats) + P1.S4 (commission configs) |
 

@@ -91,7 +91,7 @@ link and stop without merging.
 | **Model / size** | Opus · L |
 | **External needs** | The P3.S5 staging environment: k6 runs through Cloudflare against staging (infrastructure.md §3); if a target needs Growth-size capacity, the user approves scaling staging for the test window, and the size used is recorded with the results. |
 
-**Inventory rows covered** (audited): Roles: 7 built-in templates; custom roles with 93 permissions; Over-quota masking; Anti-bot signals on submit; Spam engine; Public Admin API; every other row's data access path.
+**Inventory rows covered** (audited): Roles: 7 built-in templates; custom roles with 94 permissions; Over-quota masking; Anti-bot signals on submit; Spam engine; Public Admin API; every other row's data access path.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
