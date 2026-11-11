@@ -77,6 +77,8 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
    - [ ] an integration test per endpoint (`createPluginTestEnvironment` and `createTwoBusinesses` from `@cod/testing`);
    - [ ] a test that a member holding the key through a non-owner business role can call the handler; grant in
      tests through a business role (`tests/integration/template-note-members.ts`), never a raw Vendure role;
+   - [ ] `RbacPlugin` imported in the `*.int.test.ts` file itself, with `testRateLimitPlugin()` and tenancy in its
+     plugin list: a non-test helper under `tests/` that imports `@cod/plugin-rbac` fails the architecture rule;
    - [ ] a `FORBIDDEN` test for every handler, mutations included, with a business role lacking its permission:
      Vendure lets anyone call a handler that has no guard;
    - [ ] a two-business isolation test per entity and endpoint, from a registry checked against the plugin's
