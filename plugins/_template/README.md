@@ -12,20 +12,23 @@ are live, so it stays honest: the full gate runs it.
 | `domain/`         | entities, value objects, typed errors, ports, `constants.ts`  | `domain/`, `@cod/shared` (no Nest, Vendure, TypeORM, not even types) |
 | `application/`    | use cases (plain classes), application ports, DI tokens       | `application/`, `domain/`, `@cod/shared` (no Nest, Vendure, TypeORM, not even types) |
 | `infrastructure/` | adapters: TypeORM entity and repository, ids                  | `infrastructure/`, `application/`, `domain/` |
-| `api/`            | GraphQL schema, resolver, DTOs, permissions, error mapping    | `api/`, `application/`, `domain/`            |
-| `dashboard/`      | the dashboard extension (ADR 0010)                            | `dashboard/`, `domain/`                      |
+| `api/`            | GraphQL schema, resolver, DTOs, permissions, error mapping    | `api/`, `application/`, `domain/`, `@cod/plugin-rbac/guard` |
+| `dashboard/`      | the dashboard extension (ADR 0010)                            | `dashboard/` only (ADR 0017, D92), `@cod/plugin-merchant-shell/shell-api` |
 | `tests/`          | unit, contract, integration tests and fakes                   | anything in the plugin                       |
 | root              | `index.ts` (public entry), `*.plugin.ts` (wiring), `*.config.ts` | anything in the plugin                    |
 
 ESLint (`boundaries/*`, `no-restricted-imports`, size limits) and the dependency-cruiser architecture test
 enforce the table; a file outside these places fails `boundaries/no-unknown-files`. Another plugin's files
 are never imported: share through `@cod/shared` contracts or domain events. Tenancy is consumed only through the
-`@cod/plugin-tenancy` entry point (D10).
+`@cod/plugin-tenancy` entry point (D10), and rbac only through `@cod/plugin-rbac/guard`, from `api/` (D58).
 
 ## How the pieces fit
 
-- `TemplateNoteResolver` is `@TenantScoped()`: the guard (imported through `TenancyPlugin`, A6) derives the tenant
-  from the administrator and the channel. The resolver builds the scope from `tenantOf(ctx)`, runs a use case,
+- Each handler of `TemplateNoteResolver` is guarded by `requirePermission('<catalogue key>')`: it asks for that
+  permission on the active store and applies `@TenantScoped()`, whose guard (imported through `TenancyPlugin`, A6)
+  derives the tenant from the administrator and the channel. The plugin defines no permission of its own: roles
+  are built from catalogue keys alone, so one would reach Owners and nobody else. `RbacPlugin` must be registered
+  on the server, which `buildPlugins` does. The resolver builds the scope from `tenantOf(ctx)`, runs a use case,
   and maps a `DomainError` to `DomainInputError` (`api/error-mapping.ts`, the plugin's only error mapping).
   The client sees the domain error's stable `code` in `extensions.code`.
 - `CreateNoteService` and `GetNotesService` depend on ports only (`NoteRepositoryPort`, `IdGeneratorPort`)
@@ -44,7 +47,7 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
 1. **Copy** this folder to `plugins/<name>/`, without `node_modules/`, `dist/` and `.turbo/`, and rename:
    - the package (`@cod/plugin-<name>`) and its description;
    - the plugin class and `template.plugin.ts`, also in `tsconfig.build.json`'s `include`;
-   - the entity and its table, the permission, and the GraphQL types and fields;
+   - the entity and its table, and the GraphQL types and fields;
    - the error codes (`domain/errors.ts`) and the DI token strings (`application/tokens.ts`);
    - the dashboard constants and nav item (`dashboard/constants.ts`: path, test id, nav id and title, permission),
      the page and block ids in the route file, and the query key;
@@ -56,8 +59,11 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
    - The **dashboard** extension needs no registration: `build:dashboard` picks up the `dashboard` entry of every
      plugin that `buildPlugins` returns for the api role. Re-run `pnpm --filter @cod/server build:dashboard` to see
      a change on the api's `/dashboard`.
-   - The **permission** is registered by the plugin's `configuration` function, and nobody but the superadmin has
-     it until it is granted to a role.
+   - **Permissions**: pick the catalogue keys of your area, or add them in
+     `packages/shared/src/permissions/catalog/` (its tests pin the counts, D61), and name them in
+     `api/permissions.ts`. Guard every handler with `requirePermission(key)` from `@cod/plugin-rbac/guard`.
+     Do not define a `PermissionDefinition`: `plugin-permissions-grantable.test.ts` fails one no role can be
+     granted. An Owner holds every key; the platform superadmin has no tenant and is refused.
 3. **Migrate**: `pnpm --filter @cod/server migration:generate <name>` against the migrated dev database. The
    generator already makes the `typeorm` import type-only and the methods `Promise<void>`, so the file needs no
    hand edit; review it: `bigint` primary key, `businessId bigint NOT NULL` with an index (from `TenantEntity`),
@@ -69,8 +75,10 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
    - [ ] a use-case test with the in-memory fake;
    - [ ] a contract test per adapter of each port (`tests/contract/`), run by every adapter;
    - [ ] an integration test per endpoint (`createPluginTestEnvironment` and `createTwoBusinesses` from `@cod/testing`);
-   - [ ] a `FORBIDDEN` test for every handler, mutations included, with a role lacking its permission: Vendure
-     lets anyone call a handler that has no `@Allow`;
+   - [ ] a test that a member holding the key through a non-owner business role can call the handler; grant in
+     tests through a business role (`tests/integration/template-note-members.ts`), never a raw Vendure role;
+   - [ ] a `FORBIDDEN` test for every handler, mutations included, with a business role lacking its permission:
+     Vendure lets anyone call a handler that has no guard;
    - [ ] a two-business isolation test per entity and endpoint, from a registry checked against the plugin's
      `adminApiSchema` (`adminOperationsOf`), including B's channel token and the unknown-channel-token case;
    - [ ] typed `DomainError`s with stable codes, mapped through `DomainInputError` only;
@@ -87,4 +95,6 @@ Postgres; `DATABASE_URL_DIRECT` comes from `apps/server/.env` or the environment
 
 ## What changes later
 
-- **P1.S5** adds the dashboard's `.po` catalogues; until then the page's strings are English only.
+- The dashboard's strings are in `dashboard/i18n/*.po` (Arabic and English).
+- The nav item in `dashboard/constants.ts` still names the removed `ReadTemplateNote` permission; moving it to
+  the catalogue key is follow-up TPL-2.
