@@ -78,9 +78,11 @@ describe('architecture rules', () => {
 
     expect(good.cruisedModules).toEqual(
       expect.arrayContaining([
+        'plugins/good/api/uses-rbac-guard-package.ts',
         'plugins/good/dashboard/uses-shell-api-package.ts',
         'plugins/good/infrastructure/uses-tenancy-package.ts',
         'plugins/merchant-shell/dashboard/shell-api.ts',
+        'plugins/rbac/guard.ts',
         'plugins/tenancy/index.ts',
       ]),
     );

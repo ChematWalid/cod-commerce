@@ -8,6 +8,8 @@ const fixtureRoot = join(__dirname, 'fixtures/handlers');
 /** The real guards: the gate resolves a decorator through the file's imports, so a look-alike never counts. */
 const VENDURE = "import { Allow, Permission } from '@vendure/core';";
 const RBAC = "import { requirePermission } from '@cod/plugin-rbac';";
+/** The entry another plugin's api/ imports the guard from: the rbac entry point is closed to other plugins. */
+const RBAC_GUARD = "import { requirePermission } from '@cod/plugin-rbac/guard';";
 const LOCAL_GUARD = 'function requirePermission(key: string): MethodDecorator { return () => { void key; }; }';
 
 const RELATIVE_GUARD_USE = "@Resolver() class A { @Query() @requirePermission('a.b') f() {} }";
@@ -111,6 +113,16 @@ describe('handler permissions gate', () => {
       `${RBAC} @requirePermission('a.b') @Resolver() class A { @Query() f = () => 1; }`,
       'x.ts: A.f',
     ],
+    [
+      'a requirePermission from a look-alike guard entry of another package',
+      "import { requirePermission } from '@cod/plugin-evil/guard'; @Resolver() class A { @Query() @requirePermission('a.b') f() {} }",
+      'x.ts: A.f',
+    ],
+    [
+      'a requirePermission from another sub-path of the rbac package',
+      "import { requirePermission } from '@cod/plugin-rbac/guards'; @Resolver() class A { @Query() @requirePermission('a.b') f() {} }",
+      'x.ts: A.f',
+    ],
   ])('reports %s without a permission', (_name, text, expected) => {
     expect(scan(text)).toEqual([expected]);
   });
@@ -150,6 +162,18 @@ describe('handler permissions gate', () => {
     ],
     ['requirePermission on the handler', `${RBAC} @Resolver() class A { @Query() @requirePermission('a.b') f() {} }`],
     ['requirePermission on the class', `${RBAC} @requirePermission('a.b') @Resolver() class A { @Query() f() {} }`],
+    [
+      'requirePermission from the rbac guard entry on the handler',
+      `${RBAC_GUARD} @Resolver() class A { @Query() @requirePermission('a.b') f() {} }`,
+    ],
+    [
+      'requirePermission from the rbac guard entry on the class',
+      `${RBAC_GUARD} @requirePermission('a.b') @Resolver() class A { @Query() f() {} }`,
+    ],
+    [
+      'an aliased requirePermission from the rbac guard entry',
+      "import { requirePermission as needs } from '@cod/plugin-rbac/guard'; @Resolver() class A { @Query() @needs('a.b') f() {} }",
+    ],
     [
       'an empty @Allow listed after the @Allow that names a permission, which is applied last and wins',
       `${VENDURE} @Resolver() class A { @Query() @Allow(Permission.Owner) @Allow() f() {} }`,
