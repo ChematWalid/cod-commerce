@@ -19,6 +19,7 @@ import { describeInvitationRepositoryContract } from '../contract/invitation-rep
 import { describeMemberRepositoryContract } from '../contract/member-repository.contract';
 import type { RepositoryHarness } from '../contract/repository-harness';
 import { describeSalaryPaymentRepositoryContract } from '../contract/salary-payment-repository.contract';
+import { invitedMember, openInvitation, scopeA } from '../support/builders';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 
@@ -98,4 +99,29 @@ it('has the partial unique indexes the member rules rely on', async () => {
     /UNIQUE INDEX .*\("businessId", "administratorId"\) WHERE \("administratorId" IS NOT NULL\)/,
   );
   expect(definitions).toContain('("businessId", status, id)');
+});
+
+it('replaces the stored token hash on a resend patch, so the old token stops matching (D205)', async () => {
+  // Arrange
+  const connection = server.app.get(TransactionalConnection).rawConnection;
+  await connection.getRepository(InvitationEntity).clear();
+  const repo = new TypeOrmInvitationRepository(server.app.get(TenantRepositoryFactory));
+  const oldHash = 'e'.repeat(64);
+  const newHash = 'd'.repeat(64);
+  const invitation = openInvitation(invitedMember(scopeA), { tokenHash: oldHash });
+  await repo.insert(ctx, scopeA, invitation);
+
+  // Act
+  await repo.update(ctx, scopeA, invitation.id, { tokenHash: newHash });
+
+  // Assert
+  const stored = await connection.query<{ tokenHash: string }[]>(
+    'SELECT "tokenHash" FROM invitation WHERE id = $1',
+    [invitation.id],
+  );
+  const withOldHash = await connection.query<{ id: string }[]>('SELECT id FROM invitation WHERE "tokenHash" = $1', [
+    oldHash,
+  ]);
+  expect(stored).toEqual([{ tokenHash: newHash }]);
+  expect(withOldHash).toEqual([]);
 });
