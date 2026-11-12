@@ -234,7 +234,8 @@ describe('change-email target', () => {
     const forFree = await kit.owner();
     const forTaken = await kit.owner();
     const freeTarget = uniqueEmail();
-    const takenMailsBefore = (await messagesTo(taken.email)).length;
+    // Its own verification mail is sent after registration returns; counted before it lands, it reads as a leak.
+    const takenMailsBefore = (await waitForMessages(taken.email, 1)).length;
 
     // Act
     await client.graphql(REQUEST, { email: freeTarget, password: PASSWORD }, forFree.session);
