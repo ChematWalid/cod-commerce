@@ -108,7 +108,11 @@ describe('MemberAccessService.roleNames', () => {
 describe('MemberAccessService.accessOfHolders', () => {
   it('gives each live holder its roles and store access, keyed by administrator, in one read', async () => {
     // Arrange
-    const selected: MemberAssignment = { ...assignment(5, '102'), storeAccess: 'selected', storeIds: [toSnowflake('11')] };
+    const selected: MemberAssignment = {
+      ...assignment(5, '102'),
+      storeAccess: 'selected',
+      storeIds: [toSnowflake('11')],
+    };
     const service = new MemberAccessService(portsWith([assignment(3, '101'), assignment(3, '102'), selected]));
 
     // Act
