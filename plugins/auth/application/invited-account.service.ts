@@ -25,6 +25,7 @@ export class InvitedAccountService {
    * account, so that a registration or another accept cannot take the address in between.
    *
    * @throws EmailTakenError when an account already uses the address.
+   * @throws ClaimTransactionRequiredError when `ctx` carries no open transaction (the claim would guard nothing).
    */
   async assertEmailFree(ctx: OperationContext, email: string): Promise<void> {
     const key = normalizeEmail(email);

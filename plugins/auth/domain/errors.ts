@@ -150,3 +150,13 @@ export class ProfileMissingError extends Error {
     super('The signed-in user has no administrator profile');
   }
 }
+
+/**
+ * An email claim taken with no open transaction: the advisory lock would end with its own statement and guard
+ * nothing, so two accounts could take one address (D41). A caller fault, not a refusal.
+ */
+export class ClaimTransactionRequiredError extends Error {
+  constructor() {
+    super('An email claim requires an open transaction');
+  }
+}
