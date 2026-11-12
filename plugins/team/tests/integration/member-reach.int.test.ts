@@ -41,6 +41,8 @@ async function everyActionOn(memberId: string): Promise<{ status: number; code: 
 
 const NOT_FOUND = { status: 404, code: 'team.member-not-found' };
 const ACTIONS = 7;
+/** rbac's refusals of an actor short of an Owner holder's privileges (D60.3, D60.7). */
+const OWNER_REFUSALS = ['rbac.owner-restricted', 'rbac.privilege-exceeded'];
 
 describe('store reach of member actions (D211, Review Focus 7)', () => {
   it('answers member-not-found to a store-1 actor for every action on a member of store 2, and changes nothing', async () => {
@@ -100,7 +102,49 @@ describe('store reach of member actions (D211, Review Focus 7)', () => {
 
     // Assert
     expect(demoted.status).toBe(403);
-    expect(['rbac.owner-restricted', 'rbac.privilege-exceeded']).toContain((demoted.body as { code: string }).code);
+    expect(OWNER_REFUSALS).toContain((demoted.body as { code: string }).code);
+  });
+
+  it('refuses an all-store Manager editing the salary of an Owner holder, and keeps the salary (Review Focus 6)', async () => {
+    // Arrange
+    const { a } = businesses;
+    const coOwner = await kit.teamMemberWith(a, await kit.builtInRoleId(a, 'owner'));
+    const manager = await kit.teamMemberWith(a, await kit.builtInRoleId(a, 'manager'));
+    await kit.newSession(manager, a.stores[0]);
+
+    // Act
+    const paid = await kit.rest('PATCH', `/employees/${coOwner.memberId}`, { baseSalary: 99_000 });
+
+    // Assert
+    expect(paid.status).toBe(403);
+    expect(OWNER_REFUSALS).toContain((paid.body as { code: string }).code);
+    const [row] = await kit.query<{ baseSalary: number }>('SELECT "baseSalary" FROM team_member WHERE id = $1', [
+      coOwner.memberId,
+    ]);
+    expect(Number(row?.baseSalary)).not.toBe(99_000);
+  });
+
+  it('refuses a remover below Owner removing a deactivated co-owner, and keeps its account (D60, D204)', async () => {
+    // Arrange
+    const { a } = businesses;
+    const coOwner = await kit.teamMemberWith(a, await kit.builtInRoleId(a, 'owner'));
+    await kit.newSession(a.owner, a.stores[0]);
+    const deactivated = await kit.rest('POST', `/employees/${coOwner.memberId}/deactivate`);
+    const remover = await kit.teamMemberWith(a, await kit.customRole(a, ['team.members.view', 'team.members.remove']));
+    await kit.newSession(remover, a.stores[0]);
+
+    // Act
+    const removed = await kit.rest('DELETE', `/employees/${coOwner.memberId}`);
+
+    // Assert
+    expect(deactivated.status).toBe(200);
+    expect(removed.status).toBe(403);
+    expect(OWNER_REFUSALS).toContain((removed.body as { code: string }).code);
+    const [account] = await kit.query<{ deletedAt: Date | null }>(
+      'SELECT "deletedAt" FROM administrator WHERE id = $1',
+      [coOwner.administratorId],
+    );
+    expect(account?.deletedAt).toBeNull();
   });
 
   it('shows a store-1 log reader no team.* row about a store-2 member (D217)', async () => {

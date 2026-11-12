@@ -1,6 +1,13 @@
-import { ACTIVITY_ACTIONS, TEAM_ERROR_CODES, teamMemberActivityDiffSchema, toSnowflake } from '@cod/shared';
+import {
+  ACTIVITY_ACTIONS,
+  RBAC_ERROR_CODES,
+  TEAM_ERROR_CODES,
+  teamMemberActivityDiffSchema,
+  toSnowflake,
+} from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UpdateMemberService } from '../../application/update-member.service';
+import { RbacRefusal } from '../fakes/invitation-world';
 import {
   activeMember,
   AGENT_ROLE,
@@ -68,6 +75,32 @@ describe('UpdateMemberService.update', () => {
 
     // Assert
     await expect(change).rejects.toMatchObject({ code: TEAM_ERROR_CODES.SELF_ACTION });
+  });
+
+  it('refuses a pay edit of a member whose grant the actor could not make (D60)', async () => {
+    // Arrange
+    const holder = await activeMember(world, MEMBER, { roleIds: [OWNER_ROLE], storeAccess: 'all', storeIds: [] });
+    world.access.previewRefusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
+
+    // Act
+    const change = service.update(world.ctx, managerOfA, { id: holder.id, edit: { baseSalary: 1 } });
+
+    // Assert
+    await expect(change).rejects.toMatchObject({ code: RBAC_ERROR_CODES.OWNER_RESTRICTED });
+    expect(world.members.rows[0]?.baseSalary).toBe(holder.baseSalary);
+    expect(world.activity.rows).toEqual([]);
+  });
+
+  it('judges a deactivated member by its snapshot before a pay edit', async () => {
+    // Arrange
+    const member = await inactiveMember(world, MEMBER);
+
+    // Act
+    await service.update(world.ctx, managerOfA, { id: member.id, edit: { baseSalary: 2 } });
+
+    // Assert
+    expect(world.log).toContain('preview');
+    expect(world.members.rows[0]?.baseSalary).toBe(2);
   });
 
   it('refuses a commission of no config of the business', async () => {

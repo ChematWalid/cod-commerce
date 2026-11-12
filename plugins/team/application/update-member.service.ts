@@ -17,6 +17,7 @@ import { assertCommissionsExist, reachesGrant } from './invitation-guards';
 import type { MemberActionPorts } from './member-action-ports';
 import { commitMemberChange, type MemberChange, patchMember, recordAction } from './member-change';
 import { administratorOf, liveMemberInReach, type MemberInReach } from './member-in-reach';
+import { assertMayActOnMember } from './member-privilege';
 
 /** The pay fields of an edit, as a member patch. */
 function payPatchOf(edit: MemberEdit): TeamMemberPatch {
@@ -45,7 +46,7 @@ export class UpdateMemberService {
    * @throws {OwnerProtectedError} for a change of the business owner's roles or stores.
    * @throws {MemberSuspendedError} or {MemberNotActiveError} for an access change of an inactive or invited member.
    * @throws {InvalidInputError} for a grant beyond a store-limited actor's reach (D211).
-   * @throws a rbac `DomainError` for a grant the actor may not make (D60).
+   * @throws a rbac `DomainError` for a member whose roles, or a grant, the actor may not give (D60), whatever is edited.
    */
   async update(
     ctx: OperationContext,
@@ -67,6 +68,7 @@ export class UpdateMemberService {
   ): Promise<MemberChange> {
     const found = await liveMemberInReach(this.ports, ctx, actor, id);
     if (touchesPay(edit)) assertNotSelf(actor.administratorId, found.member);
+    await assertMayActOnMember(this.ports, ctx, actor, found.grant);
     await assertCommissionsExist(this.ports, ctx, actor.scope, edit.commissionConfigIds ?? []);
     const signOut = touchesAccess(edit) ? await this.changeAccess(ctx, actor, found, edit) : undefined;
     const changed = await patchMember(this.ports, ctx, found.member, payPatchOf(edit));

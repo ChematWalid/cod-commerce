@@ -6,6 +6,7 @@ import type { TeamActor } from '../domain/team-actor';
 import type { MemberActionPorts } from './member-action-ports';
 import { commitMemberChange, type MemberChange, patchMember, recordAction } from './member-change';
 import { administratorOf, liveMemberInReach } from './member-in-reach';
+import { assertMayActOnMember } from './member-privilege';
 import type { RevokeInvitationService } from './revoke-invitation.service';
 
 /** Takes a member off the team: its account goes and its address can be invited again (D204). */
@@ -40,6 +41,9 @@ export class RemoveMemberService {
     const administratorId = administratorOf(member);
     if (member.status === 'active' && grant.roleIds.length > 0) {
       await this.ports.access.setAccess(ctx, actor, administratorId, clearingGrantOf(grant, reach.allStores));
+    } else {
+      // rbac holds no role of a deactivated member, so setAccess would judge nothing: judge its snapshot instead (D60).
+      await assertMayActOnMember(this.ports, ctx, actor, grant);
     }
     await this.ports.accounts.softDelete(ctx, actor.scope, administratorId);
     const changed = await patchMember(this.ports, ctx, member, {

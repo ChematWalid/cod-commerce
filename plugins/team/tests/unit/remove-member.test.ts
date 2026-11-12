@@ -1,7 +1,8 @@
-import { ACTIVITY_ACTIONS, TEAM_ERROR_CODES } from '@cod/shared';
+import { ACTIVITY_ACTIONS, RBAC_ERROR_CODES, TEAM_ERROR_CODES } from '@cod/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RemoveMemberService } from '../../application/remove-member.service';
 import type { RevokeInvitationService } from '../../application/revoke-invitation.service';
+import { RbacRefusal } from '../fakes/invitation-world';
 import {
   activeMember,
   inactiveMember,
@@ -9,6 +10,7 @@ import {
   type MemberActionWorld,
   memberActionWorld,
   OWNER_ID,
+  OWNER_ROLE,
   pendingMember,
 } from '../fakes/member-action-world';
 
@@ -40,7 +42,7 @@ describe('RemoveMemberService.remove', () => {
     expect(world.activity.rows.map((row) => row.action)).toEqual([ACTIVITY_ACTIONS.MEMBER_REMOVED]);
   });
 
-  it('removes a deactivated member without asking rbac again', async () => {
+  it('removes a deactivated member once rbac judged its former grant (D60)', async () => {
     // Arrange
     const member = await inactiveMember(world, MEMBER);
 
@@ -49,8 +51,51 @@ describe('RemoveMemberService.remove', () => {
 
     // Assert
     expect(world.log).not.toContain('setAccess');
+    expect(world.log.indexOf('preview')).toBeLessThan(world.log.indexOf('softDelete'));
     expect(world.accounts.softDeleted).toEqual([MEMBER]);
     expect(world.members.rows[0]).toMatchObject({ suspendedAccess: null });
+  });
+
+  it.each([RBAC_ERROR_CODES.OWNER_RESTRICTED, RBAC_ERROR_CODES.PRIVILEGE_EXCEEDED])(
+    'refuses a deactivated member whose former grant the actor could not make (%s)',
+    async (code) => {
+      // Arrange
+      const member = await inactiveMember(world, MEMBER, { roleIds: [OWNER_ROLE], storeAccess: 'all', storeIds: [] });
+      world.access.previewRefusal = new RbacRefusal(code);
+
+      // Act
+      const change = service.remove(world.ctx, managerOfA, member.id);
+
+      // Assert
+      await expect(change).rejects.toMatchObject({ code });
+      expect(world.accounts.softDeleted).toEqual([]);
+      expect(world.members.rows[0]).toMatchObject({ removedAt: null, status: 'inactive' });
+    },
+  );
+
+  it('removes a deactivated member whose former role is gone since', async () => {
+    // Arrange
+    const member = await inactiveMember(world, MEMBER);
+    world.access.previewRefusal = new RbacRefusal(RBAC_ERROR_CODES.ROLE_NOT_FOUND);
+
+    // Act
+    await service.remove(world.ctx, managerOfA, member.id);
+
+    // Assert
+    expect(world.accounts.softDeleted).toEqual([MEMBER]);
+  });
+
+  it('removes a member holding no role without asking rbac', async () => {
+    // Arrange
+    const member = await activeMember(world, MEMBER, { roleIds: [], storeAccess: 'all', storeIds: [] });
+
+    // Act
+    await service.remove(world.ctx, managerOfA, member.id);
+
+    // Assert
+    expect(world.log).not.toContain('preview');
+    expect(world.log).not.toContain('setAccess');
+    expect(world.accounts.softDeleted).toEqual([MEMBER]);
   });
 
   it('behaves as revoke for an invited member', async () => {
