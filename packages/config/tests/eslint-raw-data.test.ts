@@ -83,6 +83,7 @@ const RAW_DATA_ALLOWED_FILES = [
   'plugins/tenancy/infrastructure/platform-store-lookup.ts',
   'plugins/tenancy/infrastructure/tenant-transaction.ts',
   'plugins/rbac/infrastructure/vendure-actor-directory.ts',
+  'plugins/team/infrastructure/invitation-token-lookup.ts',
   'plugins/platform-health/platform-health.plugin.ts',
   'plugins/platform-health/infrastructure/postgres.probe.ts',
   'plugins/platform-health/infrastructure/migrations.probe.ts',

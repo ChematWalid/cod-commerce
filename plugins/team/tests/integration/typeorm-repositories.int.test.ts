@@ -1,3 +1,4 @@
+import { AuthPlugin } from '@cod/plugin-auth';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin, TenantRepositoryFactory } from '@cod/plugin-tenancy';
@@ -20,6 +21,7 @@ import { describeMemberRepositoryContract } from '../contract/member-repository.
 import type { RepositoryHarness } from '../contract/repository-harness';
 import { describeSalaryPaymentRepositoryContract } from '../contract/salary-payment-repository.contract';
 import { invitedMember, openInvitation, scopeA } from '../support/builders';
+import { authTestOptions } from './team-kit';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 
@@ -28,6 +30,8 @@ const { server } = createPluginTestEnvironment({
     RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: '' }),
     TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1007 }),
     RbacPlugin,
+    // Team's invitations need auth's invited accounts and mail queue.
+    AuthPlugin.init(authTestOptions()),
     TeamPlugin.init({ dashboardUrl: 'http://localhost:3100/dashboard' }),
   ],
   db: loadPluginTestDbConfig(process.env),

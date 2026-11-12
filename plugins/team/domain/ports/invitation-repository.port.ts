@@ -21,6 +21,12 @@ export interface InvitationRepositoryPort {
   /** The member's most recent invitation, or `undefined`. */
   latestOfMember(ctx: OperationContext, scope: TenantScope, memberId: Snowflake): Promise<Invitation | undefined>;
 
+  /**
+   * Accepts the open invitation with that token hash at `now`, in one conditional write (D213): `false` when no
+   * invitation of the business with that hash is open, so of two parallel accepts only one gets `true`.
+   */
+  claim(ctx: OperationContext, scope: TenantScope, tokenHash: string, now: Date): Promise<boolean>;
+
   /** How many invitations of the business are open at `now`: neither accepted, revoked nor expired. */
   countOpen(ctx: OperationContext, scope: TenantScope, now: Date): Promise<number>;
 

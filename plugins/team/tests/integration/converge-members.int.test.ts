@@ -1,3 +1,4 @@
+import { AuthPlugin } from '@cod/plugin-auth';
 import { randomBytes } from 'node:crypto';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import {
@@ -22,6 +23,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
 import { TeamConvergeService, TeamPlugin } from '../../index';
 import { TeamMemberEntity } from '../../infrastructure/team-member.entity';
+import { authTestOptions } from './team-kit';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const SNOWFLAKE_WORKER_ID = 1008;
@@ -38,6 +40,8 @@ const { server, adminClient } = createPluginTestEnvironment({
       snowflakeWorkerId: SNOWFLAKE_WORKER_ID,
     }),
     RbacPlugin,
+    // Team's invitations need auth's invited accounts and mail queue.
+    AuthPlugin.init(authTestOptions()),
     TeamPlugin.init({ dashboardUrl: 'http://localhost:3100/dashboard' }),
   ],
   db: loadPluginTestDbConfig(process.env),

@@ -50,6 +50,11 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/rbac/infrastructure/rbac-lock.ts',
   // `session` and `administrator` are Vendure's account-level tables (D55).
   '**/plugins/rbac/infrastructure/role-session-flusher.ts',
+  // The public invitation routes know a token, not a business: this one read finds the invitation's business by its
+  // token hash and returns only that and the id; everything after runs in that business (D208). RLS keeps it (P10.S2).
+  '**/plugins/team/infrastructure/invitation-token-lookup.ts',
+  // Runs only the advisory lock (D213).
+  '**/plugins/team/infrastructure/pg-business-lock.adapter.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.

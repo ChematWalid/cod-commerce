@@ -4,7 +4,8 @@ import type { TeamActor } from '../team-actor';
 import type { OperationContext } from './operation-context';
 
 /**
- * Roles and store access of members, kept by rbac (D204). Errors come back as Team errors; the adapter maps rbac's.
+ * Roles and store access of members, kept by rbac (D204). A refusal comes back as rbac's own `DomainError` (privilege
+ * exceeded, role not found, store not accessible, ...): Team's API maps those codes beside its own.
  */
 export interface MemberAccessPort {
   /** Refuses a grant the actor could not make, before anyone holds it (D208). Writes nothing. */

@@ -67,6 +67,16 @@ export class TypeOrmInvitationRepository implements InvitationRepositoryPort {
     return row === undefined ? undefined : toInvitation(row);
   }
 
+  /** One conditional `UPDATE`: Postgres re-checks the condition after a parallel claim commits, so one wins (D213). */
+  async claim(ctx: OperationContext, scope: TenantScope, tokenHash: string, now: Date): Promise<boolean> {
+    const changed = await this.rows.update(
+      requestScope(ctx, scope),
+      { tokenHash, acceptedAt: IsNull(), revokedAt: IsNull(), expiresAt: MoreThan(now) },
+      { acceptedAt: now },
+    );
+    return changed > 0;
+  }
+
   countOpen(ctx: OperationContext, scope: TenantScope, now: Date): Promise<number> {
     return this.rows.count(requestScope(ctx, scope), {
       acceptedAt: IsNull(),

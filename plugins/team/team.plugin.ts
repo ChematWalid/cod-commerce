@@ -1,6 +1,19 @@
+import { AuthPlugin } from '@cod/plugin-auth/invitations';
+import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac/member-access';
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
+import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { InvitationActions, InvitationUseCases } from './api/invitation-actions';
+import { InvitationsAdminController } from './api/invitations-admin.controller';
+import { InvitationsAdminResolver } from './api/invitations-admin.resolver';
+import { InvitationsController } from './api/invitations.controller';
+import { NoStoreMiddleware } from './api/no-store';
+import { RestI18nMiddleware } from './api/rest-i18n.middleware';
+import { TeamRequestActors } from './api/actor-of';
+import { teamAdminApiSchema } from './api/schema';
+import { TeamThrottle } from './api/team-throttle';
+import { TeamTranslations } from './api/team-translations';
 import { TeamConvergeService } from './application/converge-members.service';
 import {
   COMMISSION_CONFIG_REPOSITORY,
@@ -14,6 +27,7 @@ import {
 import { CommissionConfigEntity } from './infrastructure/commission-config.entity';
 import { CONVERGE_PROVIDERS } from './infrastructure/converge.providers';
 import { InvitationEntity } from './infrastructure/invitation.entity';
+import { invitationProviders } from './infrastructure/invitation.providers';
 import { SalaryPaymentEntity } from './infrastructure/salary-payment.entity';
 import { Sha256InvitationToken } from './infrastructure/sha256-token';
 import { SnowflakeTeamIdGenerator } from './infrastructure/snowflake-id.generator';
@@ -30,12 +44,21 @@ export interface TeamPluginOptions {
   readonly dashboardUrl: string;
 }
 
+function requireOptions(): TeamPluginOptions {
+  const { options } = TeamPlugin;
+  if (options === undefined) {
+    throw new Error('TeamPlugin is registered without options: use TeamPlugin.init({ dashboardUrl })');
+  }
+  return options;
+}
+
 /**
  * Team members, invitations, commission configs and salary payments of a business (P1.S4). Roles and store access
  * stay in rbac, accounts in tenancy and auth (D202 to D204); Team reaches them through its own ports.
  */
 @VendurePlugin({
-  imports: [PluginCommonModule, TenancyPlugin, RbacPlugin],
+  // `RateLimitPlugin` serves the `@RateLimit` guard and the limiter; `AuthPlugin` the invitation account and email.
+  imports: [PluginCommonModule, TenancyPlugin, RbacPlugin, AuthPlugin, RateLimitPlugin],
   entities: [TeamMemberEntity, InvitationEntity, CommissionConfigEntity, SalaryPaymentEntity],
   providers: [
     { provide: MEMBER_REPOSITORY, useClass: TypeOrmMemberRepository },
@@ -50,15 +73,27 @@ export interface TeamPluginOptions {
       inject: [SNOWFLAKE_ID_GENERATOR],
     },
     ...CONVERGE_PROVIDERS,
+    ...invitationProviders(() => requireOptions().dashboardUrl),
+    InvitationUseCases,
+    InvitationActions,
+    TeamRequestActors,
+    TeamThrottle,
+    TeamTranslations,
   ],
+  adminApiExtensions: { schema: teamAdminApiSchema, resolvers: [InvitationsAdminResolver] },
+  controllers: [InvitationsController, InvitationsAdminController],
   // The `migrate` role runs the member converge after rbac's (D215).
   exports: [TeamConvergeService],
   compatibility: '^3.8.0',
 })
-// A Vendure plugin is a decorated class; its body stays empty when its metadata is the whole plugin.
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-export class TeamPlugin {
+export class TeamPlugin implements NestModule {
   static options: TeamPluginOptions | undefined;
+
+  /** REST refusals are translated; the public invitation routes never cache nor leak their address (D205). */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RestI18nMiddleware).forRoutes(InvitationsController, InvitationsAdminController);
+    consumer.apply(NoStoreMiddleware).forRoutes(InvitationsController);
+  }
 
   /** Registers the plugin with its options. */
   static init(options: TeamPluginOptions): typeof TeamPlugin {

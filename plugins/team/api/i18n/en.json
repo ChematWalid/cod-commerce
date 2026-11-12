@@ -1,0 +1,21 @@
+{
+  "error": {
+    "team-member-not-found": "Team member not found.",
+    "team-email-already-member": "This email already belongs to a member of your team.",
+    "team-invitation-invalid": "This invitation link cannot be used. Ask for a new invitation.",
+    "team-invitation-expired": "This invitation has expired. Ask for a new invitation.",
+    "team-resend-cooldown": "The invitation was just sent. Wait a minute before sending it again.",
+    "team-member-not-pending": "This member is not waiting for an invitation.",
+    "team-member-not-active": "This member is not active.",
+    "team-owner-protected": "The business owner cannot be changed this way.",
+    "team-account-elsewhere": "This email already belongs to another business. Use a different email to join.",
+    "team-commission-not-found": "Commission not found.",
+    "team-commission-in-use": "This commission is still given to a member.",
+    "team-invalid-input": "Some of the details are not valid.",
+    "team-access-unavailable": "This member's former roles or stores no longer exist.",
+    "team-member-suspended": "This member is deactivated.",
+    "team-self-action": "You cannot do this on your own member account.",
+    "team-resend-limit": "This invitation cannot be sent again. Revoke it and invite again.",
+    "team-too-many-pending": "Too many invitations are waiting. Revoke some before inviting more."
+  }
+}

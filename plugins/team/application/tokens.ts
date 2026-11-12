@@ -30,3 +30,30 @@ export const ACCESS_HOLDERS: unique symbol = Symbol('TeamAccessHolders');
 
 /** Injection token of the `AdministratorProfilesPort` adapter. */
 export const ADMINISTRATOR_PROFILES: unique symbol = Symbol('TeamAdministratorProfiles');
+
+/** Injection token of the `MemberAccessPort` adapter. */
+export const MEMBER_ACCESS: unique symbol = Symbol('TeamMemberAccess');
+
+/** Injection token of the `MemberAccountPort` adapter. */
+export const MEMBER_ACCOUNTS: unique symbol = Symbol('TeamMemberAccounts');
+
+/** Injection token of the `InvitationMailPort` adapter. */
+export const INVITATION_MAIL: unique symbol = Symbol('TeamInvitationMail');
+
+/** Injection token of the `BusinessNamesPort` adapter. */
+export const BUSINESS_NAMES: unique symbol = Symbol('TeamBusinessNames');
+
+/** Injection token of the `BusinessLockPort` adapter. */
+export const BUSINESS_LOCK: unique symbol = Symbol('TeamBusinessLock');
+
+/** Injection token of the `InvitationLookupPort` adapter. */
+export const INVITATION_LOOKUP: unique symbol = Symbol('TeamInvitationLookup');
+
+/** Injection token of the `TeamActivityPort` adapter. */
+export const TEAM_ACTIVITY: unique symbol = Symbol('TeamActivity');
+
+/** Injection token of the dashboard base URL invitation links point at (D205). */
+export const INVITATION_LINK_BASE: unique symbol = Symbol('TeamInvitationLinkBase');
+
+/** Injection token of the {@link TeamInvitationPorts} bundle. */
+export const INVITATION_PORTS: unique symbol = Symbol('TeamInvitationPorts');

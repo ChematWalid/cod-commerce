@@ -99,6 +99,52 @@ export function describeInvitationRepositoryContract(name: string, make: MakeHar
       expect(open).toBe(2);
     });
 
+    it('claims an open invitation by its token hash once, so a second accept finds nothing to claim', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const invitation = issued(scopeA);
+      await repo.insert(ctx, scopeA, invitation);
+      const now = new Date(T0.getTime() + 1000);
+
+      // Act
+      const first = await repo.claim(ctx, scopeA, invitation.tokenHash, now);
+      const second = await repo.claim(ctx, scopeA, invitation.tokenHash, now);
+
+      // Assert
+      expect([first, second]).toEqual([true, false]);
+      await expect(repo.findById(ctx, scopeA, invitation.id)).resolves.toEqual({
+        ...asRead(invitation),
+        acceptedAt: now,
+      });
+    });
+
+    it('claims no revoked or expired invitation, none of another business and none under another hash', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const revoked = issued(scopeA, { revokedAt: T0 });
+      const expired = issued(scopeA, { expiresAt: T0 });
+      const ofB = issued(scopeB);
+      for (const [scope, invitation] of [
+        [scopeA, revoked],
+        [scopeA, expired],
+        [scopeB, ofB],
+      ] as const) {
+        await repo.insert(ctx, scope, invitation);
+      }
+
+      // Act
+      const claims = [
+        await repo.claim(ctx, scopeA, revoked.tokenHash, T0),
+        await repo.claim(ctx, scopeA, expired.tokenHash, T0),
+        await repo.claim(ctx, scopeA, ofB.tokenHash, T0),
+        await repo.claim(ctx, scopeA, 'e'.repeat(64), T0),
+      ];
+
+      // Assert
+      expect(claims).toEqual([false, false, false, false]);
+      await expect(repo.findById(ctx, scopeB, ofB.id)).resolves.toEqual(asRead(ofB));
+    });
+
     it('applies a resend patch', async () => {
       // Arrange
       const { repo, ctx } = await make();
