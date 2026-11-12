@@ -1,19 +1,22 @@
 import { BUILT_IN_ROLES } from '@cod/shared';
-import { Client } from 'pg';
-import { type Browser, chromium, type Locator, type Page } from 'playwright-core';
+import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
 import { loginAsDemoOwner, loginAsOwner, setDisplayLanguage } from './dashboard-session';
-import { emailSecrets, waitForEmail } from './mailpit';
+import {
+  expireInvitationsOf,
+  INVITEE_PASSWORD,
+  TEAM_URL,
+  invitationToken,
+  inviteThroughApi,
+  memberRow,
+  openAcceptPage,
+  uniqueEmail,
+} from './team-fixtures';
 
-const MAILPIT_URL = (process.env['MAILPIT_URL'] ?? 'http://localhost:8025').replace(/\/$/, '');
-const TEAM_URL = `${DASHBOARD_URL}/team`;
-const ACCEPT_URL = `${DASHBOARD_URL}/accept-invitation`;
-const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
 const SECOND_OWNER_EMAIL = 'owner@second.example.test';
 /** The first demo business's name, which an invitee of the second one must never be shown (D201). */
 const DEMO_BUSINESS_NAME = 'Demo';
-const INVITEE_PASSWORD = 'synthetic-invitee-pass';
 
 const orderManager = BUILT_IN_ROLES.find((role) => role.key === 'order-manager');
 if (orderManager === undefined) throw new Error('the catalog lost the order-manager role');
@@ -30,72 +33,8 @@ const COPY = {
   },
 } as const;
 
-let sequence = 0;
-const uniqueEmail = (prefix: string): string => {
-  sequence += 1;
-  return `${prefix}-${Date.now().toString(36)}${String(sequence)}@invitee.example.test`;
-};
-
-/** Calls the Admin API with the signed-in session on its selected store; throws on a GraphQL error. */
-async function adminApi<T>(page: Page, query: string, variables: Record<string, unknown> = {}): Promise<T> {
-  const answer = await page.evaluate(
-    async ([key, body]) => {
-      const response = await fetch('/admin-api', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json', 'vendure-token': localStorage.getItem(key) ?? '' },
-        body,
-      });
-      return (await response.json()) as { data?: unknown; errors?: unknown };
-    },
-    [SELECTED_CHANNEL_KEY, JSON.stringify({ query, variables })] as const,
-  );
-  if (answer.errors !== undefined) throw new Error(`Admin API refused: ${JSON.stringify(answer.errors)}`);
-  return answer.data as T;
-}
-
-/** Invites `email` as an Order Manager of every store of the signed-in owner's business, through the API. */
-async function inviteThroughApi(page: Page, email: string): Promise<void> {
-  const { businessRoles } = await adminApi<{ businessRoles: { id: string; builtInKey: string | null }[] }>(
-    page,
-    'query { businessRoles { id builtInKey } }',
-  );
-  const role = businessRoles.find((candidate) => candidate.builtInKey === 'order-manager');
-  if (role === undefined) throw new Error('the business has no Order Manager role');
-  const input = { email, roleIds: [role.id], storeAccess: 'all', baseSalary: 30_000, locale: 'en' };
-  await adminApi(page, 'mutation ($input: InviteMemberInput!) { inviteMember(input: $input) { id } }', { input });
-}
-
-/** The token of the newest invitation mail to `email`. */
-async function invitationToken(email: string, minCount = 1): Promise<string> {
-  const mail = await waitForEmail(MAILPIT_URL, email, { contains: '/accept-invitation', minCount });
-  const { token } = emailSecrets(mail);
-  if (token === undefined) throw new Error(`the invitation mail to ${email} has no link token`);
-  return token;
-}
-
-/** Makes every open invitation of `email` run out, as seven days would (D205). */
-async function expireInvitationsOf(email: string): Promise<void> {
-  const client = new Client({ connectionString: process.env['DATABASE_URL_DIRECT'] });
-  await client.connect();
-  try {
-    await client.query(
-      `UPDATE invitation SET "expiresAt" = now() - interval '1 day'
-        WHERE "memberId" IN (SELECT id FROM team_member WHERE "emailKey" = $1)`,
-      [email],
-    );
-  } finally {
-    await client.end();
-  }
-}
-
 const switchPublicLanguage = (page: Page, language: 'ar' | 'en'): Promise<void> =>
   page.getByRole('button', { name: language === 'ar' ? 'العربية' : 'English', exact: true }).click();
-
-const openAcceptPage = async (page: Page, token: string): Promise<void> => {
-  await page.goto(`${ACCEPT_URL}?token=${token}`);
-  await page.locator('[data-testid="accept-invitation-page"]').waitFor();
-};
 
 /** The page shows `copy` in English, then in Arabic after the language switch. */
 async function expectMessageInBothLanguages(page: Page, copy: { en: string; ar: string }): Promise<void> {
@@ -103,8 +42,6 @@ async function expectMessageInBothLanguages(page: Page, copy: { en: string; ar: 
   await switchPublicLanguage(page, 'ar');
   await page.getByText(copy.ar, { exact: true }).waitFor();
 }
-
-const memberRow = (page: Page, email: string): Locator => page.getByRole('row').filter({ hasText: email });
 
 describe('team members page and invitation', () => {
   let browser: Browser;
