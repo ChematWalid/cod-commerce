@@ -105,16 +105,21 @@ describe("who may resend or revoke the owner's Owner invitation (D60, Review Foc
     await kit.signIn(a.owner, a.stores[0]);
     const email = freshEmail('owner-grant');
     const ownerRole = await kit.builtInRoleId(a, 'owner');
-    const invited = await kit.rest('POST', '/employees', bodyForA(email, ownerRole, { storeAccess: 'all', storeIds: [] }));
+    const invited = await kit.rest(
+      'POST',
+      '/employees',
+      bodyForA(email, ownerRole, { storeAccess: 'all', storeIds: [] }),
+    );
     expect(invited.status).toBe(201);
     const memberId = (invited.body as { id: string }).id;
     await waitForMessages(email, 1);
     await kit.query(`UPDATE invitation SET "lastSentAt" = now() - interval '2 minutes' WHERE "memberId" = $1`, [
       memberId,
     ]);
-    const before = await kit.query('SELECT "tokenHash", "expiresAt", "revokedAt" FROM invitation WHERE "memberId" = $1', [
-      memberId,
-    ]);
+    const before = await kit.query(
+      'SELECT "tokenHash", "expiresAt", "revokedAt" FROM invitation WHERE "memberId" = $1',
+      [memberId],
+    );
     const manager = await kit.memberWith(a, await kit.builtInRoleId(a, 'manager'));
     await kit.signIn(manager, a.stores[0]);
 

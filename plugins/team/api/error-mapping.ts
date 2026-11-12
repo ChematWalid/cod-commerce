@@ -4,7 +4,7 @@ import { type I18nRequest, I18nError, Logger, LogLevel, parseContext } from '@ve
 import { noStoreHeaders } from './no-store';
 
 const LOG_CONTEXT = 'TeamApi';
-const INTERNAL_MESSAGE = 'The request could not be completed';
+export const INTERNAL_MESSAGE = 'The request could not be completed';
 const TEAM = TEAM_ERROR_CODES;
 const RBAC = RBAC_ERROR_CODES;
 
@@ -67,7 +67,7 @@ export async function withTeamErrors<T>(work: () => Promise<T>): Promise<T> {
 }
 
 /** The path without its query string: a public route's query carries an invitation token (D205). */
-const pathOf = (url: string): string => url.split('?')[0] ?? url;
+export const pathOf = (url: string): string => url.split('?')[0] ?? url;
 
 /**
  * The REST mapping of the same errors: the status, the stable code and the translated message (`Accept-Language` or

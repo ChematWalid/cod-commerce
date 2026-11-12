@@ -6,8 +6,8 @@ import { AcceptInvitationService } from '../application/accept-invitation.servic
 import { type InvitationPreview, PreviewInvitationService } from '../application/preview-invitation.service';
 import { InvitationInvalidError } from '../domain/errors';
 import { asOperationContext, type OperationContext } from '../domain/ports/operation-context';
-import { TeamRestErrorFilter } from './error-mapping';
 import { originOf } from './actor-of';
+import { TeamPublicRestFilter } from './public-error-filter';
 import { parseInput } from './request-body';
 
 /** The Express request, named through Vendure so the plugin needs no Express dependency of its own. */
@@ -15,10 +15,11 @@ type HttpRequest = NonNullable<RequestContext['req']>;
 
 /**
  * The invitee's side of an invitation, public and REST only (D205): no GraphQL accept. Rate limited by address;
- * `NoStoreMiddleware` keeps every answer out of caches and referrers, and errors never echo the query string.
+ * `NoStoreMiddleware` keeps every answer out of caches and referrers, and no error echoes the query string: Team's
+ * filter answers every error but a rate-limit refusal, whose own filter strips the query too.
  */
 @Controller('team/invitations')
-@UseFilters(TeamRestErrorFilter)
+@UseFilters(TeamPublicRestFilter)
 export class InvitationsController {
   constructor(
     private readonly previews: PreviewInvitationService,

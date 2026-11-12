@@ -149,18 +149,21 @@ describe('the public invitation routes (D205, D213)', () => {
     expect(JSON.stringify(answers.map((answer) => answer.body))).not.toContain(tokens[1]);
   });
 
-  it('refuses preview and accept past the per-address budget with 429, still never cached', async () => {
+  it('refuses preview and accept past the per-address budget with 429, still never cached nor echoing the token', async () => {
     // Arrange
     const ip = '198.51.100.99';
+    const token = 'Zk3r9QbX2mVt7LpW4sYh8NcD1aFe6GuJ0oRi5TyKwMx';
     await drain('invitation-accept-ip', ip);
 
     // Act
-    const preview = await kit.publicRest({ method: 'GET', path: '/team/invitations/preview?token=x', ip });
+    const preview = await kit.publicRest({ method: 'GET', path: `/team/invitations/preview?token=${token}`, ip });
     const accept = await kit.publicRest({ method: 'POST', path: '/team/invitations/accept', body: {}, ip });
 
     // Assert
     expect([preview.status, accept.status]).toEqual([429, 429]);
     expect(headersOf(preview)).toEqual(D205_HEADERS);
+    expect(preview.body).toMatchObject({ path: '/team/invitations/preview' });
+    expect(JSON.stringify(preview.body)).not.toContain(token);
   });
 });
 
