@@ -57,7 +57,10 @@ const healthPlugin = (env: AppEnv, role: ServerRole): VendurePluginEntry =>
 
 /** Guards the Shop API, /store and /_internal on every host with the internal signature (D112). */
 const webhooksPlugin = (env: AppEnv): VendurePluginEntry =>
-  PlatformWebhooksPlugin.init({ internalKeys: parseInternalKeys(env.INTERNAL_HMAC_KEYS) });
+  PlatformWebhooksPlugin.init({
+    internalKeys: parseInternalKeys(env.INTERNAL_HMAC_KEYS),
+    demoHandlers: env.PLATFORM_DEMO_HANDLERS,
+  });
 
 /**
  * The platform plugins with tenant tables: they register after tenancy, which scopes their rows. The outbox needs

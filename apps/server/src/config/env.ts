@@ -8,6 +8,7 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
@@ -145,6 +146,7 @@ const baseSchema = z.object({
   // verifies, the active kid signs (the server signs nothing yet, so it is optional here).
   INTERNAL_HMAC_KEYS: internalKeys,
   INTERNAL_HMAC_ACTIVE_KID: z.string().optional(),
+  ...demoEnvShape,
   ...tenantSecretsEnvShape,
   ...authEnvShape,
 });
@@ -247,6 +249,7 @@ const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.include
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
+  .superRefine(rejectDemoHandlersInProduction)
   .superRefine(requireClientIpHeader)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireKnownKekActiveKid)

@@ -1,5 +1,7 @@
 import { JobReconciler, PLATFORM_CLOCK, PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
 import type { InternalSigningKey } from '@cod/shared/internal-auth';
 import { Inject } from '@nestjs/common';
@@ -44,6 +46,8 @@ import {
   WEBHOOKS_LOG_CONTEXT,
 } from './domain/constants';
 import { internalOnlyPrefixes } from './domain/internal-prefixes';
+import { DemoProviders } from './infrastructure/demo/demo-providers';
+import { DemoWebhookHandler } from './infrastructure/demo/demo-webhook.handler';
 import { ConfigurableKillSwitch } from './infrastructure/configurable-kill-switch';
 import { PostgresInboundScan } from './infrastructure/inbound-due-scan';
 import { InboundWebhookEntity } from './infrastructure/inbound-webhook.entity';
@@ -58,6 +62,8 @@ import { WebhooksBootstrap } from './infrastructure/webhooks-bootstrap';
 /** How the server configures {@link PlatformWebhooksPlugin}. */
 export interface PlatformWebhooksOptions {
   readonly internalKeys: readonly InternalSigningKey[];
+  /** Registers the demo provider, secret provider and consumer (D110). Never on in production: `loadEnv` refuses it. */
+  readonly demoHandlers?: boolean;
 }
 
 const inboundLogger: InboundLogger = {
@@ -76,7 +82,14 @@ const inboundLogger: InboundLogger = {
  * answer. Feature plugins add providers with `InboundWebhookHandlerRegistry.register` in `onModuleInit`.
  */
 @VendurePlugin({
-  imports: [PluginCommonModule, TenancyPlugin, PlatformJobsPlugin, PlatformPartitionsPlugin],
+  imports: [
+    PluginCommonModule,
+    TenancyPlugin,
+    PlatformJobsPlugin,
+    PlatformPartitionsPlugin,
+    PlatformOutboxPlugin,
+    PlatformSecretsPlugin,
+  ],
   entities: [InboundWebhookEntity, InboundWebhookKeyEntity],
   controllers: [WebhookController],
   providers: [
@@ -137,6 +150,8 @@ const inboundLogger: InboundLogger = {
       useFactory: (store: KeyPurgePort, clock: InboundClock) => new InboundKeyPurge(store, clock),
       inject: [KEY_PURGE_STORE, PLATFORM_CLOCK],
     },
+    DemoWebhookHandler,
+    DemoProviders,
     WebhooksBootstrap,
   ],
   exports: [InboundWebhookHandlerRegistry, WebhookGatewayService, KILL_SWITCH],
@@ -180,11 +195,13 @@ export class PlatformWebhooksPlugin {
     @Inject(InboundWebhookHandlerRegistry) private readonly registry: InboundWebhookHandlerRegistry,
     @Inject(JobReconciler) private readonly reconciler: JobReconciler,
     @Inject(InboundReconcileSource) private readonly reconcileSource: InboundReconcileSource,
+    @Inject(DemoProviders) private readonly demo: DemoProviders,
   ) {}
 
   /** The reconciler checks the gateway's stored webhooks too (D105). */
   onModuleInit(): void {
     this.reconciler.registerSource(this.reconcileSource);
+    if (PlatformWebhooksPlugin.options?.demoHandlers === true) this.demo.register();
   }
 
   /** Every `onModuleInit` has run: providers can no longer register. */

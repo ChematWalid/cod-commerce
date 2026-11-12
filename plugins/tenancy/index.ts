@@ -25,6 +25,8 @@ export { asOperationContext, type OperationContext } from './domain/ports/operat
 export type { CreateStoreInput, SoldOutBehavior, Store, StoreStatus } from './domain/store';
 export { ownerRolePermissions } from './infrastructure/owner-role-permissions';
 export { OrderNumberService } from './infrastructure/order-number.service';
+export type { HostStoreRow } from './domain/ports/host-store-lookup.port';
+export { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
 export { RequestTenantScope, requestContextOf } from './infrastructure/request-tenant-scope';
 export { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 export { TenantRepository, TenantRepositoryFactory, tenantQuery } from './infrastructure/tenant-repository';

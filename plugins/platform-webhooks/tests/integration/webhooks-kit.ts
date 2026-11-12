@@ -3,9 +3,10 @@ import type { AddressInfo } from 'node:net';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { parseKekRing, PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
-import { toBusinessId } from '@cod/shared';
+import { type PartitionedTableSchema, toBusinessId } from '@cod/shared';
 import {
   createPluginTestEnvironment,
   ensurePartitionedSchema,
@@ -29,21 +30,40 @@ const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 /** A synthetic internal key: the plugin refuses to boot without one, and these tests send no internal calls. */
 const INTERNAL_KEY = { kid: 'k1', secret: 'synthetic-internal-key-000000000000000000' };
 
+/** A synthetic key ring: the gateway plugin imports the secrets plugin, which will not boot without one. */
+const TEST_KEK_RING = parseKekRing(`k1:${'11'.repeat(32)}`, 'k1');
+
 type Environment = ReturnType<typeof createPluginTestEnvironment>;
+
+/** What a test host adds to the gateway. */
+export interface WebhooksEnvironmentOptions {
+  /** Registers the demo provider and consumer (D110). */
+  readonly demo?: boolean;
+  /** Plugins added before the outbox (a test that calls the secrets API adds the rbac plugin). */
+  readonly plugins?: readonly Parameters<typeof createPluginTestEnvironment>[0]['plugins'][number][];
+  /** Partitioned tables the added plugins need, created with the gateway's own. */
+  readonly schemas?: readonly PartitionedTableSchema[];
+}
 
 /**
  * A Vendure test server with tenancy, the outbox, the gateway and the fixture provider `test`. The partitioned
  * tables cannot come from `synchronize`, so `server.init` also creates them and their current partitions (D106).
  */
-export function createWebhooksTestEnvironment(snowflakeWorkerId: number): Environment {
+export function createWebhooksTestEnvironment(
+  snowflakeWorkerId: number,
+  options: WebhooksEnvironmentOptions = {},
+): Environment {
+  const demo = options.demo === true;
   const environment = createPluginTestEnvironment({
     plugins: [
       PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: 'test-platform-webhooks' }),
       PlatformPartitionsPlugin,
       RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: '' }),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId }),
+      ...(options.plugins ?? []),
       PlatformOutboxPlugin,
-      PlatformWebhooksPlugin.init({ internalKeys: [INTERNAL_KEY] }),
+      PlatformSecretsPlugin.init({ kekRing: TEST_KEK_RING }),
+      PlatformWebhooksPlugin.init({ internalKeys: [INTERNAL_KEY], demoHandlers: demo }),
       TestHandlerPlugin,
     ],
     db: loadPluginTestDbConfig(process.env),
@@ -53,7 +73,11 @@ export function createWebhooksTestEnvironment(snowflakeWorkerId: number): Enviro
   server.init = async (...args: Parameters<typeof init>): Promise<void> => {
     await init(...args);
     const raw = server.app.get(TransactionalConnection).rawConnection;
-    await ensurePartitionedSchema(raw, [...OUTBOX_SCHEMAS, ...INBOUND_WEBHOOK_SCHEMAS]);
+    await ensurePartitionedSchema(raw, [
+      ...OUTBOX_SCHEMAS,
+      ...INBOUND_WEBHOOK_SCHEMAS,
+      ...(options.schemas ?? []),
+    ]);
     await server.app.get(PartitionMaintenanceService).maintain(new Date());
   };
   return environment;

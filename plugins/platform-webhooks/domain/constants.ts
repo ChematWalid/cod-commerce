@@ -60,3 +60,17 @@ export const INBOUND_RECONCILE_WINDOW_MS = 7 * DAY_MS;
 
 /** What the reconciler writes to `lastError` of a row that used every attempt (D105). */
 export const INBOUND_EXHAUSTED_ERROR = 'reconciler: attempts exhausted';
+
+/** The demo provider (D110): the URL segment, the header of its signature and the optional header of its event id. */
+export const DEMO_PROVIDER = 'demo';
+export const DEMO_SIGNATURE_HEADER = 'x-demo-signature';
+export const DEMO_EVENT_HEADER = 'x-demo-event-id';
+
+/** Where the demo provider's signing secret lives in the tenant secret store. */
+export const DEMO_SECRET_PROVIDER = 'demo-webhook';
+export const DEMO_SECRET_REF = 'signing';
+
+/** The demo consumer of the outbox topic the demo handler writes (D110). */
+export const DEMO_CONSUMER = 'demo-log';
+export const DEMO_TOPIC = 'platform.demo' as const;
+export const DEMO_QUEUE = 'order-effects' as const;

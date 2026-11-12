@@ -19,3 +19,4 @@ export type {
 export { InboundWebhookEntity } from './infrastructure/inbound-webhook.entity';
 export { InboundWebhookKeyEntity } from './infrastructure/inbound-webhook-key.entity';
 export { INBOUND_WEBHOOK_SCHEMAS } from './infrastructure/webhook-schema';
+export { demoSignature } from './infrastructure/demo/demo-webhook.handler';

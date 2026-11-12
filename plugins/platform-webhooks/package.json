@@ -19,6 +19,7 @@
     "@cod/plugin-platform-jobs": "workspace:*",
     "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
+    "@cod/plugin-platform-secrets": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
@@ -28,10 +29,12 @@
   "devDependencies": {
     "@cod/config": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/plugin-rbac": "workspace:*",
     "@cod/testing": "workspace:*",
     "@nestjs/core": "12.4.0",
     "@types/express": "5.0.6",
     "@types/node": "24.19.2",
+    "graphql-tag": "2.12.7",
     "typescript": "5.9.3",
     "vite": "7.3.7",
     "vitest": "5.1.0"
