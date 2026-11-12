@@ -79,6 +79,16 @@ describe('activity_log migration with rows', () => {
     }
   };
 
+  const relkindOfLog = async (): Promise<string> => {
+    const client = await connectTo(url);
+    try {
+      const result = await client.query(`SELECT "relkind" FROM pg_class WHERE "oid" = 'activity_log'::regclass`);
+      return (result.rows as { relkind: string }[])[0]?.relkind ?? '';
+    } finally {
+      await client.end();
+    }
+  };
+
   const partitionsOfRows = async (): Promise<Record<string, string>> => {
     const client = await connectTo(url);
     try {
@@ -122,6 +132,7 @@ describe('activity_log migration with rows', () => {
 
     // Assert: same values, each row in the partition named for its UTC month
     expect(await read()).toEqual(original);
+    expect(await relkindOfLog()).toBe('p');
     const parts = await partitionsOfRows();
     for (const row of rows) {
       expect(parts[row.id], row.createdAt.toISOString()).toBe(partitionOf(row.createdAt));
@@ -131,6 +142,7 @@ describe('activity_log migration with rows', () => {
     await revertThrough(env, PARTITIONED_MIGRATION);
 
     // Assert: every row is back in the plain table
+    expect(await relkindOfLog()).toBe('r');
     expect(await read()).toEqual(original);
   });
 });

@@ -1,5 +1,5 @@
 import { PLUGIN_TEST_INITIAL_DATA, createTwoBusinesses, type TwoBusinesses } from '@cod/testing';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { OutboxSweeper } from '../../application/outbox-sweeper';
 import type { OutboxDueScanPort, OutboxQueuesPort } from '../../application/ports';
 import { OUTBOX_DUE_SCAN } from '../../application/tokens';
@@ -145,12 +145,15 @@ describe('outbox sweeper', () => {
       });
     }
 
+    beforeEach(async () => {
+      await kit.sql(`DELETE FROM "outbox_event" WHERE "id" = $1`, [KEPT_EVENT_ID]);
+      await insertEvent(KEPT_EVENT_ID, 'pending', T);
+    });
+
     it.each(['failed', 'completed'] as const)(
       'removes a %s relay job before it adds the relay again',
       async (state) => {
         // Arrange
-        await kit.sql(`DELETE FROM "outbox_event" WHERE "id" = $1`, [KEPT_EVENT_ID]);
-        await insertEvent(KEPT_EVENT_ID, 'pending', T);
         const calls: PresenceCall[] = [];
         const presence = new FakePresence(calls);
         presence.states.set(`ob-${KEPT_EVENT_ID}`, state);
