@@ -3,7 +3,7 @@ import { useLingui } from '@lingui/react';
 import { useQuery } from '@tanstack/react-query';
 import type { AnyRoute } from '@tanstack/react-router';
 import type { DashboardRouteDefinition } from '@vendure/dashboard';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import { AcceptForm } from '../components/accept-form';
 import { PublicFrame } from '../components/public-frame';
 import {
@@ -50,12 +50,16 @@ function Refusal({ messageId }: { readonly messageId: string }): ReactNode {
 function AcceptInvitationPage({ route }: { readonly route: AnyRoute }): ReactNode {
   const { i18n } = useLingui();
   const token = useLinkTokenOnce(route);
+  // Keyed per mount, not per token (the token stays out of the query cache), and dropped on unmount: a second link
+  // opened in the same session must never show the first link's business, email or error.
+  const mountId = useId();
   const preview = useQuery({
-    queryKey: INVITATION_PREVIEW_QUERY_KEY,
+    queryKey: [...INVITATION_PREVIEW_QUERY_KEY, mountId],
     queryFn: () => previewInvitation(token ?? ''),
     enabled: token !== undefined,
     retry: false,
     staleTime: Infinity,
+    gcTime: 0,
   });
   const body = (): ReactNode => {
     if (token === undefined) return <Refusal messageId={TEAM_ERROR_CODES.INVITATION_INVALID} />;
