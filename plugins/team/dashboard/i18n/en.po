@@ -1,0 +1,500 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "team.nav-members"
+msgstr "Team members"
+
+#. js-lingui-explicit-id
+msgid "team.nav-roles"
+msgstr "Roles & Permissions"
+
+#. js-lingui-explicit-id
+msgid "team.invite-button"
+msgstr "Invite team member"
+
+#. js-lingui-explicit-id
+msgid "team.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "team.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "team.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "team.saved"
+msgstr "Saved"
+
+#. js-lingui-explicit-id
+msgid "team.empty"
+msgstr "No team members here yet."
+
+#. js-lingui-explicit-id
+msgid "team.search"
+msgstr "Search by name or email"
+
+#. js-lingui-explicit-id
+msgid "team.page-previous"
+msgstr "Previous"
+
+#. js-lingui-explicit-id
+msgid "team.page-next"
+msgstr "Next"
+
+#. js-lingui-explicit-id
+msgid "team.tab-all"
+msgstr "All"
+
+#. js-lingui-explicit-id
+msgid "team.tab-active"
+msgstr "Active"
+
+#. js-lingui-explicit-id
+msgid "team.tab-pending"
+msgstr "Pending"
+
+#. js-lingui-explicit-id
+msgid "team.tab-inactive"
+msgstr "Inactive"
+
+#. js-lingui-explicit-id
+msgid "team.column-employee"
+msgstr "Employee"
+
+#. js-lingui-explicit-id
+msgid "team.column-roles"
+msgstr "Roles"
+
+#. js-lingui-explicit-id
+msgid "team.column-salary"
+msgstr "Salary (DZD)"
+
+#. js-lingui-explicit-id
+msgid "team.column-status"
+msgstr "Status"
+
+#. js-lingui-explicit-id
+msgid "team.column-orders"
+msgstr "Orders"
+
+#. js-lingui-explicit-id
+msgid "team.column-stores"
+msgstr "Store access"
+
+#. js-lingui-explicit-id
+msgid "team.column-joined"
+msgstr "Joined"
+
+#. js-lingui-explicit-id
+msgid "team.column-actions"
+msgstr "Actions"
+
+#. js-lingui-explicit-id
+msgid "team.status-active"
+msgstr "Active"
+
+#. js-lingui-explicit-id
+msgid "team.status-pending"
+msgstr "Pending"
+
+#. js-lingui-explicit-id
+msgid "team.status-expired"
+msgstr "Invitation expired"
+
+#. js-lingui-explicit-id
+msgid "team.status-inactive"
+msgstr "Inactive"
+
+#. js-lingui-explicit-id
+msgid "team.store-access-all"
+msgstr "All stores"
+
+#. js-lingui-explicit-id
+msgid "team.store-access-selected"
+msgstr "Only these stores"
+
+#. js-lingui-explicit-id
+msgid "team.row-actions"
+msgstr "Member actions"
+
+#. js-lingui-explicit-id
+msgid "team.pay-salary"
+msgstr "Pay salary"
+
+#. js-lingui-explicit-id
+msgid "team.action-view"
+msgstr "View details"
+
+#. js-lingui-explicit-id
+msgid "team.action-edit"
+msgstr "Edit"
+
+#. js-lingui-explicit-id
+msgid "team.action-set-limit"
+msgstr "Set limit"
+
+#. js-lingui-explicit-id
+msgid "team.action-stop-receiving"
+msgstr "Stop receiving orders"
+
+#. js-lingui-explicit-id
+msgid "team.action-resume-receiving"
+msgstr "Resume receiving orders"
+
+#. js-lingui-explicit-id
+msgid "team.action-resend"
+msgstr "Resend invitation"
+
+#. js-lingui-explicit-id
+msgid "team.action-revoke"
+msgstr "Revoke invitation"
+
+#. js-lingui-explicit-id
+msgid "team.action-deactivate"
+msgstr "Deactivate"
+
+#. js-lingui-explicit-id
+msgid "team.action-reactivate"
+msgstr "Reactivate"
+
+#. js-lingui-explicit-id
+msgid "team.action-remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "team.invite-title"
+msgstr "Invite team member"
+
+#. js-lingui-explicit-id
+msgid "team.invite-submit"
+msgstr "Send invitation"
+
+#. js-lingui-explicit-id
+msgid "team.invited"
+msgstr "Invitation sent"
+
+#. js-lingui-explicit-id
+msgid "team.edit-title"
+msgstr "Edit {name}"
+
+#. js-lingui-explicit-id
+msgid "team.field-email"
+msgstr "Email"
+
+#. js-lingui-explicit-id
+msgid "team.field-roles"
+msgstr "Roles *"
+
+#. js-lingui-explicit-id
+msgid "team.field-store-access"
+msgstr "Store access"
+
+#. js-lingui-explicit-id
+msgid "team.field-stores"
+msgstr "Stores"
+
+#. js-lingui-explicit-id
+msgid "team.field-salary"
+msgstr "Base salary (DZD) *"
+
+#. js-lingui-explicit-id
+msgid "team.field-commissions"
+msgstr "Commission structures"
+
+#. js-lingui-explicit-id
+msgid "team.field-limit"
+msgstr "Most open orders"
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-email"
+msgstr "Enter a valid email address."
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-roles"
+msgstr "Choose at least one role."
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-stores"
+msgstr "Choose at least one store."
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-salary"
+msgstr "Enter the salary in whole dinars, 0 or more."
+
+#. js-lingui-explicit-id
+msgid "team.commission-add"
+msgstr "Add commission"
+
+#. js-lingui-explicit-id
+msgid "team.commission-remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "team.commission-empty"
+msgstr "No commission structures yet."
+
+#. js-lingui-explicit-id
+msgid "team.commission-new"
+msgstr "Create a commission structure"
+
+#. js-lingui-explicit-id
+msgid "team.commission-create"
+msgstr "Create"
+
+#. js-lingui-explicit-id
+msgid "team.commission-name"
+msgstr "Name"
+
+#. js-lingui-explicit-id
+msgid "team.commission-basis"
+msgstr "Earned on"
+
+#. js-lingui-explicit-id
+msgid "team.commission-kind"
+msgstr "Type"
+
+#. js-lingui-explicit-id
+msgid "team.commission-kind-fixed"
+msgstr "Fixed amount (DZD)"
+
+#. js-lingui-explicit-id
+msgid "team.commission-kind-percent"
+msgstr "Percentage"
+
+#. js-lingui-explicit-id
+msgid "team.commission-value"
+msgstr "Value"
+
+#. js-lingui-explicit-id
+msgid "team.amount-dzd"
+msgstr "{amount} DZD"
+
+#. js-lingui-explicit-id
+msgid "team.limit-title"
+msgstr "Set limit for {name}"
+
+#. js-lingui-explicit-id
+msgid "team.limit-help"
+msgstr "The most open orders this member may hold at once, from 1 to {max}. Leave empty for no limit."
+
+#. js-lingui-explicit-id
+msgid "team.limit-error"
+msgstr "Enter a whole number from 1 up, or leave the field empty."
+
+#. js-lingui-explicit-id
+msgid "team.no-limit"
+msgstr "No limit"
+
+#. js-lingui-explicit-id
+msgid "team.receiving-orders"
+msgstr "Receiving orders"
+
+#. js-lingui-explicit-id
+msgid "team.yes"
+msgstr "Yes"
+
+#. js-lingui-explicit-id
+msgid "team.no"
+msgstr "No"
+
+#. js-lingui-explicit-id
+msgid "team.pay-title"
+msgstr "Pay salary to {name}"
+
+#. js-lingui-explicit-id
+msgid "team.pay-body"
+msgstr "Record a payment of {amount} DZD, the member's base salary."
+
+#. js-lingui-explicit-id
+msgid "team.pay-placeholder-note"
+msgstr "The payment is recorded once, even if you click twice."
+
+#. js-lingui-explicit-id
+msgid "team.pay-confirm"
+msgstr "Pay salary"
+
+#. js-lingui-explicit-id
+msgid "team.paid"
+msgstr "Salary payment recorded"
+
+#. js-lingui-explicit-id
+msgid "team.resent"
+msgstr "Invitation sent again"
+
+#. js-lingui-explicit-id
+msgid "team.revoked"
+msgstr "Invitation revoked"
+
+#. js-lingui-explicit-id
+msgid "team.deactivated"
+msgstr "Member deactivated"
+
+#. js-lingui-explicit-id
+msgid "team.reactivated"
+msgstr "Member reactivated"
+
+#. js-lingui-explicit-id
+msgid "team.removed"
+msgstr "Member removed"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-revoke-title"
+msgstr "Revoke the invitation of {name}?"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-revoke-body"
+msgstr "The invitation link stops working. You can invite this email again later."
+
+#. js-lingui-explicit-id
+msgid "team.confirm-deactivate-title"
+msgstr "Deactivate {name}?"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-deactivate-body"
+msgstr "{name} loses every role and sees nothing until reactivated. Their roles and stores are kept for reactivation."
+
+#. js-lingui-explicit-id
+msgid "team.confirm-reactivate-title"
+msgstr "Reactivate {name}?"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-reactivate-body"
+msgstr "{name} gets back the roles and stores held before deactivation."
+
+#. js-lingui-explicit-id
+msgid "team.confirm-remove-title"
+msgstr "Remove {name}?"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-remove-body"
+msgstr "{name} loses access and their account is closed. This cannot be undone."
+
+#. js-lingui-explicit-id
+msgid "team.error-generic"
+msgstr "Something went wrong. Try again."
+
+#. js-lingui-explicit-id
+msgid "team.error-forbidden"
+msgstr "You do not have permission to do this."
+
+#. js-lingui-explicit-id
+msgid "team.error-rate-limited"
+msgstr "Too many attempts. Wait a moment and try again."
+
+#. js-lingui-explicit-id
+msgid "team.error-privilege"
+msgstr "You cannot give or change access beyond your own."
+
+#. js-lingui-explicit-id
+msgid "team.accept-title"
+msgstr "Join the team"
+
+#. js-lingui-explicit-id
+msgid "team.accept-intro"
+msgstr "You were invited to join {business}. Create your account to continue."
+
+#. js-lingui-explicit-id
+msgid "team.accept-business"
+msgstr "Business"
+
+#. js-lingui-explicit-id
+msgid "team.accept-first-name"
+msgstr "First name"
+
+#. js-lingui-explicit-id
+msgid "team.accept-last-name"
+msgstr "Last name"
+
+#. js-lingui-explicit-id
+msgid "team.accept-password"
+msgstr "Password"
+
+#. js-lingui-explicit-id
+msgid "team.accept-password-help"
+msgstr "At least 8 characters."
+
+#. js-lingui-explicit-id
+msgid "team.accept-submit"
+msgstr "Create account"
+
+#. js-lingui-explicit-id
+msgid "team.accept-done"
+msgstr "Your account is ready. Sign in to continue."
+
+#. js-lingui-explicit-id
+msgid "team.member-not-found"
+msgstr "Team member not found."
+
+#. js-lingui-explicit-id
+msgid "team.email-already-member"
+msgstr "This email already belongs to a member of your team."
+
+#. js-lingui-explicit-id
+msgid "team.invitation-invalid"
+msgstr "This invitation link cannot be used. Ask for a new invitation."
+
+#. js-lingui-explicit-id
+msgid "team.invitation-expired"
+msgstr "This invitation has expired. Ask for a new invitation."
+
+#. js-lingui-explicit-id
+msgid "team.resend-cooldown"
+msgstr "The invitation was just sent. Wait a minute before sending it again."
+
+#. js-lingui-explicit-id
+msgid "team.member-not-pending"
+msgstr "This member is not waiting for an invitation."
+
+#. js-lingui-explicit-id
+msgid "team.member-not-active"
+msgstr "This member is not active."
+
+#. js-lingui-explicit-id
+msgid "team.owner-protected"
+msgstr "The business owner cannot be changed this way."
+
+#. js-lingui-explicit-id
+msgid "team.account-elsewhere"
+msgstr "This email already belongs to another business. Use a different email to join."
+
+#. js-lingui-explicit-id
+msgid "team.commission-not-found"
+msgstr "Commission not found."
+
+#. js-lingui-explicit-id
+msgid "team.commission-in-use"
+msgstr "This commission is still given to a member."
+
+#. js-lingui-explicit-id
+msgid "team.commission-name-taken"
+msgstr "A commission with this name already exists."
+
+#. js-lingui-explicit-id
+msgid "team.invalid-input"
+msgstr "Some of the details are not valid."
+
+#. js-lingui-explicit-id
+msgid "team.access-unavailable"
+msgstr "This member's former roles or stores no longer exist."
+
+#. js-lingui-explicit-id
+msgid "team.member-suspended"
+msgstr "This member is deactivated."
+
+#. js-lingui-explicit-id
+msgid "team.self-action"
+msgstr "You cannot do this on your own member account."
+
+#. js-lingui-explicit-id
+msgid "team.resend-limit"
+msgstr "This invitation cannot be sent again. Revoke it and invite again."
+
+#. js-lingui-explicit-id
+msgid "team.too-many-pending"
+msgstr "Too many invitations are waiting. Revoke some before inviting more."

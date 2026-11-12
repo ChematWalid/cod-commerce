@@ -1,0 +1,500 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "team.nav-members"
+msgstr "أعضاء الفريق"
+
+#. js-lingui-explicit-id
+msgid "team.nav-roles"
+msgstr "الأدوار والصلاحيات"
+
+#. js-lingui-explicit-id
+msgid "team.invite-button"
+msgstr "دعوة عضو للفريق"
+
+#. js-lingui-explicit-id
+msgid "team.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "team.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "team.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "team.saved"
+msgstr "تم الحفظ"
+
+#. js-lingui-explicit-id
+msgid "team.empty"
+msgstr "لا يوجد أعضاء هنا بعد."
+
+#. js-lingui-explicit-id
+msgid "team.search"
+msgstr "ابحث بالاسم أو البريد الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "team.page-previous"
+msgstr "السابق"
+
+#. js-lingui-explicit-id
+msgid "team.page-next"
+msgstr "التالي"
+
+#. js-lingui-explicit-id
+msgid "team.tab-all"
+msgstr "الكل"
+
+#. js-lingui-explicit-id
+msgid "team.tab-active"
+msgstr "نشط"
+
+#. js-lingui-explicit-id
+msgid "team.tab-pending"
+msgstr "قيد الانتظار"
+
+#. js-lingui-explicit-id
+msgid "team.tab-inactive"
+msgstr "غير نشط"
+
+#. js-lingui-explicit-id
+msgid "team.column-employee"
+msgstr "الموظف"
+
+#. js-lingui-explicit-id
+msgid "team.column-roles"
+msgstr "الأدوار"
+
+#. js-lingui-explicit-id
+msgid "team.column-salary"
+msgstr "الراتب (د.ج)"
+
+#. js-lingui-explicit-id
+msgid "team.column-status"
+msgstr "الحالة"
+
+#. js-lingui-explicit-id
+msgid "team.column-orders"
+msgstr "الطلبات"
+
+#. js-lingui-explicit-id
+msgid "team.column-stores"
+msgstr "الوصول إلى المتاجر"
+
+#. js-lingui-explicit-id
+msgid "team.column-joined"
+msgstr "تاريخ الانضمام"
+
+#. js-lingui-explicit-id
+msgid "team.column-actions"
+msgstr "الإجراءات"
+
+#. js-lingui-explicit-id
+msgid "team.status-active"
+msgstr "نشط"
+
+#. js-lingui-explicit-id
+msgid "team.status-pending"
+msgstr "قيد الانتظار"
+
+#. js-lingui-explicit-id
+msgid "team.status-expired"
+msgstr "انتهت صلاحية الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.status-inactive"
+msgstr "غير نشط"
+
+#. js-lingui-explicit-id
+msgid "team.store-access-all"
+msgstr "كل المتاجر"
+
+#. js-lingui-explicit-id
+msgid "team.store-access-selected"
+msgstr "هذه المتاجر فقط"
+
+#. js-lingui-explicit-id
+msgid "team.row-actions"
+msgstr "إجراءات العضو"
+
+#. js-lingui-explicit-id
+msgid "team.pay-salary"
+msgstr "دفع الراتب"
+
+#. js-lingui-explicit-id
+msgid "team.action-view"
+msgstr "عرض التفاصيل"
+
+#. js-lingui-explicit-id
+msgid "team.action-edit"
+msgstr "تعديل"
+
+#. js-lingui-explicit-id
+msgid "team.action-set-limit"
+msgstr "تحديد الحد"
+
+#. js-lingui-explicit-id
+msgid "team.action-stop-receiving"
+msgstr "إيقاف استلام الطلبات"
+
+#. js-lingui-explicit-id
+msgid "team.action-resume-receiving"
+msgstr "استئناف استلام الطلبات"
+
+#. js-lingui-explicit-id
+msgid "team.action-resend"
+msgstr "إعادة إرسال الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.action-revoke"
+msgstr "إلغاء الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.action-deactivate"
+msgstr "تعطيل"
+
+#. js-lingui-explicit-id
+msgid "team.action-reactivate"
+msgstr "إعادة التفعيل"
+
+#. js-lingui-explicit-id
+msgid "team.action-remove"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "team.invite-title"
+msgstr "دعوة عضو للفريق"
+
+#. js-lingui-explicit-id
+msgid "team.invite-submit"
+msgstr "إرسال الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.invited"
+msgstr "تم إرسال الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.edit-title"
+msgstr "تعديل {name}"
+
+#. js-lingui-explicit-id
+msgid "team.field-email"
+msgstr "البريد الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "team.field-roles"
+msgstr "الأدوار *"
+
+#. js-lingui-explicit-id
+msgid "team.field-store-access"
+msgstr "الوصول إلى المتاجر"
+
+#. js-lingui-explicit-id
+msgid "team.field-stores"
+msgstr "المتاجر"
+
+#. js-lingui-explicit-id
+msgid "team.field-salary"
+msgstr "الراتب الأساسي (د.ج) *"
+
+#. js-lingui-explicit-id
+msgid "team.field-commissions"
+msgstr "هياكل العمولات"
+
+#. js-lingui-explicit-id
+msgid "team.field-limit"
+msgstr "الحد الأقصى للطلبات المفتوحة"
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-email"
+msgstr "أدخل بريدًا إلكترونيًا صالحًا."
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-roles"
+msgstr "اختر دورًا واحدًا على الأقل."
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-stores"
+msgstr "اختر متجرًا واحدًا على الأقل."
+
+#. js-lingui-explicit-id
+msgid "team.invite-error-salary"
+msgstr "أدخل الراتب بالدينار دون كسور، 0 أو أكثر."
+
+#. js-lingui-explicit-id
+msgid "team.commission-add"
+msgstr "إضافة عمولة"
+
+#. js-lingui-explicit-id
+msgid "team.commission-remove"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "team.commission-empty"
+msgstr "لا توجد هياكل عمولات بعد."
+
+#. js-lingui-explicit-id
+msgid "team.commission-new"
+msgstr "إنشاء هيكل عمولة"
+
+#. js-lingui-explicit-id
+msgid "team.commission-create"
+msgstr "إنشاء"
+
+#. js-lingui-explicit-id
+msgid "team.commission-name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "team.commission-basis"
+msgstr "تُحتسب على"
+
+#. js-lingui-explicit-id
+msgid "team.commission-kind"
+msgstr "النوع"
+
+#. js-lingui-explicit-id
+msgid "team.commission-kind-fixed"
+msgstr "مبلغ ثابت (د.ج)"
+
+#. js-lingui-explicit-id
+msgid "team.commission-kind-percent"
+msgstr "نسبة مئوية"
+
+#. js-lingui-explicit-id
+msgid "team.commission-value"
+msgstr "القيمة"
+
+#. js-lingui-explicit-id
+msgid "team.amount-dzd"
+msgstr "{amount} د.ج"
+
+#. js-lingui-explicit-id
+msgid "team.limit-title"
+msgstr "تحديد الحد لـ {name}"
+
+#. js-lingui-explicit-id
+msgid "team.limit-help"
+msgstr "أقصى عدد من الطلبات المفتوحة التي يمكن لهذا العضو حملها في آن واحد، من 1 إلى {max}. اتركه فارغًا لعدم وضع حد."
+
+#. js-lingui-explicit-id
+msgid "team.limit-error"
+msgstr "أدخل عددًا صحيحًا من 1 فأكثر، أو اترك الحقل فارغًا."
+
+#. js-lingui-explicit-id
+msgid "team.no-limit"
+msgstr "بدون حد"
+
+#. js-lingui-explicit-id
+msgid "team.receiving-orders"
+msgstr "يستلم الطلبات"
+
+#. js-lingui-explicit-id
+msgid "team.yes"
+msgstr "نعم"
+
+#. js-lingui-explicit-id
+msgid "team.no"
+msgstr "لا"
+
+#. js-lingui-explicit-id
+msgid "team.pay-title"
+msgstr "دفع الراتب إلى {name}"
+
+#. js-lingui-explicit-id
+msgid "team.pay-body"
+msgstr "تسجيل دفعة بقيمة {amount} د.ج، وهي الراتب الأساسي للعضو."
+
+#. js-lingui-explicit-id
+msgid "team.pay-placeholder-note"
+msgstr "تُسجَّل الدفعة مرة واحدة، حتى لو نقرت مرتين."
+
+#. js-lingui-explicit-id
+msgid "team.pay-confirm"
+msgstr "دفع الراتب"
+
+#. js-lingui-explicit-id
+msgid "team.paid"
+msgstr "تم تسجيل دفع الراتب"
+
+#. js-lingui-explicit-id
+msgid "team.resent"
+msgstr "أُعيد إرسال الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.revoked"
+msgstr "أُلغيت الدعوة"
+
+#. js-lingui-explicit-id
+msgid "team.deactivated"
+msgstr "تم تعطيل العضو"
+
+#. js-lingui-explicit-id
+msgid "team.reactivated"
+msgstr "أُعيد تفعيل العضو"
+
+#. js-lingui-explicit-id
+msgid "team.removed"
+msgstr "تمت إزالة العضو"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-revoke-title"
+msgstr "إلغاء دعوة {name}؟"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-revoke-body"
+msgstr "سيتوقف رابط الدعوة عن العمل. يمكنك دعوة هذا البريد الإلكتروني لاحقًا."
+
+#. js-lingui-explicit-id
+msgid "team.confirm-deactivate-title"
+msgstr "تعطيل {name}؟"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-deactivate-body"
+msgstr "سيفقد {name} كل أدواره ولن يرى شيئًا حتى إعادة تفعيله. تُحفظ أدواره ومتاجره لإعادة التفعيل."
+
+#. js-lingui-explicit-id
+msgid "team.confirm-reactivate-title"
+msgstr "إعادة تفعيل {name}؟"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-reactivate-body"
+msgstr "سيستعيد {name} الأدوار والمتاجر التي كانت لديه قبل التعطيل."
+
+#. js-lingui-explicit-id
+msgid "team.confirm-remove-title"
+msgstr "إزالة {name}؟"
+
+#. js-lingui-explicit-id
+msgid "team.confirm-remove-body"
+msgstr "سيفقد {name} الوصول ويُغلق حسابه. لا يمكن التراجع عن ذلك."
+
+#. js-lingui-explicit-id
+msgid "team.error-generic"
+msgstr "حدث خطأ ما. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "team.error-forbidden"
+msgstr "ليست لديك صلاحية للقيام بذلك."
+
+#. js-lingui-explicit-id
+msgid "team.error-rate-limited"
+msgstr "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "team.error-privilege"
+msgstr "لا يمكنك منح أو تغيير وصول يتجاوز وصولك أنت."
+
+#. js-lingui-explicit-id
+msgid "team.accept-title"
+msgstr "الانضمام إلى الفريق"
+
+#. js-lingui-explicit-id
+msgid "team.accept-intro"
+msgstr "تمت دعوتك للانضمام إلى {business}. أنشئ حسابك للمتابعة."
+
+#. js-lingui-explicit-id
+msgid "team.accept-business"
+msgstr "النشاط التجاري"
+
+#. js-lingui-explicit-id
+msgid "team.accept-first-name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "team.accept-last-name"
+msgstr "اللقب"
+
+#. js-lingui-explicit-id
+msgid "team.accept-password"
+msgstr "كلمة المرور"
+
+#. js-lingui-explicit-id
+msgid "team.accept-password-help"
+msgstr "8 أحرف على الأقل."
+
+#. js-lingui-explicit-id
+msgid "team.accept-submit"
+msgstr "إنشاء الحساب"
+
+#. js-lingui-explicit-id
+msgid "team.accept-done"
+msgstr "حسابك جاهز. سجّل الدخول للمتابعة."
+
+#. js-lingui-explicit-id
+msgid "team.member-not-found"
+msgstr "عضو الفريق غير موجود."
+
+#. js-lingui-explicit-id
+msgid "team.email-already-member"
+msgstr "هذا البريد الإلكتروني لعضو في فريقك بالفعل."
+
+#. js-lingui-explicit-id
+msgid "team.invitation-invalid"
+msgstr "لا يمكن استخدام رابط الدعوة هذا. اطلب دعوة جديدة."
+
+#. js-lingui-explicit-id
+msgid "team.invitation-expired"
+msgstr "انتهت صلاحية هذه الدعوة. اطلب دعوة جديدة."
+
+#. js-lingui-explicit-id
+msgid "team.resend-cooldown"
+msgstr "أُرسلت الدعوة للتو. انتظر دقيقة قبل إرسالها مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "team.member-not-pending"
+msgstr "هذا العضو لا ينتظر دعوة."
+
+#. js-lingui-explicit-id
+msgid "team.member-not-active"
+msgstr "هذا العضو غير نشط."
+
+#. js-lingui-explicit-id
+msgid "team.owner-protected"
+msgstr "لا يمكن تغيير مالك النشاط التجاري بهذه الطريقة."
+
+#. js-lingui-explicit-id
+msgid "team.account-elsewhere"
+msgstr "هذا البريد الإلكتروني مرتبط بنشاط تجاري آخر. استخدم بريدًا إلكترونيًا مختلفًا للانضمام."
+
+#. js-lingui-explicit-id
+msgid "team.commission-not-found"
+msgstr "العمولة غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "team.commission-in-use"
+msgstr "هذه العمولة لا تزال مسندة إلى عضو."
+
+#. js-lingui-explicit-id
+msgid "team.commission-name-taken"
+msgstr "توجد عمولة بهذا الاسم بالفعل."
+
+#. js-lingui-explicit-id
+msgid "team.invalid-input"
+msgstr "بعض البيانات غير صالحة."
+
+#. js-lingui-explicit-id
+msgid "team.access-unavailable"
+msgstr "الأدوار أو المتاجر السابقة لهذا العضو لم تعد موجودة."
+
+#. js-lingui-explicit-id
+msgid "team.member-suspended"
+msgstr "هذا العضو معطّل."
+
+#. js-lingui-explicit-id
+msgid "team.self-action"
+msgstr "لا يمكنك القيام بهذا على حسابك أنت."
+
+#. js-lingui-explicit-id
+msgid "team.resend-limit"
+msgstr "لا يمكن إرسال هذه الدعوة مرة أخرى. ألغها ثم ادعُ من جديد."
+
+#. js-lingui-explicit-id
+msgid "team.too-many-pending"
+msgstr "هناك دعوات كثيرة قيد الانتظار. ألغِ بعضها قبل دعوة المزيد."

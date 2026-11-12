@@ -126,6 +126,7 @@ function requireOptions(): TeamPluginOptions {
   ],
   // The `migrate` role runs the member converge after rbac's (D215).
   exports: [TeamConvergeService],
+  dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 export class TeamPlugin implements NestModule {
