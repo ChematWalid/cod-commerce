@@ -26,8 +26,9 @@ export const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const
 /** One of the {@link LOG_LEVELS}. */
 export type LogLevelName = (typeof LOG_LEVELS)[number];
 
-/** Environments in which a placeholder secret is a misconfiguration. */
+/** Environments in which a placeholder secret or a development fallback is a misconfiguration. */
 const PLACEHOLDER_FORBIDDEN_ENVS: readonly string[] = ['staging', 'production'];
+const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
 
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;
@@ -190,7 +191,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
 }
 
 function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
-  if (!PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV)) {
+  if (!isDeployed(env)) {
     return;
   }
   rejectWeakSecrets(secretsOf(env), context);
@@ -217,17 +218,15 @@ function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
 
 /** Behind the edge `req.ip` is the edge's address, so a deployed limiter without the header has one bucket for everyone. */
 function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
-  if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.CLIENT_IP_HEADER === '') {
+  if (isDeployed(env) && env.CLIENT_IP_HEADER === '') {
     context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in this environment' });
   }
 }
 
 /** Staging and production: where a development fallback is a misconfiguration. */
-const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
-
 /** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
 function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
-  if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.PLATFORM_DOMAIN === undefined) {
+  if (isDeployed(env) && env.PLATFORM_DOMAIN === undefined) {
     context.addIssue({ code: 'custom', path: ['PLATFORM_DOMAIN'], message: 'is required in this environment' });
   }
   if (isDeployed(env) && env.PLATFORM_DOMAIN !== undefined && hasReservedTld(env.PLATFORM_DOMAIN)) {

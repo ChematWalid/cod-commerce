@@ -76,7 +76,7 @@ describe('loadEnv in a deployed environment', () => {
       expect(() => loadEnv({ ...valid, ...strong, APP_ENV: appEnv })).not.toThrow();
     });
 
-    it.each([
+    const weakSecrets: [string, string][] = [
       ['COOKIE_SECRET', 'k'.repeat(40)],
       ['COOKIE_SECRET', 'abc'.repeat(14)],
       ['AUTH_TOKEN_SECRET', 'q'.repeat(40)],
@@ -85,11 +85,23 @@ describe('loadEnv in a deployed environment', () => {
       ['S3_SECRET_KEY', 'ab12'.repeat(16)],
       ['INTERNAL_HMAC_KEYS', `k1:${'q'.repeat(40)}`],
       ['TENANT_SECRET_KEKS', `k1:${'1'.repeat(64)}`],
-    ])('refuses a weak %s (%#) in production, without echoing it', (name, value) => {
-      const error = failureOf({ ...strong, [name]: value });
+    ];
 
-      expect(issuePaths(error)).toEqual([name]);
-      expect(error.message).not.toContain(value.split(':').pop());
+    describe.each(['staging', 'production'])('in %s', (appEnv) => {
+      it.each(weakSecrets)('refuses a weak %s (%#), without echoing it', (name, value) => {
+        const error = failureOf({ ...strong, APP_ENV: appEnv, [name]: value });
+
+        expect(issuePaths(error)).toEqual([name]);
+        expect(error.message).not.toContain(value.split(':').pop());
+      });
+    });
+
+    it('refuses a secret of exactly 9 distinct characters and accepts one of exactly 10', () => {
+      const nine = 'abcdefghi'.repeat(5);
+      const ten = 'abcdefghij'.repeat(4);
+
+      expect(issuePaths(failureOf({ ...strong, COOKIE_SECRET: nine }))).toEqual(['COOKIE_SECRET']);
+      expect(() => loadEnv({ ...valid, ...strong, COOKIE_SECRET: ten })).not.toThrow();
     });
 
     it('refuses a SUPERADMIN_PASSWORD shorter than 12 characters when deployed only', () => {
