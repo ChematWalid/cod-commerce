@@ -57,6 +57,9 @@ function entityColumns(metadata: EntityMetadata): CatalogColumn[] {
   });
 }
 
+/** Entities do not describe database defaults the way `pg_attrdef` does, so the entity comparison leaves them out. */
+const withoutDefault = ({ name, type, notNull }: CatalogColumn): Omit<CatalogColumn, 'default'> => ({ name, type, notNull });
+
 const sorted = (columns: CatalogColumn[]): CatalogColumn[] => [...columns].sort((a, b) => a.name.localeCompare(b.name));
 
 describe('partitioned schema', () => {
@@ -106,14 +109,11 @@ describe('partitioned schema', () => {
     for (const table of PARTITIONED_TABLES) {
       const metadata = metadatas.find((candidate) => candidate.tableName === table);
       expect(metadata, `entity of ${table}`).toBeDefined();
-      const actual = (await catalogColumns(client, 'public', table)).map(({ name, type, notNull }) => ({
-        name,
-        type,
-        notNull,
-        default: null,
-      }));
+      const actual = await catalogColumns(client, 'public', table);
 
-      expect(sorted(actual), table).toEqual(sorted(entityColumns(metadata as EntityMetadata)));
+      expect(sorted(actual).map(withoutDefault), table).toEqual(
+        sorted(entityColumns(metadata as EntityMetadata)).map(withoutDefault),
+      );
     }
   });
 
@@ -134,11 +134,24 @@ describe('partitioned schema', () => {
           )
         ).rows.map((row) => row.definition);
 
+      const triggers = async (schema: string, table: string): Promise<string[]> =>
+        (
+          await client.query<{ definition: string }>(
+            `SELECT replace(pg_get_triggerdef(t.oid), $3, '') AS definition
+               FROM pg_trigger t
+               JOIN pg_class c ON c.oid = t.tgrelid
+               JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = $1 AND c.relname = $2 AND NOT t.tgisinternal ORDER BY t.tgname`,
+            [schema, table, `${schema}.`],
+          )
+        ).rows.map((row) => row.definition);
+
       for (const schema of SCHEMAS) {
         expect(await catalogColumns(client, CHECK_SCHEMA, schema.table), schema.table).toEqual(
           await catalogColumns(client, 'public', schema.table),
         );
         expect(await indexes(CHECK_SCHEMA, schema.table), schema.table).toEqual(await indexes('public', schema.table));
+        expect(await triggers(CHECK_SCHEMA, schema.table), schema.table).toEqual(await triggers('public', schema.table));
       }
     } finally {
       await client.query('SET search_path TO public');

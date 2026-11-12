@@ -78,3 +78,31 @@ export async function catalogSnapshot(client: Client): Promise<Record<string, un
     ),
   };
 }
+
+/** A partition the migrate role premakes for a day: `{table}_pYYYYMMDD`. */
+const DATED_PARTITION = /_p\d{8}$/;
+
+/**
+ * The snapshot without the day-named partitions (their rows, indexes and constraints), plus how many partitions
+ * each parent has. Which days exist depends on the UTC date the migrate ran on, so two runs straddling midnight
+ * differ in names and bounds but not in count.
+ */
+export function withoutDatedPartitions(snapshot: Record<string, unknown[]>): Record<string, unknown[]> {
+  const isDated = (row: unknown): boolean => {
+    const { name, table } = row as { name?: unknown; table?: unknown };
+    return [name, table].some((value) => typeof value === 'string' && DATED_PARTITION.test(value));
+  };
+  const result: Record<string, unknown[]> = {};
+  for (const [key, rows] of Object.entries(snapshot)) {
+    result[key] = rows.filter((row) => !isDated(row));
+  }
+  const counts = new Map<string, number>();
+  for (const row of snapshot['tables'] ?? []) {
+    const { name, parent } = row as { name?: unknown; parent?: unknown };
+    if (typeof name === 'string' && DATED_PARTITION.test(name) && typeof parent === 'string') {
+      counts.set(parent, (counts.get(parent) ?? 0) + 1);
+    }
+  }
+  result['partitionCounts'] = [...counts].map(([parent, count]) => ({ parent, count }));
+  return result;
+}

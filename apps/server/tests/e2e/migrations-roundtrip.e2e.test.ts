@@ -6,16 +6,16 @@ import { buildVendureConfig } from '../../src/config/vendure-config';
 import { MIGRATE_LOCK_TIMEOUT_MS, MIGRATE_STATEMENT_TIMEOUT_MS } from '../../src/roles/migrate.constants';
 import { runMigrate } from '../../src/roles/migrate.role';
 import { COMMITTED_MIGRATION_COUNT } from './support/committed-migrations';
-import { catalogSnapshot } from './support/schema-catalog';
+import { catalogSnapshot, withoutDatedPartitions } from './support/schema-catalog';
 import { connectTo, createDatabase, dropDatabase } from './support/test-database';
 
 const DATABASE_NAME = `cod_roundtrip_${String(process.pid)}`;
 
-/** The snapshot of the whole `public` schema of the scratch database. */
+/** The snapshot of the `public` schema of the scratch database, day-named partitions normalised out. */
 async function snapshotOf(url: string): Promise<Record<string, unknown[]>> {
   const client = await connectTo(url);
   try {
-    return await catalogSnapshot(client);
+    return withoutDatedPartitions(await catalogSnapshot(client));
   } finally {
     await client.end();
   }
