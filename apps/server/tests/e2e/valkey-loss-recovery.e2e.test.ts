@@ -35,7 +35,9 @@ import {
   LONG_BACKOFF_MS,
   MINUTE_MS,
   PROVISION_BUSINESS,
+  SETTLED_SQL,
   SHORT_BACKOFF_MS,
+  STATUS_REPORT_SQL,
   testRedisUrl,
   until,
   UPDATE_GLOBAL_LANGUAGES,
@@ -242,13 +244,20 @@ describe('recovery after the loss of Valkey', () => {
     await bullQueue('bulk').resume();
     const reconciled = await server.app.get(JobReconciler).reconcile(later());
     const swept = await server.app.get(OutboxSweeper).sweep(later());
-    await until(async () => {
-      const open =
-        (await countWhere('outbox_delivery', `"status" NOT IN ('done')`)) +
-        (await countWhere('inbound_webhook', `"status" <> 'processed'`)) +
-        (await countWhere('outbox_event', `"status" = 'pending'`));
-      return open === 0 ? true : undefined;
-    });
+    await until(
+      async () => {
+        const [state] = await sql(SETTLED_SQL);
+        const settled =
+          state?.['openDeliveries'] === 0 &&
+          state['openWebhooks'] === 0 &&
+          state['pendingEvents'] === 0 &&
+          state['deliveries'] === 1 + BULK_EVENTS + DELAYED_EVENTS + PENDING_EVENTS &&
+          state['webhooks'] === WEBHOOKS;
+        return settled ? true : undefined;
+      },
+      undefined,
+      async () => JSON.stringify({ state: (await sql(SETTLED_SQL))[0], open: await sql(STATUS_REPORT_SQL) }),
+    );
 
     // Assert (2)
     expect(reconciled.reenqueued).toBeGreaterThanOrEqual(BULK_EVENTS + DELAYED_EVENTS + WEBHOOKS);
