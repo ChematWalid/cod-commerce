@@ -96,19 +96,21 @@ describe('team commission activity diff (D216)', () => {
 });
 
 describe('activity rows only all-store viewers see (D217)', () => {
-  it('holds every team action and no rbac action', () => {
+  it('holds every team action and the member-access change, and no role action', () => {
     // Arrange
     const teamActions = Object.values(ACTIVITY_ACTIONS).filter((action) => action.startsWith('team.'));
+    const expected = [...teamActions, ACTIVITY_ACTIONS.MEMBER_ACCESS_CHANGED];
 
     // Act
     const restricted = [...ALL_STORES_ONLY_ACTIVITY_ACTIONS];
 
     // Assert
-    expect(restricted.sort()).toEqual([...teamActions].sort());
+    expect(restricted.sort()).toEqual(expected.sort());
   });
 
   it('answers per action', () => {
     expect(isAllStoresOnlyActivityAction(ACTIVITY_ACTIONS.SALARY_PAID)).toBe(true);
+    expect(isAllStoresOnlyActivityAction(ACTIVITY_ACTIONS.MEMBER_ACCESS_CHANGED)).toBe(true);
     expect(isAllStoresOnlyActivityAction(ACTIVITY_ACTIONS.ROLE_CREATED)).toBe(false);
     expect(isAllStoresOnlyActivityAction('unknown.action')).toBe(false);
   });
