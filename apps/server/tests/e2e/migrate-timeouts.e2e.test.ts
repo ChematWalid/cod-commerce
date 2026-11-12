@@ -92,7 +92,10 @@ describe('migrate role waits', () => {
 
   it('SRV-2: a statement past the statement timeout fails with 57014', async () => {
     const started = Date.now();
-    const error = await migrateWith(SleepPastStatementTimeout, { lockTimeoutMs: LONG_MS, statementTimeoutMs: SHORT_MS });
+    const error = await migrateWith(SleepPastStatementTimeout, {
+      lockTimeoutMs: LONG_MS,
+      statementTimeoutMs: SHORT_MS,
+    });
 
     expect(sqlState(error)).toBe('57014');
     expect(Date.now() - started).toBeLessThan(SHORT_MS + 2_500);

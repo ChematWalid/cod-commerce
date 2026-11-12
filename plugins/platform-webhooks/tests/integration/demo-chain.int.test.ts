@@ -133,7 +133,10 @@ describe('demo webhook chain', () => {
 
   it("does not verify business A's account with business B's secret", async () => {
     // Act
-    const forged = await postDemo(businesses.a.stores[0].subdomain, '{"x":2}', { secret: SECRET_B, eventId: 'evt-cross' });
+    const forged = await postDemo(businesses.a.stores[0].subdomain, '{"x":2}', {
+      secret: SECRET_B,
+      eventId: 'evt-cross',
+    });
     const own = await postDemo(businesses.b.stores[0].subdomain, '{"x":3}', { secret: SECRET_B, eventId: 'evt-own-b' });
 
     // Assert

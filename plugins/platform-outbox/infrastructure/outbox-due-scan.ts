@@ -59,7 +59,12 @@ export class PostgresOutboxDueScan implements OutboxDueScanPort {
     limit: number,
     after?: DueDeliveryRow,
   ): Promise<readonly DueDeliveryRow[]> {
-    const cursor = after ?? { stuckSince: new Date(0), createdAt: new Date(0), outboxId: BEFORE_EVERYTHING, consumer: '' };
+    const cursor = after ?? {
+      stuckSince: new Date(0),
+      createdAt: new Date(0),
+      outboxId: BEFORE_EVERYTHING,
+      consumer: '',
+    };
     return this.connection.rawConnection.query<DeliveryRowShape[]>(
       `SELECT "createdAt", "outboxId"::text AS "outboxId", "consumer", "businessId"::text AS "businessId",
               "attempts", "nextAttemptAt", COALESCE("enqueuedAt", "updatedAt") AS "stuckSince"

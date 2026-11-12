@@ -56,12 +56,21 @@ describe('loadEnv PLATFORM_DEMO_HANDLERS', () => {
   });
 
   it('is refused in production', () => {
-    const error = failureOf({ APP_ENV: 'production', CLIENT_IP_HEADER: 'cf-connecting-ip', PLATFORM_DEMO_HANDLERS: 'true' });
+    const error = failureOf({
+      APP_ENV: 'production',
+      CLIENT_IP_HEADER: 'cf-connecting-ip',
+      PLATFORM_DEMO_HANDLERS: 'true',
+    });
     expect(issuePaths(error)).toEqual(['PLATFORM_DEMO_HANDLERS']);
   });
 
   it('may stay off in production', () => {
-    const env = loadEnv({ ...valid, APP_ENV: 'production', CLIENT_IP_HEADER: 'cf-connecting-ip', PLATFORM_DEMO_HANDLERS: 'false' });
+    const env = loadEnv({
+      ...valid,
+      APP_ENV: 'production',
+      CLIENT_IP_HEADER: 'cf-connecting-ip',
+      PLATFORM_DEMO_HANDLERS: 'false',
+    });
     expect(env.PLATFORM_DEMO_HANDLERS).toBe(false);
   });
 });

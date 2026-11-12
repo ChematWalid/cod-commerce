@@ -23,7 +23,12 @@ interface UpdateArgs {
 }
 
 interface OverrideArgs {
-  readonly input: { readonly key: string; readonly scope: GraphQlScope; readonly scopeId: string; readonly enabled: boolean };
+  readonly input: {
+    readonly key: string;
+    readonly scope: GraphQlScope;
+    readonly scopeId: string;
+    readonly enabled: boolean;
+  };
 }
 
 interface OverrideKeyArgs {

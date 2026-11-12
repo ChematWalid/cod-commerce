@@ -22,7 +22,14 @@ import {
   effectAccounts,
   effectSignature,
 } from './fixtures/effect-counter.plugin';
-import { afterE2eInit, buildE2eConfig, E2E_INITIAL_DATA, e2eEnv, e2eRedis, useE2ePlatformJobs } from './support/e2e-config';
+import {
+  afterE2eInit,
+  buildE2eConfig,
+  E2E_INITIAL_DATA,
+  e2eEnv,
+  e2eRedis,
+  useE2ePlatformJobs,
+} from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
 
 const SUITE = 'valkey-loss-recovery';
@@ -114,7 +121,9 @@ describe('recovery after the loss of Valkey', () => {
 
   async function postWebhook(n: number): Promise<void> {
     const body = JSON.stringify({ n });
-    const { port } = (server.app.getHttpServer() as import('node:http').Server).address() as import('node:net').AddressInfo;
+    const { port } = (
+      server.app.getHttpServer() as import('node:http').Server
+    ).address() as import('node:net').AddressInfo;
     const response = await fetch(`http://localhost:${String(port)}/webhooks/${EFFECT_PROVIDER}/${ACCOUNT_KEY}`, {
       method: 'POST',
       headers: {
@@ -205,7 +214,11 @@ describe('recovery after the loss of Valkey', () => {
       consumer: CRITICAL_EFFECT_CONSUMER,
     });
     await until(async () =>
-      (await bullQueue('critical').getJob(keptJobId).then((job) => job?.getState())) === 'failed' ? true : undefined,
+      (await bullQueue('critical')
+        .getJob(keptJobId)
+        .then((job) => job?.getState())) === 'failed'
+        ? true
+        : undefined,
     );
     await sql(
       `INSERT INTO "outbox_delivery"

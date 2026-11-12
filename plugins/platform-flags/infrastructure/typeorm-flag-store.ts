@@ -19,9 +19,7 @@ const stateOf = (flag: FeatureFlagEntity, overrides: readonly FeatureFlagOverrid
   updatedAt: flag.updatedAt.toISOString(),
   overrides: overrides
     .map((override) => ({ scope: override.scope, scopeId: override.scopeId, enabled: override.enabled }))
-    .sort((left, right) =>
-      `${left.scope}:${left.scopeId}`.localeCompare(`${right.scope}:${right.scopeId}`),
-    ),
+    .sort((left, right) => `${left.scope}:${left.scopeId}`.localeCompare(`${right.scope}:${right.scopeId}`)),
 });
 
 /**
@@ -38,7 +36,10 @@ export class TypeOrmFlagStore implements FlagStorePort {
 
   async loadSnapshot(): Promise<FlagSnapshot> {
     const manager = this.connection.rawConnection.manager;
-    const [flags, overrides] = await Promise.all([manager.find(FeatureFlagEntity), manager.find(FeatureFlagOverrideEntity)]);
+    const [flags, overrides] = await Promise.all([
+      manager.find(FeatureFlagEntity),
+      manager.find(FeatureFlagOverrideEntity),
+    ]);
     const byKey = Object.fromEntries(
       flags.map((flag) => [
         flag.key,
@@ -69,10 +70,7 @@ export class TypeOrmFlagStore implements FlagStorePort {
     });
   }
 
-  setOverride(
-    override: OverrideKey & { readonly enabled: boolean },
-    actor: string,
-  ): Promise<FlagChange | undefined> {
+  setOverride(override: OverrideKey & { readonly enabled: boolean }, actor: string): Promise<FlagChange | undefined> {
     return this.change(override.key, async (manager) => {
       // `id` stays out of the conflict update: an existing override keeps its id.
       await manager
@@ -104,10 +102,7 @@ export class TypeOrmFlagStore implements FlagStorePort {
   }
 
   /** Runs `write` on a locked flag in one transaction and returns the flag before and after; undefined when it does not exist. */
-  private change(
-    key: string,
-    write: (manager: EntityManager) => Promise<void>,
-  ): Promise<FlagChange | undefined> {
+  private change(key: string, write: (manager: EntityManager) => Promise<void>): Promise<FlagChange | undefined> {
     return this.connection.rawConnection.transaction(async (manager) => {
       const before = await this.read(manager, key, true);
       if (before === undefined) return undefined;

@@ -49,7 +49,11 @@ describe('rolloutBucket', () => {
 
   it('differs per flag key, so one business is not always first in line', () => {
     // Act
-    const buckets = new Set(['a.enabled', 'b.enabled', 'c.enabled', 'd.enabled', 'e.enabled'].map((key) => rolloutBucket(key, '7000000000000000001')));
+    const buckets = new Set(
+      ['a.enabled', 'b.enabled', 'c.enabled', 'd.enabled', 'e.enabled'].map((key) =>
+        rolloutBucket(key, '7000000000000000001'),
+      ),
+    );
 
     // Assert
     expect(buckets.size).toBeGreaterThan(1);

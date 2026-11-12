@@ -76,7 +76,11 @@ export class EffectCounterPlugin {
     await this.connection.getRepository(ctx, EffectSeenEntity).insert({ effectKey, seenBusinessId: businessId });
   }
 
-  private consumer(name: string, topic: OutboxConsumer['topics'][number], queue: OutboxConsumer['queue']): OutboxConsumer {
+  private consumer(
+    name: string,
+    topic: OutboxConsumer['topics'][number],
+    queue: OutboxConsumer['queue'],
+  ): OutboxConsumer {
     return {
       name,
       topics: [topic],

@@ -17,10 +17,9 @@ describe('flag overrides between two businesses', () => {
 
   const admin = (): FlagAdminService => server.app.get(FlagAdminService);
   const isOn = (businessId: string, storeId?: string): Promise<boolean> =>
-    server.app.get(FeatureFlags).isEnabledFor(
-      { businessId: toBusinessId(businessId), ...(storeId === undefined ? {} : { storeId }) },
-      KEY,
-    );
+    server.app
+      .get(FeatureFlags)
+      .isEnabledFor({ businessId: toBusinessId(businessId), ...(storeId === undefined ? {} : { storeId }) }, KEY);
   const override = (scope: 'business' | 'store', scopeId: string, enabled: boolean) =>
     admin().setOverride(ACTOR, { key: KEY, scope, scopeId, enabled });
   const clear = (scope: 'business' | 'store', scopeId: string) =>

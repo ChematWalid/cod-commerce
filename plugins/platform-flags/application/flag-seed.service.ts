@@ -16,7 +16,9 @@ export class FlagSeedService {
 
   async converge(): Promise<FlagSeedReport> {
     const inserted = await this.store.insertMissing(FLAG_SEEDS);
-    this.logger.info(`Feature flags: ${String(inserted)} seeded, ${String(FLAG_SEEDS.length - inserted)} already there`);
+    this.logger.info(
+      `Feature flags: ${String(inserted)} seeded, ${String(FLAG_SEEDS.length - inserted)} already there`,
+    );
     return { inserted };
   }
 }

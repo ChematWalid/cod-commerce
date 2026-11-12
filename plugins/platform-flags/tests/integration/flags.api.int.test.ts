@@ -155,10 +155,9 @@ describe('flags Admin API', () => {
 
       // Act
       await adminClient.query(SET_OVERRIDE, { input: { ...input, enabled: true } });
-      const { setFeatureFlagOverride } = await adminClient.query<{ setFeatureFlagOverride: FlagResult }>(
-        SET_OVERRIDE,
-        { input: { ...input, enabled: false } },
-      );
+      const { setFeatureFlagOverride } = await adminClient.query<{ setFeatureFlagOverride: FlagResult }>(SET_OVERRIDE, {
+        input: { ...input, enabled: false },
+      });
       await adminClient.query(REMOVE_OVERRIDE, { input });
 
       // Assert

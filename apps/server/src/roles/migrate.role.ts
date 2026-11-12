@@ -179,10 +179,7 @@ async function seedFlags(app: INestApplicationContext): Promise<void> {
  * Concurrent runs are serialised, so each migration applies once; one that cannot get the lock in time throws
  * {@link MigrationLockTimeoutError}.
  */
-export async function runMigrate(
-  env: AppEnv,
-  options: { lockWaitMs?: number } = {},
-): Promise<MigrateReport> {
+export async function runMigrate(env: AppEnv, options: { lockWaitMs?: number } = {}): Promise<MigrateReport> {
   return withMigrateLock(env, options.lockWaitMs ?? MIGRATE_LOCK_WAIT_MS, async () => {
     const migrationsRun = await runMigrationsOrThrow(buildVendureConfig(env, 'migrate'));
     const worker = await bootstrapWorker(buildVendureConfig(env, 'migrate'));

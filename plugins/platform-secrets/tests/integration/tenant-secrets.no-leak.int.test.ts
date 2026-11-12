@@ -224,7 +224,11 @@ describe('tenant secrets never leak', () => {
     const repository = server.app.get<SecretRepositoryPort>(SECRET_REPOSITORY);
     const refs = Array.from({ length: 20 }, (_, index) => `race-${String(index)}`);
     const writers = 5;
-    const sealed = { iv: Buffer.alloc(12, 1), ciphertext: Buffer.from('synthetic-ciphertext'), tag: Buffer.alloc(16, 2) };
+    const sealed = {
+      iv: Buffer.alloc(12, 1),
+      ciphertext: Buffer.from('synthetic-ciphertext'),
+      tag: Buffer.alloc(16, 2),
+    };
     let nextId = 7_400_000_000_000_000_000n;
     Logger.useLogger(recorder);
     // The test database config logs no query; production logs every failed one (Vendure's TypeOrmLogger) with its

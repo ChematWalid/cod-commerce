@@ -42,13 +42,7 @@ describe('evaluateFlag precedence', () => {
       'pro',
       false,
     ],
-    [
-      'plan over default',
-      [override('plan', 'pro', true)],
-      { businessId: BUSINESS, storeId: STORE },
-      'pro',
-      true,
-    ],
+    ['plan over default', [override('plan', 'pro', true)], { businessId: BUSINESS, storeId: STORE }, 'pro', true],
     ['the default when nothing overrides', [], { businessId: BUSINESS, storeId: STORE }, 'pro', false],
   ] as const)('%s', (...[, overrides, subject, plan, expected]) => {
     // Act
@@ -60,7 +54,10 @@ describe('evaluateFlag precedence', () => {
 
   it("ignores another business's and another store's overrides", () => {
     // Arrange
-    const snapshot = flag({}, [override('business', OTHER_BUSINESS, true), override('store', '7100000000000000009', true)]);
+    const snapshot = flag({}, [
+      override('business', OTHER_BUSINESS, true),
+      override('store', '7100000000000000009', true),
+    ]);
 
     // Act and Assert
     expect(evaluateFlag(snapshot, KEY, { businessId: BUSINESS, storeId: STORE }, undefined)).toBe(false);
@@ -91,9 +88,9 @@ describe('evaluateFlag precedence', () => {
 
   it('answers false when the default is off, whatever the rollout', () => {
     // Act and Assert
-    expect(evaluateFlag(flag({ defaultEnabled: false, rolloutPercent: 100 }), KEY, { businessId: BUSINESS }, undefined)).toBe(
-      false,
-    );
+    expect(
+      evaluateFlag(flag({ defaultEnabled: false, rolloutPercent: 100 }), KEY, { businessId: BUSINESS }, undefined),
+    ).toBe(false);
   });
 });
 

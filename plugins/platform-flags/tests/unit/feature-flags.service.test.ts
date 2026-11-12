@@ -9,22 +9,45 @@ import { ManualClock } from '../fixtures/manual-clock';
 const KEY = FLAG_KEYS.ai;
 const BUSINESS = '7000000000000000001';
 
-const snapshotOf = (defaultEnabled: boolean, overrides: FlagSnapshot['flags'][string]['overrides'] = []): FlagSnapshot => ({
-  flags: { [KEY]: { description: 'd', defaultEnabled, rolloutPercent: 100, updatedAt: '2026-01-01T00:00:00.000Z', overrides } },
+const snapshotOf = (
+  defaultEnabled: boolean,
+  overrides: FlagSnapshot['flags'][string]['overrides'] = [],
+): FlagSnapshot => ({
+  flags: {
+    [KEY]: { description: 'd', defaultEnabled, rolloutPercent: 100, updatedAt: '2026-01-01T00:00:00.000Z', overrides },
+  },
 });
 
 function setup(initial: FlagSnapshot) {
   const clock = new ManualClock(1_000_000);
   let database = initial;
   const store = { loadSnapshot: vi.fn(() => Promise.resolve(database)) };
-  const cache = { read: vi.fn(() => Promise.resolve(undefined as FlagSnapshot | undefined)), write: vi.fn(() => Promise.resolve(true)), invalidate: vi.fn(() => Promise.resolve(true)) };
+  const cache = {
+    read: vi.fn(() => Promise.resolve(undefined as FlagSnapshot | undefined)),
+    write: vi.fn(() => Promise.resolve(true)),
+    invalidate: vi.fn(() => Promise.resolve(true)),
+  };
   const plans = { planKeyOf: vi.fn(() => Promise.resolve('pro' as string | undefined)) };
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const ports = {
-    store, cache, plans, clock, logger,
+    store,
+    cache,
+    plans,
+    clock,
+    logger,
     subjects: { subjectOf: () => ({ businessId: BUSINESS }) },
   } as unknown as FeatureFlagsPorts;
-  return { flags: new FeatureFlags(ports), clock, store, cache, plans, logger, setDatabase: (next: FlagSnapshot) => { database = next; } };
+  return {
+    flags: new FeatureFlags(ports),
+    clock,
+    store,
+    cache,
+    plans,
+    logger,
+    setDatabase: (next: FlagSnapshot) => {
+      database = next;
+    },
+  };
 }
 
 describe('FeatureFlags', () => {
@@ -70,7 +93,12 @@ describe('FeatureFlags', () => {
     // Arrange
     const { flags, store, setDatabase } = setup(snapshotOf(true));
     let release: (snapshot: FlagSnapshot) => void = () => undefined;
-    store.loadSnapshot.mockImplementationOnce(() => new Promise<FlagSnapshot>((resolve) => { release = resolve; }));
+    store.loadSnapshot.mockImplementationOnce(
+      () =>
+        new Promise<FlagSnapshot>((resolve) => {
+          release = resolve;
+        }),
+    );
     const before = flags.isEnabledFor({}, KEY);
     await Promise.resolve();
     await Promise.resolve();
@@ -90,7 +118,12 @@ describe('FeatureFlags', () => {
     // Arrange
     const { flags, store, cache } = setup(snapshotOf(true));
     let release: (snapshot: FlagSnapshot) => void = () => undefined;
-    store.loadSnapshot.mockImplementationOnce(() => new Promise<FlagSnapshot>((resolve) => { release = resolve; }));
+    store.loadSnapshot.mockImplementationOnce(
+      () =>
+        new Promise<FlagSnapshot>((resolve) => {
+          release = resolve;
+        }),
+    );
     const pending = flags.isEnabledFor({}, KEY);
     await Promise.resolve();
     await Promise.resolve();
@@ -130,7 +163,12 @@ describe('FeatureFlags', () => {
     expect(await flags.isEnabledFor({}, KEY)).toBe(true);
     clock.advance(FLAG_SNAPSHOT_TTL_MS);
     let fail: (error: Error) => void = () => undefined;
-    store.loadSnapshot.mockImplementationOnce(() => new Promise<FlagSnapshot>((_resolve, reject) => { fail = reject; }));
+    store.loadSnapshot.mockImplementationOnce(
+      () =>
+        new Promise<FlagSnapshot>((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
     const pending = flags.isEnabledFor({}, KEY);
     await Promise.resolve();
     await Promise.resolve();
