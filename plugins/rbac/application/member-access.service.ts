@@ -104,6 +104,31 @@ export class MemberAccessService {
     return [...new Set(rows.map((row) => row.administratorId))].sort((left, right) => left - right);
   }
 
+  /** The name of every role of the business, by role id. Team names the roles of invitations and snapshots (D204). */
+  async roleNames(ctx: OperationContext, scope: TenantScope): Promise<ReadonlyMap<string, string>> {
+    return new Map((await this.ports.roles.all(ctx, scope)).map((role) => [role.id as string, role.name]));
+  }
+
+  /**
+   * The access of every live role holder of the business, by administrator id, read in two queries whatever the
+   * team size: Team's members list shows and filters by it (D211). An administrator holding no role is absent.
+   */
+  async accessOfHolders(ctx: OperationContext, scope: TenantScope): Promise<ReadonlyMap<number, MemberAccessView>> {
+    const all = await this.ports.roles.all(ctx, scope);
+    if (all.length === 0) return new Map();
+    const rows = await this.ports.assignments.ofRoles(
+      ctx,
+      scope,
+      all.map((role) => role.id),
+    );
+    const byHolder = new Map<number, MemberAssignment[]>();
+    for (const row of rows) byHolder.set(row.administratorId, [...(byHolder.get(row.administratorId) ?? []), row]);
+    const roles = new Map<string, BusinessRole>(all.map((role) => [role.id, role]));
+    return new Map(
+      [...byHolder].map(([administratorId, held]) => [administratorId, this.viewOf(administratorId, held, roles)]),
+    );
+  }
+
   private async setInTransaction(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
     const { scope } = command.actor;
     await this.ports.lock.acquire(ctx, scope.businessId);

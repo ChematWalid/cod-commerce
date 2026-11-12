@@ -88,3 +88,58 @@ describe('MemberAccessService.memberAdministratorIds', () => {
     expect(holders).toEqual([]);
   });
 });
+
+describe('MemberAccessService.roleNames', () => {
+  it('names every role of the business by id', async () => {
+    // Arrange
+    const service = new MemberAccessService(portsWith([]));
+
+    // Act
+    const names = await service.roleNames(ctx, scope);
+
+    // Assert
+    expect([...names.entries()]).toEqual([
+      ['101', '101'],
+      ['102', '102'],
+    ]);
+  });
+});
+
+describe('MemberAccessService.accessOfHolders', () => {
+  it('gives each live holder its roles and store access, keyed by administrator, in one read', async () => {
+    // Arrange
+    const selected: MemberAssignment = { ...assignment(5, '102'), storeAccess: 'selected', storeIds: [toSnowflake('11')] };
+    const service = new MemberAccessService(portsWith([assignment(3, '101'), assignment(3, '102'), selected]));
+
+    // Act
+    const access = await service.accessOfHolders(ctx, scope);
+
+    // Assert
+    expect(access.get(3)).toEqual({
+      administratorId: '3',
+      roles: [
+        { id: '101', name: '101' },
+        { id: '102', name: '102' },
+      ],
+      storeAccess: 'all',
+      storeIds: [],
+    });
+    expect(access.get(5)).toMatchObject({
+      roles: [{ id: '102', name: '102' }],
+      storeAccess: 'selected',
+      storeIds: ['11'],
+    });
+    expect(access.has(9)).toBe(false);
+  });
+
+  it('is empty when the business has no role', async () => {
+    // Arrange
+    const service = new MemberAccessService({ ...portsWith([]), roles: { all: () => Promise.resolve([]) } });
+
+    // Act
+    const access = await service.accessOfHolders(ctx, scope);
+
+    // Assert
+    expect(access.size).toBe(0);
+  });
+});
