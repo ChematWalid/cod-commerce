@@ -1,58 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, loadEnv } from '../../src/config/env';
+import { loadEnv } from '../../src/config/env';
+import {
+  DEPLOYED_OVERRIDES,
+  DEPLOYED_PASSWORD,
+  STRONG_SECRETS,
+  TEST_ENV,
+  syntheticPassword,
+  syntheticSecret,
+} from '../support/deployed-env.fixture';
+import { failureOf as envFailure, issuePaths } from '../support/env-failure';
 
 /** A valid environment that is not deployed; each test sets APP_ENV itself. */
-const valid = {
-  APP_ENV: 'test',
-  ROLE: 'api',
-  TZ: 'UTC',
-  DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
-  DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
-  REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
-  AUTH_TOKEN_SECRET: 'Vb5nTr8KcXw2MzQj7LhPd4GfSy9EaUo3',
-  INTERNAL_HMAC_KEYS: `k1:Hn4wBz9TqXc6MvKe2LrJd7GsPy3FaUo8`,
-  TENANT_SECRET_KEKS: `k1:${'0123456789abcdef'.repeat(4)}`,
-  TENANT_SECRET_ACTIVE_KID: 'k1',
-  AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
-  SMTP_HOST: 'smtp.example.test',
-  SMTP_PORT: '587',
-  SMTP_FROM: 'no-reply@example.test',
-  SUPERADMIN_USERNAME: 'superadmin',
-  SUPERADMIN_PASSWORD: 'test-password',
-  S3_ENDPOINT: 'http://garage:3900',
-  S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: 'fedcba9876543210'.repeat(4),
-  S3_BUCKET_PRIVATE: 'cod-private',
-  PLATFORM_DOMAIN: 'souk.example.dz',
-};
+const valid = { ...TEST_ENV };
+const { CLIENT_IP_HEADER } = DEPLOYED_OVERRIDES;
 
-function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
-  try {
-    loadEnv({ ...valid, ...overrides });
-  } catch (error) {
-    if (error instanceof EnvValidationError) {
-      return error;
-    }
-    throw error;
-  }
-  throw new Error('loadEnv accepted an invalid environment');
-}
-
-const issuePaths = (error: EnvValidationError): string[] => error.issues.map((issue) => issue.path);
+const failureOf = (overrides: Record<string, string | undefined>) => envFailure({ ...valid, ...overrides });
 
 describe('loadEnv in a deployed environment', () => {
   it.each(['staging', 'production'])('requires CLIENT_IP_HEADER in %s (RL-4)', (appEnv) => {
-    const deployed = {
-      APP_ENV: appEnv,
-      COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
-      SUPERADMIN_PASSWORD: 'real-admin-pw',
-    };
+    const deployed = { APP_ENV: appEnv, SUPERADMIN_PASSWORD: DEPLOYED_PASSWORD };
 
     expect(issuePaths(failureOf({ ...deployed, CLIENT_IP_HEADER: undefined }))).toEqual(['CLIENT_IP_HEADER']);
-    expect(loadEnv({ ...valid, ...deployed, CLIENT_IP_HEADER: 'cf-connecting-ip' }).CLIENT_IP_HEADER).toBe(
-      'cf-connecting-ip',
-    );
+    expect(loadEnv({ ...valid, ...deployed, CLIENT_IP_HEADER }).CLIENT_IP_HEADER).toBe(CLIENT_IP_HEADER);
   });
 
   it.each(['development', 'test'])('leaves CLIENT_IP_HEADER optional in %s', (appEnv) => {
@@ -60,16 +29,11 @@ describe('loadEnv in a deployed environment', () => {
   });
 
   describe('secret strength (SRV-8)', () => {
-    const HEX = '0123456789abcdef'.repeat(4);
     const strong = {
       APP_ENV: 'production',
-      CLIENT_IP_HEADER: 'cf-connecting-ip',
-      COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
-      AUTH_TOKEN_SECRET: 'Vb5nTr8KcXw2MzQj7LhPd4GfSy9EaUo3',
-      SUPERADMIN_PASSWORD: 'Rg7-vault-pass',
-      S3_SECRET_KEY: HEX,
-      INTERNAL_HMAC_KEYS: 'k1:Hn4wBz9TqXc6MvKe2LrJd7GsPy3FaUo8',
-      TENANT_SECRET_KEKS: `k1:${HEX}`,
+      CLIENT_IP_HEADER,
+      ...STRONG_SECRETS,
+      SUPERADMIN_PASSWORD: DEPLOYED_PASSWORD,
     };
 
     it.each(['staging', 'production'])('accepts strong secrets in %s', (appEnv) => {
@@ -105,19 +69,25 @@ describe('loadEnv in a deployed environment', () => {
     });
 
     it('refuses a SUPERADMIN_PASSWORD shorter than 12 characters when deployed only', () => {
-      expect(issuePaths(failureOf({ ...strong, SUPERADMIN_PASSWORD: 'Rg7-vault1' }))).toEqual(['SUPERADMIN_PASSWORD']);
+      const tenCharacters = syntheticPassword(10);
+
+      expect(issuePaths(failureOf({ ...strong, SUPERADMIN_PASSWORD: tenCharacters }))).toEqual(['SUPERADMIN_PASSWORD']);
       expect(() =>
-        loadEnv({ ...valid, ...strong, APP_ENV: 'development', SUPERADMIN_PASSWORD: 'Rg7-vault1' }),
+        loadEnv({ ...valid, ...strong, APP_ENV: 'development', SUPERADMIN_PASSWORD: tenCharacters }),
       ).not.toThrow();
     });
 
     it('accepts a deployed SUPERADMIN_PASSWORD of exactly 12 characters and refuses 11', () => {
-      expect(issuePaths(failureOf({ ...strong, SUPERADMIN_PASSWORD: 'Rg7-vault1X' }))).toEqual(['SUPERADMIN_PASSWORD']);
-      expect(() => loadEnv({ ...valid, ...strong, SUPERADMIN_PASSWORD: 'Rg7-vault1XQ' })).not.toThrow();
+      expect(issuePaths(failureOf({ ...strong, SUPERADMIN_PASSWORD: syntheticPassword(11) }))).toEqual([
+        'SUPERADMIN_PASSWORD',
+      ]);
+      expect(() => loadEnv({ ...valid, ...strong, SUPERADMIN_PASSWORD: syntheticPassword(12) })).not.toThrow();
     });
 
     it('refuses a short COOKIE_SECRET without the placeholder marker in production', () => {
-      expect(issuePaths(failureOf({ ...strong, COOKIE_SECRET: 'Qm7vXk2LpR9tWc4' }))).toEqual(['COOKIE_SECRET']);
+      const shortSecret = syntheticSecret('short-cookie-secret', 15);
+
+      expect(issuePaths(failureOf({ ...strong, COOKIE_SECRET: shortSecret }))).toEqual(['COOKIE_SECRET']);
     });
 
     it.each(['development', 'test'])('leaves weak secrets alone in %s', (appEnv) => {
@@ -128,7 +98,7 @@ describe('loadEnv in a deployed environment', () => {
   });
 
   describe('PLATFORM_DOMAIN (SRV-9)', () => {
-    const deployed = { CLIENT_IP_HEADER: 'cf-connecting-ip' };
+    const deployed = { CLIENT_IP_HEADER };
 
     it.each(['staging', 'production'])('refuses platform.invalid in %s', (appEnv) => {
       expect(issuePaths(failureOf({ ...deployed, APP_ENV: appEnv, PLATFORM_DOMAIN: 'platform.invalid' }))).toEqual([

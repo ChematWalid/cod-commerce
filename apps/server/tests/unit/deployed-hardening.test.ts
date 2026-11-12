@@ -5,34 +5,10 @@ import { buildAuthConfig } from '../../src/config/auth.config';
 import { isDeployed } from '../../src/config/deployed-env';
 import { loadEnv } from '../../src/config/env';
 import { buildPlugins } from '../../src/config/plugins.config';
-
-const HEX = '0123456789abcdef'.repeat(4);
+import { DEPLOYED_OVERRIDES, TEST_ENV } from '../support/deployed-env.fixture';
 
 /** A valid environment for any APP_ENV: strong secrets, a client IP header and a resolvable domain. */
-const valid = {
-  ROLE: 'api',
-  TZ: 'UTC',
-  DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
-  DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
-  REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
-  AUTH_TOKEN_SECRET: 'Vb5nTr8KcXw2MzQj7LhPd4GfSy9EaUo3',
-  INTERNAL_HMAC_KEYS: 'k1:Hn4wBz9TqXc6MvKe2LrJd7GsPy3FaUo8',
-  TENANT_SECRET_KEKS: `k1:${HEX}`,
-  TENANT_SECRET_ACTIVE_KID: 'k1',
-  AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
-  SMTP_HOST: 'smtp.example.test',
-  SMTP_PORT: '587',
-  SMTP_FROM: 'no-reply@example.test',
-  SUPERADMIN_USERNAME: 'superadmin',
-  SUPERADMIN_PASSWORD: 'Rg7-vault-pass',
-  S3_ENDPOINT: 'http://garage:3900',
-  S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: HEX,
-  S3_BUCKET_PRIVATE: 'cod-private',
-  PLATFORM_DOMAIN: 'souk.example.dz',
-  CLIENT_IP_HEADER: 'cf-connecting-ip',
-};
+const valid = { ...TEST_ENV, ...DEPLOYED_OVERRIDES };
 
 const envOf = (appEnv: string) => loadEnv({ ...valid, APP_ENV: appEnv });
 

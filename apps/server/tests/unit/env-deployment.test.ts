@@ -1,31 +1,15 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, loadEnv, MAX_TRUSTED_PROXY_HOPS } from '../../src/config/env';
+import { loadEnv, MAX_TRUSTED_PROXY_HOPS } from '../../src/config/env';
 import { buildVendureConfig } from '../../src/config/vendure-config';
+import { CORE_ENV, syntheticSecret } from '../support/deployed-env.fixture';
+import { failureOf, issuePaths } from '../support/env-failure';
 
-const valid = {
-  APP_ENV: 'test',
-  ROLE: 'api',
-  TZ: 'UTC',
-  DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
-  DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
-  REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
-  AUTH_TOKEN_SECRET: 'Vb5nTr8KcXw2MzQj7LhPd4GfSy9EaUo3',
-  INTERNAL_HMAC_KEYS: `k1:Hn4wBz9TqXc6MvKe2LrJd7GsPy3FaUo8`,
-  TENANT_SECRET_KEKS: `k1:${'0123456789abcdef'.repeat(4)}`,
-  TENANT_SECRET_ACTIVE_KID: 'k1',
-  SUPERADMIN_USERNAME: 'superadmin',
-  SUPERADMIN_PASSWORD: 'test-password',
-  S3_ENDPOINT: 'http://garage:3900',
-  S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: 'fedcba9876543210'.repeat(4),
-  S3_BUCKET_PRIVATE: 'cod-private',
-};
+const valid = CORE_ENV;
 
 const turnstile = {
   TURNSTILE_ENABLED: 'true',
-  TURNSTILE_SECRET_KEY: 'synthetic-turnstile-secret',
+  TURNSTILE_SECRET_KEY: syntheticSecret('turnstile-secret'),
   TURNSTILE_CHALLENGE_URL: 'https://challenge.example.test/',
 };
 
@@ -51,19 +35,9 @@ const ENDPOINT_OVERRIDES = [
   'FACEBOOK_OAUTH_USERINFO_URL',
 ] as const;
 
-function issuesOf(overrides: Record<string, string>): EnvValidationError['issues'] {
-  try {
-    loadEnv({ ...valid, ...overrides });
-  } catch (error) {
-    if (error instanceof EnvValidationError) {
-      return error.issues;
-    }
-    throw error;
-  }
-  throw new Error('loadEnv accepted an invalid environment');
-}
+const issuesOf = (overrides: Record<string, string>) => failureOf({ ...valid, ...overrides }).issues;
 
-const issuePathsOf = (overrides: Record<string, string>): string[] => issuesOf(overrides).map((issue) => issue.path);
+const issuePathsOf = (overrides: Record<string, string>): string[] => issuePaths(failureOf({ ...valid, ...overrides }));
 
 describe('TRUSTED_PROXY_HOPS', () => {
   it('defaults to one hop', () => {

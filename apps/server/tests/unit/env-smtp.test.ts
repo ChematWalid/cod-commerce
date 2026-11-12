@@ -1,53 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, loadEnv, PLACEHOLDER_SECRET_MARKER } from '../../src/config/env';
+import { loadEnv, PLACEHOLDER_SECRET_MARKER } from '../../src/config/env';
+import { syntheticSecret, TEST_ENV } from '../support/deployed-env.fixture';
+import { failureOf as envFailure, issuePaths } from '../support/env-failure';
 
 const SMTP_USER = 'user@example.test';
-const SMTP_PASS = 'not-a-real-password';
+const SMTP_PASS = syntheticSecret('smtp-password', 19);
 
-const valid = {
-  APP_ENV: 'test',
-  ROLE: 'api',
-  TZ: 'UTC',
-  DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
-  DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
-  REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
-  AUTH_TOKEN_SECRET: 'Vb5nTr8KcXw2MzQj7LhPd4GfSy9EaUo3',
-  INTERNAL_HMAC_KEYS: `k1:Hn4wBz9TqXc6MvKe2LrJd7GsPy3FaUo8`,
-  TENANT_SECRET_KEKS: `k1:${'0123456789abcdef'.repeat(4)}`,
-  TENANT_SECRET_ACTIVE_KID: 'k1',
-  AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
-  SMTP_HOST: 'smtp.example.test',
-  SMTP_PORT: '587',
-  SMTP_FROM: 'no-reply@example.test',
-  SUPERADMIN_USERNAME: 'superadmin',
-  SUPERADMIN_PASSWORD: 'test-password',
-  S3_ENDPOINT: 'http://garage:3900',
-  S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: 'fedcba9876543210'.repeat(4),
-  S3_BUCKET_PRIVATE: 'cod-private',
-  PLATFORM_DOMAIN: 'souk.example.dz',
-  CLIENT_IP_HEADER: 'cf-connecting-ip',
-};
+const valid = { ...TEST_ENV, CLIENT_IP_HEADER: 'cf-connecting-ip' };
 
 /** A port with no conventional TLS mode. */
 const FREE_PORT = '2525';
 
 const credentials = { SMTP_USERNAME: SMTP_USER, SMTP_PASSWORD: SMTP_PASS };
 
-function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
-  try {
-    loadEnv({ ...valid, ...overrides });
-  } catch (error) {
-    if (error instanceof EnvValidationError) {
-      return error;
-    }
-    throw error;
-  }
-  throw new Error('loadEnv accepted an invalid environment');
-}
-
-const issuePaths = (error: EnvValidationError): string[] => error.issues.map((issue) => issue.path);
+const failureOf = (overrides: Record<string, string | undefined>) => envFailure({ ...valid, ...overrides });
 
 describe('loadEnv, SMTP_TLS', () => {
   it.each(['none', 'starttls', 'implicit'])('accepts %s', (mode) => {
