@@ -14,7 +14,7 @@ import {
   type RestAnswer,
   TeamKit,
 } from './team-kit';
-import { type InviteInput, RESEND_INVITATION, REVOKE_INVITATION } from './team-operations';
+import { type InviteInput, RESEND_INVITATION, REVOKE_INVITATION, UPDATE_TEAM_MEMBER } from './team-operations';
 
 const SNOWFLAKE_WORKER_ID = 1013;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
@@ -53,6 +53,18 @@ async function ownerInvites(label: Label, email: string, overrides: Partial<Invi
 }
 
 const idOf = (answer: RestAnswer): string => (answer.body as { id: string }).id;
+const codeOf = (answer: RestAnswer): string | undefined => (answer.body as { code?: string } | null)?.code;
+
+/** The access rows of both businesses (rbac's assignments and bindings) and every activity row naming `memberId`. */
+async function accessAndActivityRows(memberId: string): Promise<unknown[]> {
+  const ids = [businesses.a.businessId, businesses.b.businessId];
+  const assignments = await kit.query('SELECT * FROM member_role_assignment WHERE "businessId" = ANY($1) ORDER BY id', [
+    ids,
+  ]);
+  const bindings = await kit.query('SELECT * FROM role_binding WHERE "businessId" = ANY($1) ORDER BY id', [ids]);
+  const activity = await kit.query('SELECT * FROM activity_log WHERE "entityId" = $1 ORDER BY id', [memberId]);
+  return [assignments, bindings, activity];
+}
 
 /** The token of the invitation mail to `email` whose link was the `nth` sent. */
 async function tokenOf(email: string, nth: number): Promise<string> {
@@ -131,6 +143,36 @@ describe('two businesses (multi-tenant check)', () => {
 
     // Assert
     expect([withRole.status, withStore.status]).toEqual([404, 403]);
+  });
+
+  it("refuses B's owner giving B's own member A's role or store, on both surfaces, and changes no access", async () => {
+    // Arrange
+    const { a, b } = businesses;
+    const memberOfB = await kit.teamMemberWith(b, await kit.builtInRoleId(b, 'order-tracker'), [b.stores[0]]);
+    const edits = [
+      { roleIds: [await kit.builtInRoleId(a, 'order-tracker')] },
+      { storeAccess: 'selected', storeIds: [a.stores[0].id] },
+    ];
+    await kit.signIn(b.owner, b.stores[0]);
+    const before = await accessAndActivityRows(memberOfB.memberId);
+
+    // Act
+    const rest: RestAnswer[] = [];
+    const graphql: (readonly string[])[] = [];
+    for (const edit of edits) {
+      rest.push(await kit.rest('PATCH', `/employees/${memberOfB.memberId}`, edit));
+      graphql.push(
+        (await failureOf(adminClient.query(UPDATE_TEAM_MEMBER, { id: memberOfB.memberId, input: edit }))).codes,
+      );
+    }
+
+    // Assert
+    expect(rest.map((answer) => [answer.status, codeOf(answer)])).toEqual([
+      [404, 'rbac.role-not-found'],
+      [403, 'rbac.store-not-accessible'],
+    ]);
+    expect(graphql).toEqual([['rbac.role-not-found'], ['rbac.store-not-accessible']]);
+    expect(await accessAndActivityRows(memberOfB.memberId)).toEqual(before);
   });
 
   it("makes an account of A that holds no role of B, and fails closed on a grant tampered to B's role", async () => {
