@@ -26,13 +26,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:24.631Z",
+      "joinedAt": "2026-11-12T21:55:18.608Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Second Owner",
       "roles": [
         {
-          "id": "246703695780126720",
+          "id": "246754757094416384",
           "name": "Owner"
         }
       ],
@@ -106,7 +106,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "idempotencyKey": "evidence-b-1794508255"
+  "idempotencyKey": "evidence-b-1794520354"
 }
 
 HTTP/1.1 404 Not Found
@@ -207,7 +207,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-12T18:34:05.571Z",
+  "timestamp": "2026-11-12T21:58:37.784Z",
   "path": "/employees?tab=all"
 }
 ```
@@ -235,7 +235,7 @@ HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
 
 {
-  "id": "246704119878782976",
+  "id": "246755593107279872",
   "administratorId": null,
   "email": "amina@invitee.example.test",
   "firstName": null,
@@ -245,7 +245,7 @@ content-type: application/json; charset=utf-8
   "baseSalary": 1000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T18:34:05.707Z",
+  "invitedAt": "2026-11-12T21:58:37.888Z",
   "joinedAt": null
 }
 ```

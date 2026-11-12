@@ -57,8 +57,8 @@ content-type: application/json; charset=utf-8
   "value": 150,
   "scope": "all",
   "storeIds": [],
-  "createdAt": "2026-11-12T18:33:04.075Z",
-  "updatedAt": "2026-11-12T18:33:04.075Z"
+  "createdAt": "2026-11-12T21:57:37.848Z",
+  "updatedAt": "2026-11-12T21:57:37.848Z"
 }
 ```
 
@@ -94,8 +94,8 @@ content-type: application/json; charset=utf-8
   "storeIds": [
     "<STORE_DEMO>"
   ],
-  "createdAt": "2026-11-12T18:33:04.205Z",
-  "updatedAt": "2026-11-12T18:33:04.205Z"
+  "createdAt": "2026-11-12T21:57:37.981Z",
+  "updatedAt": "2026-11-12T21:57:37.981Z"
 }
 ```
 
@@ -118,8 +118,8 @@ content-type: application/json; charset=utf-8
     "value": 150,
     "scope": "all",
     "storeIds": [],
-    "createdAt": "2026-11-12T18:33:04.075Z",
-    "updatedAt": "2026-11-12T18:33:04.075Z"
+    "createdAt": "2026-11-12T21:57:37.848Z",
+    "updatedAt": "2026-11-12T21:57:37.848Z"
   },
   {
     "id": "<COMMISSION_PERCENT>",
@@ -131,8 +131,8 @@ content-type: application/json; charset=utf-8
     "storeIds": [
       "<STORE_DEMO>"
     ],
-    "createdAt": "2026-11-12T18:33:04.205Z",
-    "updatedAt": "2026-11-12T18:33:04.205Z"
+    "createdAt": "2026-11-12T21:57:37.981Z",
+    "updatedAt": "2026-11-12T21:57:37.981Z"
   }
 ]
 ```
@@ -155,8 +155,8 @@ content-type: application/json; charset=utf-8
   "value": 150,
   "scope": "all",
   "storeIds": [],
-  "createdAt": "2026-11-12T18:33:04.075Z",
-  "updatedAt": "2026-11-12T18:33:04.075Z"
+  "createdAt": "2026-11-12T21:57:37.848Z",
+  "updatedAt": "2026-11-12T21:57:37.848Z"
 }
 ```
 
@@ -183,8 +183,8 @@ content-type: application/json; charset=utf-8
   "value": 200,
   "scope": "all",
   "storeIds": [],
-  "createdAt": "2026-11-12T18:33:04.075Z",
-  "updatedAt": "2026-11-12T18:33:04.514Z"
+  "createdAt": "2026-11-12T21:57:37.848Z",
+  "updatedAt": "2026-11-12T21:57:38.293Z"
 }
 ```
 
@@ -218,8 +218,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 32000,
   "maxOpenOrders": 20,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T18:32:56.494Z",
-  "joinedAt": "2026-11-12T18:32:58.769Z"
+  "invitedAt": "2026-11-12T21:57:24.321Z",
+  "joinedAt": "2026-11-12T21:57:28.742Z"
 }
 ```
 

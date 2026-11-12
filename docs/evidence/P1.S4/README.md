@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P1.S4.sh`. Data is synthetic. Image
 built from a tree with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit
-`afed74346d46e8ff8f4e8c3de243149f89e75e5a`. Compose project `cod-evidence`.
+`99cf831e996c19e8c4ba05275ed00f316bd91fdf`. Compose project `cod-evidence`.
 
 ## API transcripts
 
@@ -29,8 +29,8 @@ no outbox or subscriber exists until P6.S4, so no worker log line can show it. T
 
 Run on this stack, since `browser.yml` does not run on pull requests: `pnpm --filter @cod/server test:browser`.
 
-Test Files  12 passed (12)
-Tests  103 passed (103)
+Test Files  13 passed (13)
+Tests  105 passed (105)
 
 ## Browser flows proved by `scripts/evidence/P1.S4-screens.mjs`
 

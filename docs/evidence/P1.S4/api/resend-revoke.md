@@ -28,7 +28,7 @@ content-type: application/json; charset=utf-8
   "baseSalary": 20000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T18:32:57.689Z",
+  "invitedAt": "2026-11-12T21:57:25.923Z",
   "joinedAt": null
 }
 ```
@@ -84,7 +84,7 @@ content-type: application/json; charset=utf-8
   "email": "pending@invitee.example.test",
   "businessName": "Demo",
   "inviterName": "Demo Owner",
-  "expiresAt": "2026-11-19T18:33:58.229Z"
+  "expiresAt": "2026-11-19T21:58:28.279Z"
 }
 ```
 

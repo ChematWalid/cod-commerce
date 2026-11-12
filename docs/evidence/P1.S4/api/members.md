@@ -25,7 +25,7 @@ content-type: application/json; charset=utf-8
       "baseSalary": 20000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:57.953Z",
+      "invitedAt": "2026-11-12T21:57:27.311Z",
       "joinedAt": null,
       "tab": "pending",
       "invitationExpired": false,
@@ -56,7 +56,7 @@ content-type: application/json; charset=utf-8
       "baseSalary": 20000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:57.689Z",
+      "invitedAt": "2026-11-12T21:57:25.923Z",
       "joinedAt": null,
       "tab": "pending",
       "invitationExpired": false,
@@ -83,8 +83,8 @@ content-type: application/json; charset=utf-8
       "baseSalary": 25000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:57.203Z",
-      "joinedAt": "2026-11-12T18:32:59.957Z",
+      "invitedAt": "2026-11-12T21:57:25.475Z",
+      "joinedAt": "2026-11-12T21:57:32.616Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Karim Haddad",
@@ -114,8 +114,8 @@ content-type: application/json; charset=utf-8
       "baseSalary": 30000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:56.494Z",
-      "joinedAt": "2026-11-12T18:32:58.769Z",
+      "invitedAt": "2026-11-12T21:57:24.321Z",
+      "joinedAt": "2026-11-12T21:57:28.742Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Amina Saadi",
@@ -131,7 +131,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704177123328",
+      "id": "246754769274675200",
       "administratorId": "8",
       "email": "perstore@demo.example.test",
       "firstName": "PerStore",
@@ -142,13 +142,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.609Z",
+      "joinedAt": "2026-11-12T21:55:21.477Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "PerStore Member",
       "roles": [
         {
-          "id": "246703702025445376",
+          "id": "246754765889871872",
           "name": "Demo first store catalog"
         }
       ],
@@ -162,7 +162,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704160346112",
+      "id": "246754769262092288",
       "administratorId": "7",
       "email": "settingsview@demo.example.test",
       "firstName": "SettingsView",
@@ -173,13 +173,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.605Z",
+      "joinedAt": "2026-11-12T21:55:21.474Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "SettingsView Member",
       "roles": [
         {
-          "id": "246703700616159232",
+          "id": "246754764178595840",
           "name": "Demo settings viewer"
         }
       ],
@@ -189,7 +189,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704147763200",
+      "id": "246754769245315072",
       "administratorId": "6",
       "email": "noview@demo.example.test",
       "firstName": "NoView",
@@ -200,13 +200,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.602Z",
+      "joinedAt": "2026-11-12T21:55:21.470Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "NoView Member",
       "roles": [
         {
-          "id": "246703699307536384",
+          "id": "246754762345684992",
           "name": "Demo no view"
         }
       ],
@@ -216,7 +216,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704130985984",
+      "id": "246754769232732160",
       "administratorId": "5",
       "email": "orders@demo.example.test",
       "firstName": "Orders",
@@ -227,13 +227,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.598Z",
+      "joinedAt": "2026-11-12T21:55:21.467Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Orders Member",
       "roles": [
         {
-          "id": "246703697931804672",
+          "id": "246754760546328576",
           "name": "Demo orders clerk"
         }
       ],
@@ -243,7 +243,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704118403072",
+      "id": "246754769215954944",
       "administratorId": "4",
       "email": "limited@demo.example.test",
       "firstName": "Limited",
@@ -254,7 +254,7 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.595Z",
+      "joinedAt": "2026-11-12T21:55:21.463Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Limited Member",
@@ -285,13 +285,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:23.731Z",
+      "joinedAt": "2026-11-12T21:55:17.802Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Demo Owner",
       "roles": [
         {
-          "id": "246703691921367040",
+          "id": "246754752656842752",
           "name": "Owner"
         }
       ],
@@ -334,8 +334,8 @@ content-type: application/json; charset=utf-8
       "baseSalary": 25000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:57.203Z",
-      "joinedAt": "2026-11-12T18:32:59.957Z",
+      "invitedAt": "2026-11-12T21:57:25.475Z",
+      "joinedAt": "2026-11-12T21:57:32.616Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Karim Haddad",
@@ -365,8 +365,8 @@ content-type: application/json; charset=utf-8
       "baseSalary": 30000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:56.494Z",
-      "joinedAt": "2026-11-12T18:32:58.769Z",
+      "invitedAt": "2026-11-12T21:57:24.321Z",
+      "joinedAt": "2026-11-12T21:57:28.742Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Amina Saadi",
@@ -382,7 +382,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704177123328",
+      "id": "246754769274675200",
       "administratorId": "8",
       "email": "perstore@demo.example.test",
       "firstName": "PerStore",
@@ -393,13 +393,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.609Z",
+      "joinedAt": "2026-11-12T21:55:21.477Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "PerStore Member",
       "roles": [
         {
-          "id": "246703702025445376",
+          "id": "246754765889871872",
           "name": "Demo first store catalog"
         }
       ],
@@ -413,7 +413,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704160346112",
+      "id": "246754769262092288",
       "administratorId": "7",
       "email": "settingsview@demo.example.test",
       "firstName": "SettingsView",
@@ -424,13 +424,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.605Z",
+      "joinedAt": "2026-11-12T21:55:21.474Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "SettingsView Member",
       "roles": [
         {
-          "id": "246703700616159232",
+          "id": "246754764178595840",
           "name": "Demo settings viewer"
         }
       ],
@@ -440,7 +440,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704147763200",
+      "id": "246754769245315072",
       "administratorId": "6",
       "email": "noview@demo.example.test",
       "firstName": "NoView",
@@ -451,13 +451,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.602Z",
+      "joinedAt": "2026-11-12T21:55:21.470Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "NoView Member",
       "roles": [
         {
-          "id": "246703699307536384",
+          "id": "246754762345684992",
           "name": "Demo no view"
         }
       ],
@@ -467,7 +467,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704130985984",
+      "id": "246754769232732160",
       "administratorId": "5",
       "email": "orders@demo.example.test",
       "firstName": "Orders",
@@ -478,13 +478,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.598Z",
+      "joinedAt": "2026-11-12T21:55:21.467Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Orders Member",
       "roles": [
         {
-          "id": "246703697931804672",
+          "id": "246754760546328576",
           "name": "Demo orders clerk"
         }
       ],
@@ -494,7 +494,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246703704118403072",
+      "id": "246754769215954944",
       "administratorId": "4",
       "email": "limited@demo.example.test",
       "firstName": "Limited",
@@ -505,7 +505,7 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:26.595Z",
+      "joinedAt": "2026-11-12T21:55:21.463Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Limited Member",
@@ -536,13 +536,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T18:32:23.731Z",
+      "joinedAt": "2026-11-12T21:55:17.802Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Demo Owner",
       "roles": [
         {
-          "id": "246703691921367040",
+          "id": "246754752656842752",
           "name": "Owner"
         }
       ],
@@ -585,7 +585,7 @@ content-type: application/json; charset=utf-8
       "baseSalary": 20000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:57.953Z",
+      "invitedAt": "2026-11-12T21:57:27.311Z",
       "joinedAt": null,
       "tab": "pending",
       "invitationExpired": false,
@@ -616,7 +616,7 @@ content-type: application/json; charset=utf-8
       "baseSalary": 20000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:57.689Z",
+      "invitedAt": "2026-11-12T21:57:25.923Z",
       "joinedAt": null,
       "tab": "pending",
       "invitationExpired": false,
@@ -688,8 +688,8 @@ content-type: application/json; charset=utf-8
       "baseSalary": 30000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T18:32:56.494Z",
-      "joinedAt": "2026-11-12T18:32:58.769Z",
+      "invitedAt": "2026-11-12T21:57:24.321Z",
+      "joinedAt": "2026-11-12T21:57:28.742Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Amina Saadi",
@@ -736,8 +736,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 30000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T18:32:56.494Z",
-  "joinedAt": "2026-11-12T18:32:58.769Z",
+  "invitedAt": "2026-11-12T21:57:24.321Z",
+  "joinedAt": "2026-11-12T21:57:28.742Z",
   "tab": "active",
   "invitationExpired": false,
   "name": "Amina Saadi",
