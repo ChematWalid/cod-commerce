@@ -76,6 +76,9 @@ jobs:
           S3_SECRET_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
           COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
           AUTH_TOKEN_SECRET: change-me-auth-000000000000000000000000000000000000000000000000
+          INTERNAL_HMAC_KEYS: k1:change-me-internal-hmac-000000000000000000000
+          TENANT_SECRET_KEKS: k1:0000000000000000000000000000000000000000000000000000000000000000
+          TENANT_SECRET_ACTIVE_KID: k1
           SUPERADMIN_USERNAME: superadmin
           SUPERADMIN_PASSWORD: change-me-admin
         run: NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server build:dashboard
@@ -134,7 +137,13 @@ jobs:
       matrix:
         include:
           - part: others
-            command: pnpm test:integration --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac
+            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags
+          - part: server-e2e
+            command: pnpm exec turbo run test:integration --filter=@cod/server
+          - part: tenancy-1
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-tenancy -- --shard=1/2
+          - part: tenancy-2
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-tenancy -- --shard=2/2
           - part: auth-1
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-auth -- --shard=1/2
           - part: auth-2
@@ -143,6 +152,10 @@ jobs:
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-rbac -- --shard=1/2
           - part: rbac-2
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-rbac -- --shard=2/2
+          - part: platform-1
+            command: pnpm exec turbo run test:integration --concurrency=1 --filter=@cod/plugin-platform-jobs --filter=@cod/plugin-platform-partitions --filter=@cod/plugin-platform-outbox
+          - part: platform-2
+            command: pnpm exec turbo run test:integration --concurrency=1 --filter=@cod/plugin-platform-secrets --filter=@cod/plugin-platform-webhooks --filter=@cod/plugin-platform-flags
     # Same images as docker-compose.yml (a test pins them equal). Valkey's default eviction policy is already noeviction.
     services:
       postgres:
@@ -191,6 +204,11 @@ jobs:
       ROLE: api
       COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
       AUTH_TOKEN_SECRET: change-me-auth-000000000000000000000000000000000000000000000000
+      INTERNAL_HMAC_KEYS: k1:change-me-internal-hmac-000000000000000000000
+      INTERNAL_HMAC_ACTIVE_KID: k1
+      TENANT_SECRET_KEKS: k1:0000000000000000000000000000000000000000000000000000000000000000
+      TENANT_SECRET_ACTIVE_KID: k1
+      PLATFORM_DEMO_HANDLERS: 'true'
       SUPERADMIN_USERNAME: superadmin
       SUPERADMIN_PASSWORD: change-me-admin
       S3_ENDPOINT: http://localhost:3900

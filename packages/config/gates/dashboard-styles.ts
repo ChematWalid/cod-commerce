@@ -41,6 +41,8 @@ const ALLOWED_PHYSICAL_PROPERTIES: readonly { readonly path: string; readonly de
   { path: 'plugins/rbac/dashboard/styles/rbac.css', declaration: 'margin-left: 0' },
   // The stock dialog close button's `right`, before `inset-inline-end`.
   { path: 'plugins/rbac/dashboard/styles/rbac.css', declaration: 'right: auto' },
+  // The stock dialog close button's `right`, before `inset-inline-end`.
+  { path: 'plugins/platform-flags/dashboard/styles/flags.css', declaration: 'right: auto' },
 ];
 
 /** Utilities that paint a fixed colour instead of a theme token. */

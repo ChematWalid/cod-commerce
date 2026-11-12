@@ -1,6 +1,12 @@
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
+import {
+  createPluginTestEnvironment,
+  loadPluginTestDbConfig,
+  PLUGIN_TEST_INITIAL_DATA,
+  withPartitionedSchemas,
+} from '@cod/testing';
 import { TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { NoteEntity } from '../../infrastructure/note.entity';
@@ -15,11 +21,13 @@ const { server } = createPluginTestEnvironment({
   plugins: [
     testRateLimitPlugin(),
     TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1006 }),
+    PlatformPartitionsPlugin,
     RbacPlugin,
     TemplatePlugin,
   ],
   db: loadPluginTestDbConfig(process.env),
 });
+withPartitionedSchemas(server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
 
 beforeAll(async () => {
   await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });

@@ -1,0 +1,34 @@
+{
+  "name": "@cod/plugin-platform-partitions",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Native range-partition maintenance: premade partitions, retention drops with keep guards, scrubs and the unique-index rule (ADR 0016, D106, D121).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/plugin-platform-jobs": "workspace:*",
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "typeorm": "0.3.31"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@nestjs/core": "12.4.0",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

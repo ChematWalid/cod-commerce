@@ -183,3 +183,25 @@ Tests  11 passed | 1 expected fail (12)
 
    The selection criteria: no lost or failed jobs, a working dashboard job list, and unchanged semaphore and priority rules.
 3. **Until P1.S6, nothing may set `activeQueues`.** P1.S6 adds a boot assertion that fails fast when `WORKER_ACTIVE_QUEUES` is non-empty while the stock strategy is in use.
+
+## Addendum (2026-11-10): queue registry and pools (P1.S6)
+
+**Status**: Accepted (2026-11-10, standing user authorization for P1)
+
+- `packages/shared/src/queues.ts` is the single registry of queue names with pool, concurrency per worker, total attempts and backoff. The taxonomy table above is its source; "retries" is read as total attempts.
+- Added to the table: `outbox-relay` (critical), `platform-maintenance` (bulk), `auth-email` (critical, 5 attempts, exponential 30 s; closes D42) and the stock queues `apply-collection-filters`, `clean-sessions`, `update-search-index` (critical, one attempt).
+- The pool split follows option (c) of the activeQueues addendum: one BullMQ prefix per pool (`WORKER_POOL=critical|bulk|all`, default `all`), replacing `WORKER_ACTIVE_QUEUES`. Reasoning and cost: `docs/roadmap/P1-decisions.md` (D99, D100, D101).
+- Durable job ids are `ob-`, `od-`, `iw-`, `kek-` plus dash-joined parts, because BullMQ refuses integer ids and ids containing `:` (D102).
+
+
+## Addendum (2026-11-10): Settled in P1.S6 (D100)
+
+**Status**: Accepted (2026-11-10, standing user authorization for P1)
+
+This settles the three items of the activeQueues addendum.
+
+1. **Pools instead of `WORKER_ACTIVE_QUEUES`.** `WORKER_POOL=critical|bulk|all` (default `all`) sets a worker's `activeQueues` to the registry queues of its pool (`all` = every queue). Boot refuses a non-empty `WORKER_ACTIVE_QUEUES` ("replaced by WORKER_POOL"); an empty one is accepted so old `.env` files still boot. Compose keeps one worker with `all` at Launch.
+2. **Option (c), one prefix per pool.** `PooledJobQueueStrategy` (plugin `platform-jobs`) routes each registry queue to one stock `BullMQJobQueueStrategy` per pool, each with its own prefix `bull:{APP_ENV}:{pool}` (queue and worker), options and job list index. A process starts workers only for its pools, so a job of another pool waits in its own BullMQ queue instead of failing (`apps/server/tests/e2e/worker-pools.e2e.test.ts`). Jobs leave the strategy with id `{pool}.{bullId}`; the Admin API lists and finds jobs of every pool. A queue outside the registry throws `UnregisteredQueueError` at `add` and `start`. The stock `clean-job-queue-index` task is replaced by one that cleans every pool's index. Jobs under the old prefix `bull:{APP_ENV}` are abandoned (pre-production; drain a dev worker before switching).
+3. **Boot assertion.** `buildVendureConfig` throws when `activeQueues` is non-empty and the job queue strategy is not `PooledJobQueueStrategy`. The `it.fails` test of `active-queues.e2e.test.ts` keeps running on the stock strategy as the upstream signal.
+
+Cost: deep imports into `@vendure/job-queue-plugin` (`bullmq-job-queue-strategy`, `constants`, `job-list-index.service`), which a plugin upgrade must re-check; M.S1 re-runs the pool e2e. Fallback: every worker `all`.

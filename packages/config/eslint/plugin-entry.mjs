@@ -18,6 +18,7 @@ const PLUGIN_PACKAGE_PREFIX = '@cod/plugin-';
  */
 export const PLUGIN_SUB_ENTRIES = [
   '@cod/plugin-merchant-shell/shell-api',
+  '@cod/plugin-platform-secrets/kek-ring',
   '@cod/plugin-rbac/guard',
   '@cod/plugin-tenancy/provisioning',
 ];

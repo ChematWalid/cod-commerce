@@ -1,4 +1,9 @@
 import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
+import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
@@ -17,6 +22,9 @@ const valid = {
   REDIS_URL: 'redis://valkey:6379',
   COOKIE_SECRET: 'x'.repeat(32),
   AUTH_TOKEN_SECRET: 'y'.repeat(32),
+  INTERNAL_HMAC_KEYS: `k1:${'z'.repeat(40)}`,
+  TENANT_SECRET_KEKS: `k1:${'1'.repeat(64)}`,
+  TENANT_SECRET_ACTIVE_KID: 'k1',
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
@@ -36,6 +44,59 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TemplatePlugin);
+  });
+
+  // The migrate role runs the first maintenance, and every role needs the registry that owning plugins fill.
+  it.each(SERVER_ROLES)('registers PlatformPartitionsPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformPartitionsPlugin);
+  });
+
+  // The outbox declares entities, so every role registers it (the migrate role creates its tables).
+  it.each(SERVER_ROLES)('registers PlatformOutboxPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformOutboxPlugin);
+  });
+
+  // The flags declare entities, so every role registers them; they read Valkey through `REDIS_URL` and key it by `APP_ENV`.
+  it.each(SERVER_ROLES)(
+    'registers PlatformFlagsPlugin with the Valkey address and environment for the %s role',
+    (role: ServerRole) => {
+      // Arrange
+      const env = loadEnv({ ...valid, ROLE: role });
+
+      // Act
+      const plugins = buildPlugins(env, role);
+
+      // Assert
+      expect(plugins).toContain(PlatformFlagsPlugin);
+      expect(PlatformFlagsPlugin.options).toEqual({ redisUrl: 'redis://valkey:6379', appEnv: 'test' });
+    },
+  );
+
+  // The secrets declare entities, so every role registers them (the migrate role creates their tables).
+  it.each(SERVER_ROLES)('registers PlatformSecretsPlugin with the key ring for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformSecretsPlugin);
+    expect(PlatformSecretsPlugin.options?.kekRing.activeKid).toBe('k1');
   });
 
   it.each(SERVER_ROLES)(
@@ -96,6 +157,22 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TenancyPlugin);
+  });
+
+  it.each(SERVER_ROLES)('registers PlatformJobsPlugin with the pooled queues for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformJobsPlugin);
+    expect(PlatformJobsPlugin.options).toMatchObject({
+      redisUrl: 'redis://valkey:6379',
+      appEnv: 'test',
+      pooledQueues: { connection: { host: 'valkey', port: 6379, maxRetriesPerRequest: null } },
+    });
   });
 
   it.each(SERVER_ROLES)('registers RbacPlugin for the %s role', (role: ServerRole) => {

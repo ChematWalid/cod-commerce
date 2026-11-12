@@ -12,3 +12,5 @@ export { StoreLanguageSelect } from './components/store-language-select';
 export { SubdomainField } from './components/subdomain-field';
 export { TextField } from './components/text-field';
 export { DEFAULT_STORE_LANGUAGE, STORE_LANGUAGE_OPTIONS, SUBDOMAIN_REASON_MESSAGE_IDS } from './constants';
+export { usePlatformStaff } from './hooks/use-platform-staff';
+export { MerchantNotFound } from './components/merchant-route-guard';

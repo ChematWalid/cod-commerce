@@ -1,9 +1,18 @@
-import { InvalidDatabaseUrlError, RESERVED_WORKER_ID_MAX, RESERVED_WORKER_ID_MIN, toPostgresFields } from '@cod/shared';
+import {
+  InvalidDatabaseUrlError,
+  RESERVED_WORKER_ID_MAX,
+  RESERVED_WORKER_ID_MIN,
+  toPostgresFields,
+  WORKER_POOLS,
+} from '@cod/shared';
+import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
+import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
 
@@ -90,6 +99,8 @@ const databaseUrl = z
 
 const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRedisUrlError));
 
+const internalKeys = z.string().superRefine(parsedBy(parseInternalKeys, InvalidInternalKeysError));
+
 const baseSchema = z.object({
   APP_ENV: z.enum(APP_ENVS).default('development'),
   ROLE: z.enum(SERVER_ROLES),
@@ -98,7 +109,13 @@ const baseSchema = z.object({
   DATABASE_URL_DIRECT: databaseUrl,
   DB_POOL_MAX: z.coerce.number().int().min(1).optional(),
   REDIS_URL: redisUrl,
-  WORKER_ACTIVE_QUEUES: csvList,
+  WORKER_POOL: z.enum(WORKER_POOLS).default('all'),
+  // Replaced by WORKER_POOL (D100). Blank is dropped before parsing, so an old `.env` with `WORKER_ACTIVE_QUEUES=`
+  // still boots; any value fails, because the stock strategy fails the jobs of inactive queues.
+  WORKER_ACTIVE_QUEUES: z
+    .string()
+    .optional()
+    .refine((value) => value === undefined, { error: 'replaced by WORKER_POOL' }),
   API_PORT: port(DEFAULT_API_PORT),
   WORKER_HEALTH_PORT: port(DEFAULT_WORKER_HEALTH_PORT),
   COOKIE_SECRET: z.string().min(MIN_COOKIE_SECRET_LENGTH),
@@ -125,6 +142,12 @@ const baseSchema = z.object({
   CLIENT_IP_HEADER: z.string().max(DNS_NAME_MAX_LENGTH).regex(HEADER_NAME, 'must be an HTTP header name').default(''),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
+  // The keys of the internal HMAC between the storefront and the api, `kid:secret[,kid:secret]` (D111): every key
+  // verifies, the active kid signs (the server signs nothing yet, so it is optional here).
+  INTERNAL_HMAC_KEYS: internalKeys,
+  INTERNAL_HMAC_ACTIVE_KID: z.string().optional(),
+  ...demoEnvShape,
+  ...tenantSecretsEnvShape,
   ...authEnvShape,
 });
 
@@ -147,6 +170,18 @@ function passwordOf(url: string): string | undefined {
   }
 }
 
+/** The keys of `INTERNAL_HMAC_KEYS`, or none when it is malformed (its own issue reports that). */
+function internalKeysOf(env: BaseEnv): readonly InternalSigningKey[] {
+  try {
+    return parseInternalKeys(env.INTERNAL_HMAC_KEYS);
+  } catch (error) {
+    if (error instanceof InvalidInternalKeysError) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
   return [
     ['COOKIE_SECRET', env.COOKIE_SECRET],
@@ -156,6 +191,8 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
+    ...internalKeysOf(env).map((key): [string, string] => ['INTERNAL_HMAC_KEYS', key.secret]),
+    ...tenantSecretsSecretsOf(env),
     ...authSecretsOf(env),
   ];
 }
@@ -167,6 +204,20 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
   for (const [name, value] of secretsOf(env)) {
     if (value !== undefined && isPlaceholderSecret(value)) {
       context.addIssue({ code: 'custom', path: [name], message: PLACEHOLDER_MESSAGE });
+    }
+  }
+}
+
+/** An active kid that names no key would sign with nothing, so boot refuses it. */
+function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
+  const keys = internalKeysOf(env);
+  if (env.INTERNAL_HMAC_ACTIVE_KID !== undefined && keys.length > 0) {
+    if (!keys.some((key) => key.kid === env.INTERNAL_HMAC_ACTIVE_KID)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['INTERNAL_HMAC_ACTIVE_KID'],
+        message: 'must be one of the kids in INTERNAL_HMAC_KEYS',
+      });
     }
   }
 }
@@ -198,7 +249,10 @@ const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.include
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
+  .superRefine(rejectDemoHandlersInProduction)
   .superRefine(requireClientIpHeader)
+  .superRefine(requireKnownActiveKid)
+  .superRefine(requireKnownKekActiveKid)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
   })

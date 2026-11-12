@@ -200,6 +200,7 @@ const STORE_USE_CASES = [
     CreateStoreService,
     ID_GENERATOR,
     OrderNumberService,
+    PlatformStoreLookup,
     ProvisionBusinessService,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
