@@ -58,6 +58,10 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
   // Platform scan of due outbox rows for the sweeper, the reconciler and the jobs health: ids, `businessId`, statuses and times only (D125).
   '**/plugins/platform-outbox/infrastructure/outbox-due-scan.ts',
+  // The dedupe-key insert `ON CONFLICT DO NOTHING` on the platform table `inbound_webhook_key`, in the caller's transaction; the stored webhooks go through TenantRepository (D108, D109).
+  '**/plugins/platform-webhooks/infrastructure/webhook-store.ts',
+  // Platform scan of received webhooks for the reconciler (ids, `businessId`, attempts and times only) and the delete of expired keys of `inbound_webhook_key` (D105, D107).
+  '**/plugins/platform-webhooks/infrastructure/inbound-due-scan.ts',
   // The first-use `INSERT … ON CONFLICT ("businessId") DO NOTHING` of a business's data key, with the business taken from the scope; every other read and write in the file goes through TenantRepository (D114).
   '**/plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
   // Selects the `businessId` of data keys wrapped by a KEK other than the active one, across businesses, to queue their rewrap (D114); the rewrap itself goes through TenantRepository.

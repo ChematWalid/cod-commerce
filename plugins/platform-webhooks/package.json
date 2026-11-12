@@ -2,7 +2,7 @@
   "name": "@cod/plugin-platform-webhooks",
   "version": "0.0.0",
   "private": true,
-  "description": "The internal-only guard: the Shop API, /store and /_internal answer only requests signed with an internal key (ADR 0008, D111, D112).",
+  "description": "The internal-only guard (ADR 0008, D111, D112) and the idempotent inbound webhook gateway (ADR 0016, D109).",
   "exports": {
     ".": {
       "@cod/source": "./index.ts",
@@ -12,14 +12,24 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --configLoader runner"
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
   },
   "dependencies": {
+    "@cod/plugin-platform-jobs": "workspace:*",
+    "@cod/plugin-platform-outbox": "workspace:*",
+    "@cod/plugin-platform-partitions": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
-    "@vendure/core": "3.8.1"
+    "@nestjs/common": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "typeorm": "0.3.31"
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@nestjs/core": "12.4.0",
     "@types/express": "5.0.6",
     "@types/node": "24.19.2",
     "typescript": "5.9.3",
