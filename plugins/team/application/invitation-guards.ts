@@ -1,4 +1,4 @@
-import type { ActivityAction, Snowflake, TenantScope } from '@cod/shared';
+import { type ActivityAction, DomainError, RBAC_ERROR_CODES, type Snowflake, type TenantScope } from '@cod/shared';
 import {
   CommissionNotFoundError,
   InvalidInputError,
@@ -71,6 +71,54 @@ export async function assertGrantAllowed(
 ): Promise<void> {
   await ports.access.preview(ctx, actor, grant);
   if (!reachesGrant(await ports.access.reachOf(ctx, actor), grant)) throw new InvalidInputError();
+}
+
+/**
+ * rbac's refusals that say the grant itself is gone, not that the actor is short of it: a role deleted since
+ * (`role-not-found`), or a `selected` grant left naming no store (`store-access-invalid`). Such an invitation can never
+ * be honoured, so withdrawing it gives nothing away.
+ */
+const GRANT_GONE_CODES: ReadonlySet<string> = new Set([
+  RBAC_ERROR_CODES.ROLE_NOT_FOUND,
+  RBAC_ERROR_CODES.STORE_ACCESS_INVALID,
+]);
+
+/**
+ * Whether rbac's refusal says the grant is gone for this actor. `store-not-accessible` is ambiguous: rbac raises it
+ * both for a store archived or unknown to the business and for a store the actor lacks. An all-store actor lacks no
+ * store, so for it the store is gone; a store-limited actor stays refused (fail closed).
+ */
+async function isGrantGone(
+  ports: Pick<TeamInvitationPorts, 'access'>,
+  ctx: OperationContext,
+  actor: TeamActor,
+  error: unknown,
+): Promise<boolean> {
+  if (!(error instanceof DomainError)) return false;
+  if (GRANT_GONE_CODES.has(error.code)) return true;
+  if (error.code !== RBAC_ERROR_CODES.STORE_NOT_ACCESSIBLE) return false;
+  return (await ports.access.reachOf(ctx, actor)).allStores;
+}
+
+/**
+ * Refuses to withdraw a grant the actor could not make (D60, Review Focus 6): a Manager cannot revoke the owner's
+ * Owner invitation. A grant gone since (a role deleted, a store archived) is withdrawn by anyone who reaches the
+ * member, so a dead invitation never pins its address.
+ *
+ * @throws a rbac `DomainError` for a grant the actor could not make.
+ */
+export async function assertWithdrawAllowed(
+  ports: Pick<TeamInvitationPorts, 'access'>,
+  ctx: OperationContext,
+  actor: TeamActor,
+  grant: MemberGrant,
+): Promise<void> {
+  try {
+    await assertGrantAllowed(ports, ctx, actor, grant);
+  } catch (error: unknown) {
+    if (await isGrantGone(ports, ctx, actor, error)) return;
+    throw error;
+  }
 }
 
 /** @throws {CommissionNotFoundError} when one of the ids names no commission config of the business. */

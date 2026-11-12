@@ -98,6 +98,43 @@ describe('who may invite (Review Focus 6)', () => {
   });
 });
 
+describe("who may resend or revoke the owner's Owner invitation (D60, Review Focus 6)", () => {
+  it('refuses an all-store Manager both, with 403 owner-restricted: no mail, nothing changed', async () => {
+    // Arrange
+    const { a } = businesses;
+    await kit.signIn(a.owner, a.stores[0]);
+    const email = freshEmail('owner-grant');
+    const ownerRole = await kit.builtInRoleId(a, 'owner');
+    const invited = await kit.rest('POST', '/employees', bodyForA(email, ownerRole, { storeAccess: 'all', storeIds: [] }));
+    expect(invited.status).toBe(201);
+    const memberId = (invited.body as { id: string }).id;
+    await waitForMessages(email, 1);
+    await kit.query(`UPDATE invitation SET "lastSentAt" = now() - interval '2 minutes' WHERE "memberId" = $1`, [
+      memberId,
+    ]);
+    const before = await kit.query('SELECT "tokenHash", "expiresAt", "revokedAt" FROM invitation WHERE "memberId" = $1', [
+      memberId,
+    ]);
+    const manager = await kit.memberWith(a, await kit.builtInRoleId(a, 'manager'));
+    await kit.signIn(manager, a.stores[0]);
+
+    // Act
+    const resent = await kit.rest('POST', '/employees/resend-invitation', { memberId });
+    const revoked = await kit.rest('POST', `/employees/${memberId}/revoke-invitation`);
+
+    // Assert
+    expect(resent).toMatchObject({ status: 403, body: { code: 'rbac.owner-restricted' } });
+    expect(revoked).toMatchObject({ status: 403, body: { code: 'rbac.owner-restricted' } });
+    expect(await settledCountTo(email)).toBe(1);
+    expect(
+      await kit.query('SELECT "tokenHash", "expiresAt", "revokedAt" FROM invitation WHERE "memberId" = $1', [memberId]),
+    ).toEqual(before);
+    expect(await kit.query('SELECT "removedAt" FROM team_member WHERE id = $1', [memberId])).toEqual([
+      { removedAt: null },
+    ]);
+  });
+});
+
 describe('what the activity log shows of invitations (D216, D217)', () => {
   it('shows an all-store viewer the invite, resend and accept rows, with no salary, address or commission value', async () => {
     // Arrange

@@ -214,3 +214,30 @@ describe('invite refusals (Review Focus 4 and 5)', () => {
     for (const email of emails) await expectNothingFor(email);
   });
 });
+
+describe('withdrawing an invitation whose store was archived since (Review Focus 5 and 6)', () => {
+  it('lets the owner revoke it with 200, and the address can be invited again', async () => {
+    // Arrange
+    const { a } = businesses;
+    await kit.signIn(a.owner, a.stores[0]);
+    const { createStore } = await adminClient.query<{ createStore: { id: string } }>(CREATE_STORE, {
+      input: { name: 'a4 store', subdomain: `a4-${Date.now().toString(36)}`, language: 'ar' },
+    });
+    const email = freshEmail('store-archived');
+    const invited = await ownerInvites(await bodyForA(email, { storeIds: [createStore.id] }));
+    expect(invited.status).toBe(201);
+    const memberId = (invited.body as { id: string }).id;
+    await adminClient.query(ARCHIVE_STORE, { id: createStore.id });
+
+    // Act
+    const revoked = await kit.rest('POST', `/employees/${memberId}/revoke-invitation`);
+    const again = await ownerInvites(await bodyForA(email));
+
+    // Assert
+    expect(revoked.status).toBe(200);
+    expect(
+      await kit.query('SELECT "removedAt" IS NOT NULL AS removed FROM team_member WHERE id = $1', [memberId]),
+    ).toEqual([{ removed: true }]);
+    expect(again).toMatchObject({ status: 201, body: { email, status: 'invited' } });
+  });
+});

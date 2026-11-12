@@ -3,7 +3,7 @@ import { invitationStateOf } from '../domain/invitation';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { TeamActor } from '../domain/team-actor';
 import type { TeamInvitationPorts } from './invitation-ports';
-import { pendingMemberInReach, recordMemberActivity } from './invitation-guards';
+import { assertWithdrawAllowed, pendingMemberInReach, recordMemberActivity } from './invitation-guards';
 
 const FINAL_STATES = new Set(['accepted', 'revoked']);
 
@@ -16,6 +16,7 @@ export class RevokeInvitationService {
    *
    * @throws {MemberNotFoundError} for no such member or one out of the actor's reach (D211).
    * @throws {MemberNotPendingError} for a member that is not invited.
+   * @throws a rbac `DomainError` for an invitation grant the actor could not make itself (D60).
    */
   async revoke(ctx: OperationContext, actor: TeamActor, memberId: Snowflake): Promise<void> {
     await this.ports.transaction.run(ctx, actor.scope, async (transactional) => {
@@ -23,6 +24,7 @@ export class RevokeInvitationService {
       await lock.acquire(transactional, actor.scope);
       const { member, invitation } = await pendingMemberInReach(this.ports, transactional, actor, memberId);
       const now = clock.now();
+      if (invitation !== undefined) await assertWithdrawAllowed(this.ports, transactional, actor, invitation.grant);
       // An invitation an accept found unusable is already revoked (D213): only the member is left to remove.
       if (invitation !== undefined && !FINAL_STATES.has(invitationStateOf(invitation, now))) {
         await invitations.update(transactional, actor.scope, invitation.id, { revokedAt: now });

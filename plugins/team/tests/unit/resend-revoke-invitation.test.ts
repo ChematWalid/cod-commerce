@@ -3,6 +3,7 @@ import {
   INVITATION_MAX_RESENDS,
   INVITATION_RESEND_COOLDOWN_MS,
   INVITATION_TTL_MS,
+  RBAC_ERROR_CODES,
   toSnowflake,
 } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
@@ -17,7 +18,7 @@ import {
   ResendLimitError,
 } from '../../domain/errors';
 import type { TeamMember } from '../../domain/team-member';
-import { type InvitationWorld, invitationWorld, ownerOfA } from '../fakes/invitation-world';
+import { type InvitationWorld, invitationWorld, ownerOfA, RbacRefusal } from '../fakes/invitation-world';
 import { invitedMember, openInvitation, scopeA, scopeB, T0 } from '../support/builders';
 
 const ACCEPT = { firstName: 'Nadia', lastName: 'Saidi', password: 'synthetic-member-password' };
@@ -134,6 +135,24 @@ describe('ResendInvitationService', () => {
     // Assert
     await expect(resending).rejects.toBeInstanceOf(MemberNotPendingError);
   });
+
+  it("refuses, with rbac's code, a resend of a grant the actor could not make, and mails nothing", async () => {
+    // Arrange
+    const world = invitationWorld();
+    const member = pendingMember(world);
+    world.clock.now = AFTER_COOLDOWN;
+    const refusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
+    world.access.previewRefusal = refusal;
+
+    // Act
+    const resending = new ResendInvitationService(world.ports).resend(world.ctx, ownerOfA, member.id);
+
+    // Assert
+    await expect(resending).rejects.toBe(refusal);
+    expect(world.mail.sent).toEqual([]);
+    expect(world.invitations.rows[0]).toMatchObject({ tokenHash: world.ports.tokens.hash('token-0'), resendCount: 0 });
+    expect(world.activity.rows).toEqual([]);
+  });
 });
 
 describe('RevokeInvitationService', () => {
@@ -167,5 +186,69 @@ describe('RevokeInvitationService', () => {
     // Assert
     await expect(revoking).rejects.toBeInstanceOf(MemberNotFoundError);
     expect(world.invitations.rows[0]?.revokedAt).toBeNull();
+  });
+  it("refuses, with rbac's code, to withdraw a grant the actor could not make, and changes nothing", async () => {
+    // Arrange
+    const world = invitationWorld();
+    const member = pendingMember(world);
+    const refusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
+    world.access.previewRefusal = refusal;
+
+    // Act
+    const revoking = new RevokeInvitationService(world.ports).revoke(world.ctx, ownerOfA, member.id);
+
+    // Assert
+    await expect(revoking).rejects.toBe(refusal);
+    expect(world.invitations.rows[0]?.revokedAt).toBeNull();
+    expect(world.members.rows[0]?.removedAt).toBeNull();
+    expect(world.activity.rows).toEqual([]);
+  });
+
+  it.each([RBAC_ERROR_CODES.ROLE_NOT_FOUND, RBAC_ERROR_CODES.STORE_ACCESS_INVALID])(
+    'still withdraws an invitation no one can honour any more (%s)',
+    async (code) => {
+      // Arrange
+      const world = invitationWorld();
+      const member = pendingMember(world);
+      world.access.previewRefusal = new RbacRefusal(code);
+
+      // Act
+      await new RevokeInvitationService(world.ports).revoke(world.ctx, ownerOfA, member.id);
+
+      // Assert
+      expect(world.invitations.rows[0]?.revokedAt).toEqual(T0);
+      expect(world.members.rows[0]?.removedAt).toEqual(T0);
+    },
+  );
+
+  it('lets an all-store actor withdraw an invitation to a store archived since (store-not-accessible)', async () => {
+    // Arrange
+    const world = invitationWorld();
+    const member = pendingMember(world);
+    world.access.previewRefusal = new RbacRefusal(RBAC_ERROR_CODES.STORE_NOT_ACCESSIBLE);
+
+    // Act
+    await new RevokeInvitationService(world.ports).revoke(world.ctx, ownerOfA, member.id);
+
+    // Assert
+    expect(world.invitations.rows[0]?.revokedAt).toEqual(T0);
+    expect(world.members.rows[0]?.removedAt).toEqual(T0);
+  });
+
+  it('still refuses a store-limited actor that rbac finds short of a store, and changes nothing', async () => {
+    // Arrange
+    const world = invitationWorld();
+    const member = pendingMember(world);
+    world.access.reach = { allStores: false, storeIds: [toSnowflake('11')] };
+    const refusal = new RbacRefusal(RBAC_ERROR_CODES.STORE_NOT_ACCESSIBLE);
+    world.access.previewRefusal = refusal;
+
+    // Act
+    const revoking = new RevokeInvitationService(world.ports).revoke(world.ctx, ownerOfA, member.id);
+
+    // Assert
+    await expect(revoking).rejects.toBe(refusal);
+    expect(world.invitations.rows[0]?.revokedAt).toBeNull();
+    expect(world.members.rows[0]?.removedAt).toBeNull();
   });
 });

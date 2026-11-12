@@ -10,7 +10,7 @@ import {
   toTeamMemberView,
 } from '../domain/team-member';
 import type { TeamInvitationPorts } from './invitation-ports';
-import { mailInvitation, pendingMemberInReach, recordMemberActivity } from './invitation-guards';
+import { assertGrantAllowed, mailInvitation, pendingMemberInReach, recordMemberActivity } from './invitation-guards';
 
 const RESENDABLE = new Set(['open', 'expired']);
 
@@ -24,6 +24,7 @@ export class ResendInvitationService {
    * @throws {MemberNotFoundError} for no such member or one out of the actor's reach (D211).
    * @throws {MemberNotPendingError} for a member not invited, or whose invitation was accepted or revoked.
    * @throws {ResendLimitError} or {ResendCooldownError} under the abuse caps (D205).
+   * @throws a rbac `DomainError` for an invitation grant the actor could not make itself (D60).
    */
   async resend(
     ctx: OperationContext,
@@ -46,6 +47,8 @@ export class ResendInvitationService {
       throw new MemberNotPendingError();
     }
     assertResendAllowed(invitation, now);
+    // The accept runs as the original inviter, so a fresh link must not let a lesser actor re-arm a grant (D60).
+    await assertGrantAllowed(this.ports, ctx, actor, invitation.grant);
     const token = tokens.newToken();
     await invitations.update(ctx, actor.scope, invitation.id, {
       tokenHash: tokens.hash(token),
