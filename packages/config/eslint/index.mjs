@@ -233,6 +233,9 @@ export function codEslintConfig({ tsconfigRootDir }) {
         plugins: { boundaries },
         settings: {
           'import/resolver': { node: { extensions: ['.ts', '.tsx', '.mts', '.js'] } },
+          // Patterns match paths relative to the repository root, not to the process cwd: a checkout under a dot
+          // segment (.claude/worktrees/x) otherwise matches no element, as `**` skips dot segments (#222).
+          'boundaries/root-path': tsconfigRootDir,
           'boundaries/elements': boundaryElements,
           'boundaries/files': boundaryFiles,
         },
