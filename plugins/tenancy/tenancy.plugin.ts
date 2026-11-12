@@ -4,6 +4,7 @@ import { Redis } from 'ioredis';
 import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
 import { BusinessResolver } from './api/business.resolver';
+import { SlugForEntityResolver } from './api/slug-for-entity.resolver';
 import { adminApiSchema } from './api/schema';
 import { StoreFieldsResolver, StoreMutationResolver, StoreQueryResolver } from './api/store.resolver';
 import { StoreResolveController } from './api/store-resolve.controller';
@@ -212,7 +213,13 @@ const STORE_USE_CASES = [
   ],
   adminApiExtensions: {
     schema: adminApiSchema,
-    resolvers: [BusinessResolver, StoreQueryResolver, StoreMutationResolver, StoreFieldsResolver],
+    resolvers: [
+      BusinessResolver,
+      StoreQueryResolver,
+      StoreMutationResolver,
+      StoreFieldsResolver,
+      SlugForEntityResolver,
+    ],
   },
   controllers: [SubdomainController, StoreResolveController],
   configuration: configure,
