@@ -8,7 +8,7 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
-import { hasReservedTld, isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER, rejectWeakSecrets } from './deployed-env';
+import { hasReservedTld, isDeployed, isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER, rejectWeakSecrets } from './deployed-env';
 import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
@@ -25,10 +25,6 @@ export const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const
 
 /** One of the {@link LOG_LEVELS}. */
 export type LogLevelName = (typeof LOG_LEVELS)[number];
-
-/** Environments in which a placeholder secret or a development fallback is a misconfiguration. */
-const PLACEHOLDER_FORBIDDEN_ENVS: readonly string[] = ['staging', 'production'];
-const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
 
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;

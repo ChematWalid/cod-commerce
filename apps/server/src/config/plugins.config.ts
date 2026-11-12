@@ -19,6 +19,7 @@ import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
 import { DefaultSchedulerPlugin, RedisCachePlugin, type VendureConfig } from '@vendure/core';
 import { authEmailTemplates } from '../email';
 import { assetServerPlugin } from './asset-storage.config';
+import { isDeployed } from './deployed-env';
 import { MigrateNoSchedulerPlugin } from './migrate-no-scheduler.plugin';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
@@ -45,7 +46,7 @@ const DASHBOARD_APP_DIR = path.join(__dirname, '../../dist/dashboard');
 const hardenPlugin = (env: AppEnv): VendurePluginEntry =>
   HardenPlugin.init({
     maxQueryComplexity: HARDEN_MAX_QUERY_COMPLEXITY,
-    apiMode: env.APP_ENV === 'production' ? 'prod' : 'dev',
+    apiMode: isDeployed(env) ? 'prod' : 'dev',
   });
 
 /** The readiness probes; only the worker serves its own health port. */

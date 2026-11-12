@@ -1,5 +1,11 @@
 import type { z } from 'zod';
 
+/** Environments that serve real traffic: a placeholder, a development fallback or a dev-mode API is a misconfiguration there. */
+const DEPLOYED_ENVS: readonly string[] = ['staging', 'production'];
+
+/** True in staging and production: the one predicate every "deployed only" rule follows. */
+export const isDeployed = (env: { readonly APP_ENV: string }): boolean => DEPLOYED_ENVS.includes(env.APP_ENV);
+
 /** Placeholder secrets in `.env.example` carry this marker, or are all zeros where the value is hex. */
 export const PLACEHOLDER_SECRET_MARKER = 'change-me';
 
