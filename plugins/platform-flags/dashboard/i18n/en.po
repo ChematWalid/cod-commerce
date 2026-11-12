@@ -1,0 +1,152 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "flags.nav-platform"
+msgstr "Platform"
+
+#. js-lingui-explicit-id
+msgid "flags.nav-flags"
+msgstr "Feature flags"
+
+#. js-lingui-explicit-id
+msgid "flags.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "flags.empty"
+msgstr "There are no feature flags yet."
+
+#. js-lingui-explicit-id
+msgid "flags.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "flags.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "flags.saved"
+msgstr "Saved."
+
+#. js-lingui-explicit-id
+msgid "flags.column-key"
+msgstr "Flag"
+
+#. js-lingui-explicit-id
+msgid "flags.column-description"
+msgstr "Description"
+
+#. js-lingui-explicit-id
+msgid "flags.column-default"
+msgstr "On by default"
+
+#. js-lingui-explicit-id
+msgid "flags.column-rollout"
+msgstr "Rollout (%)"
+
+#. js-lingui-explicit-id
+msgid "flags.column-overrides"
+msgstr "Overrides"
+
+#. js-lingui-explicit-id
+msgid "flags.column-scope"
+msgstr "Scope"
+
+#. js-lingui-explicit-id
+msgid "flags.column-state"
+msgstr "State"
+
+#. js-lingui-explicit-id
+msgid "flags.default-switch"
+msgstr "Default state of {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.rollout-input"
+msgstr "Rollout percent of {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.rollout-invalid"
+msgstr "Enter a whole number from 0 to 100."
+
+#. js-lingui-explicit-id
+msgid "flags.overrides-toggle"
+msgstr "Show the overrides of {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.overrides-empty"
+msgstr "No overrides. The default and the rollout apply to everyone."
+
+#. js-lingui-explicit-id
+msgid "flags.add-override"
+msgstr "Add override"
+
+#. js-lingui-explicit-id
+msgid "flags.remove-override"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "flags.override-dialog-title"
+msgstr "New override for {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.override-enabled"
+msgstr "Enabled for this target"
+
+#. js-lingui-explicit-id
+msgid "flags.target-id"
+msgstr "Target id"
+
+#. js-lingui-explicit-id
+msgid "flags.target-hint"
+msgstr "A plan key, or the id of a business or a store."
+
+#. js-lingui-explicit-id
+msgid "flags.scope-business"
+msgstr "Business"
+
+#. js-lingui-explicit-id
+msgid "flags.scope-store"
+msgstr "Store"
+
+#. js-lingui-explicit-id
+msgid "flags.scope-plan"
+msgstr "Plan"
+
+#. js-lingui-explicit-id
+msgid "flags.state-on"
+msgstr "On"
+
+#. js-lingui-explicit-id
+msgid "flags.state-off"
+msgstr "Off"
+
+#. js-lingui-explicit-id
+msgid "flags.error-generic"
+msgstr "Something went wrong. Please try again."
+
+#. js-lingui-explicit-id
+msgid "flags.error-forbidden"
+msgstr "You do not have permission to do this."
+
+#. js-lingui-explicit-id
+msgid "flags.unknown-key"
+msgstr "That flag does not exist. Reload the page."
+
+#. js-lingui-explicit-id
+msgid "flags.invalid-rollout"
+msgstr "The rollout must be a whole number from 0 to 100."
+
+#. js-lingui-explicit-id
+msgid "flags.invalid-description"
+msgstr "The description must have 1 to 200 characters."
+
+#. js-lingui-explicit-id
+msgid "flags.unknown-scope-target"
+msgstr "No business or store has that id. Check it and try again."
+
+#. js-lingui-explicit-id
+msgid "flags.invalid-plan-key"
+msgstr "A plan key has 1 to 64 characters."

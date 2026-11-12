@@ -123,6 +123,7 @@ function requireOptions(): PlatformFlagsOptions {
     FlagInvalidationSubscriber,
   ],
   adminApiExtensions: { schema: adminApiSchema, resolvers: [FlagsResolver] },
+  dashboard: './dashboard/index.tsx',
   exports: [FeatureFlags, FlagAdminService, FlagSeedService],
   compatibility: '^3.8.0',
 })
