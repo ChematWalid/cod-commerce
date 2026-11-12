@@ -4,6 +4,7 @@ import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
+import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
@@ -130,6 +131,8 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     }),
     RbacPlugin,
     authPlugin(env),
+    // After rbac and auth, whose services Team builds on (D206).
+    TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
     assetServerPlugin(env),
   ];
   if (role !== 'api') {

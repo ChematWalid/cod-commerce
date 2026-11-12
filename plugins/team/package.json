@@ -1,0 +1,35 @@
+{
+  "name": "@cod/plugin-team",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Team members, invitations, commission configs and salary payments of a business (P1.S4).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/plugin-rbac": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "typeorm": "0.3.31"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}
