@@ -115,10 +115,9 @@ it('replaces the stored token hash on a resend patch, so the old token stops mat
   await repo.update(ctx, scopeA, invitation.id, { tokenHash: newHash });
 
   // Assert
-  const stored = await connection.query<{ tokenHash: string }[]>(
-    'SELECT "tokenHash" FROM invitation WHERE id = $1',
-    [invitation.id],
-  );
+  const stored = await connection.query<{ tokenHash: string }[]>('SELECT "tokenHash" FROM invitation WHERE id = $1', [
+    invitation.id,
+  ]);
   const withOldHash = await connection.query<{ id: string }[]>('SELECT id FROM invitation WHERE "tokenHash" = $1', [
     oldHash,
   ]);
