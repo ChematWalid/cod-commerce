@@ -43,6 +43,7 @@ const PLUGIN_ROOT_FILES = [
   '**/plugins/*/index.ts',
   '**/plugins/*/guard.ts',
   '**/plugins/*/member-access.ts',
+  '**/plugins/*/invitations.ts',
   '**/plugins/*/provisioning.ts',
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',
