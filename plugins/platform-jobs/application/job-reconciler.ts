@@ -29,7 +29,7 @@ interface BatchOutcome {
 /**
  * Makes sure every durable row that is not over has a job that will run it (D105). It asks BullMQ per row: no job
  * (lost with Valkey) is added at once; a settled job BullMQ still keeps would make an add with the same id a no-op, so
- * it is removed first; a live job is left alone until it is past its SLA. A row that used all its attempts and is past
+ * it is removed first; a live job is left alone until it is past its SLA, a delayed one (waiting out its backoff) until its own due time plus the SLA is past. A row that used all its attempts and is past
  * due ends as failed instead of looping.
  */
 export class JobReconciler {
@@ -128,6 +128,17 @@ export class JobReconciler {
     const presence = await this.deps.presence.stateOf(job.queue, job.data.jobId);
     if (presence === 'missing') return 'add';
     if (presence === 'failed' || presence === 'completed') return 'replace';
+    if (presence === 'delayed') return (await this.delayStuck(job, now)) ? 'replace' : 'skip';
     return pastDue ? 'replace' : 'skip';
+  }
+
+  /**
+   * A delayed job is waiting out its own backoff, which can be longer than the SLA (ADR 0013 retries span about 24 h),
+   * so only its due time counts: it is stuck when that time, plus the SLA, has passed (the delayed set is not served).
+   */
+  private async delayStuck(job: DueJob, now: Date): Promise<boolean> {
+    const dueAt = await this.deps.presence.dueAtOf(job.queue, job.data.jobId);
+    if (dueAt === null) return false;
+    return dueAt.getTime() + RECONCILE_SLA_MS[QUEUES[job.queue].pool] < now.getTime();
   }
 }

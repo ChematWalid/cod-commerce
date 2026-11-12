@@ -1,4 +1,4 @@
-import { JobReconciler, type JobPresence, type JobPresencePort } from '@cod/plugin-platform-jobs';
+import { JobReconciler } from '@cod/plugin-platform-jobs';
 import type { QueueName } from '@cod/shared';
 import { PLUGIN_TEST_INITIAL_DATA, createTwoBusinesses, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -6,6 +6,7 @@ import { OUTBOX_EXHAUSTED_ERROR } from '../../domain/constants';
 import { OutboxReconcileSource } from '../../application/outbox-reconcile-source';
 import type { OutboxDueScanPort } from '../../application/ports';
 import { OUTBOX_DUE_SCAN } from '../../application/tokens';
+import { FakePresence, type PresenceCall } from '../fixtures/fake-presence';
 import { createOutboxTestEnvironment, outboxKit } from './outbox-kit';
 
 const SNOWFLAKE_WORKER_ID = 1019;
@@ -14,30 +15,14 @@ const SECOND_MS = 1000;
 const BULK_CONSUMER = 'always-failing';
 const CRITICAL_CONSUMER = 'counting';
 
-type Call = readonly [string, QueueName, string];
-
-class FakePresence implements JobPresencePort {
-  readonly calls: Call[] = [];
-  readonly states = new Map<string, JobPresence>();
-
-  stateOf(queue: QueueName, jobId: string): Promise<JobPresence> {
-    return Promise.resolve(this.states.get(jobId) ?? 'missing');
-  }
-
-  remove(queue: QueueName, jobId: string): Promise<void> {
-    this.calls.push(['remove', queue, jobId]);
-    return Promise.resolve();
-  }
-}
-
 describe('outbox delivery reconciler', () => {
   const { server, adminClient } = createOutboxTestEnvironment(SNOWFLAKE_WORKER_ID);
   const kit = outboxKit(server);
   const T = new Date();
   let businesses: TwoBusinesses;
   let nextId = 7_300_000_000_000_000_000n;
-  let presence = new FakePresence();
-  let calls: Call[] = [];
+  let calls: PresenceCall[] = [];
+  let presence = new FakePresence(calls);
   let reconciler: JobReconciler;
 
   const at = (offsetMs: number): Date => new Date(T.getTime() + offsetMs);
@@ -76,23 +61,16 @@ describe('outbox delivery reconciler', () => {
 
   beforeEach(async () => {
     await kit.sql(`DELETE FROM "outbox_delivery"`);
-    presence = new FakePresence();
     calls = [];
+    presence = new FakePresence(calls);
     const queues = {
       add: (queue: QueueName, data: { jobId: string }) => {
         calls.push(['add', queue, data.jobId]);
         return Promise.resolve();
       },
     };
-    const recordRemovals = {
-      stateOf: (queue: QueueName, jobId: string) => presence.stateOf(queue, jobId),
-      remove: (queue: QueueName, jobId: string) => {
-        calls.push(['remove', queue, jobId]);
-        return Promise.resolve();
-      },
-    };
     reconciler = new JobReconciler({
-      presence: recordRemovals,
+      presence,
       queues: queues as never,
       clock: { now: () => Date.now() },
       logger: { error: () => undefined, warn: () => undefined },
@@ -200,6 +178,27 @@ describe('outbox delivery reconciler', () => {
     // Assert
     expect(before.reenqueued).toBe(0);
     expect(after.reenqueued).toBe(1);
+  });
+
+  it('leaves a delayed bulk job in its backoff, even long past the SLA, and replaces it once it is overdue', async () => {
+    // Arrange: a capi style retry waiting 70 minutes, longer than the 30 minute bulk SLA.
+    const { jobId } = await seed(BULK_CONSUMER);
+    presence.states.set(jobId, 'delayed');
+    presence.dueAt.set(jobId, at(70 * MINUTE_MS));
+
+    // Act
+    const inBackoff = await reconciler.reconcile(at(65 * MINUTE_MS));
+    const justDue = await reconciler.reconcile(at(95 * MINUTE_MS));
+    const overdue = await reconciler.reconcile(at(101 * MINUTE_MS));
+
+    // Assert
+    expect(inBackoff.reenqueued).toBe(0);
+    expect(justDue.reenqueued).toBe(0);
+    expect(overdue.reenqueued).toBe(1);
+    expect(calls).toEqual([
+      ['remove', 'analytics', jobId],
+      ['add', 'analytics', jobId],
+    ]);
   });
 
   it('ends a row that used every attempt and is past due as failed, without adding it again', async () => {

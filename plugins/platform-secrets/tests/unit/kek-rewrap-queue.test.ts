@@ -10,6 +10,7 @@ describe('PlatformKekRewrapQueue', () => {
     const add = vi.fn().mockResolvedValue(undefined);
     const presence: JobPresencePort = {
       stateOf: vi.fn().mockRejectedValue(new Error('valkey unreachable')),
+      dueAtOf: vi.fn(),
       remove: vi.fn(),
     };
     const warn = vi.fn();

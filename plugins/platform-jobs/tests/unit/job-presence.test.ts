@@ -5,7 +5,7 @@ describe('presenceOf', () => {
   it.each([
     ['waiting', 'live'],
     ['active', 'live'],
-    ['delayed', 'live'],
+    ['delayed', 'delayed'],
     ['prioritized', 'live'],
     ['waiting-children', 'live'],
     ['failed', 'failed'],

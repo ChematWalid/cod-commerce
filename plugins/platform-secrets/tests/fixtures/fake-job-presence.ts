@@ -13,6 +13,10 @@ export class FakeJobPresence implements JobPresencePort {
     return Promise.resolve(this.failed.has(jobId) ? 'failed' : 'missing');
   }
 
+  dueAtOf(): Promise<Date | null> {
+    return Promise.resolve(null);
+  }
+
   remove(_queue: string, jobId: string): Promise<void> {
     this.removed.push(jobId);
     this.failed.delete(jobId);

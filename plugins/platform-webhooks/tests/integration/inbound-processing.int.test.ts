@@ -137,6 +137,9 @@ describe('inbound webhook processing', () => {
       readonly states = new Map<string, JobPresence>();
       stateOf = (_queue: QueueName, jobId: string): Promise<JobPresence> =>
         Promise.resolve(this.states.get(jobId) ?? 'missing');
+      readonly dueAt = new Map<string, Date>();
+      dueAtOf = (_queue: QueueName, jobId: string): Promise<Date | null> =>
+        Promise.resolve(this.dueAt.get(jobId) ?? null);
       remove = (): Promise<void> => Promise.resolve();
     }
 
@@ -213,6 +216,21 @@ describe('inbound webhook processing', () => {
       expect(early.reenqueued).toBe(0);
       expect(late.reenqueued).toBe(1);
       expect(calls).toEqual([['add', 'inbound-webhooks', `iw-${id}`]]);
+    });
+
+    it('leaves a delayed job in its backoff past the SLA and replaces it once overdue', async () => {
+      // Arrange: the ninth wait of a 2 s exponential backoff is longer than the 5 minute SLA.
+      const id = await seedReceived();
+      presence.states.set(`iw-${id}`, 'delayed');
+      presence.dueAt.set(`iw-${id}`, at(15 * MINUTE_MS));
+
+      // Act
+      const inBackoff = await reconciler.reconcile(at(10 * MINUTE_MS));
+      const overdue = await reconciler.reconcile(at(21 * MINUTE_MS));
+
+      // Assert
+      expect(inBackoff.reenqueued).toBe(0);
+      expect(overdue.reenqueued).toBe(1);
     });
   });
 });

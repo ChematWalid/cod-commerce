@@ -29,11 +29,23 @@ function sourceOf(batches: DueJob[][]) {
   return { source, marked };
 }
 
-function reconcilerOf(presence: (id: string) => JobPresence, failAdd: (id: string) => boolean = () => false) {
+function reconcilerOf(
+  presence: (id: string) => JobPresence,
+  failAdd: (id: string) => boolean = () => false,
+  dueAt: (id: string) => Date | null = () => null,
+) {
   const added: string[] = [];
+  const removed: string[] = [];
   const errors: string[] = [];
   const reconciler = new JobReconciler({
-    presence: { stateOf: (_queue, id) => Promise.resolve(presence(id)), remove: () => Promise.resolve() },
+    presence: {
+      stateOf: (_queue, id) => Promise.resolve(presence(id)),
+      dueAtOf: (_queue, id) => Promise.resolve(dueAt(id)),
+      remove: (_queue, id) => {
+        removed.push(id);
+        return Promise.resolve();
+      },
+    },
     queues: {
       add: (_queue, data) => {
         if (failAdd(data.jobId)) return Promise.reject(new Error('secret=hunter2'));
@@ -44,7 +56,7 @@ function reconcilerOf(presence: (id: string) => JobPresence, failAdd: (id: strin
     clock: new ManualClock(),
     logger: { error: (message) => errors.push(message), warn: () => undefined },
   });
-  return { reconciler, added, errors };
+  return { reconciler, added, removed, errors };
 }
 
 describe('JobReconciler', () => {
@@ -138,5 +150,84 @@ describe('JobReconciler', () => {
     expect(marked).toEqual(['good']);
     expect(errors).toHaveLength(1);
     expect(errors[0]).not.toContain('hunter2');
+  });
+
+  describe('a job BullMQ holds in delayed while it waits out its own backoff (D105)', () => {
+    const MIN = 60_000;
+    // `order-effects` is a critical queue: SLA 5 min. The row was handed to the queue an hour ago.
+    const delayedJob = jobOf('waiting');
+
+    it('leaves it alone while its own due time, plus the SLA, is still ahead', async () => {
+      // Arrange: a 45 min backoff, due in 40 min, long after the row's own stuck time.
+      const { source, marked } = sourceOf([[delayedJob]]);
+      const { reconciler, added, removed } = reconcilerOf(
+        () => 'delayed',
+        () => false,
+        () => new Date(NOW.getTime() + 40 * MIN),
+      );
+      reconciler.registerSource(source);
+
+      // Act
+      const result = await reconciler.reconcile(NOW);
+
+      // Assert
+      expect(result).toEqual({ reenqueued: 0, exhausted: 0 });
+      expect([added, removed, marked]).toEqual([[], [], []]);
+    });
+
+    it('leaves it alone when it is overdue by less than the SLA', async () => {
+      // Arrange
+      const { source } = sourceOf([[delayedJob]]);
+      const { reconciler, added, removed } = reconcilerOf(
+        () => 'delayed',
+        () => false,
+        () => new Date(NOW.getTime() - 4 * MIN),
+      );
+      reconciler.registerSource(source);
+
+      // Act
+      await reconciler.reconcile(NOW);
+
+      // Assert
+      expect([added, removed]).toEqual([[], []]);
+    });
+
+    it('replaces it once its due time plus the SLA has passed', async () => {
+      // Arrange
+      const { source, marked } = sourceOf([[delayedJob]]);
+      const { reconciler, added, removed } = reconcilerOf(
+        () => 'delayed',
+        () => false,
+        () => new Date(NOW.getTime() - 6 * MIN),
+      );
+      reconciler.registerSource(source);
+
+      // Act
+      const result = await reconciler.reconcile(NOW);
+
+      // Assert
+      expect(result.reenqueued).toBe(1);
+      expect(removed).toEqual(['waiting']);
+      expect(added).toEqual(['waiting']);
+      expect(marked).toEqual(['waiting']);
+    });
+
+    it('still ends a row whose attempts are used and past due as exhausted', async () => {
+      // Arrange
+      const { source } = sourceOf([[{ ...delayedJob, attempts: 8 }]]);
+      const { reconciler, added } = reconcilerOf(
+        () => 'delayed',
+        () => false,
+        () => new Date(NOW.getTime() + 40 * MIN),
+      );
+      reconciler.registerSource(source);
+
+      // Act
+      const result = await reconciler.reconcile(NOW);
+
+      // Assert
+      expect(result).toEqual({ reenqueued: 0, exhausted: 1 });
+      expect(added).toEqual([]);
+    });
   });
 });
