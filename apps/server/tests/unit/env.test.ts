@@ -8,10 +8,10 @@ const valid = {
   DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
   DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
   REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'x'.repeat(32),
-  AUTH_TOKEN_SECRET: 'y'.repeat(32),
-  INTERNAL_HMAC_KEYS: `k1:${'z'.repeat(40)}`,
-  TENANT_SECRET_KEKS: `k1:${'1'.repeat(64)}`,
+  COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
+  AUTH_TOKEN_SECRET: 'Vb5nTr8KcXw2MzQj7LhPd4GfSy9EaUo3',
+  INTERNAL_HMAC_KEYS: `k1:Hn4wBz9TqXc6MvKe2LrJd7GsPy3FaUo8`,
+  TENANT_SECRET_KEKS: `k1:${'0123456789abcdef'.repeat(4)}`,
   TENANT_SECRET_ACTIVE_KID: 'k1',
   AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
   SMTP_HOST: 'smtp.example.test',
@@ -21,7 +21,7 @@ const valid = {
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
   S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: 'b'.repeat(64),
+  S3_SECRET_KEY: 'fedcba9876543210'.repeat(4),
   S3_BUCKET_PRIVATE: 'cod-private',
   PLATFORM_DOMAIN: 'example.test',
 };
@@ -207,7 +207,7 @@ describe('loadEnv', () => {
     const staging = {
       APP_ENV: 'staging',
       CLIENT_IP_HEADER: 'cf-connecting-ip',
-      COOKIE_SECRET: 'k'.repeat(40),
+      COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
       SUPERADMIN_PASSWORD: 'real-admin-pw',
     };
 
@@ -220,7 +220,7 @@ describe('loadEnv', () => {
     const staging = {
       APP_ENV: 'staging',
       CLIENT_IP_HEADER: 'cf-connecting-ip',
-      COOKIE_SECRET: 'k'.repeat(40),
+      COOKIE_SECRET: 'Qm7vXk2LpR9tWc4Zb8NdHf3JsGy6AeUo',
       SUPERADMIN_PASSWORD: 'real-admin-pw',
     };
 
@@ -289,7 +289,7 @@ describe('isPlaceholderSecret', () => {
     expect(isPlaceholderSecret(value)).toBe(true);
   });
 
-  it.each(['b'.repeat(64), `GK${'a'.repeat(24)}`, 'test-password'])('accepts %s', (value) => {
+  it.each(['fedcba9876543210'.repeat(4), `GK${'a'.repeat(24)}`, 'test-password'])('accepts %s', (value) => {
     expect(isPlaceholderSecret(value)).toBe(false);
   });
 });

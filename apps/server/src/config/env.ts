@@ -8,6 +8,7 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import { isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER, rejectWeakSecrets } from './deployed-env';
 import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
@@ -15,6 +16,7 @@ import { SERVER_ROLES, type ServerRole } from './roles';
 import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
+export { isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER };
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
@@ -26,16 +28,6 @@ export type LogLevelName = (typeof LOG_LEVELS)[number];
 
 /** Environments in which a placeholder secret is a misconfiguration. */
 const PLACEHOLDER_FORBIDDEN_ENVS: readonly string[] = ['staging', 'production'];
-
-/** Placeholder secrets in `.env.example` carry this marker, or are all zeros where the value is hex. */
-export const PLACEHOLDER_SECRET_MARKER = 'change-me';
-
-const ZERO_HEX_PLACEHOLDER = /^(GK)?0+$/;
-
-/** True for a value taken from `.env.example`: it has the marker, or its hex part is all zeros. */
-export function isPlaceholderSecret(value: string): boolean {
-  return value.includes(PLACEHOLDER_SECRET_MARKER) || ZERO_HEX_PLACEHOLDER.test(value);
-}
 
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;
@@ -102,7 +94,7 @@ const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRed
 const internalKeys = z.string().superRefine(parsedBy(parseInternalKeys, InvalidInternalKeysError));
 
 const baseSchema = z.object({
-    APP_ENV: z.enum(APP_ENVS),
+  APP_ENV: z.enum(APP_ENVS),
   ROLE: z.enum(SERVER_ROLES),
   TZ: z.literal('UTC', { error: 'must be UTC' }),
   DATABASE_URL: databaseUrl,
@@ -201,6 +193,7 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
   if (!PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV)) {
     return;
   }
+  rejectWeakSecrets(secretsOf(env), context);
   for (const [name, value] of secretsOf(env)) {
     if (value !== undefined && isPlaceholderSecret(value)) {
       context.addIssue({ code: 'custom', path: [name], message: PLACEHOLDER_MESSAGE });
