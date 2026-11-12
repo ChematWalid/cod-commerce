@@ -1,7 +1,9 @@
-import { PlatformQueues } from '@cod/plugin-platform-jobs';
+import { JOB_PRESENCE, type JobPresencePort, PlatformQueues } from '@cod/plugin-platform-jobs';
 import { toBusinessId } from '@cod/shared';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { KekRotationService } from '../application/kek-rotation.service';
+import { SECRET_LOGGER } from '../application/tokens';
+import type { SecretLogger } from '../application/tenant-secret.service';
 import type { KekRewrapJobData } from '../domain/kek-rewrap-job';
 import type { KekRing } from '../domain/ports/envelope-cipher.port';
 import type { KekRewrapQueuePort } from '../domain/ports/kek-rotation.ports';
@@ -9,13 +11,33 @@ import type { KekRewrapQueuePort } from '../domain/ports/kek-rotation.ports';
 /** The queue of rewrap jobs: the platform's maintenance queue. */
 export const KEK_REWRAP_QUEUE_NAME = 'platform-maintenance';
 
-/** {@link KekRewrapQueuePort} on the platform's durable queues. */
+/**
+ * {@link KekRewrapQueuePort} on the platform's durable queues. A job that exhausted its retries stays in BullMQ as
+ * failed for 14 days and BullMQ ignores an add of its id meanwhile, so a rerun of the rotation that finds the
+ * business still on a retired KEK removes the settled job first, the way the job reconciler does, and then adds it.
+ */
 @Injectable()
 export class PlatformKekRewrapQueue implements KekRewrapQueuePort {
-  constructor(private readonly queues: PlatformQueues) {}
+  constructor(
+    private readonly queues: PlatformQueues,
+    @Inject(JOB_PRESENCE) private readonly presence: JobPresencePort,
+    @Inject(SECRET_LOGGER) private readonly logger: SecretLogger,
+  ) {}
 
-  enqueue(job: KekRewrapJobData): Promise<void> {
-    return this.queues.add(KEK_REWRAP_QUEUE_NAME, job);
+  async enqueue(job: KekRewrapJobData): Promise<void> {
+    await this.clearSettled(job.jobId);
+    await this.queues.add(KEK_REWRAP_QUEUE_NAME, job);
+  }
+
+  /** Removes a failed job of this id. A presence that cannot be read changes nothing: the add goes ahead as before. */
+  private async clearSettled(jobId: string): Promise<void> {
+    try {
+      if ((await this.presence.stateOf(KEK_REWRAP_QUEUE_NAME, jobId)) !== 'failed') return;
+      await this.presence.remove(KEK_REWRAP_QUEUE_NAME, jobId);
+      this.logger.warn(`Removed the failed data key rewrap job ${jobId} so that the rotation can queue it again`);
+    } catch {
+      // No pooled strategy (plugin tests) or Valkey trouble: the add below reports its own failure.
+    }
   }
 }
 
