@@ -193,7 +193,7 @@ describe('tenant secrets never leak', () => {
     await adminClient.query(TENANT_SECRETS);
     const revealed = await service.reveal(scope, TEST_PROVIDER, 'probe');
     const missing = await service.reveal(scope, TEST_PROVIDER, 'absent').catch((error: unknown) => error);
-    await failureOf(
+    const oversize = await failureOf(
       adminClient.query(SET_TENANT_SECRET, {
         input: { provider: TEST_PROVIDER, ref: 'probe', value: 'x'.repeat(5000) },
       }),
@@ -219,6 +219,11 @@ describe('tenant secrets never leak', () => {
       for (const encoding of encodings) {
         expect((error as Error).message).not.toContain(encoding);
       }
+    }
+    // The GraphQL failure carries codes and data, no message: its whole shape must hold no encoding
+    expect(oversize.codes.length).toBeGreaterThan(0);
+    for (const encoding of encodings) {
+      expect(JSON.stringify(oversize)).not.toContain(encoding);
     }
   });
 
