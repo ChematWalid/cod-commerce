@@ -22,8 +22,8 @@ export class ActivityRecordHandler implements OnModuleInit {
     this.eventBus.registerBlockingEventHandler({
       event: ActivityRecordEvent,
       id: HANDLER_ID,
-      handler: async ({ ctx, entry }) => {
-        await this.activity.record(asOperationContext(ctx), { ...entry, scope: tenantOf(ctx) });
+      handler: async ({ ctx, entry, scope }) => {
+        await this.activity.record(asOperationContext(ctx), { ...entry, scope: scope ?? tenantOf(ctx) });
       },
     });
   }
