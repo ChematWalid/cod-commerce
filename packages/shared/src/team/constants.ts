@@ -19,6 +19,12 @@ export const SALARY_MAX_DZD = 100_000_000;
 export const MAX_OPEN_ORDERS_LIMIT = 10_000;
 /** Longest client idempotency key of a salary payment (D212). */
 export const IDEMPOTENCY_KEY_MAX_LENGTH = 64;
+/** Most roles one grant (invite or edit) may name; bounds the stored grant and its lookups. */
+export const MAX_ROLES_PER_GRANT = 20;
+/** Most stores one grant or commission may name when the access is `selected`. */
+export const MAX_STORES_PER_GRANT = 200;
+/** Most commission configs one member may be linked to. */
+export const MAX_COMMISSIONS_PER_MEMBER = 20;
 /** Longest first or last name of a member. */
 export const MEMBER_NAME_MAX_LENGTH = 100;
 

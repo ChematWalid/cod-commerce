@@ -10,7 +10,10 @@ import {
   DEFAULT_TEAM_EMAIL_LOCALE,
   IDEMPOTENCY_KEY_MAX_LENGTH,
   INVITATION_TOKEN_MAX_LENGTH,
+  MAX_COMMISSIONS_PER_MEMBER,
   MAX_OPEN_ORDERS_LIMIT,
+  MAX_ROLES_PER_GRANT,
+  MAX_STORES_PER_GRANT,
   MEMBER_NAME_MAX_LENGTH,
   SALARY_MAX_DZD,
   STORE_ACCESS_KINDS,
@@ -20,8 +23,16 @@ import { TEAM_ERROR_CODES } from './error-codes';
 
 const invalid = { message: TEAM_ERROR_CODES.INVALID_INPUT };
 const idSchema = z.string().refine(isSnowflake, invalid);
-const idListSchema = z.array(idSchema);
-const roleIdsSchema = idListSchema.min(1);
+/** A bounded id list with repeats removed, so a body cannot store or look up the same id twice. */
+const idListSchema = (max: number, min = 0) =>
+  z
+    .array(idSchema)
+    .min(min, invalid)
+    .max(max, invalid)
+    .transform((ids) => [...new Set(ids)]);
+const roleIdsSchema = idListSchema(MAX_ROLES_PER_GRANT, 1);
+const storeIdsSchema = idListSchema(MAX_STORES_PER_GRANT);
+const commissionIdsSchema = idListSchema(MAX_COMMISSIONS_PER_MEMBER);
 const storeAccessSchema = z.enum(STORE_ACCESS_KINDS);
 const salarySchema = z.number().int().min(0).max(SALARY_MAX_DZD);
 const memberNameSchema = z.string().trim().min(1).max(MEMBER_NAME_MAX_LENGTH);
@@ -50,9 +61,9 @@ export const inviteMemberSchema = z
     email: emailSchema,
     roleIds: roleIdsSchema,
     storeAccess: storeAccessSchema,
-    storeIds: idListSchema.default([]),
+    storeIds: storeIdsSchema.default([]),
     baseSalary: salarySchema,
-    commissionConfigIds: idListSchema.default([]),
+    commissionConfigIds: commissionIdsSchema.default([]),
     locale: z.enum(TEAM_EMAIL_LOCALES).default(DEFAULT_TEAM_EMAIL_LOCALE),
   })
   .refine(hasConsistentStores, storeRule)
@@ -82,9 +93,9 @@ export type PayMemberCommand = z.output<typeof payMemberSchema>;
 const updateMemberFields = z.object({
   roleIds: roleIdsSchema.optional(),
   storeAccess: storeAccessSchema.optional(),
-  storeIds: idListSchema.optional(),
+  storeIds: storeIdsSchema.optional(),
   baseSalary: salarySchema.optional(),
-  commissionConfigIds: idListSchema.optional(),
+  commissionConfigIds: commissionIdsSchema.optional(),
 });
 
 type UpdateMemberFields = z.output<typeof updateMemberFields>;
@@ -123,7 +134,7 @@ export const commissionConfigSchema = z
     valueKind: z.enum(COMMISSION_VALUE_KINDS),
     value: z.number().int().positive(),
     scope: storeAccessSchema,
-    storeIds: idListSchema.default([]),
+    storeIds: storeIdsSchema.default([]),
   })
   .refine(withinValueCap, { message: TEAM_ERROR_CODES.INVALID_INPUT, path: ['value'] })
   .refine(({ scope, storeIds }) => hasConsistentStores({ storeAccess: scope, storeIds }), storeRule)

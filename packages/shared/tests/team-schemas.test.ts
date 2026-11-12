@@ -5,7 +5,10 @@ import {
   COMMISSION_PERCENT_MAX_BPS,
   IDEMPOTENCY_KEY_MAX_LENGTH,
   inviteMemberSchema,
+  MAX_COMMISSIONS_PER_MEMBER,
   MAX_OPEN_ORDERS_LIMIT,
+  MAX_ROLES_PER_GRANT,
+  MAX_STORES_PER_GRANT,
   payMemberSchema,
   SALARY_MAX_DZD,
   setLimitSchema,
@@ -21,6 +24,15 @@ const validInvite = {
   storeIds: [STORE_ID],
   baseSalary: 30_000,
 };
+
+/** `count` distinct snowflake ids. */
+function idsOf(count: number): string[] {
+  return Array.from({ length: count }, (_unused, index) => String(1_000_000_000_000n + BigInt(index)));
+}
+
+function issueMessagesOf(result: { success: boolean; error?: { issues: { message: string }[] } }): string[] {
+  return result.error?.issues.map((issue) => issue.message) ?? [];
+}
 
 describe('inviteMemberSchema', () => {
   it('parses a valid body and fills the defaults', () => {
@@ -52,6 +64,27 @@ describe('inviteMemberSchema', () => {
     ['an unsupported locale', { locale: 'fr' }],
   ])('rejects %s', (_label, change) => {
     expect(inviteMemberSchema.safeParse({ ...validInvite, ...change }).success).toBe(false);
+  });
+
+  it.each([
+    ['roleIds', MAX_ROLES_PER_GRANT],
+    ['storeIds', MAX_STORES_PER_GRANT],
+    ['commissionConfigIds', MAX_COMMISSIONS_PER_MEMBER],
+  ])('accepts %s at the cap and refuses one over it with team.invalid-input', (field, cap) => {
+    expect(inviteMemberSchema.safeParse({ ...validInvite, [field]: idsOf(cap) }).success).toBe(true);
+    const over = inviteMemberSchema.safeParse({ ...validInvite, [field]: idsOf(cap + 1) });
+    expect(over.success).toBe(false);
+    expect(issueMessagesOf(over)).toEqual(['team.invalid-input']);
+  });
+
+  it('collapses repeated ids to one entry', () => {
+    const parsed = inviteMemberSchema.parse({
+      ...validInvite,
+      roleIds: [ROLE_ID, ROLE_ID],
+      storeIds: [STORE_ID, STORE_ID],
+      commissionConfigIds: [STORE_ID, STORE_ID, STORE_ID],
+    });
+    expect(parsed).toMatchObject({ roleIds: [ROLE_ID], storeIds: [STORE_ID], commissionConfigIds: [STORE_ID] });
   });
 
   it('accepts the salary bounds', () => {
@@ -102,8 +135,17 @@ describe('updateMemberSchema', () => {
     ['selected access with no store', { storeAccess: 'selected', storeIds: [] }],
     ['store ids without a store access', { storeIds: [STORE_ID] }],
     ['a negative salary', { baseSalary: -1 }],
+    ['too many roles', { roleIds: idsOf(MAX_ROLES_PER_GRANT + 1) }],
+    ['too many stores', { storeAccess: 'selected', storeIds: idsOf(MAX_STORES_PER_GRANT + 1) }],
+    ['too many commissions', { commissionConfigIds: idsOf(MAX_COMMISSIONS_PER_MEMBER + 1) }],
   ])('rejects %s', (_label, change) => {
     expect(updateMemberSchema.safeParse(change).success).toBe(false);
+  });
+
+  it('collapses repeated commission ids to one entry', () => {
+    expect(updateMemberSchema.parse({ commissionConfigIds: [ROLE_ID, ROLE_ID] })).toEqual({
+      commissionConfigIds: [ROLE_ID],
+    });
   });
 });
 
@@ -142,8 +184,14 @@ describe('commissionConfigSchema', () => {
     ['a fractional value', { value: 1.5 }],
     ['a percent above 100%', { valueKind: 'percent', value: COMMISSION_PERCENT_MAX_BPS + 1 }],
     ['selected scope with no store', { scope: 'selected', storeIds: [] }],
+    ['too many stores', { scope: 'selected', storeIds: idsOf(MAX_STORES_PER_GRANT + 1) }],
   ])('rejects %s', (_label, change) => {
     expect(commissionConfigSchema.safeParse({ ...config, ...change }).success).toBe(false);
+  });
+
+  it('collapses repeated store ids to one entry', () => {
+    const selected = { ...config, scope: 'selected', storeIds: [STORE_ID, STORE_ID] };
+    expect(commissionConfigSchema.parse(selected).storeIds).toEqual([STORE_ID]);
   });
 
   it('accepts 100% in basis points', () => {
