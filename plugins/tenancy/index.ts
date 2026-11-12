@@ -7,6 +7,7 @@ export { ID_GENERATOR as SNOWFLAKE_ID_GENERATOR, TENANT_LIFECYCLE_REGISTRAR } fr
 export type { TenantLifecycleRegistrar } from './application/tenant-lifecycle.registry';
 export { CreateStoreService } from './application/create-store.service';
 export { GetBusinessService } from './application/get-business.service';
+export { StoreNamesService } from './application/store-names.service';
 export { type CreateMemberAccountCommand, MemberAccountService } from './application/member-account.service';
 export type { MemberAccount, MemberProfile } from './domain/ports/member-account.port';
 export {

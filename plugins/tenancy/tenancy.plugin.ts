@@ -14,6 +14,7 @@ import { CheckSubdomainService } from './application/check-subdomain.service';
 import { CreateStoreService } from './application/create-store.service';
 import { GetBusinessService } from './application/get-business.service';
 import { GetStoresService } from './application/get-stores.service';
+import { StoreNamesService } from './application/store-names.service';
 import { MemberAccountService } from './application/member-account.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
 import type { StoreAdminPorts } from './application/store-admin-ports';
@@ -121,6 +122,7 @@ const STORE_USE_CASES = [
   ArchiveStoreService,
   ChangeSubdomainService,
   CheckSubdomainService,
+  StoreNamesService,
 ].map((useCase) => ({
   provide: useCase,
   useFactory: (ports: StoreAdminPorts) => new useCase(ports),
@@ -206,6 +208,8 @@ const STORE_USE_CASES = [
     CreateStoreService,
     // Team names the business in its invitation email and accept page (P1.S4).
     GetBusinessService,
+    // Team names each member's stores in its members list (P1.S4).
+    StoreNamesService,
     ID_GENERATOR,
     MemberAccountService,
     OrderNumberService,
