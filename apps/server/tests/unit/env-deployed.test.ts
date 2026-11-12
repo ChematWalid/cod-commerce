@@ -24,7 +24,7 @@ const valid = {
   S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
   S3_SECRET_KEY: 'fedcba9876543210'.repeat(4),
   S3_BUCKET_PRIVATE: 'cod-private',
-  PLATFORM_DOMAIN: 'example.test',
+  PLATFORM_DOMAIN: 'souk.example.dz',
 };
 
 function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
@@ -107,6 +107,39 @@ describe('loadEnv in a deployed environment', () => {
       const weak = { COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'a'.repeat(8), S3_SECRET_KEY: 'a'.repeat(64) };
 
       expect(() => loadEnv({ ...valid, ...weak, APP_ENV: appEnv })).not.toThrow();
+    });
+  });
+
+  describe('PLATFORM_DOMAIN (SRV-9)', () => {
+    const deployed = { CLIENT_IP_HEADER: 'cf-connecting-ip' };
+
+    it.each(['staging', 'production'])('refuses platform.invalid in %s', (appEnv) => {
+      expect(issuePaths(failureOf({ ...deployed, APP_ENV: appEnv, PLATFORM_DOMAIN: 'platform.invalid' }))).toEqual([
+        'PLATFORM_DOMAIN',
+      ]);
+    });
+
+    it.each(['invalid', 'test', 'example', 'localhost', 'local', 'shop.example.test', 'a.b.local', 'app.localhost'])(
+      'refuses %s in production',
+      (domain) => {
+        expect(issuePaths(failureOf({ ...deployed, APP_ENV: 'production', PLATFORM_DOMAIN: domain }))).toEqual([
+          'PLATFORM_DOMAIN',
+        ]);
+      },
+    );
+
+    it.each(['souk.example.dz', 'example.com', 'souk.test.dz', 'localhost.dz'])(
+      'accepts %s in production',
+      (domain) => {
+        expect(() => loadEnv({ ...valid, ...deployed, APP_ENV: 'production', PLATFORM_DOMAIN: domain })).not.toThrow();
+      },
+    );
+
+    it.each(['development', 'test'])('keeps platform.invalid and localhost valid in %s', (appEnv) => {
+      expect(loadEnv({ ...valid, APP_ENV: appEnv, PLATFORM_DOMAIN: 'platform.invalid' }).PLATFORM_DOMAIN).toBe(
+        'platform.invalid',
+      );
+      expect(loadEnv({ ...valid, APP_ENV: appEnv, PLATFORM_DOMAIN: 'localhost' }).PLATFORM_DOMAIN).toBe('localhost');
     });
   });
 });

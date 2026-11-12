@@ -26,7 +26,7 @@ const valid = {
   S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
   S3_SECRET_KEY: 'fedcba9876543210'.repeat(4),
   S3_BUCKET_PRIVATE: 'cod-private',
-  PLATFORM_DOMAIN: 'example.test',
+  PLATFORM_DOMAIN: 'souk.example.dz',
   CLIENT_IP_HEADER: 'cf-connecting-ip',
 };
 

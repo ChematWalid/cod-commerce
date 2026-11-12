@@ -8,7 +8,7 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
-import { isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER, rejectWeakSecrets } from './deployed-env';
+import { hasReservedTld, isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER, rejectWeakSecrets } from './deployed-env';
 import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
@@ -222,10 +222,20 @@ function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
+/** Staging and production: where a development fallback is a misconfiguration. */
+const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
+
 /** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
 function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
   if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.PLATFORM_DOMAIN === undefined) {
     context.addIssue({ code: 'custom', path: ['PLATFORM_DOMAIN'], message: 'is required in this environment' });
+  }
+  if (isDeployed(env) && env.PLATFORM_DOMAIN !== undefined && hasReservedTld(env.PLATFORM_DOMAIN)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['PLATFORM_DOMAIN'],
+      message: 'ends in a reserved name (invalid, test, example, localhost or local): set the real domain',
+    });
   }
   if (env.APP_ENV !== 'test' && env.SNOWFLAKE_WORKER_ID !== undefined) {
     context.addIssue({
@@ -235,9 +245,6 @@ function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): vo
     });
   }
 }
-
-/** Staging and production: where a development fallback is a misconfiguration. */
-const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
 
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)

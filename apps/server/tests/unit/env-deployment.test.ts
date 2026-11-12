@@ -32,7 +32,7 @@ const turnstile = {
 /** What a deployed server needs on top of `valid`; every value is synthetic. */
 const deployed = {
   APP_ENV: 'production',
-  PLATFORM_DOMAIN: 'example.test',
+  PLATFORM_DOMAIN: 'souk.example.dz',
   CLIENT_IP_HEADER: 'cf-connecting-ip',
   AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
   SMTP_HOST: 'smtp.example.test',
