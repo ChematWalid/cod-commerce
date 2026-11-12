@@ -176,6 +176,7 @@ describe('tenant secrets never leak', () => {
       Buffer.from(plaintext, 'utf8').toString('base64url'),
       Buffer.from(plaintext, 'utf8').toString('hex'),
       'leak-probe',
+      'x'.repeat(100),
     ];
     const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
     const scope = new RequestTenantScope(ctx, toBusinessId(businesses.a.businessId));
