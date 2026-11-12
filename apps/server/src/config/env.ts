@@ -222,10 +222,10 @@ function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
-/** Behind the edge `req.ip` is the edge's address, so a production limiter without the header has one bucket for everyone. */
+/** Behind the edge `req.ip` is the edge's address, so a deployed limiter without the header has one bucket for everyone. */
 function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
-  if (env.APP_ENV === 'production' && env.CLIENT_IP_HEADER === '') {
-    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in production' });
+  if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.CLIENT_IP_HEADER === '') {
+    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in this environment' });
   }
 }
 

@@ -194,19 +194,6 @@ describe('loadEnv', () => {
     expect(loadEnv({ ...valid, CLIENT_IP_HEADER: '' }).CLIENT_IP_HEADER).toBe('');
   });
 
-  it('requires CLIENT_IP_HEADER in production only', () => {
-    const production = { APP_ENV: 'production', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
-
-    expect(issuePaths(failureOf({ ...production, CLIENT_IP_HEADER: undefined }))).toEqual(['CLIENT_IP_HEADER']);
-    expect(loadEnv({ ...valid, ...production, CLIENT_IP_HEADER: 'cf-connecting-ip' }).CLIENT_IP_HEADER).toBe(
-      'cf-connecting-ip',
-    );
-    expect(
-      loadEnv({ ...valid, APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' })
-        .CLIENT_IP_HEADER,
-    ).toBe('');
-  });
-
   it.each(['cf connecting ip', 'x-real-ip: 1.2.3.4', 'a\nb'])('rejects %j as CLIENT_IP_HEADER', (header) => {
     expect(issuePaths(failureOf({ CLIENT_IP_HEADER: header }))).toEqual(['CLIENT_IP_HEADER']);
   });
@@ -217,7 +204,12 @@ describe('loadEnv', () => {
   });
 
   it('rejects a placeholder AUTH_TOKEN_SECRET in staging', () => {
-    const staging = { APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+    const staging = {
+      APP_ENV: 'staging',
+      CLIENT_IP_HEADER: 'cf-connecting-ip',
+      COOKIE_SECRET: 'k'.repeat(40),
+      SUPERADMIN_PASSWORD: 'real-admin-pw',
+    };
 
     expect(issuePaths(failureOf({ ...staging, AUTH_TOKEN_SECRET: `change-me-${'0'.repeat(40)}` }))).toEqual([
       'AUTH_TOKEN_SECRET',
@@ -225,7 +217,12 @@ describe('loadEnv', () => {
   });
 
   it.each(['AUTH_DASHBOARD_URL', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM'])('requires %s when deployed', (name) => {
-    const staging = { APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+    const staging = {
+      APP_ENV: 'staging',
+      CLIENT_IP_HEADER: 'cf-connecting-ip',
+      COOKIE_SECRET: 'k'.repeat(40),
+      SUPERADMIN_PASSWORD: 'real-admin-pw',
+    };
 
     expect(issuePaths(failureOf({ ...staging, [name]: undefined }))).toEqual([name]);
   });
