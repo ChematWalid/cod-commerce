@@ -10,7 +10,7 @@ function catalogue(locale: 'en' | 'ar'): (id: string) => string {
   const text = readFileSync(join(__dirname, `../../dashboard/i18n/${locale}.po`), 'utf8');
   const entries = new Map<string, string>();
   for (const match of text.matchAll(/^msgid "(.*)"\nmsgstr "(.*)"$/gm)) entries.set(match[1] ?? '', match[2] ?? '');
-  return (id) => entries.get(id) || id;
+  return (id) => entries.get(id) ?? '';
 }
 
 const flag = (key: string, description = 'stored text'): { key: string; description: string } => ({ key, description });
@@ -32,7 +32,11 @@ describe('flagDescription', () => {
 
   it.each(FLAG_SEEDS.map((seed) => seed.key))('has an Arabic and an English text for %s', (key) => {
     for (const locale of ['ar', 'en'] as const) {
-      expect(flagDescription(catalogue(locale), flag(key))).not.toBe('stored text');
+      const text = flagDescription(catalogue(locale), flag(key));
+      expect(text).not.toBe('');
+      expect(text).not.toBe('stored text');
+      expect(text).not.toBe(`flags.description.${key}`);
+      if (locale === 'ar') expect(text).toMatch(/\p{Script=Arabic}/u);
     }
   });
 

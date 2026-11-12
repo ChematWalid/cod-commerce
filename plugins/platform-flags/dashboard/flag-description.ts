@@ -1,10 +1,13 @@
-import { FLAG_KEYS } from '@cod/shared';
+import { isFlagKey } from '@cod/shared';
 
-const KNOWN_KEYS: ReadonlySet<string> = new Set(Object.values(FLAG_KEYS));
+/** The catalogue id of a known flag's description (one id builder for the page and for i18n:check). */
+export function descriptionMessageIdFor(key: string): string {
+  return `flags.description.${key}`;
+}
 
 /** The catalogue id of a known flag's description; staff-created or future keys have none. */
 export function flagDescriptionMessageId(key: string): string | undefined {
-  return KNOWN_KEYS.has(key) ? `flags.description.${key}` : undefined;
+  return isFlagKey(key) ? descriptionMessageIdFor(key) : undefined;
 }
 
 /** The description in the page's language for a known flag, otherwise the one stored with the flag. */
