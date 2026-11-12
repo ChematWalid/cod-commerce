@@ -1,5 +1,12 @@
 import { useLingui } from '@lingui/react';
-import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@vendure/dashboard';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  useAuth,
+} from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import type { TeamMemberDto } from '../dto';
 import { ACTION_LABEL_IDS, canPaySalary, type MemberAction, menuActionsOf } from '../member-view-model';
@@ -63,10 +70,11 @@ function RowMenu({ member, actions, canPay, onAction, onPay }: RowMenuProps): Re
   );
 }
 
-/** The row's "Pay salary" button and its menu; the server decides every action again. */
+/** The row's "Pay salary" button and its menu, without what the server refuses on oneself; it decides every action again. */
 export function MemberRowActions({ member, held, onAction, onPay }: MemberRowActionsProps): ReactNode {
   const { i18n } = useLingui();
-  const canPay = canPaySalary(member, held);
+  const actorAdministratorId = useAuth().user?.id;
+  const canPay = canPaySalary(member, held, actorAdministratorId);
   return (
     <span className="flex items-center justify-end gap-1">
       {canPay && (
@@ -83,7 +91,7 @@ export function MemberRowActions({ member, held, onAction, onPay }: MemberRowAct
       )}
       <RowMenu
         member={member}
-        actions={menuActionsOf(member, held)}
+        actions={menuActionsOf(member, held, actorAdministratorId)}
         canPay={canPay}
         onAction={onAction}
         onPay={onPay}

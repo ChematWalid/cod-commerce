@@ -1,7 +1,7 @@
 import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
-import { loginAsDemoOwner, setDisplayLanguage } from './dashboard-session';
+import { DEMO_OWNER_EMAIL, loginAsDemoOwner, setDisplayLanguage } from './dashboard-session';
 import {
   addActiveMember,
   expireInvitationsOf,
@@ -17,6 +17,9 @@ const DESKTOP_VIEWPORT = { width: 1440, height: 900 };
 /** The row's labels in English (`plugins/team/dashboard/i18n/en.po`). */
 const ROW_MENU_LABEL = 'Member actions';
 const PAY_SALARY_LABEL = 'Pay salary';
+const VIEW_DETAILS_LABEL = 'View details';
+/** What the server refuses on one's own row (D60.5, D212), so the menu must not offer it. */
+const SELF_REFUSED_LABELS = [PAY_SALARY_LABEL, 'Edit', 'Deactivate', 'Remove'];
 
 /** How far the widest table on the page reaches past the frame that holds it, in pixels. */
 const tableOverflow = (page: Page): Promise<number> =>
@@ -75,6 +78,22 @@ describe('team member row actions', () => {
     await page.getByRole('menuitem', { name: PAY_SALARY_LABEL, exact: true }).waitFor();
     await expect(row.getByRole('button', { name: PAY_SALARY_LABEL, exact: true }).count()).resolves.toBe(0);
     await expect(tableOverflow(page)).resolves.toBe(0);
+  });
+
+  it('offers the owner on its own row none of the actions the server refuses on oneself', async () => {
+    await loginAsDemoOwner(page, DASHBOARD_URL);
+    await setDisplayLanguage(page, 'en');
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.goto(TEAM_URL);
+    const row = memberRow(page, DEMO_OWNER_EMAIL);
+    await row.getByText('Active', { exact: true }).waitFor();
+
+    await row.getByRole('button', { name: ROW_MENU_LABEL }).click();
+
+    await page.getByRole('menuitem', { name: VIEW_DETAILS_LABEL, exact: true }).waitFor();
+    await expect(row.getByRole('button', { name: PAY_SALARY_LABEL, exact: true }).count()).resolves.toBe(0);
+    const offered = (await page.getByRole('menuitem').allInnerTexts()).map((label) => label.trim());
+    for (const refused of SELF_REFUSED_LABELS) expect(offered).not.toContain(refused);
   });
 
   it('keeps the keyboard highlight on visible items of the row menu on a desktop', async () => {

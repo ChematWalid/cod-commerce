@@ -110,24 +110,44 @@ function editActionsOf(member: TeamMemberDto, held: ReadonlySet<string>): Member
 }
 
 /**
- * The menu of a row, from what the caller holds and the member's status. A pending member is resent or revoked
+ * Whether the row is the signed-in caller's own: the server refuses pay and salary or commission edits on oneself
+ * (D212) and rbac refuses any change of one's own access (D60.5), so Edit, Deactivate and Remove go too.
+ */
+const isOwnRow = (member: TeamMemberDto, actorAdministratorId: string | undefined): boolean =>
+  actorAdministratorId !== undefined && member.administratorId === actorAdministratorId;
+
+/** The actions the server refuses on the caller's own row (D60.5, D212). */
+const SELF_REFUSED_ACTIONS: ReadonlySet<MemberAction> = new Set(['edit', 'deactivate', 'remove']);
+
+/**
+ * The menu of a row, from what the caller holds, the member's status and whether the row is the caller's own
+ * (`actorAdministratorId`, undefined while the session loads). A pending member is resent or revoked
  * (`team.members.invite`); an account is changed with `team.members.edit` (Edit also needs `team.roles.view`) and
  * removed with `team.members.remove`.
  * The server checks every action again, including reach and the owner rules.
  */
-export function menuActionsOf(member: TeamMemberDto, held: ReadonlySet<string>): MemberAction[] {
+export function menuActionsOf(
+  member: TeamMemberDto,
+  held: ReadonlySet<string>,
+  actorAdministratorId: string | undefined,
+): MemberAction[] {
   const actions: MemberAction[] = ['view'];
   if (member.status === 'invited') {
     return held.has(INVITE_MEMBERS_KEY) ? [...actions, 'resend', 'revoke'] : actions;
   }
   if (held.has(EDIT_MEMBERS_KEY)) actions.push(...editActionsOf(member, held));
   if (held.has(REMOVE_MEMBERS_KEY)) actions.push('remove');
-  return actions;
+  if (!isOwnRow(member, actorAdministratorId)) return actions;
+  return actions.filter((action) => !SELF_REFUSED_ACTIONS.has(action));
 }
 
-/** Pay salary is offered on an active member to a holder of `team.members.edit` (D207). */
-export function canPaySalary(member: TeamMemberDto, held: ReadonlySet<string>): boolean {
-  return member.status === 'active' && held.has(EDIT_MEMBERS_KEY);
+/** Pay salary is offered on an active member to a holder of `team.members.edit` (D207), never on oneself (D212). */
+export function canPaySalary(
+  member: TeamMemberDto,
+  held: ReadonlySet<string>,
+  actorAdministratorId: string | undefined,
+): boolean {
+  return member.status === 'active' && held.has(EDIT_MEMBERS_KEY) && !isOwnRow(member, actorAdministratorId);
 }
 
 /** The member's name, or the address an invitee was invited at until it gives one. */
