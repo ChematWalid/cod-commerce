@@ -10,6 +10,7 @@ import {
 const ROLE_ID = '7000000000000000001';
 const STORE_ID = '7000000000000000002';
 const COMMISSION_ID = '7000000000000000003';
+const OTHER_ROLE_ID = '7000000000000000004';
 
 const validDraft = (patch: Partial<InviteDraft> = {}): InviteDraft => ({
   ...emptyInviteDraft(),
@@ -88,16 +89,44 @@ describe('invite form validation', () => {
     expect(inviteInputOf(draft, 'en')).toBeNull();
   });
 
-  it('builds an edit input without the email, from the same rules', () => {
-    const draft = validDraft({ storeAccess: 'selected', storeIds: [STORE_ID] });
+  describe('edit input', () => {
+    const initial = validDraft({ storeAccess: 'selected', storeIds: [STORE_ID], commissionConfigIds: [COMMISSION_ID] });
 
-    expect(memberUpdateInputOf(draft)).toEqual({
-      roleIds: [ROLE_ID],
-      storeAccess: 'selected',
-      storeIds: [STORE_ID],
-      baseSalary: 45_000,
-      commissionConfigIds: [],
+    it('sends only the salary when only the salary changed', () => {
+      const input = memberUpdateInputOf(initial, { ...initial, baseSalary: '50000' });
+
+      expect(input).toEqual({ baseSalary: 50_000 });
     });
-    expect(memberUpdateInputOf({ ...draft, roleIds: [] })).toBeNull();
+
+    it('sends only the roles when only the roles changed', () => {
+      const input = memberUpdateInputOf(initial, { ...initial, roleIds: [ROLE_ID, OTHER_ROLE_ID] });
+
+      expect(input).toEqual({ roleIds: [ROLE_ID, OTHER_ROLE_ID] });
+    });
+
+    it('sends the store access and its stores together when the stores changed', () => {
+      const input = memberUpdateInputOf(initial, { ...initial, storeAccess: 'all' });
+
+      expect(input).toEqual({ storeAccess: 'all', storeIds: [] });
+    });
+
+    it('sends only the commissions when only the commissions changed', () => {
+      const input = memberUpdateInputOf(initial, { ...initial, commissionConfigIds: [] });
+
+      expect(input).toEqual({ commissionConfigIds: [] });
+    });
+
+    it('builds nothing when no term changed, ignoring order and the salary text', () => {
+      const reordered = { ...initial, roleIds: [...initial.roleIds], baseSalary: ' 45000 ' };
+      const twoRoles = validDraft({ roleIds: [ROLE_ID, OTHER_ROLE_ID] });
+
+      expect(memberUpdateInputOf(initial, reordered)).toBeNull();
+      expect(memberUpdateInputOf(twoRoles, { ...twoRoles, roleIds: [OTHER_ROLE_ID, ROLE_ID] })).toBeNull();
+    });
+
+    it('builds nothing while the edited draft has gaps', () => {
+      expect(memberUpdateInputOf(initial, { ...initial, roleIds: [] })).toBeNull();
+      expect(memberUpdateInputOf(initial, { ...initial, baseSalary: 'abc' })).toBeNull();
+    });
   });
 });

@@ -2,7 +2,7 @@ import type { UpdateMemberInput } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, toast } from '@vendure/dashboard';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { LOADING_MESSAGE_ID, MEMBERS_QUERY_KEY } from '../constants';
 import type { TeamMemberDto } from '../dto';
 import { useGrantOptions } from '../hooks/use-grant-options';
@@ -44,10 +44,11 @@ function useUpdate(memberId: string, onClose: () => void) {
 
 function EditForm({ member, held, onClose }: EditMemberDialogProps & { readonly member: TeamMemberDto }): ReactNode {
   const { i18n } = useLingui();
-  const [draft, setDraft] = useState(() => draftOf(member));
+  const initial = useMemo(() => draftOf(member), [member]);
+  const [draft, setDraft] = useState(initial);
   const grant = useGrantOptions(true, held);
   const update = useUpdate(member.id, onClose);
-  const input = memberUpdateInputOf(draft);
+  const input = memberUpdateInputOf(initial, draft);
   return (
     <>
       <DialogHeader>

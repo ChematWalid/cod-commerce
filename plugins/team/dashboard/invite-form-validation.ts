@@ -79,9 +79,32 @@ export function inviteInputOf(draft: InviteDraft, locale: TeamEmailLocale): Invi
   return { email: emailSchema.parse(draft.email), ...grantInputOf(draft, salary), locale };
 }
 
-/** The `updateTeamMember` input of a valid edit draft; null while it has gaps. */
-export function memberUpdateInputOf(draft: MemberGrantDraft): UpdateMemberInput | null {
+const sameSet = (left: readonly string[], right: readonly string[]): boolean => {
+  const set = new Set(left);
+  return set.size === new Set(right).size && right.every((id) => set.has(id));
+};
+
+const sameStores = (initial: MemberGrantDraft, draft: MemberGrantDraft): boolean =>
+  initial.storeAccess === draft.storeAccess &&
+  (draft.storeAccess === 'all' || sameSet(initial.storeIds, draft.storeIds));
+
+/**
+ * The `updateTeamMember` input of a valid edit: only the terms that differ from `initial`, so a pay-only edit does
+ * not re-grant access (no sign-out, no owner or reach refusal, no access field in the activity row) and an
+ * access-only edit names no pay. The store access and its stores travel together. Null while the draft has gaps or
+ * changes nothing.
+ */
+export function memberUpdateInputOf(initial: MemberGrantDraft, draft: MemberGrantDraft): UpdateMemberInput | null {
   const salary = salaryOf(draft.baseSalary);
   if (!hasNoErrors(grantErrorsOf(draft)) || salary === null) return null;
-  return grantInputOf(draft, salary);
+  const full = grantInputOf(draft, salary);
+  const input: UpdateMemberInput = {
+    ...(sameSet(initial.roleIds, draft.roleIds) ? {} : { roleIds: full.roleIds }),
+    ...(sameStores(initial, draft) ? {} : { storeAccess: full.storeAccess, storeIds: full.storeIds }),
+    ...(salaryOf(initial.baseSalary) === salary ? {} : { baseSalary: salary }),
+    ...(sameSet(initial.commissionConfigIds, draft.commissionConfigIds)
+      ? {}
+      : { commissionConfigIds: full.commissionConfigIds }),
+  };
+  return Object.keys(input).length === 0 ? null : input;
 }
