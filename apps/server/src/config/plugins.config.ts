@@ -5,6 +5,7 @@ import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { parseKekRing, PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { PlatformWebhooksPlugin } from '@cod/plugin-platform-webhooks';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
@@ -57,6 +58,16 @@ const healthPlugin = (env: AppEnv, role: ServerRole): VendurePluginEntry =>
 /** Guards the Shop API, /store and /_internal on every host with the internal signature (D112). */
 const webhooksPlugin = (env: AppEnv): VendurePluginEntry =>
   PlatformWebhooksPlugin.init({ internalKeys: parseInternalKeys(env.INTERNAL_HMAC_KEYS) });
+
+/**
+ * The platform plugins with tenant tables: they register after tenancy, which scopes their rows. The outbox needs
+ * jobs and partitions before it (the relay queue and the retention policies); the secrets' Admin API guards with
+ * the permissions `RbacPlugin` defines.
+ */
+const tenantDataPlugins = (env: AppEnv): VendurePluginEntry[] => [
+  PlatformOutboxPlugin,
+  PlatformSecretsPlugin.init({ kekRing: parseKekRing(env.TENANT_SECRET_KEKS, env.TENANT_SECRET_ACTIVE_KID) }),
+];
 
 /** What answers or refuses requests before the rest of the app: the probes and the internal-only guard. */
 const requestPathPlugins = (env: AppEnv, role: ServerRole): VendurePluginEntry[] => [
@@ -153,8 +164,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
     }),
-    // After tenancy (its tables are tenant-scoped), jobs and partitions (the relay queue and the retention policies).
-    PlatformOutboxPlugin,
+    ...tenantDataPlugins(env),
     RbacPlugin,
     authPlugin(env),
     assetServerPlugin(env),

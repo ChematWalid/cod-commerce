@@ -2,6 +2,7 @@ import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
@@ -21,6 +22,8 @@ const valid = {
   COOKIE_SECRET: 'x'.repeat(32),
   AUTH_TOKEN_SECRET: 'y'.repeat(32),
   INTERNAL_HMAC_KEYS: `k1:${'z'.repeat(40)}`,
+  TENANT_SECRET_KEKS: `k1:${'1'.repeat(64)}`,
+  TENANT_SECRET_ACTIVE_KID: 'k1',
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
@@ -64,6 +67,19 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(PlatformOutboxPlugin);
+  });
+
+  // The secrets declare entities, so every role registers them (the migrate role creates their tables).
+  it.each(SERVER_ROLES)('registers PlatformSecretsPlugin with the key ring for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformSecretsPlugin);
+    expect(PlatformSecretsPlugin.options?.kekRing.activeKid).toBe('k1');
   });
 
   it.each(SERVER_ROLES)(

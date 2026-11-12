@@ -27,6 +27,7 @@
     "@cod/plugin-platform-jobs": "workspace:*",
     "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
+    "@cod/plugin-platform-secrets": "workspace:*",
     "@cod/plugin-platform-webhooks": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
     "@cod/plugin-rbac": "workspace:*",

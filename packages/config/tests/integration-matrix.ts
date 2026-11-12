@@ -27,7 +27,11 @@ const PLATFORM_1 = [
   '@cod/plugin-platform-partitions',
   '@cod/plugin-platform-outbox',
 ] as const;
-const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1].map((name) => `--filter=!${name}`).join(' ');
+/** The platform plugins of part `platform-2` (D118); webhooks and flags join it with their integration suites. */
+const PLATFORM_2 = ['@cod/plugin-platform-secrets'] as const;
+const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2]
+  .map((name) => `--filter=!${name}`)
+  .join(' ');
 
 /** The parts of the matrix, in order (D51, D69, D118). */
 export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
@@ -38,6 +42,7 @@ export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'rbac-1', command: shardedCommand(RBAC, 1) },
   { part: 'rbac-2', command: shardedCommand(RBAC, 2) },
   { part: 'platform-1', command: groupedCommand(PLATFORM_1) },
+  { part: 'platform-2', command: groupedCommand(PLATFORM_2) },
 ];
 
 /** True when an unsharded `turbo` part runs `name`'s suite, alone or grouped with other packages. */

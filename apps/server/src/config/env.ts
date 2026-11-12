@@ -11,6 +11,7 @@ import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from '
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
+import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
 
@@ -144,6 +145,7 @@ const baseSchema = z.object({
   // verifies, the active kid signs (the server signs nothing yet, so it is optional here).
   INTERNAL_HMAC_KEYS: internalKeys,
   INTERNAL_HMAC_ACTIVE_KID: z.string().optional(),
+  ...tenantSecretsEnvShape,
   ...authEnvShape,
 });
 
@@ -188,6 +190,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
     ...internalKeysOf(env).map((key): [string, string] => ['INTERNAL_HMAC_KEYS', key.secret]),
+    ...tenantSecretsSecretsOf(env),
     ...authSecretsOf(env),
   ];
 }
@@ -246,6 +249,7 @@ const envSchema = baseSchema
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(requireClientIpHeader)
   .superRefine(requireKnownActiveKid)
+  .superRefine(requireKnownKekActiveKid)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
   })

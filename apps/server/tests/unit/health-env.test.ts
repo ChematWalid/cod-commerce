@@ -11,6 +11,8 @@ const valid = {
   COOKIE_SECRET: 'x'.repeat(32),
   AUTH_TOKEN_SECRET: 'y'.repeat(32),
   INTERNAL_HMAC_KEYS: `k1:${'z'.repeat(40)}`,
+  TENANT_SECRET_KEKS: `k1:${'1'.repeat(64)}`,
+  TENANT_SECRET_ACTIVE_KID: 'k1',
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',

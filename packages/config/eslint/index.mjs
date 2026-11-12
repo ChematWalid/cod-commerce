@@ -48,6 +48,7 @@ const SERVER_LAYERS = ['domain', 'application', 'infrastructure', 'api'];
 const PLUGIN_ROOT_FILES = [
   '**/plugins/*/index.ts',
   '**/plugins/*/guard.ts',
+  '**/plugins/*/kek-ring.ts',
   '**/plugins/*/provisioning.ts',
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',

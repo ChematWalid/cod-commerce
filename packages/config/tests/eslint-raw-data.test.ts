@@ -86,6 +86,7 @@ const RAW_DATA_ALLOWED_FILES = [
   'plugins/platform-partitions/infrastructure/postgres-partition-catalog.ts',
   'plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
   'plugins/platform-outbox/infrastructure/outbox-due-scan.ts',
+  'plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
   'plugins/platform-health/platform-health.plugin.ts',
   'plugins/platform-health/infrastructure/postgres.probe.ts',
   'plugins/platform-health/infrastructure/migrations.probe.ts',

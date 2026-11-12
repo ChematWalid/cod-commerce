@@ -17,5 +17,7 @@ secret:
       match: change-me-garage-admin
     - name: .env.example placeholder INTERNAL_HMAC_KEYS (also Dockerfile ARG and CI env); loadEnv rejects it in staging and production
       match: change-me-internal-hmac-000000000000000000000
+    - name: .env.example placeholder TENANT_SECRET_KEKS, 64 zeros (also Dockerfile ARG and CI env); loadEnv rejects it in staging and production
+      match: 0000000000000000000000000000000000000000000000000000000000000000
     - name: deliberately broken database password fixture (RF5) in scripts/verify-stack.sh and the env unit test; never a credential
       match: p@ss/w:rd
