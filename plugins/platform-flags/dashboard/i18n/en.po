@@ -150,3 +150,19 @@ msgstr "No business or store has that id. Check it and try again."
 #. js-lingui-explicit-id
 msgid "flags.invalid-plan-key"
 msgstr "A plan key has 1 to 64 characters."
+
+#. js-lingui-explicit-id
+msgid "flags.description.intake.spool.enabled"
+msgstr "Accept new orders into the intake spool. Turning it off stops intake while a fault is handled."
+
+#. js-lingui-explicit-id
+msgid "flags.description.inbound-webhooks.enabled"
+msgstr "Accept inbound webhooks from providers. Turning it off answers 503 so providers retry later."
+
+#. js-lingui-explicit-id
+msgid "flags.description.ai.enabled"
+msgstr "Run the AI features (suggestions and replies). Turning it off stops every AI call."
+
+#. js-lingui-explicit-id
+msgid "flags.description.capi.enabled"
+msgstr "Send server-side conversion events to the ad platforms. Turning it off stops the sends."

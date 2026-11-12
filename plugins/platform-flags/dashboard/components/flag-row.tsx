@@ -1,6 +1,7 @@
 import { useLingui } from '@lingui/react';
 import { Button, Switch, TableCell, TableRow } from '@vendure/dashboard';
 import { Fragment, type ReactNode, useState } from 'react';
+import { flagDescription } from '../flag-description';
 import { useUpdateFlag } from '../hooks/use-flag-mutations';
 import type { FlagDto } from '../queries';
 import { LtrRun } from './ltr-run';
@@ -71,13 +72,16 @@ function OverridesToggle({ flag, open, onToggle }: OverridesToggleProps): ReactN
 /** A flag's row, and below it, when opened, its overrides. */
 export function FlagRow({ flag }: { readonly flag: FlagDto }): ReactNode {
   const [open, setOpen] = useState(false);
+  const { i18n } = useLingui();
   return (
     <Fragment>
       <TableRow data-testid={`flag-row-${flag.key}`}>
         <TableCell className="whitespace-normal break-words font-medium">
           <KeyCell flagKey={flag.key} />
         </TableCell>
-        <TableCell className={`${DESCRIPTION_COLUMN_CLASS} whitespace-normal`}>{flag.description}</TableCell>
+        <TableCell className={`${DESCRIPTION_COLUMN_CLASS} whitespace-normal`}>
+          {flagDescription((id) => i18n._(id), flag)}
+        </TableCell>
         <TableCell>
           <DefaultSwitch flag={flag} />
         </TableCell>

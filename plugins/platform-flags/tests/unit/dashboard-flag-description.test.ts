@@ -1,0 +1,44 @@
+import { FLAG_SEEDS } from '@cod/shared';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { flagDescription } from '../../dashboard/flag-description';
+import { DYNAMIC_MESSAGE_IDS } from '../../dashboard/i18n/dynamic-ids';
+
+/** Reads a catalogue's single-line `msgid`/`msgstr` pairs; the flag descriptions are one line each. */
+function catalogue(locale: 'en' | 'ar'): (id: string) => string {
+  const text = readFileSync(join(__dirname, `../../dashboard/i18n/${locale}.po`), 'utf8');
+  const entries = new Map<string, string>();
+  for (const match of text.matchAll(/^msgid "(.*)"\nmsgstr "(.*)"$/gm)) entries.set(match[1] ?? '', match[2] ?? '');
+  return (id) => entries.get(id) || id;
+}
+
+const flag = (key: string, description = 'stored text'): { key: string; description: string } => ({ key, description });
+
+describe('flagDescription', () => {
+  it('shows the Arabic catalogue text for ai.enabled on the Arabic page', () => {
+    const text = flagDescription(catalogue('ar'), flag('ai.enabled'));
+    expect(text).toMatch(/\p{Script=Arabic}/u);
+    expect(text).not.toBe('stored text');
+  });
+
+  it('shows the English catalogue text for ai.enabled on the English page', () => {
+    expect(flagDescription(catalogue('en'), flag('ai.enabled'))).toMatch(/AI/);
+  });
+
+  it('shows the stored description for a key the catalogues do not know', () => {
+    expect(flagDescription(catalogue('ar'), flag('future.flag', 'Stored words'))).toBe('Stored words');
+  });
+
+  it.each(FLAG_SEEDS.map((seed) => seed.key))('has an Arabic and an English text for %s', (key) => {
+    for (const locale of ['ar', 'en'] as const) {
+      expect(flagDescription(catalogue(locale), flag(key))).not.toBe('stored text');
+    }
+  });
+
+  it('registers every seeded flag description as a dynamic message id for i18n:check', () => {
+    expect(DYNAMIC_MESSAGE_IDS).toEqual(
+      expect.arrayContaining(FLAG_SEEDS.map((seed) => `flags.description.${seed.key}`)),
+    );
+  });
+});
