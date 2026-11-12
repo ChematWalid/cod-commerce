@@ -169,6 +169,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       redisUrl: env.REDIS_URL,
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
+      cacheNamespace: env.APP_ENV,
     }),
     ...tenantDataPlugins(env),
     RbacPlugin,

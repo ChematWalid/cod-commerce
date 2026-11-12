@@ -1,5 +1,6 @@
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { activeQueuesFor, QUEUES } from '@cod/shared';
 import {
   defaultConfig,
@@ -153,6 +154,15 @@ describe('buildVendureConfig', () => {
     });
 
     expect(namespaces).toEqual([`${CACHE_NAMESPACE_PREFIX}:staging`, `${CACHE_NAMESPACE_PREFIX}:production`]);
+  });
+
+  it('namespaces the host cache by APP_ENV (TEN-11)', () => {
+    const namespaces = ['staging', 'production'].map((appEnv) => {
+      configFor('api', { APP_ENV: appEnv, CLIENT_IP_HEADER: 'cf-connecting-ip' });
+      return TenancyPlugin.options?.cacheNamespace;
+    });
+
+    expect(namespaces).toEqual(['staging', 'production']);
   });
 
   it('every role registers the same entity set (B1)', () => {

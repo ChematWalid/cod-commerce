@@ -598,12 +598,16 @@ link and stop without merging.
 - `docs/research/second-pass.md` → "Onboarding" (live "is available" subdomain check); `docs/feature-inventory.md` section X (Custom domain inline connect)
 - ADRs on multi-tenancy and host routing in `docs/adr/`: 0002, 0006 (host map), 0012 (edge, TLS, custom domains); handoff `P3.S5` (Cloudflare modules, staging zone); `docs/architecture/system-design.md` §3 (edge), `infrastructure.md` §2
 
+**Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
+- #159 TEN-12 (low): fix(tenancy): tighten the custom_domain stub and index it
+- #206 CO-5 (low): feat(tenancy): add the release job for archived subdomains
+
 **High-level plan**
 1. Domain strategy: host → store resolution cache, reserved subdomains list, verification method (TXT record at `_verify.<domain>` plus CNAME/A target), Cloudflare for SaaS custom hostnames per ADR 0012 (platform domain is a `.com.dz`, store subdomains `<store>.<platform>.com.dz`, ADR 0011; merchants' own domains, `.com.dz` included; CNAME to stores.<root>, Cloudflare DCV + our _verify TXT ownership check, apex via CNAME flattening/ALIAS or registrar forwarding to www); record the decision as an addendum to ADR 0012 rather than a new ADR → commit `docs(adr): 0012 addendum custom domain strategy`
 2. `Domain` entity (businessId, storeId, host, kind subdomain/custom, status pending/verified/failed, primary, enabled, verificationToken) and APIs: subdomain availability check + change (format, length, reserved, uniqueness, old subdomain redirects for a grace period), connect, remove → commit `feat(domains): entities and subdomain api`
 3. Verification: DNS instructions generator (apex vs `shop.` subdomain case), domains-queue job polling the Cloudflare custom hostname status and our TXT record, retry schedule, manual "Verify now", failure reasons → commit `feat(domains): dns verification job`
 4. Domains tab UI: subdomain Change dialog with live availability; Connect domain inline (mystore.com or shop.mystore.com) → DNS records table with copy → status and Verify → Make primary → enable/disable → commit `feat(domains): domains tab ui`
-5. Storefront host routing: resolve custom and sub-domains to a store through the P1.S1 host map (Valkey `host:{host}` + pub/sub invalidation), non-primary hosts redirect (301) to the primary, disabled/unverified hosts 404; purge the edge cache by hostname on change → commit `feat(storefront): custom domain host routing`
+5. Storefront host routing: resolve custom and sub-domains to a store through the P1.S1 host map (Valkey `host:{APP_ENV}:{host}` + pub/sub invalidation on `host-invalidate:{APP_ENV}`, P1 decision D309), non-primary hosts redirect (301) to the primary, disabled/unverified hosts 404; purge the edge cache by hostname on change → commit `feat(storefront): custom domain host routing`
 6. Cloudflare client (create/delete custom hostname, read status, purge by hostname; purges go through the P3.S2 coalescing/batching path, Free = 5 purge requests/min, ADR 0012) behind an interface with a mock; staging run: connect a real test domain end to end; runbook deploy/cloudflare/README.md → commit `feat(domains): cloudflare for saas integration`
 7. Tests incl. isolation and custom-hostname abuse cases (unverified, disabled, already owned by another business) → commit `test(domains): verification, routing and cloudflare client`
 

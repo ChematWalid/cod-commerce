@@ -68,6 +68,11 @@ export interface TenancyPluginOptions {
   readonly platformDomain: string;
   /** Skips the Valkey lease and uses this worker id: tests and scripts only (ADR 0003's reserved range). */
   readonly snowflakeWorkerId?: number;
+  /**
+   * Namespaces the host cache keys and invalidations, so environments sharing a Valkey stay apart. The server
+   * passes `APP_ENV`; the default is `development`.
+   */
+  readonly cacheNamespace?: string;
 }
 
 /** The longest a business id gets: 19 digits, with room for one more (D2). */
@@ -169,8 +174,8 @@ const STORE_USE_CASES = [
     },
     {
       provide: CreateStoreService,
-      useFactory: (ports: TenancyPorts) => new CreateStoreService(ports),
-      inject: [TENANCY_PORTS],
+      useFactory: (ports: TenancyPorts, hosts: StoreHostInvalidatorPort) => new CreateStoreService(ports, hosts),
+      inject: [TENANCY_PORTS, STORE_HOST_INVALIDATOR],
     },
     { provide: TENANT_STORES, useClass: TenantStoresAdapter },
     ...hostResolutionProviders(() => requireOptions()),

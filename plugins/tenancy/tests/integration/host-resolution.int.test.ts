@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
 import { ResolveHostService } from '../../application/resolve-host.service';
-import { HOST_CACHE_TTL_SECONDS, hostCacheKey } from '../../domain/constants';
+import { HOST_CACHE_DEFAULT_NAMESPACE, HOST_CACHE_TTL_SECONDS, hostCacheKey } from '../../domain/constants';
 import { HostInvalidationSubscriber } from '../../infrastructure/host-invalidation.subscriber';
 import { HostInvalidator } from '../../infrastructure/host-invalidator';
 import { LruHostCache } from '../../infrastructure/lru';
@@ -72,7 +72,8 @@ describe('host to store resolution', () => {
     return (await rows.findOneByOrFail({ id: storeId })).channelId;
   }
 
-  const clearHosts = (...hosts: string[]): Promise<number> => probe.del(...hosts.map(hostCacheKey));
+  const clearHosts = (...hosts: string[]): Promise<number> =>
+    probe.del(...hosts.map((host) => hostCacheKey(HOST_CACHE_DEFAULT_NAMESPACE, host)));
   const asAlpha = (): Promise<void> => actAsOwner(server.app, adminClient, 'alpha', alpha.store.channelId);
 
   async function openStore(subdomain: string): Promise<StoreView> {
@@ -139,8 +140,32 @@ describe('host to store resolution', () => {
     await sleep(AFTER_REDELETE_MS);
 
     // Assert
-    expect(await probe.exists(hostCacheKey('stale.localhost'))).toBe(0);
+    expect(await probe.exists(hostCacheKey(HOST_CACHE_DEFAULT_NAMESPACE, 'stale.localhost'))).toBe(0);
     await expect(stack.resolver.resolve('stale.localhost')).resolves.toBeNull();
+  });
+
+  it('resolves a new store, not a stale entry left for its subdomain by the previous holder (TEN-2)', async () => {
+    // Arrange: an entry whose invalidation never landed, pointing at another store
+    const stack = await startStack();
+    await stack.shared.set('reused.localhost', {
+      storeId: '100',
+      businessId: '200',
+      language: 'ar',
+      name: 'Previous holder',
+      logo: null,
+      primaryHost: 'reused.localhost',
+      status: 'active',
+    });
+
+    // Act
+    await asAlpha();
+    const { createStore } = await adminClient.query<{ createStore: StoreView }>(CREATE_STORE, {
+      input: { name: 'reused store', subdomain: 'reused', language: 'ar' },
+    });
+
+    // Assert
+    await expect(stack.resolver.resolve('reused.localhost')).resolves.toMatchObject({ storeId: createStore.id });
+    await clearHosts('reused.localhost');
   });
 
   it('writes a host key with the backstop TTL', async () => {
@@ -160,7 +185,7 @@ describe('host to store resolution', () => {
     });
 
     // Assert
-    const ttl = await probe.ttl(hostCacheKey('ttl.localhost'));
+    const ttl = await probe.ttl(hostCacheKey(HOST_CACHE_DEFAULT_NAMESPACE, 'ttl.localhost'));
     expect(ttl).toBeGreaterThan(0);
     expect(ttl).toBeLessThanOrEqual(HOST_CACHE_TTL_SECONDS);
     await clearHosts('ttl.localhost');

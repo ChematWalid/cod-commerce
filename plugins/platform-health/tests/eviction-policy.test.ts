@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EvictionPolicyVerifier } from '../application/eviction-policy.verifier';
-import { LOGGER_CONTEXT, REDIS_EVICTION_GUARD_TIMEOUT_MS } from '../domain/constants';
+import {
+  LOGGER_CONTEXT,
+  REDIS_EVICTION_GUARD_TIMEOUT_MS,
+  REDIS_EVICTION_RECHECK_INTERVAL_MS,
+} from '../domain/constants';
 import { RedisConfigUnavailableError, RedisEvictionPolicyError } from '../domain/eviction-policy';
 import { RedisEvictionPolicyReader } from '../infrastructure/redis-eviction.guard';
 import { RedisProbe } from '../infrastructure/redis.probe';
@@ -108,6 +112,65 @@ describe('RedisProbe', () => {
 
     expect(readPolicy).toHaveBeenCalledTimes(2);
     expect(client.ping).toHaveBeenCalledOnce();
+  });
+});
+
+describe('RedisProbe after boot', () => {
+  it('detects a policy changed after boot once the verification expires', async () => {
+    vi.useFakeTimers();
+    const client = fakeClient();
+    const verifier = new EvictionPolicyVerifier(scriptedReader(policy('noeviction'), policy('allkeys-lru')), {
+      warn: vi.fn(),
+    });
+    await verifier.verifyAtBoot();
+    const probe = new RedisProbe(client, verifier);
+    expect(await outcomeOf(probe.check())).toBe('accepted');
+
+    vi.advanceTimersByTime(REDIS_EVICTION_RECHECK_INTERVAL_MS);
+    const outcome = await outcomeOf(probe.check());
+
+    expect(outcome).toBeInstanceOf(RedisEvictionPolicyError);
+    expect(verifier.verified).toBe(false);
+  });
+
+  it('stays unverified after a failed re-check, so the next check reads the policy again', async () => {
+    vi.useFakeTimers();
+    const reader = scriptedReader(policy('noeviction'), policy('allkeys-lru'), policy('noeviction'));
+    const readPolicy = vi.spyOn(reader, 'readEvictionPolicy');
+    const verifier = new EvictionPolicyVerifier(reader, { warn: vi.fn() });
+    await verifier.verifyAtBoot();
+    const probe = new RedisProbe(fakeClient(), verifier);
+
+    vi.advanceTimersByTime(REDIS_EVICTION_RECHECK_INTERVAL_MS);
+    await outcomeOf(probe.check());
+    const recovered = await outcomeOf(probe.check());
+
+    expect(recovered).toBe('accepted');
+    expect(readPolicy).toHaveBeenCalledTimes(3);
+  });
+
+  it('shares one policy read between concurrent re-checks', async () => {
+    const reader = scriptedReader(policy('noeviction'));
+    const readPolicy = vi.spyOn(reader, 'readEvictionPolicy');
+    const verifier = new EvictionPolicyVerifier(reader, { warn: vi.fn() });
+
+    await Promise.all([verifier.verify(), verifier.verify(), verifier.verify()]);
+
+    expect(readPolicy).toHaveBeenCalledOnce();
+  });
+
+  it('does not re-read the policy within the re-check interval', async () => {
+    vi.useFakeTimers();
+    const reader = scriptedReader(policy('noeviction'));
+    const readPolicy = vi.spyOn(reader, 'readEvictionPolicy');
+    const verifier = new EvictionPolicyVerifier(reader, { warn: vi.fn() });
+    await verifier.verifyAtBoot();
+    const probe = new RedisProbe(fakeClient(), verifier);
+
+    vi.advanceTimersByTime(REDIS_EVICTION_RECHECK_INTERVAL_MS - 1);
+    await probe.check();
+
+    expect(readPolicy).toHaveBeenCalledOnce();
   });
 });
 

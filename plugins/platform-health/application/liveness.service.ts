@@ -6,7 +6,7 @@ export type LivenessReport = HealthProbeResponse<'eventLoop'>;
 
 /** Answers `/livez`: is this process still able to run its event loop? It checks no dependency. */
 export class LivenessService {
-  /** @param lagSampler returns the event-loop lag in milliseconds observed since the previous sample. */
+  /** @param lagSampler returns the worst event-loop lag, in milliseconds, of the recent window; reading it must not change it. */
   constructor(private readonly lagSampler: () => number) {}
 
   /** Fails when the event-loop lag exceeds {@link LIVENESS_MAX_EVENT_LOOP_LAG_MS}. */

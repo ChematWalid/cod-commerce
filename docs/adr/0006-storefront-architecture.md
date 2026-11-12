@@ -28,7 +28,7 @@ Option 3.
 1. **Runtime**: `output: 'standalone'`, a container role `storefront` from the single platform image (ADR 0013), at least 2 instances, no sticky sessions.
 2. **Host resolution in `proxy.ts`**:
    - Normalise the host (lowercase, strip port and a trailing dot).
-   - Resolve `host → {storeId, businessId, locale, primaryHost, status}` through an in-process LRU (10 k entries, 60 s), then Redis `host:{host}` (no TTL, invalidated by pub/sub on domain or subdomain change), then the internal API `GET /store/resolve?host=`.
+   - Resolve `host → {storeId, businessId, locale, primaryHost, status}` through an in-process LRU (10 k entries, 60 s), then Redis `host:{host}` (no TTL, invalidated by pub/sub on domain or subdomain change; as built, the key is `host:{APP_ENV}:{host}` with a 24 h backstop TTL, P1 decisions D16 and D309), then the internal API `GET /store/resolve?host=`.
    - Unknown or disabled host → rewrite to `/_404`. Non-primary host → 301 to the primary.
    - An **incoming** path that already starts with `/_t/`, `/_internal` or `/_404` → 404 (also blocked at the edge). Otherwise a buyer could request `storeA.host/_t/<storeB>/...`, render store B (even a disabled one) under store A's host and have Cloudflare cache it there.
    - Otherwise **rewrite** to the internal route `/_t/[storeId]/[locale]/...path`, so the tenant becomes a **route param** and enters every `'use cache'` key without touching `headers()`.

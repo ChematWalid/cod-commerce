@@ -17,13 +17,17 @@ import {
 } from '../domain/errors';
 import { assertValidName } from '../domain/name';
 import type { OperationContext } from '../domain/ports/operation-context';
+import type { StoreHostInvalidatorPort } from '../domain/ports/store-host-invalidator.port';
 import { type CreateStoreInput, newStore, type Store } from '../domain/store';
 import { assertAssetInChannels, channelsOf } from './asset-rules';
 import type { TenancyPorts } from './tenancy-ports';
 
 /** Opens a store for a business: a channel of its seller, its Owner role on that channel, and the store row. */
 export class CreateStoreService {
-  constructor(private readonly ports: TenancyPorts) {}
+  constructor(
+    private readonly ports: TenancyPorts,
+    private readonly hosts: StoreHostInvalidatorPort,
+  ) {}
 
   /**
    * Checks what can be checked without writing anything, and returns the normalised subdomain.
@@ -47,20 +51,46 @@ export class CreateStoreService {
   }
 
   /**
-   * Creates the store in one transaction, so a failure leaves no orphan channel.
+   * Creates the store in one transaction, so a failure leaves no orphan channel, then forgets its host.
    *
    * @throws what {@link assertCreatable} throws, {@link BusinessNotFoundError} or {@link SubdomainTakenError}.
    */
   async create(ctx: OperationContext, businessId: Snowflake, input: CreateStoreInput): Promise<Store> {
     const subdomain = await this.assertCreatable(ctx, input);
-    return this.ports.transaction.run(ctx, async (transactional) => {
-      const business = await this.requireBusiness(transactional, businessId);
-      if (await this.ports.platform.isSubdomainTaken(transactional, subdomain)) {
-        throw new SubdomainTakenError();
-      }
-      await this.assertLogoAllowed(transactional, business, input);
-      return this.openStore(transactional, business, subdomain, input);
-    });
+    const store = await this.ports.transaction.run(ctx, (transactional) =>
+      this.createIn(transactional, businessId, subdomain, input),
+    );
+    await this.forgetHost(store);
+    return store;
+  }
+
+  /**
+   * Creates the store inside the caller's transaction. The caller calls {@link forgetHost} once it has committed.
+   *
+   * @param subdomain the normalised subdomain {@link assertCreatable} returned.
+   * @throws {@link BusinessNotFoundError} or {@link SubdomainTakenError}.
+   */
+  async createIn(
+    ctx: OperationContext,
+    businessId: Snowflake,
+    subdomain: string,
+    input: CreateStoreInput,
+  ): Promise<Store> {
+    const business = await this.requireBusiness(ctx, businessId);
+    if (await this.ports.platform.isSubdomainTaken(ctx, subdomain)) {
+      throw new SubdomainTakenError();
+    }
+    await this.assertLogoAllowed(ctx, business, input);
+    return this.openStore(ctx, business, subdomain, input);
+  }
+
+  /**
+   * Drops any cached resolution of the new store's host. A subdomain is free as soon as a store leaves it, and an
+   * entry that outlived its invalidation (retries ran out, or the process died between commit and delete) would
+   * send the new store's buyers to the old store for up to a day (TEN-2).
+   */
+  async forgetHost(store: Pick<Store, 'id' | 'subdomain'>): Promise<void> {
+    await this.hosts.invalidate({ storeId: store.id, subdomains: [store.subdomain] });
   }
 
   private async requireBusiness(ctx: OperationContext, businessId: Snowflake): Promise<Business> {

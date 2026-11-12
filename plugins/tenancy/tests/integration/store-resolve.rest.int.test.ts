@@ -5,7 +5,7 @@ import { TransactionalConnection } from '@vendure/core';
 import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ProvisionedBusiness } from '../../application/provision-business.service';
-import { hostCacheKey } from '../../domain/constants';
+import { HOST_CACHE_DEFAULT_NAMESPACE, hostCacheKey } from '../../domain/constants';
 import { CustomDomainEntity } from '../../infrastructure/custom-domain.entity';
 import { ARCHIVE_STORE, CREATE_STORE, type StoreView } from './admin-api-operations';
 import { actAsOwner } from './admin-api-session';
@@ -46,7 +46,7 @@ describe('store resolution over REST', () => {
   }
 
   beforeAll(async () => {
-    await probe.del(...CACHED_HOSTS.map(hostCacheKey));
+    await probe.del(...CACHED_HOSTS.map((host) => hostCacheKey(HOST_CACHE_DEFAULT_NAMESPACE, host)));
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
     await adminClient.asSuperAdmin();
     await adminClient.query(UPDATE_GLOBAL_LANGUAGES);
@@ -56,7 +56,7 @@ describe('store resolution over REST', () => {
 
   afterAll(async () => {
     await server.destroy();
-    await probe.del(...CACHED_HOSTS.map(hostCacheKey));
+    await probe.del(...CACHED_HOSTS.map((host) => hostCacheKey(HOST_CACHE_DEFAULT_NAMESPACE, host)));
     probe.disconnect();
   });
 

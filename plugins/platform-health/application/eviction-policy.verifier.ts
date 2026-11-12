@@ -1,4 +1,8 @@
-import { LOGGER_CONTEXT, REDIS_EVICTION_GUARD_TIMEOUT_MS } from '../domain/constants';
+import {
+  LOGGER_CONTEXT,
+  REDIS_EVICTION_GUARD_TIMEOUT_MS,
+  REDIS_EVICTION_RECHECK_INTERVAL_MS,
+} from '../domain/constants';
 import { assertNoEvictionPolicy, isEvictionPolicyVerdict } from '../domain/eviction-policy';
 import type { EvictionPolicyCheck, EvictionPolicyReader, WarnLogger } from '../domain/ports';
 import { withTimeout } from '../domain/with-timeout';
@@ -8,19 +12,23 @@ const describeFailure = (error: unknown): string => (error instanceof Error ? er
 /**
  * Verifies that Valkey never evicts keys. Boot fails on a wrong or unverifiable policy, but not on an
  * unreachable Valkey: the redis readiness probe then verifies the policy before it ever reports ok.
+ * A verification expires after `recheckMs`, so a policy changed later (a config reload, a failover to a node
+ * with another policy) is noticed by the next readiness check.
  */
 export class EvictionPolicyVerifier implements EvictionPolicyCheck {
-  private verifiedOnce = false;
+  private verifiedAt: number | undefined;
+  private inFlight: Promise<void> | undefined;
 
   constructor(
     private readonly reader: EvictionPolicyReader,
     private readonly logger: WarnLogger,
     private readonly timeoutMs: number = REDIS_EVICTION_GUARD_TIMEOUT_MS,
+    private readonly recheckMs: number = REDIS_EVICTION_RECHECK_INTERVAL_MS,
   ) {}
 
-  /** True once the policy has been read as `noeviction`; a running Valkey does not change it back. */
+  /** True while the last read of the policy said `noeviction` and is younger than the re-check interval. */
   get verified(): boolean {
-    return this.verifiedOnce;
+    return this.verifiedAt !== undefined && performance.now() - this.verifiedAt < this.recheckMs;
   }
 
   /**
@@ -28,9 +36,22 @@ export class EvictionPolicyVerifier implements EvictionPolicyCheck {
    * @throws {RedisConfigUnavailableError} when Valkey refuses `CONFIG GET`.
    * @throws {ProbeTimeoutError} or the connection error when Valkey is out of reach.
    */
-  async verify(): Promise<void> {
-    assertNoEvictionPolicy(await withTimeout(this.reader.readEvictionPolicy(), this.timeoutMs));
-    this.verifiedOnce = true;
+  verify(): Promise<void> {
+    // Concurrent `/readyz` calls share one `CONFIG GET` instead of each sending their own.
+    this.inFlight ??= this.readAndRecord().finally(() => {
+      this.inFlight = undefined;
+    });
+    return this.inFlight;
+  }
+
+  private async readAndRecord(): Promise<void> {
+    try {
+      assertNoEvictionPolicy(await withTimeout(() => this.reader.readEvictionPolicy(), this.timeoutMs));
+    } catch (error) {
+      this.verifiedAt = undefined;
+      throw error;
+    }
+    this.verifiedAt = performance.now();
   }
 
   /**

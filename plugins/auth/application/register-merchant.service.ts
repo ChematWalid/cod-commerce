@@ -10,7 +10,7 @@ import { AUTH_EMAIL_LOCALES, type AuthEmailLocale } from '../domain/email';
 import { ChallengeFailedError, EmailTakenError, PasswordPolicyError, RegistrationInvalidError } from '../domain/errors';
 import type { AccountIdentityPort, EmailClaimPort } from '../domain/ports/account-identity.port';
 import type { BotChallengePort } from '../domain/ports/bot-challenge.port';
-import type { BusinessProvisionerPort } from '../domain/ports/business-provisioner.port';
+import type { BusinessProvisionerPort, ProvisionOutcome } from '../domain/ports/business-provisioner.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { AccountTokenService } from './account-token.service';
 import type { AuthEmailService } from './auth-email.service';
@@ -90,16 +90,18 @@ export class RegisterMerchantService {
     if ((await this.ports.challenge.verify(command.challengeToken)) === 'failed') {
       throw new ChallengeFailedError();
     }
-    return this.ports.identity.inTransaction(ctx, (transactional) =>
+    const { result, store } = await this.ports.identity.inTransaction(ctx, (transactional) =>
       this.registerIn(transactional, command, oauthBinding),
     );
+    await this.ports.provisioner.forgetStoreHost(store);
+    return result;
   }
 
   private async registerIn(
     ctx: OperationContext,
     command: RegisterMerchantCommand,
     oauthBinding: string | undefined,
-  ): Promise<RegisterMerchantResult> {
+  ): Promise<{ result: RegisterMerchantResult; store: ProvisionOutcome['store'] }> {
     const { identity, claims, provisioner, oauth } = this.ports;
     const source = await this.sourceOf(ctx, command, oauthBinding);
     await claims.claim(ctx, source.email);
@@ -120,7 +122,7 @@ export class RegisterMerchantService {
       store: { name: command.storeName, subdomain: command.subdomain, language: command.storeLanguage },
     });
     const outcome = await this.finishAccount(ctx, command, source, administratorId);
-    return { businessId: business.id, storeId: store.id, ...outcome };
+    return { result: { businessId: business.id, storeId: store.id, ...outcome }, store };
   }
 
   /** The email a confirmed provider vouched for wins over what the form sent: it is the one that was proven. */

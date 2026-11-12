@@ -52,11 +52,14 @@ function requireOptions(): PlatformHealthOptions {
 }
 
 const createReadiness = (connection: TransactionalConnection, redis: ProbeRedis): ReadinessService =>
-  new ReadinessService([
-    new PostgresProbe(connection.rawConnection),
-    new RedisProbe(redis.client, redis.evictionPolicy),
-    new MigrationsProbe(connection.rawConnection),
-  ]);
+  new ReadinessService(
+    [
+      new PostgresProbe(connection.rawConnection),
+      new RedisProbe(redis.client, redis.evictionPolicy),
+      new MigrationsProbe(connection.rawConnection),
+    ],
+    Logger,
+  );
 
 /**
  * Readiness (`/readyz`: Postgres, Valkey, pending migrations) and liveness (`/livez`: event-loop lag) probes.
@@ -66,7 +69,7 @@ const createReadiness = (connection: TransactionalConnection, redis: ProbeRedis)
 @VendurePlugin({
   imports: [PluginCommonModule],
   providers: [
-    EventLoopLagMonitor,
+    { provide: EventLoopLagMonitor, useFactory: () => new EventLoopLagMonitor() },
     { provide: PROBE_REDIS, useFactory: createProbeRedis },
     { provide: ReadinessService, useFactory: createReadiness, inject: [TransactionalConnection, PROBE_REDIS] },
     {

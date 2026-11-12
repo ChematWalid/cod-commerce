@@ -15,6 +15,21 @@ export const PROBE_TIMEOUT_MS = { postgres: 500, redis: 200, migrations: 2000 } 
   number
 >;
 
+/**
+ * The reason `/readyz` gives for a probe that failed with an error that is not one of our domain errors
+ * (driver text, which can hold a host, a port or a user). Domain errors give their own `code`.
+ */
+export const PROBE_FAILED_CODE = 'platform-health.probe-failed';
+
+/** A probe that keeps failing is logged at most once per interval, so an outage or a flood of `/readyz` calls cannot flood the log. */
+export const PROBE_FAILURE_LOG_INTERVAL_MS = 30_000;
+
+/**
+ * The event-loop lag window: `/livez` reports the worst lag of the current and the previous window, so a stall
+ * stays visible for at least one window, longer than the 10 s probe period.
+ */
+export const EVENT_LOOP_LAG_WINDOW_MS = 15_000;
+
 /** Above this event-loop lag the process is stuck and `/livez` fails, so the orchestrator restarts it. */
 export const LIVENESS_MAX_EVENT_LOOP_LAG_MS = 1000;
 
@@ -35,6 +50,9 @@ export const REQUIRED_REDIS_EVICTION_POLICY = 'noeviction';
 
 /** How long the eviction-policy check may take; past it, Valkey counts as unreachable. */
 export const REDIS_EVICTION_GUARD_TIMEOUT_MS = 2000;
+
+/** A verified eviction policy is read again once it is this old, so a config reload or a failover is noticed. */
+export const REDIS_EVICTION_RECHECK_INTERVAL_MS = 60_000;
 
 /** While Valkey is unreachable, its client logs at most one warning per interval instead of one per retry. */
 export const REDIS_ERROR_LOG_INTERVAL_MS = 30_000;

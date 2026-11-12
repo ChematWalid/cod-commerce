@@ -1,5 +1,6 @@
 import { PROBE_TIMEOUT_MS } from '../domain/constants';
 import type { ReadinessProbe } from '../domain/readiness';
+import { withStatementTimeout } from './statement-timeout';
 
 /** What the probe needs from a database client, such as TypeORM's `DataSource` or a `pg` pool. */
 export interface SqlQueryRunner {
@@ -13,7 +14,9 @@ export class PostgresProbe implements ReadinessProbe {
 
   constructor(private readonly database: SqlQueryRunner) {}
 
-  async check(): Promise<void> {
-    await this.database.query('SELECT 1');
+  /** The statement timeout makes Postgres cancel the query when the probe's budget is spent. */
+  async check(signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
+    await this.database.query(withStatementTimeout('SELECT 1', this.timeoutMs));
   }
 }

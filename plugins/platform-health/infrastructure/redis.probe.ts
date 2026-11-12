@@ -58,8 +58,9 @@ export async function ensureConnected(client: ConnectableClient): Promise<void> 
 }
 
 /**
- * Ready when Valkey answers `PING`. Until its eviction policy has been verified once (Valkey was unreachable
- * at boot), the probe verifies the policy instead, so a wrong policy never reports ready.
+ * Ready when Valkey answers `PING`. While its eviction policy is unverified (Valkey was unreachable at boot,
+ * or the last verification expired), the probe verifies the policy instead, so a wrong or changed policy
+ * never reports ready.
  */
 export class RedisProbe implements ReadinessProbe {
   readonly name = 'redis';

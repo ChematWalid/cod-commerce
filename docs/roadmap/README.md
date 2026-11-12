@@ -9,7 +9,8 @@
 ## How to use this roadmap
 1. Pick the next session whose prerequisites are merged (see the table and graph). Sessions marked parallel-safe can run at the same time in separate worktrees/sessions.
 2. Open a fresh Claude session in the repo, paste the session's **kickoff prompt** from its phase file.
-3. The session ends with a PR and a handoff note and stops. You review and merge (squash). Then start the next one.
+3. The session first lists the open `audit` issues it owns (its brief has an **Audit issues to close** block; rule in CONTRIBUTING.md) and plans them with its own work.
+4. The session ends with a PR and a handoff note and stops. You review and merge (squash). Then start the next one.
 
 ## Phases
 
@@ -252,7 +253,7 @@ These are the cross-session seams; the owning session defines them, later sessio
 | `LlmClient` + `withCredits(action)` metering | P9.S7a | P9.S7b, P9.S8b (MCP does not spend credits) |
 | API key scopes + webhook signing | P9.S8a | P9.S8b (MCP and apps reuse the scopes) |
 | Domain event names (`packages/shared/src/events/`, written `packages/shared/events` in briefs); every domain event is written through the outbox in the emitting transaction | first emitting session | all subscribers |
-| Host map: in-process LRU (60 s) + Valkey `host:{host}` + pub/sub invalidation, `GET /store/resolve` | P1.S1 | P3.S2 (`proxy.ts`), P8.S9 (custom domains) |
+| Host map: in-process LRU (60 s) + Valkey `host:{APP_ENV}:{host}` + pub/sub invalidation on `host-invalidate:{APP_ENV}` (D309), `GET /store/resolve` | P1.S1 | P3.S2 (`proxy.ts`), P8.S9 (custom domains) |
 | `OutboxService.add(ctx, topic, payload)` (same-transaction), relay + sweeper, consumer job-id convention `{outboxId}:{consumer}` | P1.S6 | P3.S4, P4.S1, P5.*, P7.S3, P9.S3, P9.S8a, P9.S5, P9.S6 |
 | `job-reconciler` (re-enqueues non-terminal durable rows: outbox deliveries, inbound webhooks, …, after a Valkey loss) + `scheduler_task_last_success_age_seconds` | P1.S6 | every session that adds a durable job row registers its table with the reconciler (e.g. P5.S1 dispatch, P9.* integrations) |
 | Inbound webhook gateway `POST /webhooks/{provider}/{accountKey}` + `InboundWebhookHandler` registry (dedupe, enqueue) | P1.S6 | P5.S4–S7, P9.S2, P9.S5, P9.S6 |
@@ -529,6 +530,29 @@ Rows refer to [../feature-inventory.md](../feature-inventory.md). Inventory text
 | YouCan/Ayor/Shopify sync; media library | P9.S6 (media library → P2.S1) |
 | Custom domain connect → DNS → verify | P8.S9 |
 | Arabic dashboard RTL | P1.S5 |
+
+## Audit issues without a feature session
+Findings of `docs/audits/P1-audit.md` that no feature session owns. The gate, CI and evidence ones were filed under M.S1, which only bumps Vendure: a session that already touches `packages/config`, `.github/workflows` or `scripts/evidence` takes the ones in its path, and the rest wait for a maintenance session the user schedules. The others wait for a user decision.
+- #123 SHELL-2 (medium): test(merchant-shell): derive stock routes from the route tree — owner in the audit: M.S1
+- #128 PKG-9 (medium): fix(config): restrict eslint-disable and size-check JS files — owner in the audit: M.S1
+- #129 PKG-10 (medium): refactor: remove or gate the `as unknown as` casts outside tests — owner in the audit: M.S1
+- #131 CI-2 (medium): ci: alert when the browser workflow fails on main — owner in the audit: M.S1
+- #132 EV-1 (medium): docs(evidence): mark the P0.S2b-6 evidence script as superseded — owner in the audit: M.S1
+- #133 EV-2 (medium): docs(evidence): mark the P0.S2c-polish evidence script as superseded — owner in the audit: M.S1
+- #137 ROADMAP-1 (medium): docs(roadmap): reassign the source changes handed to P3.S5 — owner in the audit: Roadmap PR docs/roadmap-audit-owners
+- #140 M3 (medium): fix(config): bring scripts/ under the plugin entry-point gate — owner in the audit: M.S1
+- #165 RBAC-9 (low): feat(rbac): add French labels for roles and permissions — owner in the audit: Copy pass session (user decision)
+- #193 CI-4 (low): ci: tighten the commit attribution check — owner in the audit: M.S1
+- #194 CI-5 (low): ci: let a re-run of the build-test gate job go green — owner in the audit: M.S1
+- #195 CI-6 (low): ci: add dependabot.yml and CODEOWNERS — owner in the audit: M.S1
+- #196 CI-7 (low): ci: run ci-duration.sh on a schedule — owner in the audit: M.S1
+- #197 PKG-12 (low): fix(shared): guard the snowflake clock range — owner in the audit: M.S1
+- #198 PKG-13 (low): test(testing): assert createTwoBusinesses returns two distinct businesses — owner in the audit: M.S1
+- #199 PKG-14 (low): fix(shared): close the smaller i18n gate gaps — owner in the audit: M.S1
+- #200 PKG-15 (low): chore(config): triage the remaining small gate gaps — owner in the audit: M.S1
+- #201 GATE-1 (low): fix(config): make test:arch pass in a checkout under .claude/ — owner in the audit: M.S1
+- #203 CO-2 (low): test(auth): run sign-in once against real Google and Facebook — owner in the audit: User, when credentials exist
+- #204 CO-3 (low): feat(i18n): plan French copy and a native Arabic review — owner in the audit: User decision: a copy pass session
 
 ## Plan mutation protocol
 - **Split** a session that won't fit: create `P{n}.S{m}a/b`, update this table, the graph and the issue.
