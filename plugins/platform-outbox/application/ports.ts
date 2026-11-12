@@ -163,3 +163,12 @@ export interface OutboxDueScanPort {
   /** Every pending event of every business. */
   pendingSummary(): Promise<PendingSummary>;
 }
+
+/**
+ * What the sweeper needs of BullMQ's job presence (D130): a settled relay job it still keeps is removed before the
+ * same id is added again. The platform-jobs presence adapter fits it; application code may not import that entry (D121).
+ */
+export interface RelayJobPresencePort {
+  stateOf(queue: QueueName, jobId: string): Promise<'missing' | 'live' | 'delayed' | 'failed' | 'completed'>;
+  remove(queue: QueueName, jobId: string): Promise<void>;
+}

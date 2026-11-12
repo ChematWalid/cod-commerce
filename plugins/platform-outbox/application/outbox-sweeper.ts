@@ -1,4 +1,3 @@
-import type { JobPresencePort } from '@cod/plugin-platform-jobs';
 import { DURABLE_JOB_KINDS, durableJobId } from '@cod/shared';
 import {
   OUTBOX_RELAY_QUEUE,
@@ -7,7 +6,13 @@ import {
   OUTBOX_SWEEP_BUDGET_MS,
   OUTBOX_SWEEP_WINDOW_MS,
 } from '../domain/constants';
-import type { OutboxDueScanPort, OutboxEnvironment, OutboxQueuesPort, PendingEventRow } from './ports';
+import type {
+  OutboxDueScanPort,
+  OutboxEnvironment,
+  OutboxQueuesPort,
+  PendingEventRow,
+  RelayJobPresencePort,
+} from './ports';
 
 /**
  * Starts the relay of events the after-commit subscriber never reached (a crash or a Valkey loss between commit and
@@ -18,7 +23,7 @@ export class OutboxSweeper {
   constructor(
     private readonly scan: OutboxDueScanPort,
     private readonly queues: Pick<OutboxQueuesPort, 'enqueueRelay'>,
-    private readonly presence: Pick<JobPresencePort, 'stateOf' | 'remove'>,
+    private readonly presence: RelayJobPresencePort,
     private readonly environment: OutboxEnvironment,
   ) {}
 
