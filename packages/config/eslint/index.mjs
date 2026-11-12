@@ -42,6 +42,7 @@ const SERVER_LAYERS = ['domain', 'application', 'infrastructure', 'api'];
 const PLUGIN_ROOT_FILES = [
   '**/plugins/*/index.ts',
   '**/plugins/*/guard.ts',
+  '**/plugins/*/member-access.ts',
   '**/plugins/*/provisioning.ts',
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',

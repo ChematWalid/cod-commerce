@@ -41,12 +41,15 @@ const FORBIDDEN: ReadonlySet<string> = new Set([
   RBAC_ERROR_CODES.BUILT_IN_IMMUTABLE,
   RBAC_ERROR_CODES.STORE_NOT_ACCESSIBLE,
 ]);
+/** The member's state forbids the change until it changes elsewhere (D204: deactivated in Team). */
+const CONFLICT: ReadonlySet<string> = new Set([RBAC_ERROR_CODES.MEMBER_SUSPENDED]);
 const RBAC_CODES: ReadonlySet<string> = new Set(Object.values(RBAC_ERROR_CODES) satisfies RbacErrorCode[]);
 
-/** The HTTP status of a domain error: 404, 403 or 400 for this plugin's codes, 500 for anything else. */
+/** The HTTP status of a domain error: 404, 409, 403 or 400 for this plugin's codes, 500 for anything else. */
 export function restStatusOf(error: DomainError): HttpStatus {
   if (!RBAC_CODES.has(error.code)) return HttpStatus.INTERNAL_SERVER_ERROR;
   if (NOT_FOUND.has(error.code)) return HttpStatus.NOT_FOUND;
+  if (CONFLICT.has(error.code)) return HttpStatus.CONFLICT;
   return FORBIDDEN.has(error.code) ? HttpStatus.FORBIDDEN : HttpStatus.BAD_REQUEST;
 }
 

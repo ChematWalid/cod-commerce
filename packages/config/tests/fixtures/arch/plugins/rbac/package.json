@@ -10,6 +10,10 @@
     "./guard": {
       "@cod/source": "./guard.ts",
       "default": "./dist/guard.js"
+    },
+    "./member-access": {
+      "@cod/source": "./member-access.ts",
+      "default": "./dist/member-access.js"
     }
   }
 }

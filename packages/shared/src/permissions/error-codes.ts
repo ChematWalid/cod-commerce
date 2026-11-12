@@ -16,6 +16,7 @@ export const RBAC_ERROR_CODES = {
   LAST_OWNER: 'rbac.last-owner',
   STORE_NOT_ACCESSIBLE: 'rbac.store-not-accessible',
   STORE_ACCESS_INVALID: 'rbac.store-access-invalid',
+  MEMBER_SUSPENDED: 'rbac.member-suspended',
 } as const;
 
 /** One of the {@link RBAC_ERROR_CODES} values. */

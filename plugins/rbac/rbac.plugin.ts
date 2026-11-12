@@ -15,6 +15,8 @@ import { RolesController } from './api/roles.controller';
 import { RolesResolver } from './api/roles.resolver';
 import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
+import { GrantPreviewService } from './application/grant-preview.service';
+import { MemberAccessService } from './application/member-access.service';
 import { BindingProjector } from './application/binding-projector.service';
 import { GetActivityLogService } from './application/get-activity-log.service';
 import { LiveMemberAssignments } from './application/live-member-assignments';
@@ -29,6 +31,7 @@ import {
   CLOCK,
   ENGINE_ROLES,
   MEMBER_ASSIGNMENTS,
+  MEMBER_SUSPENSION_CHECK,
   RBAC_LOCK,
   ROLE_BINDINGS,
   SESSION_FLUSHER,
@@ -195,6 +198,8 @@ const systemClock: ClockPort = { now: () => new Date() };
     RbacLifecycleHook,
     StoreAccessFlushSubscriber,
   ],
+  // Other plugins reach these through the member-access entry, from their adapters and module files only (D206).
+  exports: [MemberAccessService, GrantPreviewService, MEMBER_SUSPENSION_CHECK],
   controllers: [RolesController, RoleEditsController, PermissionsController],
   adminApiExtensions: {
     schema: adminApiSchema,

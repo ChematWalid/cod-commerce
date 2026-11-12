@@ -310,3 +310,7 @@ msgstr "لا يمكن الوصول إلى هذا المتجر."
 #. js-lingui-explicit-id
 msgid "rbac.store-access-invalid"
 msgstr "يتطلب الوصول إلى متاجر محددة متجرًا واحدًا على الأقل."
+
+#. js-lingui-explicit-id
+msgid "rbac.member-suspended"
+msgstr "هذا العضو معطَّل. أعد تفعيله من صفحة الفريق قبل منحه أدوارًا."

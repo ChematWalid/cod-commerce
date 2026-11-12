@@ -1,5 +1,5 @@
 import { asOperationContext } from '../../domain/ports/operation-context';
-import { toBusinessId, toStoreId, vendurePermissionName } from '@cod/shared';
+import { ACTIVITY_ACTIONS, toBusinessId, toStoreId, vendurePermissionName } from '@cod/shared';
 import {
   type BusinessFixture,
   type CredentialsFixture,
@@ -234,6 +234,24 @@ describe('the activity log', () => {
       // Assert
       expect(asMember.sort()).toEqual(['business-wide', 'in']);
       expect(asOwner.sort()).toEqual(['business-wide', 'in', 'out']);
+    });
+
+    it('shows a storeless team row only to an all-stores viewer, and a storeless rbac row to both (D217)', async () => {
+      // Arrange
+      const [storeOne] = businesses.a.stores;
+      const entityType = 'all-stores-only';
+      await seed(businesses.a, { entityType, entityId: 'team', action: ACTIVITY_ACTIONS.MEMBER_INVITED });
+      await seed(businesses.a, { entityType, entityId: 'rbac', action: ACTIVITY_ACTIONS.MEMBER_ACCESS_CHANGED });
+
+      // Act
+      await actAs(adminClient, storeOneViewer, storeOne);
+      const asStoreOneViewer = await entityIds({ entityType });
+      await actAs(adminClient, businesses.a.owner, storeOne);
+      const asOwner = await entityIds({ entityType });
+
+      // Assert
+      expect(asStoreOneViewer).toEqual(['rbac']);
+      expect(asOwner.sort()).toEqual(['rbac', 'team']);
     });
   });
 

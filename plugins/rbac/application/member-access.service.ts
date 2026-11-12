@@ -1,7 +1,7 @@
 import { ACTIVITY_ACTIONS, type TenantScope } from '@cod/shared';
 import type { BusinessRole, MemberAssignment } from '../domain/business-role';
 import type { MemberStoreAccess } from '../domain/constants';
-import { MemberNotFoundError, RoleNotFoundError } from '../domain/errors';
+import { MemberNotFoundError, MemberSuspendedError } from '../domain/errors';
 import { assertNotSelf } from '../domain/escalation-rules';
 import type { ActorDirectoryPort } from '../domain/ports/actor-directory.port';
 import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
@@ -9,13 +9,20 @@ import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-r
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { EngineRolesPort } from '../domain/ports/engine-roles.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
+import type { MemberSuspensionCheck } from '../domain/ports/member-suspension.port';
 import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { RbacLockPort } from '../domain/ports/rbac-lock.port';
 import type { SessionFlusherPort } from '../domain/ports/session-flusher.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 import { type ResolvedStoreAccess, resolveStoreAccess, sameReach, storeRowId } from '../domain/store-access';
-import { type AccessWorld, checkAccessRules, loadAccessWorld, type SetMemberAccessCommand } from './access-world';
+import {
+  type AccessWorld,
+  checkAccessRules,
+  loadAccessWorld,
+  rolesInOrder,
+  type SetMemberAccessCommand,
+} from './access-world';
 import type { ActivityLogService } from './activity-log.service';
 import type { BindingProjector } from './binding-projector.service';
 
@@ -33,6 +40,7 @@ export interface MemberAccessPorts {
   readonly projector: Pick<BindingProjector, 'bindingsFor' | 'releaseUnheld'>;
   readonly activity: Pick<ActivityLogService, 'record'>;
   readonly flusher: SessionFlusherPort;
+  readonly suspension: MemberSuspensionCheck;
   readonly ids: IdGeneratorPort;
   readonly clock: ClockPort;
 }
@@ -45,22 +53,17 @@ export interface MemberAccessView {
   readonly storeIds: readonly string[];
 }
 
-const rolesInOrder = (ids: readonly string[], roles: ReadonlyMap<string, BusinessRole>): readonly BusinessRole[] =>
-  [...new Set(ids)].map((id) => {
-    const role = roles.get(id);
-    if (role === undefined) throw new RoleNotFoundError();
-    return role;
-  });
-
 /** Sets who can do what on which stores (D53-D55, D60). P1.S4 calls {@link setAccess} from its invitation flow. */
 export class MemberAccessService {
   constructor(private readonly ports: MemberAccessPorts) {}
 
   /**
    * Replaces the member's access in one transaction, then evicts their sessions (D55). When `ctx` already carries a
-   * transaction this one joins it, and the eviction then runs before that outer commit, so the caller must flush too.
+   * transaction this one joins it, and the eviction then runs before that outer commit, so the caller must call
+   * {@link flushSessionsOf} once it commits. Withdrawing every role of a suspended member is allowed; granting is not.
    *
-   * @throws a {@link RbacError} for a member or role not found, an invalid store access, or a refusal under D60
+   * @throws a {@link RbacError} for a member or role not found, an invalid store access, a refusal under D60, or
+   *   {@link MemberSuspendedError} for roles granted to a member a registered check reports suspended (D204)
    */
   async setAccess(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
     const view = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
@@ -68,6 +71,14 @@ export class MemberAccessService {
     );
     await this.ports.flusher.flushAdministrators([command.administratorId]);
     return view;
+  }
+
+  /**
+   * Evicts the cached sessions of these administrators (D55). A caller that ran {@link setAccess} inside its own
+   * transaction calls it after that transaction commits.
+   */
+  async flushSessionsOf(administratorIds: readonly number[]): Promise<void> {
+    await this.ports.flusher.flushAdministrators(administratorIds);
   }
 
   /** The member's access, or `undefined` when the id names nobody in this business. */
@@ -87,6 +98,9 @@ export class MemberAccessService {
     await this.ports.lock.acquire(ctx, scope.businessId);
     if (!(await this.ports.members.isMember(ctx, scope, command.administratorId))) throw new MemberNotFoundError();
     assertNotSelf(command.actor.administratorId, command.administratorId);
+    if (command.roleIds.length > 0 && (await this.ports.suspension.isSuspended(ctx, scope, command.administratorId))) {
+      throw new MemberSuspendedError();
+    }
     const world = await loadAccessWorld(this.ports, ctx, command);
     const roles = rolesInOrder(command.roleIds, world.roles);
     const access = resolveStoreAccess(command, world.stores);

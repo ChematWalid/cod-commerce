@@ -80,9 +80,12 @@ describe('architecture rules', () => {
       expect.arrayContaining([
         'plugins/good/api/uses-rbac-guard-package.ts',
         'plugins/good/dashboard/uses-shell-api-package.ts',
+        'plugins/good/infrastructure/uses-rbac-member-access-package.ts',
         'plugins/good/infrastructure/uses-tenancy-package.ts',
+        'plugins/good/member-access-wiring.plugin.ts',
         'plugins/merchant-shell/dashboard/shell-api.ts',
         'plugins/rbac/guard.ts',
+        'plugins/rbac/member-access.ts',
         'plugins/tenancy/index.ts',
       ]),
     );

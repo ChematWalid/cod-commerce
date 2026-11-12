@@ -15,6 +15,7 @@
     "rbac-owner-restricted": "Only an owner can grant or remove the Owner role.",
     "rbac-last-owner": "The business must keep its owner.",
     "rbac-store-not-accessible": "That store is not accessible.",
-    "rbac-store-access-invalid": "Selected-store access needs at least one store."
+    "rbac-store-access-invalid": "Selected-store access needs at least one store.",
+    "rbac-member-suspended": "This member is deactivated. Reactivate them from Team before giving them roles."
   }
 }

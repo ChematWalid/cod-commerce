@@ -88,6 +88,7 @@ describe('boundaries/no-unknown-files', () => {
     `${PLUGIN}/tests/setup-env.ts`,
     `${PLUGIN}/index.ts`,
     `${PLUGIN}/guard.ts`,
+    `${PLUGIN}/member-access.ts`,
     `${PLUGIN}/__lint_fixture__.plugin.ts`,
     `${PLUGIN}/vitest.config.ts`,
     `${PLUGIN}/vitest.integration.config.ts`,

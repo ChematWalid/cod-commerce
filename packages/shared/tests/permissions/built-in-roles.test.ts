@@ -100,8 +100,9 @@ describe('built-in roles', () => {
 });
 
 describe('error codes and activity actions', () => {
-  it('exposes the 16 rbac error codes', () => {
-    expect(Object.values(RBAC_ERROR_CODES)).toHaveLength(16);
+  it('exposes the 17 rbac error codes', () => {
+    expect(Object.values(RBAC_ERROR_CODES)).toHaveLength(17);
+    expect(RBAC_ERROR_CODES.MEMBER_SUSPENDED).toBe('rbac.member-suspended');
     expect(RBAC_ERROR_CODES.PRIVILEGE_EXCEEDED).toBe('rbac.privilege-exceeded');
     expect(Object.values(RBAC_ERROR_CODES).every((c) => c.startsWith('rbac.'))).toBe(true);
   });

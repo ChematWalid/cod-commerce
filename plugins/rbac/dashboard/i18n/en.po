@@ -310,3 +310,7 @@ msgstr "That store is not accessible."
 #. js-lingui-explicit-id
 msgid "rbac.store-access-invalid"
 msgstr "Selected-store access needs at least one store."
+
+#. js-lingui-explicit-id
+msgid "rbac.member-suspended"
+msgstr "This member is deactivated. Reactivate them from Team before giving them roles."

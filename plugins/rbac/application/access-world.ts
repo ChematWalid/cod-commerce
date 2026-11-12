@@ -1,6 +1,7 @@
 import type { PermissionKey, Snowflake, StoreId, TenantScope } from '@cod/shared';
 import type { BusinessRole, MemberAssignment } from '../domain/business-role';
 import { ALL_STORES_SCOPE } from '../domain/constants';
+import { RoleNotFoundError } from '../domain/errors';
 import {
   assertCanChangeTarget,
   assertCanGrantAccess,
@@ -36,6 +37,21 @@ export interface SetMemberAccessCommand extends RequestedStoreAccess {
   readonly administratorId: number;
   readonly roleIds: readonly string[];
 }
+
+/**
+ * The roles named by `ids`, once each, in the order asked.
+ *
+ * @throws {@link RoleNotFoundError} when an id names no role of the business
+ */
+export const rolesInOrder = (
+  ids: readonly string[],
+  roles: ReadonlyMap<string, BusinessRole>,
+): readonly BusinessRole[] =>
+  [...new Set(ids)].map((id) => {
+    const role = roles.get(id);
+    if (role === undefined) throw new RoleNotFoundError();
+    return role;
+  });
 
 /** What loading the world and checking the rules read through. */
 export interface AccessWorldPorts {
