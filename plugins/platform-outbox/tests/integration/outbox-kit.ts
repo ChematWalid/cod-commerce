@@ -3,7 +3,7 @@ import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plug
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RequestTenantScope, TenancyPlugin } from '@cod/plugin-tenancy';
 import { toBusinessId } from '@cod/shared';
-import { createPluginTestEnvironment, ensurePartitionedSchema, loadPluginTestDbConfig } from '@cod/testing';
+import { createPluginTestEnvironment, loadPluginTestDbConfig, withPartitionedSchemas } from '@cod/testing';
 import {
   ConfigService,
   type InspectableJobQueueStrategy,
@@ -42,13 +42,7 @@ export function createOutboxTestEnvironment(snowflakeWorkerId: number, clock?: P
     ],
     db: loadPluginTestDbConfig(process.env),
   });
-  const { server } = environment;
-  const init = server.init.bind(server);
-  server.init = async (...args: Parameters<typeof init>): Promise<void> => {
-    await init(...args);
-    await ensurePartitionedSchema(server.app.get(TransactionalConnection).rawConnection, OUTBOX_SCHEMAS);
-    await server.app.get(PartitionMaintenanceService).maintain(new Date());
-  };
+  withPartitionedSchemas(environment.server, OUTBOX_SCHEMAS, PartitionMaintenanceService);
   return environment;
 }
 

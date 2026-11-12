@@ -1,4 +1,5 @@
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import type { PermissionKey } from '@cod/shared';
 import {
@@ -6,6 +7,7 @@ import {
   createTwoBusinesses,
   failureOf,
   loadPluginTestDbConfig,
+  withPartitionedSchemas,
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
   PLUGIN_TEST_INITIAL_DATA,
 } from '@cod/testing';
@@ -57,11 +59,13 @@ describe('TemplateNote Admin API', () => {
       testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1005 }),
       // The catalogue permissions the handlers require, and the business roles that grant them.
+      PlatformPartitionsPlugin,
       RbacPlugin,
       TemplatePlugin,
     ],
     db: loadPluginTestDbConfig(process.env),
   });
+  withPartitionedSchemas(server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
 
   let members: NoteMembers;
   let count = 0;

@@ -1,8 +1,7 @@
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
-import { createPluginTestEnvironment, ensurePartitionedSchema, loadPluginTestDbConfig } from '@cod/testing';
-import { TransactionalConnection } from '@vendure/core';
+import { createPluginTestEnvironment, loadPluginTestDbConfig, withPartitionedSchemas } from '@cod/testing';
 import { ACTIVITY_LOG_SCHEMA } from '../../infrastructure/activity-log-schema';
 import { RbacPlugin } from '../../rbac.plugin';
 import { ActivityPublisherTestPlugin } from './fixtures/activity-publisher.plugin';
@@ -27,12 +26,6 @@ export function createRbacTestEnvironment(snowflakeWorkerId: number): ReturnType
     ],
     db: loadPluginTestDbConfig(process.env),
   });
-  const { server } = environment;
-  const init = server.init.bind(server);
-  server.init = async (...args: Parameters<typeof init>): Promise<void> => {
-    await init(...args);
-    await ensurePartitionedSchema(server.app.get(TransactionalConnection).rawConnection, [ACTIVITY_LOG_SCHEMA]);
-    await server.app.get(PartitionMaintenanceService).maintain(new Date());
-  };
+  withPartitionedSchemas(environment.server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
   return environment;
 }

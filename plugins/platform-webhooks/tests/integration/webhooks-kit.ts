@@ -10,10 +10,10 @@ import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { FLAG_KEYS, type PartitionedTableSchema, toBusinessId } from '@cod/shared';
 import {
   createPluginTestEnvironment,
-  ensurePartitionedSchema,
   loadPluginTestDbConfig,
   PLUGIN_TEST_INITIAL_DATA,
   type TwoBusinesses,
+  withPartitionedSchemas,
 } from '@cod/testing';
 import { ConfigService, type InspectableJobQueueStrategy, TransactionalConnection } from '@vendure/core';
 import { INBOUND_WEBHOOK_SCHEMAS } from '../../infrastructure/webhook-schema';
@@ -79,16 +79,14 @@ export function createWebhooksTestEnvironment(
     db: loadPluginTestDbConfig(process.env),
   });
   const { server } = environment;
+  withPartitionedSchemas(
+    server,
+    [...OUTBOX_SCHEMAS, ...INBOUND_WEBHOOK_SCHEMAS, ...(options.schemas ?? [])],
+    PartitionMaintenanceService,
+  );
   const init = server.init.bind(server);
   server.init = async (...args: Parameters<typeof init>): Promise<void> => {
     await init(...args);
-    const raw = server.app.get(TransactionalConnection).rawConnection;
-    await ensurePartitionedSchema(raw, [
-      ...OUTBOX_SCHEMAS,
-      ...INBOUND_WEBHOOK_SCHEMAS,
-      ...(options.schemas ?? []),
-    ]);
-    await server.app.get(PartitionMaintenanceService).maintain(new Date());
     await resetFlags(server.app);
   };
   return environment;
