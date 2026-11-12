@@ -29,14 +29,17 @@ export class PlatformKekRewrapQueue implements KekRewrapQueuePort {
     await this.queues.add(KEK_REWRAP_QUEUE_NAME, job);
   }
 
-  /** Removes a failed job of this id. A presence that cannot be read changes nothing: the add goes ahead as before. */
+  /** Removes a failed job of this id. A presence that cannot be read is logged and the add goes ahead. */
   private async clearSettled(jobId: string): Promise<void> {
     try {
       if ((await this.presence.stateOf(KEK_REWRAP_QUEUE_NAME, jobId)) !== 'failed') return;
       await this.presence.remove(KEK_REWRAP_QUEUE_NAME, jobId);
       this.logger.warn(`Removed the failed data key rewrap job ${jobId} so that the rotation can queue it again`);
-    } catch {
-      // No pooled strategy (plugin tests) or Valkey trouble: the add below reports its own failure.
+    } catch (error) {
+      // No pooled strategy (plugin tests) or Valkey trouble: the add below goes ahead, but a failed job that stayed
+      // behind makes BullMQ ignore it, so say so.
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      this.logger.warn(`Could not clear a failed data key rewrap job ${jobId} before queueing it again: ${reason}`);
     }
   }
 }
