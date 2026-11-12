@@ -26,6 +26,8 @@ export interface KekRotationDependencies extends KekRotationPorts {
   readonly ring: KekRing;
   readonly cipher: EnvelopeCipherPort;
   readonly clock: { now(): number };
+  /** Businesses per scan page; defaults to `KEK_SCAN_BATCH_SIZE`. Tests shrink it to exercise paging. */
+  readonly scanBatchSize?: number;
 }
 
 /** The state of a rotation after a scan. */
@@ -46,15 +48,16 @@ export class KekRotationService {
   /** Queues a rewrap job for each data key off the active KEK, in pages, and reports what is left. */
   async enqueueStale(now: Date): Promise<EnqueueStaleResult> {
     const { scan, ring } = this.deps;
+    const batch = this.deps.scanBatchSize ?? KEK_SCAN_BATCH_SIZE;
     let enqueued = 0;
     let after: string | null = null;
     for (;;) {
-      const page: readonly string[] = await scan.staleBusinesses(ring.activeKid, after, KEK_SCAN_BATCH_SIZE);
+      const page: readonly string[] = await scan.staleBusinesses(ring.activeKid, after, batch);
       for (const businessId of page) {
         if (await this.enqueueOne(businessId, now)) enqueued += 1;
       }
       after = page.at(-1) ?? after;
-      if (page.length < KEK_SCAN_BATCH_SIZE) break;
+      if (page.length < batch) break;
     }
     return { enqueued, remainingOnRetiredKeks: await scan.countStale(ring.activeKid) };
   }
