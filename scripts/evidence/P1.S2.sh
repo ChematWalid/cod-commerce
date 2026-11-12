@@ -154,11 +154,12 @@ status=000
 gql() { # gql <query> <vars-json> <session|-> <channel|-> -> $status, $work/h, $work/b
   local body
   body=$(Q="$1" V="$2" node -e 'console.log(JSON.stringify({query:process.env.Q,variables:JSON.parse(process.env.V)}))')
-  local -a args=(-sS -X POST -D "$work/h" -o "$work/b" --max-time 30 -H "$json" --data "$body")
+  printf '%s' "$body" >"$work/req"
+  local -a args=(-sS -X POST -D "$work/h" -o "$work/b" --max-time 30 -H "$json" --data-binary "@$work/req")
   [[ "$3" != - ]] && args+=(-H "Authorization: Bearer $3")
   [[ "$4" != - ]] && args+=(-H "vendure-token: $4")
   # The Shop API is internal-only (D111): sign calls aimed at it; the admin api needs no signature.
-  if is_guarded_url "$admin"; then sign_args POST "$admin"; args+=("${SIGN_ARGS[@]}"); fi
+  if is_guarded_url "$admin"; then sign_args POST "$admin" "$work/req"; args+=("${SIGN_ARGS[@]}"); fi
   status=$(curl "${args[@]}" -w '%{http_code}' "$admin") || status=000
   [[ "$status" != 000 ]] || fail "no HTTP answer from $admin"
 }
