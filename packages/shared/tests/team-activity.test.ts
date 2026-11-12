@@ -23,7 +23,11 @@ describe('team member activity diff (D216)', () => {
   });
 
   it('accepts an invited member that has no display name yet', () => {
-    const result = teamMemberActivityDiffSchema.safeParse({ memberId: MEMBER_ID, displayName: null, changedFields: [] });
+    const result = teamMemberActivityDiffSchema.safeParse({
+      memberId: MEMBER_ID,
+      displayName: null,
+      changedFields: [],
+    });
 
     expect(result.success).toBe(true);
   });
