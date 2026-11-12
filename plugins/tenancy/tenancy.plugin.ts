@@ -204,6 +204,8 @@ const STORE_USE_CASES = [
   exports: [
     BusinessStoreDirectory,
     CreateStoreService,
+    // Team names the business in its invitation email and accept page (P1.S4).
+    GetBusinessService,
     ID_GENERATOR,
     MemberAccountService,
     OrderNumberService,
