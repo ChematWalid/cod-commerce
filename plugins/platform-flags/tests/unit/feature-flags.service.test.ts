@@ -124,6 +124,27 @@ describe('FeatureFlags', () => {
     expect(logger.error).toHaveBeenCalledOnce();
   });
 
+  it('does not cache the previous snapshot when a refresh that began before a change fails', async () => {
+    // Arrange
+    const { flags, store, clock, setDatabase } = setup(snapshotOf(true));
+    expect(await flags.isEnabledFor({}, KEY)).toBe(true);
+    clock.advance(FLAG_SNAPSHOT_TTL_MS);
+    let fail: (error: Error) => void = () => undefined;
+    store.loadSnapshot.mockImplementationOnce(() => new Promise<FlagSnapshot>((_resolve, reject) => { fail = reject; }));
+    const pending = flags.isEnabledFor({}, KEY);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Act: the change lands while the refresh is reading, then the refresh fails.
+    setDatabase(snapshotOf(false));
+    flags.forget();
+    fail(new Error('database down'));
+    await pending;
+
+    // Assert: nothing stale was cached, so the next question reads the changed data at once.
+    expect(await flags.isEnabledFor({}, KEY)).toBe(false);
+  });
+
   it('throws when the first load fails: there is nothing older to serve', async () => {
     // Arrange
     const { flags, store } = setup(snapshotOf(true));

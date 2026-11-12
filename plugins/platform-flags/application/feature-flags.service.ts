@@ -96,7 +96,10 @@ export class FeatureFlags {
       if (stale === undefined) throw error;
       const reason = error instanceof Error ? error.message : 'unknown error';
       this.ports.logger.error(`Feature flags could not be refreshed, serving the previous snapshot: ${reason}`);
-      this.cached = { snapshot: stale.snapshot, staleAtMs: this.ports.clock.now() + REFRESH_RETRY_MS };
+      // A change since the refresh began makes the old snapshot wrong: serve it this once, but do not keep it.
+      if (generation === this.generation) {
+        this.cached = { snapshot: stale.snapshot, staleAtMs: this.ports.clock.now() + REFRESH_RETRY_MS };
+      }
       return stale.snapshot;
     }
   }
