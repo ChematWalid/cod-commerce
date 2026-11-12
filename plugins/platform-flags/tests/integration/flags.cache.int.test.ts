@@ -7,7 +7,7 @@ import { FlagAdminService } from '../../application/flag-admin.service';
 import { FlagSeedService } from '../../application/flag-seed.service';
 import type { FeatureFlagsPorts, FlagAdminPorts, FlagLogger } from '../../application/ports';
 import { FLAG_ADMIN_PORTS, FLAG_PORTS, FLAG_STORE } from '../../application/tokens';
-import { FLAG_SNAPSHOT_TTL_MS } from '../../domain/constants';
+import { FLAG_REDELETE_DELAY_MS, FLAG_SNAPSHOT_TTL_MS } from '../../domain/constants';
 import type { FlagStorePort } from '../../domain/ports/flag-store.port';
 import { ValkeyFlagCache } from '../../infrastructure/valkey-flag-cache';
 import { ManualClock } from '../fixtures/manual-clock';
@@ -19,6 +19,7 @@ const KEY = FLAG_KEYS.capi;
 const ACTOR = 'cache-test';
 const PUBSUB_BUDGET_MS = 1000;
 const READY_WAIT_MS = 3000;
+const REDELETE_MARGIN_MS = 200;
 
 const silent: FlagLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };
 
@@ -30,15 +31,24 @@ describe('flag snapshot cache (Review Focus 5)', () => {
   let adminPorts: FlagAdminPorts;
   let store: FlagStorePort;
 
-  /** A second process: its own Valkey client, subscriber, snapshot and clock, on the same database. */
-  const secondProcess = (redisUrl: string, clock: ManualClock): { flags: FeatureFlags; cache: ValkeyFlagCache } => {
+  /**
+   * A second process: its own Valkey client, subscriber, snapshot and clock, on the same database. `joined` settles
+   * on the subscriber's first notice, the one it sends itself on joining the channel (it makes the process forget).
+   */
+  const secondProcess = (
+    redisUrl: string,
+    clock: ManualClock,
+  ): { flags: FeatureFlags; cache: ValkeyFlagCache; joined: Promise<void> } => {
     const cache = new ValkeyFlagCache({ redisUrl, appEnv: APP_ENV, clock, logger: silent });
     caches.push(cache);
     const flags = new FeatureFlags({ ...ports, cache, clock });
-    cache.subscribe(() => {
-      flags.forget();
+    const joined = new Promise<void>((resolve) => {
+      cache.subscribe(() => {
+        flags.forget();
+        resolve();
+      });
     });
-    return { flags, cache };
+    return { flags, cache, joined };
   };
 
   const adminOver = (cache: ValkeyFlagCache): FlagAdminService => {
@@ -89,15 +99,22 @@ describe('flag snapshot cache (Review Focus 5)', () => {
       },
       { timeout: PUBSUB_BUDGET_MS, interval: 25 },
     );
+    // Every change repeats its delete of the shared snapshot after FLAG_REDELETE_DELAY_MS (D116). Left to land during
+    // the next test, it empties the key between one process writing it and another reading it.
+    await new Promise<void>((resolve) => setTimeout(resolve, FLAG_REDELETE_DELAY_MS + REDELETE_MARGIN_MS));
   });
 
   it('serves a second process from the shared snapshot without reading the database', async () => {
     // Arrange
+    // Each process is asked only after its own join notice: that notice makes it forget, and a forget during the first
+    // load would (correctly) keep the snapshot it read out of Valkey, leaving nothing for the second to find.
     const first = secondProcess(FLAGS_REDIS_URL, new ManualClock());
     await first.cache.whenReady(READY_WAIT_MS);
+    await first.joined;
     await isOn(first.flags);
     const second = secondProcess(FLAGS_REDIS_URL, new ManualClock());
     await second.cache.whenReady(READY_WAIT_MS);
+    await second.joined;
     const load = vi.spyOn(store, 'loadSnapshot');
 
     // Act
@@ -110,7 +127,7 @@ describe('flag snapshot cache (Review Focus 5)', () => {
   });
 
   describe('with Valkey down', () => {
-    it("still answers from the database, commits a change, and shows it once the snapshot is 30 s old", async () => {
+    it('still answers from the database, commits a change, and shows it once the snapshot is 30 s old', async () => {
       // Arrange
       const clockB = new ManualClock();
       const b = secondProcess(CLOSED_REDIS_URL, clockB);
