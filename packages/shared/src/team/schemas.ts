@@ -123,6 +123,11 @@ export const setLimitSchema = z.object({
 
 export type SetLimitCommand = z.output<typeof setLimitSchema>;
 
+/** "Stop receiving orders" / "Resume": whether the member is offered new orders; the status does not change. */
+export const setReceivingSchema = z.object({ receivingOrders: z.boolean() });
+
+export type SetReceivingCommand = z.output<typeof setReceivingSchema>;
+
 /** A percent value is in basis points; a fixed one in whole DZD. */
 function withinValueCap({ valueKind, value }: { valueKind: string; value: number }): boolean {
   return value <= (valueKind === 'percent' ? COMMISSION_PERCENT_MAX_BPS : COMMISSION_FIXED_MAX_DZD);

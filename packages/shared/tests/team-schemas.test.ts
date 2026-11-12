@@ -14,6 +14,7 @@ import {
   payMemberSchema,
   SALARY_MAX_DZD,
   setLimitSchema,
+  setReceivingSchema,
   updateMemberSchema,
 } from '../src/index';
 
@@ -161,6 +162,18 @@ describe('setLimitSchema', () => {
     ['a fraction', 2.5, false],
   ])('%s', (_label, maxOpenOrders, ok) => {
     expect(setLimitSchema.safeParse({ maxOpenOrders }).success).toBe(ok);
+  });
+});
+
+describe('setReceivingSchema', () => {
+  it.each([
+    ['receiving', true, true],
+    ['stopped', false, true],
+    ['text', 'false', false],
+    ['missing', undefined, false],
+    ['null', null, false],
+  ])('%s', (_label, receivingOrders, ok) => {
+    expect(setReceivingSchema.safeParse({ receivingOrders }).success).toBe(ok);
   });
 });
 

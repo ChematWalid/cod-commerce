@@ -61,6 +61,7 @@ const RUNTIME_EXPORTS = [
   'payMemberSchema',
   'updateMemberSchema',
   'setLimitSchema',
+  'setReceivingSchema',
   'commissionConfigSchema',
   'listMembersQuerySchema',
 ] as const;
