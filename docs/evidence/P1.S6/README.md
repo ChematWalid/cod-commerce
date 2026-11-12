@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P1.S6.sh`. Data is synthetic. Image
 built from a tree with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit
-`f8d7d93c77efa2895eb14f7c772c6944fab6fba9`. Compose project `cod-evidence`, `PLATFORM_DEMO_HANDLERS=true`.
+`e28176bc3aeca69c64e31f28f533eb785c071067`. Compose project `cod-evidence`, `PLATFORM_DEMO_HANDLERS=true`.
 
 ## API transcripts
 

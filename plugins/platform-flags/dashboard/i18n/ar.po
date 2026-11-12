@@ -150,3 +150,19 @@ msgstr "لا يوجد نشاط تجاري أو متجر بهذا المعرّف.
 #. js-lingui-explicit-id
 msgid "flags.invalid-plan-key"
 msgstr "يتكون مفتاح الخطة من 1 إلى 64 حرفًا."
+
+#. js-lingui-explicit-id
+msgid "flags.description.intake.spool.enabled"
+msgstr "استقبال الطلبات الجديدة في قائمة الاستقبال. إيقافه يوقف استقبال الطلبات أثناء معالجة عطل."
+
+#. js-lingui-explicit-id
+msgid "flags.description.inbound-webhooks.enabled"
+msgstr "قبول الإشعارات الواردة من مزوّدي الخدمة. إيقافه يعيد الرد 503 ليعيد المزوّدون المحاولة لاحقًا."
+
+#. js-lingui-explicit-id
+msgid "flags.description.ai.enabled"
+msgstr "تشغيل ميزات الذكاء الاصطناعي (الاقتراحات والردود). إيقافه يوقف كل استدعاءات الذكاء الاصطناعي."
+
+#. js-lingui-explicit-id
+msgid "flags.description.capi.enabled"
+msgstr "إرسال أحداث التحويل من الخادم إلى منصات الإعلانات. إيقافه يوقف عمليات الإرسال."

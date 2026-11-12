@@ -8,6 +8,14 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import {
+  hasReservedTld,
+  isDeployed,
+  isPlaceholderSecret,
+  PLACEHOLDER_SECRET_MARKER,
+  rejectWeakSecrets,
+  requireProxySettings,
+} from './deployed-env';
 import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
@@ -15,6 +23,7 @@ import { SERVER_ROLES, type ServerRole } from './roles';
 import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
+export { isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER };
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
@@ -23,19 +32,6 @@ export const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const
 
 /** One of the {@link LOG_LEVELS}. */
 export type LogLevelName = (typeof LOG_LEVELS)[number];
-
-/** Environments in which a placeholder secret is a misconfiguration. */
-const PLACEHOLDER_FORBIDDEN_ENVS: readonly string[] = ['staging', 'production'];
-
-/** Placeholder secrets in `.env.example` carry this marker, or are all zeros where the value is hex. */
-export const PLACEHOLDER_SECRET_MARKER = 'change-me';
-
-const ZERO_HEX_PLACEHOLDER = /^(GK)?0+$/;
-
-/** True for a value taken from `.env.example`: it has the marker, or its hex part is all zeros. */
-export function isPlaceholderSecret(value: string): boolean {
-  return value.includes(PLACEHOLDER_SECRET_MARKER) || ZERO_HEX_PLACEHOLDER.test(value);
-}
 
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;
@@ -102,7 +98,7 @@ const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRed
 const internalKeys = z.string().superRefine(parsedBy(parseInternalKeys, InvalidInternalKeysError));
 
 const baseSchema = z.object({
-  APP_ENV: z.enum(APP_ENVS).default('development'),
+  APP_ENV: z.enum(APP_ENVS),
   ROLE: z.enum(SERVER_ROLES),
   TZ: z.literal('UTC', { error: 'must be UTC' }),
   DATABASE_URL: databaseUrl,
@@ -198,9 +194,10 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
 }
 
 function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
-  if (!PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV)) {
+  if (!isDeployed(env)) {
     return;
   }
+  rejectWeakSecrets(secretsOf(env), context);
   for (const [name, value] of secretsOf(env)) {
     if (value !== undefined && isPlaceholderSecret(value)) {
       context.addIssue({ code: 'custom', path: [name], message: PLACEHOLDER_MESSAGE });
@@ -222,17 +219,17 @@ function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
-/** Behind the edge `req.ip` is the edge's address, so a production limiter without the header has one bucket for everyone. */
-function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
-  if (env.APP_ENV === 'production' && env.CLIENT_IP_HEADER === '') {
-    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in production' });
-  }
-}
-
 /** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
 function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
-  if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.PLATFORM_DOMAIN === undefined) {
+  if (isDeployed(env) && env.PLATFORM_DOMAIN === undefined) {
     context.addIssue({ code: 'custom', path: ['PLATFORM_DOMAIN'], message: 'is required in this environment' });
+  }
+  if (isDeployed(env) && env.PLATFORM_DOMAIN !== undefined && hasReservedTld(env.PLATFORM_DOMAIN)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['PLATFORM_DOMAIN'],
+      message: 'ends in a reserved name (invalid, test, example, localhost or local): set the real domain',
+    });
   }
   if (env.APP_ENV !== 'test' && env.SNOWFLAKE_WORKER_ID !== undefined) {
     context.addIssue({
@@ -243,14 +240,11 @@ function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): vo
   }
 }
 
-/** Staging and production: where a development fallback is a misconfiguration. */
-const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
-
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(rejectDemoHandlersInProduction)
-  .superRefine(requireClientIpHeader)
+  .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireKnownKekActiveKid)
   .superRefine((env, context) => {
