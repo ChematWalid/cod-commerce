@@ -8,7 +8,14 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
-import { hasReservedTld, isDeployed, isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER, rejectWeakSecrets } from './deployed-env';
+import {
+  hasReservedTld,
+  isDeployed,
+  isPlaceholderSecret,
+  PLACEHOLDER_SECRET_MARKER,
+  rejectWeakSecrets,
+  requireProxySettings,
+} from './deployed-env';
 import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
@@ -209,19 +216,6 @@ function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
         message: 'must be one of the kids in INTERNAL_HMAC_KEYS',
       });
     }
-  }
-}
-
-/**
- * Behind the edge `req.ip` is the edge's address, so a deployed limiter without the header has one bucket for everyone.
- * Zero hops would make the api read every request as plain http, which the Secure session cookie refuses to be set on.
- */
-function requireProxySettings(env: BaseEnv, context: z.RefinementCtx): void {
-  if (isDeployed(env) && env.CLIENT_IP_HEADER === '') {
-    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in this environment' });
-  }
-  if (isDeployed(env) && env.TRUSTED_PROXY_HOPS === 0) {
-    context.addIssue({ code: 'custom', path: ['TRUSTED_PROXY_HOPS'], message: 'must be at least 1 here' });
   }
 }
 

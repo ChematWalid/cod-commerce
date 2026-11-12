@@ -111,6 +111,11 @@ describe('loadEnv in a deployed environment', () => {
       ).not.toThrow();
     });
 
+    it('accepts a deployed SUPERADMIN_PASSWORD of exactly 12 characters and refuses 11', () => {
+      expect(issuePaths(failureOf({ ...strong, SUPERADMIN_PASSWORD: 'Rg7-vault1X' }))).toEqual(['SUPERADMIN_PASSWORD']);
+      expect(() => loadEnv({ ...valid, ...strong, SUPERADMIN_PASSWORD: 'Rg7-vault1XQ' })).not.toThrow();
+    });
+
     it('refuses a short COOKIE_SECRET without the placeholder marker in production', () => {
       expect(issuePaths(failureOf({ ...strong, COOKIE_SECRET: 'Qm7vXk2LpR9tWc4' }))).toEqual(['COOKIE_SECRET']);
     });

@@ -74,3 +74,23 @@ export function rejectWeakSecrets(
     }
   }
 }
+
+/** The proxy settings {@link requireProxySettings} checks. */
+interface ProxySettings {
+  readonly APP_ENV: string;
+  readonly CLIENT_IP_HEADER: string;
+  readonly TRUSTED_PROXY_HOPS: number;
+}
+
+/**
+ * Behind the edge `req.ip` is the edge's address, so a deployed limiter without the header has one bucket for everyone.
+ * Zero hops would make the api read every request as plain http, which the Secure session cookie refuses to be set on.
+ */
+export function requireProxySettings(env: ProxySettings, context: z.RefinementCtx): void {
+  if (isDeployed(env) && env.CLIENT_IP_HEADER === '') {
+    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in this environment' });
+  }
+  if (isDeployed(env) && env.TRUSTED_PROXY_HOPS === 0) {
+    context.addIssue({ code: 'custom', path: ['TRUSTED_PROXY_HOPS'], message: 'must be at least 1 here' });
+  }
+}
