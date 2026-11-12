@@ -140,6 +140,8 @@ describe('recovery after the loss of Valkey', () => {
 
   beforeAll(async () => {
     expect(redis.options.db).toBe(VALKEY_TEST_DATABASE);
+    // Start from an empty database of our own: keys a previous run left behind must not change the counts.
+    if (redis.options.db === VALKEY_TEST_DATABASE) await redis.flushdb();
     const registryOptions = bullMqJobOptions();
     // The registry's options with a backoff the test controls, so retries either finish at once or never come.
     useE2ePlatformJobs(SUITE, appEnv, {
@@ -176,10 +178,16 @@ describe('recovery after the loss of Valkey', () => {
   }, 120_000);
 
   afterAll(async () => {
-    await server.destroy();
-    // Only this file's database; never FLUSHALL.
-    if (redis.options.db === VALKEY_TEST_DATABASE) await redis.flushdb();
-    redis.disconnect();
+    try {
+      await server.destroy();
+    } finally {
+      try {
+        // Only this file's database; never FLUSHALL.
+        if (redis.options.db === VALKEY_TEST_DATABASE) await redis.flushdb();
+      } finally {
+        redis.disconnect();
+      }
+    }
   });
 
   it('runs every row to its end after FLUSHDB, once each, and a second reconcile finds nothing', async () => {
