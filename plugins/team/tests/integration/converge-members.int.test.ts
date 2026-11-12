@@ -213,7 +213,14 @@ describe('every business administrator is a team member (D215)', () => {
     // The owner's row is gone too, as for a business provisioned before Team existed.
     await connection().query('DELETE FROM team_member WHERE "businessId" = $1', [a.businessId]);
     const ownerId = await administratorIdOf(a.owner.email);
-    const membersOfB = await membersOf(businesses.b.businessId);
+    // B also has a role holder with no row, so converge has real work in B to get right or wrong.
+    const b = businesses.b;
+    const ownerOfB = await administratorIdOf(b.owner.email);
+    const managerOfB = await grantedMember(b, `b-manager-${suffix}`, await builtInRoleId(b, 'manager'));
+    await connection().query('DELETE FROM team_member WHERE "businessId" = $1 AND "administratorId" = $2', [
+      b.businessId,
+      managerOfB,
+    ]);
 
     // Act
     const first = await server.app.get(TeamConvergeService).convergeMembers(await context());
@@ -224,9 +231,14 @@ describe('every business administrator is a team member (D215)', () => {
     expect(afterFirst.map((row) => [row.administratorId, row.status])).toEqual(
       [ownerId, manager, demoShaped].sort((x, y) => x - y).map((id) => [id, 'active']),
     );
-    expect(first.created).toBe(3);
+    expect(first.created).toBe(4);
     expect(second).toEqual({ businesses: first.businesses, created: 0, skipped: 0 });
     expect(await membersOf(a.businessId)).toEqual(afterFirst);
-    expect(await membersOf(businesses.b.businessId)).toEqual(membersOfB);
+    const rowsOfB = await membersOf(b.businessId);
+    expect(rowsOfB.map((row) => [row.administratorId, row.businessId, row.status])).toEqual(
+      [ownerOfB, managerOfB].sort((x, y) => x - y).map((id) => [id, b.businessId, 'active']),
+    );
+    const administratorsOfB: readonly (number | null)[] = [ownerOfB, managerOfB];
+    expect(afterFirst.filter((row) => administratorsOfB.includes(row.administratorId))).toEqual([]);
   });
 });
