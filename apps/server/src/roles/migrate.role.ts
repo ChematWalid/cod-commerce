@@ -6,6 +6,7 @@ import {
   RbacConvergeService,
   SESSION_FLUSH_SETTLE_MS,
 } from '@cod/plugin-rbac';
+import { FlagSeedService } from '@cod/plugin-platform-flags';
 import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import { toPostgresFields } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
@@ -166,6 +167,11 @@ async function maintainPartitions(app: INestApplicationContext): Promise<void> {
   );
 }
 
+/** Inserts the flags that do not exist yet; a value staff changed is never overwritten (D116). */
+async function seedFlags(app: INestApplicationContext): Promise<void> {
+  await app.get(FlagSeedService).converge();
+}
+
 /**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
@@ -184,6 +190,7 @@ export async function runMigrate(
       const seed = await seedPlatformDefaults(worker.app);
       const rbacConverged = await convergeRoles(worker.app);
       await maintainPartitions(worker.app);
+      await seedFlags(worker.app);
       return { migrationsRun, seed, rbacConverged };
     } finally {
       await worker.app.close();

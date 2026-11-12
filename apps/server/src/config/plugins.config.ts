@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
+import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -63,12 +64,14 @@ const webhooksPlugin = (env: AppEnv): VendurePluginEntry =>
   });
 
 /**
- * The platform plugins with tenant tables: they register after tenancy, which scopes their rows. The outbox needs
+ * The platform plugins with tenant tables (and the flags, which read tenancy): they register after tenancy, which
+ * scopes their rows. The outbox needs
  * jobs and partitions before it (the relay queue and the retention policies); the secrets' Admin API guards with
  * the permissions `RbacPlugin` defines.
  */
 const tenantDataPlugins = (env: AppEnv): VendurePluginEntry[] => [
   PlatformOutboxPlugin,
+  PlatformFlagsPlugin.init({ redisUrl: env.REDIS_URL, appEnv: env.APP_ENV }),
   PlatformSecretsPlugin.init({ kekRing: parseKekRing(env.TENANT_SECRET_KEKS, env.TENANT_SECRET_ACTIVE_KID) }),
 ];
 

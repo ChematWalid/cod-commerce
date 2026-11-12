@@ -16,6 +16,7 @@
     "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
   },
   "dependencies": {
+    "@cod/plugin-platform-flags": "workspace:*",
     "@cod/plugin-platform-jobs": "workspace:*",
     "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",

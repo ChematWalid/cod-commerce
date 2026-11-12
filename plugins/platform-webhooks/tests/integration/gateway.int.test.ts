@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
+import { FlagAdminService } from '@cod/plugin-platform-flags';
+import { FLAG_KEYS } from '@cod/shared';
 import { createTwoBusinesses, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { WebhookGatewayService } from '../../application/webhook-gateway.service';
-import { KILL_SWITCH } from '../../application/tokens';
-import { INBOUND_WEBHOOKS_FLAG, WEBHOOK_BODY_LIMIT_BYTES } from '../../domain/constants';
-import type { ConfigurableKillSwitch } from '../../infrastructure/configurable-kill-switch';
+import { WEBHOOK_BODY_LIMIT_BYTES } from '../../domain/constants';
 import { processing, signTestBody, TEST_EVENT_HEADER } from '../fixtures/test-handler.plugin';
 import { createWebhooksTestEnvironment, initWithAccounts, until, webhooksKit } from './webhooks-kit';
 
@@ -20,6 +20,13 @@ describe('inbound webhook gateway', () => {
 
   const count = async (table: string): Promise<number> =>
     Number((await kit.sql(`SELECT count(*)::int AS n FROM "${table}"`))[0]?.['n']);
+
+  /** Switches the gateway on or off the way staff do: the operational flag `inbound-webhooks.enabled`. */
+  const setGateway = async (enabled: boolean): Promise<void> => {
+    await server.app
+      .get(FlagAdminService)
+      .update('gateway-test', { key: FLAG_KEYS.inboundWebhooks, defaultEnabled: enabled });
+  };
 
   beforeAll(async () => {
     businesses = await initWithAccounts(environment, () => createTwoBusinesses(adminClient));
@@ -116,13 +123,13 @@ describe('inbound webhook gateway', () => {
   });
 
   describe('with the kill switch off', () => {
-    afterAll(() => {
-      server.app.get<ConfigurableKillSwitch>(KILL_SWITCH).setEnabled(INBOUND_WEBHOOKS_FLAG, true);
+    afterAll(async () => {
+      await setGateway(true);
     });
 
     it('answers 503 with Retry-After: 60 and stores nothing', async () => {
       // Arrange
-      server.app.get<ConfigurableKillSwitch>(KILL_SWITCH).setEnabled(INBOUND_WEBHOOKS_FLAG, false);
+      await setGateway(false);
 
       // Act
       const response = await kit.post('test', 'acme-a');

@@ -27,8 +27,12 @@ const PLATFORM_1 = [
   '@cod/plugin-platform-partitions',
   '@cod/plugin-platform-outbox',
 ] as const;
-/** The platform plugins of part `platform-2` (D118); flags joins it with its integration suite. */
-const PLATFORM_2 = ['@cod/plugin-platform-secrets', '@cod/plugin-platform-webhooks'] as const;
+/** The platform plugins of part `platform-2` (D118). */
+const PLATFORM_2 = [
+  '@cod/plugin-platform-secrets',
+  '@cod/plugin-platform-webhooks',
+  '@cod/plugin-platform-flags',
+] as const;
 const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2]
   .map((name) => `--filter=!${name}`)
   .join(' ');

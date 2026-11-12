@@ -66,6 +66,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
   // Selects the `businessId` of data keys wrapped by a KEK other than the active one, across businesses, to queue their rewrap (D114); the rewrap itself goes through TenantRepository.
   '**/plugins/platform-secrets/infrastructure/retired-kek-scan.ts',
+  // `feature_flag` and `feature_flag_override` are platform tables: staff-managed configuration with no owner (D108, D116).
+  '**/plugins/platform-flags/infrastructure/typeorm-flag-store.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.

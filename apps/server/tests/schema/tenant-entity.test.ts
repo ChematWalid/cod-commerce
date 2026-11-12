@@ -20,6 +20,9 @@ const NOT_TENANT_OWNED = [
   'AccountTokenEntity',
   'TaskHeartbeatEntity',
   'InboundWebhookKeyEntity',
+  // Staff-managed flag configuration; an override's business or store id is a target, not an owner (D108).
+  'FeatureFlagEntity',
+  'FeatureFlagOverrideEntity',
 ];
 
 /** A plugin's `entities` metadata, an array or the function form `entities: () => [...]`. */

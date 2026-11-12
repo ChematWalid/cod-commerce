@@ -89,6 +89,7 @@ const RAW_DATA_ALLOWED_FILES = [
   'plugins/platform-webhooks/infrastructure/webhook-store.ts',
   'plugins/platform-webhooks/infrastructure/inbound-due-scan.ts',
   'plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
+  'plugins/platform-flags/infrastructure/typeorm-flag-store.ts',
   'plugins/platform-health/platform-health.plugin.ts',
   'plugins/platform-health/infrastructure/postgres.probe.ts',
   'plugins/platform-health/infrastructure/migrations.probe.ts',

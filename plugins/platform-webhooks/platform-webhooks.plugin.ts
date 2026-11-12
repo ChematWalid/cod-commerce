@@ -1,3 +1,4 @@
+import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { JobReconciler, PLATFORM_CLOCK, PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
@@ -48,7 +49,7 @@ import {
 import { internalOnlyPrefixes } from './domain/internal-prefixes';
 import { DemoProviders } from './infrastructure/demo/demo-providers';
 import { DemoWebhookHandler } from './infrastructure/demo/demo-webhook.handler';
-import { ConfigurableKillSwitch } from './infrastructure/configurable-kill-switch';
+import { FlagKillSwitch } from './infrastructure/flag-kill-switch';
 import { PostgresInboundScan } from './infrastructure/inbound-due-scan';
 import { InboundWebhookEntity } from './infrastructure/inbound-webhook.entity';
 import { InboundWebhookKeyEntity } from './infrastructure/inbound-webhook-key.entity';
@@ -89,13 +90,14 @@ const inboundLogger: InboundLogger = {
     PlatformPartitionsPlugin,
     PlatformOutboxPlugin,
     PlatformSecretsPlugin,
+    PlatformFlagsPlugin,
   ],
   entities: [InboundWebhookEntity, InboundWebhookKeyEntity],
   controllers: [WebhookController],
   providers: [
     InboundWebhookHandlerRegistry,
-    ConfigurableKillSwitch,
-    { provide: KILL_SWITCH, useExisting: ConfigurableKillSwitch },
+    FlagKillSwitch,
+    { provide: KILL_SWITCH, useExisting: FlagKillSwitch },
     PostgresInboundScan,
     { provide: INBOUND_DUE_SCAN, useExisting: PostgresInboundScan },
     { provide: KEY_PURGE_STORE, useExisting: PostgresInboundScan },

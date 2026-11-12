@@ -1,4 +1,5 @@
 import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
@@ -67,6 +68,19 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(PlatformOutboxPlugin);
+  });
+
+  // The flags declare entities, so every role registers them; they read Valkey through `REDIS_URL` and key it by `APP_ENV`.
+  it.each(SERVER_ROLES)('registers PlatformFlagsPlugin with the Valkey address and environment for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(PlatformFlagsPlugin);
+    expect(PlatformFlagsPlugin.options).toEqual({ redisUrl: 'redis://valkey:6379', appEnv: 'test' });
   });
 
   // The secrets declare entities, so every role registers them (the migrate role creates their tables).

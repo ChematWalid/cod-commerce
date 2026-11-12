@@ -26,3 +26,4 @@ export * from './permissions';
 export * from './queues';
 export * from './outbox/topics';
 export * from './outbox/payload';
+export * from './flags';

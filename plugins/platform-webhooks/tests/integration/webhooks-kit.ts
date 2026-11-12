@@ -1,12 +1,13 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { FlagAdminService, FlagSeedService, PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { parseKekRing, PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
-import { type PartitionedTableSchema, toBusinessId } from '@cod/shared';
+import { FLAG_KEYS, type PartitionedTableSchema, toBusinessId } from '@cod/shared';
 import {
   createPluginTestEnvironment,
   ensurePartitionedSchema,
@@ -26,6 +27,14 @@ import {
 } from '../fixtures/test-handler.plugin';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
+
+/** Valkey database 12 is where new Valkey tests work (they delete only their own keys); the gateway's flags use it. */
+const FLAGS_REDIS_URL = ((): string => {
+  const url = new URL(TEST_REDIS_URL);
+  url.pathname = '/12';
+  return url.toString();
+})();
+const FLAGS_APP_ENV = 'test-platform-webhooks-flags';
 
 /** A synthetic internal key: the plugin refuses to boot without one, and these tests send no internal calls. */
 const INTERNAL_KEY = { kid: 'k1', secret: 'synthetic-internal-key-000000000000000000' };
@@ -63,6 +72,7 @@ export function createWebhooksTestEnvironment(
       ...(options.plugins ?? []),
       PlatformOutboxPlugin,
       PlatformSecretsPlugin.init({ kekRing: TEST_KEK_RING }),
+      PlatformFlagsPlugin.init({ redisUrl: FLAGS_REDIS_URL, appEnv: FLAGS_APP_ENV }),
       PlatformWebhooksPlugin.init({ internalKeys: [INTERNAL_KEY], demoHandlers: demo }),
       TestHandlerPlugin,
     ],
@@ -79,8 +89,18 @@ export function createWebhooksTestEnvironment(
       ...(options.schemas ?? []),
     ]);
     await server.app.get(PartitionMaintenanceService).maintain(new Date());
+    await resetFlags(server.app);
   };
   return environment;
+}
+
+/**
+ * Seeds the flags and writes the gateway's switch back to on, which also deletes the Valkey snapshot an earlier run
+ * left under this environment name.
+ */
+async function resetFlags(app: Environment['server']['app']): Promise<void> {
+  await app.get(FlagSeedService).converge();
+  await app.get(FlagAdminService).update('webhooks-test', { key: FLAG_KEYS.inboundWebhooks, defaultEnabled: true });
 }
 
 /** Boots the server and registers `acme-a` and `acme-b`, the fixture accounts of the two businesses. */

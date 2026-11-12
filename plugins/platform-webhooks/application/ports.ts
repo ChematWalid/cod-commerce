@@ -1,7 +1,7 @@
 import type { BusinessId, TenantScope } from '@cod/shared';
 import type { InboundJobData, InboundStatus } from '../domain/inbound-webhook-handler';
 
-/** Whether an operational flag is on. Task 16 backs it with platform-flags; until then it is always on. */
+/** Whether an operational flag is on; the adapter reads the operational flags (D116). */
 export interface KillSwitchPort {
   isEnabled(flagKey: string): Promise<boolean>;
 }
