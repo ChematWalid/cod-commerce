@@ -24,6 +24,7 @@ export interface RawResponse {
 /** Sends one request with exactly the headers given, so a test controls the `Host` and every signed header. */
 export function sendRaw(options: RawRequest): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
+    let answered = false;
     const req = request(
       {
         host: '127.0.0.1',
@@ -37,6 +38,7 @@ export function sendRaw(options: RawRequest): Promise<RawResponse> {
         },
       },
       (response) => {
+        answered = true;
         const chunks: Buffer[] = [];
         response.on('data', (chunk: Buffer) => chunks.push(chunk));
         response.on('end', () => {
@@ -53,7 +55,12 @@ export function sendRaw(options: RawRequest): Promise<RawResponse> {
         });
       },
     );
-    req.on('error', reject);
+    // A server that answers early (413) may reset the socket while the rest of the body is still being written.
+    req.on('error', (error) => {
+      if (!answered) {
+        reject(error);
+      }
+    });
     req.end(options.body);
   });
 }

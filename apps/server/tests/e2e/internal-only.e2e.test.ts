@@ -172,7 +172,8 @@ describe('the internal-only guard on the full api config (D112)', () => {
     });
 
     it('answers 404 to a changed query', async () => {
-      const response = await call('GET', '/store/resolve?host=other.localhost', 'api.localhost', { headers: signed() });
+      // The signed path answers 200; only the guard can turn the same path with one more parameter into a 404.
+      const response = await call('GET', `${RESOLVE_PATH}&x=1`, 'api.localhost', { headers: signed() });
 
       expect(response).toMatchObject({ status: 404, body: '' });
     });

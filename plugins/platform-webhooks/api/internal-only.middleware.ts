@@ -1,4 +1,9 @@
-import { INTERNAL_AUTH_HEADERS, verifyInternalRequest, type InternalSigningKey } from '@cod/shared/internal-auth';
+import {
+  INTERNAL_AUTH_HEADERS,
+  INTERNAL_AUTH_MAX_SKEW_SECONDS,
+  verifyInternalRequest,
+  type InternalSigningKey,
+} from '@cod/shared/internal-auth';
 import type { RequestHandler, Request, Response } from 'express';
 
 /** Who signed an accepted request, and the store, client address and country the signature covered. */
@@ -38,22 +43,30 @@ function header(req: Request, name: string): string | undefined {
   return Array.isArray(value) ? value.join(',') : value;
 }
 
-/** The body, or `undefined` when it is larger than `limit` (the rest of the stream is left unread). */
+/**
+ * The body, or `undefined` when it is larger than `limit`. A body announced as too large is not read at all; one
+ * that grows past the limit while streaming is drained without being kept, because leaving the loop would destroy
+ * the socket and the 413 could be lost as a reset.
+ */
 async function readBody(req: Request, limit: number): Promise<Buffer | undefined> {
   if (Number(header(req, 'content-length') ?? 0) > limit) {
     return undefined;
   }
   const chunks: Buffer[] = [];
   let size = 0;
+  let tooLarge = false;
   for await (const chunk of req as AsyncIterable<Buffer | string>) {
     const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
     size += buffer.length;
     if (size > limit) {
-      return undefined;
+      tooLarge = true;
+      chunks.length = 0;
     }
-    chunks.push(buffer);
+    if (!tooLarge) {
+      chunks.push(buffer);
+    }
   }
-  return Buffer.concat(chunks);
+  return tooLarge ? undefined : Buffer.concat(chunks);
 }
 
 /** The parsed JSON body, `{}` when there is none to parse, or `undefined` when it is not valid JSON. */
@@ -85,15 +98,33 @@ type Verdict =
 
 const refuse = (reason: string, status: 404 | 413 = 404): Verdict => ({ ok: false, status, reason });
 
-const hasSignatureHeaders = (req: Request): boolean =>
-  [INTERNAL_AUTH_HEADERS.kid, INTERNAL_AUTH_HEADERS.timestamp, INTERNAL_AUTH_HEADERS.signature].every((name) =>
-    Boolean(header(req, name)),
-  );
+const TIMESTAMP = /^\d{1,12}$/;
+
+/**
+ * The cheap checks that need no body: all three headers present, a well-formed timestamp inside the clock window,
+ * a known key id. Only a request that passes them has its body read, so an unauthenticated caller cannot make the
+ * server buffer a body, nor learn from a 413 that the path is guarded.
+ */
+function precheck(req: Request, keys: readonly InternalSigningKey[], nowSeconds: number): string | undefined {
+  const kid = header(req, INTERNAL_AUTH_HEADERS.kid);
+  const timestamp = header(req, INTERNAL_AUTH_HEADERS.timestamp);
+  if (!kid || !timestamp || !header(req, INTERNAL_AUTH_HEADERS.signature)) {
+    return 'missing';
+  }
+  if (!TIMESTAMP.test(timestamp)) {
+    return 'malformed';
+  }
+  if (!keys.some((key) => key.kid === kid)) {
+    return 'unknown-kid';
+  }
+  return Math.abs(nowSeconds - Number(timestamp)) > INTERNAL_AUTH_MAX_SKEW_SECONDS ? 'stale' : undefined;
+}
 
 async function judge(req: Request, options: InternalOnlyOptions, nowSeconds: number): Promise<Verdict> {
-  // Nothing signed: refuse before reading a body nobody vouches for.
-  if (!hasSignatureHeaders(req)) {
-    return refuse('missing');
+  // Refuse before reading a body nobody plausibly vouches for.
+  const early = precheck(req, options.keys, nowSeconds);
+  if (early !== undefined) {
+    return refuse(early);
   }
   const body = await readBody(req, options.maxBodyBytes);
   if (body === undefined) {

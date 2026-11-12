@@ -43,6 +43,8 @@ function requestHeaders(
     ...options.headers,
     ...(options.contentType === undefined ? {} : { 'content-type': options.contentType }),
     ...(sent.storeId === undefined ? {} : { 'x-store-id': sent.storeId }),
+    ...(sent.clientIp === undefined ? {} : { 'x-client-ip': sent.clientIp }),
+    ...(sent.clientCountry === undefined ? {} : { 'x-client-country': sent.clientCountry }),
   };
   return Object.fromEntries(Object.entries(all).filter(([name]) => !(options.drop ?? []).includes(name)));
 }
@@ -58,12 +60,18 @@ function harness(
     readonly contentType?: string;
     readonly maxBodyBytes?: number;
     readonly headers?: Record<string, string>;
+    /** Send the body in pieces of this many bytes, as a chunked upload with no Content-Length arrives. */
+    readonly chunkBytes?: number;
   } = {},
 ): Harness {
   const sent = { ...signed, ...options.sent };
   const headers = requestHeaders(signed, sent, options);
   const body = Buffer.from(sent.body);
-  const req = Object.assign(Readable.from(body.length > 0 ? [body] : []), {
+  const pieces: Buffer[] = [];
+  for (let at = 0; at < body.length; at += options.chunkBytes ?? body.length) {
+    pieces.push(body.subarray(at, at + (options.chunkBytes ?? body.length)));
+  }
+  const req = Object.assign(Readable.from(pieces), {
     method: sent.method,
     originalUrl: sent.pathWithQuery,
     url: sent.pathWithQuery.replace(/^\/[^/?]*/, '') || '/',
@@ -143,12 +151,22 @@ describe('internalOnlyMiddleware', () => {
     expect(h.req.internalAuth?.kid).toBe('k2');
   });
 
+  it('accepts a skew of exactly +60 seconds', async () => {
+    const h = harness(SIGNED, { at: NOW + 60 });
+
+    await h.run();
+
+    expect(h.next).toHaveBeenCalledTimes(1);
+  });
+
   it('answers 404 with an empty body, logs once and never calls next for each tamper', async () => {
     const cases: [string, Harness, string][] = [
       ['method', harness(SIGNED, { sent: { method: 'POST' } }), 'bad-signature'],
       ['path', harness(SIGNED, { sent: { pathWithQuery: '/store/resolve/?host=demo.localhost' } }), 'bad-signature'],
       ['query', harness(SIGNED, { sent: { pathWithQuery: '/store/resolve?host=evil.example' } }), 'bad-signature'],
       ['store id', harness(SIGNED, { sent: { storeId: '78' } }), 'bad-signature'],
+      ['client ip', harness(SIGNED, { sent: { clientIp: '203.0.113.10' } }), 'bad-signature'],
+      ['client country', harness(SIGNED, { sent: { clientCountry: 'FR' } }), 'bad-signature'],
       ['body', harness({ ...SIGNED, method: 'POST', body: 'a' }, { sent: { body: 'b' } }), 'bad-signature'],
       ['stale', harness(SIGNED, { at: NOW - 61 }), 'stale'],
       ['future', harness(SIGNED, { at: NOW + 61 }), 'stale'],
@@ -176,6 +194,26 @@ describe('internalOnlyMiddleware', () => {
     const body = 'x'.repeat(2000);
 
     await expectRejected(harness({ ...SIGNED, method: 'POST', body }, { maxBodyBytes: 1024 }), 'body-too-large', 413);
+  });
+
+  it('answers 413 to a chunked body over the limit and reads the stream to its end, so the answer is not cut off', async () => {
+    const h = harness({ ...SIGNED, method: 'POST', body: 'x'.repeat(4000) }, { maxBodyBytes: 1024, chunkBytes: 500 });
+
+    await expectRejected(h, 'body-too-large', 413);
+    await vi.waitFor(() => {
+      expect(h.req.readableEnded).toBe(true);
+    });
+  });
+
+  it.each([
+    ['an unknown key id', { 'x-internal-kid': 'nobody' }, 'unknown-kid'],
+    ['a malformed timestamp', { 'x-internal-ts': 'soon' }, 'malformed'],
+    ['a stale timestamp', { 'x-internal-ts': String(NOW - 3600) }, 'stale'],
+  ])('answers 404, not 413, to %s even with a body over the limit', async (_name, headers, reason) => {
+    const h = harness(SIGNED, { headers: { ...headers, 'content-length': '999999' } });
+
+    await expectRejected(h, reason);
+    expect(h.req.readableFlowing).toBeNull();
   });
 
   it('answers 404 to a signed body that is not valid JSON under a JSON content type', async () => {
