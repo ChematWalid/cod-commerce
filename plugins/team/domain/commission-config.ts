@@ -8,8 +8,11 @@ import {
   type CommissionValueKind,
   type Snowflake,
   type StoreAccessKind,
+  TEAM_COMMISSION_ACTIVITY_FIELDS,
+  type TeamCommissionActivityDiff,
   type TenantScope,
   toSnowflake,
+  type UpdateCommissionConfigCommand,
 } from '@cod/shared';
 import { InvalidInputError } from './errors';
 
@@ -89,4 +92,57 @@ export function createCommissionConfig(input: NewCommissionConfigInput): Commiss
     createdAt: input.now,
     updatedAt: input.now,
   };
+}
+
+/** The command that rebuilds `config` as it is, with `patch` applied; stores follow the scope, as on creation. */
+function commandOf(config: CommissionConfig, patch: UpdateCommissionConfigCommand): CommissionConfigCommand {
+  return {
+    name: patch.name ?? config.name,
+    basis: patch.basis ?? config.basis,
+    valueKind: patch.valueKind ?? config.valueKind,
+    value: patch.value ?? config.value,
+    scope: patch.scope ?? config.scope,
+    storeIds: patch.scope === undefined ? [...config.storeIds] : (patch.storeIds ?? []),
+  };
+}
+
+/**
+ * `config` with `patch` applied, stamped `now`. The result must be a valid config on its own: a switch to `percent`
+ * re-checks the value against 100 %.
+ *
+ * @throws {InvalidInputError} as {@link createCommissionConfig} does.
+ */
+export function reviseCommissionConfig(
+  config: CommissionConfig,
+  patch: UpdateCommissionConfigCommand,
+  now: Date,
+): CommissionConfig {
+  const revised = createCommissionConfig({
+    id: config.id,
+    scope: { businessId: config.businessId },
+    command: commandOf(config, patch),
+    now,
+  });
+  return { ...revised, createdAt: config.createdAt };
+}
+
+/** A commission field an activity row may name as changed, never with its value (D216). */
+export type CommissionActivityField = TeamCommissionActivityDiff['changedFields'][number];
+
+const sameStores = (left: readonly Snowflake[], right: readonly Snowflake[]): boolean =>
+  left.length === right.length && left.every((id, index) => id === right[index]);
+
+/** The fields of `after` that differ from `before`, in the activity log's order. */
+export function commissionChangedFields(before: CommissionConfig, after: CommissionConfig): CommissionActivityField[] {
+  return TEAM_COMMISSION_ACTIVITY_FIELDS.filter((field) =>
+    field === 'storeIds' ? !sameStores(before.storeIds, after.storeIds) : before[field] !== after[field],
+  );
+}
+
+/** The whole diff of a commission's activity row (D216): which config, its name and the fields, never the value. */
+export function commissionActivityDiff(
+  config: Pick<CommissionConfig, 'id' | 'name'>,
+  changedFields: readonly CommissionActivityField[],
+): TeamCommissionActivityDiff {
+  return { commissionConfigId: config.id, name: config.name, changedFields: [...changedFields] };
 }

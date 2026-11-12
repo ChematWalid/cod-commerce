@@ -8,7 +8,11 @@ import type { InvitationTokenPort } from '../../domain/ports/invitation-token.po
 import type { MemberAccessPort } from '../../domain/ports/member-access.port';
 import type { MemberAccountPort, NewMemberAccount } from '../../domain/ports/member-account.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
-import type { TeamActivityPort, TeamMemberActivity } from '../../domain/ports/team-activity.port';
+import type {
+  TeamActivityPort,
+  TeamCommissionActivity,
+  TeamMemberActivity,
+} from '../../domain/ports/team-activity.port';
 import type { TeamActor } from '../../domain/team-actor';
 
 /** Every call the fakes saw, in order, so a test can assert what ran before what (D213). */
@@ -113,9 +117,15 @@ export const fakeNames: BusinessNamesPort = {
 /** The activity rows written. */
 export class RecordingActivity implements TeamActivityPort {
   readonly rows: TeamMemberActivity[] = [];
+  readonly commissionRows: TeamCommissionActivity[] = [];
 
   recordMember(_ctx: OperationContext, activity: TeamMemberActivity): Promise<void> {
     this.rows.push(activity);
+    return Promise.resolve();
+  }
+
+  recordCommission(_ctx: OperationContext, activity: TeamCommissionActivity): Promise<void> {
+    this.commissionRows.push(activity);
     return Promise.resolve();
   }
 }

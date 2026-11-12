@@ -88,6 +88,14 @@ export class CommissionInUseError extends DomainError {
   }
 }
 
+/** Another commission config of the business already has that name, compared without case or extra spaces. */
+export class CommissionNameTakenError extends DomainError {
+  readonly code = TEAM_ERROR_CODES.COMMISSION_NAME_TAKEN;
+  constructor() {
+    super('A commission with this name already exists');
+  }
+}
+
 /** Input that breaks a team rule; the message never repeats the value. */
 export class InvalidInputError extends DomainError {
   readonly code = TEAM_ERROR_CODES.INVALID_INPUT;
@@ -149,6 +157,7 @@ export const TEAM_ERROR_CLASSES = [
   AccountElsewhereError,
   CommissionNotFoundError,
   CommissionInUseError,
+  CommissionNameTakenError,
   InvalidInputError,
   AccessUnavailableError,
   MemberSuspendedError,

@@ -150,6 +150,34 @@ export const commissionConfigSchema = z
 export type CommissionConfigInput = z.input<typeof commissionConfigSchema>;
 export type CommissionConfigCommand = z.output<typeof commissionConfigSchema>;
 
+const commissionPatchFields = z.object({
+  name: z.string().trim().min(1).max(COMMISSION_NAME_MAX_LENGTH).optional(),
+  basis: z.enum(COMMISSION_BASES).optional(),
+  valueKind: z.enum(COMMISSION_VALUE_KINDS).optional(),
+  value: z.number().int().positive().optional(),
+  scope: storeAccessSchema.optional(),
+  storeIds: storeIdsSchema.optional(),
+});
+
+type CommissionPatchFields = z.output<typeof commissionPatchFields>;
+
+function patchesSomething(patch: CommissionPatchFields): boolean {
+  const { name, basis, valueKind, value, scope, storeIds } = patch;
+  return [name, basis, valueKind, value, scope, storeIds].some((field) => field !== undefined);
+}
+
+/**
+ * "Edit a commission": any of its fields, at least one. Stores come with a scope, as on creation; the value cap of
+ * the resulting kind is checked once the edit is applied to the stored config.
+ */
+export const updateCommissionConfigSchema = commissionPatchFields
+  .refine(patchesSomething, invalid)
+  .refine(({ scope, storeIds }) => hasConsistentStores({ storeAccess: scope, storeIds }), storeRule)
+  .transform((patch) => (patch.scope === 'all' ? { ...patch, storeIds: [] } : patch));
+
+export type UpdateCommissionConfigInput = z.input<typeof updateCommissionConfigSchema>;
+export type UpdateCommissionConfigCommand = z.output<typeof updateCommissionConfigSchema>;
+
 /**
  * A page of the members list. The page may come as text (a REST query string); a blank search is no search, and the
  * search is matched as plain text, never as a pattern. A null field (an unset GraphQL variable) or an empty one (`?page=`)

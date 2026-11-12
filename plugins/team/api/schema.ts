@@ -133,6 +133,55 @@ export const teamAdminApiSchema = gql`
     storeIds: [String!]!
   }
 
+  enum TeamCommissionValueKind {
+    fixed
+    percent
+  }
+
+  "A commission structure of the business; stored only, calculated with orders later."
+  type TeamCommissionConfig {
+    id: String!
+    name: String!
+    "One of the bases teamCommissionBases lists, such as per-confirmed-order."
+    basis: String!
+    valueKind: TeamCommissionValueKind!
+    "Whole DZD for fixed, basis points for percent (10000 is 100 %)."
+    value: Int!
+    scope: TeamStoreAccess!
+    storeIds: [String!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type TeamCommissionBasisLabels {
+    ar: String!
+    en: String!
+  }
+
+  type TeamCommissionBasisOption {
+    basis: String!
+    labels: TeamCommissionBasisLabels!
+  }
+
+  input TeamCommissionConfigInput {
+    name: String!
+    basis: String!
+    valueKind: TeamCommissionValueKind!
+    value: Int!
+    scope: TeamStoreAccess!
+    storeIds: [String!]
+  }
+
+  "Fields of a commission to change; at least one. Stores come with a scope."
+  input UpdateTeamCommissionConfigInput {
+    name: String
+    basis: String
+    valueKind: TeamCommissionValueKind
+    value: Int
+    scope: TeamStoreAccess
+    storeIds: [String!]
+  }
+
   extend type Query {
     "A page of the members the caller reaches (D211), newest first."
     teamMembers(input: TeamMembersInput): TeamMemberPage!
@@ -140,6 +189,11 @@ export const teamAdminApiSchema = gql`
     teamMember(id: String!): TeamMemberDetails!
     "The active members receiving orders that the caller reaches (D209)."
     teamOrderManagers: [TeamOrderManager!]!
+    "Every commission config of the business, by name."
+    teamCommissionConfigs: [TeamCommissionConfig!]!
+    teamCommissionConfig(id: String!): TeamCommissionConfig!
+    "What a commission can be earned on, labelled in Arabic and English."
+    teamCommissionBases: [TeamCommissionBasisOption!]!
   }
 
   extend type Mutation {
@@ -163,5 +217,11 @@ export const teamAdminApiSchema = gql`
     removeTeamMember(id: String!): Boolean!
     "Books one payment of the member's base salary per idempotency key."
     payTeamMember(id: String!, idempotencyKey: String!): TeamSalaryPayment!
+    "Adds a commission config; its name is unique in the business, whatever its case."
+    createTeamCommissionConfig(input: TeamCommissionConfigInput!): TeamCommissionConfig!
+    "Changes a commission config; not one given to the caller's own member row."
+    updateTeamCommissionConfig(id: String!, input: UpdateTeamCommissionConfigInput!): TeamCommissionConfig!
+    "Deletes a commission config no member is given."
+    deleteTeamCommissionConfig(id: String!): Boolean!
   }
 `;

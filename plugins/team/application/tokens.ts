@@ -72,3 +72,6 @@ export const SALARY_PAID_PUBLISHER: unique symbol = Symbol('TeamSalaryPaidPublis
 
 /** Injection token of the {@link MemberActionPorts} bundle. */
 export const MEMBER_ACTION_PORTS: unique symbol = Symbol('TeamMemberActionPorts');
+
+/** Injection token of the {@link CommissionConfigPorts} bundle. */
+export const COMMISSION_PORTS: unique symbol = Symbol('TeamCommissionPorts');

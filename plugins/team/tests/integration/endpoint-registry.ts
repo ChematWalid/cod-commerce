@@ -2,7 +2,7 @@ import type { PermissionKey } from '@cod/shared';
 
 /**
  * What a handler demands: one catalog permission, or nobody (the two invitation routes the invitee calls with a
- * token, D205). Task 16 completes this registry with the commission handlers.
+ * token, D205).
  */
 export type Access = 'public' | PermissionKey;
 
@@ -26,6 +26,14 @@ export interface RouteEntry {
 }
 
 const NO_MEMBER = '1';
+const NO_COMMISSION = '1';
+const COMMISSION_INPUT = {
+  name: 'Synthetic commission',
+  basis: 'per-confirmed-order',
+  valueKind: 'fixed',
+  value: 1,
+  scope: 'all',
+};
 const INVITE_INPUT = {
   email: 'nobody@example.test',
   roleIds: ['1'],
@@ -114,6 +122,43 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     document: 'mutation ($id: String!) { payTeamMember(id: $id, idempotencyKey: "synthetic-key") { id } }',
     variables: { id: NO_MEMBER },
   },
+  {
+    operation: 'teamCommissionConfigs',
+    access: 'team.commissions.view',
+    document: 'query { teamCommissionConfigs { id } }',
+    variables: {},
+  },
+  {
+    operation: 'teamCommissionConfig',
+    access: 'team.commissions.view',
+    document: 'query ($id: String!) { teamCommissionConfig(id: $id) { id } }',
+    variables: { id: NO_COMMISSION },
+  },
+  {
+    operation: 'teamCommissionBases',
+    access: 'team.commissions.view',
+    document: 'query { teamCommissionBases { basis } }',
+    variables: {},
+  },
+  {
+    operation: 'createTeamCommissionConfig',
+    access: 'team.commissions.set',
+    document: 'mutation ($input: TeamCommissionConfigInput!) { createTeamCommissionConfig(input: $input) { id } }',
+    variables: { input: COMMISSION_INPUT },
+  },
+  {
+    operation: 'updateTeamCommissionConfig',
+    access: 'team.commissions.edit',
+    document:
+      'mutation ($id: String!, $input: UpdateTeamCommissionConfigInput!) { updateTeamCommissionConfig(id: $id, input: $input) { id } }',
+    variables: { id: NO_COMMISSION, input: { value: 2 } },
+  },
+  {
+    operation: 'deleteTeamCommissionConfig',
+    access: 'team.commissions.delete',
+    document: 'mutation ($id: String!) { deleteTeamCommissionConfig(id: $id) }',
+    variables: { id: NO_COMMISSION },
+  },
 ];
 
 /** Every REST route the plugin's controllers declare. */
@@ -180,6 +225,39 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     access: 'team.members.edit',
     url: `/employees/${NO_MEMBER}/pay`,
     body: { idempotencyKey: 'synthetic-key' },
+  },
+  {
+    method: 'GET',
+    route: '/commissions/configs/actions',
+    access: 'team.commissions.view',
+    url: '/commissions/configs/actions',
+  },
+  { method: 'GET', route: '/commissions/configs', access: 'team.commissions.view', url: '/commissions/configs' },
+  {
+    method: 'POST',
+    route: '/commissions/configs',
+    access: 'team.commissions.set',
+    url: '/commissions/configs',
+    body: COMMISSION_INPUT,
+  },
+  {
+    method: 'GET',
+    route: '/commissions/configs/:id',
+    access: 'team.commissions.view',
+    url: `/commissions/configs/${NO_COMMISSION}`,
+  },
+  {
+    method: 'PATCH',
+    route: '/commissions/configs/:id',
+    access: 'team.commissions.edit',
+    url: `/commissions/configs/${NO_COMMISSION}`,
+    body: { value: 2 },
+  },
+  {
+    method: 'DELETE',
+    route: '/commissions/configs/:id',
+    access: 'team.commissions.delete',
+    url: `/commissions/configs/${NO_COMMISSION}`,
   },
   {
     method: 'GET',

@@ -11,11 +11,16 @@
     "team-account-elsewhere": "This email already belongs to another business. Use a different email to join.",
     "team-commission-not-found": "Commission not found.",
     "team-commission-in-use": "This commission is still given to a member.",
+    "team-commission-name-taken": "A commission with this name already exists.",
     "team-invalid-input": "Some of the details are not valid.",
     "team-access-unavailable": "This member's former roles or stores no longer exist.",
     "team-member-suspended": "This member is deactivated.",
     "team-self-action": "You cannot do this on your own member account.",
     "team-resend-limit": "This invitation cannot be sent again. Revoke it and invite again.",
     "team-too-many-pending": "Too many invitations are waiting. Revoke some before inviting more."
+  },
+  "commission-basis": {
+    "per-confirmed-order": "Per confirmed order",
+    "per-delivered-order": "Per delivered order"
   }
 }

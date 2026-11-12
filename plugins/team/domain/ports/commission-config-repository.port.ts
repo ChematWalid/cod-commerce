@@ -15,4 +15,10 @@ export interface CommissionConfigRepositoryPort {
 
   /** Every config of the business, by name key. */
   list(ctx: OperationContext, scope: TenantScope): Promise<readonly CommissionConfig[]>;
+
+  /** Replaces the stored fields of `config.id`; `false` when the business has no such config. */
+  update(ctx: OperationContext, scope: TenantScope, config: CommissionConfig): Promise<boolean>;
+
+  /** Deletes the config `id`; `false` when the business has no such config. */
+  delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<boolean>;
 }

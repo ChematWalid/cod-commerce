@@ -11,6 +11,7 @@ export const TEAM_ERROR_CODES = {
   ACCOUNT_ELSEWHERE: 'team.account-elsewhere',
   COMMISSION_NOT_FOUND: 'team.commission-not-found',
   COMMISSION_IN_USE: 'team.commission-in-use',
+  COMMISSION_NAME_TAKEN: 'team.commission-name-taken',
   INVALID_INPUT: 'team.invalid-input',
   ACCESS_UNAVAILABLE: 'team.access-unavailable',
   MEMBER_SUSPENDED: 'team.member-suspended',

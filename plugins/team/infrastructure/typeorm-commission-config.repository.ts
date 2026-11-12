@@ -54,4 +54,16 @@ export class TypeOrmCommissionConfigRepository implements CommissionConfigReposi
     const rows = await this.rows.find(requestScope(ctx, scope), { order: { nameKey: 'ASC', id: 'ASC' } });
     return rows.map(toConfig);
   }
+
+  async update(ctx: OperationContext, scope: TenantScope, config: CommissionConfig): Promise<boolean> {
+    const { name, nameKey, basis, valueKind, value, storeIds, updatedAt } = config;
+    const fields = { name, nameKey, basis, valueKind, value, scope: config.scope, storeIds: [...storeIds], updatedAt };
+    const changed = await this.rows.update(requestScope(ctx, scope), { id: config.id }, fields);
+    return changed > 0;
+  }
+
+  async delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<boolean> {
+    const deleted = await this.rows.delete(requestScope(ctx, scope), { id });
+    return deleted > 0;
+  }
 }

@@ -19,6 +19,9 @@ import { OrderManagersController } from './api/order-managers.controller';
 import { OrderManagersResolver } from './api/order-managers.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
 import { TeamRequestActors } from './api/actor-of';
+import { CommissionActions } from './api/commission-actions';
+import { CommissionsController } from './api/commissions.controller';
+import { CommissionsResolver } from './api/commissions.resolver';
 import { SalaryController } from './api/salary.controller';
 import { SalaryResolver } from './api/salary.resolver';
 import { teamAdminApiSchema } from './api/schema';
@@ -35,6 +38,7 @@ import {
   TRANSACTION,
 } from './application/tokens';
 import { CommissionConfigEntity } from './infrastructure/commission-config.entity';
+import { COMMISSION_PROVIDERS } from './infrastructure/commission.providers';
 import { CONVERGE_PROVIDERS } from './infrastructure/converge.providers';
 import { InvitationEntity } from './infrastructure/invitation.entity';
 import { MEMBER_ACTION_PROVIDERS } from './infrastructure/member-action.providers';
@@ -88,11 +92,13 @@ function requireOptions(): TeamPluginOptions {
     ...invitationProviders(() => requireOptions().dashboardUrl),
     ...MEMBER_READ_PROVIDERS,
     ...MEMBER_ACTION_PROVIDERS,
+    ...COMMISSION_PROVIDERS,
     InvitationUseCases,
     MemberActionUseCases,
     MemberActions,
     InvitationActions,
     MemberReadActions,
+    CommissionActions,
     TeamRequestActors,
     TeamThrottle,
     TeamTranslations,
@@ -105,6 +111,7 @@ function requireOptions(): TeamPluginOptions {
       MemberActionsResolver,
       SalaryResolver,
       OrderManagersResolver,
+      CommissionsResolver,
     ],
   },
   // `OrderManagersController` before `MembersReadController`: `GET /employees/:id` would take `order-managers`.
@@ -115,6 +122,7 @@ function requireOptions(): TeamPluginOptions {
     MembersReadController,
     MemberActionsController,
     SalaryController,
+    CommissionsController,
   ],
   // The `migrate` role runs the member converge after rbac's (D215).
   exports: [TeamConvergeService],
@@ -134,6 +142,7 @@ export class TeamPlugin implements NestModule {
         MembersReadController,
         MemberActionsController,
         SalaryController,
+        CommissionsController,
       );
     consumer.apply(NoStoreMiddleware).forRoutes(InvitationsController);
   }

@@ -1,6 +1,6 @@
 import { isSnowflake, type Snowflake } from '@cod/shared';
 import type { z } from 'zod';
-import { InvalidInputError, MemberNotFoundError } from '../domain/errors';
+import { CommissionNotFoundError, InvalidInputError, MemberNotFoundError } from '../domain/errors';
 
 /**
  * Parses a request body or GraphQL input with a shared schema (ADR 0017 §1).
@@ -16,6 +16,12 @@ export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.ou
 /** A member id from a body or route. @throws {MemberNotFoundError} for text that can name no member, as for one of none. */
 export function memberIdOf(input: unknown): Snowflake {
   if (typeof input !== 'string' || !isSnowflake(input)) throw new MemberNotFoundError();
+  return input;
+}
+
+/** A commission config id from a route. @throws {CommissionNotFoundError} for text that can name no config. */
+export function commissionIdOf(input: unknown): Snowflake {
+  if (typeof input !== 'string' || !isSnowflake(input)) throw new CommissionNotFoundError();
   return input;
 }
 

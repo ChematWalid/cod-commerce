@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CommissionConfigRepositoryPort } from '../../domain/ports/commission-config-repository.port';
-import { commissionConfig, scopeA, scopeB } from '../support/builders';
+import { commissionConfig, newId, scopeA, scopeB } from '../support/builders';
 import type { MakeHarness } from './repository-harness';
 
 /** The behaviour every {@link CommissionConfigRepositoryPort} adapter must have, tenant isolation included. */
@@ -53,6 +53,39 @@ export function describeCommissionConfigRepositoryContract(
 
       // Assert
       expect(listed).toEqual([alpha, beta]);
+    });
+
+    it('updates a config of its business only', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const config = commissionConfig(scopeA, { name: 'Before' });
+      await repo.insert(ctx, scopeA, config);
+      const renamed = { ...config, name: 'After', nameKey: 'after', value: 400, storeIds: [newId()] };
+
+      // Act
+      const fromB = await repo.update(ctx, scopeB, renamed);
+      const fromA = await repo.update(ctx, scopeA, renamed);
+
+      // Assert
+      expect([fromB, fromA]).toEqual([false, true]);
+      await expect(repo.findById(ctx, scopeA, config.id)).resolves.toEqual(renamed);
+    });
+
+    it('deletes a config of its business only', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const config = commissionConfig(scopeA);
+      await repo.insert(ctx, scopeA, config);
+
+      // Act
+      const fromB = await repo.delete(ctx, scopeB, config.id);
+      const keptForA = await repo.findById(ctx, scopeA, config.id);
+      const fromA = await repo.delete(ctx, scopeA, config.id);
+
+      // Assert
+      expect([fromB, fromA]).toEqual([false, true]);
+      expect(keptForA).toEqual(config);
+      await expect(repo.findById(ctx, scopeA, config.id)).resolves.toBeUndefined();
     });
   });
 }
