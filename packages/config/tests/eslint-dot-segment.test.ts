@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,7 +18,8 @@ describe('boundaries under a checkout whose path has a dot segment', () => {
   let eslint: ESLint;
 
   beforeAll(() => {
-    scratch = mkdtempSync(join(tmpdir(), 'cod-dot-segment-'));
+    // The config's import.meta.dirname is a realpath, so the checkout must be one too where tmpdir is a symlink.
+    scratch = realpathSync(mkdtempSync(join(tmpdir(), 'cod-dot-segment-')));
     checkout = join(scratch, '.claude', 'worktrees', 'x');
     mkdirSync(checkout, { recursive: true });
     writeFileSync(
