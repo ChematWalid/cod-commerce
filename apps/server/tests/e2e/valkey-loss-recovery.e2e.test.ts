@@ -6,7 +6,6 @@ import { type QueuePool, toBusinessId } from '@cod/shared';
 import { ConfigService, RequestContextService, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import type { Queue } from 'bullmq';
-import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bullMqOptions } from '../../src/config/redis.config';
 import {
@@ -32,15 +31,18 @@ import {
 } from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
 
+import {
+  LONG_BACKOFF_MS,
+  MINUTE_MS,
+  PROVISION_BUSINESS,
+  SHORT_BACKOFF_MS,
+  testRedisUrl,
+  until,
+  UPDATE_GLOBAL_LANGUAGES,
+  VALKEY_TEST_DATABASE,
+} from './support/valkey-loss';
+
 const SUITE = 'valkey-loss-recovery';
-/** The Valkey database this file owns and flushes (plan, Global Constraints). */
-const VALKEY_TEST_DATABASE = 13;
-const MINUTE_MS = 60_000;
-const DRAIN_TIMEOUT_MS = 60_000;
-const POLL_MS = 100;
-/** A retry wait too long to elapse in a test, so a failed job stays delayed; and one short enough to exhaust attempts. */
-const LONG_BACKOFF_MS = 3_600_000;
-const SHORT_BACKOFF_MS = 50;
 const ACCOUNT_KEY = 'e2e-effects';
 
 const BULK_EVENTS = 6;
@@ -48,45 +50,6 @@ const DELAYED_EVENTS = 6;
 const RETRYING_EVENTS = 3;
 const PENDING_EVENTS = 8;
 const WEBHOOKS = 10;
-
-const UPDATE_GLOBAL_LANGUAGES = gql`
-  mutation {
-    updateGlobalSettings(input: { availableLanguages: [ar, fr, en] }) {
-      ... on GlobalSettings {
-        id
-      }
-    }
-  }
-`;
-
-const PROVISION_BUSINESS = gql`
-  mutation ($input: ProvisionBusinessInput!) {
-    provisionBusiness(input: $input) {
-      business {
-        id
-      }
-    }
-  }
-`;
-
-/** The shell's `REDIS_URL` on this file's own database. */
-function testRedisUrl(): string {
-  const url = new URL(process.env['REDIS_URL'] ?? 'redis://localhost:6380');
-  url.pathname = `/${String(VALKEY_TEST_DATABASE)}`;
-  return url.toString();
-}
-
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function until<T>(read: () => Promise<T | undefined>, timeoutMs = DRAIN_TIMEOUT_MS): Promise<T> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    const value = await read();
-    if (value !== undefined) return value;
-    if (Date.now() > deadline) throw new Error('the condition did not hold in time');
-    await sleep(POLL_MS);
-  }
-}
 
 describe('recovery after the loss of Valkey', () => {
   const env = { REDIS_URL: testRedisUrl(), PLATFORM_DEMO_HANDLERS: 'true', WORKER_POOL: 'all' };
@@ -220,11 +183,14 @@ describe('recovery after the loss of Valkey', () => {
         ? true
         : undefined,
     );
+    // Stamped a minute back on the test's clock, so the reconcile below sees it as untouched for its sweep delay. Postgres
+    // now() carries microseconds: within the same millisecond as `later()` it would fall just past the scan's cutoff.
+    const enqueuedAt = new Date(Date.now() - MINUTE_MS);
     await sql(
       `INSERT INTO "outbox_delivery"
          ("businessId", "createdAt", "outboxId", "consumer", "status", "attempts", "enqueuedAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, 'enqueued', 0, now(), now())`,
-      [businessId, ref.createdAt, ref.id, CRITICAL_EFFECT_CONSUMER],
+       VALUES ($1, $2, $3, $4, 'enqueued', 0, $5, $5)`,
+      [businessId, ref.createdAt, ref.id, CRITICAL_EFFECT_CONSUMER, enqueuedAt],
     );
 
     // Act (1): the reconciler removes the kept job and adds it again through the real job presence.
