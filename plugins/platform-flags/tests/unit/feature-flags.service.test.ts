@@ -66,6 +66,44 @@ describe('FeatureFlags', () => {
     expect(await flags.isEnabledFor({}, KEY)).toBe(false);
   });
 
+  it('a question asked after forget does not join a refresh that started before it', async () => {
+    // Arrange
+    const { flags, store, setDatabase } = setup(snapshotOf(true));
+    let release: (snapshot: FlagSnapshot) => void = () => undefined;
+    store.loadSnapshot.mockImplementationOnce(() => new Promise<FlagSnapshot>((resolve) => { release = resolve; }));
+    const before = flags.isEnabledFor({}, KEY);
+    await Promise.resolve();
+    await Promise.resolve();
+    setDatabase(snapshotOf(false));
+
+    // Act
+    flags.forget();
+    const after = flags.isEnabledFor({}, KEY);
+    release(snapshotOf(true));
+
+    // Assert
+    expect(await before).toBe(true);
+    expect(await after).toBe(false);
+  });
+
+  it('does not write a snapshot read before a change to the shared cache', async () => {
+    // Arrange
+    const { flags, store, cache } = setup(snapshotOf(true));
+    let release: (snapshot: FlagSnapshot) => void = () => undefined;
+    store.loadSnapshot.mockImplementationOnce(() => new Promise<FlagSnapshot>((resolve) => { release = resolve; }));
+    const pending = flags.isEnabledFor({}, KEY);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Act
+    flags.forget();
+    release(snapshotOf(true));
+    await pending;
+
+    // Assert
+    expect(cache.write).not.toHaveBeenCalled();
+  });
+
   it('reads a seeded flag the database lacks as its seed, not as off', async () => {
     // Arrange
     const { flags } = setup({ flags: {} });

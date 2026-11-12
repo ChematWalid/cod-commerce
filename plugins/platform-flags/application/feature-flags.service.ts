@@ -62,6 +62,8 @@ export class FeatureFlags {
   forget(): void {
     this.generation += 1;
     this.cached = undefined;
+    // A refresh already reading may hold the pre-change data: later questions start their own.
+    this.loading = undefined;
   }
 
   private async planKeyOf(snapshot: FlagSnapshot, subject: FlagSubject, key: FlagKey): Promise<string | undefined> {
@@ -73,17 +75,19 @@ export class FeatureFlags {
   private snapshot(): Promise<FlagSnapshot> {
     const { cached } = this;
     if (cached !== undefined && this.ports.clock.now() < cached.staleAtMs) return Promise.resolve(cached.snapshot);
-    this.loading ??= this.refresh().finally(() => {
-      this.loading = undefined;
+    if (this.loading !== undefined) return this.loading;
+    const loading: Promise<FlagSnapshot> = this.refresh().finally(() => {
+      if (this.loading === loading) this.loading = undefined;
     });
-    return this.loading;
+    this.loading = loading;
+    return loading;
   }
 
   private async refresh(): Promise<FlagSnapshot> {
     const generation = this.generation;
     const stale = this.cached;
     try {
-      const snapshot = withSeedDefaults(await this.load());
+      const snapshot = withSeedDefaults(await this.load(generation));
       if (generation === this.generation) {
         this.cached = { snapshot, staleAtMs: this.ports.clock.now() + FLAG_SNAPSHOT_TTL_MS };
       }
@@ -97,12 +101,13 @@ export class FeatureFlags {
     }
   }
 
-  private async load(): Promise<FlagSnapshot> {
+  private async load(generation: number): Promise<FlagSnapshot> {
     const shared = await this.ports.cache.read();
     if (shared !== undefined) return shared;
     const snapshot = await this.ports.store.loadSnapshot();
+    // A change since the read began makes this snapshot stale: it must not reach Valkey after the invalidation.
     // A failed write is the cache's own business: it logs, and the next process asks the database again.
-    await this.ports.cache.write(snapshot);
+    if (generation === this.generation) await this.ports.cache.write(snapshot);
     return snapshot;
   }
 }

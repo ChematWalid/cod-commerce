@@ -10,9 +10,6 @@ export const FLAG_REDELETE_DELAY_MS = 500;
 /** A Valkey command that takes longer is treated as a Valkey fault and the database answers instead. */
 export const FLAG_VALKEY_COMMAND_TIMEOUT_MS = 250;
 
-/** How long start-up waits for Valkey to be ready before it carries on without it. */
-export const FLAG_VALKEY_STARTUP_WAIT_MS = 2000;
-
 /** Valkey faults are logged at most this often. */
 export const FLAG_VALKEY_ERROR_LOG_INTERVAL_MS = 30_000;
 
