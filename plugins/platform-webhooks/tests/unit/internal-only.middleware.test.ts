@@ -91,7 +91,10 @@ function harness(
       const done = (): void => {
         resolve();
       };
-      (res.end as ReturnType<typeof vi.fn>).mockImplementation(done);
+      (res.end as ReturnType<typeof vi.fn>).mockImplementation((chunk?: string) => {
+        if (chunk !== undefined) written.push(chunk);
+        done();
+      });
       next.mockImplementation(done);
       middleware(req, res, next);
     });
