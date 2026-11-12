@@ -26,4 +26,14 @@ describe('isMemberInReach', () => {
     // Act and assert
     expect(isMemberInReach({ allStores: false, storeIds: [S1, S2] }, [], true)).toBe(false);
   });
+
+  it('keeps a store-limited actor away from a member with no stores (fails closed)', () => {
+    // Act and assert
+    expect(isMemberInReach({ allStores: false, storeIds: [S1] }, [], false)).toBe(false);
+  });
+
+  it('lets an all-store actor reach a member with no stores', () => {
+    // Act and assert
+    expect(isMemberInReach({ allStores: true, storeIds: [] }, [], false)).toBe(true);
+  });
 });
