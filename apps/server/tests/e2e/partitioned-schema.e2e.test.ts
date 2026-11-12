@@ -58,7 +58,11 @@ function entityColumns(metadata: EntityMetadata): CatalogColumn[] {
 }
 
 /** Entities do not describe database defaults the way `pg_attrdef` does, so the entity comparison leaves them out. */
-const withoutDefault = ({ name, type, notNull }: CatalogColumn): Omit<CatalogColumn, 'default'> => ({ name, type, notNull });
+const withoutDefault = ({ name, type, notNull }: CatalogColumn): Omit<CatalogColumn, 'default'> => ({
+  name,
+  type,
+  notNull,
+});
 
 const sorted = (columns: CatalogColumn[]): CatalogColumn[] => [...columns].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -69,10 +73,13 @@ describe('partitioned schema', () => {
   let app: INestApplicationContext;
   let policies: readonly PartitionPolicy[];
   let metadatas: readonly EntityMetadata[];
+  /** The instant just before the migrate role ran: the partitions it premakes are counted from this date. */
+  let migratedAt: Date;
 
   beforeAll(async () => {
     url = await createDatabase(DATABASE_NAME);
     env = loadEnv({ ...process.env, DATABASE_URL: url, DATABASE_URL_DIRECT: url });
+    migratedAt = new Date();
     await runMigrate(env);
     client = await connectTo(url);
     const worker = await bootstrapWorker(buildVendureConfig(env, 'migrate'));
@@ -151,7 +158,12 @@ describe('partitioned schema', () => {
           await catalogColumns(client, 'public', schema.table),
         );
         expect(await indexes(CHECK_SCHEMA, schema.table), schema.table).toEqual(await indexes('public', schema.table));
-        expect(await triggers(CHECK_SCHEMA, schema.table), schema.table).toEqual(await triggers('public', schema.table));
+        const created = await triggers(CHECK_SCHEMA, schema.table);
+        if (schema.table === 'activity_log') {
+          // The comparison below would also pass if both sides lost the trigger: pin that it is there.
+          expect(created.some((definition) => definition.includes('activity_log_append_only'))).toBe(true);
+        }
+        expect(created, schema.table).toEqual(await triggers('public', schema.table));
       }
     } finally {
       await client.query('SET search_path TO public');
@@ -173,7 +185,7 @@ describe('partitioned schema', () => {
   });
 
   it('has the partitions from today to today + 7 after the migrate role maintained them', async () => {
-    const now = new Date();
+    const now = migratedAt;
     const expected = policies.flatMap((policy) => {
       if (policy.interval === 'month') {
         return [partitionName(policy.table, 'month', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)))];

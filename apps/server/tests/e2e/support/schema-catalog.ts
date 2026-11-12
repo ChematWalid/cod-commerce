@@ -79,8 +79,8 @@ export async function catalogSnapshot(client: Client): Promise<Record<string, un
   };
 }
 
-/** A partition the migrate role premakes for a day: `{table}_pYYYYMMDD`. */
-const DATED_PARTITION = /_p\d{8}$/;
+/** A partition the migrate role premakes: `{table}_pYYYYMMDD` for a day, `{table}_pYYYYMM` for a month. */
+const DATED_PARTITION = /_p\d{6}(\d{2})?$/;
 
 /**
  * The snapshot without the day-named partitions (their rows, indexes and constraints), plus how many partitions

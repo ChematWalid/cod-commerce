@@ -40,4 +40,19 @@ describe('withoutDatedPartitions', () => {
       withoutDatedPartitions(window(['20261113', '20261114'])),
     );
   });
+
+  it('also drops monthly partitions, named _pYYYYMM', () => {
+    const snapshot = {
+      tables: [
+        { name: 'activity_log', parent: null },
+        { name: 'activity_log_p202611', parent: 'activity_log' },
+        { name: 'activity_log_p202612', parent: 'activity_log' },
+      ],
+    };
+
+    const normalised = withoutDatedPartitions(snapshot);
+
+    expect(normalised['tables']).toEqual([{ name: 'activity_log', parent: null }]);
+    expect(normalised['partitionCounts']).toEqual([{ parent: 'activity_log', count: 2 }]);
+  });
 });
