@@ -60,6 +60,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-outbox/infrastructure/outbox-due-scan.ts',
   // The first-use `INSERT … ON CONFLICT ("businessId") DO NOTHING` of a business's data key, with the business taken from the scope; every other read and write in the file goes through TenantRepository (D114).
   '**/plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
+  // Selects the `businessId` of data keys wrapped by a KEK other than the active one, across businesses, to queue their rewrap (D114); the rewrap itself goes through TenantRepository.
+  '**/plugins/platform-secrets/infrastructure/retired-kek-scan.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.

@@ -1,3 +1,4 @@
+export { KekRotationService, type EnqueueStaleResult } from './application/kek-rotation.service';
 export { TenantSecretProviderRegistry, type TenantSecretProvider } from './application/provider-registry';
 export {
   type PutTenantSecretInput,

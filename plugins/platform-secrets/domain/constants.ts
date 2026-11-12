@@ -39,3 +39,12 @@ export const SECRET_AAD_LABEL = 'tenant-secret';
 
 /** The context of the plugin's log lines. */
 export const SECRETS_LOG_CONTEXT = 'PlatformSecrets';
+
+/** The scheduled task that queues the re-wrapping of data keys left on a retired KEK (D114). */
+export const KEK_ROTATION_TASK_ID = 'tenant-secret-kek-rotation';
+
+/** Daily at 03:30 UTC. */
+export const KEK_ROTATION_SCHEDULE = '30 3 * * *';
+
+/** Businesses the scan returns, and the rotation queues, per round trip. */
+export const KEK_SCAN_BATCH_SIZE = 500;

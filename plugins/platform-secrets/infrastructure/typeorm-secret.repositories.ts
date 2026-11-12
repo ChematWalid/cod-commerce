@@ -25,7 +25,7 @@ const INSERT_DATA_KEY_SQL =
   'INSERT INTO "tenant_data_key" ("id", "businessId", "kid", "iv", "wrappedKey", "tag") VALUES ($1, $2, $3, $4, $5, $6) ' +
   'ON CONFLICT ("businessId") DO NOTHING';
 
-const toDataKey = (row: TenantDataKeyEntity): DataKeyRecord => ({
+export const toDataKey = (row: TenantDataKeyEntity): DataKeyRecord => ({
   id: row.id,
   kid: row.kid,
   wrapped: { iv: row.iv, ciphertext: row.wrappedKey, tag: row.tag },

@@ -27,6 +27,7 @@ import {
   TENANT_SECRETS,
   TEST_REDIS_URL,
   testKekRing,
+  testJobsPlugin,
   testRateLimitPlugin,
 } from './secrets-kit';
 
@@ -111,6 +112,7 @@ describe('tenant secrets never leak', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
       PlatformPartitionsPlugin,
+      testJobsPlugin(),
       testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1002 }),
       RbacPlugin,

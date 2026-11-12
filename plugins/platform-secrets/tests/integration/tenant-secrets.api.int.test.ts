@@ -26,6 +26,7 @@ import {
   TENANT_SECRETS,
   TEST_REDIS_URL,
   testKekRing,
+  testJobsPlugin,
   testRateLimitPlugin,
 } from './secrets-kit';
 
@@ -34,6 +35,7 @@ const SNOWFLAKE_ID = /^[1-9][0-9]{0,18}$/;
 describe('tenant secrets Admin API', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
+      testJobsPlugin(),
       testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1000 }),
       RbacPlugin,

@@ -1,3 +1,4 @@
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import type { BuiltInRoleKey, PermissionKey } from '@cod/shared';
 import {
@@ -12,6 +13,10 @@ import { parseKekRing } from '../../infrastructure/kek-ring';
 
 /** Valkey for the tenancy and rate-limit plugins these tests boot with the secrets. */
 export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
+
+/** The job queues the rotation's rewrap jobs run on: the test strategy, no BullMQ pools. */
+export const testJobsPlugin = (): typeof PlatformJobsPlugin =>
+  PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: 'test-platform-secrets' });
 
 /** The rate limiter a test host registers beside tenancy: on the same Valkey, with clients keyed by `req.ip`. */
 export const testRateLimitPlugin = (): typeof RateLimitPlugin =>

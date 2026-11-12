@@ -694,6 +694,9 @@ importers:
 
   plugins/platform-secrets:
     dependencies:
+      '@cod/plugin-platform-jobs':
+        specifier: workspace:*
+        version: link:../platform-jobs
       '@cod/plugin-rbac':
         specifier: workspace:*
         version: link:../rbac

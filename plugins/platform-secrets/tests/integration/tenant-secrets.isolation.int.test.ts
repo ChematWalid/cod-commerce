@@ -28,12 +28,14 @@ import {
   TENANT_SECRETS,
   TEST_REDIS_URL,
   testKekRing,
+  testJobsPlugin,
   testRateLimitPlugin,
 } from './secrets-kit';
 
 describe('tenant secrets isolation between two businesses', () => {
   const { server, adminClient } = createPluginTestEnvironment({
     plugins: [
+      testJobsPlugin(),
       testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1001 }),
       RbacPlugin,
