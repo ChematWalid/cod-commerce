@@ -23,4 +23,19 @@ describe('TeamMemberView', () => {
     expect(view).not.toHaveProperty('businessId');
     expectTypeOf<TeamMemberView>().not.toHaveProperty('tokenHash');
   });
+
+  it('hides the salary unless the caller may see it (D207)', () => {
+    // Arrange
+    const member = invitedMember(scopeA, { baseSalary: 45_000 });
+
+    // Act
+    const byDefault = toTeamMemberView(member);
+    const denied = toTeamMemberView(member, { canSeeSalary: false });
+    const allowed = toTeamMemberView(member, { canSeeSalary: true });
+
+    // Assert
+    expect(byDefault.baseSalary).toBeNull();
+    expect(denied.baseSalary).toBeNull();
+    expect(allowed.baseSalary).toBe(45_000);
+  });
 });

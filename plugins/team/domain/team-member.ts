@@ -39,7 +39,8 @@ export interface TeamMemberView {
   readonly lastName: string | null;
   readonly status: MemberStatus;
   readonly commissionConfigIds: readonly Snowflake[];
-  readonly baseSalary: number;
+  /** Monthly base salary in whole DZD, or `null` for a caller without `team.members.edit` (D207). */
+  readonly baseSalary: number | null;
   readonly maxOpenOrders: number | null;
   readonly receivingOrders: boolean;
   readonly invitedAt: Date | null;
@@ -51,8 +52,17 @@ export function emailKeyOf(email: string): string {
   return normalizeEmail(email);
 }
 
-/** Copies the fields a client may see, field by field, so a new internal field never leaks by default. */
-export function toTeamMemberView(member: TeamMember): TeamMemberView {
+/** What the caller may see beyond the public fields. */
+export interface TeamMemberViewOptions {
+  /** True only for a holder of `team.members.edit` (D207). */
+  readonly canSeeSalary?: boolean;
+}
+
+/**
+ * Copies the fields a client may see, field by field, so a new internal field never leaks by default. The salary is
+ * `null` unless `canSeeSalary` is set (D207): hiding it is the default.
+ */
+export function toTeamMemberView(member: TeamMember, options: TeamMemberViewOptions = {}): TeamMemberView {
   return {
     id: member.id,
     administratorId: member.administratorId,
@@ -61,7 +71,7 @@ export function toTeamMemberView(member: TeamMember): TeamMemberView {
     lastName: member.lastName,
     status: member.status,
     commissionConfigIds: member.commissionConfigIds,
-    baseSalary: member.baseSalary,
+    baseSalary: options.canSeeSalary === true ? member.baseSalary : null,
     maxOpenOrders: member.maxOpenOrders,
     receivingOrders: member.receivingOrders,
     invitedAt: member.invitedAt,
