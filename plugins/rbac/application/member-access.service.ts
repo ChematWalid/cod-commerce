@@ -98,14 +98,15 @@ export class MemberAccessService {
     await this.ports.lock.acquire(ctx, scope.businessId);
     if (!(await this.ports.members.isMember(ctx, scope, command.administratorId))) throw new MemberNotFoundError();
     assertNotSelf(command.actor.administratorId, command.administratorId);
-    if (command.roleIds.length > 0 && (await this.ports.suspension.isSuspended(ctx, scope, command.administratorId))) {
-      throw new MemberSuspendedError();
-    }
     const world = await loadAccessWorld(this.ports, ctx, command);
     const roles = rolesInOrder(command.roleIds, world.roles);
     const access = resolveStoreAccess(command, world.stores);
     const after = this.nextRows(command, roles, access);
     await checkAccessRules(this.ports, ctx, { command, world, after });
+    // After the D60 rules, so only an actor allowed to make the change learns the member is suspended (D211).
+    if (command.roleIds.length > 0 && (await this.ports.suspension.isSuspended(ctx, scope, command.administratorId))) {
+      throw new MemberSuspendedError();
+    }
     if (this.isUnchanged(world.before, after)) return this.viewOf(command.administratorId, after, world.roles);
     await this.write(ctx, command, world, after);
     return this.viewOf(command.administratorId, after, world.roles);

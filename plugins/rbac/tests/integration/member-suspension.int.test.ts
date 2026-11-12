@@ -109,6 +109,26 @@ describe('a suspended member (D204)', () => {
     expect(await accessOf(id)).toEqual(before);
   });
 
+  it('tells an actor who may not change the member about its reach, not its suspension (D211)', async () => {
+    // Arrange
+    const { id } = await member();
+    const limited = await member();
+    await asOwner();
+    const storeTwo = businesses.a.stores[1].id;
+    await set({ administratorId: id, roleIds: [viewerRole], storeAccess: 'selected', storeIds: [storeTwo] });
+    suspended.add(Number(id));
+    await set({ administratorId: limited.id, roleIds: [managerRole], storeAccess: 'selected', storeIds: [storeOne] });
+    await actAsInNewSession(adminClient, limited.credentials, businesses.a.stores[0]);
+
+    // Act
+    const failure = await failureOf(
+      set({ administratorId: id, roleIds: [viewerRole], storeAccess: 'selected', storeIds: [storeOne] }),
+    );
+
+    // Assert
+    expect(failure.codes).toEqual([RBAC_ERROR_CODES.PRIVILEGE_EXCEEDED]);
+  });
+
   it('still lets the owner withdraw every role of a suspended member', async () => {
     // Arrange
     const id = await suspendedViewer();
