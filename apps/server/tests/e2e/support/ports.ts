@@ -17,4 +17,5 @@ export const E2E_PORTS = {
   workerPools: 3060,
   platformQueues: 3061,
   internalOnly: 3062,
+  valkeyLoss: 3063,
 } as const;
