@@ -42,3 +42,6 @@ export const TENANT_LIFECYCLE_REGISTRAR: unique symbol = Symbol('TenancyTenantLi
 
 /** Injection token of the platform domain stores are subdomains of. */
 export const PLATFORM_DOMAIN: unique symbol = Symbol('TenancyPlatformDomain');
+
+/** Injection token of the `MemberAccountPort` adapter. */
+export const MEMBER_ACCOUNTS: unique symbol = Symbol('TenancyMemberAccounts');

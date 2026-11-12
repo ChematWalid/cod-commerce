@@ -14,6 +14,7 @@ import { CheckSubdomainService } from './application/check-subdomain.service';
 import { CreateStoreService } from './application/create-store.service';
 import { GetBusinessService } from './application/get-business.service';
 import { GetStoresService } from './application/get-stores.service';
+import { MemberAccountService } from './application/member-account.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
 import type { StoreAdminPorts } from './application/store-admin-ports';
 import type { TenancyPorts } from './application/tenancy-ports';
@@ -24,6 +25,7 @@ import {
   ASSET_ACCESS,
   CHANNEL_PROVISIONER,
   ID_GENERATOR,
+  MEMBER_ACCOUNTS,
   PLATFORM_DOMAIN,
   PLATFORM_STORE,
   STORE_ADMIN_PORTS,
@@ -39,6 +41,7 @@ import type { AssetAccessPort } from './domain/ports/asset-access.port';
 import { BusinessStoreDirectory } from './domain/ports/business-store-directory.port';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
+import type { MemberAccountPort } from './domain/ports/member-account.port';
 import type { PlatformStorePort } from './domain/ports/platform-store.port';
 import type { TenantLifecycleHook } from './domain/ports/tenant-lifecycle.port';
 import type { StoreHostInvalidatorPort } from './domain/ports/store-host-invalidator.port';
@@ -59,6 +62,7 @@ import { ValkeySnowflakeGenerator } from './infrastructure/valkey-snowflake.gene
 import { SuperadminContextFactory } from './infrastructure/superadmin-context.factory';
 import { VendureAssetAccess } from './infrastructure/vendure-asset-access';
 import { VendureChannelProvisioner } from './infrastructure/vendure-channel-provisioner';
+import { VendureMemberAccounts } from './infrastructure/vendure-member-accounts';
 import { VendureTransaction } from './infrastructure/vendure-transaction';
 
 /** How {@link TenancyPlugin} is configured. */
@@ -189,11 +193,19 @@ const STORE_USE_CASES = [
       useFactory: (ports: TenancyPorts, stores: CreateStoreService) => new ProvisionBusinessService(ports, stores),
       inject: [TENANCY_PORTS, CreateStoreService],
     },
+    { provide: MEMBER_ACCOUNTS, useClass: VendureMemberAccounts },
+    {
+      provide: MemberAccountService,
+      useFactory: (accounts: MemberAccountPort, ports: TenancyPorts) =>
+        new MemberAccountService({ accounts, platform: ports.platform, transaction: ports.transaction }),
+      inject: [MEMBER_ACCOUNTS, TENANCY_PORTS],
+    },
   ],
   exports: [
     BusinessStoreDirectory,
     CreateStoreService,
     ID_GENERATOR,
+    MemberAccountService,
     OrderNumberService,
     ProvisionBusinessService,
     SuperadminContextFactory,
