@@ -12,6 +12,7 @@ import {
   isFlagMutation,
   openFlags,
   overridesToggle,
+  rejectsOnFlagUpdate,
   resetRollout,
   rolloutInput,
   trackFlagUpdates,
@@ -25,7 +26,6 @@ const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1280, height: 800 };
 const ARABIC_TITLE = 'مفاتيح الميزات';
 const ARABIC_LETTER = /[؀-ۿ]/;
-
 const AI = FLAG_KEYS.ai;
 const SEED_KEYS = Object.values(FLAG_KEYS);
 
@@ -146,8 +146,10 @@ describe('platform flags screen', () => {
         await field.fill('40');
         await field.blur();
         await saved;
+        const noSecondSave = rejectsOnFlagUpdate(page);
         await field.press('Enter');
         await field.blur();
+        await noSecondSave;
         expect(sent).toHaveLength(1);
         await page.reload({ waitUntil: 'domcontentloaded' });
         await expect(rolloutInput(page, FLAG_KEYS.intakeSpool).inputValue()).resolves.toBe('40');

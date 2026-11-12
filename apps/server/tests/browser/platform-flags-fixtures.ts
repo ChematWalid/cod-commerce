@@ -1,5 +1,5 @@
 import { FLAG_KEYS } from '@cod/shared';
-import type { Browser, Page } from 'playwright-core';
+import type { Browser, Page, Request } from 'playwright-core';
 import { DASHBOARD_URL } from './dashboard-pages';
 import { loginAsDemoOwner } from './dashboard-session';
 
@@ -68,6 +68,28 @@ export function trackFlagUpdates(page: Page): string[] {
   return sent;
 }
 
+/** How long a second save is waited for before "saved once" is believed. */
+const SECOND_SAVE_SETTLE_MS = 750;
+
+/**
+ * Starts watching for another `updateFeatureFlag` request: settles after a bounded wait when none came, and rejects at
+ * once when one does. Call it before the action that must not send a second request, await it after.
+ */
+export function rejectsOnFlagUpdate(page: Page): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const onRequest = (request: Request): void => {
+      if (request.postData()?.includes('updateFeatureFlag') !== true) return;
+      clearTimeout(timer);
+      page.off('request', onRequest);
+      reject(new Error('A second updateFeatureFlag request was sent'));
+    };
+    const timer = setTimeout(() => {
+      page.off('request', onRequest);
+      resolve();
+    }, SECOND_SAVE_SETTLE_MS);
+    page.on('request', onRequest);
+  });
+}
 
 /** Puts a flag's rollout back to 100 percent, the seeded value. */
 export async function resetRollout(page: Page, key: string): Promise<void> {
