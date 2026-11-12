@@ -28,6 +28,8 @@ import { MemberRowActions, type MemberRowHandlers } from './member-row-actions';
 const WIDE_ONLY = 'hidden md:table-cell';
 const WIDE_ONLY_COLUMNS: ReadonlySet<MemberColumn> = new Set(['roles', 'orders', 'stores', 'joined']);
 const EMPTY_CELL = '—';
+/** A long status ("Invitation expired") wraps inside its badge instead of widening the table past a phone. */
+const WRAPPING_BADGE = 'h-auto whitespace-normal text-center';
 
 const BADGE_OF_TONE: Readonly<Record<StatusView['tone'], 'primary' | 'default' | 'destructive' | 'outline'>> = {
   active: 'primary',
@@ -71,7 +73,11 @@ function SalaryCell({ member }: CellProps): ReactNode {
 function StatusCell({ member }: CellProps): ReactNode {
   const { i18n } = useLingui();
   const status = statusOf(member);
-  return <Badge variant={BADGE_OF_TONE[status.tone]}>{i18n._(status.labelId)}</Badge>;
+  return (
+    <Badge variant={BADGE_OF_TONE[status.tone]} className={WRAPPING_BADGE}>
+      {i18n._(status.labelId)}
+    </Badge>
+  );
 }
 
 function OrdersCell({ member }: CellProps): ReactNode {
