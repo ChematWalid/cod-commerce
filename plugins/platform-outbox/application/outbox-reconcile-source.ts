@@ -54,17 +54,26 @@ export class OutboxReconcileSource {
     private readonly environment: OutboxEnvironment,
   ) {}
 
+  /**
+   * Up to `limit` jobs after `after`. A row naming a consumer unknown here (renamed or removed in a deploy) is skipped
+   * but still moved past, so the scan reads on until the batch is full or the table is spent; a short batch therefore
+   * means the end, as the reconciler takes it.
+   */
   async findDue(now: Date, limit: number, after?: DueDeliveryJob): Promise<readonly DueDeliveryJob[]> {
-    const rows = await this.scan.dueDeliveries(
-      new Date(now.getTime() - OUTBOX_SWEEP_WINDOW_MS),
-      new Date(now.getTime() - OUTBOX_SWEEP_AFTER_MS),
-      limit,
-      after === undefined ? undefined : cursorOf(after),
-    );
+    const since = new Date(now.getTime() - OUTBOX_SWEEP_WINDOW_MS);
+    const touchedBefore = new Date(now.getTime() - OUTBOX_SWEEP_AFTER_MS);
     const jobs: DueDeliveryJob[] = [];
-    for (const row of rows) {
-      const job = this.toJob(row);
-      if (job !== null) jobs.push(job);
+    let cursor: DueDeliveryRow | undefined = after === undefined ? undefined : cursorOf(after);
+    while (jobs.length < limit) {
+      const want = limit - jobs.length;
+      const rows = await this.scan.dueDeliveries(since, touchedBefore, want, cursor);
+      for (const row of rows) {
+        const job = this.toJob(row);
+        if (job !== null) jobs.push(job);
+      }
+      const last = rows[rows.length - 1];
+      if (rows.length < want || last === undefined) break;
+      cursor = last;
     }
     return jobs;
   }

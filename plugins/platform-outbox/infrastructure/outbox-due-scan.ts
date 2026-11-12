@@ -59,17 +59,17 @@ export class PostgresOutboxDueScan implements OutboxDueScanPort {
     limit: number,
     after?: DueDeliveryRow,
   ): Promise<readonly DueDeliveryRow[]> {
-    const cursor = after ?? { stuckSince: new Date(0), createdAt: new Date(0), outboxId: BEFORE_EVERYTHING };
+    const cursor = after ?? { stuckSince: new Date(0), createdAt: new Date(0), outboxId: BEFORE_EVERYTHING, consumer: '' };
     return this.connection.rawConnection.query<DeliveryRowShape[]>(
       `SELECT "createdAt", "outboxId"::text AS "outboxId", "consumer", "businessId"::text AS "businessId",
               "attempts", "nextAttemptAt", COALESCE("enqueuedAt", "updatedAt") AS "stuckSince"
          FROM "outbox_delivery"
         WHERE "status" IN ('pending', 'enqueued') AND "createdAt" >= $1
           AND COALESCE("enqueuedAt", "updatedAt") <= $2
-          AND (COALESCE("enqueuedAt", "updatedAt"), "createdAt", "outboxId") > ($4, $5, $6::bigint)
-        ORDER BY COALESCE("enqueuedAt", "updatedAt"), "createdAt", "outboxId"
+          AND (COALESCE("enqueuedAt", "updatedAt"), "createdAt", "outboxId", "consumer") > ($4, $5, $6::bigint, $7)
+        ORDER BY COALESCE("enqueuedAt", "updatedAt"), "createdAt", "outboxId", "consumer"
         LIMIT $3`,
-      [since, touchedBefore, limit, cursor.stuckSince, cursor.createdAt, cursor.outboxId],
+      [since, touchedBefore, limit, cursor.stuckSince, cursor.createdAt, cursor.outboxId, cursor.consumer],
     );
   }
 
