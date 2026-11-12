@@ -13,13 +13,14 @@ function catalogue(locale: 'en' | 'ar'): (id: string) => string {
   return (id) => entries.get(id) ?? '';
 }
 
-const flag = (key: string, description = 'stored text'): { key: string; description: string } => ({ key, description });
+const seeded = (key: string): string => FLAG_SEEDS.find((seed) => seed.key === key)?.description ?? 'stored text';
+const flag = (key: string, description = seeded(key)): { key: string; description: string } => ({ key, description });
 
 describe('flagDescription', () => {
   it('shows the Arabic catalogue text for ai.enabled on the Arabic page', () => {
     const text = flagDescription(catalogue('ar'), flag('ai.enabled'));
     expect(text).toMatch(/\p{Script=Arabic}/u);
-    expect(text).not.toBe('stored text');
+    expect(text).not.toBe(seeded('ai.enabled'));
   });
 
   it('shows the English catalogue text for ai.enabled on the English page', () => {
@@ -30,11 +31,15 @@ describe('flagDescription', () => {
     expect(flagDescription(catalogue('ar'), flag('future.flag', 'Stored words'))).toBe('Stored words');
   });
 
+  it('shows the stored description once staff have edited a known flag', () => {
+    expect(flagDescription(catalogue('ar'), flag('ai.enabled', 'Edited by staff'))).toBe('Edited by staff');
+  });
+
   it.each(FLAG_SEEDS.map((seed) => seed.key))('has an Arabic and an English text for %s', (key) => {
     for (const locale of ['ar', 'en'] as const) {
       const text = flagDescription(catalogue(locale), flag(key));
       expect(text).not.toBe('');
-      expect(text).not.toBe('stored text');
+      if (locale === 'ar') expect(text).not.toBe(seeded(key));
       expect(text).not.toBe(`flags.description.${key}`);
       if (locale === 'ar') expect(text).toMatch(/\p{Script=Arabic}/u);
     }

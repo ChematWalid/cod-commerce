@@ -240,7 +240,7 @@ describe('platform flags screen', () => {
       expect(widths.scroll).toBeLessThanOrEqual(widths.inner);
     });
 
-    it('renders right to left in Arabic with a translated heading and keys that stay left to right', async () => {
+    it('renders right to left in Arabic with a translated heading and description, keys left to right', async () => {
       await setDisplayLanguage(page, 'ar');
       try {
         await openFlags(page);
@@ -250,7 +250,7 @@ describe('platform flags screen', () => {
         const key = flagRow(page, AI).locator('bdi').first();
         await expect(key.innerText()).resolves.toBe(AI);
         await expect(key.evaluate((element) => getComputedStyle(element).direction)).resolves.toBe('ltr');
-        // The description is staff-edited data and stays as stored; the column headers are ours.
+        await expect(flagRow(page, AI).getByRole('cell').nth(1).innerText()).resolves.toMatch(ARABIC_LETTER);
         const headerText = await page.locator('thead').first().innerText();
         expect(headerText).toMatch(ARABIC_LETTER);
         expect(headerText).not.toMatch(/[A-Za-z]/);
