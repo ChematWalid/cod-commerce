@@ -32,6 +32,7 @@
         "API_PORT",
         "WORKER_HEALTH_PORT",
         "COOKIE_SECRET",
+        "INTERNAL_HMAC_*",
         "AUTH_*",
         "SMTP_*",
         "MAILPIT_*",

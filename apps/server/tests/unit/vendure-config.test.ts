@@ -27,6 +27,7 @@ const valid = {
   REDIS_URL: 'redis://valkey:6379',
   COOKIE_SECRET: 'x'.repeat(32),
   AUTH_TOKEN_SECRET: 'y'.repeat(32),
+  INTERNAL_HMAC_KEYS: `k1:${'z'.repeat(40)}`,
   AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
   SMTP_HOST: 'smtp.example.test',
   SMTP_PORT: '587',

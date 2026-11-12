@@ -5,6 +5,7 @@ import {
   toPostgresFields,
   WORKER_POOLS,
 } from '@cod/shared';
+import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
@@ -96,6 +97,8 @@ const databaseUrl = z
 
 const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRedisUrlError));
 
+const internalKeys = z.string().superRefine(parsedBy(parseInternalKeys, InvalidInternalKeysError));
+
 const baseSchema = z.object({
   APP_ENV: z.enum(APP_ENVS).default('development'),
   ROLE: z.enum(SERVER_ROLES),
@@ -137,6 +140,10 @@ const baseSchema = z.object({
   CLIENT_IP_HEADER: z.string().max(DNS_NAME_MAX_LENGTH).regex(HEADER_NAME, 'must be an HTTP header name').default(''),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
+  // The keys of the internal HMAC between the storefront and the api, `kid:secret[,kid:secret]` (D111): every key
+  // verifies, the active kid signs (the server signs nothing yet, so it is optional here).
+  INTERNAL_HMAC_KEYS: internalKeys,
+  INTERNAL_HMAC_ACTIVE_KID: z.string().optional(),
   ...authEnvShape,
 });
 
@@ -159,6 +166,18 @@ function passwordOf(url: string): string | undefined {
   }
 }
 
+/** The keys of `INTERNAL_HMAC_KEYS`, or none when it is malformed (its own issue reports that). */
+function internalKeysOf(env: BaseEnv): readonly InternalSigningKey[] {
+  try {
+    return parseInternalKeys(env.INTERNAL_HMAC_KEYS);
+  } catch (error) {
+    if (error instanceof InvalidInternalKeysError) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
   return [
     ['COOKIE_SECRET', env.COOKIE_SECRET],
@@ -168,6 +187,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
+    ...internalKeysOf(env).map((key): [string, string] => ['INTERNAL_HMAC_KEYS', key.secret]),
     ...authSecretsOf(env),
   ];
 }
@@ -179,6 +199,20 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
   for (const [name, value] of secretsOf(env)) {
     if (value !== undefined && isPlaceholderSecret(value)) {
       context.addIssue({ code: 'custom', path: [name], message: PLACEHOLDER_MESSAGE });
+    }
+  }
+}
+
+/** An active kid that names no key would sign with nothing, so boot refuses it. */
+function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
+  const keys = internalKeysOf(env);
+  if (env.INTERNAL_HMAC_ACTIVE_KID !== undefined && keys.length > 0) {
+    if (!keys.some((key) => key.kid === env.INTERNAL_HMAC_ACTIVE_KID)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['INTERNAL_HMAC_ACTIVE_KID'],
+        message: 'must be one of the kids in INTERNAL_HMAC_KEYS',
+      });
     }
   }
 }
@@ -211,6 +245,7 @@ const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(requireClientIpHeader)
+  .superRefine(requireKnownActiveKid)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
   })

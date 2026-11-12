@@ -7,6 +7,10 @@
     ".": {
       "@cod/source": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./internal-auth": {
+      "@cod/source": "./src/internal-auth/index.ts",
+      "default": "./dist/internal-auth/index.js"
     }
   },
   "scripts": {
