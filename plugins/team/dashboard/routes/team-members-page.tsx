@@ -14,17 +14,11 @@ import { type ReactNode, useDeferredValue, useState } from 'react';
 import { MembersTable } from '../components/members-table';
 import { MembersPager, MembersToolbar } from '../components/members-toolbar';
 import { TeamDialogs, type TeamDialogState } from '../components/team-dialogs';
-import {
-  INVITE_MEMBERS_KEY,
-  LOADING_MESSAGE_ID,
-  ROLES_TAB_PATH,
-  TEAM_PAGE_TEST_ID,
-  VIEW_ROLES_KEY,
-} from '../constants';
+import { LOADING_MESSAGE_ID, ROLES_TAB_PATH, TEAM_PAGE_TEST_ID, VIEW_ROLES_KEY } from '../constants';
 import type { TeamMemberDto } from '../dto';
 import { errorMessageId } from '../error-messages';
 import { isMemberCommand, needsConfirmation, useMemberCommand } from '../hooks/use-member-commands';
-import type { MemberAction } from '../member-view-model';
+import { canInvite, type MemberAction } from '../member-view-model';
 import { useHeldPermissions, useRoleOptions, useTeamMembers } from '../queries';
 
 const PAGE_ID = 'team-members';
@@ -85,7 +79,7 @@ function TeamActionBar({ held, onInvite }: { readonly held: ReadonlySet<string>;
           </Button>
         </ActionBarItem>
       )}
-      {held.has(INVITE_MEMBERS_KEY) && (
+      {canInvite(held) && (
         <ActionBarItem itemId={INVITE_ACTION_ID}>
           <Button onClick={onInvite}>{i18n._('team.invite-button')}</Button>
         </ActionBarItem>

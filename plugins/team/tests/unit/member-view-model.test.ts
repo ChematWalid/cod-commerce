@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TeamMemberDto } from '../../dashboard/dto';
 import {
+  canInvite,
   canPaySalary,
   columnsFor,
   displayNameOf,
@@ -14,7 +15,8 @@ const VIEW = 'team.members.view';
 const INVITE = 'team.members.invite';
 const EDIT = 'team.members.edit';
 const REMOVE = 'team.members.remove';
-const EVERY_KEY: ReadonlySet<string> = new Set([VIEW, INVITE, EDIT, REMOVE]);
+const VIEW_ROLES = 'team.roles.view';
+const EVERY_KEY: ReadonlySet<string> = new Set([VIEW, INVITE, EDIT, REMOVE, VIEW_ROLES]);
 
 const member = (patch: Partial<TeamMemberDto> = {}): TeamMemberDto => ({
   id: '7000000000000000010',
@@ -106,6 +108,22 @@ describe('member view model', () => {
     expect(menuActionsOf(member(), viewer)).toEqual(['view']);
     expect(menuActionsOf(member({ status: 'invited', tab: 'pending' }), viewer)).toEqual(['view']);
     expect(canPaySalary(member(), viewer)).toBe(false);
+  });
+
+  it('offers no Edit to an editor who cannot read the roles, since the dialog needs them', () => {
+    const editor: ReadonlySet<string> = new Set([VIEW, EDIT]);
+
+    expect(menuActionsOf(member(), editor)).toEqual(['view', 'set-limit', 'stop-receiving', 'deactivate']);
+    expect(menuActionsOf(member(), new Set([VIEW, EDIT, VIEW_ROLES]))).toContain('edit');
+  });
+
+  it('offers Invite only to an inviter who can read the roles, and resend and revoke without them', () => {
+    const inviter: ReadonlySet<string> = new Set([VIEW, INVITE]);
+
+    expect(canInvite(inviter)).toBe(false);
+    expect(canInvite(new Set([INVITE, VIEW_ROLES]))).toBe(true);
+    expect(canInvite(new Set([VIEW_ROLES]))).toBe(false);
+    expect(menuActionsOf(member({ status: 'invited', tab: 'pending' }), inviter)).toEqual(['view', 'resend', 'revoke']);
   });
 
   it('names a member by name, or by address when the invitee has none yet', () => {
