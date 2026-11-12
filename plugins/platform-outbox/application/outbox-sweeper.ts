@@ -1,5 +1,7 @@
+import type { JobPresencePort } from '@cod/plugin-platform-jobs';
 import { DURABLE_JOB_KINDS, durableJobId } from '@cod/shared';
 import {
+  OUTBOX_RELAY_QUEUE,
   OUTBOX_SWEEP_AFTER_MS,
   OUTBOX_SWEEP_BATCH_SIZE,
   OUTBOX_SWEEP_BUDGET_MS,
@@ -16,6 +18,7 @@ export class OutboxSweeper {
   constructor(
     private readonly scan: OutboxDueScanPort,
     private readonly queues: Pick<OutboxQueuesPort, 'enqueueRelay'>,
+    private readonly presence: Pick<JobPresencePort, 'stateOf' | 'remove'>,
     private readonly environment: OutboxEnvironment,
   ) {}
 
@@ -42,8 +45,10 @@ export class OutboxSweeper {
     let done = 0;
     for (const row of rows) {
       try {
+        const jobId = durableJobId(DURABLE_JOB_KINDS.outboxRelay, row.id);
+        await this.clearSettled(jobId, row.id);
         await this.queues.enqueueRelay({
-          jobId: durableJobId(DURABLE_JOB_KINDS.outboxRelay, row.id),
+          jobId,
           outboxId: row.id,
           createdAt: row.createdAt.toISOString(),
           businessId: row.businessId,
@@ -57,5 +62,21 @@ export class OutboxSweeper {
       }
     }
     return done;
+  }
+
+  /**
+   * BullMQ ignores an add whose id it still holds, and keeps failed and completed jobs for days (D105). A pending
+   * row whose relay job settled would be re-queued as a silent no-op every minute, so the job is removed first.
+   */
+  private async clearSettled(jobId: string, outboxId: string): Promise<void> {
+    try {
+      const state = await this.presence.stateOf(OUTBOX_RELAY_QUEUE, jobId);
+      if (state === 'failed' || state === 'completed') await this.presence.remove(OUTBOX_RELAY_QUEUE, jobId);
+    } catch (error: unknown) {
+      // The add goes ahead; a job that stayed behind makes it a no-op, so say so (the message is left out).
+      this.environment.logger.warn(
+        `Sweeper could not clear a settled relay job of outbox event ${outboxId}: ${error instanceof Error ? error.name : typeof error}`,
+      );
+    }
   }
 }

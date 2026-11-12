@@ -4,6 +4,7 @@ import { OutboxSweeper } from '../../application/outbox-sweeper';
 import type { OutboxDueScanPort, OutboxQueuesPort } from '../../application/ports';
 import { OUTBOX_DUE_SCAN } from '../../application/tokens';
 import type { OutboxRelayJobData } from '../../domain/outbox-event';
+import { FakePresence, type PresenceCall } from '../fixtures/fake-presence';
 import { createOutboxTestEnvironment, outboxKit, until } from './outbox-kit';
 
 const SNOWFLAKE_WORKER_ID = 1023;
@@ -108,7 +109,7 @@ describe('outbox sweeper', () => {
       },
     } as unknown as OutboxQueuesPort;
     const scan = server.app.get<OutboxDueScanPort>(OUTBOX_DUE_SCAN);
-    const counting = new OutboxSweeper(scan, recording, {
+    const counting = new OutboxSweeper(scan, recording, new FakePresence([]), {
       clock: { now: () => Date.now() },
       logger: { error: () => undefined, warn: () => undefined },
     });
@@ -122,5 +123,78 @@ describe('outbox sweeper', () => {
     expect(new Set(bulk.map((data) => data.outboxId)).size).toBe(BULK_ROWS);
     expect(bulk[0]?.jobId).toBe(`ob-${bulk[0]?.outboxId ?? ''}`);
     expect(bulk[0]?.businessId).toBe(businesses.a.businessId);
+  });
+
+  describe('a relay job BullMQ still keeps', () => {
+    const KEPT_EVENT_ID = '7100000000000000004';
+    const AFTER_MS = 61 * SECOND_MS;
+    const warnings: string[] = [];
+
+    /** A sweeper over the real scan whose queue and presence record what it does, in order. */
+    function recordingSweeper(presence: FakePresence, calls: PresenceCall[]): OutboxSweeper {
+      const queues = {
+        enqueueRelay: (data: OutboxRelayJobData) => {
+          calls.push(['add', 'outbox-relay', data.jobId]);
+          return Promise.resolve();
+        },
+      } as unknown as OutboxQueuesPort;
+      const scan = server.app.get<OutboxDueScanPort>(OUTBOX_DUE_SCAN);
+      return new OutboxSweeper(scan, queues, presence, {
+        clock: { now: () => Date.now() },
+        logger: { error: () => undefined, warn: (message) => warnings.push(message) },
+      });
+    }
+
+    it.each(['failed', 'completed'] as const)(
+      'removes a %s relay job before it adds the relay again',
+      async (state) => {
+        // Arrange
+        await kit.sql(`DELETE FROM "outbox_event" WHERE "id" = $1`, [KEPT_EVENT_ID]);
+        await insertEvent(KEPT_EVENT_ID, 'pending', T);
+        const calls: PresenceCall[] = [];
+        const presence = new FakePresence(calls);
+        presence.states.set(`ob-${KEPT_EVENT_ID}`, state);
+
+        // Act
+        await recordingSweeper(presence, calls).sweep(new Date(T.getTime() + AFTER_MS));
+
+        // Assert
+        const own = calls.filter(([, , jobId]) => jobId === `ob-${KEPT_EVENT_ID}`);
+        expect(own).toEqual([
+          ['remove', 'outbox-relay', `ob-${KEPT_EVENT_ID}`],
+          ['add', 'outbox-relay', `ob-${KEPT_EVENT_ID}`],
+        ]);
+      },
+    );
+
+    it('leaves a live relay job alone and still adds the relay', async () => {
+      // Arrange
+      const calls: PresenceCall[] = [];
+      const presence = new FakePresence(calls);
+      presence.states.set(`ob-${KEPT_EVENT_ID}`, 'live');
+
+      // Act
+      await recordingSweeper(presence, calls).sweep(new Date(T.getTime() + AFTER_MS));
+
+      // Assert
+      const own = calls.filter(([, , jobId]) => jobId === `ob-${KEPT_EVENT_ID}`);
+      expect(own).toEqual([['add', 'outbox-relay', `ob-${KEPT_EVENT_ID}`]]);
+    });
+
+    it('warns without the error message and adds the relay when the presence cannot be read', async () => {
+      // Arrange
+      const calls: PresenceCall[] = [];
+      const presence = new FakePresence(calls);
+      presence.stateOf = () => Promise.reject(new Error('secret=hunter2'));
+      warnings.length = 0;
+
+      // Act
+      await recordingSweeper(presence, calls).sweep(new Date(T.getTime() + AFTER_MS));
+
+      // Assert
+      expect(calls.some(([action, , jobId]) => action === 'add' && jobId === `ob-${KEPT_EVENT_ID}`)).toBe(true);
+      expect(warnings.some((line) => line.includes(KEPT_EVENT_ID))).toBe(true);
+      expect(warnings.join(' ')).not.toContain('hunter2');
+    });
   });
 });

@@ -1,4 +1,11 @@
-import { JobReconciler, PLATFORM_CLOCK, PlatformJobsPlugin, type PlatformClock } from '@cod/plugin-platform-jobs';
+import {
+  JOB_PRESENCE,
+  JobReconciler,
+  type JobPresencePort,
+  PLATFORM_CLOCK,
+  PlatformJobsPlugin,
+  type PlatformClock,
+} from '@cod/plugin-platform-jobs';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
 import { Inject } from '@nestjs/common';
@@ -119,9 +126,13 @@ const outboxLogger: OutboxLogger = {
     },
     {
       provide: OutboxSweeper,
-      useFactory: (scan: OutboxDueScanPort, queues: OutboxQueuesPort, environment: OutboxEnvironment) =>
-        new OutboxSweeper(scan, queues, environment),
-      inject: [OUTBOX_DUE_SCAN, OUTBOX_QUEUES, OUTBOX_ENVIRONMENT],
+      useFactory: (
+        scan: OutboxDueScanPort,
+        queues: OutboxQueuesPort,
+        presence: JobPresencePort,
+        environment: OutboxEnvironment,
+      ) => new OutboxSweeper(scan, queues, presence, environment),
+      inject: [OUTBOX_DUE_SCAN, OUTBOX_QUEUES, JOB_PRESENCE, OUTBOX_ENVIRONMENT],
     },
     {
       provide: OutboxReconcileSource,
