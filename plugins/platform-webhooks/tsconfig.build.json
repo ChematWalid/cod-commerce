@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "customConditions": []
+  },
+  "include": ["index.ts", "platform-webhooks.plugin.ts", "domain/**/*.ts", "api/**/*.ts"],
+  "exclude": ["dist", "node_modules", "tests", "*.config.ts"]
+}

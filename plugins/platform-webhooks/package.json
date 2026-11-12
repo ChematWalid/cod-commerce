@@ -1,0 +1,29 @@
+{
+  "name": "@cod/plugin-platform-webhooks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The internal-only guard: the Shop API, /store and /_internal answer only requests signed with an internal key (ADR 0008, D111, D112).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner"
+  },
+  "dependencies": {
+    "@cod/shared": "workspace:*",
+    "@vendure/core": "3.8.1"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@types/express": "5.0.6",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

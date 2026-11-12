@@ -5,10 +5,12 @@ import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { PlatformWebhooksPlugin } from '@cod/plugin-platform-webhooks';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
+import { parseInternalKeys } from '@cod/shared/internal-auth';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -51,6 +53,16 @@ const healthPlugin = (env: AppEnv, role: ServerRole): VendurePluginEntry =>
     workerHealthPort: env.WORKER_HEALTH_PORT,
     serveWorkerHealth: role === 'worker',
   });
+
+/** Guards the Shop API, /store and /_internal on every host with the internal signature (D112). */
+const webhooksPlugin = (env: AppEnv): VendurePluginEntry =>
+  PlatformWebhooksPlugin.init({ internalKeys: parseInternalKeys(env.INTERNAL_HMAC_KEYS) });
+
+/** What answers or refuses requests before the rest of the app: the probes and the internal-only guard. */
+const requestPathPlugins = (env: AppEnv, role: ServerRole): VendurePluginEntry[] => [
+  healthPlugin(env, role),
+  webhooksPlugin(env),
+];
 
 /** The OAuth flag: the options stay absent while it is off, and that absence is what switches the feature off (D36). */
 function oauthOptions(env: AppEnv): Pick<AuthPluginOptions, 'oauth'> {
@@ -132,7 +144,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       namespace: `${CACHE_NAMESPACE_PREFIX}:${env.APP_ENV}`,
     }),
     DefaultSchedulerPlugin.init(),
-    healthPlugin(env, role),
+    ...requestPathPlugins(env, role),
     TemplatePlugin,
     // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
