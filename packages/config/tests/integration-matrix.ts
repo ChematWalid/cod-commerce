@@ -14,13 +14,17 @@ export const shardedCommand = (name: string, shard: number): string =>
 /** The command of a package that runs its whole integration suite in one part of its own. */
 export const unshardedCommand = (name: string): string => `pnpm exec turbo run test:integration --filter=${name}`;
 
-/** The command of a part that runs the whole integration suites of several packages, one after the other. */
+/**
+ * The command of a part that runs the whole integration suites of several packages, one after the other:
+ * `--concurrency=1`, because every plugin test server listens on Vendure's one default test port (EADDRINUSE).
+ */
 export const groupedCommand = (names: readonly string[]): string =>
-  `pnpm exec turbo run test:integration ${names.map((name) => `--filter=${name}`).join(' ')}`;
+  `pnpm exec turbo run test:integration --concurrency=1 ${names.map((name) => `--filter=${name}`).join(' ')}`;
 
 const SERVER = '@cod/server';
 const AUTH = '@cod/plugin-auth';
 const RBAC = '@cod/plugin-rbac';
+const TENANCY = '@cod/plugin-tenancy';
 /** The platform plugins of part `platform-1` (D118). */
 const PLATFORM_1 = [
   '@cod/plugin-platform-jobs',
@@ -33,7 +37,7 @@ const PLATFORM_2 = [
   '@cod/plugin-platform-webhooks',
   '@cod/plugin-platform-flags',
 ] as const;
-const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2]
+const othersExclusions = [SERVER, TENANCY, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2]
   .map((name) => `--filter=!${name}`)
   .join(' ');
 
@@ -41,6 +45,8 @@ const othersExclusions = [SERVER, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2]
 export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'others', command: `pnpm test:integration ${othersExclusions}` },
   { part: 'server-e2e', command: unshardedCommand(SERVER) },
+  { part: 'tenancy-1', command: shardedCommand(TENANCY, 1) },
+  { part: 'tenancy-2', command: shardedCommand(TENANCY, 2) },
   { part: 'auth-1', command: shardedCommand(AUTH, 1) },
   { part: 'auth-2', command: shardedCommand(AUTH, 2) },
   { part: 'rbac-1', command: shardedCommand(RBAC, 1) },
