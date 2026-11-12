@@ -8,7 +8,15 @@ import process from 'node:process';
 const [headersFile, bodyFile, outFile] = process.argv.slice(2);
 const e = process.env;
 
-const KEEP = new Set(['content-type', 'cache-control', 'vendure-auth-token', 'set-cookie', 'retry-after', 'location', 'referrer-policy']);
+const KEEP = new Set([
+  'content-type',
+  'cache-control',
+  'vendure-auth-token',
+  'set-cookie',
+  'retry-after',
+  'location',
+  'referrer-policy',
+]);
 
 /** Header value as it may be printed: tokens and cookie values never leave this function. */
 function redactHeader(name, value) {
