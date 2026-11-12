@@ -35,6 +35,19 @@ export class InMemoryInvitationRepository implements InvitationRepositoryPort, I
     return Promise.resolve(latest === undefined ? undefined : withoutHash(latest));
   }
 
+  async latestOfMembers(
+    ctx: OperationContext,
+    scope: TenantScope,
+    memberIds: readonly Snowflake[],
+  ): Promise<ReadonlyMap<Snowflake, Invitation>> {
+    const found = new Map<Snowflake, Invitation>();
+    for (const memberId of memberIds) {
+      const latest = await this.latestOfMember(ctx, scope, memberId);
+      if (latest !== undefined) found.set(memberId, latest);
+    }
+    return found;
+  }
+
   claim(_ctx: OperationContext, scope: TenantScope, tokenHash: string, now: Date): Promise<boolean> {
     const index = this.rows.findIndex(
       (row) =>

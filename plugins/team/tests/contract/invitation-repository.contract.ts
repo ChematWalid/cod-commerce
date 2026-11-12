@@ -164,5 +164,38 @@ export function describeInvitationRepositoryContract(name: string, make: MakeHar
       expect(changed).toBe(true);
       await expect(repo.findById(ctx, scopeA, invitation.id)).resolves.toEqual({ ...asRead(invitation), ...visible });
     });
+    it("gives each named member of the business its latest invitation, never another business's", async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const first = issued(scopeA);
+      const latest = { ...issued(scopeA), memberId: first.memberId, createdAt: new Date(T0.getTime() + 1000) };
+      const other = issued(scopeA);
+      const unnamed = issued(scopeA);
+      const ofB = issued(scopeB);
+      for (const invitation of [first, latest, other, unnamed]) await repo.insert(ctx, scopeA, invitation);
+      await repo.insert(ctx, scopeB, ofB);
+
+      // Act
+      const found = await repo.latestOfMembers(ctx, scopeA, [first.memberId, other.memberId, ofB.memberId]);
+
+      // Assert
+      expect(new Map(found)).toEqual(
+        new Map([
+          [first.memberId, asRead(latest)],
+          [other.memberId, asRead(other)],
+        ]),
+      );
+    });
+
+    it('reads nothing for no member', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+
+      // Act
+      const found = await repo.latestOfMembers(ctx, scopeA, []);
+
+      // Assert
+      expect(found.size).toBe(0);
+    });
   });
 }

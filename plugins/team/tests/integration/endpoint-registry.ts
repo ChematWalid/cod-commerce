@@ -53,6 +53,18 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     document: 'mutation ($id: String!) { revokeInvitation(memberId: $id) }',
     variables: { id: NO_MEMBER },
   },
+  {
+    operation: 'teamMembers',
+    access: 'team.members.view',
+    document: 'query ($input: TeamMembersInput) { teamMembers(input: $input) { total } }',
+    variables: { input: { tab: 'all', page: 1 } },
+  },
+  {
+    operation: 'teamMember',
+    access: 'team.members.view',
+    document: 'query ($id: String!) { teamMember(id: $id) { id } }',
+    variables: { id: NO_MEMBER },
+  },
 ];
 
 /** Every REST route the plugin's controllers declare. */
@@ -71,6 +83,8 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     access: 'team.members.invite',
     url: `/employees/${NO_MEMBER}/revoke-invitation`,
   },
+  { method: 'GET', route: '/employees', access: 'team.members.view', url: '/employees?tab=all&page=1' },
+  { method: 'GET', route: '/employees/:id', access: 'team.members.view', url: `/employees/${NO_MEMBER}` },
   {
     method: 'GET',
     route: '/team/invitations/preview',

@@ -62,6 +62,7 @@ const RUNTIME_EXPORTS = [
   'updateMemberSchema',
   'setLimitSchema',
   'commissionConfigSchema',
+  'listMembersQuerySchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {

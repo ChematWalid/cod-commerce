@@ -16,3 +16,5 @@ export const INVITATION_TOKEN_BYTES = 32;
 export const TOKEN_HASH_HEX_LENGTH = 64;
 /** Businesses the member converge reads per page (tenancy serves at most 500). */
 export const MEMBER_CONVERGE_PAGE_SIZE = 100;
+/** Orders shown for every member until orders exist (P4.S1 counts them). */
+export const ORDER_COUNT_PLACEHOLDER = 0;

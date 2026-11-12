@@ -80,6 +80,11 @@ export class TypeOrmMemberRepository implements MemberRepositoryPort {
     return row === null ? undefined : toMember(row);
   }
 
+  async listLive(ctx: OperationContext, scope: TenantScope): Promise<readonly TeamMember[]> {
+    const rows = await this.rows.find(requestScope(ctx, scope), { where: { removedAt: IsNull() } });
+    return rows.map(toMember);
+  }
+
   async findLiveByEmailKey(
     ctx: OperationContext,
     scope: TenantScope,

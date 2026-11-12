@@ -1,7 +1,7 @@
 import { type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { type Snowflake, type TenantScope, toBusinessId, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
-import { IsNull, MoreThan } from 'typeorm';
+import { In, IsNull, MoreThan } from 'typeorm';
 import type { Invitation, IssuedInvitation } from '../domain/invitation';
 import type { InvitationPatch, InvitationRepositoryPort } from '../domain/ports/invitation-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -65,6 +65,25 @@ export class TypeOrmInvitationRepository implements InvitationRepositoryPort {
       take: 1,
     });
     return row === undefined ? undefined : toInvitation(row);
+  }
+
+  /** One read for every member; the rows come newest first, so the first row seen of a member is its latest. */
+  async latestOfMembers(
+    ctx: OperationContext,
+    scope: TenantScope,
+    memberIds: readonly Snowflake[],
+  ): Promise<ReadonlyMap<Snowflake, Invitation>> {
+    if (memberIds.length === 0) return new Map();
+    const rows = await this.rows.find(requestScope(ctx, scope), {
+      where: { memberId: In([...memberIds]) },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
+    const latest = new Map<Snowflake, Invitation>();
+    for (const row of rows) {
+      const invitation = toInvitation(row);
+      if (!latest.has(invitation.memberId)) latest.set(invitation.memberId, invitation);
+    }
+    return latest;
   }
 
   /** One conditional `UPDATE`: Postgres re-checks the condition after a parallel claim commits, so one wins (D213). */

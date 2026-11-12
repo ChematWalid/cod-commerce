@@ -8,6 +8,9 @@ import { InvitationActions, InvitationUseCases } from './api/invitation-actions'
 import { InvitationsAdminController } from './api/invitations-admin.controller';
 import { InvitationsAdminResolver } from './api/invitations-admin.resolver';
 import { InvitationsController } from './api/invitations.controller';
+import { MemberReadActions } from './api/member-read-actions';
+import { MembersReadController } from './api/members-read.controller';
+import { MembersReadResolver } from './api/members-read.resolver';
 import { NoStoreMiddleware } from './api/no-store';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
 import { TeamRequestActors } from './api/actor-of';
@@ -28,6 +31,7 @@ import { CommissionConfigEntity } from './infrastructure/commission-config.entit
 import { CONVERGE_PROVIDERS } from './infrastructure/converge.providers';
 import { InvitationEntity } from './infrastructure/invitation.entity';
 import { invitationProviders } from './infrastructure/invitation.providers';
+import { MEMBER_READ_PROVIDERS } from './infrastructure/member-read.providers';
 import { SalaryPaymentEntity } from './infrastructure/salary-payment.entity';
 import { Sha256InvitationToken } from './infrastructure/sha256-token';
 import { SnowflakeTeamIdGenerator } from './infrastructure/snowflake-id.generator';
@@ -74,14 +78,16 @@ function requireOptions(): TeamPluginOptions {
     },
     ...CONVERGE_PROVIDERS,
     ...invitationProviders(() => requireOptions().dashboardUrl),
+    ...MEMBER_READ_PROVIDERS,
     InvitationUseCases,
     InvitationActions,
+    MemberReadActions,
     TeamRequestActors,
     TeamThrottle,
     TeamTranslations,
   ],
-  adminApiExtensions: { schema: teamAdminApiSchema, resolvers: [InvitationsAdminResolver] },
-  controllers: [InvitationsController, InvitationsAdminController],
+  adminApiExtensions: { schema: teamAdminApiSchema, resolvers: [InvitationsAdminResolver, MembersReadResolver] },
+  controllers: [InvitationsController, InvitationsAdminController, MembersReadController],
   // The `migrate` role runs the member converge after rbac's (D215).
   exports: [TeamConvergeService],
   compatibility: '^3.8.0',
@@ -91,7 +97,9 @@ export class TeamPlugin implements NestModule {
 
   /** REST refusals are translated; the public invitation routes never cache nor leak their address (D205). */
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RestI18nMiddleware).forRoutes(InvitationsController, InvitationsAdminController);
+    consumer
+      .apply(RestI18nMiddleware)
+      .forRoutes(InvitationsController, InvitationsAdminController, MembersReadController);
     consumer.apply(NoStoreMiddleware).forRoutes(InvitationsController);
   }
 

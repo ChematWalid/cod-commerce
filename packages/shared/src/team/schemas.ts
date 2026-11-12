@@ -15,6 +15,8 @@ import {
   MAX_ROLES_PER_GRANT,
   MAX_STORES_PER_GRANT,
   MEMBER_NAME_MAX_LENGTH,
+  MEMBER_SEARCH_MAX_LENGTH,
+  MEMBER_TABS,
   SALARY_MAX_DZD,
   STORE_ACCESS_KINDS,
   TEAM_EMAIL_LOCALES,
@@ -142,3 +144,18 @@ export const commissionConfigSchema = z
 
 export type CommissionConfigInput = z.input<typeof commissionConfigSchema>;
 export type CommissionConfigCommand = z.output<typeof commissionConfigSchema>;
+
+/**
+ * A page of the members list. The page may come as text (a REST query string); a blank search is no search, and the
+ * search is matched as plain text, never as a pattern.
+ */
+export const listMembersQuerySchema = z
+  .object({
+    tab: z.enum(MEMBER_TABS).default('all'),
+    search: z.string().trim().max(MEMBER_SEARCH_MAX_LENGTH).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+  })
+  .transform(({ search, ...query }) => (search === undefined || search === '' ? query : { ...query, search }));
+
+export type ListMembersQueryInput = z.input<typeof listMembersQuerySchema>;
+export type ListMembersQuery = z.output<typeof listMembersQuerySchema>;

@@ -33,6 +33,10 @@ export class InMemoryMemberRepository implements MemberRepositoryPort {
     return Promise.resolve(this.find(scope, (row) => row.id === id));
   }
 
+  listLive(_ctx: OperationContext, scope: TenantScope): Promise<readonly TeamMember[]> {
+    return Promise.resolve(this.rows.filter((row) => row.businessId === scope.businessId && row.removedAt === null));
+  }
+
   findLiveByEmailKey(_ctx: OperationContext, scope: TenantScope, emailKey: string): Promise<TeamMember | undefined> {
     return Promise.resolve(this.find(scope, (row) => row.removedAt === null && row.emailKey === emailKey));
   }

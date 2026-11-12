@@ -57,3 +57,9 @@ export const INVITATION_LINK_BASE: unique symbol = Symbol('TeamInvitationLinkBas
 
 /** Injection token of the {@link TeamInvitationPorts} bundle. */
 export const INVITATION_PORTS: unique symbol = Symbol('TeamInvitationPorts');
+
+/** Injection token of the `MemberDirectoryPort` adapter. */
+export const MEMBER_DIRECTORY: unique symbol = Symbol('TeamMemberDirectory');
+
+/** Injection token of the {@link MemberReadPorts} bundle. */
+export const MEMBER_READ_PORTS: unique symbol = Symbol('TeamMemberReadPorts');

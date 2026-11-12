@@ -16,6 +16,9 @@ export interface MemberRepositoryPort {
   /** The member `id`, removed ones included, or `undefined`. */
   findById(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<TeamMember | undefined>;
 
+  /** Every live (not removed) member of the business, in no particular order. */
+  listLive(ctx: OperationContext, scope: TenantScope): Promise<readonly TeamMember[]>;
+
   /** The live (not removed) member with that email key, or `undefined`. */
   findLiveByEmailKey(ctx: OperationContext, scope: TenantScope, emailKey: string): Promise<TeamMember | undefined>;
 

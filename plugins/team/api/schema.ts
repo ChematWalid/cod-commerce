@@ -34,6 +34,67 @@ export const teamAdminApiSchema = gql`
     joinedAt: DateTime
   }
 
+  enum TeamMemberTab {
+    all
+    active
+    pending
+    inactive
+  }
+
+  type TeamMemberRole {
+    id: String!
+    name: String!
+  }
+
+  "A member as the members list and the member page show it."
+  type TeamMemberDetails {
+    id: String!
+    administratorId: String
+    email: String!
+    name: String
+    firstName: String
+    lastName: String
+    status: TeamMemberStatus!
+    tab: TeamMemberTab!
+    "An invited member whose link ran out: still pending, so it can be resent or revoked."
+    invitationExpired: Boolean!
+    roles: [TeamMemberRole!]!
+    storeAccess: TeamStoreAccess!
+    storeIds: [String!]!
+    storeNames: [String!]!
+    commissionConfigIds: [String!]!
+    "Whole DZD; null for a caller without team.members.edit (D207)."
+    baseSalary: Int
+    "Always 0 until orders exist."
+    ordersCount: Int!
+    maxOpenOrders: Int
+    receivingOrders: Boolean!
+    invitedAt: DateTime
+    joinedAt: DateTime
+  }
+
+  type TeamMemberCounts {
+    all: Int!
+    active: Int!
+    pending: Int!
+    inactive: Int!
+  }
+
+  type TeamMemberPage {
+    items: [TeamMemberDetails!]!
+    "Members of each tab under the same search."
+    counts: TeamMemberCounts!
+    "Members of the requested tab, all pages together."
+    total: Int!
+  }
+
+  input TeamMembersInput {
+    tab: TeamMemberTab
+    search: String
+    "Counts from 1."
+    page: Int
+  }
+
   input InviteMemberInput {
     email: String!
     roleIds: [String!]!
@@ -42,6 +103,13 @@ export const teamAdminApiSchema = gql`
     baseSalary: Int!
     commissionConfigIds: [String!]
     locale: TeamEmailLocale
+  }
+
+  extend type Query {
+    "A page of the members the caller reaches (D211), newest first."
+    teamMembers(input: TeamMembersInput): TeamMemberPage!
+    "One member the caller reaches."
+    teamMember(id: String!): TeamMemberDetails!
   }
 
   extend type Mutation {

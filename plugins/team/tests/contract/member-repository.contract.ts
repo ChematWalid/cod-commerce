@@ -121,5 +121,23 @@ export function describeMemberRepositoryContract(name: string, make: MakeHarness
         joinedAt,
       });
     });
+    it("lists the business's live members only: no removed member, none of another business", async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const live = invitedMember(scopeA);
+      const active = invitedMember(scopeA, { status: 'active', administratorId: 45 });
+      await repo.insert(ctx, scopeA, live);
+      await repo.insert(ctx, scopeA, active);
+      await repo.insert(ctx, scopeA, invitedMember(scopeA, { removedAt: T0 }));
+      await repo.insert(ctx, scopeB, invitedMember(scopeB));
+
+      // Act
+      const listed = await repo.listLive(ctx, scopeA);
+
+      // Assert
+      expect([...listed].sort((left, right) => left.id.localeCompare(right.id))).toEqual(
+        [live, active].sort((left, right) => left.id.localeCompare(right.id)),
+      );
+    });
   });
 }

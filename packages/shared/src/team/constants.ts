@@ -52,6 +52,8 @@ export const MEMBER_STATUSES = ['invited', 'active', 'inactive'] as const;
 export const MEMBER_TABS = ['all', 'active', 'pending', 'inactive'] as const;
 /** Rows per page of the members list. */
 export const MEMBERS_PAGE_SIZE = 25;
+/** Longest search text of the members list. */
+export const MEMBER_SEARCH_MAX_LENGTH = 100;
 
 /** One of the {@link COMMISSION_BASES}. */
 export type CommissionBasis = (typeof COMMISSION_BASES)[number];

@@ -87,3 +87,67 @@ export interface ActivityItem {
   readonly diff: Readonly<Record<string, unknown>>;
   readonly storeId: string | null;
 }
+
+const DETAILS_FIELDS = `
+  id
+  administratorId
+  email
+  name
+  status
+  tab
+  invitationExpired
+  roles {
+    id
+    name
+  }
+  storeAccess
+  storeIds
+  storeNames
+  baseSalary
+  ordersCount
+`;
+
+export const TEAM_MEMBERS = gql`
+  query ($input: TeamMembersInput) {
+    teamMembers(input: $input) {
+      items { ${DETAILS_FIELDS} }
+      counts {
+        all
+        active
+        pending
+        inactive
+      }
+      total
+    }
+  }
+`;
+
+export const TEAM_MEMBER = gql`
+  query ($id: String!) {
+    teamMember(id: $id) { ${DETAILS_FIELDS} }
+  }
+`;
+
+/** A member as the members list answers it. */
+export interface MemberDetailsAnswer {
+  readonly id: string;
+  readonly administratorId: string | null;
+  readonly email: string;
+  readonly name: string | null;
+  readonly status: string;
+  readonly tab: string;
+  readonly invitationExpired: boolean;
+  readonly roles: readonly { readonly id: string; readonly name: string }[];
+  readonly storeAccess: 'all' | 'selected';
+  readonly storeIds: readonly string[];
+  readonly storeNames: readonly string[];
+  readonly baseSalary: number | null;
+  readonly ordersCount: number;
+}
+
+/** One page of the members list as the API answers it. */
+export interface MemberPageAnswer {
+  readonly items: readonly MemberDetailsAnswer[];
+  readonly counts: Readonly<Record<'all' | 'active' | 'pending' | 'inactive', number>>;
+  readonly total: number;
+}

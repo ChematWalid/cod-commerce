@@ -21,6 +21,13 @@ export interface InvitationRepositoryPort {
   /** The member's most recent invitation, or `undefined`. */
   latestOfMember(ctx: OperationContext, scope: TenantScope, memberId: Snowflake): Promise<Invitation | undefined>;
 
+  /** The most recent invitation of each of these members that has one, by member id; one read for all of them. */
+  latestOfMembers(
+    ctx: OperationContext,
+    scope: TenantScope,
+    memberIds: readonly Snowflake[],
+  ): Promise<ReadonlyMap<Snowflake, Invitation>>;
+
   /**
    * Accepts the open invitation with that token hash at `now`, in one conditional write (D213): `false` when no
    * invitation of the business with that hash is open, so of two parallel accepts only one gets `true`.

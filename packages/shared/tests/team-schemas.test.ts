@@ -5,6 +5,8 @@ import {
   COMMISSION_PERCENT_MAX_BPS,
   IDEMPOTENCY_KEY_MAX_LENGTH,
   inviteMemberSchema,
+  listMembersQuerySchema,
+  MEMBER_SEARCH_MAX_LENGTH,
   MAX_COMMISSIONS_PER_MEMBER,
   MAX_OPEN_ORDERS_LIMIT,
   MAX_ROLES_PER_GRANT,
@@ -197,5 +199,45 @@ describe('commissionConfigSchema', () => {
   it('accepts 100% in basis points', () => {
     const percent = { ...config, valueKind: 'percent', value: COMMISSION_PERCENT_MAX_BPS };
     expect(commissionConfigSchema.safeParse(percent).success).toBe(true);
+  });
+});
+
+describe('listMembersQuerySchema', () => {
+  it('reads the first page of every member when nothing is asked', () => {
+    // Act
+    const parsed = listMembersQuerySchema.parse({});
+
+    // Assert
+    expect(parsed).toEqual({ tab: 'all', page: 1 });
+  });
+
+  it('reads a REST query string: the page as text, the search trimmed', () => {
+    // Act
+    const parsed = listMembersQuerySchema.parse({ tab: 'pending', search: '  Amina ', page: '2' });
+
+    // Assert
+    expect(parsed).toEqual({ tab: 'pending', search: 'Amina', page: 2 });
+  });
+
+  it('drops a blank search', () => {
+    // Act
+    const parsed = listMembersQuerySchema.parse({ search: '   ' });
+
+    // Assert
+    expect(parsed).toEqual({ tab: 'all', page: 1 });
+  });
+
+  it.each([
+    ['an unknown tab', { tab: 'removed' }],
+    ['page 0', { page: 0 }],
+    ['a fractional page', { page: '1.5' }],
+    ['a page that is not a number', { page: 'two' }],
+    ['a search too long', { search: 'x'.repeat(MEMBER_SEARCH_MAX_LENGTH + 1) }],
+  ])('refuses %s', (_case, query) => {
+    // Act
+    const parsed = listMembersQuerySchema.safeParse(query);
+
+    // Assert
+    expect(parsed.success).toBe(false);
   });
 });
