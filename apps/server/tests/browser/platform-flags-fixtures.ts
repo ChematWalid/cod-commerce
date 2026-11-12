@@ -58,3 +58,18 @@ export async function demoBusinessId(browser: Browser): Promise<string> {
     await context.close();
   }
 }
+
+/** The bodies of the `updateFeatureFlag` requests the page sends from now on. */
+export function trackFlagUpdates(page: Page): string[] {
+  const sent: string[] = [];
+  page.on('request', (request) => {
+    if (request.postData()?.includes('updateFeatureFlag')) sent.push(request.postData() ?? '');
+  });
+  return sent;
+}
+
+
+/** Puts a flag's rollout back to 100 percent, the seeded value. */
+export async function resetRollout(page: Page, key: string): Promise<void> {
+  await adminApi(page, `mutation { updateFeatureFlag(input: { key: "${key}", rolloutPercent: 100 }) { key } }`);
+}

@@ -12,7 +12,9 @@ import {
   isFlagMutation,
   openFlags,
   overridesToggle,
+  resetRollout,
   rolloutInput,
+  trackFlagUpdates,
 } from './platform-flags-fixtures';
 
 const FLAGS_LINK = 'a[href$="/platform/flags"]';
@@ -131,19 +133,32 @@ describe('platform flags screen', () => {
 
         await expect(rolloutInput(page, FLAG_KEYS.capi).inputValue()).resolves.toBe('30');
       } finally {
-        await adminApi(
-          page,
-          `mutation { updateFeatureFlag(input: { key: "${FLAG_KEYS.capi}", rolloutPercent: 100 }) { key } }`,
-        );
+        await resetRollout(page, FLAG_KEYS.capi);
       }
     });
 
-    it('saves a rollout on blur and refuses a value outside 0 to 100 without calling the server', async () => {
+    it('saves a rollout on blur, once, and keeps it across a reload', async () => {
       await openFlags(page);
-      const sent: string[] = [];
-      page.on('request', (request) => {
-        if (request.postData()?.includes('updateFeatureFlag')) sent.push(request.postData() ?? '');
-      });
+      const sent = trackFlagUpdates(page);
+      try {
+        const saved = page.waitForResponse(isFlagMutation('updateFeatureFlag'));
+        const field = rolloutInput(page, FLAG_KEYS.intakeSpool);
+        await field.fill('40');
+        await field.blur();
+        await saved;
+        await field.press('Enter');
+        await field.blur();
+        expect(sent).toHaveLength(1);
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await expect(rolloutInput(page, FLAG_KEYS.intakeSpool).inputValue()).resolves.toBe('40');
+      } finally {
+        await resetRollout(page, FLAG_KEYS.intakeSpool);
+      }
+    });
+
+    it('refuses a rollout outside 0 to 100 on blur without calling the server', async () => {
+      await openFlags(page);
+      const sent = trackFlagUpdates(page);
       const field = rolloutInput(page, FLAG_KEYS.intakeSpool);
 
       await field.fill('150');
