@@ -44,3 +44,19 @@ export const ACTIVITY_ACTIONS = {
 
 /** One of the {@link ACTIVITY_ACTIONS} values. */
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[keyof typeof ACTIVITY_ACTIONS];
+
+/**
+ * Actions whose rows carry no store and describe a team member or commission (D217). rbac's activity query shows
+ * them only to viewers with all-store access, so a store-limited viewer never learns of members outside its reach
+ * (D211).
+ */
+export const ALL_STORES_ONLY_ACTIVITY_ACTIONS: readonly ActivityAction[] = Object.values(ACTIVITY_ACTIONS).filter(
+  (action) => action.startsWith('team.'),
+);
+
+const ALL_STORES_ONLY_SET: ReadonlySet<string> = new Set(ALL_STORES_ONLY_ACTIVITY_ACTIONS);
+
+/** Whether rows of `action` are shown only to viewers with all-store access (D217). */
+export function isAllStoresOnlyActivityAction(action: string): boolean {
+  return ALL_STORES_ONLY_SET.has(action);
+}
