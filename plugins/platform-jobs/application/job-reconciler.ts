@@ -29,8 +29,9 @@ interface BatchOutcome {
 /**
  * Makes sure every durable row that is not over has a job that will run it (D105). It asks BullMQ per row: no job
  * (lost with Valkey) is added at once; a settled job BullMQ still keeps would make an add with the same id a no-op, so
- * it is removed first; a live job is left alone until it is past its SLA, a delayed one (waiting out its backoff) until its own due time plus the SLA is past. A row that used all its attempts and is past
- * due ends as failed instead of looping.
+ * it is removed first; a live job is left alone until it is past its SLA, a delayed one (waiting out its backoff)
+ * until its own due time plus the SLA is past. A row that used all its attempts and is past due ends as failed
+ * instead of looping.
  */
 export class JobReconciler {
   private readonly sources: ReconcileSource[] = [];
