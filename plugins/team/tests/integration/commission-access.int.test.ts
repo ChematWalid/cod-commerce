@@ -148,11 +148,11 @@ describe('the activity of commission configs (D216)', () => {
       'team.commission.deleted',
       'team.commission.updated',
     ]);
-    const diffs = rows.map((row) => teamCommissionActivityDiffSchema.parse(row.diff));
-    expect(diffs.find((diff) => diff.changedFields.length === 1)?.changedFields).toEqual(['value']);
+    const entries = rows.map((row) => ({ row, diff: teamCommissionActivityDiffSchema.parse(row.diff) }));
+    expect(entries.find(({ diff }) => diff.changedFields.length === 1)?.diff.changedFields).toEqual(['value']);
     expect(rows.filter((row) => 'value' in row.diff)).toEqual([]);
     // Ids and timestamps are long digit runs, so only a standalone number counts as a leaked value.
-    const readable = rows.flatMap((row, index) => [row.summary, diffs[index].name]).join('\n');
+    const readable = entries.flatMap(({ row, diff }) => [row.summary, diff.name]).join('\n');
     for (const value of [FIRST_VALUE, SECOND_VALUE]) {
       expect(readable).not.toMatch(new RegExp(`(?<!\\d)${String(value)}(?!\\d)`));
     }
