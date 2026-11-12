@@ -44,3 +44,26 @@ export function createSalaryPayment(input: NewSalaryPaymentInput): SalaryPayment
     paidAt: input.now,
   };
 }
+
+/** A payment as the API answers it: no business id, nothing of the member beyond its id. */
+export interface SalaryPaymentView {
+  readonly id: Snowflake;
+  readonly memberId: Snowflake;
+  /** Whole DZD (ADR 0004). */
+  readonly amount: number;
+  readonly idempotencyKey: string;
+  readonly paidByAdministratorId: number;
+  readonly paidAt: Date;
+}
+
+/** Copies the fields a client may see, field by field. */
+export function toSalaryPaymentView(payment: SalaryPayment): SalaryPaymentView {
+  return {
+    id: payment.id,
+    memberId: payment.memberId,
+    amount: payment.amount,
+    idempotencyKey: payment.idempotencyKey,
+    paidByAdministratorId: payment.paidByAdministratorId,
+    paidAt: payment.paidAt,
+  };
+}

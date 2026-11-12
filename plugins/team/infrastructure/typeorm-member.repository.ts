@@ -1,4 +1,4 @@
-import { type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
+import { type TenantRepository, TenantRepositoryFactory, tenantQuery } from '@cod/plugin-tenancy';
 import { type Snowflake, type TenantScope, toBusinessId, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { IsNull } from 'typeorm';
@@ -77,6 +77,14 @@ export class TypeOrmMemberRepository implements MemberRepositoryPort {
 
   async findById(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<TeamMember | undefined> {
     const row = await this.rows.findOne(requestScope(ctx, scope), { id });
+    return row === null ? undefined : toMember(row);
+  }
+
+  async findForUpdate(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<TeamMember | undefined> {
+    const row = await tenantQuery(requestScope(ctx, scope), this.rows, 'member')
+      .andWhere('member.id = :id', { id })
+      .setLock('pessimistic_write')
+      .getOne();
     return row === null ? undefined : toMember(row);
   }
 

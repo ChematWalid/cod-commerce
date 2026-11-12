@@ -63,3 +63,12 @@ export const MEMBER_DIRECTORY: unique symbol = Symbol('TeamMemberDirectory');
 
 /** Injection token of the {@link MemberReadPorts} bundle. */
 export const MEMBER_READ_PORTS: unique symbol = Symbol('TeamMemberReadPorts');
+
+/** Injection token of the `BusinessOwnerPort` adapter. */
+export const BUSINESS_OWNER: unique symbol = Symbol('TeamBusinessOwner');
+
+/** Injection token of the `SalaryPaidPublisherPort` adapter. */
+export const SALARY_PAID_PUBLISHER: unique symbol = Symbol('TeamSalaryPaidPublisher');
+
+/** Injection token of the {@link MemberActionPorts} bundle. */
+export const MEMBER_ACTION_PORTS: unique symbol = Symbol('TeamMemberActionPorts');

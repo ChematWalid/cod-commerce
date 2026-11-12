@@ -3,7 +3,7 @@ import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
-import { RequestContextService, TransactionalConnection } from '@vendure/core';
+import { type RequestContext, RequestContextService, TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
 import { CommissionConfigEntity } from '../../infrastructure/commission-config.entity';
@@ -37,11 +37,13 @@ const { server } = createPluginTestEnvironment({
   db: loadPluginTestDbConfig(process.env),
 });
 
+let requestContext: RequestContext;
 let ctx: OperationContext;
 
 beforeAll(async () => {
   await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
-  ctx = asOperationContext(await server.app.get(RequestContextService).create({ apiType: 'admin' }));
+  requestContext = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+  ctx = asOperationContext(requestContext);
 });
 
 afterAll(async () => {
@@ -58,7 +60,13 @@ function harness<R>(
 ): () => Promise<RepositoryHarness<R>> {
   return async () => {
     await server.app.get(TransactionalConnection).rawConnection.getRepository(entity).clear();
-    return { repo: build(server.app.get(TenantRepositoryFactory)), ctx };
+    const connection = server.app.get(TransactionalConnection);
+    return {
+      repo: build(server.app.get(TenantRepositoryFactory)),
+      ctx,
+      inTransaction: (work) =>
+        connection.withTransaction(requestContext, (transactional) => work(asOperationContext(transactional))),
+    };
   };
 }
 

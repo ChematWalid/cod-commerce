@@ -5,7 +5,7 @@ import {
   MemberAccessService,
   type MemberSuspensionRegistry,
 } from '@cod/plugin-rbac/member-access';
-import { toSnowflake } from '@cod/shared';
+import { type TenantScope, toSnowflake } from '@cod/shared';
 import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { TeamSuspensionCheck } from '../application/member-suspension';
 import { MEMBER_REPOSITORY } from '../application/tokens';
@@ -49,6 +49,16 @@ export class RbacMemberAccessAdapter implements MemberAccessPort, OnApplicationB
 
   flush(administratorIds: readonly number[]): Promise<void> {
     return this.access.flushSessionsOf(administratorIds);
+  }
+
+  async accessOf(ctx: OperationContext, scope: TenantScope, administratorId: number): Promise<MemberGrant | undefined> {
+    const view = await this.access.getAccess(rbacContextOf(ctx), scope, administratorId);
+    if (view === undefined) return undefined;
+    return {
+      roleIds: view.roles.map((role) => toSnowflake(role.id)),
+      storeAccess: view.storeAccess,
+      storeIds: view.storeIds.map(toSnowflake),
+    };
   }
 
   async reachOf(ctx: OperationContext, actor: Pick<TeamActor, 'administratorId' | 'scope'>): Promise<ActorReachView> {

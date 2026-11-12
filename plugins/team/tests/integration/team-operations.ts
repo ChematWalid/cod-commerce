@@ -151,3 +151,65 @@ export interface MemberPageAnswer {
   readonly counts: Readonly<Record<'all' | 'active' | 'pending' | 'inactive', number>>;
   readonly total: number;
 }
+
+export const UPDATE_TEAM_MEMBER = gql`
+  mutation ($id: String!, $input: UpdateTeamMemberInput!) {
+    updateTeamMember(id: $id, input: $input) { ${MEMBER_FIELDS} }
+  }
+`;
+
+export const DEACTIVATE_TEAM_MEMBER = gql`
+  mutation ($id: String!) {
+    deactivateTeamMember(id: $id) { ${MEMBER_FIELDS} }
+  }
+`;
+
+export const PAY_TEAM_MEMBER = gql`
+  mutation ($id: String!, $idempotencyKey: String!) {
+    payTeamMember(id: $id, idempotencyKey: $idempotencyKey) {
+      id
+      memberId
+      amount
+      idempotencyKey
+      paidAt
+    }
+  }
+`;
+
+export const TEAM_ORDER_MANAGERS = gql`
+  query {
+    teamOrderManagers {
+      id
+      name
+      maxOpenOrders
+      storeAccess
+      storeIds
+    }
+  }
+`;
+
+/** rbac's own access mutation, which must not undo a deactivation sideways (D204). */
+export const SET_MEMBER_ACCESS = gql`
+  mutation ($input: SetMemberAccessInput!) {
+    setMemberAccess(input: $input) {
+      administratorId
+    }
+  }
+`;
+
+export const DELETE_BUSINESS_ROLE = gql`
+  mutation ($id: String!) {
+    deleteBusinessRole(id: $id) {
+      success
+    }
+  }
+`;
+
+/** A salary payment as the API answers it. */
+export interface PaymentAnswer {
+  readonly id: string;
+  readonly memberId: string;
+  readonly amount: number;
+  readonly idempotencyKey: string;
+  readonly paidAt: string;
+}

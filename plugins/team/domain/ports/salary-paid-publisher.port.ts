@@ -4,5 +4,6 @@ import type { OperationContext } from './operation-context';
 
 /** Announces a booked salary payment once, for the ledger (P6.S4) to record. */
 export interface SalaryPaidPublisherPort {
-  publish(ctx: OperationContext, scope: TenantScope, payment: SalaryPayment): Promise<void>;
+  /** Announces `payment` to the member holding the administrator account `administratorId`, once committed. */
+  publish(ctx: OperationContext, scope: TenantScope, payment: SalaryPayment, administratorId: number): Promise<void>;
 }

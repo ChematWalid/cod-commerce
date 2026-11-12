@@ -33,6 +33,10 @@ export class InMemoryMemberRepository implements MemberRepositoryPort {
     return Promise.resolve(this.find(scope, (row) => row.id === id));
   }
 
+  findForUpdate(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<TeamMember | undefined> {
+    return this.findById(ctx, scope, id);
+  }
+
   listLive(_ctx: OperationContext, scope: TenantScope): Promise<readonly TeamMember[]> {
     return Promise.resolve(this.rows.filter((row) => row.businessId === scope.businessId && row.removedAt === null));
   }

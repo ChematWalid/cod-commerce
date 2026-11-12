@@ -2,7 +2,7 @@ import type { PermissionKey } from '@cod/shared';
 
 /**
  * What a handler demands: one catalog permission, or nobody (the two invitation routes the invitee calls with a
- * token, D205). Task 16 completes this registry with the list, member, salary and commission handlers.
+ * token, D205). Task 16 completes this registry with the commission handlers.
  */
 export type Access = 'public' | PermissionKey;
 
@@ -65,6 +65,55 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     document: 'query ($id: String!) { teamMember(id: $id) { id } }',
     variables: { id: NO_MEMBER },
   },
+  {
+    operation: 'teamOrderManagers',
+    access: 'team.members.view',
+    document: 'query { teamOrderManagers { id } }',
+    variables: {},
+  },
+  {
+    operation: 'updateTeamMember',
+    access: 'team.members.edit',
+    document:
+      'mutation ($id: String!, $input: UpdateTeamMemberInput!) { updateTeamMember(id: $id, input: $input) { id } }',
+    variables: { id: NO_MEMBER, input: { baseSalary: 0 } },
+  },
+  {
+    operation: 'setTeamMemberLimit',
+    access: 'team.members.edit',
+    document: 'mutation ($id: String!) { setTeamMemberLimit(id: $id, maxOpenOrders: 5) { id } }',
+    variables: { id: NO_MEMBER },
+  },
+  {
+    operation: 'setTeamMemberReceiving',
+    access: 'team.members.edit',
+    document: 'mutation ($id: String!) { setTeamMemberReceiving(id: $id, receivingOrders: false) { id } }',
+    variables: { id: NO_MEMBER },
+  },
+  {
+    operation: 'deactivateTeamMember',
+    access: 'team.members.edit',
+    document: 'mutation ($id: String!) { deactivateTeamMember(id: $id) { id } }',
+    variables: { id: NO_MEMBER },
+  },
+  {
+    operation: 'reactivateTeamMember',
+    access: 'team.members.edit',
+    document: 'mutation ($id: String!) { reactivateTeamMember(id: $id) { id } }',
+    variables: { id: NO_MEMBER },
+  },
+  {
+    operation: 'removeTeamMember',
+    access: 'team.members.remove',
+    document: 'mutation ($id: String!) { removeTeamMember(id: $id) }',
+    variables: { id: NO_MEMBER },
+  },
+  {
+    operation: 'payTeamMember',
+    access: 'team.members.edit',
+    document: 'mutation ($id: String!) { payTeamMember(id: $id, idempotencyKey: "synthetic-key") { id } }',
+    variables: { id: NO_MEMBER },
+  },
 ];
 
 /** Every REST route the plugin's controllers declare. */
@@ -85,6 +134,53 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
   },
   { method: 'GET', route: '/employees', access: 'team.members.view', url: '/employees?tab=all&page=1' },
   { method: 'GET', route: '/employees/:id', access: 'team.members.view', url: `/employees/${NO_MEMBER}` },
+  {
+    method: 'GET',
+    route: '/employees/order-managers',
+    access: 'team.members.view',
+    url: '/employees/order-managers',
+  },
+  {
+    method: 'PATCH',
+    route: '/employees/:id',
+    access: 'team.members.edit',
+    url: `/employees/${NO_MEMBER}`,
+    body: { baseSalary: 0 },
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/limit',
+    access: 'team.members.edit',
+    url: `/employees/${NO_MEMBER}/limit`,
+    body: { maxOpenOrders: 5 },
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/receiving',
+    access: 'team.members.edit',
+    url: `/employees/${NO_MEMBER}/receiving`,
+    body: { receivingOrders: false },
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/deactivate',
+    access: 'team.members.edit',
+    url: `/employees/${NO_MEMBER}/deactivate`,
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/reactivate',
+    access: 'team.members.edit',
+    url: `/employees/${NO_MEMBER}/reactivate`,
+  },
+  { method: 'DELETE', route: '/employees/:id', access: 'team.members.remove', url: `/employees/${NO_MEMBER}` },
+  {
+    method: 'POST',
+    route: '/employees/:id/pay',
+    access: 'team.members.edit',
+    url: `/employees/${NO_MEMBER}/pay`,
+    body: { idempotencyKey: 'synthetic-key' },
+  },
   {
     method: 'GET',
     route: '/team/invitations/preview',

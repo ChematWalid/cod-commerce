@@ -105,11 +105,41 @@ export const teamAdminApiSchema = gql`
     locale: TeamEmailLocale
   }
 
+  "Roles, stores, salary and commissions to change; at least one."
+  input UpdateTeamMemberInput {
+    roleIds: [String!]
+    storeAccess: TeamStoreAccess
+    storeIds: [String!]
+    baseSalary: Int
+    commissionConfigIds: [String!]
+  }
+
+  type TeamSalaryPayment {
+    id: String!
+    memberId: String!
+    "Whole DZD: the member's base salary when paid."
+    amount: Int!
+    idempotencyKey: String!
+    paidByAdministratorId: String!
+    paidAt: DateTime!
+  }
+
+  "A member orders can be handed to: active and receiving orders."
+  type TeamOrderManager {
+    id: String!
+    name: String
+    maxOpenOrders: Int
+    storeAccess: TeamStoreAccess!
+    storeIds: [String!]!
+  }
+
   extend type Query {
     "A page of the members the caller reaches (D211), newest first."
     teamMembers(input: TeamMembersInput): TeamMemberPage!
     "One member the caller reaches."
     teamMember(id: String!): TeamMemberDetails!
+    "The active members receiving orders that the caller reaches (D209)."
+    teamOrderManagers: [TeamOrderManager!]!
   }
 
   extend type Mutation {
@@ -119,5 +149,19 @@ export const teamAdminApiSchema = gql`
     resendInvitation(memberId: String!): TeamMember!
     "Withdraws a pending invitation; the address can be invited again."
     revokeInvitation(memberId: String!): Boolean!
+    "Changes roles and stores (through rbac), salary or commissions."
+    updateTeamMember(id: String!, input: UpdateTeamMemberInput!): TeamMember!
+    "Sets the most open orders the member may hold; null for no limit."
+    setTeamMemberLimit(id: String!, maxOpenOrders: Int): TeamMember!
+    "Stops or resumes offering the member new orders."
+    setTeamMemberReceiving(id: String!, receivingOrders: Boolean!): TeamMember!
+    "Withdraws the member's access and keeps it to give back on reactivation."
+    deactivateTeamMember(id: String!): TeamMember!
+    "Gives a deactivated member its former access back."
+    reactivateTeamMember(id: String!): TeamMember!
+    "Removes the member and its account; an invited member's invitation is revoked."
+    removeTeamMember(id: String!): Boolean!
+    "Books one payment of the member's base salary per idempotency key."
+    payTeamMember(id: String!, idempotencyKey: String!): TeamSalaryPayment!
   }
 `;

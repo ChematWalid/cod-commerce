@@ -11,16 +11,19 @@ import {
   type CredentialsFixture,
   loadPluginTestDbConfig,
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
+  type PluginTestEnvironmentOptions,
   type StoreFixture,
 } from '@cod/testing';
 import type { INestApplication } from '@nestjs/common';
-import { TransactionalConnection, type VendureConfig } from '@vendure/core';
+import { RequestContextService, TransactionalConnection, type VendureConfig } from '@vendure/core';
 import type { SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
+import { TeamConvergeService } from '../../application/converge-members.service';
+import { asOperationContext } from '../../domain/ports/operation-context';
 import { TeamPlugin } from '../../index';
 import { EchoTemplates } from '../fakes/echo-templates';
 
-const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
+export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const DEFAULT_MAILPIT_SMTP_PORT = 1026;
 /** The header tests name the client address with, so one process can act as many addresses. */
 export const TEST_CLIENT_IP_HEADER = 'x-test-client-ip';
@@ -62,6 +65,9 @@ export function authTestOptions() {
   };
 }
 
+/** A second server's port, database and shared session cache (the cross-process harness of P1.S4 Task 4). */
+export type TeamServerOptions = Pick<PluginTestEnvironmentOptions, 'port' | 'attachToDatabase' | 'sharedCache'>;
+
 /**
  * A Vendure test server with Team and what it depends on. `foreign` holds rbac's and auth's modules: only a test file
  * may import another plugin's entry point (architecture rule `no-cross-plugin-internals`), so the test file passes them.
@@ -69,6 +75,7 @@ export function authTestOptions() {
 export function createTeamTestEnvironment(
   snowflakeWorkerId: number,
   foreign: NonNullable<VendureConfig['plugins']>,
+  serverOptions: TeamServerOptions = {},
 ): ReturnType<typeof createPluginTestEnvironment> {
   return createPluginTestEnvironment({
     plugins: [
@@ -78,6 +85,7 @@ export function createTeamTestEnvironment(
       TeamPlugin.init({ dashboardUrl: TEST_DASHBOARD_URL }),
     ],
     db: loadPluginTestDbConfig(process.env),
+    ...serverOptions,
   });
 }
 
@@ -183,6 +191,46 @@ export class TeamKit {
     return { ...credentials, administratorId };
   }
 
+  /**
+   * A member of the business holding `roleId` on `stores` (every store when omitted), with its Team row as the
+   * converge adopts it (D215). Leaves the client signed in as the business owner.
+   */
+  async teamMemberWith(
+    business: BusinessFixture,
+    roleId: string,
+    stores?: readonly StoreFixture[],
+  ): Promise<CredentialsFixture & { administratorId: number; memberId: string }> {
+    const member = await this.memberWith(business, roleId, stores);
+    const ctx = await this.app.get(RequestContextService).create({ apiType: 'admin' });
+    await this.app.get(TeamConvergeService).convergeMembers(asOperationContext(ctx));
+    return { ...member, memberId: await this.memberIdOf(member.administratorId) };
+  }
+
+  /** The Team member row holding the administrator account. */
+  async memberIdOf(administratorId: number): Promise<string> {
+    const [row] = await this.query<{ id: string }>('SELECT id FROM team_member WHERE "administratorId" = $1', [
+      administratorId,
+    ]);
+    if (row === undefined) throw new Error(`no member for administrator ${String(administratorId)}`);
+    return row.id;
+  }
+
+  /**
+   * Signs in as `credentials` in a session of its own and returns its token; the session the client held before is
+   * left open (signing in otherwise logs it out).
+   */
+  async newSession(credentials: CredentialsFixture, store: StoreFixture): Promise<string> {
+    this.client.setAuthToken('');
+    await this.signIn(credentials, store);
+    return this.client.getAuthToken();
+  }
+
+  /** Makes the following calls in the session `token`, on `store`. */
+  useSession(token: string, store: StoreFixture): void {
+    this.client.setAuthToken(token);
+    this.client.setChannelToken(store.channelToken);
+  }
+
   /** Signs in as `credentials` and makes `store` the channel of the following calls. */
   async signIn(credentials: CredentialsFixture, store: StoreFixture): Promise<void> {
     this.client.setChannelToken(PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
@@ -191,7 +239,7 @@ export class TeamKit {
   }
 
   /** A REST call with the client's session and channel; a body goes as JSON. */
-  async rest(method: 'GET' | 'POST', path: string, body?: unknown): Promise<RestAnswer> {
+  async rest(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<RestAnswer> {
     const init = { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) };
     return parsed(await this.client.fetch(`${this.baseUrl()}${path}`, init));
   }

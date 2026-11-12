@@ -17,6 +17,8 @@ export type CallLog = string[];
 /** rbac's access as a fake: a fixed reach, and refusals a test arms. */
 export class FakeMemberAccess implements MemberAccessPort {
   reach: ActorReachView = { allStores: true, storeIds: [] };
+  /** What each administrator holds in rbac now; a successful `setAccess` replaces it. */
+  readonly held = new Map<number, MemberGrant>();
   previewRefusal: Error | undefined;
   setAccessRefusal: Error | undefined;
   readonly grants: { administratorId: number; actor: TeamActor; grant: MemberGrant }[] = [];
@@ -33,7 +35,13 @@ export class FakeMemberAccess implements MemberAccessPort {
     this.log.push('setAccess');
     if (this.setAccessRefusal !== undefined) return Promise.reject(this.setAccessRefusal);
     this.grants.push({ administratorId, actor, grant });
+    if (grant.roleIds.length === 0) this.held.delete(administratorId);
+    else this.held.set(administratorId, grant);
     return Promise.resolve();
+  }
+
+  accessOf(_ctx: OperationContext, _scope: TenantScope, administratorId: number): Promise<MemberGrant | undefined> {
+    return Promise.resolve(this.held.get(administratorId));
   }
 
   flush(administratorIds: readonly number[]): Promise<void> {
@@ -77,8 +85,11 @@ export class FakeMemberAccounts implements MemberAccountPort {
     return Promise.resolve();
   }
 
-  softDelete(): Promise<void> {
+  readonly softDeleted: number[] = [];
+
+  softDelete(_ctx: OperationContext, _scope: TenantScope, administratorId: number): Promise<void> {
     this.log.push('softDelete');
+    this.softDeleted.push(administratorId);
     return Promise.resolve();
   }
 }

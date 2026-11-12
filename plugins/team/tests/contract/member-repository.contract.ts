@@ -26,6 +26,23 @@ export function describeMemberRepositoryContract(name: string, make: MakeHarness
       await expect(repo.findByAdministratorId(ctx, scopeA, 41)).resolves.toEqual(member);
     });
 
+    it('finds a member to lock by id in its business only, removed ones included (D212)', async () => {
+      // Arrange
+      const { repo, ctx, inTransaction = (work) => work(ctx) } = await make();
+      const member = invitedMember(scopeA, { status: 'active', administratorId: 43, removedAt: T0 });
+      await repo.insert(ctx, scopeA, member);
+
+      // Act
+      const [found, foreign] = await inTransaction(async (transactional) => [
+        await repo.findForUpdate(transactional, scopeA, member.id),
+        await repo.findForUpdate(transactional, scopeB, member.id),
+      ]);
+
+      // Assert
+      expect(found).toEqual(member);
+      expect(foreign).toBeUndefined();
+    });
+
     it("never finds or changes another business's member", async () => {
       // Arrange
       const { repo, ctx } = await make();

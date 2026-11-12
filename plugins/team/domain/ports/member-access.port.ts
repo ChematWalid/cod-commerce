@@ -1,3 +1,4 @@
+import type { TenantScope } from '@cod/shared';
 import type { MemberGrant } from '../member-grant';
 import type { ActorReachView } from '../member-reach';
 import type { TeamActor } from '../team-actor';
@@ -16,6 +17,9 @@ export interface MemberAccessPort {
 
   /** Signs the administrators out of stale sessions after their access changed; call after commit. */
   flush(administratorIds: readonly number[]): Promise<void>;
+
+  /** The roles and stores the administrator holds now, or `undefined` when it is no administrator of the business. */
+  accessOf(ctx: OperationContext, scope: TenantScope, administratorId: number): Promise<MemberGrant | undefined>;
 
   /** The stores the actor reaches through its roles (D211). */
   reachOf(ctx: OperationContext, actor: Pick<TeamActor, 'administratorId' | 'scope'>): Promise<ActorReachView>;

@@ -16,6 +16,12 @@ export interface MemberRepositoryPort {
   /** The member `id`, removed ones included, or `undefined`. */
   findById(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<TeamMember | undefined>;
 
+  /**
+   * The member `id`, removed ones included, or `undefined`, with its row locked until the transaction in `ctx` ends:
+   * a salary is read under this lock, so a parallel edit cannot change the amount being paid (D212).
+   */
+  findForUpdate(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<TeamMember | undefined>;
+
   /** Every live (not removed) member of the business, in no particular order. */
   listLive(ctx: OperationContext, scope: TenantScope): Promise<readonly TeamMember[]>;
 

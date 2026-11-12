@@ -1,5 +1,6 @@
 import type { TeamMemberDetails } from '../domain/member-details';
 import type { MemberListPage } from '../domain/member-listing';
+import type { SalaryPaymentView } from '../domain/salary-payment';
 import type { TeamMemberView } from '../domain/team-member';
 
 /** A member as both API surfaces send it: the administrator id as decimal text (D68). */
@@ -30,4 +31,14 @@ export function toTeamMemberDetailsDto(details: TeamMemberDetails): TeamMemberDe
 /** The wire form of a page of the members list. */
 export function toTeamMemberPageDto(page: MemberListPage<TeamMemberDetails>): TeamMemberPageDto {
   return { ...page, items: page.items.map(toTeamMemberDetailsDto) };
+}
+
+/** A salary payment as both API surfaces send it: the payer's administrator id as decimal text (D68). */
+export interface SalaryPaymentDto extends Omit<SalaryPaymentView, 'paidByAdministratorId'> {
+  readonly paidByAdministratorId: string;
+}
+
+/** The wire form of a salary payment. */
+export function toSalaryPaymentDto(payment: SalaryPaymentView): SalaryPaymentDto {
+  return { ...payment, paidByAdministratorId: String(payment.paidByAdministratorId) };
 }

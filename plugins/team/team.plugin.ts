@@ -8,12 +8,19 @@ import { InvitationActions, InvitationUseCases } from './api/invitation-actions'
 import { InvitationsAdminController } from './api/invitations-admin.controller';
 import { InvitationsAdminResolver } from './api/invitations-admin.resolver';
 import { InvitationsController } from './api/invitations.controller';
+import { MemberActions, MemberActionUseCases } from './api/member-actions';
+import { MemberActionsController } from './api/member-actions.controller';
+import { MemberActionsResolver } from './api/member-actions.resolver';
 import { MemberReadActions } from './api/member-read-actions';
 import { MembersReadController } from './api/members-read.controller';
 import { MembersReadResolver } from './api/members-read.resolver';
 import { NoStoreMiddleware } from './api/no-store';
+import { OrderManagersController } from './api/order-managers.controller';
+import { OrderManagersResolver } from './api/order-managers.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
 import { TeamRequestActors } from './api/actor-of';
+import { SalaryController } from './api/salary.controller';
+import { SalaryResolver } from './api/salary.resolver';
 import { teamAdminApiSchema } from './api/schema';
 import { TeamThrottle } from './api/team-throttle';
 import { TeamTranslations } from './api/team-translations';
@@ -30,6 +37,7 @@ import {
 import { CommissionConfigEntity } from './infrastructure/commission-config.entity';
 import { CONVERGE_PROVIDERS } from './infrastructure/converge.providers';
 import { InvitationEntity } from './infrastructure/invitation.entity';
+import { MEMBER_ACTION_PROVIDERS } from './infrastructure/member-action.providers';
 import { invitationProviders } from './infrastructure/invitation.providers';
 import { MEMBER_READ_PROVIDERS } from './infrastructure/member-read.providers';
 import { SalaryPaymentEntity } from './infrastructure/salary-payment.entity';
@@ -79,15 +87,35 @@ function requireOptions(): TeamPluginOptions {
     ...CONVERGE_PROVIDERS,
     ...invitationProviders(() => requireOptions().dashboardUrl),
     ...MEMBER_READ_PROVIDERS,
+    ...MEMBER_ACTION_PROVIDERS,
     InvitationUseCases,
+    MemberActionUseCases,
+    MemberActions,
     InvitationActions,
     MemberReadActions,
     TeamRequestActors,
     TeamThrottle,
     TeamTranslations,
   ],
-  adminApiExtensions: { schema: teamAdminApiSchema, resolvers: [InvitationsAdminResolver, MembersReadResolver] },
-  controllers: [InvitationsController, InvitationsAdminController, MembersReadController],
+  adminApiExtensions: {
+    schema: teamAdminApiSchema,
+    resolvers: [
+      InvitationsAdminResolver,
+      MembersReadResolver,
+      MemberActionsResolver,
+      SalaryResolver,
+      OrderManagersResolver,
+    ],
+  },
+  // `OrderManagersController` before `MembersReadController`: `GET /employees/:id` would take `order-managers`.
+  controllers: [
+    InvitationsController,
+    InvitationsAdminController,
+    OrderManagersController,
+    MembersReadController,
+    MemberActionsController,
+    SalaryController,
+  ],
   // The `migrate` role runs the member converge after rbac's (D215).
   exports: [TeamConvergeService],
   compatibility: '^3.8.0',
@@ -99,7 +127,14 @@ export class TeamPlugin implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(RestI18nMiddleware)
-      .forRoutes(InvitationsController, InvitationsAdminController, MembersReadController);
+      .forRoutes(
+        InvitationsController,
+        InvitationsAdminController,
+        OrderManagersController,
+        MembersReadController,
+        MemberActionsController,
+        SalaryController,
+      );
     consumer.apply(NoStoreMiddleware).forRoutes(InvitationsController);
   }
 
