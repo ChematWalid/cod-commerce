@@ -9,7 +9,11 @@ import {
   DELETE_BUSINESS_ROLE,
   MEMBER_ACCESS,
   PAY_TEAM_MEMBER,
+  REACTIVATE_TEAM_MEMBER,
+  REMOVE_TEAM_MEMBER,
   SET_MEMBER_ACCESS,
+  SET_TEAM_MEMBER_LIMIT,
+  SET_TEAM_MEMBER_RECEIVING,
   TEAM_ORDER_MANAGERS,
   UPDATE_TEAM_MEMBER,
 } from './team-operations';
@@ -218,15 +222,40 @@ describe('who may act on members', () => {
       (await kit.rest('POST', `${base}/pay`, { idempotencyKey: 'k-1' })).status,
       (await kit.rest('DELETE', base)).status,
     ];
+    const id = target.memberId;
     const graphql = [
-      await failureOf(adminClient.query(UPDATE_TEAM_MEMBER, { id: target.memberId, input: { baseSalary: 1 } })),
-      await failureOf(adminClient.query(DEACTIVATE_TEAM_MEMBER, { id: target.memberId })),
-      await failureOf(adminClient.query(PAY_TEAM_MEMBER, { id: target.memberId, idempotencyKey: 'k-1' })),
+      await failureOf(adminClient.query(UPDATE_TEAM_MEMBER, { id, input: { baseSalary: 1 } })),
+      await failureOf(adminClient.query(SET_TEAM_MEMBER_LIMIT, { id, maxOpenOrders: 2 })),
+      await failureOf(adminClient.query(SET_TEAM_MEMBER_RECEIVING, { id, receivingOrders: false })),
+      await failureOf(adminClient.query(DEACTIVATE_TEAM_MEMBER, { id })),
+      await failureOf(adminClient.query(REACTIVATE_TEAM_MEMBER, { id })),
+      await failureOf(adminClient.query(PAY_TEAM_MEMBER, { id, idempotencyKey: 'k-1' })),
+      await failureOf(adminClient.query(REMOVE_TEAM_MEMBER, { id })),
     ];
 
     // Assert
     expect(statuses).toEqual([403, 403, 403, 403, 403, 403, 403]);
-    expect(graphql.map((failure) => failure.codes)).toEqual([['FORBIDDEN'], ['FORBIDDEN'], ['FORBIDDEN']]);
+    expect(graphql.map((failure) => failure.codes)).toEqual(Array.from({ length: 7 }, () => ['FORBIDDEN']));
+  });
+
+  it('guards removal by team.members.remove, not team.members.edit, on both surfaces', async () => {
+    // Arrange
+    const target = await kit.teamMemberWith(businesses.a, await listReaderRole());
+    const editor = await kit.teamMemberWith(
+      businesses.a,
+      await kit.customRole(businesses.a, ['team.members.view', 'team.members.edit']),
+    );
+    await kit.newSession(editor, businesses.a.stores[0]);
+
+    // Act
+    const edited = await kit.rest('PATCH', `/employees/${target.memberId}`, { baseSalary: 2 });
+    const removed = await kit.rest('DELETE', `/employees/${target.memberId}`);
+    const graphql = await failureOf(adminClient.query(REMOVE_TEAM_MEMBER, { id: target.memberId }));
+
+    // Assert
+    expect(edited.status).toBe(200);
+    expect(removed.status).toBe(403);
+    expect(graphql.codes).toEqual(['FORBIDDEN']);
   });
 
   it('refuses the order managers to a caller without team.members.view', async () => {

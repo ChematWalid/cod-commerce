@@ -164,6 +164,30 @@ export const DEACTIVATE_TEAM_MEMBER = gql`
   }
 `;
 
+export const SET_TEAM_MEMBER_LIMIT = gql`
+  mutation ($id: String!, $maxOpenOrders: Int) {
+    setTeamMemberLimit(id: $id, maxOpenOrders: $maxOpenOrders) { ${MEMBER_FIELDS} }
+  }
+`;
+
+export const SET_TEAM_MEMBER_RECEIVING = gql`
+  mutation ($id: String!, $receivingOrders: Boolean!) {
+    setTeamMemberReceiving(id: $id, receivingOrders: $receivingOrders) { ${MEMBER_FIELDS} }
+  }
+`;
+
+export const REACTIVATE_TEAM_MEMBER = gql`
+  mutation ($id: String!) {
+    reactivateTeamMember(id: $id) { ${MEMBER_FIELDS} }
+  }
+`;
+
+export const REMOVE_TEAM_MEMBER = gql`
+  mutation ($id: String!) {
+    removeTeamMember(id: $id)
+  }
+`;
+
 export const PAY_TEAM_MEMBER = gql`
   mutation ($id: String!, $idempotencyKey: String!) {
     payTeamMember(id: $id, idempotencyKey: $idempotencyKey) {
