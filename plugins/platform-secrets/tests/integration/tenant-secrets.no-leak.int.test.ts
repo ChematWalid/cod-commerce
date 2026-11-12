@@ -5,16 +5,18 @@ import { toBusinessId } from '@cod/shared';
 import {
   createPluginTestEnvironment,
   createTwoBusinesses,
-  ensurePartitionedSchema,
   failureOf,
   loadPluginTestDbConfig,
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
   PLUGIN_TEST_INITIAL_DATA,
   type TwoBusinesses,
+  withPartitionedSchemas,
 } from '@cod/testing';
 import { Logger, NoopLogger, RequestContextService, TransactionalConnection, type VendureLogger } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { SECRET_REPOSITORY } from '../../application/tokens';
+import type { SecretRepositoryPort } from '../../domain/ports/secret-repositories.port';
 import { TenantSecretService } from '../../application/tenant-secret.service';
 import { PlatformSecretsPlugin } from '../../platform-secrets.plugin';
 import { TEST_PROVIDER, TestProviderPlugin } from '../fixtures/test-provider.plugin';
@@ -30,19 +32,6 @@ import {
   testJobsPlugin,
   testRateLimitPlugin,
 } from './secrets-kit';
-
-/**
- * Makes `server.init` also create the partitioned `activity_log` and its current partitions (D106, D123): `synchronize`
- * cannot, and the business-role mutations the member tests call write an activity entry.
- */
-function withActivityLog(server: ReturnType<typeof createPluginTestEnvironment>['server']): void {
-  const init = server.init.bind(server);
-  server.init = async (...args: Parameters<typeof init>): Promise<void> => {
-    await init(...args);
-    await ensurePartitionedSchema(server.app.get(TransactionalConnection).rawConnection, [ACTIVITY_LOG_SCHEMA]);
-    await server.app.get(PartitionMaintenanceService).maintain(new Date());
-  };
-}
 
 /** Records every line any component logs, at any level. */
 class RecordingLogger implements VendureLogger {
@@ -121,7 +110,7 @@ describe('tenant secrets never leak', () => {
     ],
     db: loadPluginTestDbConfig(process.env),
   });
-  withActivityLog(server);
+  withPartitionedSchemas(server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
   let businesses: TwoBusinesses;
   let members: SecretMembers;
 
@@ -225,6 +214,54 @@ describe('tenant secrets never leak', () => {
     for (const encoding of encodings) {
       expect(JSON.stringify(oversize)).not.toContain(encoding);
     }
+  });
+
+  it('logs no failed query with parameters when first writes of one secret race, and ends with one id', async () => {
+    // Arrange: the repository directly (the service serializes its callers), several writers per ref at once
+    const recorder = new RecordingLogger();
+    const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+    const scope = new RequestTenantScope(ctx, toBusinessId(businesses.a.businessId));
+    const repository = server.app.get<SecretRepositoryPort>(SECRET_REPOSITORY);
+    const refs = Array.from({ length: 20 }, (_, index) => `race-${String(index)}`);
+    const writers = 5;
+    const sealed = { iv: Buffer.alloc(12, 1), ciphertext: Buffer.from('synthetic-ciphertext'), tag: Buffer.alloc(16, 2) };
+    let nextId = 7_400_000_000_000_000_000n;
+    Logger.useLogger(recorder);
+    // The test database config logs no query; production logs every failed one (Vendure's TypeOrmLogger) with its
+    // parameters, so record what the connection's logger is told about failures.
+    const connection = server.app.get(TransactionalConnection).rawConnection;
+    const failedQueries: string[] = [];
+    connection.logger.logQueryError = (error, query, parameters) => {
+      failedQueries.push(`${String(error)} ${query} ${JSON.stringify(parameters)}`);
+    };
+
+    // Act
+    const results = await Promise.all(
+      refs.map((ref) =>
+        Promise.all(
+          Array.from({ length: writers }, () =>
+            repository.upsert(scope, {
+              id: String((nextId += 1n)),
+              provider: TEST_PROVIDER,
+              ref,
+              dataKeyId: '7400000000000000001',
+              sealed,
+              last4: 'abcd',
+            }),
+          ),
+        ),
+      ),
+    );
+
+    // Assert
+    for (const written of results) {
+      expect(new Set(written.map((secret) => secret.id)).size).toBe(1);
+    }
+    expect(failedQueries).toEqual([]);
+    const text = recorder.lines.join('\n');
+    expect(text).not.toContain('Query error');
+    expect(text).not.toContain('PARAMETERS');
+    expect(text).not.toContain('tenant_secret');
   });
 
   it('answers a member without apps.manage with the permission error, and lets apps.view list', async () => {

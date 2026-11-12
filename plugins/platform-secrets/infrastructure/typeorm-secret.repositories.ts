@@ -13,9 +13,6 @@ import type {
 import { TenantDataKeyEntity } from './tenant-data-key.entity';
 import { TenantSecretEntity } from './tenant-secret.entity';
 
-/** Postgres SQLSTATE of a unique violation. */
-const UNIQUE_VIOLATION = '23505';
-
 /**
  * The one raw statement of this file (a `RAW_DATA_ACCESS_FILES` entry): the first-use insert of a business's data key.
  * `TenantRepository.insert` cannot say `ON CONFLICT DO NOTHING`, and a plain insert that loses the race to a concurrent
@@ -24,6 +21,18 @@ const UNIQUE_VIOLATION = '23505';
 const INSERT_DATA_KEY_SQL =
   'INSERT INTO "tenant_data_key" ("id", "businessId", "kid", "iv", "wrappedKey", "tag") VALUES ($1, $2, $3, $4, $5, $6) ' +
   'ON CONFLICT ("businessId") DO NOTHING';
+
+/**
+ * The second raw statement of this file: the secret upsert. `TenantRepository.insert` cannot say `ON CONFLICT`, and a
+ * plain insert that loses a race raises an error TypeORM logs together with its parameters (ciphertext, wrapped key).
+ * The business is the scope's, bound as a parameter.
+ */
+const UPSERT_SECRET_SQL =
+  'INSERT INTO "tenant_secret" ("id", "businessId", "provider", "ref", "dataKeyId", "iv", "ciphertext", "tag", "last4") ' +
+  'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ' +
+  'ON CONFLICT ("businessId", "provider", "ref") DO UPDATE SET "dataKeyId" = EXCLUDED."dataKeyId", ' +
+  '"iv" = EXCLUDED."iv", "ciphertext" = EXCLUDED."ciphertext", "tag" = EXCLUDED."tag", ' +
+  '"last4" = EXCLUDED."last4", "updatedAt" = now()';
 
 export const toDataKey = (row: TenantDataKeyEntity): DataKeyRecord => ({
   id: row.id,
@@ -77,7 +86,10 @@ export class TypeOrmDataKeyRepository implements DataKeyRepositoryPort {
 export class TypeOrmSecretRepository implements SecretRepositoryPort {
   private readonly secrets: TenantRepository<TenantSecretEntity>;
 
-  constructor(repositories: TenantRepositoryFactory) {
+  constructor(
+    repositories: TenantRepositoryFactory,
+    private readonly connection: TransactionalConnection,
+  ) {
     this.secrets = repositories.for(TenantSecretEntity);
   }
 
@@ -92,25 +104,25 @@ export class TypeOrmSecretRepository implements SecretRepositoryPort {
   }
 
   /**
-   * Updates the `(provider, ref)` row, or inserts it. Two concurrent first writes of one pair both miss the update; the
-   * loser's insert hits the unique constraint and falls back to the update. (Outside a transaction only: a unique
-   * violation inside one aborts it, so the service never wraps this call.)
+   * Inserts the `(provider, ref)` row, or replaces its bytes. One `ON CONFLICT DO UPDATE` statement: two concurrent
+   * first writes never raise a unique violation, so TypeORM has no failed query to log with its parameters (the sealed
+   * value). The row keeps the id of the first write.
    */
   async upsert(scope: TenantScope, secret: NewSecret): Promise<StoredSecret> {
-    if (!(await this.replace(scope, secret))) {
-      try {
-        await this.secrets.insert(scope, {
-          ...bytesOf(secret),
-          id: secret.id,
-          provider: secret.provider,
-          ref: secret.ref,
-        });
-      } catch (error) {
-        if (!isUniqueViolation(error) || !(await this.replace(scope, secret))) {
-          throw error;
-        }
-      }
-    }
+    const bytes = bytesOf(secret);
+    await this.connection
+      .getRepository(requestContextOf(scope), TenantSecretEntity)
+      .query(UPSERT_SECRET_SQL, [
+        secret.id,
+        scope.businessId,
+        secret.provider,
+        secret.ref,
+        bytes.dataKeyId,
+        bytes.iv,
+        bytes.ciphertext,
+        bytes.tag,
+        bytes.last4,
+      ]);
     const stored = await this.find(scope, secret.provider, secret.ref);
     if (stored === undefined) {
       throw new Error('A secret written a moment ago is gone');
@@ -121,12 +133,6 @@ export class TypeOrmSecretRepository implements SecretRepositoryPort {
   async delete(scope: TenantScope, id: string): Promise<boolean> {
     return (await this.secrets.delete(scope, { id })) > 0;
   }
-
-  /** True when a row for `(provider, ref)` existed and took the new bytes. */
-  private async replace(scope: TenantScope, secret: NewSecret): Promise<boolean> {
-    const changed = await this.secrets.update(scope, { provider: secret.provider, ref: secret.ref }, bytesOf(secret));
-    return changed > 0;
-  }
 }
 
 const bytesOf = (secret: NewSecret) => ({
@@ -136,8 +142,3 @@ const bytesOf = (secret: NewSecret) => ({
   tag: secret.sealed.tag,
   last4: secret.last4,
 });
-
-function isUniqueViolation(error: unknown): boolean {
-  const failure = error as { code?: unknown; driverError?: { code?: unknown } } | null;
-  return failure?.code === UNIQUE_VIOLATION || failure?.driverError?.code === UNIQUE_VIOLATION;
-}
