@@ -32,7 +32,7 @@ content-type: application/json; charset=utf-8
       "provider": "demo-webhook",
       "ref": "signing",
       "last4": "0002",
-      "updatedAt": "2026-11-12T13:28:08.589Z"
+      "updatedAt": "2026-11-12T21:01:33.654Z"
     }
   }
 }
@@ -123,7 +123,7 @@ content-type: application/json; charset=utf-8
       "provider": "demo-webhook",
       "ref": "signing",
       "last4": "0001",
-      "updatedAt": "2026-11-12T13:28:09.370Z"
+      "updatedAt": "2026-11-12T21:01:34.330Z"
     }
   }
 }

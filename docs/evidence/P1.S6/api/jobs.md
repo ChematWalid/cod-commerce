@@ -50,7 +50,7 @@ content-type: application/json; charset=utf-8
         },
         {
           "id": "outbox-sweeper",
-          "lastSuccessAgeSeconds": 14
+          "lastSuccessAgeSeconds": 37
         },
         {
           "id": "partition-maintenance",
@@ -203,11 +203,11 @@ content-type: application/json; charset=utf-8
         },
         {
           "id": "job-reconciler",
-          "lastSuccessAgeSeconds": 2
+          "lastSuccessAgeSeconds": 1
         },
         {
           "id": "outbox-sweeper",
-          "lastSuccessAgeSeconds": 2
+          "lastSuccessAgeSeconds": 1
         },
         {
           "id": "partition-maintenance",

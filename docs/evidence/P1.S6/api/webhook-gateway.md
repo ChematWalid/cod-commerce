@@ -32,7 +32,7 @@ content-type: application/json; charset=utf-8
       "provider": "demo-webhook",
       "ref": "signing",
       "last4": "0001",
-      "updatedAt": "2026-11-12T13:27:20.316Z"
+      "updatedAt": "2026-11-12T21:01:01.909Z"
     }
   }
 }
