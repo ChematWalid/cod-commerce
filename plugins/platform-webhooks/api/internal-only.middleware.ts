@@ -43,10 +43,14 @@ function header(req: Request, name: string): string | undefined {
   return Array.isArray(value) ? value.join(',') : value;
 }
 
+/** How many times the body limit an oversized body may stream before the connection is dropped. */
+const DRAIN_CEILING_FACTOR = 4;
+
 /**
  * The body, or `undefined` when it is larger than `limit`. A body announced as too large is not read at all; one
  * that grows past the limit while streaming is drained without being kept, because leaving the loop would destroy
- * the socket and the 413 could be lost as a reset.
+ * the socket and the 413 could be lost as a reset. The drain stops at {@link DRAIN_CEILING_FACTOR} times the limit,
+ * where the stream is destroyed: a caller that never stops sending cannot hold the connection open.
  */
 async function readBody(req: Request, limit: number): Promise<Buffer | undefined> {
   if (Number(header(req, 'content-length') ?? 0) > limit) {
@@ -61,6 +65,9 @@ async function readBody(req: Request, limit: number): Promise<Buffer | undefined
     if (size > limit) {
       tooLarge = true;
       chunks.length = 0;
+    }
+    if (size > limit * DRAIN_CEILING_FACTOR) {
+      break;
     }
     if (!tooLarge) {
       chunks.push(buffer);
@@ -102,8 +109,9 @@ const TIMESTAMP = /^\d{1,12}$/;
 
 /**
  * The cheap checks that need no body: all three headers present, a well-formed timestamp inside the clock window,
- * a known key id. Only a request that passes them has its body read, so an unauthenticated caller cannot make the
- * server buffer a body, nor learn from a 413 that the path is guarded.
+ * a known key id. Only a request that passes them has its body read, so a caller with no plausible header triple
+ * cannot make the server buffer a body, nor earn a 413. These checks do not prove a signature: a caller who guesses
+ * a key id and sends a current timestamp can still tell the path is guarded from a 413.
  */
 function precheck(req: Request, keys: readonly InternalSigningKey[], nowSeconds: number): string | undefined {
   const kid = header(req, INTERNAL_AUTH_HEADERS.kid);

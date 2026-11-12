@@ -25,7 +25,6 @@ interface Harness {
   readonly run: () => Promise<void>;
 }
 
-/** A fake request carrying `headers` and `body`, as the receiver sees it: the signature is over `signed`. */
 /** The headers the receiver sees: the signature of `signed`, the store as `sent`, minus what `drop` removes. */
 function requestHeaders(
   signed: InternalRequest,
@@ -49,6 +48,7 @@ function requestHeaders(
   return Object.fromEntries(Object.entries(all).filter(([name]) => !(options.drop ?? []).includes(name)));
 }
 
+/** A fake request carrying `headers` and `body`, as the receiver sees it: the signature is over `signed`. */
 function harness(
   signed: InternalRequest,
   options: {
@@ -205,6 +205,16 @@ describe('internalOnlyMiddleware', () => {
     });
   });
 
+  it('stops reading and destroys the stream once an oversized chunked body passes four times the limit', async () => {
+    const h = harness({ ...SIGNED, method: 'POST', body: 'x'.repeat(20000) }, { maxBodyBytes: 1024, chunkBytes: 500 });
+
+    await expectRejected(h, 'body-too-large', 413);
+    await vi.waitFor(() => {
+      expect(h.req.destroyed).toBe(true);
+    });
+    expect(h.req.readableEnded).toBe(false);
+  });
+
   it.each([
     ['an unknown key id', { 'x-internal-kid': 'nobody' }, 'unknown-kid'],
     ['a malformed timestamp', { 'x-internal-ts': 'soon' }, 'malformed'],
@@ -222,12 +232,16 @@ describe('internalOnlyMiddleware', () => {
     await expectRejected(h, 'malformed-json');
   });
 
-  it('logs the reason and never a header value', async () => {
-    const h = harness(SIGNED, { sent: { storeId: '78' } });
-
+  it.each([
+    ['a tampered store id', harness(SIGNED, { sent: { storeId: '78' } }), 'bad-signature'],
+    ['a stale timestamp', harness(SIGNED, { at: NOW - 3600 }), 'stale'],
+  ])('logs the reason and the path, never a header value or the query (%s)', async (_name, h, reason) => {
     await h.run();
 
     const line = String(h.log.mock.calls[0]?.[0]);
+    expect(line).toContain(reason);
+    expect(line).toContain('/store/resolve');
+    expect(line).not.toContain('host=demo.localhost');
     for (const value of Object.values(h.req.headers as Record<string, string>)) {
       expect(line).not.toContain(value);
     }
