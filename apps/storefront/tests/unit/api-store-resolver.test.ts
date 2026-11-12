@@ -23,6 +23,8 @@ describe('ApiStoreResolver', () => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
     vi.stubEnv('INTERNAL_API_URL', 'http://api.test:3000');
+    vi.stubEnv('INTERNAL_HMAC_KEYS', 'k1:change-me-internal-hmac-000000000000000000000');
+    vi.stubEnv('INTERNAL_HMAC_ACTIVE_KID', 'k1');
   });
 
   afterEach(() => {
@@ -59,6 +61,23 @@ describe('ApiStoreResolver', () => {
 
     // Assert
     expect(requestedUrl()).toBe('http://api.test:3000/store/by-id/100');
+  });
+
+  it('signs both routes with the internal headers', async () => {
+    // Arrange
+    fetchMock.mockImplementation(() => Promise.resolve(Response.json(BODY)));
+
+    // Act
+    await new ApiStoreResolver().resolveByHost(HOST);
+    await new ApiStoreResolver().findById('100');
+
+    // Assert
+    for (const [, init] of fetchMock.mock.calls) {
+      const headers = new Headers(init?.headers);
+      expect(headers.get('x-internal-kid')).toBe('k1');
+      expect(headers.get('x-internal-ts')).toMatch(/^\d+$/);
+      expect(headers.get('x-internal-sig')).toBeTruthy();
+    }
   });
 
   it('maps a 404 to null', async () => {

@@ -7,6 +7,8 @@ const repoRoot = resolve(__dirname, '../../..');
 const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8');
 
 interface Step {
+  id?: string;
+  'timeout-minutes'?: number;
   uses?: string;
   run?: string;
   if?: string;
@@ -64,6 +66,27 @@ const EXPECTED_BROWSER_PARTS: readonly MatrixPart[] = [
   },
 ];
 
+/** The `actions/cache` the composite setup action already pins: one version of it in the repository. */
+const compositeCacheUses = (): string | undefined =>
+  compositeAction.runs.steps.find((step) => step.uses?.startsWith('actions/cache@'))?.uses;
+
+/** The three steps of the browser download (version, cache, install) and whether they run in that order. */
+function playwrightSteps(job: Job): { version: Step; cache: Step; install: Step; order: boolean[] } {
+  const steps = job.steps ?? [];
+  const find = (match: (step: Step) => boolean): Step => {
+    const step = steps.find(match);
+    if (step === undefined) throw new Error('a Playwright step is missing');
+    return step;
+  };
+  const version = find(
+    (step) => (step.run ?? '').includes('playwright-core@') && (step.run ?? '').includes('pnpm-lock.yaml'),
+  );
+  const cache = find((step) => (step.uses ?? '').startsWith('actions/cache@'));
+  const install = find((step) => (step.run ?? '').includes('playwright-core install chromium-headless-shell'));
+  const order = [steps.indexOf(cache) > steps.indexOf(version), steps.indexOf(install) > steps.indexOf(cache)];
+  return { version, cache, install, order };
+}
+
 const stepsRun = (job: Job): string[] =>
   (job.steps ?? []).map((step) => step.run).filter((run): run is string => run !== undefined);
 
@@ -115,6 +138,28 @@ describe('browser.yml', () => {
 
     expect(order.every((position) => position >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('caches the browser download by the locked playwright-core version, and installs it on a miss only (D119)', () => {
+    const { version, cache, install, order } = playwrightSteps(job);
+
+    expect(order).toEqual([true, true]);
+    expect(cache.uses).toBe(compositeCacheUses());
+    expect(cache.with?.['path']).toBe('~/.cache/ms-playwright');
+    expect(cache.with?.['key']).toBe(`playwright-\${{ runner.os }}-\${{ steps.${version.id ?? ''}.outputs.version }}`);
+    expect(install.if).toBe(`steps.${cache.id ?? ''}.outputs.cache-hit != 'true'`);
+    expect(install['timeout-minutes']).toBe(5);
+  });
+
+  it('never installs the browser with system dependencies (D119)', () => {
+    expect(runs.join('\n')).not.toMatch(/--with-deps|install-deps/);
+  });
+
+  it('gives the api the internal HMAC keys and an active kid that is one of them (D111)', () => {
+    const keys = job.env?.['INTERNAL_HMAC_KEYS'] ?? '';
+
+    expect(keys).toMatch(/^[a-z0-9-]{1,16}:.{32,}$/);
+    expect(keys.split(',').map((entry) => entry.split(':')[0])).toContain(job.env?.['INTERNAL_HMAC_ACTIVE_KID']);
   });
 
   it('migrates as ROLE=migrate and serves the api on 3100, through the loopback services', () => {

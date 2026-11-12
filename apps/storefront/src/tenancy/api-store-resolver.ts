@@ -1,10 +1,8 @@
-import { internalApiUrl } from '../config/storefront-env';
+import { internalFetch } from '../lib/internal-api';
 import { normalizeHost, type NormalizedHost } from './host';
 import { toStoreLocale } from './store-locale';
 import type { ResolvedStore, StoreResolver } from './store-resolver';
 
-/** How long the proxy waits for the API before failing the request. */
-const API_TIMEOUT_MS = 3000;
 const NOT_FOUND = 404;
 
 /** The API could not say whether the store exists: not a 404, so an outage is never shown as an unknown store. */
@@ -61,7 +59,7 @@ export class ApiStoreResolver implements StoreResolver {
   }
 
   private async fetchStore(path: string): Promise<ResolvedStore | null> {
-    const response = await fetch(new URL(path, internalApiUrl()), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+    const response = await internalFetch(path);
     if (response.status === NOT_FOUND) return null;
     if (!response.ok) throw new StoreResolverError(`GET ${path} answered ${String(response.status)}`);
     return toResolvedStore(await response.json());

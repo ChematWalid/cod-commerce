@@ -9,6 +9,8 @@ const complete = {
   NEXT_DEPLOYMENT_ID: 'abc1234',
   REDIS_URL: 'redis://v:6379',
   INTERNAL_API_URL: 'http://api:3000',
+  INTERNAL_HMAC_KEYS: 'k1:change-me-internal-hmac-000000000000000000000',
+  INTERNAL_HMAC_ACTIVE_KID: 'k1',
 };
 
 /** Runs the boot check with exit and the log intercepted, and returns the one line it logged. */
@@ -59,6 +61,17 @@ describe('fail fast on an invalid environment', () => {
     const line = fatalLineOf(env);
     // Assert
     expect(line['issues']).toEqual(['INTERNAL_API_URL must be an http:// or https:// URL']);
+  });
+
+  it.each([
+    ['missing', { INTERNAL_HMAC_KEYS: undefined }],
+    ['short', { INTERNAL_HMAC_KEYS: 'k1:short' }],
+  ])('exits when INTERNAL_HMAC_KEYS is %s, without printing the secret', (_name, change) => {
+    // Act
+    const line = fatalLineOf({ ...complete, ...change });
+    // Assert
+    expect(String(line['issues'])).toContain('INTERNAL_HMAC_KEYS');
+    expect(JSON.stringify(line)).not.toContain('k1:short');
   });
 
   it('returns quietly with a complete config', () => {

@@ -244,6 +244,9 @@ services:
       REDIS_URL: ${COMPOSE_REDIS_URL:-redis://valkey:6379}
       # Validated at boot and read by the proxy on each request to find the store behind a host (D12).
       INTERNAL_API_URL: ${COMPOSE_INTERNAL_API_URL:-http://api:${COMPOSE_API_PORT:-3000}}
+      # The storefront signs every api call with the active key (ADR 0008, D111); the api verifies with the list.
+      INTERNAL_HMAC_KEYS: ${INTERNAL_HMAC_KEYS}
+      INTERNAL_HMAC_ACTIVE_KID: ${INTERNAL_HMAC_ACTIVE_KID}
       # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
       # always match the deployment the assets were built for.
     depends_on:
