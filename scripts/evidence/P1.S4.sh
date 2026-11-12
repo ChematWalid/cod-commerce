@@ -5,7 +5,11 @@
 # rate limits, takes the screenshots, runs the browser suite against this stack, and tears the project down. Never touches
 # the `cod` project.
 #
-#   flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 1800 scripts/evidence/P1.S4.sh   # always builds cod-platform:local first
+#   flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 1800 scripts/evidence/P1.S4.sh
+#   EV_SKIP_BUILD=1 flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 1800 scripts/evidence/P1.S4.sh
+#
+# It builds cod-platform:local unless EV_SKIP_BUILD=1 and cod-platform:evidence-<last image commit> exists (an image this
+# script built from the same commit), which it then reuses; the skip keeps a rerun inside the 1800 s cap.
 #
 # Data is synthetic. Ids are placeholders after their use is asserted; invitation tokens, passwords, session tokens and
 # channel tokens are never written. The script fails if a 43-character token, a `token=` value or a password survives.
