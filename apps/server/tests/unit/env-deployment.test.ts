@@ -91,6 +91,20 @@ describe('TRUSTED_PROXY_HOPS', () => {
     expect(issuePathsOf({ TRUSTED_PROXY_HOPS: value })).toEqual(['TRUSTED_PROXY_HOPS']);
   });
 
+  it.each(['staging', 'production'])(
+    'rejects 0 hops in %s, where the Secure session cookie needs the proxy protocol',
+    (appEnv) => {
+      const overrides = { ...deployed, APP_ENV: appEnv, TRUSTED_PROXY_HOPS: '0' };
+
+      expect(issuePathsOf(overrides)).toEqual(['TRUSTED_PROXY_HOPS']);
+    },
+  );
+
+  it('accepts 0 hops outside a deployed environment and 1 hop in one', () => {
+    expect(loadEnv({ ...valid, TRUSTED_PROXY_HOPS: '0' }).TRUSTED_PROXY_HOPS).toBe(0);
+    expect(loadEnv({ ...valid, ...deployed, TRUSTED_PROXY_HOPS: '1' }).TRUSTED_PROXY_HOPS).toBe(1);
+  });
+
   it('is the number of X-Forwarded-For hops the api trusts', () => {
     // Arrange
     const env = loadEnv({ ...valid, TRUSTED_PROXY_HOPS: '2' });

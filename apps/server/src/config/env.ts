@@ -212,14 +212,19 @@ function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
-/** Behind the edge `req.ip` is the edge's address, so a deployed limiter without the header has one bucket for everyone. */
-function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
+/**
+ * Behind the edge `req.ip` is the edge's address, so a deployed limiter without the header has one bucket for everyone.
+ * Zero hops would make the api read every request as plain http, which the Secure session cookie refuses to be set on.
+ */
+function requireProxySettings(env: BaseEnv, context: z.RefinementCtx): void {
   if (isDeployed(env) && env.CLIENT_IP_HEADER === '') {
     context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in this environment' });
   }
+  if (isDeployed(env) && env.TRUSTED_PROXY_HOPS === 0) {
+    context.addIssue({ code: 'custom', path: ['TRUSTED_PROXY_HOPS'], message: 'must be at least 1 here' });
+  }
 }
 
-/** Staging and production: where a development fallback is a misconfiguration. */
 /** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
 function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
   if (isDeployed(env) && env.PLATFORM_DOMAIN === undefined) {
@@ -245,7 +250,7 @@ const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
   .superRefine(rejectDemoHandlersInProduction)
-  .superRefine(requireClientIpHeader)
+  .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireKnownKekActiveKid)
   .superRefine((env, context) => {
