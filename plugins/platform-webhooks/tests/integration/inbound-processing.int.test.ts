@@ -174,6 +174,20 @@ describe('inbound webhook processing', () => {
       reconciler.registerSource(server.app.get(InboundReconcileSource));
     });
 
+    it('leaves a received row with a missing job alone for its first minute', async () => {
+      // Arrange
+      await seedReceived();
+
+      // Act
+      const early = await reconciler.reconcile(at(MINUTE_MS - SECOND_MS));
+      const late = await reconciler.reconcile(at(MINUTE_MS + SECOND_MS));
+
+      // Assert
+      expect(early).toEqual({ reenqueued: 0, exhausted: 0 });
+      expect(late).toEqual({ reenqueued: 1, exhausted: 0 });
+      expect(calls).toHaveLength(1);
+    });
+
     it('re-adds iw-{id} for a received row whose job is missing', async () => {
       // Arrange
       const id = await seedReceived();

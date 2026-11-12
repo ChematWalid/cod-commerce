@@ -55,8 +55,10 @@ describe('inbound webhook gateway', () => {
       eventKey: 'evt-1',
       contentType: 'application/json',
     });
-    const jobs = await kit.jobsOf('inbound-webhooks');
-    expect(jobs.map((job) => job.data['jobId'])).toEqual([`iw-${String(rows[0]?.['id'])}`]);
+    // Completed jobs of earlier runs and files stay in Redis for an hour: look at this webhook's job only.
+    const jobId = `iw-${String(rows[0]?.['id'])}`;
+    const jobs = (await kit.jobsOf('inbound-webhooks')).filter((job) => job.data['jobId'] === jobId);
+    expect(jobs).toHaveLength(1);
   });
 
   it('keeps one key row, one row and one processing run for the same body posted five times at once and again a day later', async () => {

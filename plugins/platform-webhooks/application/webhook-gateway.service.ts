@@ -6,6 +6,9 @@ import type { InboundWebhookHandler, WebhookAccount, WebhookRequest } from '../d
 import type { InboundWebhookHandlerRegistry } from './handler-registry';
 import type { InboundEnvironment, InboundPorts, KillSwitchPort } from './ports';
 
+/** Longest provider name logged: the `provider` column length. */
+const PROVIDER_LOG_MAX = 40;
+
 /** What the gateway is built from. */
 export interface WebhookGatewayDeps {
   readonly ports: InboundPorts;
@@ -56,7 +59,9 @@ export class WebhookGatewayService {
 
   private refuse(outcome: GatewayOutcome, provider: string, accountId?: string): GatewayOutcome {
     const who = accountId === undefined ? '' : ` account=${accountId}`;
-    this.deps.environment.logger.warn(`Inbound webhook refused: provider=${provider}${who} outcome=${outcome}`);
+    // The provider is a caller-supplied path segment on an unauthenticated route: cap it and escape control characters.
+    const shown = JSON.stringify(provider.slice(0, PROVIDER_LOG_MAX));
+    this.deps.environment.logger.warn(`Inbound webhook refused: provider=${shown}${who} outcome=${outcome}`);
     return outcome;
   }
 
