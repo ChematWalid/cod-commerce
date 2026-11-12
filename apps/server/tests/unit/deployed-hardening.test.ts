@@ -1,6 +1,7 @@
 import { getConfigurationFunction, type RuntimeVendureConfig } from '@vendure/core';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { describe, expect, it } from 'vitest';
+import { buildAuthConfig } from '../../src/config/auth.config';
 import { isDeployed } from '../../src/config/deployed-env';
 import { loadEnv } from '../../src/config/env';
 import { buildPlugins } from '../../src/config/plugins.config';
@@ -69,5 +70,23 @@ describe('API hardening by environment (SRV-10)', () => {
 
     expect(HardenPlugin.options.apiMode).toBe('dev');
     expect(config.apiOptions.introspection).toBe(true);
+  });
+});
+
+describe('session cookie flags (SRV-11)', () => {
+  it.each(['staging', 'production'])('sets Secure, HttpOnly and SameSite=Lax in %s', (appEnv) => {
+    const { cookieOptions } = buildAuthConfig(envOf(appEnv));
+
+    expect(cookieOptions).toMatchObject({ secure: true, httpOnly: true, sameSite: 'lax' });
+  });
+
+  it.each(['development', 'test'])('stays usable over http in %s', (appEnv) => {
+    const { cookieOptions } = buildAuthConfig(envOf(appEnv));
+
+    expect(cookieOptions).toMatchObject({ secure: false, httpOnly: true, sameSite: 'lax' });
+  });
+
+  it('keeps the signing secret', () => {
+    expect(buildAuthConfig(envOf('production')).cookieOptions?.secret).toBe(valid.COOKIE_SECRET);
   });
 });
