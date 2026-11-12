@@ -73,14 +73,16 @@ describe('partitioned schema', () => {
   let app: INestApplicationContext;
   let policies: readonly PartitionPolicy[];
   let metadatas: readonly EntityMetadata[];
-  /** The instant just before the migrate role ran: the partitions it premakes are counted from this date. */
+  /** The instants just before and just after the migrate role ran: its own clock read lies between them. */
   let migratedAt: Date;
+  let migratedAfter: Date;
 
   beforeAll(async () => {
     url = await createDatabase(DATABASE_NAME);
     env = loadEnv({ ...process.env, DATABASE_URL: url, DATABASE_URL_DIRECT: url });
     migratedAt = new Date();
     await runMigrate(env);
+    migratedAfter = new Date();
     client = await connectTo(url);
     const worker = await bootstrapWorker(buildVendureConfig(env, 'migrate'));
     app = worker.app;
@@ -185,14 +187,21 @@ describe('partitioned schema', () => {
   });
 
   it('has the partitions from today to today + 7 after the migrate role maintained them', async () => {
-    const now = migratedAt;
+    // The maintenance clock read lies between migratedAt and migratedAfter. Assert only what holds for any such
+    // instant: the days from the later date to the earlier date + 7 (all of today..today+7 when no midnight passed).
+    const latest = migratedAfter;
+    const earliest = migratedAt;
+    const dayOf = (at: Date): number => Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
+    const monthOf = (at: Date): number => Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1);
     const expected = policies.flatMap((policy) => {
       if (policy.interval === 'month') {
-        return [partitionName(policy.table, 'month', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)))];
+        return monthOf(latest) === monthOf(earliest)
+          ? [partitionName(policy.table, 'month', new Date(monthOf(earliest)))]
+          : [];
       }
-      const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-      return Array.from({ length: DAYS_AHEAD + 1 }, (_, offset) =>
-        partitionName(policy.table, 'day', new Date(today + offset * DAY_MS)),
+      const length = Math.max(0, DAYS_AHEAD + 1 - Math.round((dayOf(latest) - dayOf(earliest)) / DAY_MS));
+      return Array.from({ length }, (_, offset) =>
+        partitionName(policy.table, 'day', new Date(dayOf(latest) + offset * DAY_MS)),
       );
     });
     const { rows } = await client.query<{ name: string }>(
@@ -202,7 +211,7 @@ describe('partitioned schema', () => {
       [PARTITIONED_TABLES],
     );
 
-    // A run that straddles midnight UTC may see one more day than it asked for; none may be missing.
+    // A run that straddles midnight UTC may create other days too; none of the agreed ones may be missing.
     expect(rows.map((row) => row.name)).toEqual(expect.arrayContaining(expected));
   });
 
