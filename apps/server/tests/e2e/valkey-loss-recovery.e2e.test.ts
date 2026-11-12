@@ -217,8 +217,10 @@ describe('recovery after the loss of Valkey', () => {
     backoffMs = LONG_BACKOFF_MS;
     await bullQueue('bulk').pause();
     for (let i = 0; i < BULK_EVENTS; i += 1) await commitEvent(BULK_EFFECT_TOPIC, { n: i });
+    const retryingIds: string[] = [];
     for (let i = 0; i < DELAYED_EVENTS; i += 1) {
-      await commitEvent(CRITICAL_EFFECT_TOPIC, { failUntilAttempt: i < RETRYING_EVENTS ? 2 : 1 });
+      const id = await commitEvent(CRITICAL_EFFECT_TOPIC, { failUntilAttempt: i < RETRYING_EVENTS ? 2 : 1 });
+      if (i < RETRYING_EVENTS) retryingIds.push(id);
     }
     await until(async () => {
       const rows = await deliveryRows();
@@ -227,12 +229,10 @@ describe('recovery after the loss of Valkey', () => {
       const ready = critical.length === DELAYED_EVENTS && critical.every((row) => Number(row['attempts']) >= 1);
       return ready && bulk.length === BULK_EVENTS ? true : undefined;
     });
-    // Three of the delayed jobs run a second time and are delayed again: retrying rows.
-    const retrying = (await deliveryRows()).filter(
-      (row) => row['consumer'] === CRITICAL_EFFECT_CONSUMER && row['status'] !== 'done',
-    );
-    for (const row of retrying.slice(0, RETRYING_EVENTS)) {
-      const job = await bullQueue('critical').getJob(`od-${String(row['outboxId'])}-${CRITICAL_EFFECT_CONSUMER}`);
+    // Promote exactly the events committed with failUntilAttempt 2, picked by id: they run a second time and are
+    // delayed again (retrying rows). Promoting any other delayed job would finish its delivery instead.
+    for (const id of retryingIds) {
+      const job = await bullQueue('critical').getJob(`od-${id}-${CRITICAL_EFFECT_CONSUMER}`);
       await job?.promote();
     }
     await until(async () =>
