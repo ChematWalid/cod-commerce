@@ -228,6 +228,21 @@ describe('listMembersQuerySchema', () => {
   });
 
   it.each([
+    ['a null tab', { tab: null }],
+    ['a null search', { search: null }],
+    ['a null page', { page: null }],
+    ['every field null', { tab: null, search: null, page: null }],
+    ['an empty page from a REST query string', { page: '' }],
+    ['an empty tab from a REST query string', { tab: '' }],
+  ])('reads %s as the default first page of every member', (_case, query) => {
+    // Act
+    const parsed = listMembersQuerySchema.parse(query);
+
+    // Assert
+    expect(parsed).toEqual({ tab: 'all', page: 1 });
+  });
+
+  it.each([
     ['an unknown tab', { tab: 'removed' }],
     ['page 0', { page: 0 }],
     ['a fractional page', { page: '1.5' }],

@@ -147,15 +147,24 @@ export type CommissionConfigCommand = z.output<typeof commissionConfigSchema>;
 
 /**
  * A page of the members list. The page may come as text (a REST query string); a blank search is no search, and the
- * search is matched as plain text, never as a pattern.
+ * search is matched as plain text, never as a pattern. A null field (an unset GraphQL variable) or an empty one (`?page=`)
+ * means the field was not asked, so it takes its default.
  */
+const listMembersFieldsSchema = z.object({
+  tab: z.enum(MEMBER_TABS).default('all'),
+  search: z.string().trim().max(MEMBER_SEARCH_MAX_LENGTH).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+});
+
+/** The query object without its null or empty fields; anything that is not an object is left for the schema to refuse. */
+function withoutUnsetFields(query: unknown): unknown {
+  if (typeof query !== 'object' || query === null || Array.isArray(query)) return query;
+  return Object.fromEntries(Object.entries(query).filter(([, value]) => value !== null && value !== ''));
+}
+
 export const listMembersQuerySchema = z
-  .object({
-    tab: z.enum(MEMBER_TABS).default('all'),
-    search: z.string().trim().max(MEMBER_SEARCH_MAX_LENGTH).optional(),
-    page: z.coerce.number().int().min(1).default(1),
-  })
+  .preprocess(withoutUnsetFields, listMembersFieldsSchema)
   .transform(({ search, ...query }) => (search === undefined || search === '' ? query : { ...query, search }));
 
-export type ListMembersQueryInput = z.input<typeof listMembersQuerySchema>;
+export type ListMembersQueryInput = z.input<typeof listMembersFieldsSchema>;
 export type ListMembersQuery = z.output<typeof listMembersQuerySchema>;
