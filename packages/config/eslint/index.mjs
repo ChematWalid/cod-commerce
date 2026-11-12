@@ -186,6 +186,8 @@ export function codEslintConfig({ tsconfigRootDir }) {
           '**/src/gql/**',
           '.claude/**',
           'docs/**',
+          // Run by ts-node from apps/server (P1.S6-sign.ts), outside every tsconfig; prettier still checks it.
+          'scripts/evidence/*.ts',
           '**/tests/fixtures/**',
         ],
       },

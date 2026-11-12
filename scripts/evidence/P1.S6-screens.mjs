@@ -5,7 +5,7 @@
 //
 // Env: SUPERADMIN_USERNAME, SUPERADMIN_PASSWORD (read by the session helper, never printed), EV_BUSINESS_ID (the demo
 // business, typed into the dialog as the override target).
-/* global process, console, document, window, NodeFilter, getComputedStyle */
+/* global process, console, document, window, NodeFilter, getComputedStyle, URL */
 import { mkdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
