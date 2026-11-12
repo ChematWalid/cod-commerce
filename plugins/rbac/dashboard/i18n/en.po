@@ -200,6 +200,54 @@ msgid "rbac.member-access.changed"
 msgstr "Member access changed"
 
 #. js-lingui-explicit-id
+msgid "team.member.invited"
+msgstr "Member invited"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.resent"
+msgstr "Invitation resent"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.revoked"
+msgstr "Invitation revoked"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.accepted"
+msgstr "Invitation accepted"
+
+#. js-lingui-explicit-id
+msgid "team.member.updated"
+msgstr "Member updated"
+
+#. js-lingui-explicit-id
+msgid "team.member.deactivated"
+msgstr "Member deactivated"
+
+#. js-lingui-explicit-id
+msgid "team.member.reactivated"
+msgstr "Member reactivated"
+
+#. js-lingui-explicit-id
+msgid "team.member.removed"
+msgstr "Member removed"
+
+#. js-lingui-explicit-id
+msgid "team.salary.paid"
+msgstr "Salary paid"
+
+#. js-lingui-explicit-id
+msgid "team.commission.created"
+msgstr "Commission created"
+
+#. js-lingui-explicit-id
+msgid "team.commission.updated"
+msgstr "Commission updated"
+
+#. js-lingui-explicit-id
+msgid "team.commission.deleted"
+msgstr "Commission deleted"
+
+#. js-lingui-explicit-id
 msgid "rbac.role-not-found"
 msgstr "This role no longer exists."
 

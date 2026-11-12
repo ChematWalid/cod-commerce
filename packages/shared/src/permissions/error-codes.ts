@@ -21,13 +21,25 @@ export const RBAC_ERROR_CODES = {
 /** One of the {@link RBAC_ERROR_CODES} values. */
 export type RbacErrorCode = (typeof RBAC_ERROR_CODES)[keyof typeof RBAC_ERROR_CODES];
 
-/** Activity-log actions written by the roles feature. */
+/** Activity-log actions written by the roles and team features. */
 export const ACTIVITY_ACTIONS = {
   ROLE_CREATED: 'rbac.role.created',
   ROLE_UPDATED: 'rbac.role.updated',
   ROLE_DELETED: 'rbac.role.deleted',
   ROLE_DUPLICATED: 'rbac.role.duplicated',
   MEMBER_ACCESS_CHANGED: 'rbac.member-access.changed',
+  MEMBER_INVITED: 'team.member.invited',
+  INVITATION_RESENT: 'team.invitation.resent',
+  INVITATION_REVOKED: 'team.invitation.revoked',
+  INVITATION_ACCEPTED: 'team.invitation.accepted',
+  MEMBER_UPDATED: 'team.member.updated',
+  MEMBER_DEACTIVATED: 'team.member.deactivated',
+  MEMBER_REACTIVATED: 'team.member.reactivated',
+  MEMBER_REMOVED: 'team.member.removed',
+  SALARY_PAID: 'team.salary.paid',
+  COMMISSION_CREATED: 'team.commission.created',
+  COMMISSION_UPDATED: 'team.commission.updated',
+  COMMISSION_DELETED: 'team.commission.deleted',
 } as const;
 
 /** One of the {@link ACTIVITY_ACTIONS} values. */

@@ -52,6 +52,16 @@ const RUNTIME_EXPORTS = [
   'BUILT_IN_ROLE_KEYS',
   'RBAC_ERROR_CODES',
   'ACTIVITY_ACTIONS',
+  'isSnowflake',
+  'TEAM_ERROR_CODES',
+  'INVITATION_TTL_MS',
+  'MEMBER_STATUSES',
+  'inviteMemberSchema',
+  'acceptInvitationSchema',
+  'payMemberSchema',
+  'updateMemberSchema',
+  'setLimitSchema',
+  'commissionConfigSchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {

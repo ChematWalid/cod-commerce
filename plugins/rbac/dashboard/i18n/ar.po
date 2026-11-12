@@ -200,6 +200,54 @@ msgid "rbac.member-access.changed"
 msgstr "تغيير صلاحيات عضو"
 
 #. js-lingui-explicit-id
+msgid "team.member.invited"
+msgstr "دعوة عضو"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.resent"
+msgstr "إعادة إرسال دعوة"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.revoked"
+msgstr "إلغاء دعوة"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.accepted"
+msgstr "قبول دعوة"
+
+#. js-lingui-explicit-id
+msgid "team.member.updated"
+msgstr "تعديل عضو"
+
+#. js-lingui-explicit-id
+msgid "team.member.deactivated"
+msgstr "تعطيل عضو"
+
+#. js-lingui-explicit-id
+msgid "team.member.reactivated"
+msgstr "إعادة تفعيل عضو"
+
+#. js-lingui-explicit-id
+msgid "team.member.removed"
+msgstr "إزالة عضو"
+
+#. js-lingui-explicit-id
+msgid "team.salary.paid"
+msgstr "دفع راتب"
+
+#. js-lingui-explicit-id
+msgid "team.commission.created"
+msgstr "إنشاء عمولة"
+
+#. js-lingui-explicit-id
+msgid "team.commission.updated"
+msgstr "تعديل عمولة"
+
+#. js-lingui-explicit-id
+msgid "team.commission.deleted"
+msgstr "حذف عمولة"
+
+#. js-lingui-explicit-id
 msgid "rbac.role-not-found"
 msgstr "هذا الدور لم يعد موجودًا."
 

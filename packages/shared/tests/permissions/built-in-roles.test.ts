@@ -106,8 +106,8 @@ describe('error codes and activity actions', () => {
     expect(Object.values(RBAC_ERROR_CODES).every((c) => c.startsWith('rbac.'))).toBe(true);
   });
 
-  it('exposes the five activity actions', () => {
-    expect(Object.values(ACTIVITY_ACTIONS)).toEqual([
+  it('exposes the five roles activity actions', () => {
+    expect(Object.values(ACTIVITY_ACTIONS).filter((action) => action.startsWith('rbac.'))).toEqual([
       'rbac.role.created',
       'rbac.role.updated',
       'rbac.role.deleted',

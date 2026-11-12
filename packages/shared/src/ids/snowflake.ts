@@ -55,6 +55,11 @@ export class ClockMovedBackwardsError extends DomainError {
   }
 }
 
+/** Whether `value` is a valid {@link Snowflake}: a decimal integer from 1 to {@link MAX_SNOWFLAKE}. */
+export function isSnowflake(value: string): value is Snowflake {
+  return SNOWFLAKE_FORMAT.test(value) && BigInt(value) <= MAX_SNOWFLAKE;
+}
+
 /**
  * Validates and brands a snowflake id.
  *
@@ -62,10 +67,10 @@ export class ClockMovedBackwardsError extends DomainError {
  * without leading zeros.
  */
 export function toSnowflake(value: string): Snowflake {
-  if (!SNOWFLAKE_FORMAT.test(value) || BigInt(value) > MAX_SNOWFLAKE) {
+  if (!isSnowflake(value)) {
     throw new InvalidSnowflakeError(value);
   }
-  return value as Snowflake;
+  return value;
 }
 
 /**
