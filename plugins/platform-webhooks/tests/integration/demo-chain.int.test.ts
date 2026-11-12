@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { demoSignature } from '../../infrastructure/demo/demo-webhook.handler';
 import { createWebhooksTestEnvironment, until, webhooksKit } from './webhooks-kit';
 
-const SNOWFLAKE_WORKER_ID = 1003;
+const SNOWFLAKE_WORKER_ID = 1000;
 
 const SECRET_A = 'synthetic-demo-signing-secret-A';
 const SECRET_B = 'synthetic-demo-signing-secret-B';
@@ -116,11 +116,13 @@ describe('demo webhook chain', () => {
     // Arrange
     const before = await kit.sql(`SELECT count(*)::int AS n FROM "inbound_webhook" WHERE "provider" = 'demo'`);
 
-    // Act
-    const response = await postDemo(businesses.a.stores[0].subdomain, '{"x":1}', {
+    const body = '{"x":1}';
+
+    // Act: a well-formed signature of the right length, made with the wrong secret
+    const response = await postDemo(businesses.a.stores[0].subdomain, body, {
       secret: SECRET_A,
       eventId: 'evt-bad',
-      signature: 'sha256=00',
+      signature: demoSignature('wrong', Buffer.from(body)),
     });
 
     // Assert
