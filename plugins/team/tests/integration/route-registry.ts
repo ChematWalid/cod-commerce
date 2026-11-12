@@ -1,5 +1,7 @@
 import {
   commissionInput,
+  FOREIGN_ROLE_REFUSAL,
+  FOREIGN_STORE_REFUSAL,
   IDEMPOTENCY_KEY,
   inviteInput,
   type RouteEntry,
@@ -21,6 +23,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     route: '/employees',
     access: 'team.members.invite',
     foreign: 'refused',
+    refusedWith: FOREIGN_ROLE_REFUSAL,
     url: fixed('/employees'),
     body: inviteInput,
   },
@@ -120,6 +123,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     route: '/commissions/configs',
     access: 'team.commissions.set',
     foreign: 'refused',
+    refusedWith: FOREIGN_STORE_REFUSAL,
     url: fixed('/commissions/configs'),
     body: commissionInput,
   },

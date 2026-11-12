@@ -1,4 +1,4 @@
-import type { PermissionKey } from '@cod/shared';
+import { type PermissionKey, RBAC_ERROR_CODES, TEAM_ERROR_CODES } from '@cod/shared';
 
 /**
  * What a handler demands: one catalog permission, or nobody (the two invitation routes the invitee calls with a
@@ -21,7 +21,7 @@ export interface TargetIds {
 
 /**
  * What another business's caller gets when it names the target's ids: `not-found` (404, Team's not-found code),
- * `refused` (a 4xx refusal of the input, never a permission one), `own-only` (an answer about its own business only)
+ * `refused` (a 4xx refusal of the input with one of the entry's `refusedWith` codes, never a permission one or a 500), `own-only` (an answer about its own business only)
  * or `token-bound` (public: only the token decides, and an unknown one opens nothing).
  */
 export type ForeignOutcome = 'not-found' | 'refused' | 'own-only' | 'token-bound';
@@ -31,6 +31,8 @@ export interface OperationEntry {
   readonly operation: string;
   readonly access: Access;
   readonly foreign: ForeignOutcome;
+  /** The only codes a `refused` entry may answer with: refusals of the input, never of the caller or a fault. */
+  readonly refusedWith?: readonly string[];
   readonly document: string;
   readonly variables: (ids: TargetIds) => Readonly<Record<string, unknown>>;
 }
@@ -42,12 +44,19 @@ export interface RouteEntry {
   readonly route: string;
   readonly access: Access;
   readonly foreign: ForeignOutcome;
+  /** The only codes a `refused` entry may answer with: refusals of the input, never of the caller or a fault. */
+  readonly refusedWith?: readonly string[];
   /** The route with its parameters filled. */
   readonly url: (ids: TargetIds) => string;
   readonly body?: (ids: TargetIds) => Readonly<Record<string, unknown>>;
 }
 
 type Call = Readonly<Record<string, unknown>>;
+
+/** An invite naming another business's role: rbac finds no such role of the caller's business. */
+export const FOREIGN_ROLE_REFUSAL: readonly string[] = [RBAC_ERROR_CODES.ROLE_NOT_FOUND];
+/** A commission scoped to another business's store: not a store of the caller's business. */
+export const FOREIGN_STORE_REFUSAL: readonly string[] = [TEAM_ERROR_CODES.INVALID_INPUT];
 
 export const IDEMPOTENCY_KEY = 'synthetic-key';
 /** A token no invitation holds. */

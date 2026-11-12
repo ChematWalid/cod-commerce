@@ -26,6 +26,7 @@ const FORBIDDEN_STATUS = 403;
 const UNAUTHORIZED_STATUS = 401;
 const INVALID_STATUS = 400;
 const FIRST_FAILURE_STATUS = 400;
+const FIRST_SERVER_FAULT_STATUS = 500;
 const NO_CODE = 'NO_CODE';
 
 let businesses: TwoBusinesses;
@@ -69,10 +70,18 @@ async function callRoute(entry: RouteEntry): Promise<Outcome> {
   return { code: answer.status < FIRST_FAILURE_STATUS ? undefined : (code ?? NO_CODE), ...answer };
 }
 
-/** Every row business A owns in the tables Team writes or reaches. */
+/** Every row business A owns in the tables Team writes or reaches, rbac's bindings and activity log included. */
 async function snapshotOfA(): Promise<unknown[]> {
   const id = businesses.a.businessId;
-  const tables = ['team_member', 'invitation', 'commission_config', 'salary_payment', 'member_role_assignment'];
+  const tables = [
+    'team_member',
+    'invitation',
+    'commission_config',
+    'salary_payment',
+    'member_role_assignment',
+    'role_binding',
+    'activity_log',
+  ];
   const rows = await Promise.all(
     tables.map((table) => kit.query(`SELECT * FROM ${table} WHERE "businessId" = $1 ORDER BY id`, [id])),
   );
@@ -83,8 +92,29 @@ async function snapshotOfA(): Promise<unknown[]> {
   return [...rows, accounts];
 }
 
+/** Activity rows of any other business that name one of A's members or commissions. */
+function activityNamingAElsewhere(): Promise<unknown[]> {
+  const named = [targets.memberId, targets.invitedMemberId, targets.commissionId];
+  return kit.query('SELECT * FROM activity_log WHERE "businessId" <> $1 AND "entityId" = ANY($2)', [
+    businesses.a.businessId,
+    named,
+  ]);
+}
+
+/** A refusal of the input with one of the entry's codes: never a permission refusal, a fault or a bare guard body. */
+function expectInputRefusal(refusedWith: readonly string[] | undefined, outcome: Outcome): void {
+  expect(refusedWith ?? []).toContain(outcome.code);
+  if (outcome.status === undefined) return;
+  expect(outcome.status).toBeGreaterThanOrEqual(FIRST_FAILURE_STATUS);
+  expect(outcome.status).toBeLessThan(FIRST_SERVER_FAULT_STATUS);
+  expect(outcome.status).not.toBe(FORBIDDEN_STATUS);
+}
+
 /** Asserts what business B gets when it names A's ids, as the registry entry declares it. */
-function expectForeignOutcome(foreign: OperationEntry['foreign'], outcome: Outcome): void {
+function expectForeignOutcome(
+  { foreign, refusedWith }: Pick<OperationEntry, 'foreign' | 'refusedWith'>,
+  outcome: Outcome,
+): void {
   // A refusal's `path` echoes the URL the caller itself sent, with the id it named; that tells it nothing of A.
   const text = JSON.stringify(outcome.body, (key, value: unknown) => (key === 'path' ? undefined : value));
   expect(secretsOfA.filter((secret) => text.includes(secret))).toEqual([]);
@@ -92,11 +122,7 @@ function expectForeignOutcome(foreign: OperationEntry['foreign'], outcome: Outco
     expect(NOT_FOUND_CODES).toContain(outcome.code);
     if (outcome.status !== undefined) expect(outcome.status).toBe(NOT_FOUND_STATUS);
   }
-  if (foreign === 'refused') {
-    expect(outcome.code).toBeDefined();
-    expect(outcome.code).not.toBe('FORBIDDEN');
-    if (outcome.status !== undefined) expect(outcome.status).toBeGreaterThanOrEqual(FIRST_FAILURE_STATUS);
-  }
+  if (foreign === 'refused') expectInputRefusal(refusedWith, outcome);
   if (foreign === 'own-only') expect(outcome.code).toBeUndefined();
   if (foreign === 'token-bound') {
     expect(outcome.code).toBe('team.invitation-invalid');
@@ -177,8 +203,9 @@ describe('the Team isolation sweep', () => {
       const outcome = await callOperation(entry);
 
       // Assert
-      expectForeignOutcome(entry.foreign, outcome);
+      expectForeignOutcome(entry, outcome);
       expect(await snapshotOfA()).toEqual(before);
+      expect(await activityNamingAElsewhere()).toEqual([]);
     });
 
     it.each(ROUTE_REGISTRY)('$method $route answers $foreign and changes nothing of A', async (entry) => {
@@ -190,8 +217,9 @@ describe('the Team isolation sweep', () => {
       const outcome = await callRoute(entry);
 
       // Assert
-      expectForeignOutcome(entry.foreign, outcome);
+      expectForeignOutcome(entry, outcome);
       expect(await snapshotOfA()).toEqual(before);
+      expect(await activityNamingAElsewhere()).toEqual([]);
     });
   });
 
