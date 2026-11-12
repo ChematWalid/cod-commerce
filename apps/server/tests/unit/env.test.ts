@@ -41,6 +41,10 @@ function failureOf(overrides: Record<string, string | undefined>): EnvValidation
 const issuePaths = (error: EnvValidationError): string[] => error.issues.map((issue) => issue.path);
 
 describe('loadEnv', () => {
+  it('requires APP_ENV, with no default (SRV-3)', () => {
+    expect(issuePaths(failureOf({ APP_ENV: undefined }))).toEqual(['APP_ENV']);
+  });
+
   it('applies port and pool defaults for the api role', () => {
     expect(loadEnv(valid)).toMatchObject({
       API_PORT: 3000,

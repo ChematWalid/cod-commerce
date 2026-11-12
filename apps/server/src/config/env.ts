@@ -102,7 +102,7 @@ const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRed
 const internalKeys = z.string().superRefine(parsedBy(parseInternalKeys, InvalidInternalKeysError));
 
 const baseSchema = z.object({
-  APP_ENV: z.enum(APP_ENVS).default('development'),
+    APP_ENV: z.enum(APP_ENVS),
   ROLE: z.enum(SERVER_ROLES),
   TZ: z.literal('UTC', { error: 'must be UTC' }),
   DATABASE_URL: databaseUrl,
