@@ -1,4 +1,3 @@
-import { posix } from 'node:path';
 import { Readable } from 'node:stream';
 import type { AssetStorageStrategy } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
@@ -82,7 +81,14 @@ describe('PrefixedAssetStorage', () => {
       const bucket = new MemoryBucket();
       const storage = new PrefixedAssetStorage(bucket, 'assets/');
       const seen: string[] = [];
-      for (const method of ['writeFileFromBuffer', 'readFileToBuffer', 'readFileToStream', 'deleteFile', 'fileExists'] as const) {
+      for (const method of [
+        'writeFileFromBuffer',
+        'writeFileFromStream',
+        'readFileToBuffer',
+        'readFileToStream',
+        'deleteFile',
+        'fileExists',
+      ] as const) {
         const original = bucket[method].bind(bucket) as (k: string, ...rest: unknown[]) => Promise<unknown>;
         (bucket as unknown as Record<string, unknown>)[method] = (k: string, ...rest: unknown[]) => {
           seen.push(k);
@@ -92,19 +98,18 @@ describe('PrefixedAssetStorage', () => {
 
       // Act
       await storage.writeFileFromBuffer(identifier, Buffer.from('x'));
+      await storage.writeFileFromStream(identifier, Readable.from([Buffer.from('x')]));
       await storage.readFileToBuffer(identifier);
       await storage.readFileToStream(identifier);
       await storage.fileExists(identifier);
       await storage.deleteFile(identifier);
 
       // Assert
-      const keys = seen;
-      expect(keys).toHaveLength(5);
-      for (const used of keys) {
+      expect(seen).toHaveLength(6);
+      for (const used of seen) {
         expect(used.startsWith('assets/')).toBe(true);
         expect(used).toBe(key);
         expect(used.split('/')).not.toContain('..');
-        expect(posix.normalize(used)).toBe(used === 'assets/' ? 'assets/' : used);
       }
     });
   });
