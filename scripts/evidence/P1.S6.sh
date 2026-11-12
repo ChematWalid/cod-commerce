@@ -318,7 +318,8 @@ emit_raw "$f" "The same body again: 200, nothing is processed twice" POST "/webh
 await_sql "inbound processed" "select count(*) from inbound_webhook where provider = 'demo' and status = 'processed'" 1
 await_sql "demo-log done" "select count(*) from outbox_delivery where consumer = 'demo-log' and status = 'done'" 1
 emit_sql "$f" "One dedupe key" "select provider, \"accountId\", count(*) as keys from inbound_webhook_key where provider = 'demo' group by 1, 2;"
-[[ "$SQL_OUT" == *" 1"* ]] || fail "dedupe key count: $SQL_OUT"
+dedupe_keys=$(psql_value "select count(*) from inbound_webhook_key where provider = 'demo'")
+[[ "$dedupe_keys" == 1 ]] || fail "dedupe key count: $dedupe_keys"
 emit_sql "$f" "One stored webhook, processed" "select provider, status, attempts, \"businessId\" = $business_demo as \"is business A\", count(*) as rows from inbound_webhook where provider = 'demo' group by 1, 2, 3, 4;"
 [[ "$SQL_OUT" == *processed* && "$SQL_OUT" == *"(1 row)"* ]] || fail "inbound rows: $SQL_OUT"
 emit_sql "$f" "The outbox event the handler wrote, relayed" "select topic, status, count(*) as events from outbox_event where topic = 'platform.demo' group by 1, 2;"
@@ -337,7 +338,9 @@ node -e 'process.stdout.write("x".repeat(262145))' >"$work/big.json"
 wh_post demo demo "$work/big.json" "$sig_a"; want_status "oversize" 413; redact_sig
 emit_raw "$f" "A body of 262 145 bytes (one over the 262 144 limit): 413" POST "/webhooks/demo/demo" "(262145 bytes, not shown)"
 emit_sql "$f" "Still one dedupe key and one stored webhook after the refusals" "select (select count(*) from inbound_webhook_key where provider = 'demo') as keys, (select count(*) from inbound_webhook where provider = 'demo') as webhooks;"
-[[ "$SQL_OUT" == *" 1 |"*" 1"* ]] || fail "counts after refusals: $SQL_OUT"
+after_keys=$(psql_value "select count(*) from inbound_webhook_key where provider = 'demo'")
+after_hooks=$(psql_value "select count(*) from inbound_webhook where provider = 'demo'")
+[[ "$after_keys" == 1 && "$after_hooks" == 1 ]] || fail "counts after refusals: keys=$after_keys webhooks=$after_hooks"
 
 # --- secrets.md ----------------------------------------------------------------------------------
 f="$out/api/secrets.md"

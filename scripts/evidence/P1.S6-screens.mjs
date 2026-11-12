@@ -101,7 +101,8 @@ async function shootFlags(browser, lang, vp) {
     const keyDirections = await page
       .locator('[data-testid^="flag-row-"] bdi')
       .evaluateAll((els) => els.map((e) => getComputedStyle(e).direction));
-    if (keyDirections.length === 0) fail(`flags-${tag}: no flag key is wrapped for left-to-right display`);
+    if (keyDirections.length !== FLAG_COUNT || !keyDirections.every((d) => d === 'ltr'))
+      fail(`flags-${tag}: flag keys are not all wrapped for left-to-right display: ${keyDirections.join(',')}`);
     await shoot(page, `flags-${tag}`, lang);
 
     await page.locator(`[data-testid="flag-overrides-${AI_KEY}"]`).click();
