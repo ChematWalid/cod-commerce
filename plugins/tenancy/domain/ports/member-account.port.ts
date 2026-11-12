@@ -16,6 +16,15 @@ export interface MemberAccount {
   readonly userId: number;
 }
 
+/** Who a live member account is, as Team lists it (D215). */
+export interface MemberProfile {
+  readonly administratorId: number;
+  readonly businessId: Snowflake;
+  readonly emailAddress: string;
+  readonly firstName: string;
+  readonly lastName: string;
+}
+
 /** The commerce engine's administrator accounts of team members (D202). */
 export interface MemberAccountPort {
   /**
@@ -26,6 +35,8 @@ export interface MemberAccountPort {
   create(ctx: OperationContext, request: MemberAccountRequest): Promise<MemberAccount>;
   /** The business of a live administrator, or `null` when there is none or it belongs to no business. */
   businessIdOf(ctx: OperationContext, administratorId: number): Promise<Snowflake | null>;
+  /** The profile of a live administrator of some business, or `null` when there is none. */
+  profileOf(ctx: OperationContext, administratorId: number): Promise<MemberProfile | null>;
   /** Soft-deletes the administrator and its user, and ends its sessions. */
   softDelete(ctx: OperationContext, administratorId: number): Promise<void>;
 }

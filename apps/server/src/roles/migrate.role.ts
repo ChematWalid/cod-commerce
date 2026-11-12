@@ -6,6 +6,12 @@ import {
   RbacConvergeService,
   SESSION_FLUSH_SETTLE_MS,
 } from '@cod/plugin-rbac';
+import {
+  asOperationContext as asTeamContext,
+  type MemberConvergeReport,
+  TeamConvergeFailedError,
+  TeamConvergeService,
+} from '@cod/plugin-team';
 import { toPostgresFields } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
 import { bootstrapWorker, Logger, type MigrationDiagnostic, runMigrations } from '@vendure/core';
@@ -24,6 +30,7 @@ export interface MigrateReport {
   migrationsRun: string[];
   seed: SeedReport;
   rbacConverged: ConvergeReport;
+  teamConverged: MemberConvergeReport;
 }
 
 /** Running the migrations failed, or left the schema out of step with the entities. */
@@ -93,6 +100,23 @@ function logConvergeFailures(error: unknown): void {
 }
 
 /**
+ * Makes every live administrator holding a role a team member (D215), after the roles converged; a business that
+ * fails is logged by id and rejects this once the others are done, as for the roles.
+ */
+async function convergeMembers(app: INestApplicationContext): Promise<MemberConvergeReport> {
+  try {
+    return await app.get(TeamConvergeService).convergeMembers(asTeamContext(await superadminContext(app)));
+  } catch (error: unknown) {
+    if (error instanceof TeamConvergeFailedError) {
+      for (const { businessId, reason } of error.failures) {
+        Logger.error(`Business ${businessId} failed to converge its members: ${reason}`, CONVERGE_LOG_CONTEXT);
+      }
+    }
+    throw error;
+  }
+}
+
+/**
  * Converges the built-in roles of every business (D57); a business that fails rejects this, so the migrate exits
  * non-zero once the others are done. The worker then stays up long enough for the sessions' delayed second eviction.
  */
@@ -113,7 +137,7 @@ async function convergeRoles(app: INestApplicationContext): Promise<ConvergeRepo
 /**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
- * queue to seed the platform defaults and converge the roles of existing businesses. Concurrent runs are serialised, so each migration applies once.
+ * queue to seed the platform defaults, converge the roles of existing businesses and then their members. Concurrent runs are serialised, so each migration applies once.
  */
 export async function runMigrate(env: AppEnv): Promise<MigrateReport> {
   return withMigrateLock(env, async () => {
@@ -122,7 +146,8 @@ export async function runMigrate(env: AppEnv): Promise<MigrateReport> {
     try {
       const seed = await seedPlatformDefaults(worker.app);
       const rbacConverged = await convergeRoles(worker.app);
-      return { migrationsRun, seed, rbacConverged };
+      const teamConverged = await convergeMembers(worker.app);
+      return { migrationsRun, seed, rbacConverged, teamConverged };
     } finally {
       await worker.app.close();
     }

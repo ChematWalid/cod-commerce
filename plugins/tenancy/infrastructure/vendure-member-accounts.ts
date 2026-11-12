@@ -2,7 +2,12 @@ import { isSnowflake, type Snowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { type Administrator, AdministratorService, type RequestContext, UserInputError } from '@vendure/core';
 import { MemberEmailTakenError } from '../domain/errors';
-import type { MemberAccount, MemberAccountPort, MemberAccountRequest } from '../domain/ports/member-account.port';
+import type {
+  MemberAccount,
+  MemberAccountPort,
+  MemberAccountRequest,
+  MemberProfile,
+} from '../domain/ports/member-account.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { SuperadminContextFactory } from './superadmin-context.factory';
 
@@ -49,6 +54,14 @@ export class VendureMemberAccounts implements MemberAccountPort {
   async businessIdOf(ctx: OperationContext, administratorId: number): Promise<Snowflake | null> {
     const administrator = await this.administrators.findOne(await this.superadmin(ctx), administratorId);
     return administrator === undefined ? null : businessIdOf(administrator);
+  }
+
+  async profileOf(ctx: OperationContext, administratorId: number): Promise<MemberProfile | null> {
+    const administrator = await this.administrators.findOne(await this.superadmin(ctx), administratorId);
+    const businessId = administrator === undefined ? null : businessIdOf(administrator);
+    if (administrator === undefined || businessId === null) return null;
+    const { emailAddress, firstName, lastName } = administrator;
+    return { administratorId, businessId, emailAddress, firstName, lastName };
   }
 
   async softDelete(ctx: OperationContext, administratorId: number): Promise<void> {

@@ -1,10 +1,17 @@
 import type { Snowflake } from '@cod/shared';
-import type { MemberAccount, MemberAccountPort, MemberAccountRequest } from '../../domain/ports/member-account.port';
+import type {
+  MemberAccount,
+  MemberAccountPort,
+  MemberAccountRequest,
+  MemberProfile,
+} from '../../domain/ports/member-account.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 
 interface StoredAccount {
   readonly businessId: Snowflake;
   readonly emailAddress: string;
+  readonly firstName: string;
+  readonly lastName: string;
   deleted: boolean;
 }
 
@@ -17,6 +24,8 @@ export class InMemoryMemberAccounts implements MemberAccountPort {
     this.accounts.set(administratorId, {
       businessId: request.businessId,
       emailAddress: request.emailAddress,
+      firstName: request.firstName,
+      lastName: request.lastName,
       deleted: false,
     });
     return Promise.resolve({ administratorId, userId: administratorId });
@@ -25,6 +34,13 @@ export class InMemoryMemberAccounts implements MemberAccountPort {
   businessIdOf(_ctx: OperationContext, administratorId: number): Promise<Snowflake | null> {
     const account = this.accounts.get(administratorId);
     return Promise.resolve(account === undefined || account.deleted ? null : account.businessId);
+  }
+
+  profileOf(_ctx: OperationContext, administratorId: number): Promise<MemberProfile | null> {
+    const account = this.accounts.get(administratorId);
+    if (account === undefined || account.deleted) return Promise.resolve(null);
+    const { businessId, emailAddress, firstName, lastName } = account;
+    return Promise.resolve({ administratorId, businessId, emailAddress, firstName, lastName });
   }
 
   softDelete(_ctx: OperationContext, administratorId: number): Promise<void> {

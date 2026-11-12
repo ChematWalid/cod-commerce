@@ -14,3 +14,5 @@ export const LOCALE_MAX_LENGTH = 2;
 export const INVITATION_TOKEN_BYTES = 32;
 /** Length of a SHA-256 digest in hex, the only form a token is stored in (D205). */
 export const TOKEN_HASH_HEX_LENGTH = 64;
+/** Businesses the member converge reads per page (tenancy serves at most 500). */
+export const MEMBER_CONVERGE_PAGE_SIZE = 100;

@@ -18,3 +18,15 @@ export const TRANSACTION: unique symbol = Symbol('TeamTransaction');
 
 /** Injection token of the `IdGeneratorPort` adapter. */
 export const ID_GENERATOR: unique symbol = Symbol('TeamIdGenerator');
+
+/** Injection token of the `ClockPort` adapter. */
+export const CLOCK: unique symbol = Symbol('TeamClock');
+
+/** Injection token of the `BusinessDirectoryPort` adapter. */
+export const BUSINESS_DIRECTORY: unique symbol = Symbol('TeamBusinessDirectory');
+
+/** Injection token of the `AccessHoldersPort` adapter. */
+export const ACCESS_HOLDERS: unique symbol = Symbol('TeamAccessHolders');
+
+/** Injection token of the `AdministratorProfilesPort` adapter. */
+export const ADMINISTRATOR_PROFILES: unique symbol = Symbol('TeamAdministratorProfiles');

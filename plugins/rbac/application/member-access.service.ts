@@ -93,6 +93,17 @@ export class MemberAccessService {
     return this.viewOf(administratorId, held, new Map((await roles.all(ctx, scope)).map((role) => [role.id, role])));
   }
 
+  /**
+   * Every live administrator of the business holding at least one role, once each, in ascending order. Team adopts
+   * them as members (D215); a soft-deleted holder is not listed (audit RBAC-3).
+   */
+  async memberAdministratorIds(ctx: OperationContext, scope: TenantScope): Promise<readonly number[]> {
+    const roleIds = (await this.ports.roles.all(ctx, scope)).map((role) => role.id);
+    if (roleIds.length === 0) return [];
+    const rows = await this.ports.assignments.ofRoles(ctx, scope, roleIds);
+    return [...new Set(rows.map((row) => row.administratorId))].sort((left, right) => left - right);
+  }
+
   private async setInTransaction(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
     const { scope } = command.actor;
     await this.ports.lock.acquire(ctx, scope.businessId);

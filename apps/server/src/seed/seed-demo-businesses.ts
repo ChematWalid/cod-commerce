@@ -5,6 +5,7 @@ import {
   ProvisionBusinessService,
   SubdomainTakenError,
 } from '@cod/plugin-tenancy';
+import { asOperationContext as asTeamContext, TeamConvergeService } from '@cod/plugin-team';
 import { type Snowflake, toSnowflake } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
 import { Administrator, type RequestContext, TransactionalConnection } from '@vendure/core';
@@ -119,5 +120,7 @@ export async function seedDemoBusinesses(app: INestApplicationContext, env: AppE
     created.push(...(await ensureBusiness(app, ctx, demo, password)));
   }
   created.push(...(await seedDemoMembers(app, ctx, DEMO_OWNER_EMAIL, password)));
+  // The seed runs after `migrate`, so its members are made team members here rather than on the next deploy (D215).
+  await app.get(TeamConvergeService).convergeMembers(asTeamContext(ctx));
   return { created };
 }

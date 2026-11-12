@@ -1,6 +1,11 @@
 import type { Snowflake } from '@cod/shared';
 import { BusinessNotFoundError, BusinessOwnerProtectedError, MemberNotInBusinessError } from '../domain/errors';
-import type { MemberAccount, MemberAccountPort, MemberAccountRequest } from '../domain/ports/member-account.port';
+import type {
+  MemberAccount,
+  MemberAccountPort,
+  MemberAccountRequest,
+  MemberProfile,
+} from '../domain/ports/member-account.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { PlatformStorePort } from '../domain/ports/platform-store.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
@@ -49,6 +54,25 @@ export class MemberAccountService {
       const business = await this.ports.platform.findBusiness(transactional, businessId);
       if (business?.ownerAdministratorId === administratorId) throw new BusinessOwnerProtectedError();
       await this.ports.accounts.softDelete(transactional, administratorId);
+    });
+  }
+
+  /**
+   * The profiles of the live administrators of the business among `administratorIds`, in the order asked; an id of
+   * another business, a deleted one or an unknown one is left out (D215).
+   */
+  profilesOf(
+    ctx: OperationContext,
+    businessId: Snowflake,
+    administratorIds: readonly number[],
+  ): Promise<readonly MemberProfile[]> {
+    return this.ports.transaction.run(ctx, async (transactional) => {
+      const profiles: MemberProfile[] = [];
+      for (const administratorId of administratorIds) {
+        const profile = await this.ports.accounts.profileOf(transactional, administratorId);
+        if (profile?.businessId === businessId) profiles.push(profile);
+      }
+      return profiles;
     });
   }
 }

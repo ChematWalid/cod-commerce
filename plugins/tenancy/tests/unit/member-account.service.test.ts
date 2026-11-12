@@ -111,4 +111,36 @@ describe('MemberAccountService', () => {
     await expect(deleting).rejects.toBeInstanceOf(BusinessOwnerProtectedError);
     expect(await accounts.businessIdOf(ctx, administratorId)).toBe(BUSINESS_A);
   });
+
+  it('reads the profiles of live accounts of the business only, in the order asked', async () => {
+    // Arrange
+    const { service } = await setUp();
+    const second = await service.create(ctx, { ...commandFor(), emailAddress: 'second@example.test' });
+    const first = await service.create(ctx, commandFor());
+    const ofB = await service.create(ctx, { ...commandFor(BUSINESS_B), emailAddress: 'b@example.test' });
+    const deleted = await service.create(ctx, { ...commandFor(), emailAddress: 'gone@example.test' });
+    await service.softDelete(ctx, BUSINESS_A, deleted.administratorId);
+    const ids = [first, second, ofB, deleted].map((account) => account.administratorId);
+
+    // Act
+    const profiles = await service.profilesOf(ctx, BUSINESS_A, [...ids, 999]);
+
+    // Assert
+    expect(profiles).toEqual([
+      {
+        administratorId: first.administratorId,
+        businessId: BUSINESS_A,
+        emailAddress: 'member@example.test',
+        firstName: 'Synthetic',
+        lastName: 'Member',
+      },
+      {
+        administratorId: second.administratorId,
+        businessId: BUSINESS_A,
+        emailAddress: 'second@example.test',
+        firstName: 'Synthetic',
+        lastName: 'Member',
+      },
+    ]);
+  });
 });

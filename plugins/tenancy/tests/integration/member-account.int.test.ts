@@ -167,4 +167,30 @@ describe('MemberAccountService', () => {
     await expect(deleting).rejects.toBeInstanceOf(BusinessOwnerProtectedError);
     expect((await rowOf(ownerId)).deletedAt).toBeNull();
   });
+
+  it('reads the profiles of live administrators of the business only', async () => {
+    // Arrange
+    const ownerOfA = await ownerIdOf(businesses.a);
+    const ownerOfB = await ownerIdOf(businesses.b);
+    const deleted = await service().create(await anonymous(), commandFor(businesses.a));
+    await service().softDelete(await anonymous(), toSnowflake(businesses.a.businessId), deleted.administratorId);
+
+    // Act
+    const profiles = await service().profilesOf(await anonymous(), toSnowflake(businesses.a.businessId), [
+      ownerOfA,
+      ownerOfB,
+      deleted.administratorId,
+    ]);
+
+    // Assert
+    expect(profiles).toEqual([
+      {
+        administratorId: ownerOfA,
+        businessId: businesses.a.businessId,
+        emailAddress: businesses.a.owner.email,
+        firstName: 'a',
+        lastName: 'Owner',
+      },
+    ]);
+  });
 });
