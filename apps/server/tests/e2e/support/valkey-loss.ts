@@ -38,13 +38,38 @@ export function testRedisUrl(): string {
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Polls `read` until it returns a value, failing after `timeoutMs`. */
-export async function until<T>(read: () => Promise<T | undefined>, timeoutMs = DRAIN_TIMEOUT_MS): Promise<T> {
+/**
+ * Polls `read` until it returns a value. After `timeoutMs` it fails with what `describe` reports (the state actually
+ * reached), so a real defect shows its rows instead of a bare timeout.
+ */
+export async function until<T>(
+  read: () => Promise<T | undefined>,
+  timeoutMs = DRAIN_TIMEOUT_MS,
+  describe: () => Promise<string> = () => Promise.resolve(''),
+): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const value = await read();
     if (value !== undefined) return value;
-    if (Date.now() > deadline) throw new Error('the condition did not hold in time');
+    if (Date.now() > deadline) throw new Error(`the condition did not hold in time ${await describe()}`.trim());
     await sleep(POLL_MS);
   }
 }
+
+/**
+ * The rows still open across the whole chain, read in ONE statement so they come from one snapshot. Read one table at a
+ * time, an event relayed between the reads would hide its new `pending` deliveries: the delivery count was taken before
+ * they existed and the event count after it stopped being `pending`.
+ */
+export const SETTLED_SQL = `SELECT
+    (SELECT count(*)::int FROM "outbox_delivery" WHERE "status" <> 'done') AS "openDeliveries",
+    (SELECT count(*)::int FROM "outbox_delivery") AS "deliveries",
+    (SELECT count(*)::int FROM "inbound_webhook" WHERE "status" <> 'processed') AS "openWebhooks",
+    (SELECT count(*)::int FROM "inbound_webhook") AS "webhooks",
+    (SELECT count(*)::int FROM "outbox_event" WHERE "status" = 'pending') AS "pendingEvents"`;
+
+/** Each delivery's and webhook's status, for the timeout message of the settled wait. */
+export const STATUS_REPORT_SQL = `SELECT 'delivery' AS "kind", "outboxId"::text || ':' || "consumer" AS "key", "status", "attempts"
+    FROM "outbox_delivery" WHERE "status" <> 'done'
+  UNION ALL SELECT 'webhook', "id"::text, "status", NULL FROM "inbound_webhook" WHERE "status" <> 'processed'
+  UNION ALL SELECT 'event', "id"::text, "status", NULL FROM "outbox_event" WHERE "status" = 'pending'`;
