@@ -32,12 +32,17 @@ type Environment = ReturnType<typeof createRbacTestEnvironment>;
  */
 describe('a session flush across server processes', () => {
   const a = createRbacTestEnvironment(SERVER_A_WORKER_ID, { sharedCache: SHARED_CACHE });
-  let b: Environment;
+  let b: Environment | undefined;
   let businesses: TwoBusinesses;
   let team: RoleTeam;
   let counter = 0;
 
   const configOf = (environment: Environment): ConfigService => environment.server.app.get(ConfigService);
+
+  const serverB = (): Environment => {
+    if (!b) throw new Error('Server B did not boot; see the beforeAll error.');
+    return b;
+  };
 
   /** A member of business A holding a fresh role with every orders permission, signed in on server B. */
   async function memberSignedInOnB(): Promise<{ roleId: string; administratorId: string; token: string }> {
@@ -48,13 +53,14 @@ describe('a session flush across server processes', () => {
     );
     const member = await team.member();
     await team.assign(member.id, [role.id]);
-    const token = await actAsInNewSession(b.adminClient, member.credentials, team.home);
+    const token = await actAsInNewSession(serverB().adminClient, member.credentials, team.home);
     return { roleId: role.id, administratorId: member.id, token };
   }
 
   const cancelOnB = (token: string): ReturnType<SimpleGraphQLClient['query']> => {
-    b.adminClient.setAuthToken(token);
-    return b.adminClient.query(CANCEL_ORDER);
+    const { adminClient } = serverB();
+    adminClient.setAuthToken(token);
+    return adminClient.query(CANCEL_ORDER);
   };
 
   beforeAll(async () => {
@@ -67,14 +73,19 @@ describe('a session flush across server processes', () => {
       port: SERVER_B_PORT,
       attachToDatabase: String(configOf(a).dbConnectionOptions.database),
     });
-    await b.server.init({ initialData: PLUGIN_TEST_INITIAL_DATA });
+    await serverB().server.init({ initialData: PLUGIN_TEST_INITIAL_DATA });
   }, 120_000);
 
   afterAll(async () => {
     // The delayed repeat deletes (D55) must not reach a closed Valkey client.
-    await settleSessionFlushes();
-    await b.server.destroy();
-    await a.server.destroy();
+    // Each server is torn down on its own: a failed boot of B must neither hide the setup error nor leave A's
+    // port and Postgres pool open.
+    try {
+      await settleSessionFlushes();
+      await b?.server.destroy();
+    } finally {
+      await a.server.destroy();
+    }
   });
 
   it('runs two servers that keep sessions in one Valkey namespace, each through its own cache', async () => {
@@ -84,14 +95,14 @@ describe('a session flush across server processes', () => {
 
     // Act
     await cacheA.set(key, 'written by A');
-    const readByB = await b.server.app.get(CacheService).get<string>(key);
+    const readByB = await serverB().server.app.get(CacheService).get<string>(key);
     await cacheA.delete(key);
 
     // Assert
     const sessionsA = configOf(a).authOptions.sessionCacheStrategy;
-    const sessionsB = configOf(b).authOptions.sessionCacheStrategy;
+    const sessionsB = configOf(serverB()).authOptions.sessionCacheStrategy;
     const storeA = configOf(a).systemOptions.cacheStrategy;
-    const storeB = configOf(b).systemOptions.cacheStrategy;
+    const storeB = configOf(serverB()).systemOptions.cacheStrategy;
     expect(sessionsA).toBeInstanceOf(DefaultSessionCacheStrategy);
     expect(sessionsB).toBeInstanceOf(DefaultSessionCacheStrategy);
     expect(sessionsA).not.toBe(sessionsB);
