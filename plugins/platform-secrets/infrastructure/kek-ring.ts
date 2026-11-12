@@ -17,6 +17,9 @@ export interface KekEntry {
   readonly hex: string;
 }
 
+/** The rotation job id is `kek-{business}-{kid}`, and an id ending in `r<digits>` is read as a continuation id. */
+const CONTINUATION_LIKE_KID = /(^|-)r\d+$/;
+
 const HEX_KEY = new RegExp(`^[0-9a-fA-F]{${String(AES_KEY_BYTES * 2)}}$`);
 
 /**
@@ -40,6 +43,11 @@ export function parseKekEntries(keks: string): readonly KekEntry[] {
     const hex = entry.slice(separator + 1);
     if (!KID_PATTERN.test(kid)) {
       throw new InvalidKekRingError(`entry ${position} has a kid that is not 1 to 16 characters of a-z, 0-9 and -`);
+    }
+    if (CONTINUATION_LIKE_KID.test(kid)) {
+      throw new InvalidKekRingError(
+        `entry ${position} has the kid ${kid}, which reads as a job continuation (r followed by digits); use another, such as k2`,
+      );
     }
     if (!HEX_KEY.test(hex)) {
       throw new InvalidKekRingError(`the key of entry ${position} is not ${String(AES_KEY_BYTES * 2)} hex characters`);

@@ -87,6 +87,17 @@ describe('loadEnv tenant secret keys', () => {
     expect(error.message).not.toContain('zzzz');
   });
 
+  it('refuses a kid that reads as a job continuation, naming it, and accepts k2', () => {
+    // Act
+    const error = failureOf({ TENANT_SECRET_KEKS: `r2:${KEK_ONE}`, TENANT_SECRET_ACTIVE_KID: 'r2' });
+    const env = loadEnv({ ...valid, TENANT_SECRET_KEKS: `k2:${KEK_ONE}`, TENANT_SECRET_ACTIVE_KID: 'k2' });
+
+    // Assert
+    expect(issuePaths(error)).toContain('TENANT_SECRET_KEKS');
+    expect(error.message).toContain('r2');
+    expect(env.TENANT_SECRET_ACTIVE_KID).toBe('k2');
+  });
+
   it.each(['staging', 'production'])('rejects an all-zero placeholder KEK in %s', (appEnv) => {
     // Arrange
     const deployed = {

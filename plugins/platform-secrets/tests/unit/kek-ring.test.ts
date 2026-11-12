@@ -73,6 +73,18 @@ describe('parseKekRing', () => {
     expect(() => parseKekRing(keks, 'k1')).toThrow(InvalidKekRingError);
   });
 
+  it('names the kid that reads as a job continuation, and accepts k2', () => {
+    // Act
+    const failure = failureOf(`r2:${HEX_ONE}`, 'r2');
+    const suffixed = failureOf(`k-r10:${HEX_ONE}`, 'k-r10');
+    const ring = parseKekRing(`k2:${HEX_ONE}`, 'k2');
+
+    // Assert
+    expect(failure.message).toContain('r2');
+    expect(suffixed.message).toContain('k-r10');
+    expect(ring.activeKid).toBe('k2');
+  });
+
   it('never echoes a key in its messages', () => {
     // Arrange
     const attempts = [`k1:${HEX_ONE.slice(1)}`, `k1:${HEX_ONE},k1:${HEX_TWO}`, `k1:${HEX_ONE}`, `bad:${HEX_TWO}zz`];
