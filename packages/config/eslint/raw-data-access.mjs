@@ -62,7 +62,7 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-webhooks/infrastructure/webhook-store.ts',
   // Platform scan of received webhooks for the reconciler (ids, `businessId`, attempts and times only) and the delete of expired keys of `inbound_webhook_key` (D105, D107).
   '**/plugins/platform-webhooks/infrastructure/inbound-due-scan.ts',
-  // The first-use `INSERT … ON CONFLICT ("businessId") DO NOTHING` of a business's data key, with the business taken from the scope; every other read and write in the file goes through TenantRepository (D114).
+  // Two raw statements, both bound to the scope's business: the first-use `INSERT … ON CONFLICT ("businessId") DO NOTHING` of a data key, and the one-statement secret upsert `ON CONFLICT ("businessId", "provider", "ref") DO UPDATE`, so a race raises no unique violation that TypeORM would log with the sealed value; reads and deletes go through TenantRepository (D114, D130).
   '**/plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
   // Selects the `businessId` of data keys wrapped by a KEK other than the active one, across businesses, to queue their rewrap (D114); the rewrap itself goes through TenantRepository.
   '**/plugins/platform-secrets/infrastructure/retired-kek-scan.ts',
