@@ -110,6 +110,21 @@ describe('ENGINE_GRANTS plugin permissions', () => {
     expect(unreviewed).toEqual(['orders.cancel→DeleteTenantBusiness']);
   });
 
+  it.each([
+    [{ 'store.stores.view': ['ReadTenantStore', 'UpdateTenantBusiness'] }, 'store.stores.view→UpdateTenantBusiness'],
+    [{ 'store.stores.view': ['ReadTenantStore', 'DeleteTenantBusiness'] }, 'store.stores.view→DeleteTenantBusiness'],
+    [{ 'settings.business.view': ['UpdateTenantBusiness'] }, 'settings.business.view→UpdateTenantBusiness'],
+  ])('fails the check when a reviewed key gains a permission reviewed only elsewhere, or none', (change, expected) => {
+    // Arrange
+    const widened = { ...ENGINE_GRANTS, ...change };
+
+    // Act
+    const unreviewed = unreviewedPluginGrants(widened, STOCK_PERMISSIONS, REVIEWED_PLUGIN_ENGINE_GRANTS);
+
+    // Assert
+    expect(unreviewed).toEqual([expected]);
+  });
+
   it('leaves stock permissions to the stock check', () => {
     // Arrange
     const widened = { ...ENGINE_GRANTS, 'orders.cancel': ['UpdateAdministrator'] };
