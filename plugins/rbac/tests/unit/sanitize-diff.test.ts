@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REDACTED_VALUE } from '../../domain/constants';
+import { DIFF_OMITTED_VALUE, REDACTED_VALUE } from '../../domain/constants';
 import { sanitizeDiff } from '../../domain/sanitize-diff';
 
 describe('sanitizeDiff', () => {
@@ -68,6 +68,10 @@ describe('sanitizeDiff', () => {
       ['passWord', 'PassWord', 'PASSword', 'SecRet', 'SECRETkey', 'toKen', 'TOKENvalue', 'oTp', 'OTPcode', 'HaSh'],
     ],
     ['api.?key, authorization and cookie in mixed case', ['ApI_kEy', 'APIkey', 'AuthoriZation', 'CooKie']],
+    [
+      'any of them overlapping a benign word',
+      ['footprintOken', 'FootprintOKEN', 'footprintsEcret', 'hashtagsECRET', 'HashtagsEcretId', 'footprintPassword'],
+    ],
   ])('redacts every spelling of the D66 term %s', (_term, keys) => {
     // Act
     const clean = sanitizeDiff(Object.fromEntries(keys.map((key) => [key, 'x'])));
@@ -82,6 +86,18 @@ describe('sanitizeDiff', () => {
 
     // Assert
     expect(clean).toEqual({ [key]: 'x' });
+  });
+
+  it('drops a function, so an own toJSON cannot write unsanitized secrets', () => {
+    // Arrange
+    const diff = { meta: { toJSON: () => ({ password: 'leak' }), label: 'kept' } };
+
+    // Act
+    const stored = JSON.stringify(sanitizeDiff(diff));
+
+    // Assert
+    expect(stored).not.toContain('leak');
+    expect(JSON.parse(stored)).toEqual({ meta: { toJSON: DIFF_OMITTED_VALUE, label: 'kept' } });
   });
 
   it('keeps ordinary keys and values', () => {
