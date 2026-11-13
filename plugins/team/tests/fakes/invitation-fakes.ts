@@ -31,7 +31,7 @@ export class FakeMemberAccess implements MemberAccessPort {
 
   constructor(private readonly log: CallLog) {}
 
-  holdAccess(_ctx: OperationContext, _scope: TenantScope): Promise<void> {
+  holdAccess(): Promise<void> {
     this.log.push('holdAccess');
     return Promise.resolve();
   }

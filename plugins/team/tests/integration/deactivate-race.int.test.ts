@@ -4,7 +4,7 @@ import { createTwoBusinesses, failureOf, PLUGIN_TEST_INITIAL_DATA, type TwoBusin
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { RbacMemberAccessAdapter } from '../../infrastructure/rbac-member-access.adapter';
 import { authTestOptions, createTeamTestEnvironment, TeamKit } from './team-kit';
-import { MEMBER_ACCESS, SET_MEMBER_ACCESS } from './team-operations';
+import { SET_MEMBER_ACCESS } from './team-operations';
 
 const SNOWFLAKE_WORKER_ID = 1024;
 /** How long Team waits for rbac's concurrent call before going on; it finishes at once unless rbac's lock holds it. */
@@ -37,7 +37,7 @@ async function rolesOf(administratorId: number): Promise<string[]> {
     'SELECT "businessRoleId" FROM member_role_assignment WHERE "administratorId" = $1 ORDER BY "businessRoleId"',
     [administratorId],
   );
-  return rows.map((row) => String(row.businessRoleId));
+  return rows.map((row) => row.businessRoleId);
 }
 
 /** Gives the administrator exactly `roleIds` on all stores, as A's owner, through rbac's own mutation. */

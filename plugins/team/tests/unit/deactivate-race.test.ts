@@ -94,8 +94,8 @@ function rbacCommitsBeforeTeamGetsItsLock(world: MemberActionWorld, latest: Memb
     pending = false;
   };
   const hold = world.access.holdAccess.bind(world.access);
-  world.access.holdAccess = async (ctx, scope) => {
-    await hold(ctx, scope);
+  world.access.holdAccess = async () => {
+    await hold();
     commit();
   };
   const write = world.access.setAccess.bind(world.access);
