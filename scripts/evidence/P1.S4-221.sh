@@ -8,7 +8,7 @@
 #   timeout 2400 scripts/evidence/P1.S4-221.sh                          # label "after": any failure fails the script
 #   EV_LABEL=before EV_TESTS_FROM=8fa54c1 timeout 2400 scripts/evidence/P1.S4-221.sh  # a red run with the old helpers
 #
-# EV_TESTS_FROM=<rev> runs the browser files that the #221 commits after <rev> changed at their <rev> version: they are swapped in after the
+# EV_TESTS_FROM=<rev> runs the #221 browser files (EV_TESTS_FILES) at their <rev> version: they are swapped in after the
 # image is built (the build context holds apps/server/tests, so a swap before the build busts the image cache and the
 # rebuild alone outlasts its timeout) and put back on exit. EV_LOOPS and EV_THROTTLED_LOOPS set the loop counts (after: 6
 # and 2; before: 3 and 1, no caller files), EV_CALLERS=0|1 the caller-file run, BROWSER_CPU_THROTTLE_RATE the slowdown (4).
@@ -47,11 +47,14 @@ else
   loops=${EV_LOOPS:-6} throttled_loops=${EV_THROTTLED_LOOPS:-2} run_callers=${EV_CALLERS:-1}
 fi
 run_budget=${EV_RUN_BUDGET_S:-360} callers_budget=${EV_CALLERS_BUDGET_S:-900}
-deadline=$((SECONDS + ${EV_BUDGET_S:-2100}))
 tests_from=${EV_TESTS_FROM:-}
 for number in "$loops" "$throttled_loops" "$run_budget" "$callers_budget" "${EV_BUDGET_S:-2100}"; do
   [[ "$number" =~ ^[0-9]+$ ]] || { echo "evidence: loop counts and budgets must be whole numbers" >&2; exit 1; }
 done
+deadline=$((SECONDS + ${EV_BUDGET_S:-2100}))
+# The files the #221 fix changed (the run harness excluded). A list, not a commit range, so the red run still works on
+# main after the squash merge: fetch the branch commit first (git fetch origin pull/<PR>/head).
+read -r -a TESTS_221 <<<"${EV_TESTS_FILES:-apps/server/tests/browser/dashboard-session.ts apps/server/tests/browser/general-settings.browser.test.ts apps/server/tests/browser/shell-appearance-fixtures.ts apps/server/tests/browser/account-menu-close.browser.test.ts}"
 swapped=() swap_back=""
 out=docs/evidence/P1.S4-221
 api="http://127.0.0.1:$API_HOST_PORT"
@@ -74,7 +77,7 @@ on_exit() {
     docker compose logs --no-color --tail=30 migrate api worker >&2 || true
   fi
   if ((${#swapped[@]} > 0)); then
-    git checkout "$swap_back" -- "${swapped[@]}" || echo "evidence: could not put back ${swapped[*]} from $swap_back" >&2
+    git restore --source="$swap_back" --worktree -- "${swapped[@]}" || echo "evidence: could not put back ${swapped[*]} from $swap_back" >&2
   fi
   timeout 300 docker compose down -v --remove-orphans >/dev/null 2>&1 || timeout 300 docker compose down -v --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$work"
@@ -188,15 +191,12 @@ require("playwright-core").chromium.launch().then(async (browser) => { console.l
 # --- the browser files under test, after the image is built ------------------------------------
 if [[ -n "$tests_from" ]]; then
   swap_back=$(git rev-parse HEAD)
-  # Only the files the #221 commits changed, minus the run harness (the throttle config and setup): a merge of main
-  # brings other browser files that differ from <rev>, and their old versions would not match today's dashboard.
-  while IFS= read -r file; do
-    [[ -n "$file" && "$file" != *vitest.config.ts && "$file" != *cpu-throttle-setup.ts ]] || continue
-    [[ " ${swapped[*]} " == *" $file "* ]] && continue
-    git cat-file -e "$tests_from:$file" 2>/dev/null && swapped+=("$file")
-  done < <(git log --format= --name-only --grep='(#221)' "$tests_from..$swap_back" -- apps/server/tests/browser)
-  ((${#swapped[@]} > 0)) || fail "no browser file differs from $tests_from"
-  git checkout "$tests_from" -- "${swapped[@]}"
+  for file in "${TESTS_221[@]}"; do
+    git cat-file -e "$tests_from:$file" 2>/dev/null && git cat-file -e "$swap_back:$file" 2>/dev/null && swapped+=("$file")
+  done
+  ((${#swapped[@]} > 0)) || fail "none of the #221 browser files exists at $tests_from"
+  # Working tree only: a killed run never leaves the old versions staged.
+  git restore --source="$tests_from" --worktree -- "${swapped[@]}"
   tests_commit="$tests_from (${swapped[*]##*/}; the rest at $swap_back)"
   echo "evidence: running ${swapped[*]} at $tests_from" >&2
 fi
