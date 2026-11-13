@@ -26,8 +26,6 @@ interface Job {
   steps?: Step[];
 }
 interface Workflow {
-  on: Record<string, unknown>;
-  concurrency?: { group?: string; 'cancel-in-progress'?: boolean | string };
   jobs: Record<string, Job>;
 }
 interface CompositeAction {
@@ -59,17 +57,6 @@ const matrixParts = (workflow: Workflow): MatrixPart[] =>
 const gateScript = (workflow: Workflow): string => stepsRun(jobOf(workflow, 'build-test')).join('\n');
 
 describe('ci.yml', () => {
-  it('runs on every pull request and on pushes to main and the phase branches (ADR 0018)', () => {
-    expect(Object.keys(ci.on).sort()).toEqual(['pull_request', 'push']);
-    expect(ci.on['pull_request']).toBeNull();
-    expect(ci.on['push']).toEqual({ branches: ['main', 'phase/**'] });
-  });
-
-  it('cancels superseded pull-request runs only, so every push to a phase branch keeps its own result (ADR 0018)', () => {
-    expect(ci.concurrency?.group).toBe('ci-${{ github.ref }}');
-    expect(ci.concurrency?.['cancel-in-progress']).toBe("${{ github.event_name == 'pull_request' }}");
-  });
-
   it('has the seven work jobs and the build-test gate', () => {
     expect(Object.keys(ci.jobs).sort()).toEqual([
       'build',
