@@ -10,7 +10,7 @@ import {
   PageLayout,
   PageTitle,
 } from '@vendure/dashboard';
-import { type ReactNode, useDeferredValue, useState } from 'react';
+import { type ReactNode, useDeferredValue, useEffect, useState } from 'react';
 import { MembersTable } from '../components/members-table';
 import { MembersPager, MembersToolbar } from '../components/members-toolbar';
 import { TeamDialogs, type TeamDialogState } from '../components/team-dialogs';
@@ -18,6 +18,7 @@ import { LOADING_MESSAGE_ID, ROLES_TAB_PATH, TEAM_PAGE_TEST_ID, VIEW_ROLES_KEY }
 import type { TeamMemberDto } from '../dto';
 import { errorMessageId } from '../error-messages';
 import { isMemberCommand, needsConfirmation, useMemberCommand } from '../hooks/use-member-commands';
+import { clampedPage } from '../member-paging';
 import { canInvite, type MemberAction } from '../member-view-model';
 import { useHeldPermissions, useRoleOptions, useTeamMembers } from '../queries';
 
@@ -47,6 +48,16 @@ function useListQuery() {
     },
     onPage: setPage,
   };
+}
+
+/** Moves back to the last page when the tab shrank under the one shown (a row removed, deactivated or revoked). */
+function useClampedPage(list: ReturnType<typeof useListQuery>, total: number | undefined): void {
+  const { page, onPage } = list;
+  useEffect(() => {
+    if (total === undefined) return;
+    const last = clampedPage(page, total);
+    if (last !== page) onPage(last);
+  }, [page, total, onPage]);
 }
 
 /** Which dialog a row action opens, or the command it runs straight away. */
@@ -111,6 +122,7 @@ export function TeamMembersPage(): ReactNode {
   const held = useHeldPermissions();
   const list = useListQuery();
   const members = useTeamMembers(list.query);
+  useClampedPage(list, members.data?.total);
   const roleOptions = useRoleOptions(held.has(VIEW_ROLES_KEY));
   const [dialog, setDialog] = useState<TeamDialogState>({ kind: 'none' });
   const rows = useRowActions(setDialog);
