@@ -1,6 +1,6 @@
 # Permission catalog
 
-Every signed-in member reads it. 93 permissions in 12 areas.
+Every signed-in member reads it. 94 permissions in 12 areas.
 
 ### permissionCatalog
 
@@ -890,6 +890,17 @@ content-type: application/json; charset=utf-8
             "en": "See stores",
             "ar": "عرض المتاجر",
             "fr": "See stores"
+          }
+        },
+        {
+          "key": "store.stores.archive",
+          "area": "store",
+          "level": "full",
+          "sensitive": true,
+          "label": {
+            "en": "Archive stores",
+            "ar": "أرشفة المتاجر",
+            "fr": "Archive stores"
           }
         },
         {
@@ -2041,6 +2052,17 @@ content-type: application/json; charset=utf-8
         "en": "See stores",
         "ar": "عرض المتاجر",
         "fr": "See stores"
+      }
+    },
+    {
+      "key": "store.stores.archive",
+      "area": "store",
+      "level": "full",
+      "sensitive": true,
+      "label": {
+        "en": "Archive stores",
+        "ar": "أرشفة المتاجر",
+        "fr": "Archive stores"
       }
     },
     {

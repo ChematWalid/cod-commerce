@@ -23,7 +23,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "businessRoles": [
       {
-        "id": "245593672379277316",
+        "id": "247026518507659268",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -54,6 +54,124 @@ content-type: application/json; charset=utf-8
           {
             "area": "finance",
             "level": "full"
+          },
+          {
+            "area": "analytics",
+            "level": "none"
+          },
+          {
+            "area": "team",
+            "level": "none"
+          },
+          {
+            "area": "delivery",
+            "level": "none"
+          },
+          {
+            "area": "store",
+            "level": "none"
+          },
+          {
+            "area": "apps",
+            "level": "none"
+          },
+          {
+            "area": "settings",
+            "level": "none"
+          }
+        ]
+      },
+      {
+        "id": "247026527185674240",
+        "name": "Demo first store catalog",
+        "description": null,
+        "builtInKey": null,
+        "isBuiltIn": false,
+        "permissionCount": 1,
+        "memberCount": 1,
+        "areaLevels": [
+          {
+            "area": "orders",
+            "level": "none"
+          },
+          {
+            "area": "tracking",
+            "level": "none"
+          },
+          {
+            "area": "catalog",
+            "level": "custom"
+          },
+          {
+            "area": "offers",
+            "level": "none"
+          },
+          {
+            "area": "inventory",
+            "level": "none"
+          },
+          {
+            "area": "finance",
+            "level": "none"
+          },
+          {
+            "area": "analytics",
+            "level": "none"
+          },
+          {
+            "area": "team",
+            "level": "none"
+          },
+          {
+            "area": "delivery",
+            "level": "none"
+          },
+          {
+            "area": "store",
+            "level": "none"
+          },
+          {
+            "area": "apps",
+            "level": "none"
+          },
+          {
+            "area": "settings",
+            "level": "none"
+          }
+        ]
+      },
+      {
+        "id": "247026524450988032",
+        "name": "Demo no view",
+        "description": null,
+        "builtInKey": null,
+        "isBuiltIn": false,
+        "permissionCount": 0,
+        "memberCount": 1,
+        "areaLevels": [
+          {
+            "area": "orders",
+            "level": "none"
+          },
+          {
+            "area": "tracking",
+            "level": "none"
+          },
+          {
+            "area": "catalog",
+            "level": "none"
+          },
+          {
+            "area": "offers",
+            "level": "none"
+          },
+          {
+            "area": "inventory",
+            "level": "none"
+          },
+          {
+            "area": "finance",
+            "level": "none"
           },
           {
             "area": "analytics",
@@ -141,6 +259,65 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
+        "id": "247026525801553920",
+        "name": "Demo settings viewer",
+        "description": null,
+        "builtInKey": null,
+        "isBuiltIn": false,
+        "permissionCount": 2,
+        "memberCount": 1,
+        "areaLevels": [
+          {
+            "area": "orders",
+            "level": "none"
+          },
+          {
+            "area": "tracking",
+            "level": "none"
+          },
+          {
+            "area": "catalog",
+            "level": "none"
+          },
+          {
+            "area": "offers",
+            "level": "none"
+          },
+          {
+            "area": "inventory",
+            "level": "none"
+          },
+          {
+            "area": "finance",
+            "level": "none"
+          },
+          {
+            "area": "analytics",
+            "level": "none"
+          },
+          {
+            "area": "team",
+            "level": "none"
+          },
+          {
+            "area": "delivery",
+            "level": "none"
+          },
+          {
+            "area": "store",
+            "level": "custom"
+          },
+          {
+            "area": "apps",
+            "level": "none"
+          },
+          {
+            "area": "settings",
+            "level": "custom"
+          }
+        ]
+      },
+      {
         "id": "<ROLE_VIEWER>",
         "name": "Demo viewer",
         "description": null,
@@ -200,7 +377,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277315",
+        "id": "247026518507659267",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -259,7 +436,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277313",
+        "id": "247026518507659265",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -318,7 +495,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277314",
+        "id": "247026518507659266",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -377,7 +554,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277317",
+        "id": "247026518507659269",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -441,7 +618,7 @@ content-type: application/json; charset=utf-8
         "description": "Can do everything in the business, including deleting records and changing settings.",
         "builtInKey": "owner",
         "isBuiltIn": true,
-        "permissionCount": 93,
+        "permissionCount": 94,
         "memberCount": 1,
         "areaLevels": [
           {
@@ -495,7 +672,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277318",
+        "id": "247026518507659270",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
@@ -541,7 +718,7 @@ content-type: application/json; charset=utf-8
           },
           {
             "area": "store",
-            "level": "full"
+            "level": "custom"
           },
           {
             "area": "apps",
@@ -796,7 +973,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "businessRoles": [
       {
-        "id": "245593672379277316",
+        "id": "247026518507659268",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -827,6 +1004,124 @@ content-type: application/json; charset=utf-8
           {
             "area": "finance",
             "level": "full"
+          },
+          {
+            "area": "analytics",
+            "level": "none"
+          },
+          {
+            "area": "team",
+            "level": "none"
+          },
+          {
+            "area": "delivery",
+            "level": "none"
+          },
+          {
+            "area": "store",
+            "level": "none"
+          },
+          {
+            "area": "apps",
+            "level": "none"
+          },
+          {
+            "area": "settings",
+            "level": "none"
+          }
+        ]
+      },
+      {
+        "id": "247026527185674240",
+        "name": "Demo first store catalog",
+        "description": null,
+        "builtInKey": null,
+        "isBuiltIn": false,
+        "permissionCount": 1,
+        "memberCount": 1,
+        "areaLevels": [
+          {
+            "area": "orders",
+            "level": "none"
+          },
+          {
+            "area": "tracking",
+            "level": "none"
+          },
+          {
+            "area": "catalog",
+            "level": "custom"
+          },
+          {
+            "area": "offers",
+            "level": "none"
+          },
+          {
+            "area": "inventory",
+            "level": "none"
+          },
+          {
+            "area": "finance",
+            "level": "none"
+          },
+          {
+            "area": "analytics",
+            "level": "none"
+          },
+          {
+            "area": "team",
+            "level": "none"
+          },
+          {
+            "area": "delivery",
+            "level": "none"
+          },
+          {
+            "area": "store",
+            "level": "none"
+          },
+          {
+            "area": "apps",
+            "level": "none"
+          },
+          {
+            "area": "settings",
+            "level": "none"
+          }
+        ]
+      },
+      {
+        "id": "247026524450988032",
+        "name": "Demo no view",
+        "description": null,
+        "builtInKey": null,
+        "isBuiltIn": false,
+        "permissionCount": 0,
+        "memberCount": 1,
+        "areaLevels": [
+          {
+            "area": "orders",
+            "level": "none"
+          },
+          {
+            "area": "tracking",
+            "level": "none"
+          },
+          {
+            "area": "catalog",
+            "level": "none"
+          },
+          {
+            "area": "offers",
+            "level": "none"
+          },
+          {
+            "area": "inventory",
+            "level": "none"
+          },
+          {
+            "area": "finance",
+            "level": "none"
           },
           {
             "area": "analytics",
@@ -914,6 +1209,65 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
+        "id": "247026525801553920",
+        "name": "Demo settings viewer",
+        "description": null,
+        "builtInKey": null,
+        "isBuiltIn": false,
+        "permissionCount": 2,
+        "memberCount": 1,
+        "areaLevels": [
+          {
+            "area": "orders",
+            "level": "none"
+          },
+          {
+            "area": "tracking",
+            "level": "none"
+          },
+          {
+            "area": "catalog",
+            "level": "none"
+          },
+          {
+            "area": "offers",
+            "level": "none"
+          },
+          {
+            "area": "inventory",
+            "level": "none"
+          },
+          {
+            "area": "finance",
+            "level": "none"
+          },
+          {
+            "area": "analytics",
+            "level": "none"
+          },
+          {
+            "area": "team",
+            "level": "none"
+          },
+          {
+            "area": "delivery",
+            "level": "none"
+          },
+          {
+            "area": "store",
+            "level": "custom"
+          },
+          {
+            "area": "apps",
+            "level": "none"
+          },
+          {
+            "area": "settings",
+            "level": "custom"
+          }
+        ]
+      },
+      {
         "id": "<ROLE_VIEWER>",
         "name": "Demo viewer",
         "description": null,
@@ -973,7 +1327,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277315",
+        "id": "247026518507659267",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -1032,7 +1386,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277313",
+        "id": "247026518507659265",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -1091,7 +1445,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277314",
+        "id": "247026518507659266",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -1150,7 +1504,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277317",
+        "id": "247026518507659269",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -1214,7 +1568,7 @@ content-type: application/json; charset=utf-8
         "description": "Can do everything in the business, including deleting records and changing settings.",
         "builtInKey": "owner",
         "isBuiltIn": true,
-        "permissionCount": 93,
+        "permissionCount": 94,
         "memberCount": 1,
         "areaLevels": [
           {
@@ -1268,7 +1622,7 @@ content-type: application/json; charset=utf-8
         ]
       },
       {
-        "id": "245593672379277318",
+        "id": "247026518507659270",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
@@ -1314,7 +1668,7 @@ content-type: application/json; charset=utf-8
           },
           {
             "area": "store",
-            "level": "full"
+            "level": "custom"
           },
           {
             "area": "apps",
