@@ -3,6 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { FlagSeedService } from '@cod/plugin-platform-flags';
 import { AssetServerPlugin, PresetOnlyStrategy } from '@vendure/asset-server-plugin';
 import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
@@ -63,6 +64,8 @@ describe('P1 isolation: a store owner sees only their own business', () => {
   beforeAll(async () => {
     await server.init({ initialData: E2E_INITIAL_DATA, customerCount: 0 });
     await afterE2eInit(server);
+    // The migrate role seeds the flags (migrate.role.ts); an e2e boot is the api only, so it seeds them here.
+    await server.app.get(FlagSeedService).converge();
     const connection = server.app.get(TransactionalConnection);
     world = await buildWorld({
       http,
