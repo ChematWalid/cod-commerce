@@ -126,7 +126,7 @@ describe('accept refusals (Review Focus 2 and 3)', () => {
   });
 
   it.each(['loses the privilege', 'is removed'])(
-    'refuses the accept when the inviter %s, keeps no account and revokes the invitation',
+    'refuses the accept when the inviter %s, keeps no account, revokes the invitation and removes the member',
     async (change) => {
       // Arrange
       const { a } = businesses;
@@ -147,11 +147,13 @@ describe('accept refusals (Review Focus 2 and 3)', () => {
       // Assert
       expect(answer).toMatchObject({ status: 400, body: { code: 'team.invitation-invalid' } });
       expect(await kit.query('SELECT id FROM administrator WHERE "emailAddress" = $1', [email])).toEqual([]);
-      const [invitation] = await kit.query<{ revokedAt: Date | null }>(
-        'SELECT i."revokedAt" FROM invitation i JOIN team_member m ON m.id = i."memberId" WHERE m."emailKey" = $1',
+      const [invitation] = await kit.query<{ revokedAt: Date | null; removedAt: Date | null }>(
+        `SELECT i."revokedAt", m."removedAt" FROM invitation i JOIN team_member m ON m.id = i."memberId"
+          WHERE m."emailKey" = $1`,
         [email],
       );
       expect(invitation?.revokedAt).toBeInstanceOf(Date);
+      expect(invitation?.removedAt).toBeInstanceOf(Date);
     },
   );
 });
