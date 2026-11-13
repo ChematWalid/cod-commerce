@@ -136,6 +136,52 @@ describe('the owner profile', () => {
   });
 });
 
+describe('the stock profile save (updateActiveAdministrator)', () => {
+  it.each([
+    ['an empty first name', { firstName: '' }, 'firstName'],
+    ['a blank first name', { firstName: '   ' }, 'firstName'],
+    ['a blank last name', { lastName: '   ' }, 'lastName'],
+  ])('refuses %s and keeps the saved names', async (_label, input, field) => {
+    // Arrange
+    const owner = await kit.owner();
+    await kit.updateProfile(owner.session, { firstName: 'Nadia', lastName: 'Haddad' });
+
+    // Act
+    const refused = await kit.updateActiveAdministrator(owner.session, input);
+
+    // Assert
+    expect(codeOf(refused)).toBe(AUTH_ERROR_CODES.PROFILE_INVALID);
+    expect(refused.errors[0]?.message).toBe(`Invalid profile fields: ${field}`);
+    expect(profileOf(await kit.profile(owner.session))).toMatchObject({ firstName: 'Nadia', lastName: 'Haddad' });
+  });
+
+  it('saves a valid first name, trimmed', async () => {
+    // Arrange
+    const owner = await kit.owner();
+
+    // Act
+    const saved = await kit.updateActiveAdministrator(owner.session, { firstName: '  Yasmine ' });
+
+    // Assert
+    expect(saved.errors).toEqual([]);
+    expect(profileOf(saved, 'updateActiveAdministrator')).toMatchObject({ firstName: 'Yasmine' });
+    expect(profileOf(await kit.profile(owner.session))).toMatchObject({ firstName: 'Yasmine' });
+  });
+
+  it('keeps a name the save leaves out', async () => {
+    // Arrange
+    const owner = await kit.owner();
+    await kit.updateProfile(owner.session, { firstName: 'Nadia', lastName: 'Haddad' });
+
+    // Act
+    const saved = await kit.updateActiveAdministrator(owner.session, { lastName: 'Belkacem', firstName: null });
+
+    // Assert
+    expect(saved.errors).toEqual([]);
+    expect(profileOf(await kit.profile(owner.session))).toMatchObject({ firstName: 'Nadia', lastName: 'Belkacem' });
+  });
+});
+
 describe('the profile photo', () => {
   it('stores an image, shows its URL, serves it, and drops it when cleared', async () => {
     // Arrange

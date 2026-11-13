@@ -5,6 +5,9 @@ const PROFILE = `query { accountProfile { firstName lastName emailAddress phone 
 const UPDATE_PROFILE = `mutation ($input: UpdateAccountProfileInput!) {
   updateAccountProfile(input: $input) { firstName lastName emailAddress phone avatarUrl emailVerified }
 }`;
+const UPDATE_ACTIVE_ADMINISTRATOR = `mutation ($input: UpdateActiveAdministratorInput!) {
+  updateActiveAdministrator(input: $input) { firstName lastName }
+}`;
 const SET_AVATAR = `mutation ($file: Upload!) { setActiveAdministratorAvatar(file: $file) { id } }`;
 const CLEAR_AVATAR = `mutation { setActiveAdministratorAvatar { id } }`;
 const UPLOAD_LOGO = `mutation ($file: Upload!) { uploadBusinessLogo(file: $file) { assetId } }`;
@@ -13,6 +16,8 @@ const UPLOAD_LOGO = `mutation ($file: Upload!) { uploadBusinessLogo(file: $file)
 export interface ProfileTestKit extends AccountFlowKit {
   readonly profile: (caller: Caller) => Promise<GraphqlAnswer>;
   readonly updateProfile: (caller: Caller, input: Record<string, unknown>) => Promise<GraphqlAnswer>;
+  /** The stock profile page's save, which the plugin shadows (D38). */
+  readonly updateActiveAdministrator: (caller: Caller, input: Record<string, unknown>) => Promise<GraphqlAnswer>;
   readonly setAvatar: (caller: Caller, file: UploadedTestFile) => Promise<GraphqlAnswer>;
   readonly clearAvatar: (caller: Caller) => Promise<GraphqlAnswer>;
   readonly uploadLogo: (caller: Caller, file: UploadedTestFile) => Promise<GraphqlAnswer>;
@@ -41,6 +46,7 @@ export function createProfileTestKit(): ProfileTestKit {
     onStore,
     profile: (caller) => client.graphql(PROFILE, {}, caller),
     updateProfile: (caller, input) => client.graphql(UPDATE_PROFILE, { input }, caller),
+    updateActiveAdministrator: (caller, input) => client.graphql(UPDATE_ACTIVE_ADMINISTRATOR, { input }, caller),
     setAvatar: (caller, file) => client.upload(SET_AVATAR, file, caller),
     clearAvatar: (caller) => client.graphql(CLEAR_AVATAR, {}, caller),
     uploadLogo: (caller, file) => client.upload(UPLOAD_LOGO, file, caller),

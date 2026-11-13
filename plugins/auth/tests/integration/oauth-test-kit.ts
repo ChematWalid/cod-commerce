@@ -53,7 +53,7 @@ export const facebookProfile = (email: string | undefined, subject: string = ran
 });
 
 /** Plugin options whose URLs are read late: the mock's port is only known once it listens. */
-function pluginOptions(mock: MockOAuthServer): AuthOAuthOptions {
+function pluginOptions(mock: MockOAuthServer, secureCookie: boolean): AuthOAuthOptions {
   const endpoints = (provider: string): AuthOAuthOptions['providers']['google'] => ({
     clientId: `synthetic-${provider}-client`,
     clientSecret: MOCK_CLIENT_SECRET,
@@ -67,7 +67,7 @@ function pluginOptions(mock: MockOAuthServer): AuthOAuthOptions {
       return `${mock.baseUrl}/${provider}/userinfo`;
     },
   });
-  return { providers: { google: endpoints('google'), facebook: endpoints('facebook') }, secureCookie: false };
+  return { providers: { google: endpoints('google'), facebook: endpoints('facebook') }, secureCookie };
 }
 
 /** The registration kit, a mock provider, and the browser's side of the redirect flow. */
@@ -91,10 +91,15 @@ export interface OAuthRun extends CallbackOutcome {
   readonly browser: Caller;
 }
 
+/** How the kit's server is configured; plain http by default, as in development. */
+export interface OAuthTestKitOptions {
+  readonly secureCookie?: boolean;
+}
+
 /** Builds the {@link OAuthTestKit} of a test file; `start` must run before it is used. */
-export function createOAuthTestKit(): OAuthTestKit {
+export function createOAuthTestKit({ secureCookie = false }: OAuthTestKitOptions = {}): OAuthTestKit {
   const mock = new MockOAuthServer();
-  const kit = createRegisterTestKit({ oauth: pluginOptions(mock) });
+  const kit = createRegisterTestKit({ oauth: pluginOptions(mock, secureCookie) });
   const { client, server } = kit;
 
   async function startFlow(provider: string, query = ''): Promise<StartedFlow> {

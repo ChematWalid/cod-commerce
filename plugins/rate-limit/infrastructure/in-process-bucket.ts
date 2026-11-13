@@ -3,7 +3,7 @@ import type { LockoutStatus, RateLimitDecision } from '../domain/decision';
 import { NOT_LOCKED } from '../domain/decision';
 import { nextLockoutSeconds } from '../domain/lockout';
 import { RATE_LIMIT_POLICIES, type RateLimitPolicyName } from '../domain/policies';
-import { type BucketState, idleExpiryMs, takeToken } from '../domain/token-bucket';
+import { type BucketState, idleExpiryMs, returnToken, takeToken } from '../domain/token-bucket';
 
 /** Most buckets and lockouts kept in memory; above it, idle ones go first and then the oldest. */
 const DEFAULT_MAX_ENTRIES = 10_000;
@@ -71,6 +71,19 @@ export class InProcessBucket {
     this.buckets.set(bucketKey, { state, expiresAtMs: nowMs + idleExpiryMs(definition) });
     prune(this.buckets, this.maxEntries, nowMs);
     return decision;
+  }
+
+  /** Puts one token back in the bucket of `key` under `policy`, never above its capacity. */
+  refund(policy: RateLimitPolicyName, key: string): void {
+    const nowMs = this.now();
+    const definition = RATE_LIMIT_POLICIES[policy];
+    const bucketKey = `${policy}:${key}`;
+    const state = returnToken(this.buckets.get(bucketKey)?.state, definition, nowMs);
+    if (state === undefined) {
+      return;
+    }
+    this.buckets.delete(bucketKey);
+    this.buckets.set(bucketKey, { state, expiresAtMs: nowMs + idleExpiryMs(definition) });
   }
 
   /**

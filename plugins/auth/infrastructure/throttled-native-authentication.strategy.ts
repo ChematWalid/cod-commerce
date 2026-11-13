@@ -1,4 +1,10 @@
-import { ClientIpResolver, type ClientRequest, RateLimitedError, RateLimiter } from '@cod/plugin-rate-limit';
+import {
+  ClientIpResolver,
+  type ClientRequest,
+  type RateLimitDecision,
+  RateLimitedError,
+  RateLimiter,
+} from '@cod/plugin-rate-limit';
 import { normalizeEmail } from '@cod/shared';
 import type { Type } from '@nestjs/common';
 import {
@@ -44,13 +50,14 @@ export class ThrottledNativeAuthenticationStrategy extends NativeAuthenticationS
 
   override async authenticate(ctx: RequestContext, data: NativeAuthenticationData): Promise<User | false> {
     const attempt = this.attemptOf(ctx, data);
-    await this.refuseIfOverLimit(attempt);
+    const pair = await this.takePairToken(attempt);
     // Trim only: Vendure lowercases an email itself and must keep the case of a non-email username.
     const user = await super.authenticate(ctx, { ...data, username: data.username.trim() });
     if (user === false) {
-      await this.recordFailure(attempt);
+      await this.recordFailure(attempt, pair);
       return false;
     }
+    await this.limiter.refund('login-pair', attempt.pairKey);
     await this.limiter.clearLockout(attempt.pairKey);
     return user;
   }
@@ -61,7 +68,11 @@ export class ThrottledNativeAuthenticationStrategy extends NativeAuthenticationS
     return { ctx, emailKey, ip, pairKey: loginPairKey(emailKey, ip) };
   }
 
-  private async refuseIfOverLimit(attempt: LoginAttempt): Promise<void> {
+  /**
+   * Spends the pair's token before the password is checked, so a parallel burst gets at most ten checks
+   * (RL-1). A correct password gives it back; a refused call checks nothing and counts as no failure.
+   */
+  private async takePairToken(attempt: LoginAttempt): Promise<RateLimitDecision> {
     const lock = await this.limiter.isLocked(attempt.pairKey);
     if (lock.locked) {
       this.refuse(attempt.ctx, lock.retryAfterSeconds);
@@ -70,23 +81,25 @@ export class ThrottledNativeAuthenticationStrategy extends NativeAuthenticationS
     if (!perAddress.allowed) {
       this.refuse(attempt.ctx, perAddress.retryAfterSeconds);
     }
+    const pair = await this.limiter.consume('login-pair', attempt.pairKey);
+    if (!pair.allowed) {
+      this.refuse(attempt.ctx, pair.retryAfterSeconds);
+    }
+    return pair;
   }
 
   /**
-   * Spending the pair's last token locks at once, so the attempt after the tenth failure is the one refused.
-   * Only that call locks: every lockout doubles, so a refused call re-locking would let one burst reach the cap.
+   * Only a failed check after the pair's last token locks, so a correct tenth password still gets in and the
+   * attempt after the tenth failure is the one refused. Calls refused before the check never lock: every
+   * lockout doubles, so a refused call re-locking would let one burst reach the cap.
    */
-  private async recordFailure(attempt: LoginAttempt): Promise<void> {
-    const pair = await this.limiter.consume('login-pair', attempt.pairKey);
-    if (pair.allowed && pair.exhausted) {
+  private async recordFailure(attempt: LoginAttempt, pair: RateLimitDecision): Promise<void> {
+    if (pair.exhausted) {
       await this.limiter.lockout(attempt.pairKey);
     }
     const account = await this.limiter.consume('login-account', attempt.emailKey);
     if (!account.allowed) {
       this.refuse(attempt.ctx, account.retryAfterSeconds);
-    }
-    if (!pair.allowed) {
-      this.refuse(attempt.ctx, pair.retryAfterSeconds);
     }
   }
 

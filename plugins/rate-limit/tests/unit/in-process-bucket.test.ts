@@ -13,6 +13,10 @@ describeLimiterContract('InProcessBucket', () => {
     uniqueKey: () => `key-${String(counter++)}`,
     limiter: {
       consume: (policy, key) => Promise.resolve(bucket.consume(policy, key)),
+      refund: (policy, key) => {
+        bucket.refund(policy, key);
+        return Promise.resolve();
+      },
       lockout: (key) => Promise.resolve(bucket.lockout(key)),
       isLocked: (key) => Promise.resolve(bucket.isLocked(key)),
       clearLockout: (key) => {

@@ -56,6 +56,22 @@ export function takeToken(state: BucketState | undefined, policy: RateLimitPolic
   };
 }
 
+/**
+ * Puts back one token a caller took and no longer needs, never above capacity. The bucket is refilled to now
+ * first, as `takeToken` does, so the refill until now is not lost. A missing bucket is full and stays missing.
+ * The refund script in the Valkey adapter must do the same.
+ */
+export function returnToken(
+  state: BucketState | undefined,
+  policy: RateLimitPolicy,
+  nowMs: number,
+): BucketState | undefined {
+  if (state === undefined) {
+    return undefined;
+  }
+  return { tokens: Math.min(policy.capacity, refilled(state, policy, nowMs) + 1), updatedAtMs: nowMs };
+}
+
 /** Milliseconds after which an untouched bucket is full again and may be forgotten. */
 export function idleExpiryMs(policy: RateLimitPolicy): number {
   return policy.windowSeconds * MS_PER_SECOND;

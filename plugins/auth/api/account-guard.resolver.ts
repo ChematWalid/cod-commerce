@@ -10,6 +10,8 @@ import {
   type RequestContext,
   Transaction,
 } from '@vendure/core';
+import { parseNameChanges } from '../application/profile-name-changes';
+import { withApiErrors } from './error-mapping';
 import { UseAccountSecurityError } from './use-account-security.error';
 
 /** The stock `UpdateActiveAdministratorInput`. */
@@ -33,12 +35,19 @@ function changesCredentials(input: ActiveAdministratorInput, currentEmail: strin
   return (email !== '' && normalizeEmail(email) !== normalizeEmail(currentEmail)) || (input.password ?? '') !== '';
 }
 
-/** The fields a profile save may write, without the ones the caller left out. */
+/**
+ * The fields a profile save may write, without the ones the caller left out. A given name must pass the profile
+ * form's rules, because every account email needs it (AUTH-1).
+ *
+ * @throws ProfileInvalidError naming each blank or too long name.
+ */
 function profileChanges(input: ActiveAdministratorInput): ProfileChanges {
   const { firstName, lastName, customFields } = input;
   return {
-    ...(firstName == null ? {} : { firstName }),
-    ...(lastName == null ? {} : { lastName }),
+    ...parseNameChanges({
+      ...(firstName == null ? {} : { firstName }),
+      ...(lastName == null ? {} : { lastName }),
+    }),
     ...(customFields == null ? {} : { customFields }),
   };
 }
@@ -51,7 +60,7 @@ function profileChanges(input: ActiveAdministratorInput): ProfileChanges {
 export class AccountGuardResolver {
   constructor(private readonly administrators: AdministratorService) {}
 
-  /** Saves the caller's name; a different email or any password is refused. */
+  /** Saves the caller's name; a blank name, a different email or any password is refused. */
   @Transaction()
   @Mutation()
   @Allow(Permission.Owner)
@@ -63,7 +72,8 @@ export class AccountGuardResolver {
     if (changesCredentials(input, administrator.emailAddress)) {
       throw new UseAccountSecurityError();
     }
-    return this.administrators.update(ctx, { id: administrator.id, ...profileChanges(input) });
+    const changes = await withApiErrors(() => Promise.resolve(profileChanges(input)));
+    return this.administrators.update(ctx, { id: administrator.id, ...changes });
   }
 
   private async activeAdministrator(ctx: RequestContext): Promise<Administrator> {
