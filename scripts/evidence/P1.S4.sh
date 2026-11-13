@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Proof-of-working evidence for P1.S4 (CLAUDE.md §3a.14): runs the real compose stack under its own project (cod-evidence, host
 # ports +20000), records every Team endpoint (invite, the mailed invitation, preview, accept, resend, revoke, the members list
-# per tab, every member action, salary, order managers, commission configs) plus the refusals, the cross-tenant cases and the
-# rate limits, takes the screenshots, runs the browser suite against this stack, and tears the project down. Never touches
-# the `cod` project.
+# per tab, every member action, salary, order managers, commission configs), the dashboard's GraphQL operations, the
+# refusals, the cross-tenant cases and the rate limits, takes the screenshots, runs the browser suite against this stack, and
+# tears the project down. Never touches the `cod` project.
 #
 #   flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 1800 scripts/evidence/P1.S4.sh
 #   EV_SKIP_BUILD=1 flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 1800 scripts/evidence/P1.S4.sh
@@ -557,6 +557,112 @@ assert_js elsewhere "!JSON.stringify(b).includes('Demo') && !JSON.stringify(b).i
 emit_rest "$f" "Accepting B's invitation with that email: refused, naming no business (D201)" POST /team/invitations/accept "$(ACCEPT_SHOWN_BODY Amina Saadi)"
 rest GET "/employees/$amina" - "$owner" "$demo"; assert_js "A untouched" "b.status==='active' && b.baseSalary===32000" "$work/b"
 
+# --- graphql.md -------------------------------------------------------------------------------
+# The dashboard's own operations (plugins/team/dashboard/queries.ts), on members this section invites and then removes or
+# revokes, and a commission it creates and deletes, so no list or count other sections or the screens read changes.
+f="$out/api/graphql.md"
+begin "$f" "Admin API (GraphQL)" "The operations the dashboard sends, by its operation names, on the Demo store. Two members are invited here: one is accepted (through the REST route shown in \`accept.md\`) and goes through every member action until it is removed; the other is resent and revoked. A commission is created, read, changed and deleted."
+reset_limits
+GQL_ACTIVE="graphql-active-$EV_RUN@invitee.example.test" GQL_PENDING="graphql-pending-$EV_RUN@invitee.example.test"
+Q_INVITE='mutation TeamInvite($input: InviteMemberInput!) { inviteMember(input: $input) { id email status baseSalary } }'
+input=$(vars "{input:{email:'$GQL_PENDING',roleIds:['$om_role'],storeAccess:'all',baseSalary:18000,locale:'en'}}")
+gql "$Q_INVITE" "$input" "$owner" "$demo"; expect_ok "gql invite pending"; gql_pending_invited_at=$SECONDS
+assert_js "gql invite pending" "b.data.inviteMember.status==='invited' && b.data.inviteMember.email==='$GQL_PENDING'" "$work/b"
+gql_pending=$(js 'b.data.inviteMember.id' "$work/b"); remember_id MEMBER_GQL_PENDING "$gql_pending"
+input=$(vars "{input:{email:'$GQL_ACTIVE',roleIds:['$om_role'],storeAccess:'selected',storeIds:['$demo_store'],baseSalary:18000,locale:'ar'}}")
+gql "$Q_INVITE" "$input" "$owner" "$demo"; expect_ok "gql invite"; assert_js "gql invite" 'b.data.inviteMember.status==="invited"' "$work/b"
+gql_active=$(js 'b.data.inviteMember.id' "$work/b"); remember_id MEMBER_GQL_ACTIVE "$gql_active"
+emit "$f" "inviteMember (TeamInvite): one store, Arabic mail" "$Q_INVITE" "$input" "$owner" "$demo"
+invitation_token "$GQL_ACTIVE" 1
+rest POST /team/invitations/accept "$(accept_body "$LAST_INVITATION_TOKEN" Nadia Ferhat "$INVITEE_PASSWORD")" - -; expect_status "gql accept" 200
+
+Q_MEMBER='query TeamMember($id: String!) { teamMember(id: $id) { id email name status tab roles { name } storeAccess storeIds baseSalary maxOpenOrders receivingOrders } }'
+input=$(vars "{id:'$gql_active'}")
+gql "$Q_MEMBER" "$input" "$owner" "$demo"; expect_ok "gql member"
+assert_js "gql member" "b.data.teamMember.status==='active' && b.data.teamMember.storeAccess==='selected'" "$work/b"
+emit "$f" "teamMember: the accepted member" "$Q_MEMBER" "$input" "$owner" "$demo"
+Q_UPDATE='mutation TeamUpdate($id: String!, $input: UpdateTeamMemberInput!) { updateTeamMember(id: $id, input: $input) { id status baseSalary } }'
+input=$(vars "{id:'$gql_active',input:{baseSalary:19000}}")
+gql "$Q_UPDATE" "$input" "$owner" "$demo"; expect_ok "gql update"; assert_js "gql update" 'b.data.updateTeamMember.baseSalary===19000' "$work/b"
+emit "$f" "updateTeamMember (TeamUpdate): the base salary" "$Q_UPDATE" "$input" "$owner" "$demo"
+Q_LIMIT='mutation TeamLimit($id: String!, $max: Int) { setTeamMemberLimit(id: $id, maxOpenOrders: $max) { id status maxOpenOrders } }'
+input=$(vars "{id:'$gql_active',max:15}")
+gql "$Q_LIMIT" "$input" "$owner" "$demo"; expect_ok "gql limit"; assert_js "gql limit" 'b.data.setTeamMemberLimit.maxOpenOrders===15' "$work/b"
+emit "$f" "setTeamMemberLimit (TeamLimit)" "$Q_LIMIT" "$input" "$owner" "$demo"
+Q_RECEIVING='mutation TeamReceiving($id: String!, $on: Boolean!) { setTeamMemberReceiving(id: $id, receivingOrders: $on) { id status receivingOrders } }'
+Q_MANAGERS='query TeamOrderManagers { teamOrderManagers { id name maxOpenOrders storeAccess storeIds } }'
+input=$(vars "{id:'$gql_active',on:false}")
+gql "$Q_RECEIVING" "$input" "$owner" "$demo"; expect_ok "gql stop"
+assert_js "gql stop" 'b.data.setTeamMemberReceiving.receivingOrders===false && b.data.setTeamMemberReceiving.status==="active"' "$work/b"
+emit "$f" "setTeamMemberReceiving (TeamReceiving): stop" "$Q_RECEIVING" "$input" "$owner" "$demo"
+gql "$Q_MANAGERS" '{}' "$owner" "$demo"; expect_ok "gql managers stopped"
+assert_js "gql managers stopped" "!b.data.teamOrderManagers.some((m)=>m.id==='$gql_active')" "$work/b"
+emit "$f" "teamOrderManagers: a member who stopped receiving is not offered" "$Q_MANAGERS" '{}' "$owner" "$demo"
+input=$(vars "{id:'$gql_active',on:true}")
+gql "$Q_RECEIVING" "$input" "$owner" "$demo"; expect_ok "gql resume"; assert_js "gql resume" 'b.data.setTeamMemberReceiving.receivingOrders===true' "$work/b"
+emit "$f" "setTeamMemberReceiving (TeamReceiving): resume" "$Q_RECEIVING" "$input" "$owner" "$demo"
+gql "$Q_MANAGERS" '{}' "$owner" "$demo"; expect_ok "gql managers"
+assert_js "gql managers" "b.data.teamOrderManagers.some((m)=>m.id==='$gql_active' && m.maxOpenOrders===15)" "$work/b"
+emit "$f" "teamOrderManagers: offered again, with its limit" "$Q_MANAGERS" '{}' "$owner" "$demo"
+Q_DEACTIVATE='mutation TeamDeactivate($id: String!) { deactivateTeamMember(id: $id) { id status } }'
+input=$(vars "{id:'$gql_active'}")
+gql "$Q_DEACTIVATE" "$input" "$owner" "$demo"; expect_ok "gql deactivate"; assert_js "gql deactivate" 'b.data.deactivateTeamMember.status==="inactive"' "$work/b"
+emit "$f" "deactivateTeamMember (TeamDeactivate)" "$Q_DEACTIVATE" "$input" "$owner" "$demo"
+Q_REACTIVATE='mutation TeamReactivate($id: String!) { reactivateTeamMember(id: $id) { id status } }'
+gql "$Q_REACTIVATE" "$input" "$owner" "$demo"; expect_ok "gql reactivate"; assert_js "gql reactivate" 'b.data.reactivateTeamMember.status==="active"' "$work/b"
+emit "$f" "reactivateTeamMember (TeamReactivate)" "$Q_REACTIVATE" "$input" "$owner" "$demo"
+Q_PAY='mutation TeamPay($id: String!, $key: String!) { payTeamMember(id: $id, idempotencyKey: $key) { id memberId amount paidAt } }'
+input=$(vars "{id:'$gql_active',key:'evidence-gql-pay-$EV_RUN'}")
+gql "$Q_PAY" "$input" "$owner" "$demo"; expect_ok "gql pay"
+assert_js "gql pay" "b.data.payTeamMember.amount===19000 && b.data.payTeamMember.memberId==='$gql_active'" "$work/b"
+remember_id PAYMENT_GQL "$(js 'b.data.payTeamMember.id' "$work/b")"
+emit "$f" "payTeamMember (TeamPay): the base salary, once per key" "$Q_PAY" "$input" "$owner" "$demo"
+Q_REMOVE='mutation TeamRemove($id: String!) { removeTeamMember(id: $id) }'
+input=$(vars "{id:'$gql_active'}")
+gql "$Q_REMOVE" "$input" "$owner" "$demo"; expect_ok "gql remove"; assert_js "gql remove" 'b.data.removeTeamMember===true' "$work/b"
+emit "$f" "removeTeamMember (TeamRemove)" "$Q_REMOVE" "$input" "$owner" "$demo"
+gql "$Q_MEMBER" "$input" "$owner" "$demo"; expect_code "gql removed member" team.member-not-found
+emit "$f" "teamMember of the removed member: not found" "$Q_MEMBER" "$input" "$owner" "$demo"
+
+Q_BASES='query TeamCommissionBases { teamCommissionBases { basis labels { ar en } } }'
+gql "$Q_BASES" '{}' "$owner" "$demo"; expect_ok "gql bases"; assert_js "gql bases" 'b.data.teamCommissionBases.length===2' "$work/b"
+emit "$f" "teamCommissionBases (TeamCommissionBases)" "$Q_BASES" '{}' "$owner" "$demo"
+Q_CREATE_COMMISSION='mutation TeamCreateCommission($input: TeamCommissionConfigInput!) { createTeamCommissionConfig(input: $input) { id name basis valueKind value scope storeIds } }'
+input=$(vars "{input:{name:'Admin API bonus',basis:'per-confirmed-order',valueKind:'fixed',value:120,scope:'all'}}")
+gql "$Q_CREATE_COMMISSION" "$input" "$owner" "$demo"; expect_ok "gql create commission"
+gql_commission=$(js 'b.data.createTeamCommissionConfig.id' "$work/b"); remember_id COMMISSION_GQL "$gql_commission"
+emit "$f" "createTeamCommissionConfig (TeamCreateCommission): 120 DZD per confirmed order" "$Q_CREATE_COMMISSION" "$input" "$owner" "$demo"
+Q_COMMISSION='query TeamCommissionConfig($id: String!) { teamCommissionConfig(id: $id) { id name basis valueKind value scope storeIds } }'
+input=$(vars "{id:'$gql_commission'}")
+gql "$Q_COMMISSION" "$input" "$owner" "$demo"; expect_ok "gql commission"; assert_js "gql commission" 'b.data.teamCommissionConfig.value===120' "$work/b"
+emit "$f" "teamCommissionConfig" "$Q_COMMISSION" "$input" "$owner" "$demo"
+Q_UPDATE_COMMISSION='mutation TeamUpdateCommission($id: String!, $input: UpdateTeamCommissionConfigInput!) { updateTeamCommissionConfig(id: $id, input: $input) { id name value } }'
+input=$(vars "{id:'$gql_commission',input:{value:140}}")
+gql "$Q_UPDATE_COMMISSION" "$input" "$owner" "$demo"; expect_ok "gql update commission"
+assert_js "gql update commission" 'b.data.updateTeamCommissionConfig.value===140' "$work/b"
+emit "$f" "updateTeamCommissionConfig" "$Q_UPDATE_COMMISSION" "$input" "$owner" "$demo"
+Q_COMMISSIONS='query TeamCommissionConfigs { teamCommissionConfigs { id name basis valueKind value } }'
+gql "$Q_COMMISSIONS" '{}' "$owner" "$demo"; expect_ok "gql commissions"
+assert_js "gql commissions" "b.data.teamCommissionConfigs.some((c)=>c.id==='$gql_commission' && c.value===140)" "$work/b"
+emit "$f" "teamCommissionConfigs (TeamCommissionConfigs)" "$Q_COMMISSIONS" '{}' "$owner" "$demo"
+Q_DELETE_COMMISSION='mutation TeamDeleteCommission($id: String!) { deleteTeamCommissionConfig(id: $id) }'
+input=$(vars "{id:'$gql_commission'}")
+gql "$Q_DELETE_COMMISSION" "$input" "$owner" "$demo"; expect_ok "gql delete commission"
+assert_js "gql delete commission" 'b.data.deleteTeamCommissionConfig===true' "$work/b"
+emit "$f" "deleteTeamCommissionConfig" "$Q_DELETE_COMMISSION" "$input" "$owner" "$demo"
+
+wait_left=$((RESEND_COOLDOWN_SECONDS - (SECONDS - gql_pending_invited_at)))
+((wait_left <= 0)) || sleep "$wait_left"
+Q_RESEND='mutation TeamResend($id: String!) { resendInvitation(memberId: $id) { id status } }'
+input=$(vars "{id:'$gql_pending'}")
+gql "$Q_RESEND" "$input" "$owner" "$demo"; expect_ok "gql resend"; assert_js "gql resend" 'b.data.resendInvitation.status==="invited"' "$work/b"
+emit "$f" "resendInvitation (TeamResend)" "$Q_RESEND" "$input" "$owner" "$demo"
+gql "$Q_RESEND" "$input" "$owner" "$demo"; expect_code "gql resend cooldown" team.resend-cooldown
+emit "$f" "resendInvitation again inside the minute: refused" "$Q_RESEND" "$input" "$owner" "$demo"
+Q_REVOKE='mutation TeamRevoke($id: String!) { revokeInvitation(memberId: $id) }'
+gql "$Q_REVOKE" "$input" "$owner" "$demo"; expect_ok "gql revoke"; assert_js "gql revoke" 'b.data.revokeInvitation===true' "$work/b"
+emit "$f" "revokeInvitation (TeamRevoke)" "$Q_REVOKE" "$input" "$owner" "$demo"
+
 # --- screens and the flows the browser proves ---------------------------------------------------
 reset_limits
 invitation_token "$S2ONLY" 1
@@ -593,6 +699,7 @@ built from a tree with no uncommitted change outside the evidence folders and br
 | [\`api/resend-revoke.md\`](api/resend-revoke.md) | Resend (new mail, old link dead), the cooldown refusal, revoke |
 | [\`api/refusals.md\`](api/refusals.md) | Duplicate email, owner remove, self-pay, a double pay answering the first payment, 403 without the permission, anonymous, store reach (D211), 429 on preview, accept and invite |
 | [\`api/isolation.md\`](api/isolation.md) | B's owner on A's member and commission, A's role in B's invite, A on B's store, the same email in both businesses (D201) |
+| [\`api/graphql.md\`](api/graphql.md) | The dashboard's Admin API operations: \`inviteMember\`, \`teamMember\`, \`updateTeamMember\`, \`setTeamMemberLimit\`, \`setTeamMemberReceiving\`, \`teamOrderManagers\`, \`deactivateTeamMember\`, \`reactivateTeamMember\`, \`payTeamMember\`, \`removeTeamMember\`, the commission queries and mutations, \`resendInvitation\` (and its cooldown refusal), \`revokeInvitation\` |
 
 Ids this run acted on (stores, roles, members, commissions, the payment, the business) and channel tokens are placeholders; every
 assertion ran on the real values. Invitation tokens and passwords are written \`[REDACTED]\`; session tokens and cookies never appear.
