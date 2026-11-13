@@ -78,7 +78,9 @@ export class GrantPreviewService {
    */
   async assertMayChangeHolder(ctx: OperationContext, command: PreviewGrantCommand): Promise<void> {
     const stores = await this.ports.directory.stores(ctx, command.actor.scope.businessId);
-    const roles = new Map((await this.ports.roles.all(ctx, command.actor.scope)).map((role) => [role.id as string, role]));
+    const roles = new Map(
+      (await this.ports.roles.all(ctx, command.actor.scope)).map((role) => [role.id as string, role]),
+    );
     const reachStoreIds = reachStoreIdsOf(stores);
     const actor = await this.actorOf(ctx, command.actor, roles, reachStoreIds);
     const rows = command.roleIds

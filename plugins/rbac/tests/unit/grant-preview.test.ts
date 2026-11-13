@@ -158,7 +158,11 @@ describe('GrantPreviewService.assertMayChangeHolder', () => {
       grant(S1_MANAGER, [ROLES.viewer.id], 'selected', [S1, ARCHIVED]),
       RBAC_CODES.PRIVILEGE_EXCEEDED,
     ],
-    ['an all-stores holder from a store-limited actor', grant(S1_MANAGER, [ROLES.viewer.id], 'all'), RBAC_CODES.PRIVILEGE_EXCEEDED],
+    [
+      'an all-stores holder from a store-limited actor',
+      grant(S1_MANAGER, [ROLES.viewer.id], 'all'),
+      RBAC_CODES.PRIVILEGE_EXCEEDED,
+    ],
     [
       'a holder of a permission the actor lacks',
       grant(S1_MANAGER, [ROLES.deleter.id], 'selected', [S1]),
