@@ -4,7 +4,13 @@ import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } fro
 import { ConfigService } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { authTestOptions, createTeamTestEnvironment, TEST_REDIS_URL, TeamKit, type TeamForeignModules } from './team-kit';
+import {
+  authTestOptions,
+  createTeamTestEnvironment,
+  TEST_REDIS_URL,
+  TeamKit,
+  type TeamForeignModules,
+} from './team-kit';
 
 const SERVER_A_WORKER_ID = 1018;
 const SERVER_B_WORKER_ID = 1019;
