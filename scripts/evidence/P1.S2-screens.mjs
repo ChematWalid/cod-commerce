@@ -43,17 +43,29 @@ const WIZARD = 'register-wizard';
 const LICENCE_FOOTER = '[data-vendure-branding]';
 const HAMMER_LIMIT_MS = 15_000;
 const STALE_CHANNEL_KEY = 'vendure-selected-channel-token';
+// The merchant shell sends the dashboard root to Home; both api processes serve the dashboard under the same path.
+const HOME_PATH = '/home';
+const homePath = `${new URL(base).pathname}${HOME_PATH}`;
+if (new URL(oauthBase).pathname !== new URL(base).pathname) throw new Error('the two dashboards differ in path');
 
 /** @returns {never} */
 function fail(message) {
   throw new Error(message);
 }
 
+/** The plugins whose catalogues these pages render: the auth pages and the merchant shell's wizard fields. */
+const CATALOGUE_PLUGINS = ['auth', 'merchant-shell'];
+
 /** The catalogue as the pages use it, so a selector can never drift from the text. */
 function catalogue(lang) {
   const entries = new Map();
-  const po = readFileSync(join(root, `plugins/auth/dashboard/i18n/${lang}.po`), 'utf8');
-  for (const [, id, text] of po.matchAll(/^msgid "(.+)"\nmsgstr "(.*)"$/gm)) entries.set(id, text);
+  for (const plugin of CATALOGUE_PLUGINS) {
+    const po = readFileSync(join(root, `plugins/${plugin}/dashboard/i18n/${lang}.po`), 'utf8');
+    for (const [, id, text] of po.matchAll(/^msgid "(.+)"\nmsgstr "(.*)"$/gm)) {
+      if (entries.has(id) && entries.get(id) !== text) fail(`${lang}: ${id} differs between the catalogues`);
+      entries.set(id, text);
+    }
+  }
   return (id) => entries.get(id) ?? fail(`${lang}.po has no ${id}`);
 }
 const T = { ar: catalogue('ar'), en: catalogue('en') };
@@ -198,8 +210,7 @@ async function registerMerchant(browser, merchant, storageState) {
     await page.getByText(T[lang]('subdomain.available')).waitFor();
     await button(page, T[lang]('Create')).click();
     await page.getByTestId(BANNER).waitFor();
-    if (new URL(page.url()).pathname.replace(/\/$/, '') !== new URL(base).pathname)
-      fail(`${lang}: not on Home: ${page.url()}`);
+    if (new URL(page.url()).pathname.replace(/\/$/, '') !== homePath) fail(`${lang}: not on Home: ${page.url()}`);
     await setDisplayLanguage(page, lang);
     merchant.state = await context.storageState();
   } finally {
@@ -443,7 +454,8 @@ async function oauthOn(browser) {
     await page.getByText(T.en('subdomain.available')).waitFor();
     await button(page, T.en('Create')).click();
     await page.waitForFunction(
-      () => location.pathname.replace(/\/$/, '') === '/dashboard' && document.querySelector('[data-sidebar="sidebar"]'),
+      (home) => location.pathname.replace(/\/$/, '') === home && document.querySelector('[data-sidebar="sidebar"]'),
+      homePath,
     );
     await settle(page);
     if ((await page.getByTestId(BANNER).count()) !== 0) fail('a provider-confirmed email still shows the banner');
