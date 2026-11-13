@@ -118,7 +118,19 @@ export class PasswordResetService {
     await passwords.set(ctx, account.userId, password);
     await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change', 'oauth-ticket']);
     await this.settleProof(ctx, account);
-    return { account, ended: await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT) };
+    const ended = await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT);
+    await this.mailNotice(ctx, account);
+    return { account, ended };
+  }
+
+  /** Queued in the reset's transaction, so a rolled-back reset mails nothing; tells the owner if someone else reset. */
+  private async mailNotice(ctx: OperationContext, account: AccountRecord): Promise<void> {
+    await this.ports.emails.enqueue(ctx, {
+      kind: 'password-changed',
+      to: account.email,
+      locale: account.locale,
+      vars: { name: account.firstName },
+    });
   }
 
   /**
