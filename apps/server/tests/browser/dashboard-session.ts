@@ -152,9 +152,6 @@ export async function closeMenus(page: Page): Promise<void> {
   for (let level = 0; level < MAX_MENU_LEVELS; level += 1) {
     const open = await menus.count();
     if (open === 0) break;
-    // Escape only reaches the menu while focus is inside it; a language change re-renders the app and can drop focus
-    // to the body, after which Escape closes nothing (#221). Focus the innermost open menu first.
-    await menus.last().focus();
     await page.keyboard.press('Escape');
     await page.waitForFunction((before: number) => document.querySelectorAll('[role="menu"]').length < before, open);
   }
