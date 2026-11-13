@@ -51,13 +51,13 @@ const setMemberAccess = (administratorId: number, roleIds: readonly string[]) =>
  * that call ends or after {@link CONCURRENT_GRACE_MS}. Without rbac's lock held by Team the call commits inside Team's
  * read; with it (D804) it waits for Team to commit. Returns the call's outcome: its error codes, `[]` on success.
  */
-function setAccessDuringTeamRead(administratorId: number, roleIds: readonly string[]): Promise<string[]> {
+function setAccessDuringTeamRead(administratorId: number, roleIds: readonly string[]): Promise<readonly string[]> {
   type AccessOf = (
     this: RbacMemberAccessAdapter,
     ...args: Parameters<RbacMemberAccessAdapter['accessOf']>
   ) => ReturnType<RbacMemberAccessAdapter['accessOf']>;
   const read = Object.getOwnPropertyDescriptor(RbacMemberAccessAdapter.prototype, 'accessOf')?.value as AccessOf;
-  let outcome: Promise<string[]> | undefined;
+  let outcome: Promise<readonly string[]> | undefined;
   vi.spyOn(RbacMemberAccessAdapter.prototype, 'accessOf').mockImplementation(async function (
     this: RbacMemberAccessAdapter,
     ...args: Parameters<RbacMemberAccessAdapter['accessOf']>
@@ -66,7 +66,7 @@ function setAccessDuringTeamRead(administratorId: number, roleIds: readonly stri
     if (outcome === undefined && args[2] === administratorId) {
       outcome = failureOf(setMemberAccess(administratorId, roleIds)).then(
         (failure) => failure.codes,
-        () => [],
+        (): readonly string[] => [],
       );
       await Promise.race([outcome, new Promise((resolve) => setTimeout(resolve, CONCURRENT_GRACE_MS))]);
     }
