@@ -23,6 +23,7 @@ Status `Proposed` until the user approves in PR review; then the session flips i
 | [0015](0015-observability.md) | Observability | Accepted (2026-11-07) | — | — | P0.S2a-3 |
 | [0016](0016-data-lifecycle-outbox-partitioning.md) | Data lifecycle, outbox, partitioning, pooling | Accepted (2026-11-07) | D PgBouncer | pass → PgBouncer transaction mode for api/worker; direct for migrate and test DB setup | P0.S2a-2 |
 | [0017](0017-api-clients-web-and-mobile.md) | API clients: web and mobile (design only) | Accepted (2026-11-08) | — (bearer-only Admin API login test) | see `docs/evidence/P0.S2c-polish/api/bearer-client.md` | P0.S2c-polish |
+| [0018](0018-phase-branch-workflow.md) | Phase-branch workflow: session PRs into `phase/Pn`, background CI, green phase PR into `main` | Accepted (2026-11-13, user decision) | — | — | docs/phase-branch-workflow |
 
 All P0.S2a-1 spikes ran on **SQLite** (Docker unavailable on the machine: Windows "Virtual Machine Platform" off). Spikes A/B test extension APIs and order math, which are database-independent; Postgres-specific behaviour (order-number counter under concurrency) was re-checked in P0.S2a-2 on Postgres 17: gapless and duplicate-free, see the ADR 0009 addendum.
 

@@ -1,9 +1,9 @@
-# Where we stopped: onboarding for the next agent (2026-11-13, P1.S4 team members in review)
+# Where we stopped: onboarding for the next agent (2026-11-13, P1 complete, P2 next)
 
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
 ## Project in one paragraph
-This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Vendure 3.8.1** (published `@vendure/*` packages, pinned) with a Next.js 16 storefront. Work runs as roadmap sessions: **one session = one branch = one PR**. Working agreement (user, 2026-11-07): the agent squash-merges its own PR once CI is green; the user decides via multiple-choice questions. The roadmap is in `docs/roadmap/README.md`, the briefs in `docs/roadmap/P{n}-*.md`, the plans in `docs/roadmap/plans/` and the handoffs in `docs/roadmap/handoff/`.
+This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Vendure 3.8.1** (published `@vendure/*` packages, pinned) with a Next.js 16 storefront. Work runs as roadmap sessions: **one session = one branch = one PR**. Working agreement (user, 2026-11-07): the agent squash-merges its own PR; the user decides via multiple-choice questions. From P2 on (ADR 0018), session PRs target `phase/P{n}` and merge at once; only the phase PR into `main` waits for green CI and browser tests. The roadmap is in `docs/roadmap/README.md`, the briefs in `docs/roadmap/P{n}-*.md`, the plans in `docs/roadmap/plans/` and the handoffs in `docs/roadmap/handoff/`.
 
 ## Progress
 | Session | Issue | Branch | PR | State |
@@ -24,13 +24,18 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P1.S1** Business→Stores tenancy: `plugins/tenancy`, tenant isolation by construction, host resolver, order sequence | #4 | `feat/p1-s1-tenancy` | see `gh pr list` | **merged**; handoff `handoff/P1.S1.md`; evidence `docs/evidence/P1.S1/`; decisions `P1-decisions.md` |
 | **P1.S2** Accounts & auth: `plugins/auth`, `plugins/rate-limit`, sign-up wizard, verification, reset, profile, OAuth behind a flag | #5 | `feat/p1-s2-auth` | see `gh pr list` | **merged**; handoff `handoff/P1.S2.md`; evidence `docs/evidence/P1.S2/`; decisions `P1-decisions.md` |
 | **P1.S3** Permissions catalog & roles: 93-permission catalog, `plugins/rbac`, built-in and custom roles, store-scoped access, activity log | #6 | `feat/p1-s3-rbac` | see `gh pr list` | **merged**; handoff `handoff/P1.S3.md`; evidence `docs/evidence/P1.S3/`; decisions `P1-decisions.md` |
-| **P1.S5** Admin shell, navigation & Arabic RTL: merchant sidebar and routes, store switcher and Create Store, account menu, general settings, branding, `i18n:check`, light/dark | #8 | `feat/p1-s5-admin-shell` | see `gh pr list` | **merged**; handoff `handoff/P1.S5.md`; evidence `docs/evidence/P1.S5/`; decisions `P1-decisions.md` |
+| **P1.S5** Admin shell, navigation & Arabic RTL: merchant sidebar and routes, store switcher and Create Store, account menu, general settings, branding, `i18n:check`, light/dark | #8 | `feat/p1-s5-admin-shell` | #99 | **merged**; handoff `handoff/P1.S5.md`; evidence `docs/evidence/P1.S5/`; decisions `P1-decisions.md` |
 | **P1.S6** Platform plumbing: queue pools, partitions, outbox with relay, sweeper and reconciler, internal HMAC guard, envelope-encrypted tenant secrets and KEK rotation, webhook gateway, flags and kill switches, partitioned append-only `activity_log` | #9 | `feat/p1-s6-platform-plumbing` | #226 | **merged**; handoff `handoff/P1.S6.md`; evidence `docs/evidence/P1.S6/`; decisions D99-D130 in `P1-decisions.md` |
-| **P1.S4** Team members & invitations: `plugins/team`, invite/accept/resend/revoke, members list with tabs, member actions, pay salary placeholder (`salary.paid` on the outbox), commission configs, audit fixes #114, #160, #211, #139 | #7 | `feat/p1-s4-team` | #233 | **in review**; handoff `handoff/P1.S4.md`; evidence `docs/evidence/P1.S4/`; decisions D200-D222 in `P1-decisions.md` |
+| **P1.S4** Team members & invitations: `plugins/team`, invite/accept/resend/revoke, members list with tabs, member actions, pay salary placeholder (`salary.paid` on the outbox), commission configs, audit fixes #114, #160, #211, #139 | #7 | `feat/p1-s4-team` | #233 | **merged** (360e1c1); handoff `handoff/P1.S4.md`; evidence `docs/evidence/P1.S4/`; decisions D200-D222 in `P1-decisions.md` |
+| P1 audit fixes (`docs/audits/P1-audit.md`, #101) | — | `fix/*` | #102-#105, #213-#215, #218-#220, #224, #228 | **merged**; decisions D400-D405 |
+| P1 isolation review: `slugForEntity` cross-business oracle (#229) | — | `fix/slug-for-entity-tenant-leak` | #232 | **merged** (f32bd2a); D500; open-operations gate |
+| P1.S4 follow-up: rbac and team audit fixes | — | `fix/s4-audit-rbac` | #234 | **merged** (3a3bf83) |
+| P1.S4 follow-up: auth audit fixes | — | `fix/s4-audit-auth` | #237 | **merged** (ce2e282) |
+| **P1 closing evidence**: a store owner sees only their own business | — | `test/p1-isolation-evidence` | #235 | **merged**; evidence `docs/evidence/P1-isolation/`; CI test `apps/server/tests/e2e/p1-isolation.e2e.test.ts` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
-**Working agreement (user, 2026-11-07):** the agent merges its own PRs once CI is green and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. Decisions so far:
+**Working agreement (user, 2026-11-07):** the agent merges its own PRs and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. **From P2 on (user, 2026-11-13, ADR 0018):** session PRs target `phase/P{n}` and merge at once while CI runs in the background; only the phase-end PR into `main` waits for green CI and browser tests. Decisions so far:
 - P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007).
 - No Cloudflare staging zone or latency probes for P0.S2a-3.
 - **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5.
@@ -70,7 +75,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. P0, P1.S1 to P1.S3, P1.S5 and P1.S6 are merged; P1.S4 is in review (PR #233). Next: merge P1.S4 once CI is green, then the P1.S4 follow-ups (the auth audit session, `fix/s4-audit-rbac` PR #234 rebased on `main`, the evidence session; D219, D221), then **P2.S1**. Read `handoff/P1.S4.md` first, and log each decision in the phase's decisions file.
+3. **P1 is complete**: P1.S1-S6 (P1.S4 in #233), the P1 audit fixes and the closing isolation evidence are merged. Next is **P2** (`docs/roadmap/P2-catalog-offers.md`), starting with **P2.S1 Products & variants**; it is not started. Read the P1 handoffs and `P1-decisions.md` first (D500: slug checks need a business-scoped endpoint). Open follow-ups from the isolation review: #230 (P3.S1), #231 (P10.S2).
 4. Open items for later sessions, flagged while applying the ADRs:
    - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
@@ -89,7 +94,7 @@ gh pr create, and stop without merging.
 P0.S2a-2's handoff (`handoff/P0.S2a-2.md`) has the machine gotchas (shell aliases, HDD vs SSD, PgBouncer `KILL`/`RESUME`) and the ports already in use.
 
 ## Rules that bit us (read once)
-- Never push to `main`, never force-push, and use no `--no-verify`. Merging: per the working agreement above (squash-merge once CI is green).
+- Never push to `main`, never force-push, and use no `--no-verify`. Merging: per the working agreement above (P1: squash-merge once CI is green; from P2: squash-merge into `phase/P{n}` at once, phase PR into `main` only when fully green, ADR 0018).
 - Commits must contain no AI co-author trailer or "generated with" line. CI `attribution-check` fails the PR otherwise.
 - Never write the reference product's names, logo, theme names or copy, except in ADR 0007's banned list.
 - Never handle tokens or passwords. The user runs `gh auth login` and provides any credentials.

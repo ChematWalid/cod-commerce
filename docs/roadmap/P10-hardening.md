@@ -67,7 +67,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P10-hardening.md (section P10.S1), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch test/p10-s1-e2e from an up-to-date main, small Conventional Commits after each step,
+branch test/p10-s1-e2e from an up-to-date phase/P10 (PR into phase/P10, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -140,7 +140,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P10-hardening.md (section P10.S2), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch fix/p10-s2-hardening from an up-to-date main, small Conventional Commits after each step,
+branch fix/p10-s2-hardening from an up-to-date phase/P10 (PR into phase/P10, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -207,7 +207,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P10-hardening.md (section P10.S3), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch chore/p10-s3-deploy from an up-to-date main, small Conventional Commits after each step,
+branch chore/p10-s3-deploy from an up-to-date phase/P10 (PR into phase/P10, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md

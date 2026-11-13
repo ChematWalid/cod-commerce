@@ -84,7 +84,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S1), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s1-plans-quotas from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s1-plans-quotas from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -153,7 +153,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S2), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s2-payments-credits from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s2-payments-credits from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -222,7 +222,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S3), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s3-pixels-capi from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s3-pixels-capi from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -290,7 +290,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S4), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s4-ads-marketing from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s4-ads-marketing from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -357,7 +357,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S5), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s5-sheets-whatsapp from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s5-sheets-whatsapp from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -424,7 +424,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S6), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s6-platform-sync from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s6-platform-sync from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -491,7 +491,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S7a), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s7a-ai-assistant from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s7a-ai-assistant from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -558,7 +558,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S7b), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s7b-ai-features from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s7b-ai-features from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -621,7 +621,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S8a), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s8a-public-api from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s8a-public-api from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -688,7 +688,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S8b), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s8b-apps-mcp from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s8b-apps-mcp from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -750,7 +750,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P9-saas-integrations.md (section P9.S9), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p9-s9-sourcing from an up-to-date main, small Conventional Commits after each step,
+branch feat/p9-s9-sourcing from an up-to-date phase/P9 (PR into phase/P9, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md

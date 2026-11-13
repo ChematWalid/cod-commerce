@@ -18,4 +18,5 @@ export const E2E_PORTS = {
   platformQueues: 3061,
   internalOnly: 3062,
   valkeyLoss: 3063,
+  isolation: 3064,
 } as const;
