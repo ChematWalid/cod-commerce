@@ -41,6 +41,7 @@ The hard limits are unchanged: never push to `main` directly, never force-push, 
 - The phase-end PR is the hard gate, so everything left red in the phase must be fixed before the phase can land on `main`.
 
 ### Rules for sessions
+- The coordinator creates `phase/Pn` from `main` when the phase starts. The pre-push hook refuses only `main`, so "never force-push" is what protects the phase branch.
 - Branch from an up-to-date `phase/Pn` (not `main`) and open the PR with `--base phase/Pn`.
 - Local checks are limited to lint, typecheck and unit tests of what the session changed. Integration, e2e and browser suites run on GitHub only.
 - Before starting, look at the latest CI run on `phase/Pn` (`gh run list --branch phase/Pn`). A red run the session did not cause is noted in its handoff and fixed in a separate PR (by that session if it is small, or by a fixer session).
