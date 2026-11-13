@@ -111,6 +111,27 @@ function CommissionCreator({ bases, onCreated }: CreatorProps): ReactNode {
   );
 }
 
+function ChosenList(props: {
+  readonly chosen: readonly CommissionConfigDto[];
+  readonly bases: readonly CommissionBasisDto[];
+  readonly onRemove: (id: string) => void;
+}): ReactNode {
+  return (
+    <ul className="grid gap-1">
+      {props.chosen.map((config) => (
+        <ChosenRow
+          key={config.id}
+          config={config}
+          bases={props.bases}
+          onRemove={() => {
+            props.onRemove(config.id);
+          }}
+        />
+      ))}
+    </ul>
+  );
+}
+
 /**
  * The commission structures a member is given, picked from the business's configs. With none yet, the empty state
  * offers a small form for a first one (when the caller may create configs). A caller who may not see the configs gets
@@ -127,18 +148,13 @@ export function CommissionPicker(props: CommissionPickerProps): ReactNode {
   return (
     <div className="grid gap-2">
       {chosen.length > 0 && (
-        <ul className="grid gap-1">
-          {chosen.map((config) => (
-            <ChosenRow
-              key={config.id}
-              config={config}
-              bases={bases}
-              onRemove={() => {
-                onChange(selected.filter((id) => id !== config.id));
-              }}
-            />
-          ))}
-        </ul>
+        <ChosenList
+          chosen={chosen}
+          bases={bases}
+          onRemove={(removed) => {
+            onChange(selected.filter((id) => id !== removed));
+          }}
+        />
       )}
       {options.length > 0 && (
         <AddCommission
