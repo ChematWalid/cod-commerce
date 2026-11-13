@@ -73,6 +73,15 @@ async function tokenOf(email: string, nth: number): Promise<string> {
   return invitationLinkIn(message).searchParams.get('token') ?? '';
 }
 
+/** The business whose invitation the raw `token` opens. */
+async function businessOfToken(token: string): Promise<string | undefined> {
+  const hash = createHash('sha256').update(token).digest('hex');
+  const [row] = await kit.query<{ businessId: string }>('SELECT "businessId" FROM invitation WHERE "tokenHash" = $1', [
+    hash,
+  ]);
+  return row?.businessId;
+}
+
 const accept = (token: string, language: 'ar' | 'en' = 'en') =>
   kit.publicRest({
     method: 'POST',
@@ -216,19 +225,11 @@ describe('two businesses (multi-tenant check)', () => {
     const tokens = (await waitForMessages(email, 2)).map(
       (message) => invitationLinkIn(message).searchParams.get('token') ?? '',
     );
-    const labelOf = async (token: string): Promise<Label> => {
-      const hash = createHash('sha256').update(token).digest('hex');
-      const [row] = await kit.query<{ businessId: string }>(
-        'SELECT "businessId" FROM invitation WHERE "tokenHash" = $1',
-        [hash],
-      );
-      return row?.businessId === businesses.a.businessId ? 'a' : 'b';
-    };
 
     // Act
     const previews = await Promise.all(
       tokens.map(async (token) => ({
-        label: await labelOf(token),
+        label: (await businessOfToken(token)) === businesses.a.businessId ? 'a' : 'b',
         answer: await kit.publicRest({ method: 'GET', path: `/team/invitations/preview?token=${token}` }),
       })),
     );
@@ -236,15 +237,15 @@ describe('two businesses (multi-tenant check)', () => {
     // Assert
     expect(previews.map((preview) => preview.label).sort()).toEqual(['a', 'b']);
     for (const { label, answer } of previews) {
-      const other = businesses[label === 'a' ? 'b' : 'a'];
+      const otherLabel = label === 'a' ? 'b' : 'a';
+      const other = businesses[otherLabel];
       expect(answer).toMatchObject({
         status: 200,
         body: { email, businessName: `${label} SARL`, inviterName: `${label} Owner` },
       });
       const shown = JSON.stringify(answer.body);
-      for (const secret of [other.businessId, `${label === 'a' ? 'b' : 'a'} SARL`, other.stores[0].subdomain]) {
+      for (const secret of [other.businessId, `${otherLabel} SARL`, other.stores[0].subdomain])
         expect(shown).not.toContain(secret);
-      }
     }
   });
 
@@ -257,15 +258,7 @@ describe('two businesses (multi-tenant check)', () => {
     const tokens = (await waitForMessages(email, 2)).map(
       (message) => invitationLinkIn(message).searchParams.get('token') ?? '',
     );
-    const businessOf = async (token: string) => {
-      const hash = createHash('sha256').update(token).digest('hex');
-      const [row] = await kit.query<{ businessId: string }>(
-        'SELECT "businessId" FROM invitation WHERE "tokenHash" = $1',
-        [hash],
-      );
-      return row?.businessId;
-    };
-    const tokenA = (await businessOf(tokens[0] ?? '')) === a.businessId ? tokens[0] : tokens[1];
+    const tokenA = (await businessOfToken(tokens[0] ?? '')) === a.businessId ? tokens[0] : tokens[1];
     const tokenB = tokenA === tokens[0] ? tokens[1] : tokens[0];
 
     // Act
