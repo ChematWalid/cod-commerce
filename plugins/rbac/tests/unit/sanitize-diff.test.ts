@@ -75,6 +75,22 @@ describe('sanitizeDiff', () => {
     ['any of them before a benign word', ['tokenFootprint', 'secretHashtag', 'passwordFootprints', 'otpHashtags']],
     ['any of them run into a benign word', ['hashtagtoken', 'footprintsecret', 'obsessionpassword', 'hashtagOtp']],
     ['any of them split by other punctuation', ['pass:word', 'api::key', 'to/ken']],
+    // Only the as-typed reading sees these as breaks: NFKD leaves them as they are.
+    [
+      'any of them split by an invisible or typographic mark',
+      ['pass\u200bword', 'to\u00adken', 'pass\u00b7word', 'se\u2019cret'],
+    ],
+    ['any of them plural', ['passwords', 'tokens', 'secrets', 'cookies', 'sessions', 'credentials']],
+    [
+      'any of them with fullwidth letters and a widened symbol, or a sharp s',
+      [
+        '\uff41\uff50\uff49\u2122\uff4b\uff45\uff59',
+        '\uff50\uff41\uff53\uff53\u00bd\uff57\uff4f\uff52\uff44',
+        'pa\u00dfword',
+        'PA\u1e9eWORD',
+        'se\u00dfion',
+      ],
+    ],
     // A combining mark, composed or not, and a separator that NFKC widens (™ → TM) must not hide a term.
     [
       'any of them with marks or compatibility characters',
@@ -112,6 +128,10 @@ describe('sanitizeDiff', () => {
     'posSession',
     'POSSession',
     'possession_id',
+    'privateSigningKey',
+    'privateEncryptionKey',
+    'accessSigningKey',
+    `private${'a'.repeat(16)}Key`,
     'footprintCvv',
   ])('redacts the extra term in %s', (key) => {
     // Act
