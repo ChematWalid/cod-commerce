@@ -342,7 +342,7 @@ emit "$f" "teamMembers (GraphQL), the Pending tab" "$Q_TEAM_MEMBERS" "$input" "$
 
 # --- member-actions.md ------------------------------------------------------------------------
 f="$out/api/member-actions.md"
-begin "$f" "Member actions" "Edit, limit, stop and resume receiving orders, deactivate and reactivate, pay salary, order managers and remove. Pay salary is a placeholder: it books one row and publishes \`salary.paid\` (P6.S4 books the ledger)."
+begin "$f" "Member actions" "Edit, limit, stop and resume receiving orders, deactivate and reactivate, pay salary, order managers and remove. Pay salary is a placeholder: it books one row and writes \`salary.paid\` to the outbox in the same transaction (P6.S4 books the ledger)."
 body='{"baseSalary":32000}'
 rest PATCH "/employees/$amina" "$body" "$owner" "$demo"; expect_status edit 200; assert_js edit 'b.baseSalary===32000' "$work/b"
 emit_rest "$f" "PATCH /employees/:id: the base salary" PATCH "/employees/$amina" "$body"
@@ -456,6 +456,9 @@ emit_rest "$f" "The same payment again (same idempotency key): the first payment
 payments=$(psql_value "select count(*) from salary_payment where \"memberId\" = $amina" | command tr -d '\r\n')
 [[ "$payments" == 1 ]] || fail "the double pay booked $payments rows"
 printf 'Database check: one `salary_payment` row for the member after both calls.\n\n' >>"$f"
+salary_events=$(psql_value "select count(*) from outbox_event where topic = 'salary.paid' and payload->>'memberId' = '$amina'" | command tr -d '\r\n')
+[[ "$salary_events" == 1 ]] || fail "the double pay wrote $salary_events salary.paid outbox rows"
+printf 'Database check: one `salary.paid` row in `outbox_event` for the member after both calls (D222).\n\n' >>"$f"
 rest GET /employees - "$orders" "$demo"; expect_status "no view" 403
 emit_rest "$f" "GET /employees without team.members.view: 403" GET /employees -
 body=$(invite_body "nobody@invitee.example.test" "$om_role" all '[]' 1 en)
@@ -579,9 +582,9 @@ Ids this run acted on (stores, roles, members, commissions, the payment, the bus
 assertion ran on the real values. Invitation tokens and passwords are written \`[REDACTED]\`; session tokens and cookies never appear.
 Administrator ids are the engine's small integers.
 
-\`salary.paid\` is published on the api process's event bus inside the paying transaction (\`plugins/team/infrastructure/salary-paid.event.ts\`);
-no outbox or subscriber exists until P6.S4, so no worker log line can show it. The database checks in \`member-actions.md\` and
-\`refusals.md\` show the one booked \`salary_payment\` row instead.
+\`salary.paid\` is written to the outbox in the paying transaction (\`plugins/team/infrastructure/salary-paid.outbox.ts\`, D222);
+no consumer subscribes to it until the ledger (P6.S4). The database checks in \`refusals.md\` show one booked \`salary_payment\`
+row and one \`salary.paid\` outbox row for the member after the pay and the repeated pay.
 
 ## Browser suite
 
