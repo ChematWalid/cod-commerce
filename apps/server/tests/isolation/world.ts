@@ -71,6 +71,13 @@ const channelOf = (store: WorldStore): { label: string; token: string } => ({
   token: store.channelToken,
 });
 
+/**
+ * An engine id as the plugins take it. Vendure's testing id strategy (the e2e boot) returns core ids as `T_3`, and a
+ * plugin's plain `String` argument, such as `setMemberAccess`'s `administratorId`, is never decoded; the live stack
+ * returns `3` already.
+ */
+const rawId = (id: string): string => id.replace(/^T_/, '');
+
 /** Signs a demo webhook body as the demo handler checks it. */
 export const demoSignature = (secret: string, body: string): string =>
   `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
@@ -123,8 +130,8 @@ async function createMember(options: WorldOptions, superadmin: Caller, store: Wo
     { input: adminInput },
     'createAdministrator',
   );
-  await options.hooks.linkToBusiness(administrator.id, businessId);
-  return { email, administratorId: administrator.id };
+  await options.hooks.linkToBusiness(rawId(administrator.id), businessId);
+  return { email, administratorId: rawId(administrator.id) };
 }
 
 /** Builds one business: its stores, owner, member, role, secret, note, logo and flag override. */
@@ -134,7 +141,7 @@ async function buildBusiness(options: WorldOptions, superadmin: Caller, label: '
   const own = channelOf(base.stores[0]);
   const as = async <T>(query: string, variables: Record<string, unknown>, field: string): Promise<T> =>
     fieldOf(await http.graphql(base.session, query, variables, own), field) as T;
-  const ownerId = (await as<{ id: string }>(ACTIVE_ADMINISTRATOR, {}, 'activeAdministrator')).id;
+  const ownerId = rawId((await as<{ id: string }>(ACTIVE_ADMINISTRATOR, {}, 'activeAdministrator')).id);
   const lastName = `Private${label}${suffix}`;
   await as(UPDATE_PROFILE, { input: { lastName } }, 'updateAccountProfile');
   const member = await createMember(options, superadmin, base.stores[0], base.business.id);
