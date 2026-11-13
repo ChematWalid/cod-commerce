@@ -70,20 +70,26 @@ async function callRoute(entry: RouteEntry): Promise<Outcome> {
   return { code: answer.status < FIRST_FAILURE_STATUS ? undefined : (code ?? NO_CODE), ...answer };
 }
 
-/** Every row business A owns in the tables Team writes or reaches, rbac's bindings and activity log included. */
+/** The tables Team writes or reaches, rbac's bindings, the activity log and the outbox included, with a stable order. */
+const ORDER_OF_TABLES_OF_A: Readonly<Record<string, string>> = {
+  team_member: 'id',
+  invitation: 'id',
+  commission_config: 'id',
+  salary_payment: 'id',
+  member_role_assignment: 'id',
+  role_binding: 'id',
+  activity_log: 'id',
+  // Partitioned with a composite key (D222 writes `salary.paid` here in the paying transaction).
+  outbox_event: 'id, "createdAt"',
+};
+
+/** Every row business A owns in the tables Team writes or reaches, plus A's accounts. */
 async function snapshotOfA(): Promise<unknown[]> {
   const id = businesses.a.businessId;
-  const tables = [
-    'team_member',
-    'invitation',
-    'commission_config',
-    'salary_payment',
-    'member_role_assignment',
-    'role_binding',
-    'activity_log',
-  ];
   const rows = await Promise.all(
-    tables.map((table) => kit.query(`SELECT * FROM ${table} WHERE "businessId" = $1 ORDER BY id`, [id])),
+    Object.entries(ORDER_OF_TABLES_OF_A).map(([table, order]) =>
+      kit.query(`SELECT * FROM ${table} WHERE "businessId" = $1 ORDER BY ${order}`, [id]),
+    ),
   );
   const accounts = await kit.query(
     'SELECT id, "deletedAt" FROM administrator WHERE "customFieldsBusinessid" = $1 ORDER BY id',
@@ -92,13 +98,15 @@ async function snapshotOfA(): Promise<unknown[]> {
   return [...rows, accounts];
 }
 
-/** Activity rows of any other business that name one of A's members or commissions. */
-function activityNamingAElsewhere(): Promise<unknown[]> {
-  const named = [targets.memberId, targets.invitedMemberId, targets.commissionId];
-  return kit.query('SELECT * FROM activity_log WHERE "businessId" <> $1 AND "entityId" = ANY($2)', [
-    businesses.a.businessId,
-    named,
+/** Activity, payment and outbox rows of any other business that name one of A's members or commissions. */
+async function rowsNamingAElsewhere(): Promise<unknown[]> {
+  const params = [businesses.a.businessId, [targets.memberId, targets.invitedMemberId, targets.commissionId]];
+  const found = await Promise.all([
+    kit.query('SELECT * FROM activity_log WHERE "businessId" <> $1 AND "entityId" = ANY($2)', params),
+    kit.query('SELECT * FROM salary_payment WHERE "businessId" <> $1 AND "memberId" = ANY($2)', params),
+    kit.query(`SELECT * FROM outbox_event WHERE "businessId" <> $1 AND payload->>'memberId' = ANY($2)`, params),
   ]);
+  return found.flat();
 }
 
 /** A refusal of the input with one of the entry's codes: never a permission refusal, a fault or a bare guard body. */
@@ -205,7 +213,7 @@ describe('the Team isolation sweep', () => {
       // Assert
       expectForeignOutcome(entry, outcome);
       expect(await snapshotOfA()).toEqual(before);
-      expect(await activityNamingAElsewhere()).toEqual([]);
+      expect(await rowsNamingAElsewhere()).toEqual([]);
     });
 
     it.each(ROUTE_REGISTRY)('$method $route answers $foreign and changes nothing of A', async (entry) => {
@@ -219,7 +227,7 @@ describe('the Team isolation sweep', () => {
       // Assert
       expectForeignOutcome(entry, outcome);
       expect(await snapshotOfA()).toEqual(before);
-      expect(await activityNamingAElsewhere()).toEqual([]);
+      expect(await rowsNamingAElsewhere()).toEqual([]);
     });
   });
 

@@ -1,6 +1,8 @@
 import { BUILT_IN_ROLES, type TeamEmailLocale } from '@cod/shared';
 import { useLingui } from '@lingui/react';
+import { EMPTY_VALUE } from './constants';
 import type { CommissionBasisDto, RoleOptionDto } from './dto';
+import type { StoreAccessView } from './member-view-model';
 
 /** The display language without its region. */
 export function useUiLanguage(): string {
@@ -39,6 +41,15 @@ export function basisLabelOf(basis: string, bases: readonly CommissionBasisDto[]
 /** Names joined as a list of the display language ("A، B" in Arabic, "A, B" otherwise). */
 export function listOf(names: readonly string[], language: string): string {
   return names.join(language === 'ar' ? '، ' : ', ');
+}
+
+/**
+ * A member's stores as the list row and the details dialog show them. A member on chosen stores the caller
+ * cannot reach comes back with no names, which reads as the empty value rather than a blank.
+ */
+export function storesTextOf(access: StoreAccessView, language: string, translate: (id: string) => string): string {
+  if (access.kind === 'all') return translate('team.store-access-all');
+  return access.names.length === 0 ? EMPTY_VALUE : listOf(access.names, language);
 }
 
 /** Whole DZD with the display language's grouping and Latin digits, as amounts are written in Algeria. */

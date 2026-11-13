@@ -11,7 +11,8 @@ import {
 } from '@vendure/dashboard';
 import type { ComponentType, ReactNode } from 'react';
 import type { RoleOptionDto, TeamMemberDto } from '../dto';
-import { formatDzd, listOf, memberRoleLabel, useUiLanguage } from '../labels';
+import { EMPTY_VALUE } from '../constants';
+import { formatDzd, listOf, memberRoleLabel, storesTextOf, useUiLanguage } from '../labels';
 import {
   COLUMN_LABEL_IDS,
   columnsFor,
@@ -27,7 +28,6 @@ import { MemberRowActions, type MemberRowHandlers } from './member-row-actions';
 /** Hidden on a phone, so the name, the status and the actions fit without a sideways scroll. */
 const WIDE_ONLY = 'hidden md:table-cell';
 const WIDE_ONLY_COLUMNS: ReadonlySet<MemberColumn> = new Set(['roles', 'orders', 'stores', 'joined']);
-const EMPTY_CELL = '—';
 /** A long status ("Invitation expired") wraps inside its badge instead of widening the table past a phone. */
 const WRAPPING_BADGE = 'h-auto whitespace-normal text-center';
 
@@ -62,12 +62,12 @@ function EmployeeCell({ member }: CellProps): ReactNode {
 function RolesCell({ member, roleOptions }: CellProps): ReactNode {
   const language = useUiLanguage();
   const labels = member.roles.map((role) => memberRoleLabel(role, roleOptions, language));
-  return labels.length === 0 ? EMPTY_CELL : listOf(labels, language);
+  return labels.length === 0 ? EMPTY_VALUE : listOf(labels, language);
 }
 
 function SalaryCell({ member }: CellProps): ReactNode {
   const language = useUiLanguage();
-  return member.baseSalary === null ? EMPTY_CELL : <LtrRun>{formatDzd(member.baseSalary, language)}</LtrRun>;
+  return member.baseSalary === null ? EMPTY_VALUE : <LtrRun>{formatDzd(member.baseSalary, language)}</LtrRun>;
 }
 
 function StatusCell({ member }: CellProps): ReactNode {
@@ -87,14 +87,12 @@ function OrdersCell({ member }: CellProps): ReactNode {
 function StoresCell({ member }: CellProps): ReactNode {
   const { i18n } = useLingui();
   const language = useUiLanguage();
-  const access = storeAccessOf(member);
-  if (access.kind === 'all') return i18n._('team.store-access-all');
-  return access.names.length === 0 ? EMPTY_CELL : listOf(access.names, language);
+  return storesTextOf(storeAccessOf(member), language, (id) => i18n._(id));
 }
 
 function JoinedCell({ member }: CellProps): ReactNode {
   const { formatDate } = useLocalFormat();
-  return member.joinedAt === null ? EMPTY_CELL : formatDate(member.joinedAt, { dateStyle: 'medium' });
+  return member.joinedAt === null ? EMPTY_VALUE : formatDate(member.joinedAt, { dateStyle: 'medium' });
 }
 
 function ActionsCell({ member, held, onAction, onPay }: CellProps): ReactNode {
