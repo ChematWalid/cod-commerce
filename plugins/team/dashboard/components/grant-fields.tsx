@@ -14,6 +14,8 @@ export interface GrantOptions {
   readonly stores: readonly StoreOptionDto[];
   readonly commissions: readonly CommissionConfigDto[];
   readonly bases: readonly CommissionBasisDto[];
+  /** Whether the caller holds `team.commissions.view`; without it the configs were not asked for. */
+  readonly canSeeCommissions: boolean;
   readonly canCreateCommission: boolean;
 }
 
@@ -127,6 +129,7 @@ export function GrantFields(props: GrantFieldsProps): ReactNode {
           configs={options.commissions}
           bases={options.bases}
           selected={draft.commissionConfigIds}
+          canSee={options.canSeeCommissions}
           canCreate={options.canCreateCommission}
           onChange={(commissionConfigIds) => {
             onChange({ commissionConfigIds });

@@ -236,6 +236,10 @@ msgid "team.commission-remove"
 msgstr "إزالة"
 
 #. js-lingui-explicit-id
+msgid "team.commission-hidden"
+msgstr "لا يمكنك عرض هياكل العمولات."
+
+#. js-lingui-explicit-id
 msgid "team.commission-empty"
 msgstr "لا توجد هياكل عمولات بعد."
 

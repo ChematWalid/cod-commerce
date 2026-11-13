@@ -236,6 +236,10 @@ msgid "team.commission-remove"
 msgstr "Remove"
 
 #. js-lingui-explicit-id
+msgid "team.commission-hidden"
+msgstr "You cannot see commission structures."
+
+#. js-lingui-explicit-id
 msgid "team.commission-empty"
 msgstr "No commission structures yet."
 
