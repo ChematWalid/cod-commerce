@@ -132,16 +132,6 @@ export class AccountTokenService {
   }
 
   /**
-   * Tries the user's emailed code: {@link matchOtp}, then {@link consumeMatchedOtp} in `ctx`.
-   *
-   * @throws OtpInvalidError or OtpLockedError, as {@link matchOtp}.
-   */
-  async attemptOtp(ctx: OperationContext, userId: number, otp: string): Promise<AccountToken> {
-    const matched = await this.matchOtp(userId, otp);
-    return this.consumeMatchedOtp(ctx, matched);
-  }
-
-  /**
    * Counts one guess at the user's emailed code and compares it, spending nothing else. The guess is counted before
    * the code is compared, in one conditional statement, so concurrent guesses cannot compare more than
    * `OTP_MAX_ATTEMPTS` times. It commits on its own connection, so the error it causes cannot roll it back.
@@ -165,7 +155,8 @@ export class AccountTokenService {
 
   /**
    * Uses the token whose code {@link matchOtp} accepted, in `ctx`: a caller transaction that rolls back reopens it,
-   * with the guess still counted.
+   * with the guess still counted. Run it in the same transaction as the write the code unlocks, so a failed write
+   * leaves the code usable (AUTH-9, D607).
    *
    * @throws OtpInvalidError when a concurrent caller used it first.
    */

@@ -17,6 +17,9 @@ import { PASSWORD, uniqueEmail } from './register-test-kit';
 const TOKEN_SECRET = 'integration-test-only-secret-0000000000';
 const CONCURRENT_GUESSES = 20;
 const RIGHT_GUESS_INDEX = 2;
+const RIGHT_COPIES = 2;
+/** Every guess fits under the cap, so a right copy is never refused for lack of tries, only by its twin. */
+const WRONG_GUESSES_UNDER_CAP = OTP_MAX_ATTEMPTS - RIGHT_COPIES;
 const WRONG_OTP = '000000';
 
 const { server, adminClient } = createAuthTestEnvironment(TOKEN_SECRET, { poolSize: 30 });
@@ -131,6 +134,28 @@ describe('verifying an email by code under concurrency (AUTH-9)', () => {
   it('verifies exactly once and consumes the token once when the right code races wrong ones', async () => {
     // Arrange
     const code = await issueCode();
+    const guesses = [
+      ...Array.from({ length: RIGHT_COPIES }, () => code),
+      ...Array.from({ length: WRONG_GUESSES_UNDER_CAP }, () => WRONG_OTP),
+    ];
+
+    // Act
+    const results = await Promise.all(guesses.map((guess) => failureOf(service.verifyByCode(ctx, userId, guess))));
+
+    // Assert: a guess that lands after the winner finds no open code and is not counted, so only the cap is checked.
+    const row = await tokenRow();
+    const failures = results.filter((result) => result !== undefined);
+    expect(results.length - failures.length).toBe(1);
+    expect(verifiedWrites).toBe(1);
+    expect(row.consumedAt).not.toBeNull();
+    expect(row.otpAttempts).toBeLessThanOrEqual(OTP_MAX_ATTEMPTS);
+    expect(failures.every((f) => f instanceof OtpInvalidError || f instanceof OtpLockedError)).toBe(true);
+    expect(await isVerified()).toBe(true);
+  });
+
+  it('never verifies twice nor counts past the cap when the right code races a burst of wrong ones', async () => {
+    // Arrange
+    const code = await issueCode();
     const guesses = Array.from({ length: CONCURRENT_GUESSES }, (_, index) =>
       index === RIGHT_GUESS_INDEX || index === RIGHT_GUESS_INDEX + 1 ? code : WRONG_OTP,
     );
@@ -138,7 +163,7 @@ describe('verifying an email by code under concurrency (AUTH-9)', () => {
     // Act
     const results = await Promise.all(guesses.map((guess) => failureOf(service.verifyByCode(ctx, userId, guess))));
 
-    // Assert: two copies of the right code race too, and at most one of them wins.
+    // Assert: the wrong guesses may spend every try first, so the right code may lose; it never wins twice.
     const row = await tokenRow();
     const successes = results.filter((result) => result === undefined).length;
     expect(row.otpAttempts).toBeLessThanOrEqual(OTP_MAX_ATTEMPTS);
