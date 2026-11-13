@@ -12,7 +12,7 @@ import {
  * `passWord`, `api_key`, `sessionid` and `cvv2` are secrets (D800). Sticky, so it is tried at each position in turn.
  */
 const SECRET_TERM =
-  /password|secret|token|otp|hash|api.?key|authorization|cookie|session|cvv|credential|private.?key|access.?key/y;
+  /password|secret|token|otp|hash|api.?key|authorization|cookie|session|cvv|credential|(?:private|access)[a-z0-9]{0,16}?key/y;
 
 /**
  * Whole words that hold a secret term by accident and name no secret. A match is exempt only when it lies entirely
@@ -26,14 +26,11 @@ const BENIGN_WORDS: ReadonlySet<string> = new Set([
   'hashtags',
   'obsession',
   'obsessions',
-  'possession',
-  'possessions',
 ]);
 
-/** `API_Key`, `api-key` and `apiKey` become `api key`; fullwidth letters read as their ASCII forms (NFKC). */
+/** `API_Key`, `api-key` and `apiKey` become `api key`; any other character separates words. */
 const wordsOf = (key: string): string[] =>
   key
-    .normalize('NFKC')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ')
     .replace(/[^A-Za-z0-9]+/g, ' ')
@@ -64,11 +61,23 @@ function holdsSecretTerm(run: string, benign: readonly (readonly [number, number
   return false;
 }
 
+/**
+ * The ways a key is read; it is secret when any reading holds a term. As typed, a non-ASCII character separates words
+ * (as in P1.S3), so `api™key` and `token` + a combining mark still match. Decomposed with its marks dropped, a
+ * fullwidth or accented letter reads as its ASCII base (`ｐａｓｓｗｏｒｄ`, `tokeń`).
+ */
+const READINGS: readonly ((key: string) => string)[] = [
+  (key) => key,
+  (key) => key.normalize('NFKD').replace(/\p{M}/gu, ''),
+];
+
 /** A key too long to read is redacted unread, which also bounds the work per key. */
 const isSensitiveKey = (key: string): boolean => {
   if (key.length > DIFF_MAX_KEY_LENGTH) return true;
-  const words = wordsOf(key);
-  return holdsSecretTerm(words.join(''), benignSpansOf(words));
+  return READINGS.some((read) => {
+    const words = wordsOf(read(key));
+    return holdsSecretTerm(words.join(''), benignSpansOf(words));
+  });
 };
 
 /** What a diff becomes when it is too large to keep. */
@@ -87,7 +96,11 @@ function sanitizeValue(value: unknown, depth: number, ancestors: ReadonlySet<obj
   if (typeof value !== 'object' || value === null) return value;
   if (depth >= DIFF_MAX_DEPTH || ancestors.has(value)) return DIFF_OMITTED_VALUE;
   const path = new Set(ancestors).add(value);
-  if (Array.isArray(value)) return (value as unknown[]).map((item) => sanitizeValue(item, depth + 1, path));
+  // A plain copy: an Array subclass's own `map` or prototype `toJSON` never runs.
+  if (Array.isArray(value)) {
+    const items = value as unknown[];
+    return Array.from({ length: items.length }, (_, index) => sanitizeValue(items[index], depth + 1, path));
+  }
   return Object.fromEntries(
     Object.entries(value).map(([key, inner]) => [
       key,
