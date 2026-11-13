@@ -7,10 +7,15 @@ import type { TeamActor } from '../domain/team-actor';
 export class TeamThrottle {
   constructor(private readonly limiter: RateLimiter) {}
 
-  /** @throws RateLimitedError (429) past the business's or the actor's invitation budget. */
+  /**
+   * The narrower actor budget is spent first, so one administrator past its own cap is refused before
+   * its calls can drain the budget the whole business shares.
+   *
+   * @throws RateLimitedError (429) past the actor's or the business's invitation budget.
+   */
   async spendInvite(actor: TeamActor): Promise<void> {
-    await this.spend('team-invite-business', actor.scope.businessId);
     await this.spend('team-invite-actor', actorKeyOf(actor));
+    await this.spend('team-invite-business', actor.scope.businessId);
   }
 
   /** @throws RateLimitedError (429) past the actor's resend budget. */
