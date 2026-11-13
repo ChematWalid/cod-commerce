@@ -95,9 +95,9 @@ describe('browser.yml', () => {
   const runs = stepsRun(job);
   const index = (needle: string): number => (job.steps ?? []).findIndex((step) => step.run?.includes(needle));
 
-  it('runs on push to main, nightly and by hand, never on pull requests (ADR 0001 section 6)', () => {
+  it('runs on push to main and the phase branches, nightly and by hand, never on pull requests (ADR 0001 section 6, ADR 0018)', () => {
     expect(Object.keys(browser.on).sort()).toEqual(['push', 'schedule', 'workflow_dispatch']);
-    expect(browser.on['push']).toEqual({ branches: ['main'] });
+    expect(browser.on['push']).toEqual({ branches: ['main', 'phase/**'] });
     expect(browser.on['schedule']).toEqual([{ cron: '0 2 * * *' }]);
     expect(read('.github/workflows/browser.yml')).not.toMatch(/pull_request/);
   });

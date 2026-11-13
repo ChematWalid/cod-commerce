@@ -1,16 +1,18 @@
 name: CI
 
+# Pull requests into main or a phase branch, and every push to them (ADR 0018: session PRs merge into phase/Pn without
+# waiting, so each push to the phase branch keeps its own run and a red one points at the merge that broke it).
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'phase/**']
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TURBO_TELEMETRY_DISABLED: '1'
