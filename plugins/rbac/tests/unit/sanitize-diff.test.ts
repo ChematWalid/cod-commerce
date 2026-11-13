@@ -52,6 +52,25 @@ describe('sanitizeDiff', () => {
     expect(clean).toEqual({ [key]: REDACTED_VALUE });
   });
 
+  // Every term of D66 (`password|secret|token|otp|hash|api.?key|authorization|cookie`, any case), alone, in a
+  // compound and inside a word written without breaks: D66 matches a fragment, not a whole word.
+  it.each([
+    ['password', ['password', 'PASSWORD', 'newPassword', 'userpassword']],
+    ['secret', ['secret', 'clientSecret', 'webhooksecret']],
+    ['token', ['token', 'refresh_token', 'authtoken']],
+    ['otp', ['otp', 'OTP', 'otpCode', 'otpcode', 'smsOtp', 'smsotp']],
+    ['hash', ['hash', 'pinHash', 'pinhash', 'hashed', 'hashedPin', 'hashvalue', 'tokenHashes']],
+    ['api.?key', ['apikey', 'apiKey', 'api_key', 'api-key', 'API.KEY', 'xApiKey', 'xapikey', 'myapikeys']],
+    ['authorization', ['authorization', 'proxyAuthorization', 'proxyauthorization']],
+    ['cookie', ['cookie', 'setCookie', 'sessioncookie']],
+  ])('redacts every spelling of the D66 term %s', (_term, keys) => {
+    // Act
+    const clean = sanitizeDiff(Object.fromEntries(keys.map((key) => [key, 'x'])));
+
+    // Assert
+    expect(clean).toEqual(Object.fromEntries(keys.map((key) => [key, REDACTED_VALUE])));
+  });
+
   it.each(['footprint', 'hashtag', 'obsession', 'accessKeyboard', 'credentialing'])('keeps %s', (key) => {
     // Act
     const clean = sanitizeDiff({ [key]: 'x' });
