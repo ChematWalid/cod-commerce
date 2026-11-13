@@ -109,7 +109,8 @@ describe('sanitizeDiff', () => {
 
   it('redacts a key too long to read, failing closed', () => {
     // Arrange
-    const key = 'A'.repeat(100_000);
+    // Under the 16 KB diff limit, so the redaction itself is what the test sees.
+    const key = 'A'.repeat(10_000);
 
     // Act
     const started = performance.now();
