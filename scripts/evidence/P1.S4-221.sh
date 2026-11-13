@@ -8,7 +8,7 @@
 #   timeout 2400 scripts/evidence/P1.S4-221.sh                          # label "after": any failure fails the script
 #   EV_LABEL=before EV_TESTS_FROM=8fa54c1 timeout 2400 scripts/evidence/P1.S4-221.sh  # a red run with the old helpers
 #
-# EV_TESTS_FROM=<rev> runs the browser files that differ from <rev> at their <rev> version: they are swapped in after the
+# EV_TESTS_FROM=<rev> runs the browser files that the #221 commits after <rev> changed at their <rev> version: they are swapped in after the
 # image is built (the build context holds apps/server/tests, so a swap before the build busts the image cache and the
 # rebuild alone outlasts its timeout) and put back on exit. EV_LOOPS and EV_THROTTLED_LOOPS set the loop counts (after: 6
 # and 2; before: 3 and 1, no caller files), EV_CALLERS=0|1 the caller-file run, BROWSER_CPU_THROTTLE_RATE the slowdown (4).
@@ -182,9 +182,13 @@ require("playwright-core").chromium.launch().then(async (browser) => { console.l
 # --- the browser files under test, after the image is built ------------------------------------
 if [[ -n "$tests_from" ]]; then
   swap_back=$(git rev-parse HEAD)
+  # Only the files the #221 commits changed, minus the run harness (the throttle config and setup): a merge of main
+  # brings other browser files that differ from <rev>, and their old versions would not match today's dashboard.
   while IFS= read -r file; do
+    [[ -n "$file" && "$file" != *vitest.config.ts && "$file" != *cpu-throttle-setup.ts ]] || continue
+    [[ " ${swapped[*]} " == *" $file "* ]] && continue
     git cat-file -e "$tests_from:$file" 2>/dev/null && swapped+=("$file")
-  done < <(git diff --name-only "$tests_from" "$swap_back" -- apps/server/tests/browser)
+  done < <(git log --format= --name-only --grep='(#221)' "$tests_from..$swap_back" -- apps/server/tests/browser)
   ((${#swapped[@]} > 0)) || fail "no browser file differs from $tests_from"
   git checkout "$tests_from" -- "${swapped[@]}"
   tests_commit="$tests_from (${swapped[*]##*/}; the rest at $swap_back)"
