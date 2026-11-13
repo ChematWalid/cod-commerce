@@ -63,7 +63,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "idempotencyKey": "evidence-self-1794520354"
+  "idempotencyKey": "evidence-self-1794571744"
 }
 
 HTTP/1.1 403 Forbidden
@@ -88,7 +88,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "idempotencyKey": "evidence-pay-1794520354"
+  "idempotencyKey": "evidence-pay-1794571744"
 }
 
 HTTP/1.1 200 OK
@@ -98,13 +98,15 @@ content-type: application/json; charset=utf-8
   "id": "<PAYMENT>",
   "memberId": "<MEMBER_AMINA>",
   "amount": 32000,
-  "idempotencyKey": "evidence-pay-1794520354",
+  "idempotencyKey": "evidence-pay-1794571744",
   "paidByAdministratorId": "2",
-  "paidAt": "2026-11-12T21:57:36.635Z"
+  "paidAt": "2026-11-13T12:12:51.544Z"
 }
 ```
 
 Database check: one `salary_payment` row for the member after both calls.
+
+Database check: one `salary.paid` row in `outbox_event` for the member after both calls (D222).
 
 ### GET /employees without team.members.view: 403
 
@@ -119,7 +121,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-12T21:58:31.158Z",
+  "timestamp": "2026-11-13T12:13:49.125Z",
   "path": "/employees"
 }
 ```
@@ -149,7 +151,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-12T21:58:31.295Z",
+  "timestamp": "2026-11-13T12:13:49.215Z",
   "path": "/employees"
 }
 ```
@@ -165,7 +167,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-12T21:58:31.349Z",
+  "timestamp": "2026-11-13T12:13:49.260Z",
   "path": "/employees"
 }
 ```
@@ -183,7 +185,7 @@ content-type: application/json; charset=utf-8
 {
   "items": [
     {
-      "id": "246754769274675200",
+      "id": "246970321066795008",
       "administratorId": "8",
       "email": "perstore@demo.example.test",
       "firstName": "PerStore",
@@ -194,13 +196,13 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T21:55:21.477Z",
+      "joinedAt": "2026-11-13T12:11:53.029Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "PerStore Member",
       "roles": [
         {
-          "id": "246754765889871872",
+          "id": "246970318508269568",
           "name": "Demo first store catalog"
         }
       ],
@@ -214,7 +216,7 @@ content-type: application/json; charset=utf-8
       "ordersCount": 0
     },
     {
-      "id": "246754769215954944",
+      "id": "246970321003880448",
       "administratorId": "4",
       "email": "limited@demo.example.test",
       "firstName": "Limited",
@@ -225,7 +227,7 @@ content-type: application/json; charset=utf-8
       "maxOpenOrders": null,
       "receivingOrders": true,
       "invitedAt": null,
-      "joinedAt": "2026-11-12T21:55:21.463Z",
+      "joinedAt": "2026-11-13T12:11:53.014Z",
       "tab": "active",
       "invitationExpired": false,
       "name": "Limited Member",
@@ -366,13 +368,13 @@ vendure-token: [REDACTED]
 }
 
 HTTP/1.1 429 Too Many Requests
-retry-after: 118
+retry-after: 119
 content-type: application/json; charset=utf-8
 
 {
   "statusCode": 429,
   "message": "Too many requests. Try again later.",
-  "retryAfterSeconds": 118,
+  "retryAfterSeconds": 119,
   "path": "/employees"
 }
 ```

@@ -35,7 +35,7 @@ content-type: application/json; charset=utf-8
   "baseSalary": 30000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:24.321Z",
+  "invitedAt": "2026-11-13T12:12:44.626Z",
   "joinedAt": null
 }
 ```
@@ -94,7 +94,7 @@ content-type: application/json; charset=utf-8
   "baseSalary": 25000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:25.475Z",
+  "invitedAt": "2026-11-13T12:12:45.381Z",
   "joinedAt": null
 }
 ```
@@ -153,7 +153,7 @@ content-type: application/json; charset=utf-8
   "baseSalary": 20000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:27.311Z",
+  "invitedAt": "2026-11-13T12:12:45.982Z",
   "joinedAt": null
 }
 ```
