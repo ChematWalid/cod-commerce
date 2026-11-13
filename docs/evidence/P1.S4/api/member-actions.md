@@ -1,6 +1,6 @@
 # Member actions
 
-Edit, limit, stop and resume receiving orders, deactivate and reactivate, pay salary, order managers and remove. Pay salary is a placeholder: it books one row and publishes `salary.paid` (P6.S4 books the ledger).
+Edit, limit, stop and resume receiving orders, deactivate and reactivate, pay salary, order managers and remove. Pay salary is a placeholder: it books one row and writes `salary.paid` to the outbox in the same transaction (P6.S4 books the ledger).
 
 ### PATCH /employees/:id: the base salary
 
@@ -28,8 +28,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 32000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:24.321Z",
-  "joinedAt": "2026-11-12T21:57:28.742Z"
+  "invitedAt": "2026-11-13T12:12:44.626Z",
+  "joinedAt": "2026-11-13T12:12:47.051Z"
 }
 ```
 
@@ -59,8 +59,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 32000,
   "maxOpenOrders": 20,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:24.321Z",
-  "joinedAt": "2026-11-12T21:57:28.742Z"
+  "invitedAt": "2026-11-13T12:12:44.626Z",
+  "joinedAt": "2026-11-13T12:12:47.051Z"
 }
 ```
 
@@ -90,8 +90,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 32000,
   "maxOpenOrders": 20,
   "receivingOrders": false,
-  "invitedAt": "2026-11-12T21:57:24.321Z",
-  "joinedAt": "2026-11-12T21:57:28.742Z"
+  "invitedAt": "2026-11-13T12:12:44.626Z",
+  "joinedAt": "2026-11-13T12:12:47.051Z"
 }
 ```
 
@@ -116,7 +116,7 @@ content-type: application/json; charset=utf-8
     ]
   },
   {
-    "id": "246754769274675200",
+    "id": "246970321066795008",
     "name": "PerStore Member",
     "maxOpenOrders": null,
     "storeAccess": "selected",
@@ -125,28 +125,28 @@ content-type: application/json; charset=utf-8
     ]
   },
   {
-    "id": "246754769262092288",
+    "id": "246970321054212096",
     "name": "SettingsView Member",
     "maxOpenOrders": null,
     "storeAccess": "all",
     "storeIds": []
   },
   {
-    "id": "246754769245315072",
+    "id": "246970321037434880",
     "name": "NoView Member",
     "maxOpenOrders": null,
     "storeAccess": "all",
     "storeIds": []
   },
   {
-    "id": "246754769232732160",
+    "id": "246970321020657664",
     "name": "Orders Member",
     "maxOpenOrders": null,
     "storeAccess": "all",
     "storeIds": []
   },
   {
-    "id": "246754769215954944",
+    "id": "246970321003880448",
     "name": "Limited Member",
     "maxOpenOrders": null,
     "storeAccess": "selected",
@@ -190,8 +190,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 32000,
   "maxOpenOrders": 20,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:24.321Z",
-  "joinedAt": "2026-11-12T21:57:28.742Z"
+  "invitedAt": "2026-11-13T12:12:44.626Z",
+  "joinedAt": "2026-11-13T12:12:47.051Z"
 }
 ```
 
@@ -223,7 +223,7 @@ content-type: application/json; charset=utf-8
     "storeIds": []
   },
   {
-    "id": "246754769274675200",
+    "id": "246970321066795008",
     "name": "PerStore Member",
     "maxOpenOrders": null,
     "storeAccess": "selected",
@@ -232,28 +232,28 @@ content-type: application/json; charset=utf-8
     ]
   },
   {
-    "id": "246754769262092288",
+    "id": "246970321054212096",
     "name": "SettingsView Member",
     "maxOpenOrders": null,
     "storeAccess": "all",
     "storeIds": []
   },
   {
-    "id": "246754769245315072",
+    "id": "246970321037434880",
     "name": "NoView Member",
     "maxOpenOrders": null,
     "storeAccess": "all",
     "storeIds": []
   },
   {
-    "id": "246754769232732160",
+    "id": "246970321020657664",
     "name": "Orders Member",
     "maxOpenOrders": null,
     "storeAccess": "all",
     "storeIds": []
   },
   {
-    "id": "246754769215954944",
+    "id": "246970321003880448",
     "name": "Limited Member",
     "maxOpenOrders": null,
     "storeAccess": "selected",
@@ -292,8 +292,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 25000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:25.475Z",
-  "joinedAt": "2026-11-12T21:57:32.616Z"
+  "invitedAt": "2026-11-13T12:12:45.381Z",
+  "joinedAt": "2026-11-13T12:12:48.120Z"
 }
 ```
 
@@ -322,8 +322,8 @@ content-type: application/json; charset=utf-8
       "baseSalary": 25000,
       "maxOpenOrders": null,
       "receivingOrders": true,
-      "invitedAt": "2026-11-12T21:57:25.475Z",
-      "joinedAt": "2026-11-12T21:57:32.616Z",
+      "invitedAt": "2026-11-13T12:12:45.381Z",
+      "joinedAt": "2026-11-13T12:12:48.120Z",
       "tab": "inactive",
       "invitationExpired": false,
       "name": "Karim Haddad",
@@ -374,8 +374,8 @@ content-type: application/json; charset=utf-8
   "baseSalary": 25000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:25.475Z",
-  "joinedAt": "2026-11-12T21:57:32.616Z"
+  "invitedAt": "2026-11-13T12:12:45.381Z",
+  "joinedAt": "2026-11-13T12:12:48.120Z"
 }
 ```
 
@@ -388,7 +388,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "idempotencyKey": "evidence-pay-1794520354"
+  "idempotencyKey": "evidence-pay-1794571744"
 }
 
 HTTP/1.1 200 OK
@@ -398,9 +398,9 @@ content-type: application/json; charset=utf-8
   "id": "<PAYMENT>",
   "memberId": "<MEMBER_AMINA>",
   "amount": 32000,
-  "idempotencyKey": "evidence-pay-1794520354",
+  "idempotencyKey": "evidence-pay-1794571744",
   "paidByAdministratorId": "2",
-  "paidAt": "2026-11-12T21:57:36.635Z"
+  "paidAt": "2026-11-13T12:12:51.544Z"
 }
 ```
 

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   Administrator,
@@ -12,6 +13,7 @@ import {
 import { type FindOptionsWhere, IsNull, type Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { accountUserId } from '../domain/account-user-id';
+import { VOID_PASSWORD_BYTES } from '../domain/constants';
 import type { AuthEmailLocale } from '../domain/email';
 import { CurrentPasswordWrongError, PasswordPolicyError } from '../domain/errors';
 import type { AccountPasswordsPort } from '../domain/ports/account-credentials.port';
@@ -103,6 +105,18 @@ export class VendureAccountIdentity implements AccountIdentityPort, AccountPassw
     // A provider-only account: the emailed token proved ownership, so the reset gives it a password login.
     const user = await this.connection.getRepository(requestContextOf(ctx), User).findOneByOrFail({ id: userId });
     await methods.save(new NativeAuthenticationMethod({ identifier: user.identifier, passwordHash, user }));
+  }
+
+  async voidPassword(ctx: OperationContext, userId: number): Promise<void> {
+    const method = await this.nativeMethod(ctx, userId);
+    if (method === null) {
+      return;
+    }
+    // A hash of an unknown secret, not a sentinel string: the cipher may throw on a value that is not a hash.
+    const passwordHash = await this.cipher.hash(randomBytes(VOID_PASSWORD_BYTES).toString('base64url'));
+    await this.connection
+      .getRepository(requestContextOf(ctx), NativeAuthenticationMethod)
+      .update({ id: method.id }, { passwordHash });
   }
 
   async change(ctx: OperationContext, userId: number, currentPassword: string, newPassword: string): Promise<void> {

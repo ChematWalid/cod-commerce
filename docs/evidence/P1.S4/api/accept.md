@@ -16,7 +16,7 @@ content-type: application/json; charset=utf-8
   "email": "amina@invitee.example.test",
   "businessName": "Demo",
   "inviterName": "Demo Owner",
-  "expiresAt": "2026-11-19T21:57:24.321Z"
+  "expiresAt": "2026-11-20T12:12:44.626Z"
 }
 ```
 

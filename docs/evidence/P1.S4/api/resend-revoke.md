@@ -28,7 +28,7 @@ content-type: application/json; charset=utf-8
   "baseSalary": 20000,
   "maxOpenOrders": null,
   "receivingOrders": true,
-  "invitedAt": "2026-11-12T21:57:25.923Z",
+  "invitedAt": "2026-11-13T12:12:45.790Z",
   "joinedAt": null
 }
 ```
@@ -84,7 +84,7 @@ content-type: application/json; charset=utf-8
   "email": "pending@invitee.example.test",
   "businessName": "Demo",
   "inviterName": "Demo Owner",
-  "expiresAt": "2026-11-19T21:58:28.279Z"
+  "expiresAt": "2026-11-20T12:13:46.584Z"
 }
 ```
 
@@ -146,5 +146,5 @@ content-type: application/json; charset=utf-8
 }
 ```
 
-Mailpit check: pending@invitee.example.test received exactly 2 messages (the refused resend sent none).
+Mailpit check: pending@invitee.example.test received exactly 2 messages (the refused resend sent none), counted once a control invite sent after it had its mail.
 

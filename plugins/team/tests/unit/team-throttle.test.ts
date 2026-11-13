@@ -25,6 +25,13 @@ class CountingLimiter extends RateLimiter {
     return Promise.resolve({ allowed: true, retryAfterSeconds: 0, exhausted: used + 1 >= capacity });
   }
 
+  /** Gives one token back, never below zero taken. */
+  refund(policy: RateLimitPolicyName, key: string): Promise<void> {
+    const bucket = `${policy}|${key}`;
+    this.spent.set(bucket, Math.max(0, (this.spent.get(bucket) ?? 0) - 1));
+    return Promise.resolve();
+  }
+
   /** Tokens taken from the bucket of `key` under `policy`. */
   tokensTaken(policy: RateLimitPolicyName, key: string): number {
     return this.spent.get(`${policy}|${key}`) ?? 0;

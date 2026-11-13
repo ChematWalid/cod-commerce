@@ -1,3 +1,7 @@
+import { AUTH_ERROR_CODES } from '@cod/shared';
+import { HttpStatus } from '@nestjs/common';
+import { inputFor } from './register-test-kit';
+
 /** Who may call a handler: anyone, any signed-in administrator (`Owner`), or one who may update the business. */
 export type Access = 'public' | 'owner' | 'business-update';
 
@@ -10,6 +14,12 @@ export interface OperationEntry {
   readonly variables: Readonly<Record<string, unknown>>;
 }
 
+/** What a signed-out caller gets for a fixture: a status and, for a refusal, the stable domain error code. */
+export interface ExpectedAnswer {
+  readonly status: HttpStatus;
+  readonly code?: string;
+}
+
 /** One REST route of the plugin, with a call that is valid in shape. */
 export interface RouteEntry {
   readonly method: 'GET' | 'POST' | 'PATCH';
@@ -19,6 +29,8 @@ export interface RouteEntry {
   /** The route with its parameters filled. */
   readonly url: string;
   readonly body?: Readonly<Record<string, unknown>>;
+  /** For a public route: the answer its fixture gets, so a fixture the route refuses for its shape is caught. */
+  readonly answer?: ExpectedAnswer;
 }
 
 const PASSWORD_VARIABLES = { currentPassword: 'synthetic-current', newPassword: 'synthetic-next-password' };
@@ -178,20 +190,39 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
 ];
 
 const OAUTH_START = '/auth/oauth/:provider/start';
+const OK = { status: HttpStatus.OK };
+const INVALID_TOKEN = { status: HttpStatus.BAD_REQUEST, code: AUTH_ERROR_CODES.INVALID_TOKEN };
+const REDIRECT = { status: HttpStatus.FOUND };
 
 /** Every REST route the plugin's controllers declare. */
 export const ROUTE_REGISTRY: readonly RouteEntry[] = [
-  { method: 'GET', route: '/auth/config', access: 'public', url: '/auth/config' },
+  { method: 'GET', route: '/auth/config', access: 'public', url: '/auth/config', answer: OK },
   {
     method: 'POST',
     route: '/auth/login',
     access: 'public',
     url: '/auth/login',
-    body: { email: 'a@example.test', password: 'x' },
+    // The controller reads `username`, as Vendure's login does; an unknown one is refused as a bad credential.
+    body: { username: 'nobody@example.test', password: 'synthetic-owner-password' },
+    answer: { status: HttpStatus.UNAUTHORIZED },
   },
-  { method: 'POST', route: '/auth/logout', access: 'public', url: '/auth/logout', body: {} },
-  { method: 'POST', route: '/auth/register', access: 'public', url: '/auth/register', body: {} },
-  { method: 'POST', route: '/auth/verify-email/:token', access: 'public', url: '/auth/verify-email/synthetic-token' },
+  { method: 'POST', route: '/auth/logout', access: 'public', url: '/auth/logout', body: {}, answer: OK },
+  {
+    method: 'POST',
+    route: '/auth/register',
+    access: 'public',
+    url: '/auth/register',
+    // A whole, fresh registration: the registry's database outlives one run, so a fixed address would be taken.
+    body: inputFor(),
+    answer: { status: HttpStatus.CREATED },
+  },
+  {
+    method: 'POST',
+    route: '/auth/verify-email/:token',
+    access: 'public',
+    url: '/auth/verify-email/synthetic-token',
+    answer: INVALID_TOKEN,
+  },
   {
     method: 'POST',
     route: '/auth/verify-email-otp',
@@ -212,6 +243,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     access: 'public',
     url: '/auth/confirm-email-change',
     body: TOKEN_VARIABLES,
+    answer: INVALID_TOKEN,
   },
   {
     method: 'POST',
@@ -219,6 +251,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     access: 'public',
     url: '/auth/forgot-password',
     body: { email: 'nobody@example.test' },
+    answer: OK,
   },
   {
     method: 'POST',
@@ -226,6 +259,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     access: 'public',
     url: '/auth/reset-password',
     body: { token: 'synthetic-token', password: 'synthetic-next-password' },
+    answer: INVALID_TOKEN,
   },
   {
     method: 'POST',
@@ -236,14 +270,29 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
   },
   { method: 'GET', route: '/auth/profile', access: 'owner', url: '/auth/profile' },
   { method: 'PATCH', route: '/auth/profile', access: 'owner', url: '/auth/profile', body: { firstName: 'Nobody' } },
-  { method: 'GET', route: OAUTH_START, access: 'public', url: '/auth/oauth/google/start' },
-  { method: 'GET', route: '/auth/oauth/:provider/callback', access: 'public', url: '/auth/oauth/google/callback' },
-  { method: 'POST', route: '/auth/oauth/ticket', access: 'public', url: '/auth/oauth/ticket', body: TOKEN_VARIABLES },
+  { method: 'GET', route: OAUTH_START, access: 'public', url: '/auth/oauth/google/start', answer: REDIRECT },
+  {
+    method: 'GET',
+    route: '/auth/oauth/:provider/callback',
+    access: 'public',
+    url: '/auth/oauth/google/callback',
+    answer: REDIRECT,
+  },
+  {
+    method: 'POST',
+    route: '/auth/oauth/ticket',
+    access: 'public',
+    url: '/auth/oauth/ticket',
+    body: { ticket: 'synthetic-token' },
+    answer: INVALID_TOKEN,
+  },
 ];
 
 /** The entries a signed-out caller must be refused. */
 export const GUARDED_OPERATIONS = OPERATION_REGISTRY.filter((entry) => entry.access !== 'public');
 export const GUARDED_ROUTES = ROUTE_REGISTRY.filter((entry) => entry.access !== 'public');
+/** The routes a signed-out caller may use, each sent with its fixture by the registry's integration test. */
+export const PUBLIC_ROUTES = ROUTE_REGISTRY.filter((entry) => entry.access === 'public');
 
 export const operationKey = (entry: OperationEntry): string => `${entry.api}:${entry.operation}`;
 export const routeKey = (entry: RouteEntry): string => `${entry.method} ${entry.route}`;

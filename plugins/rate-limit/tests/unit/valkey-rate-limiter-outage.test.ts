@@ -46,6 +46,26 @@ describe('ValkeyRateLimiter outage breaker', () => {
   });
 });
 
+describe('ValkeyRateLimiter refunds during an outage', () => {
+  it('gives the token back in memory while Valkey is unreachable', async () => {
+    // Arrange: login-pair keeps limiting from memory, 10 per minute
+    const { limiter, redis } = harness();
+    redis.failing = true;
+    for (let i = 0; i < 10; i += 1) {
+      await limiter.consume('login-pair', KEY);
+    }
+
+    // Act
+    await limiter.refund('login-pair', KEY);
+    const afterRefund = await limiter.consume('login-pair', KEY);
+    const next = await limiter.consume('login-pair', KEY);
+
+    // Assert
+    expect(afterRefund.allowed).toBe(true);
+    expect(next.allowed).toBe(false);
+  });
+});
+
 describe('ValkeyRateLimiter lockouts across the switch', () => {
   it('still honours a lockout set in Valkey after one Valkey error', async () => {
     // Arrange

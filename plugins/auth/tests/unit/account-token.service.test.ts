@@ -35,6 +35,8 @@ describe('AccountTokenService', () => {
   const issueReset = () => service.issue(ctx, { userId: USER, purpose: 'password-reset', ttlMs: RESET_TOKEN_TTL_MS });
   const issueVerification = () =>
     service.issue(ctx, { userId: USER, purpose: 'email-verification', ttlMs: VERIFY_LINK_TTL_MS, withOtp: true });
+  const guessAndConsume = async (on: OperationContext, userId: number, otp: string) =>
+    service.consumeMatchedOtp(on, await service.matchOtp(userId, otp));
   const otpOf = async (): Promise<string> => {
     const { otp } = await issueVerification();
     if (otp === undefined) throw new Error('issued without a code');
@@ -151,7 +153,7 @@ describe('AccountTokenService', () => {
     const { token, otp } = await issueVerification();
 
     // Act
-    const consumed = await service.attemptOtp(ctx, USER, otp ?? '');
+    const consumed = await guessAndConsume(ctx, USER, otp ?? '');
 
     // Assert
     expect(consumed.consumedAt).not.toBeNull();
@@ -165,7 +167,7 @@ describe('AccountTokenService', () => {
     // Act
     const failures: unknown[] = [];
     for (let attempt = 0; attempt < OTP_MAX_ATTEMPTS; attempt += 1) {
-      failures.push(await failureOf(service.attemptOtp(ctx, USER, WRONG_OTP)));
+      failures.push(await failureOf(guessAndConsume(ctx, USER, WRONG_OTP)));
     }
 
     // Assert
@@ -178,12 +180,12 @@ describe('AccountTokenService', () => {
     // Arrange
     const otp = await otpOf();
     for (let attempt = 0; attempt < OTP_MAX_ATTEMPTS; attempt += 1) {
-      await failureOf(service.attemptOtp(ctx, USER, WRONG_OTP));
+      await failureOf(guessAndConsume(ctx, USER, WRONG_OTP));
     }
     const comparisons = hasher.comparisons;
 
     // Act
-    const failure = await failureOf(service.attemptOtp(ctx, USER, otp));
+    const failure = await failureOf(guessAndConsume(ctx, USER, otp));
 
     // Assert
     expect(failure).toBeInstanceOf(OtpLockedError);
@@ -195,11 +197,11 @@ describe('AccountTokenService', () => {
     // Arrange
     const otp = await otpOf();
     for (let attempt = 0; attempt < OTP_MAX_ATTEMPTS - 1; attempt += 1) {
-      await failureOf(service.attemptOtp(ctx, USER, WRONG_OTP));
+      await failureOf(guessAndConsume(ctx, USER, WRONG_OTP));
     }
 
     // Act
-    const consumed = await service.attemptOtp(ctx, USER, otp);
+    const consumed = await guessAndConsume(ctx, USER, otp);
 
     // Assert
     expect(consumed.otpAttempts).toBe(OTP_MAX_ATTEMPTS);
@@ -212,7 +214,7 @@ describe('AccountTokenService', () => {
     clock.advance(OTP_TTL_MS + 1);
 
     // Act
-    const failure = await failureOf(service.attemptOtp(ctx, USER, otp ?? ''));
+    const failure = await failureOf(guessAndConsume(ctx, USER, otp ?? ''));
 
     // Assert
     expect(failure).toBeInstanceOf(OtpInvalidError);
@@ -222,7 +224,7 @@ describe('AccountTokenService', () => {
 
   it('refuses a code when none was issued', async () => {
     // Act
-    const failure = await failureOf(service.attemptOtp(ctx, USER, WRONG_OTP));
+    const failure = await failureOf(guessAndConsume(ctx, USER, WRONG_OTP));
 
     // Assert
     expect(failure).toBeInstanceOf(OtpInvalidError);
@@ -232,12 +234,12 @@ describe('AccountTokenService', () => {
     // Arrange
     await issueVerification();
     for (let attempt = 0; attempt < OTP_MAX_ATTEMPTS; attempt += 1) {
-      await failureOf(service.attemptOtp(ctx, USER, WRONG_OTP));
+      await failureOf(guessAndConsume(ctx, USER, WRONG_OTP));
     }
     const otp = await otpOf();
 
     // Act
-    const consumed = await service.attemptOtp(ctx, USER, otp);
+    const consumed = await guessAndConsume(ctx, USER, otp);
 
     // Assert
     expect(consumed.consumedAt).not.toBeNull();
