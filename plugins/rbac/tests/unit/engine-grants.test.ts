@@ -81,11 +81,8 @@ describe('ENGINE_GRANTS plugin permissions', () => {
 
   it('keeps no reviewed pair the map no longer grants', () => {
     // Act
-    const stale = Object.entries(REVIEWED_PLUGIN_ENGINE_GRANTS).flatMap(([key, names]) =>
-      (names ?? [])
-        .filter((name) => !(ENGINE_GRANTS[key as keyof typeof ENGINE_GRANTS] ?? []).includes(name))
-        .map((name) => `${key}→${name}`),
-    );
+    // The reviewed pairs read as a map, checked against the real map as their review list.
+    const stale = unreviewedPluginGrants(REVIEWED_PLUGIN_ENGINE_GRANTS, STOCK_PERMISSIONS, ENGINE_GRANTS);
 
     // Assert
     expect(stale).toEqual([]);
