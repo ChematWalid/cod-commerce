@@ -167,27 +167,58 @@ describe('the public invitation routes (D205, D213)', () => {
   });
 });
 
+/**
+ * Adds open invitations to `businessId` until it holds {@link MAX_PENDING_INVITATIONS}, with member ids from
+ * `idBase` up, so two callers never collide.
+ */
+async function fillToTheCap(businessId: string, idBase: bigint): Promise<void> {
+  const [{ open } = { open: 0 }] = await kit.query<{ open: number }>(
+    `SELECT count(*)::int AS open FROM invitation WHERE "businessId" = $1 AND "acceptedAt" IS NULL
+       AND "revokedAt" IS NULL AND "expiresAt" > now()`,
+    [businessId],
+  );
+  await kit.query(
+    `WITH m AS (
+       INSERT INTO team_member (id, "businessId", email, "emailKey", status, "commissionConfigIds", "baseSalary",
+         "receivingOrders", "createdAt", "updatedAt")
+       SELECT $3::bigint + n, $1, 'cap' || ($3::bigint + n) || '@example.test', 'cap' || ($3::bigint + n) || '@example.test',
+         'invited', '{}', 0, true, now(), now() FROM generate_series(1, $2::int) AS n RETURNING id)
+     INSERT INTO invitation (id, "businessId", "memberId", "grant", "tokenHash", locale, "expiresAt", "lastSentAt",
+       "resendCount", "invitedByAdministratorId", "createdAt")
+     SELECT id + 1000, $1, id, '{"roleIds":[],"storeAccess":"all","storeIds":[]}', md5(id::text) || md5(id::text),
+       'ar', now() + interval '1 day', now(), 0, 1, now() FROM m`,
+    [businessId, MAX_PENDING_INVITATIONS - open, idBase.toString()],
+  );
+}
+
 describe('the pending cap (D205)', () => {
+  it('refuses to reopen an expired invitation once the business holds the most open invitations, with 429 and no mail', async () => {
+    // Arrange
+    const { a } = businesses;
+    const email = freshEmail('reopen-capped');
+    const { answer } = await managerInvites('a', email);
+    const memberId = (answer.body as { id: string }).id;
+    await waitForMessages(email);
+    await kit.query(
+      `UPDATE invitation SET "expiresAt" = now() - interval '1 second', "lastSentAt" = now() - interval '2 minutes'
+        WHERE "memberId" = $1`,
+      [memberId],
+    );
+    await fillToTheCap(a.businessId, 1_700_000_000_000_000_000n);
+    await kit.signIn(a.owner, a.stores[0]);
+
+    // Act
+    const resent = await kit.rest('POST', '/employees/resend-invitation', { memberId });
+
+    // Assert
+    expect(resent).toMatchObject({ status: 429, body: { code: 'team.too-many-pending' } });
+    expect(await settledCountTo(email)).toBe(1);
+  });
+
   it('refuses an invite once the business holds the most open invitations, with 429 and no mail', async () => {
     // Arrange
     const { a } = businesses;
-    const [{ open } = { open: 0 }] = await kit.query<{ open: number }>(
-      `SELECT count(*)::int AS open FROM invitation WHERE "businessId" = $1 AND "acceptedAt" IS NULL
-         AND "revokedAt" IS NULL AND "expiresAt" > now()`,
-      [a.businessId],
-    );
-    await kit.query(
-      `WITH m AS (
-         INSERT INTO team_member (id, "businessId", email, "emailKey", status, "commissionConfigIds", "baseSalary",
-           "receivingOrders", "createdAt", "updatedAt")
-         SELECT 1600000000000000000 + n, $1, 'cap' || n || '@example.test', 'cap' || n || '@example.test', 'invited',
-           '{}', 0, true, now(), now() FROM generate_series(1, $2::int) AS n RETURNING id)
-       INSERT INTO invitation (id, "businessId", "memberId", "grant", "tokenHash", locale, "expiresAt", "lastSentAt",
-         "resendCount", "invitedByAdministratorId", "createdAt")
-       SELECT id + 1000, $1, id, '{"roleIds":[],"storeAccess":"all","storeIds":[]}', md5(id::text) || md5(id::text),
-         'ar', now() + interval '1 day', now(), 0, 1, now() FROM m`,
-      [a.businessId, MAX_PENDING_INVITATIONS - open],
-    );
+    await fillToTheCap(a.businessId, 1_600_000_000_000_000_000n);
     const email = freshEmail('capped');
 
     // Act
