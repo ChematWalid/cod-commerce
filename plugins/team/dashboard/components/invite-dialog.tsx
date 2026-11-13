@@ -38,7 +38,7 @@ function EmailField(props: {
   const { i18n } = useLingui();
   const id = useId();
   return (
-    <FieldFrame label={i18n._('team.field-email')} htmlFor={id} errorId={props.errorId}>
+    <FieldFrame label={i18n._('team.invite-field-email')} htmlFor={id} errorId={props.errorId}>
       <Input
         id={id}
         type="email"

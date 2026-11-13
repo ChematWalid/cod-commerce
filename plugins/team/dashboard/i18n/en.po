@@ -184,6 +184,10 @@ msgid "team.edit-title"
 msgstr "Edit {name}"
 
 #. js-lingui-explicit-id
+msgid "team.invite-field-email"
+msgstr "Email *"
+
+#. js-lingui-explicit-id
 msgid "team.field-email"
 msgstr "Email"
 

@@ -131,14 +131,16 @@ async function shootInviteDialog(page, lang, vp) {
   const submit = dialog.getByRole('button', { name: t('team.invite-submit') });
   await dialog.getByRole('checkbox', { name: ORDER_MANAGER[lang], exact: true }).waitFor();
   await shoot(page, `invite-empty-${lang}-${vp}`, lang, { fullPage: false });
-  await dialog.getByRole('textbox', { name: t('team.field-email') }).fill('not-an-email');
+  await dialog.getByRole('textbox', { name: t('team.invite-field-email') }).fill('not-an-email');
   await dialog.getByRole('textbox', { name: t('team.field-salary') }).fill('-5');
   for (const id of ['team.invite-error-email', 'team.invite-error-roles', 'team.invite-error-salary']) {
     await dialog.getByText(t(id), { exact: true }).waitFor();
   }
   if (!(await submit.isDisabled())) fail(`${lang} ${vp}: Send invitation is enabled on an invalid form`);
   await shoot(page, `invite-errors-${lang}-${vp}`, lang, { fullPage: false });
-  await dialog.getByRole('textbox', { name: t('team.field-email') }).fill(`new.member.${vp}@invitee.example.test`);
+  await dialog
+    .getByRole('textbox', { name: t('team.invite-field-email') })
+    .fill(`new.member.${vp}@invitee.example.test`);
   await dialog.getByRole('checkbox', { name: ORDER_MANAGER[lang], exact: true }).click();
   await dialog.getByRole('textbox', { name: t('team.field-salary') }).fill('28000');
   if (await submit.isDisabled()) fail(`${lang} ${vp}: Send invitation is disabled on a valid form`);
