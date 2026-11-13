@@ -61,14 +61,23 @@ function holdsSecretTerm(run: string, benign: readonly (readonly [number, number
   return false;
 }
 
+/** One character as its ASCII letters: decomposed, marks dropped, `ß` as `ss`; anything else separates words. */
+const asciiOf = (character: string): string => {
+  if (character === 'ß' || character === 'ẞ') return 'ss';
+  const base = character.normalize('NFKD').replace(/\p{M}/gu, '');
+  return /^[A-Za-z0-9]$/.test(base) ? base : ' ';
+};
+
 /**
  * The ways a key is read; it is secret when any reading holds a term. As typed, a non-ASCII character separates words
- * (as in P1.S3), so `api™key` and `token` + a combining mark still match. Decomposed with its marks dropped, a
- * fullwidth or accented letter reads as its ASCII base (`ｐａｓｓｗｏｒｄ`, `tokeń`).
+ * (as in P1.S3), so `api™key` and `pass` + zero-width space + `word` still match. Decomposed with its marks dropped,
+ * a fullwidth or accented letter reads as its ASCII base (`ｐａｓｓｗｏｒｄ`, `tokeń`). Character by character, a
+ * letter reads as its base and a symbol NFKD would widen (`™` → `TM`) separates words (`ａｐｉ™ｋｅｙ`, `paßword`).
  */
 const READINGS: readonly ((key: string) => string)[] = [
   (key) => key,
   (key) => key.normalize('NFKD').replace(/\p{M}/gu, ''),
+  (key) => Array.from(key, asciiOf).join(''),
 ];
 
 /** A key too long to read is redacted unread, which also bounds the work per key. */
