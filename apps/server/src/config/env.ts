@@ -1,11 +1,29 @@
-import { InvalidDatabaseUrlError, RESERVED_WORKER_ID_MAX, RESERVED_WORKER_ID_MIN, toPostgresFields } from '@cod/shared';
+import {
+  InvalidDatabaseUrlError,
+  RESERVED_WORKER_ID_MAX,
+  RESERVED_WORKER_ID_MIN,
+  toPostgresFields,
+  WORKER_POOLS,
+} from '@cod/shared';
+import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import {
+  hasReservedTld,
+  isDeployed,
+  isPlaceholderSecret,
+  PLACEHOLDER_SECRET_MARKER,
+  rejectWeakSecrets,
+  requireProxySettings,
+} from './deployed-env';
+import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
+import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
+export { isPlaceholderSecret, PLACEHOLDER_SECRET_MARKER };
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
@@ -14,19 +32,6 @@ export const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const
 
 /** One of the {@link LOG_LEVELS}. */
 export type LogLevelName = (typeof LOG_LEVELS)[number];
-
-/** Environments in which a placeholder secret is a misconfiguration. */
-const PLACEHOLDER_FORBIDDEN_ENVS: readonly string[] = ['staging', 'production'];
-
-/** Placeholder secrets in `.env.example` carry this marker, or are all zeros where the value is hex. */
-export const PLACEHOLDER_SECRET_MARKER = 'change-me';
-
-const ZERO_HEX_PLACEHOLDER = /^(GK)?0+$/;
-
-/** True for a value taken from `.env.example`: it has the marker, or its hex part is all zeros. */
-export function isPlaceholderSecret(value: string): boolean {
-  return value.includes(PLACEHOLDER_SECRET_MARKER) || ZERO_HEX_PLACEHOLDER.test(value);
-}
 
 /** Connections each role keeps open per process unless `DB_POOL_MAX` says otherwise. */
 const DEFAULT_POOL_MAX_BY_ROLE = { api: 10, worker: 5, migrate: 2 } as const satisfies Record<ServerRole, number>;
@@ -90,15 +95,23 @@ const databaseUrl = z
 
 const redisUrl = z.string().superRefine(parsedBy(redisOptionsFromUrl, InvalidRedisUrlError));
 
+const internalKeys = z.string().superRefine(parsedBy(parseInternalKeys, InvalidInternalKeysError));
+
 const baseSchema = z.object({
-  APP_ENV: z.enum(APP_ENVS).default('development'),
+  APP_ENV: z.enum(APP_ENVS),
   ROLE: z.enum(SERVER_ROLES),
   TZ: z.literal('UTC', { error: 'must be UTC' }),
   DATABASE_URL: databaseUrl,
   DATABASE_URL_DIRECT: databaseUrl,
   DB_POOL_MAX: z.coerce.number().int().min(1).optional(),
   REDIS_URL: redisUrl,
-  WORKER_ACTIVE_QUEUES: csvList,
+  WORKER_POOL: z.enum(WORKER_POOLS).default('all'),
+  // Replaced by WORKER_POOL (D100). Blank is dropped before parsing, so an old `.env` with `WORKER_ACTIVE_QUEUES=`
+  // still boots; any value fails, because the stock strategy fails the jobs of inactive queues.
+  WORKER_ACTIVE_QUEUES: z
+    .string()
+    .optional()
+    .refine((value) => value === undefined, { error: 'replaced by WORKER_POOL' }),
   API_PORT: port(DEFAULT_API_PORT),
   WORKER_HEALTH_PORT: port(DEFAULT_WORKER_HEALTH_PORT),
   COOKIE_SECRET: z.string().min(MIN_COOKIE_SECRET_LENGTH),
@@ -125,6 +138,12 @@ const baseSchema = z.object({
   CLIENT_IP_HEADER: z.string().max(DNS_NAME_MAX_LENGTH).regex(HEADER_NAME, 'must be an HTTP header name').default(''),
   DEMO_OWNER_PASSWORD: z.string().min(MIN_SUPERADMIN_PASSWORD_LENGTH).optional(),
   SNOWFLAKE_WORKER_ID: z.coerce.number().int().min(RESERVED_WORKER_ID_MIN).max(RESERVED_WORKER_ID_MAX).optional(),
+  // The keys of the internal HMAC between the storefront and the api, `kid:secret[,kid:secret]` (D111): every key
+  // verifies, the active kid signs (the server signs nothing yet, so it is optional here).
+  INTERNAL_HMAC_KEYS: internalKeys,
+  INTERNAL_HMAC_ACTIVE_KID: z.string().optional(),
+  ...demoEnvShape,
+  ...tenantSecretsEnvShape,
   ...authEnvShape,
 });
 
@@ -147,6 +166,18 @@ function passwordOf(url: string): string | undefined {
   }
 }
 
+/** The keys of `INTERNAL_HMAC_KEYS`, or none when it is malformed (its own issue reports that). */
+function internalKeysOf(env: BaseEnv): readonly InternalSigningKey[] {
+  try {
+    return parseInternalKeys(env.INTERNAL_HMAC_KEYS);
+  } catch (error) {
+    if (error instanceof InvalidInternalKeysError) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
   return [
     ['COOKIE_SECRET', env.COOKIE_SECRET],
@@ -156,14 +187,17 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
+    ...internalKeysOf(env).map((key): [string, string] => ['INTERNAL_HMAC_KEYS', key.secret]),
+    ...tenantSecretsSecretsOf(env),
     ...authSecretsOf(env),
   ];
 }
 
 function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
-  if (!PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV)) {
+  if (!isDeployed(env)) {
     return;
   }
+  rejectWeakSecrets(secretsOf(env), context);
   for (const [name, value] of secretsOf(env)) {
     if (value !== undefined && isPlaceholderSecret(value)) {
       context.addIssue({ code: 'custom', path: [name], message: PLACEHOLDER_MESSAGE });
@@ -171,17 +205,31 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
-/** Behind the edge `req.ip` is the edge's address, so a production limiter without the header has one bucket for everyone. */
-function requireClientIpHeader(env: BaseEnv, context: z.RefinementCtx): void {
-  if (env.APP_ENV === 'production' && env.CLIENT_IP_HEADER === '') {
-    context.addIssue({ code: 'custom', path: ['CLIENT_IP_HEADER'], message: 'is required in production' });
+/** An active kid that names no key would sign with nothing, so boot refuses it. */
+function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
+  const keys = internalKeysOf(env);
+  if (env.INTERNAL_HMAC_ACTIVE_KID !== undefined && keys.length > 0) {
+    if (!keys.some((key) => key.kid === env.INTERNAL_HMAC_ACTIVE_KID)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['INTERNAL_HMAC_ACTIVE_KID'],
+        message: 'must be one of the kids in INTERNAL_HMAC_KEYS',
+      });
+    }
   }
 }
 
 /** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
 function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
-  if (PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV) && env.PLATFORM_DOMAIN === undefined) {
+  if (isDeployed(env) && env.PLATFORM_DOMAIN === undefined) {
     context.addIssue({ code: 'custom', path: ['PLATFORM_DOMAIN'], message: 'is required in this environment' });
+  }
+  if (isDeployed(env) && env.PLATFORM_DOMAIN !== undefined && hasReservedTld(env.PLATFORM_DOMAIN)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['PLATFORM_DOMAIN'],
+      message: 'ends in a reserved name (invalid, test, example, localhost or local): set the real domain',
+    });
   }
   if (env.APP_ENV !== 'test' && env.SNOWFLAKE_WORKER_ID !== undefined) {
     context.addIssue({
@@ -192,13 +240,13 @@ function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): vo
   }
 }
 
-/** Staging and production: where a development fallback is a misconfiguration. */
-const isDeployed = (env: BaseEnv): boolean => PLACEHOLDER_FORBIDDEN_ENVS.includes(env.APP_ENV);
-
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
-  .superRefine(requireClientIpHeader)
+  .superRefine(rejectDemoHandlersInProduction)
+  .superRefine(requireProxySettings)
+  .superRefine(requireKnownActiveKid)
+  .superRefine(requireKnownKekActiveKid)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
   })

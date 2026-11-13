@@ -58,10 +58,11 @@ export class MigrationsProbe implements ReadinessProbe {
    * @throws {PendingMigrationsError} while a migration is pending or the migrations table does not exist.
    * Any other query error propagates, so `/readyz` reports it.
    */
-  async check(): Promise<void> {
+  async check(signal?: AbortSignal): Promise<void> {
     if (this.applied) {
       return;
     }
+    signal?.throwIfAborted();
     const executed = await this.executedMigrations();
     if (this.source.migrations.some((migration) => !executed.has(nameOf(migration)))) {
       throw new PendingMigrationsError();

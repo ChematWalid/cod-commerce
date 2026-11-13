@@ -1,4 +1,6 @@
-import { toPostgresFields } from '@cod/shared';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
+import { type QueuePool, toPostgresFields } from '@cod/shared';
 import {
   DefaultLogger,
   type InitialData,
@@ -8,10 +10,11 @@ import {
   type VendureConfig,
 } from '@vendure/core';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
-import { PostgresInitializer, registerInitializer, testConfig } from '@vendure/testing';
+import { PostgresInitializer, registerInitializer, type TestServer, testConfig } from '@vendure/testing';
 import { Redis } from 'ioredis';
 import { buildDbConfig } from '../../../src/config/db.config';
 import { type AppEnv, loadEnv, type ServerRole } from '../../../src/config/env';
+import type { BullMQPluginOptions } from '@vendure/job-queue-plugin/package/bullmq';
 import { bullMqOptions, redisOptionsFromUrl } from '../../../src/config/redis.config';
 import { buildVendureConfig } from '../../../src/config/vendure-config';
 
@@ -34,6 +37,11 @@ export interface E2eConfigOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Defaults to `api`. */
   readonly role?: E2eRole;
+  /**
+   * Boots with the stock BullMQ strategy under {@link e2eBullPrefix} instead of the pools: `PlatformJobsPlugin`
+   * gets no `pooledQueues`. Only for queues outside the registry (`active-queues.e2e.test.ts`).
+   */
+  readonly stockJobQueue?: boolean;
 }
 
 type InitializerOptions = Parameters<PostgresInitializer['init']>[1];
@@ -56,21 +64,45 @@ export function e2eEnv(options: { readonly env?: NodeJS.ProcessEnv; readonly rol
   return loadEnv({ ...process.env, ...options.env, ROLE: options.role ?? 'api' });
 }
 
-/** The BullMQ key prefix of one e2e file, so files never see each other's jobs. */
+/** The BullMQ key prefix of one e2e file, so files never see each other's jobs; its pools live under it. */
 export const e2eBullPrefix = (suite: string): string => `bull:test:${suite}`;
+
+/** The `appEnv` the pools of one e2e file are built with: their prefixes become `bull:test:{suite}:{pool}`. */
+export const e2eAppEnv = (suite: string): string => `test:${suite}`;
+
+/** The BullMQ key prefix of one pool of an e2e file (`PooledJobQueueStrategy`'s `bull:{appEnv}:{pool}`). */
+export const e2ePoolPrefix = (suite: string, pool: QueuePool): string => `${e2eBullPrefix(suite)}:${pool}`;
+
+/**
+ * Registers `PlatformJobsPlugin` for one e2e file: the pools under {@link e2ePoolPrefix}, with `pooledQueues`
+ * (the production options unless replaced) or, for `stock`, without them. The plugin keeps its options
+ * statically, so this replaces what `buildVendureConfig` set.
+ */
+export function useE2ePlatformJobs(
+  suite: string,
+  env: AppEnv,
+  pooledQueues: BullMQPluginOptions | 'stock' = bullMqOptions(env),
+): void {
+  PlatformJobsPlugin.init({
+    redisUrl: env.REDIS_URL,
+    appEnv: e2eAppEnv(suite),
+    ...(pooledQueues === 'stock' ? {} : { pooledQueues }),
+  });
+}
 
 /**
  * The server config an e2e file boots: Vendure's `testConfig` overlaid with the role's real config, the
  * database straight to Postgres (the initializer gives each file its own database), migrations run at boot by
- * the api only, and a BullMQ prefix per file. `overrides` is merged last; its `plugins` are appended.
+ * the api only, and a BullMQ prefix per file and pool. `overrides` is merged last; its `plugins` are appended.
  */
 export function buildE2eConfig(overrides: Partial<VendureConfig>, options: E2eConfigOptions): Required<VendureConfig> {
   const role = options.role ?? 'api';
   const env = e2eEnv(options);
   const prefix = e2eBullPrefix(options.suite);
   const roleConfig = buildVendureConfig(env, role);
-  // The plugin keeps its options statically, so this replaces the prefix `buildVendureConfig` just set.
+  // The plugins keep their options statically, so these replace the prefixes `buildVendureConfig` just set.
   BullMQJobQueuePlugin.init({ ...bullMqOptions(env), queueOptions: { prefix }, workerOptions: { prefix } });
+  useE2ePlatformJobs(options.suite, env, options.stockJobQueue === true ? 'stock' : bullMqOptions(env));
   const merged = mergeConfig(testConfig, {
     ...roleConfig,
     apiOptions: { ...roleConfig.apiOptions, port: options.port },
@@ -90,6 +122,14 @@ export function buildE2eConfig(overrides: Partial<VendureConfig>, options: E2eCo
   return mergeConfig(base, { ...overrides, plugins });
 }
 
+/**
+ * Makes the partitions an e2e file's writes need. An e2e boot runs the api role and never the migrate role's
+ * maintenance, so a file that writes to a partitioned table calls this after `server.init`, with the `now` of its rows.
+ */
+export async function afterE2eInit(server: TestServer, now: Date = new Date()): Promise<void> {
+  await server.app.get(PartitionMaintenanceService).maintain(now);
+}
+
 /** Algeria and its zero tax rate: the minimum Vendure's test population needs. */
 export const E2E_INITIAL_DATA: InitialData = {
   defaultLanguage: LanguageCode.en,
@@ -106,7 +146,10 @@ export function e2eRedis(env: AppEnv = e2eEnv()): Redis {
   return new Redis({ ...redisOptionsFromUrl(env.REDIS_URL), maxRetriesPerRequest: null });
 }
 
-/** Removes every key under a test prefix with `SCAN` + `UNLINK` (never `KEYS`, never `FLUSHDB`). */
+/**
+ * Removes every key under a test prefix with `SCAN` + `UNLINK` (never `KEYS`, never `FLUSHDB`). Given
+ * {@link e2eBullPrefix}, it removes the keys of every pool too, which live under it.
+ */
 export async function removeBullKeys(prefix: string): Promise<void> {
   const redis = e2eRedis();
   try {

@@ -1,0 +1,9 @@
+/* The stock switch thumb moves with a physical translate, which in RTL would carry it out of the track. */
+html[dir='rtl'] .cod-flags-switch [data-slot='switch-thumb'][data-checked] {
+  translate: calc(-100% + 2px) 0;
+}
+
+html[dir='rtl'] .cod-flags-dialog [data-slot='dialog-close'] {
+  right: auto;
+  inset-inline-end: 1rem;
+}

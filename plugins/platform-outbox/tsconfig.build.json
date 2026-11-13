@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "customConditions": []
+  },
+  "include": [
+    "index.ts",
+    "platform-outbox.plugin.ts",
+    "domain/**/*.ts",
+    "application/**/*.ts",
+    "infrastructure/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules", "tests", "*.config.ts"]
+}

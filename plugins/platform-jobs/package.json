@@ -1,0 +1,36 @@
+{
+  "name": "@cod/plugin-platform-jobs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Queue pools on BullMQ, job options from the queue registry, job presence, the business semaphore, the circuit breaker, durable job helpers and the task heartbeat (ADR 0013, D99-D103, D120).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "@vendure/job-queue-plugin": "3.8.1",
+    "bullmq": "5.81.5",
+    "ioredis": "5.11.1",
+    "typeorm": "0.3.31"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@nestjs/core": "12.4.0",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

@@ -3,7 +3,10 @@ export const SUBDOMAIN_MIN_LENGTH = 3;
 /** Longest allowed store subdomain (the `varchar(30)` column). */
 export const SUBDOMAIN_MAX_LENGTH = 30;
 
-/** Names the platform keeps for itself; no store may use them. */
+/**
+ * Names the platform keeps for itself; no store may use them. Holds every name ADR 0012 reserves (a test reads
+ * the ADR); P8.S9 owns the list after that.
+ */
 export const RESERVED_SUBDOMAINS: readonly string[] = [
   'www',
   'api',
@@ -20,6 +23,12 @@ export const RESERVED_SUBDOMAINS: readonly string[] = [
   'internal',
   'store',
   'shop',
+  'fallback',
+  'stores',
+  'staging',
+  'docs',
+  'blog',
+  'challenge',
 ];
 
 export type SubdomainStatus = 'available' | 'taken' | 'reserved' | 'invalid';

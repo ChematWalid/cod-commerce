@@ -10,7 +10,8 @@ import {
 } from '../domain/constants';
 
 /** One recorded action. Snowflake ids are time-ordered, so `id` is both the sort and the cursor (D65). */
-@Entity('activity_log')
+// A partitioned table (D123): the migration and `ACTIVITY_LOG_SCHEMA` create it, never `synchronize`.
+@Entity({ name: 'activity_log', synchronize: false })
 @Index(['businessId', 'id'])
 @Index(['businessId', 'actorAdministratorId', 'id'])
 @Index(['businessId', 'action', 'id'])
@@ -42,6 +43,6 @@ export class ActivityLogEntity extends TenantEntity {
   @Column({ type: 'varchar', length: ACTIVITY_USER_AGENT_MAX_LENGTH, nullable: true })
   userAgent!: string | null;
 
-  @Column({ type: 'timestamptz' })
+  @PrimaryColumn({ type: 'timestamptz' })
   createdAt!: Date;
 }

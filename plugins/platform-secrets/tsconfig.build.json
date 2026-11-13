@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "customConditions": []
+  },
+  "include": [
+    "index.ts",
+    "kek-ring.ts",
+    "platform-secrets.plugin.ts",
+    "domain/**/*.ts",
+    "application/**/*.ts",
+    "infrastructure/**/*.ts",
+    "api/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules", "tests", "*.config.ts"]
+}

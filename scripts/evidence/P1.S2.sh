@@ -12,6 +12,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=../lib/wait-http.sh
 . scripts/lib/wait-http.sh
+# shellcheck source=lib/sign.sh
+. scripts/evidence/lib/sign.sh
 
 [[ -f .env ]] || { echo "evidence: .env is missing; cp .env.example .env" >&2; exit 1; }
 set -a
@@ -22,6 +24,8 @@ export POSTGRES_HOST_PORT=25433 PGBOUNCER_HOST_PORT=26432 VALKEY_HOST_PORT=26380
 export MAILPIT_SMTP_HOST_PORT=21026 MAILPIT_UI_HOST_PORT=28026 API_HOST_PORT=23100 WORKER_HEALTH_HOST_PORT=23020
 export STOREFRONT_HOST_PORT=23001 PLATFORM_DOMAIN=localhost
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
+export INTERNAL_HMAC_KEYS=${INTERNAL_HMAC_KEYS:-k1:evidence-internal-hmac-key-synthetic-0000000001} INTERNAL_HMAC_ACTIVE_KID=${INTERNAL_HMAC_ACTIVE_KID:-k1}
+export TENANT_SECRET_KEKS=${TENANT_SECRET_KEKS:-k1:3a5c7e9f1b2d4f60718293a4b5c6d7e8f9a0b1c2d3e4f5061728394a5b6c7d8e} TENANT_SECRET_ACTIVE_KID=${TENANT_SECRET_ACTIVE_KID:-k1}
 export AUTH_TOKEN_SECRET=${AUTH_TOKEN_SECRET:-evidence-auth-token-secret-synthetic-0123456789}
 export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBOARD_URL=http://127.0.0.1:$API_HOST_PORT/dashboard
 # Set, not unset: compose would otherwise read a Gmail block from a local .env and require TLS from Mailpit.
@@ -150,9 +154,12 @@ status=000
 gql() { # gql <query> <vars-json> <session|-> <channel|-> -> $status, $work/h, $work/b
   local body
   body=$(Q="$1" V="$2" node -e 'console.log(JSON.stringify({query:process.env.Q,variables:JSON.parse(process.env.V)}))')
-  local -a args=(-sS -X POST -D "$work/h" -o "$work/b" --max-time 30 -H "$json" --data "$body")
+  printf '%s' "$body" >"$work/req"
+  local -a args=(-sS -X POST -D "$work/h" -o "$work/b" --max-time 30 -H "$json" --data-binary "@$work/req")
   [[ "$3" != - ]] && args+=(-H "Authorization: Bearer $3")
   [[ "$4" != - ]] && args+=(-H "vendure-token: $4")
+  # The Shop API is internal-only (D111): sign calls aimed at it; the admin api needs no signature.
+  if is_guarded_url "$admin"; then sign_args POST "$admin" "$work/req"; args+=("${SIGN_ARGS[@]}"); fi
   status=$(curl "${args[@]}" -w '%{http_code}' "$admin") || status=000
   [[ "$status" != 000 ]] || fail "no HTTP answer from $admin"
 }

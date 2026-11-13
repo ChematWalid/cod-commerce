@@ -1,4 +1,5 @@
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import {
   adminOperationsOf,
@@ -9,6 +10,7 @@ import {
   createTwoBusinesses,
   failureOf,
   loadPluginTestDbConfig,
+  withPartitionedSchemas,
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
   PLUGIN_TEST_INITIAL_DATA,
   type TwoBusinesses,
@@ -50,11 +52,13 @@ describe('TemplateNote isolation between two businesses', () => {
     plugins: [
       testRateLimitPlugin(),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1004 }),
+      PlatformPartitionsPlugin,
       RbacPlugin,
       TemplatePlugin,
     ],
     db: loadPluginTestDbConfig(process.env),
   });
+  withPartitionedSchemas(server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
   let fixtures: TwoBusinesses;
   let noteOfA: NoteResult;
   let noteOfB: NoteResult;

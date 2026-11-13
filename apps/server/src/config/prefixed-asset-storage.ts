@@ -47,11 +47,30 @@ export class PrefixedAssetStorage implements AssetStorageStrategy {
     return this.inner.fileExists(this.prefixed(fileName));
   }
 
+  /**
+   * Resolves the identifier to a key that cannot leave the prefix: `\` counts as `/`, empty and `.` segments vanish,
+   * and `..` (also percent-encoded) removes the segment before it and stops at the prefix instead of climbing out.
+   */
   private prefixed(identifier: string): string {
-    return `${this.prefix}${identifier.replace(/^\//, '')}`;
+    const kept: string[] = [];
+    for (const segment of identifier.split(/[\\/]/)) {
+      const decoded = decodeSegment(segment);
+      if (segment === '' || decoded === '.') continue;
+      if (decoded === '..') kept.pop();
+      else kept.push(segment);
+    }
+    return `${this.prefix}${kept.join('/')}`;
   }
 
   private unprefixed(key: string): string {
     return key.startsWith(this.prefix) ? key.slice(this.prefix.length) : key;
+  }
+}
+
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
   }
 }

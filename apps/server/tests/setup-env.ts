@@ -6,3 +6,8 @@ const ENV_FILE = '.env';
 if (existsSync(ENV_FILE)) {
   process.loadEnvFile(ENV_FILE);
 }
+
+// `loadEnv` has no APP_ENV default (D400), and the e2e suites build their env from `process.env`. A `.env` that lacks
+// it (a fresh checkout, CI without `.env.example`) must not turn into a failure that says nothing about the test.
+// Blank counts as unset, as it does for `loadEnv`.
+if (!process.env['APP_ENV']) process.env['APP_ENV'] = 'test';

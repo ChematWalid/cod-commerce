@@ -73,18 +73,41 @@ export class InProcessBucket {
     return decision;
   }
 
-  /** Locks `key` out for twice as long as its previous lockout, 60 s for the first. */
-  lockout(key: string): LockoutStatus {
+  /**
+   * Locks `key` out for twice as long as its previous lockout, 60 s for the first.
+   *
+   * @param knownPreviousSeconds a previous lockout's length known from elsewhere (Valkey), if longer.
+   */
+  lockout(key: string, knownPreviousSeconds = 0): LockoutStatus {
     const nowMs = this.now();
-    const previous = this.lockouts.get(key);
-    const remembered = previous !== undefined && previous.forgetAtMs > nowMs ? previous.durationSeconds : 0;
-    const durationSeconds = nextLockoutSeconds(remembered);
+    const durationSeconds = nextLockoutSeconds(Math.max(this.lastLockoutSeconds(key), knownPreviousSeconds));
     const lockedUntilMs = nowMs + durationSeconds * MS_PER_SECOND;
     const forgetAtMs = lockedUntilMs + LOCKOUT_MEMORY_SECONDS * MS_PER_SECOND;
     this.lockouts.delete(key);
     this.lockouts.set(key, { lockedUntilMs, durationSeconds, forgetAtMs, expiresAtMs: forgetAtMs });
     prune(this.lockouts, this.maxEntries, nowMs);
     return { locked: true, retryAfterSeconds: durationSeconds };
+  }
+
+  /** The length of the key's last lockout while it is still remembered, else 0. */
+  lastLockoutSeconds(key: string): number {
+    const previous = this.lockouts.get(key);
+    return previous !== undefined && previous.forgetAtMs > this.now() ? previous.durationSeconds : 0;
+  }
+
+  /**
+   * Records a lockout decided elsewhere (in Valkey) that ends `remainingSeconds` from now, so it still holds
+   * here if Valkey becomes unreachable. Never shortens a lockout this process already holds.
+   */
+  holdLockout(key: string, remainingSeconds: number): void {
+    const nowMs = this.now();
+    const previous = this.lockouts.get(key);
+    const lockedUntilMs = Math.max(previous?.lockedUntilMs ?? 0, nowMs + remainingSeconds * MS_PER_SECOND);
+    const forgetAtMs = lockedUntilMs + LOCKOUT_MEMORY_SECONDS * MS_PER_SECOND;
+    const longest = Math.max(previous?.durationSeconds ?? 0, remainingSeconds);
+    this.lockouts.delete(key);
+    this.lockouts.set(key, { lockedUntilMs, durationSeconds: longest, forgetAtMs, expiresAtMs: forgetAtMs });
+    prune(this.lockouts, this.maxEntries, nowMs);
   }
 
   /** Whether `key` is locked out now, and for how many more seconds. */

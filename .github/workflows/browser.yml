@@ -77,6 +77,10 @@ jobs:
       APP_ENV: development
       COOKIE_SECRET: change-me-000000000000000000000000000000000000000000000000000000
       AUTH_TOKEN_SECRET: change-me-auth-000000000000000000000000000000000000000000000000
+      INTERNAL_HMAC_KEYS: k1:change-me-internal-hmac-000000000000000000000
+      INTERNAL_HMAC_ACTIVE_KID: k1
+      TENANT_SECRET_KEKS: k1:0000000000000000000000000000000000000000000000000000000000000000
+      TENANT_SECRET_ACTIVE_KID: k1
       SUPERADMIN_USERNAME: superadmin
       SUPERADMIN_PASSWORD: change-me-admin
       S3_ENDPOINT: http://localhost:3900
@@ -98,7 +102,19 @@ jobs:
       - uses: ./.github/actions/setup
       # No --with-deps: the runner image already has the libraries headless Chromium needs, and the apt step hung
       # every job for ten minutes when the Ubuntu mirror was unreachable (2026-11-11).
+      # The download alone took over 6 minutes once (D119): keep it between runs, keyed on the locked version.
+      - name: Read the locked Playwright version
+        id: playwright-version
+        run: echo "version=$(sed -n 's/^  playwright-core@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Cache the browser
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - name: Install the browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
         run: pnpm --filter @cod/server exec playwright-core install chromium-headless-shell
       # The storefront's next build needs a deployment id: turbo's strict env mode hides APP_ENV from it.
       - name: Build

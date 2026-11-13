@@ -4,6 +4,7 @@ import { Redis } from 'ioredis';
 import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
 import { BusinessResolver } from './api/business.resolver';
+import { SlugForEntityResolver } from './api/slug-for-entity.resolver';
 import { adminApiSchema } from './api/schema';
 import { StoreFieldsResolver, StoreMutationResolver, StoreQueryResolver } from './api/store.resolver';
 import { StoreResolveController } from './api/store-resolve.controller';
@@ -73,6 +74,11 @@ export interface TenancyPluginOptions {
   readonly platformDomain: string;
   /** Skips the Valkey lease and uses this worker id: tests and scripts only (ADR 0003's reserved range). */
   readonly snowflakeWorkerId?: number;
+  /**
+   * Namespaces the host cache keys and invalidations, so environments sharing a Valkey stay apart. The server
+   * passes `APP_ENV`; the default is `development`.
+   */
+  readonly cacheNamespace?: string;
 }
 
 /** The longest a business id gets: 19 digits, with room for one more (D2). */
@@ -175,8 +181,8 @@ const STORE_USE_CASES = [
     },
     {
       provide: CreateStoreService,
-      useFactory: (ports: TenancyPorts) => new CreateStoreService(ports),
-      inject: [TENANCY_PORTS],
+      useFactory: (ports: TenancyPorts, hosts: StoreHostInvalidatorPort) => new CreateStoreService(ports, hosts),
+      inject: [TENANCY_PORTS, STORE_HOST_INVALIDATOR],
     },
     { provide: TENANT_STORES, useClass: TenantStoresAdapter },
     ...hostResolutionProviders(() => requireOptions()),
@@ -213,6 +219,7 @@ const STORE_USE_CASES = [
     ID_GENERATOR,
     MemberAccountService,
     OrderNumberService,
+    PlatformStoreLookup,
     ProvisionBusinessService,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
@@ -224,7 +231,13 @@ const STORE_USE_CASES = [
   ],
   adminApiExtensions: {
     schema: adminApiSchema,
-    resolvers: [BusinessResolver, StoreQueryResolver, StoreMutationResolver, StoreFieldsResolver],
+    resolvers: [
+      BusinessResolver,
+      StoreQueryResolver,
+      StoreMutationResolver,
+      StoreFieldsResolver,
+      SlugForEntityResolver,
+    ],
   },
   controllers: [SubdomainController, StoreResolveController],
   configuration: configure,

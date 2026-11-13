@@ -28,6 +28,15 @@ export STOREFRONT_HOST_PORT=23001
 export PLATFORM_DOMAIN=localhost
 export DEMO_OWNER_PASSWORD=${DEMO_OWNER_PASSWORD:-synthetic-evidence-owner}
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
+# Synthetic keys the api and the storefront need to boot (P1.S6); the signer uses the active one.
+export AUTH_TOKEN_SECRET=${AUTH_TOKEN_SECRET:-evidence-auth-token-secret-synthetic-0123456789}
+export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBOARD_URL=http://127.0.0.1:$API_HOST_PORT/dashboard
+export SMTP_TLS=none SMTP_USERNAME='' SMTP_PASSWORD=''
+export INTERNAL_HMAC_KEYS=k1:evidence-internal-hmac-key-synthetic-0000000001 INTERNAL_HMAC_ACTIVE_KID=k1
+export TENANT_SECRET_KEKS=k1:3a5c7e9f1b2d4f60718293a4b5c6d7e8f9a0b1c2d3e4f5061728394a5b6c7d8e TENANT_SECRET_ACTIVE_KID=k1
+export WORKER_ACTIVE_QUEUES=''
+# shellcheck source=lib/sign.sh
+. scripts/evidence/lib/sign.sh
 
 # --- the demo seed's stores and the page markers, mirrored once ------------------------------
 # From apps/server/src/seed/seed-demo-businesses.ts, the tenant page heading and app/not-found.tsx. Store ids are
@@ -128,7 +137,9 @@ wait_healthy storefront api
 docker compose run --rm --no-deps -T -e ROLE=migrate -e DEMO_OWNER_PASSWORD --entrypoint node migrate \
   --enable-source-maps apps/server/dist/main-seed-demo.js >/dev/null || fail "demo seed"
 store_id_of() {
-  curl -fs --max-time 10 "http://127.0.0.1:$API_HOST_PORT/store/resolve?host=$1" |
+  local url="http://127.0.0.1:$API_HOST_PORT/store/resolve?host=$1"
+  sign_args GET "$url" # the guard answers 404 to an unsigned call (P1.S6)
+  curl -fs --max-time 10 "${SIGN_ARGS[@]}" "$url" |
     node -p 'JSON.parse(require("node:fs").readFileSync(0, "utf8")).storeId'
 }
 DEMO_STORE_ID=$(store_id_of "$DEMO_STORE_HOST") || fail "the api does not know $DEMO_STORE_HOST"

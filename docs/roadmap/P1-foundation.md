@@ -417,6 +417,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P1.S6-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`; handoffs `P1.S1.md`, `P0.S2b.md`; `docs/adr/` 0002, 0008 (internal HMAC), 0013, 0016 (outbox, gateway, partitioning, pooling outcome of spike D).
 - `docs/architecture/system-design.md` §2.3, §2.5, §5, §7 (tenant secrets), §10 (job reconciler, Valkey loss); `docs/architecture/README.md` "Review log" rows 1, 3, 4, 7.
 

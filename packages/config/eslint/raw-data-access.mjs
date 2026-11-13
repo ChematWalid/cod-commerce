@@ -55,6 +55,24 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/team/infrastructure/invitation-token-lookup.ts',
   // Runs only the advisory lock (D213).
   '**/plugins/team/infrastructure/pg-business-lock.adapter.ts',
+  // `platform_task_heartbeat` is a platform table, one row per scheduled task (D108, D120).
+  '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
+  // DDL and catalog reads of partition maintenance (`SET LOCAL`, `pg_advisory_xact_lock`); no tenant row (D106).
+  '**/plugins/platform-partitions/infrastructure/postgres-partition-catalog.ts',
+  // `keepIf` reads per partition whether an outbox row is still open: a cross-tenant check that names no business and returns no row (D107).
+  '**/plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
+  // Platform scan of due outbox rows for the sweeper, the reconciler and the jobs health: ids, `businessId`, statuses and times only (D125).
+  '**/plugins/platform-outbox/infrastructure/outbox-due-scan.ts',
+  // The dedupe-key insert `ON CONFLICT DO NOTHING` on the platform table `inbound_webhook_key`, in the caller's transaction; the stored webhooks go through TenantRepository (D108, D109).
+  '**/plugins/platform-webhooks/infrastructure/webhook-store.ts',
+  // Platform scan of received webhooks for the reconciler (ids, `businessId`, attempts and times only) and the delete of expired keys of `inbound_webhook_key` (D105, D107).
+  '**/plugins/platform-webhooks/infrastructure/inbound-due-scan.ts',
+  // Two raw statements, both bound to the scope's business: the first-use `INSERT … ON CONFLICT ("businessId") DO NOTHING` of a data key, and the one-statement secret upsert `ON CONFLICT ("businessId", "provider", "ref") DO UPDATE`, so a race raises no unique violation that TypeORM would log with the sealed value; reads and deletes go through TenantRepository (D114, D130).
+  '**/plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
+  // Selects the `businessId` of data keys wrapped by a KEK other than the active one, across businesses, to queue their rewrap (D114); the rewrap itself goes through TenantRepository.
+  '**/plugins/platform-secrets/infrastructure/retired-kek-scan.ts',
+  // `feature_flag` and `feature_flag_override` are platform tables: staff-managed configuration with no owner (D108, D116).
+  '**/plugins/platform-flags/infrastructure/typeorm-flag-store.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.
@@ -74,7 +92,7 @@ export const RAW_DATA_ACCESS_FILES = [
   'apps/server/src/seed/seed-demo-businesses.ts',
   // Reads and writes Vendure's account-level `administrator` rows of the demo members.
   'apps/server/src/seed/seed-demo-members.ts',
-  // Takes only the migration advisory lock on its own `pg` client (the one file that imports `pg`); it reads no table.
+  // Takes (and polls for) only the migration advisory lock on its own `pg` client (the one file that imports `pg`); it reads no table.
   'apps/server/src/roles/migrate.role.ts',
 ];
 

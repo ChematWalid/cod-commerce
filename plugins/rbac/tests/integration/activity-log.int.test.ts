@@ -24,7 +24,8 @@ const SEEDED_ROWS = 120;
 const SMALL_BUSINESS_ROWS = 3;
 const PAGE_SIZE = 50;
 const SEED_ACTION = 'seed.row';
-const BACKWARD_BUSINESS_ID_INDEX = 'IDX_0b24949b8eaf781c929ae2a59e';
+// Each partition names its copy of the parent's (businessId, id) index after itself (D123).
+const BACKWARD_BUSINESS_ID_INDEX = 'businessId_id_idx';
 const VIEW_LOG = vendurePermissionName('settings.activity-log.view');
 
 describe('the activity log', () => {

@@ -13,7 +13,8 @@ content-type: application/json; charset=utf-8
 {
   "subdomain": "fresh-name",
   "status": "available",
-  "reason": null
+  "reason": null,
+  "reasonCode": null
 }
 ```
 
@@ -28,7 +29,8 @@ content-type: application/json; charset=utf-8
 {
   "subdomain": "demo",
   "status": "taken",
-  "reason": "This subdomain is already taken"
+  "reason": "This subdomain is already taken",
+  "reasonCode": "taken"
 }
 ```
 
@@ -43,7 +45,8 @@ content-type: application/json; charset=utf-8
 {
   "subdomain": "demo3",
   "status": "taken",
-  "reason": "This subdomain is already taken"
+  "reason": "This subdomain is already taken",
+  "reasonCode": "taken"
 }
 ```
 
@@ -58,7 +61,8 @@ content-type: application/json; charset=utf-8
 {
   "subdomain": "admin",
   "status": "reserved",
-  "reason": "This name is reserved by the platform"
+  "reason": "This name is reserved by the platform",
+  "reasonCode": "reserved"
 }
 ```
 
@@ -73,7 +77,8 @@ content-type: application/json; charset=utf-8
 {
   "subdomain": "a!",
   "status": "invalid",
-  "reason": "Must be 3 to 30 characters long"
+  "reason": "Must be 3 to 30 characters long",
+  "reasonCode": "length"
 }
 ```
 

@@ -133,6 +133,18 @@ describe('.env.example completeness', () => {
     }
   });
 
+  it('requires APP_ENV in every compose service, with no fallback (#116)', () => {
+    const entries = read(COMPOSE_FILE)
+      .split('\n')
+      .filter((line) => /^\s*APP_ENV:/.test(line));
+
+    expect(entries.length).toBeGreaterThanOrEqual(2);
+    for (const entry of entries) {
+      expect(entry).toMatch(/APP_ENV:\s*\$\{APP_ENV:\?/);
+      expect(entry).not.toContain(':-');
+    }
+  });
+
   it('documents every key of the server env schema in apps/server/.env.example', () => {
     const missing = missingKeys(SERVER_ENV_KEYS, documentedKeys(read(SERVER_EXAMPLE)), UNDOCUMENTED_SERVER_KEYS);
 

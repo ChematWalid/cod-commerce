@@ -1,3 +1,5 @@
+import { RbacConvergeService } from '@cod/plugin-rbac';
+import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import { Logger, preBootstrapConfig, resetConfig } from '@vendure/core';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -136,6 +138,23 @@ describe('migrate role', () => {
       },
       availableLanguages: 'ar,fr,en',
     });
+  });
+
+  // D106: without this call no partition is ever made in production, and nothing else would notice.
+  it('maintains the partitions once per run, after the roles are converged', async () => {
+    const converged = vi.spyOn(RbacConvergeService.prototype, 'convergeAll');
+    const maintained = vi.spyOn(PartitionMaintenanceService.prototype, 'maintain');
+    try {
+      await runMigrate(env);
+
+      expect(maintained).toHaveBeenCalledTimes(1);
+      expect(maintained.mock.calls[0]?.[0]).toBeInstanceOf(Date);
+      expect(converged).toHaveBeenCalledTimes(1);
+      expect(converged.mock.invocationCallOrder[0]).toBeLessThan(maintained.mock.invocationCallOrder[0] ?? 0);
+    } finally {
+      converged.mockRestore();
+      maintained.mockRestore();
+    }
   });
 
   it('fails when a business cannot converge, naming it, and leaves nothing of it behind', async () => {

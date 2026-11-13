@@ -1,3 +1,4 @@
+import { parseInternalKeys, signInternalRequest } from '@cod/shared/internal-auth';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { httpGetWithHost, STOREFRONT_URL, waitForHttp } from '../support/http-get-with-host';
 
@@ -10,7 +11,14 @@ const url = (path: string): string => new URL(path, STOREFRONT_URL).toString();
 
 /** The second store's id, as the API knows it: its internal path needs a real id. */
 async function secondStoreId(): Promise<string> {
-  const response = await fetch(`${API_URL}/store/resolve?host=${second.primaryHost}`);
+  const path = `/store/resolve?host=${second.primaryHost}`;
+  const key = parseInternalKeys(process.env['INTERNAL_HMAC_KEYS'] ?? '').find(
+    (candidate) => candidate.kid === process.env['INTERNAL_HMAC_ACTIVE_KID'],
+  );
+  if (key === undefined)
+    throw new Error('INTERNAL_HMAC_KEYS and INTERNAL_HMAC_ACTIVE_KID must be set for the smoke run');
+  const headers = signInternalRequest({ method: 'GET', pathWithQuery: path, body: '' }, key, Date.now() / 1000);
+  const response = await fetch(`${API_URL}${path}`, { headers });
   if (!response.ok) throw new Error(`the demo seed has not run: ${String(response.status)}`);
   return ((await response.json()) as { storeId: string }).storeId;
 }

@@ -10,6 +10,8 @@ import {
   inlineTransaction,
   noLifecycle,
   SequentialIdGenerator,
+  journalingTransaction,
+  RecordingHostInvalidator,
 } from '../fakes/fakes';
 
 const ctx = asOperationContext({});
@@ -21,6 +23,7 @@ function setUp(): {
   service: ProvisionBusinessService;
   provisioner: FakeChannelProvisioner;
   platform: InMemoryPlatformStore;
+  hosts: RecordingHostInvalidator;
 } {
   const provisioner = new FakeChannelProvisioner();
   const platform = new InMemoryPlatformStore();
@@ -33,8 +36,9 @@ function setUp(): {
     lifecycle: noLifecycle,
     clock: (): Date => NOW,
   };
-  const service = new ProvisionBusinessService(ports, new CreateStoreService(ports));
-  return { service, provisioner, platform };
+  const hosts = new RecordingHostInvalidator();
+  const service = new ProvisionBusinessService(ports, new CreateStoreService(ports, hosts));
+  return { service, provisioner, platform, hosts };
 }
 
 describe('ProvisionBusinessService', () => {
@@ -70,5 +74,40 @@ describe('ProvisionBusinessService', () => {
     await expect(provisioning).rejects.toBeInstanceOf(SubdomainInvalidError);
     expect(provisioner.calls).toBe(0);
     expect(platform.businesses.size).toBe(0);
+  });
+
+  it('forgets any cached host of the first store once provisioning committed (TEN-2)', async () => {
+    // Arrange
+    const { service, hosts } = setUp();
+
+    // Act
+    const { store } = await service.provision(ctx, COMMAND);
+
+    // Assert
+    expect(hosts.changes).toEqual([{ storeId: store.id, subdomains: ['atlas'] }]);
+  });
+
+  it("forgets the first store's host only after the provisioning transaction committed", async () => {
+    // Arrange
+    const journal: string[] = [];
+    const ports = {
+      channels: new FakeChannelProvisioner(),
+      platform: new InMemoryPlatformStore(),
+      transaction: journalingTransaction(journal),
+      ids: new SequentialIdGenerator('100'),
+      assets: openAssets,
+      lifecycle: noLifecycle,
+      clock: (): Date => NOW,
+    };
+    const service = new ProvisionBusinessService(
+      ports,
+      new CreateStoreService(ports, new RecordingHostInvalidator(journal)),
+    );
+
+    // Act
+    await service.provision(ctx, COMMAND);
+
+    // Assert
+    expect(journal).toEqual(['begin', 'commit', 'invalidate']);
   });
 });

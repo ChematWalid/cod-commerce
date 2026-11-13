@@ -253,7 +253,7 @@ These are the cross-session seams; the owning session defines them, later sessio
 | `LlmClient` + `withCredits(action)` metering | P9.S7a | P9.S7b, P9.S8b (MCP does not spend credits) |
 | API key scopes + webhook signing | P9.S8a | P9.S8b (MCP and apps reuse the scopes) |
 | Domain event names (`packages/shared/src/events/`, written `packages/shared/events` in briefs); every domain event is written through the outbox in the emitting transaction | first emitting session | all subscribers |
-| Host map: in-process LRU (60 s) + Valkey `host:{host}` + pub/sub invalidation, `GET /store/resolve` | P1.S1 | P3.S2 (`proxy.ts`), P8.S9 (custom domains) |
+| Host map: in-process LRU (60 s) + Valkey `host:{APP_ENV}:{host}` + pub/sub invalidation on `host-invalidate:{APP_ENV}` (D309), `GET /store/resolve` | P1.S1 | P3.S2 (`proxy.ts`), P8.S9 (custom domains) |
 | `OutboxService.add(ctx, topic, payload)` (same-transaction), relay + sweeper, consumer job-id convention `{outboxId}:{consumer}` | P1.S6 | P3.S4, P4.S1, P5.*, P7.S3, P9.S3, P9.S8a, P9.S5, P9.S6 |
 | `job-reconciler` (re-enqueues non-terminal durable rows: outbox deliveries, inbound webhooks, …, after a Valkey loss) + `scheduler_task_last_success_age_seconds` | P1.S6 | every session that adds a durable job row registers its table with the reconciler (e.g. P5.S1 dispatch, P9.* integrations) |
 | Inbound webhook gateway `POST /webhooks/{provider}/{accountKey}` + `InboundWebhookHandler` registry (dedupe, enqueue) | P1.S6 | P5.S4–S7, P9.S2, P9.S5, P9.S6 |

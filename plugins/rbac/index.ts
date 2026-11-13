@@ -16,3 +16,4 @@ export {
 } from './application/member-access.service';
 export { CreateRoleService, type CreateRoleCommand } from './application/create-role.service';
 export { asOperationContext } from './domain/ports/operation-context';
+export { ACTIVITY_LOG_SCHEMA } from './infrastructure/activity-log-schema';

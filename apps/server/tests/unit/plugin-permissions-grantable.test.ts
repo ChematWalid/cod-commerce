@@ -5,22 +5,9 @@ import { defaultConfig, mergeConfig, runPluginConfigurations } from '@vendure/co
 import { describe, expect, it } from 'vitest';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
 import { buildVendureConfig } from '../../src/config/vendure-config';
+import { CORE_ENV } from '../support/deployed-env.fixture';
 
-const valid = {
-  APP_ENV: 'test',
-  TZ: 'UTC',
-  DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
-  DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
-  REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'x'.repeat(32),
-  AUTH_TOKEN_SECRET: 'y'.repeat(32),
-  SUPERADMIN_USERNAME: 'superadmin',
-  SUPERADMIN_PASSWORD: 'test-password',
-  S3_ENDPOINT: 'http://garage:3900',
-  S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: 'b'.repeat(64),
-  S3_BUCKET_PRIVATE: 'cod-private',
-};
+const valid = CORE_ENV;
 
 const HOW_TO_FIX =
   'No business role can be granted these plugin permissions, so only an Owner could ever call their handlers. ' +

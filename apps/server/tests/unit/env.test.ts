@@ -1,49 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, isPlaceholderSecret, loadEnv, PLACEHOLDER_SECRET_MARKER } from '../../src/config/env';
+import { isPlaceholderSecret, loadEnv, PLACEHOLDER_SECRET_MARKER } from '../../src/config/env';
+import { DEPLOYED_OVERRIDES, STRONG_SECRETS, TEST_ENV } from '../support/deployed-env.fixture';
+import { failureOf as envFailure, issuePaths } from '../support/env-failure';
 
-const valid = {
-  APP_ENV: 'test',
-  ROLE: 'api',
-  TZ: 'UTC',
-  DATABASE_URL: 'postgresql://cod:pw@pgbouncer:5432/cod',
-  DATABASE_URL_DIRECT: 'postgresql://cod:pw@postgres:5432/cod',
-  REDIS_URL: 'redis://valkey:6379',
-  COOKIE_SECRET: 'x'.repeat(32),
-  AUTH_TOKEN_SECRET: 'y'.repeat(32),
-  AUTH_DASHBOARD_URL: 'https://app.example.test/dashboard',
-  SMTP_HOST: 'smtp.example.test',
-  SMTP_PORT: '587',
-  SMTP_FROM: 'no-reply@example.test',
-  SUPERADMIN_USERNAME: 'superadmin',
-  SUPERADMIN_PASSWORD: 'test-password',
-  S3_ENDPOINT: 'http://garage:3900',
-  S3_ACCESS_KEY: 'GK' + 'a'.repeat(24),
-  S3_SECRET_KEY: 'b'.repeat(64),
-  S3_BUCKET_PRIVATE: 'cod-private',
-  PLATFORM_DOMAIN: 'example.test',
-};
+const valid = TEST_ENV;
 
-function failureOf(overrides: Record<string, string | undefined>): EnvValidationError {
-  try {
-    loadEnv({ ...valid, ...overrides });
-  } catch (error) {
-    if (error instanceof EnvValidationError) {
-      return error;
-    }
-    throw error;
-  }
-  throw new Error('loadEnv accepted an invalid environment');
-}
-
-const issuePaths = (error: EnvValidationError): string[] => error.issues.map((issue) => issue.path);
+const failureOf = (overrides: Record<string, string | undefined>) => envFailure({ ...valid, ...overrides });
 
 describe('loadEnv', () => {
+  it('requires APP_ENV, with no default (SRV-3)', () => {
+    expect(issuePaths(failureOf({ APP_ENV: undefined }))).toEqual(['APP_ENV']);
+  });
+
   it('applies port and pool defaults for the api role', () => {
     expect(loadEnv(valid)).toMatchObject({
       API_PORT: 3000,
       WORKER_HEALTH_PORT: 3020,
       DB_POOL_MAX: 10,
-      WORKER_ACTIVE_QUEUES: [],
+      WORKER_POOL: 'all',
       CORS_ORIGINS: [],
     });
   });
@@ -58,12 +32,19 @@ describe('loadEnv', () => {
     expect(loadEnv({ ...valid, API_PORT: '3100' }).API_PORT).toBe(3100);
   });
 
-  it('splits WORKER_ACTIVE_QUEUES', () => {
-    expect(loadEnv({ ...valid, WORKER_ACTIVE_QUEUES: 'a, b' }).WORKER_ACTIVE_QUEUES).toEqual(['a', 'b']);
+  it('reads WORKER_POOL and refuses an unknown pool', () => {
+    expect(loadEnv({ ...valid, WORKER_POOL: 'bulk' }).WORKER_POOL).toBe('bulk');
+    expect(issuePaths(failureOf({ WORKER_POOL: 'llm' }))).toContain('WORKER_POOL');
   });
 
-  it('treats an empty WORKER_ACTIVE_QUEUES as all queues', () => {
-    expect(loadEnv({ ...valid, WORKER_ACTIVE_QUEUES: '' }).WORKER_ACTIVE_QUEUES).toEqual([]);
+  it('refuses a non-empty WORKER_ACTIVE_QUEUES, which WORKER_POOL replaced', () => {
+    const error = failureOf({ WORKER_ACTIVE_QUEUES: 'q1' });
+
+    expect(error.issues).toContainEqual({ path: 'WORKER_ACTIVE_QUEUES', message: 'replaced by WORKER_POOL' });
+  });
+
+  it('accepts an empty WORKER_ACTIVE_QUEUES, so an old .env still boots', () => {
+    expect(loadEnv({ ...valid, WORKER_ACTIVE_QUEUES: '' }).WORKER_POOL).toBe('all');
   });
 
   it('rejects a non-UTC TZ', () => {
@@ -180,19 +161,6 @@ describe('loadEnv', () => {
     expect(loadEnv({ ...valid, CLIENT_IP_HEADER: '' }).CLIENT_IP_HEADER).toBe('');
   });
 
-  it('requires CLIENT_IP_HEADER in production only', () => {
-    const production = { APP_ENV: 'production', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
-
-    expect(issuePaths(failureOf({ ...production, CLIENT_IP_HEADER: undefined }))).toEqual(['CLIENT_IP_HEADER']);
-    expect(loadEnv({ ...valid, ...production, CLIENT_IP_HEADER: 'cf-connecting-ip' }).CLIENT_IP_HEADER).toBe(
-      'cf-connecting-ip',
-    );
-    expect(
-      loadEnv({ ...valid, APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' })
-        .CLIENT_IP_HEADER,
-    ).toBe('');
-  });
-
   it.each(['cf connecting ip', 'x-real-ip: 1.2.3.4', 'a\nb'])('rejects %j as CLIENT_IP_HEADER', (header) => {
     expect(issuePaths(failureOf({ CLIENT_IP_HEADER: header }))).toEqual(['CLIENT_IP_HEADER']);
   });
@@ -203,7 +171,7 @@ describe('loadEnv', () => {
   });
 
   it('rejects a placeholder AUTH_TOKEN_SECRET in staging', () => {
-    const staging = { APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+    const staging = { APP_ENV: 'staging', ...DEPLOYED_OVERRIDES };
 
     expect(issuePaths(failureOf({ ...staging, AUTH_TOKEN_SECRET: `change-me-${'0'.repeat(40)}` }))).toEqual([
       'AUTH_TOKEN_SECRET',
@@ -211,7 +179,7 @@ describe('loadEnv', () => {
   });
 
   it.each(['AUTH_DASHBOARD_URL', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM'])('requires %s when deployed', (name) => {
-    const staging = { APP_ENV: 'staging', COOKIE_SECRET: 'k'.repeat(40), SUPERADMIN_PASSWORD: 'real-admin-pw' };
+    const staging = { APP_ENV: 'staging', ...DEPLOYED_OVERRIDES };
 
     expect(issuePaths(failureOf({ ...staging, [name]: undefined }))).toEqual([name]);
   });
@@ -278,7 +246,11 @@ describe('isPlaceholderSecret', () => {
     expect(isPlaceholderSecret(value)).toBe(true);
   });
 
-  it.each(['b'.repeat(64), `GK${'a'.repeat(24)}`, 'test-password'])('accepts %s', (value) => {
+  it.each([
+    ['a generated 64-hex key', STRONG_SECRETS.S3_SECRET_KEY],
+    [`GK${'a'.repeat(24)}`, `GK${'a'.repeat(24)}`],
+    ['test-password', 'test-password'],
+  ])('accepts %s', (_label, value) => {
     expect(isPlaceholderSecret(value)).toBe(false);
   });
 });

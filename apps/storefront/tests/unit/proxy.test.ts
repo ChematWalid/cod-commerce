@@ -41,6 +41,8 @@ async function rewrittenPath(path: string, headers: Record<string, string>): Pro
 describe('storefront proxy', () => {
   beforeEach(() => {
     vi.stubEnv('INTERNAL_API_URL', 'http://api.test:3000');
+    vi.stubEnv('INTERNAL_HMAC_KEYS', 'k1:change-me-internal-hmac-000000000000000000000');
+    vi.stubEnv('INTERNAL_HMAC_ACTIVE_KID', 'k1');
     vi.stubGlobal('fetch', vi.fn(fakeApi));
   });
 
