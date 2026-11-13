@@ -11,10 +11,11 @@ export const ENGINE_GRANTS: Readonly<Partial<Record<PermissionKey, readonly stri
 };
 
 /**
- * Stock Vendure permissions that may appear in {@link ENGINE_GRANTS}, each after a review of what it opens. An
- * allowlist, because a denylist misses whatever nobody thought of (D59).
+ * The stock Vendure permissions each catalogue key may carry in {@link ENGINE_GRANTS}, each pair after a review of
+ * what it opens. An allowlist, because a denylist misses whatever nobody thought of (D59); per key, like the plugin
+ * list (D801).
  */
-export const REVIEWED_STOCK_ENGINE_GRANTS: readonly string[] = [];
+export const REVIEWED_STOCK_ENGINE_GRANTS: Readonly<Partial<Record<PermissionKey, readonly string[]>>> = {};
 
 /**
  * The plugin permissions each catalogue key may carry in {@link ENGINE_GRANTS}, each pair after a review of the
@@ -31,14 +32,13 @@ export const REVIEWED_PLUGIN_ENGINE_GRANTS: Readonly<Partial<Record<PermissionKe
   'settings.business.edit': ['UpdateTenantBusiness'],
 };
 
-/** The stock permissions in `grants` that are not on `reviewed`. */
+/** The `key→permission` pairs of `grants` that carry a stock permission not reviewed for that key (D59, D801). */
 export function unreviewedStockGrants(
   grants: Readonly<Partial<Record<string, readonly string[]>>>,
   stockPermissions: readonly string[],
-  reviewed: readonly string[],
+  reviewed: Readonly<Partial<Record<string, readonly string[]>>>,
 ): string[] {
-  const granted = new Set(Object.values(grants).flat());
-  return stockPermissions.filter((name) => granted.has(name) && !reviewed.includes(name));
+  return unreviewedPairs(grants, reviewed, (name) => stockPermissions.includes(name));
 }
 
 /**
@@ -50,9 +50,18 @@ export function unreviewedPluginGrants(
   stockPermissions: readonly string[],
   reviewed: Readonly<Partial<Record<string, readonly string[]>>>,
 ): string[] {
+  return unreviewedPairs(grants, reviewed, (name) => !stockPermissions.includes(name));
+}
+
+/** The `key→permission` pairs of `grants` whose permission is `inScope` and not reviewed for that key. */
+function unreviewedPairs(
+  grants: Readonly<Partial<Record<string, readonly string[]>>>,
+  reviewed: Readonly<Partial<Record<string, readonly string[]>>>,
+  inScope: (name: string) => boolean,
+): string[] {
   return Object.entries(grants).flatMap(([key, names]) =>
     (names ?? [])
-      .filter((name) => !stockPermissions.includes(name) && !(reviewed[key] ?? []).includes(name))
+      .filter((name) => inScope(name) && !(reviewed[key] ?? []).includes(name))
       .map((name) => `${key}→${name}`),
   );
 }
