@@ -29,12 +29,16 @@ export const workerLeaseKey = (workerId: number): string => `idgen:worker:${Stri
 
 /**
  * Custom permissions an owner never receives (A1). The dashboard's global saved views are shared by the whole
- * platform, so a merchant writing one would reach every other business.
+ * platform, so a merchant writing one would reach every other business. Creating and deleting a business are
+ * platform acts: sign-up creates a business through the platform's own context, and no business may delete itself
+ * or create another (D802).
  */
 export const PLATFORM_ONLY_CUSTOM_PERMISSIONS: readonly string[] = [
   'ReadDashboardGlobalViews',
   'WriteDashboardGlobalViews',
   PLATFORM_STAFF_PERMISSION,
+  'CreateTenantBusiness',
+  'DeleteTenantBusiness',
 ];
 
 /** How many hosts each process keeps in memory. */
