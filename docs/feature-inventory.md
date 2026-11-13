@@ -190,9 +190,9 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 
 | ✓ | Feature | Type | Where / notes |
 |---|---|---|---|
-| [ ] | Members list: All / Active / Pending / Inactive; roles, salary, status, order count, store access, joined | C | `/team` |
-| [ ] | Invite by email with roles, store access (all / selected), base salary, commission structures | C | |
-| [ ] | Member actions: view details, edit, set limit (max open orders), stop receiving orders, pay salary | C | |
+| [x] | Members list: All / Active / Pending / Inactive; roles, salary, status, order count, store access, joined | C | `/team` (P1.S4; order count is 0 until P4.S1) |
+| [x] | Invite by email with roles, store access (all / selected), base salary, commission structures | C | P1.S4; the invitation email was not exercised in the source (real address needed), built from the brief |
+| [x] | Member actions: view details, edit, set limit (max open orders), stop receiving orders, pay salary | C | P1.S4; pay salary is a placeholder row plus `salary.paid` on the outbox (D222), ledger in P6.S4; the salary dialog was not exercised in the source |
 | [x] | Roles: 7 built-in templates; custom roles with name, description, start-from template; 94 permissions (the research list of 93 plus `store.stores.archive`, D97) in 12 areas with None/View/Full per area and "Sensitive" flags (full list in research notes) | C | `?tab=roles` |
 | [ ] | Order distribution: Evenly (fewest open) / In turn / Nobody; reclaim timeout; exception rules (ordered) | C | `?tab=distribution` |
 | [ ] | Team stats report and commissions | S | |
@@ -264,7 +264,7 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 | [ ] | Plans as data (features + limits), providers Stripe / Chargily / SlickPay, quota with grace period and masked orders, credit packs | C | Billing |
 | [ ] | Ask Tassya side panel (AI chat, page-aware context) | I | AI |
 | [ ] | Order distribution: reclaim after N min of working hours, max hops then flag manager; exceptions by wilaya/source/total; product managers | C | Team |
-| [ ] | Commissions configs, role duplicate, permissions catalog, invitation resend/revoke | S | Team |
+| [x] | Commissions configs, role duplicate, permissions catalog, invitation resend/revoke | S | Team (role duplicate and catalog P1.S3; commission configs and resend/revoke P1.S4; commission calculation is P7.S1; invitation emails were not exercised in the source) |
 | [ ] | CAPI test events and test mode for Meta/TikTok/Snapchat | I | Pixels |
 | [ ] | YouCan / Ayor / Shopify order & product sync; media library | I | Integrations |
 | [ ] | Custom domain inline connect → DNS records → verify | C | Store |

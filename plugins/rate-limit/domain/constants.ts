@@ -9,6 +9,11 @@ export const IP_CAPACITY = 60;
 /** Sign-ups per hour from one IP (D29). */
 export const REGISTER_IP_CAPACITY = 20;
 
+/** Invitations one business may send per hour (D205: the platform must not be a mail relay). */
+export const TEAM_INVITE_BUSINESS_CAPACITY = 100;
+/** Invitations, or resends, one administrator may send per hour (D205). */
+export const TEAM_ACTOR_MAIL_CAPACITY = 30;
+
 /** Wrong or right code guesses per day one account may make, whatever the resends (D44). */
 export const OTP_DAILY_CAPACITY = 50;
 

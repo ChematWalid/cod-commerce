@@ -55,6 +55,18 @@ const RUNTIME_EXPORTS = [
   'QUEUES',
   'activeQueuesFor',
   'durableJobId',
+  'isSnowflake',
+  'TEAM_ERROR_CODES',
+  'INVITATION_TTL_MS',
+  'MEMBER_STATUSES',
+  'inviteMemberSchema',
+  'acceptInvitationSchema',
+  'payMemberSchema',
+  'updateMemberSchema',
+  'setLimitSchema',
+  'setReceivingSchema',
+  'commissionConfigSchema',
+  'listMembersQuerySchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {

@@ -1,12 +1,13 @@
 import { DomainError, emailSchema } from '@cod/shared';
 
-/** The transactional emails of the account flows. */
+/** The transactional emails of the account flows, and Team's invitation (D203). */
 export const AUTH_EMAIL_KINDS = [
   'verification',
   'password-reset',
   'email-change-confirm',
   'email-change-notice',
   'password-changed',
+  'team-invitation',
   'provider-linked',
 ] as const;
 
@@ -27,6 +28,7 @@ export const AUTH_EMAIL_REQUIRED_VARS: Readonly<Record<AuthEmailKind, readonly s
   'email-change-confirm': ['name', 'link', 'newEmail'],
   'email-change-notice': ['name', 'newEmail'],
   'password-changed': ['name'],
+  'team-invitation': ['inviter', 'business', 'link'],
   'provider-linked': ['name', 'provider'],
 };
 

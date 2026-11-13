@@ -12,6 +12,8 @@ function varsFor(kind: AuthEmailKind): Record<string, string> {
     link: LINK,
     code: CODE,
     newEmail: 'new@example.test',
+    inviter: 'Karim',
+    business: 'Atlas Shop',
   };
   return Object.fromEntries(AUTH_EMAIL_REQUIRED_VARS[kind].map((name) => [name, values[name] ?? 'x']));
 }
@@ -63,7 +65,11 @@ describe('auth email templates', () => {
   });
 
   it.each(CASES)('escapes a hostile name in $kind in $locale', ({ kind, locale }) => {
-    const email = authEmailTemplates.render(kind, locale, { ...varsFor(kind), name: SCRIPT_NAME });
+    const email = authEmailTemplates.render(kind, locale, {
+      ...varsFor(kind),
+      name: SCRIPT_NAME,
+      inviter: SCRIPT_NAME,
+    });
 
     expect(email.html).not.toContain('<script>');
     expect(email.html).toContain('&lt;script&gt;');
@@ -104,5 +110,62 @@ describe('auth email templates', () => {
 
   it('throws on a missing variable instead of sending a broken mail', () => {
     expect(() => authEmailTemplates.render('verification', 'en', { name: 'Sara' })).toThrow();
+  });
+});
+
+describe('team invitation email', () => {
+  const INVITE_LINK = 'https://dash.example.test/dashboard/accept-invitation?token=abc_DEF-123';
+  const VARS = { inviter: 'Karim', business: 'Atlas Shop', link: INVITE_LINK };
+
+  it.each(AUTH_EMAIL_LOCALES)('names the business in the subject and links the invitation in %s', (locale) => {
+    // Act
+    const email = authEmailTemplates.render('team-invitation', locale, VARS);
+
+    // Assert
+    expect(email.subject).toContain('Atlas Shop');
+    expect(email.html).toContain('Karim');
+    expect(email.text).toContain(INVITE_LINK);
+    expect(email.html).toContain(`href="${INVITE_LINK}"`);
+  });
+
+  it('states the seven-day lifetime of the link in both languages', () => {
+    const arabic = authEmailTemplates.render('team-invitation', 'ar', VARS);
+    const english = authEmailTemplates.render('team-invitation', 'en', VARS);
+
+    expect(english.text).toContain('7 days');
+    expect(arabic.text).toContain('7 أيام');
+  });
+
+  it.each(AUTH_EMAIL_LOCALES)('shows no third-party product name in %s', (locale) => {
+    const email = authEmailTemplates.render('team-invitation', locale, VARS);
+
+    for (const body of [email.subject, email.html, email.text]) {
+      expect(body).not.toMatch(/vendure/i);
+    }
+  });
+
+  it('isolates the Latin inviter and business names inside Arabic text', () => {
+    const email = authEmailTemplates.render('team-invitation', 'ar', VARS);
+
+    expect(email.text).toContain('\u2068Karim\u2069');
+    expect(email.text).toContain('\u2068Atlas Shop\u2069');
+  });
+
+  it('keeps a business name with a line break on one subject line', () => {
+    const email = authEmailTemplates.render('team-invitation', 'en', { ...VARS, business: 'Atlas\r\nBcc: x@y.test' });
+
+    expect(email.subject).not.toMatch(/[\r\n]/);
+  });
+
+  it('refuses a link that is not http or https', () => {
+    expect(() =>
+      authEmailTemplates.render('team-invitation', 'en', { ...VARS, link: 'javascript:alert(1)' }),
+    ).toThrow();
+  });
+
+  it('keeps a lifetime of a single day in hours, as the older emails say it', () => {
+    const email = authEmailTemplates.render('verification', 'en', varsFor('verification'));
+
+    expect(email.text).toContain('24 hours');
   });
 });

@@ -138,6 +138,8 @@ export function createConvergeKit(server: TestServer, adminClient: SimpleGraphQL
       },
     });
     const administrator = await repository(Administrator).findOneByOrFail({ emailAddress: member.email });
+    // A member belongs to its business, as `createMember` makes one; rbac ignores administrators of no business.
+    await repository(Administrator).update(administrator.id, { customFields: { businessId } });
     await server.app.get<MemberAssignmentRepositoryPort>(MEMBER_ASSIGNMENTS).insert(ctx, scope, {
       id: ids.next(),
       administratorId: administrator.id as number,

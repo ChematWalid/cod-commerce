@@ -117,7 +117,12 @@ describe('migrate role', () => {
 
     const report = await runMigrate(env);
 
-    expect(report).toEqual({ migrationsRun: [], seed: { changes: [] }, rbacConverged: { businesses: 0, changed: 0 } });
+    expect(report).toEqual({
+      migrationsRun: [],
+      seed: { changes: [] },
+      rbacConverged: { businesses: 0, changed: 0 },
+      teamConverged: { businesses: 0, created: 0, skipped: 0 },
+    });
     const after = await snapshot(url);
     expect(after).toEqual(before);
     expect(after).toEqual({

@@ -6,6 +6,8 @@ import {
   MINUTE_WINDOW_SECONDS,
   OTP_DAILY_CAPACITY,
   REGISTER_IP_CAPACITY,
+  TEAM_ACTOR_MAIL_CAPACITY,
+  TEAM_INVITE_BUSINESS_CAPACITY,
 } from './constants';
 
 /** What a policy does while Valkey is unreachable (D31). */
@@ -28,6 +30,13 @@ const perMinute = (capacity: number, outage: OutageMode): RateLimitPolicy => ({
   outage,
 });
 
+/** Invitation mail keeps limiting from memory during an outage: each request sends an email (D205). */
+const mailPerHour = (capacity: number): RateLimitPolicy => ({
+  capacity,
+  windowSeconds: HOUR_WINDOW_SECONDS,
+  outage: 'in-process',
+});
+
 /**
  * Every policy (D29). Credential and token guessing policies keep limiting from memory during an outage,
  * because stock sessions stay up without Valkey and would otherwise be unthrottled; the rest fail open.
@@ -46,6 +55,11 @@ export const RATE_LIMIT_POLICIES = {
   'current-password-ip': perMinute(IP_CAPACITY, 'in-process'),
   'register-ip': { capacity: REGISTER_IP_CAPACITY, windowSeconds: HOUR_WINDOW_SECONDS, outage: 'open' },
   'subdomain-ip': perMinute(IP_CAPACITY, 'open'),
+  // Team invitations (D205): the public accept and preview routes by address, the mail they send by business and actor.
+  'invitation-accept-ip': perMinute(IP_CAPACITY, 'in-process'),
+  'team-invite-business': mailPerHour(TEAM_INVITE_BUSINESS_CAPACITY),
+  'team-invite-actor': mailPerHour(TEAM_ACTOR_MAIL_CAPACITY),
+  'team-resend-actor': mailPerHour(TEAM_ACTOR_MAIL_CAPACITY),
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** One of the {@link RATE_LIMIT_POLICIES}. */

@@ -15,4 +15,12 @@ export class FakeActorDirectory implements ActorDirectoryPort {
   isMember(_ctx: OperationContext, _scope: TenantScope, administratorId: number): Promise<boolean> {
     return Promise.resolve(this.names.has(administratorId));
   }
+
+  liveAdministratorIds(
+    _ctx: OperationContext,
+    _scope: TenantScope,
+    ids: readonly number[],
+  ): Promise<readonly number[]> {
+    return Promise.resolve(ids.filter((id) => this.names.has(id)));
+  }
 }

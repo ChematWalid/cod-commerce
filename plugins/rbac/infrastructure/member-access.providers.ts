@@ -2,7 +2,9 @@ import { SNOWFLAKE_ID_GENERATOR } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import { ActivityLogService } from '../application/activity-log.service';
 import { BindingProjector } from '../application/binding-projector.service';
+import { GrantPreviewService } from '../application/grant-preview.service';
 import { MemberAccessService } from '../application/member-access.service';
+import { MemberSuspensionRegistry } from '../application/member-suspension-registry';
 import {
   ACTOR_DIRECTORY,
   BUSINESS_DIRECTORY,
@@ -10,6 +12,7 @@ import {
   CLOCK,
   ENGINE_ROLES,
   MEMBER_ASSIGNMENTS,
+  MEMBER_SUSPENSION_CHECK,
   RBAC_LOCK,
   SESSION_FLUSHER,
   TRANSACTION,
@@ -36,6 +39,7 @@ type MemberAccessDependencies = [
   BindingProjector,
   ActivityLogService,
   SessionFlusherPort,
+  MemberSuspensionRegistry,
   IdGeneratorPort,
   ClockPort,
 ];
@@ -56,6 +60,7 @@ export const MEMBER_ACCESS_PROVIDERS: Provider[] = [
         projector,
         activity,
         flusher,
+        suspension,
         ids,
         clock,
       ]: MemberAccessDependencies
@@ -71,6 +76,7 @@ export const MEMBER_ACCESS_PROVIDERS: Provider[] = [
         projector,
         activity,
         flusher,
+        suspension,
         ids,
         clock,
       }),
@@ -85,8 +91,20 @@ export const MEMBER_ACCESS_PROVIDERS: Provider[] = [
       BindingProjector,
       ActivityLogService,
       SESSION_FLUSHER,
+      MEMBER_SUSPENSION_CHECK,
       SNOWFLAKE_ID_GENERATOR,
       CLOCK,
     ],
+  },
+  // One registry per application: Team registers its check on it from its own module (D204).
+  { provide: MEMBER_SUSPENSION_CHECK, useFactory: () => new MemberSuspensionRegistry() },
+  {
+    provide: GrantPreviewService,
+    useFactory: (
+      directory: BusinessDirectoryPort,
+      roles: BusinessRoleRepositoryPort,
+      assignments: MemberAssignmentRepositoryPort,
+    ) => new GrantPreviewService({ directory, roles, assignments }),
+    inject: [BUSINESS_DIRECTORY, BUSINESS_ROLES, MEMBER_ASSIGNMENTS],
   },
 ];

@@ -13,6 +13,12 @@ const PLATFORM_ENTRY =
 /** The rbac entry point that exposes `requirePermission` and nothing else (D58). */
 const RBAC_GUARD_ENTRY = '^plugins/rbac/guard[.]ts$';
 
+/** The rbac entry point that exposes member access, grant preview and the suspension check to Team (D206). */
+const RBAC_MEMBER_ACCESS_ENTRY = '^plugins/rbac/member-access[.]ts$';
+
+/** The auth entry point that exposes the invited-account service and the email queue to Team (D203, D206). */
+const AUTH_INVITATIONS_ENTRY = '^plugins/auth/invitations[.]ts$';
+
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
@@ -70,7 +76,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121) and the rbac guard entry (D58), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -81,6 +87,8 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         PLATFORM_ENTRY,
         TENANCY_PROVISIONING_ENTRY,
         RBAC_GUARD_ENTRY,
+        RBAC_MEMBER_ACCESS_ENTRY,
+        AUTH_INVITATIONS_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -163,6 +171,22 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     severity: 'error',
     from: { pathNot: ['^plugins/[^/]+/api/', '^plugins/rbac/'] },
     to: { path: RBAC_GUARD_ENTRY },
+  },
+  {
+    name: 'rbac-member-access-entry-infra-only',
+    comment:
+      "The rbac member-access entry exports Nest services and rbac's module: outside rbac only an adapter (infrastructure/) or a plugin's root *.plugin.ts module file may import it; application/, domain/ and api/ reach it through their own ports (D206).",
+    severity: 'error',
+    from: { pathNot: ['^plugins/[^/]+/infrastructure/', '^plugins/[^/]+/[^/]+[.]plugin[.]ts$', '^plugins/rbac/'] },
+    to: { path: RBAC_MEMBER_ACCESS_ENTRY },
+  },
+  {
+    name: 'auth-invitations-entry-infra-only',
+    comment:
+      "The auth invitations entry exports Nest services and auth's module: outside auth only an adapter (infrastructure/) or a plugin's root *.plugin.ts module file may import it; application/, domain/ and api/ reach it through their own ports (D206).",
+    severity: 'error',
+    from: { pathNot: ['^plugins/[^/]+/infrastructure/', '^plugins/[^/]+/[^/]+[.]plugin[.]ts$', '^plugins/auth/'] },
+    to: { path: AUTH_INVITATIONS_ENTRY },
   },
   {
     name: 'apps-no-plugin-internals',
