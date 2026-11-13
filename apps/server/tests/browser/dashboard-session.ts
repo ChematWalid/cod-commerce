@@ -1,5 +1,5 @@
 import type { DocumentLang } from '@cod/plugin-merchant-shell';
-import type { Locator, Page, Response } from 'playwright-core';
+import { errors, type Locator, type Page, type Response } from 'playwright-core';
 
 /**
  * Accessible names of the `@vendure/dashboard` 3.8.1 controls this session drives, confirmed against its
@@ -153,9 +153,70 @@ export async function closeMenus(page: Page): Promise<void> {
     const open = await menus.count();
     if (open === 0) break;
     await page.keyboard.press('Escape');
-    await page.waitForFunction((before: number) => document.querySelectorAll('[role="menu"]').length < before, open);
+    await withMenuDump(page, `level ${String(level)}, ${String(open)} open`, () =>
+      page.waitForFunction((before: number) => document.querySelectorAll('[role="menu"]').length < before, open),
+    );
   }
-  await menus.first().waitFor({ state: 'detached' });
+  await withMenuDump(page, 'menus detached', () => menus.first().waitFor({ state: 'detached' }));
+}
+
+/** What the page showed when a menu step timed out: enough to tell a reopened submenu, a lost Escape and a stale count apart. */
+interface MenuState {
+  readonly dir: string;
+  readonly lang: string;
+  readonly focused: string;
+  readonly hovered: string;
+  /** Every `[role=menu]` node in the DOM, with its positioner. */
+  readonly menus: readonly string[];
+  /** Every menu trigger, with `aria-expanded` and `data-popup-open`. */
+  readonly triggers: readonly string[];
+}
+
+/** A menu step that timed out, carrying the menu state at that moment (#221). */
+export class MenuCloseError extends Error {
+  constructor(step: string, state: MenuState, cause: unknown) {
+    super(`the account menu did not close (${step}): ${JSON.stringify(state, null, 2)}`, { cause });
+    this.name = 'MenuCloseError';
+  }
+}
+
+const dumpMenuState = (page: Page): Promise<MenuState> =>
+  page.evaluate(() => {
+    const shown = [
+      'data-testid',
+      'role',
+      'aria-expanded',
+      'aria-hidden',
+      'data-open',
+      'data-closed',
+      'data-popup-open',
+    ];
+    const describe = (element: Element | null | undefined): string => {
+      if (element === null || element === undefined) return 'none';
+      const flags = [...shown, 'data-ending-style', 'data-starting-style', 'inert', 'hidden']
+        .filter((name) => element.hasAttribute(name))
+        .map((name) => `${name}=${element.getAttribute(name) ?? ''}`);
+      return `<${element.tagName.toLowerCase()} ${flags.join(' ')}>`;
+    };
+    const all = (selector: string): Element[] => [...document.querySelectorAll(selector)];
+    return {
+      dir: document.documentElement.dir,
+      lang: document.documentElement.lang,
+      focused: describe(document.activeElement),
+      hovered: describe(all(':hover').at(-1)),
+      menus: all('[role="menu"]').map((menu) => `${describe(menu)} in ${describe(menu.parentElement)}`),
+      triggers: all('[aria-haspopup="menu"]').map((trigger) => describe(trigger)),
+    };
+  });
+
+/** Runs one menu wait; a timeout becomes a `MenuCloseError` that names the step and dumps the menu state. */
+async function withMenuDump<T>(page: Page, step: string, wait: () => Promise<T>): Promise<T> {
+  try {
+    return await wait();
+  } catch (error) {
+    if (!(error instanceof errors.TimeoutError)) throw error;
+    throw new MenuCloseError(step, await dumpMenuState(page), error);
+  }
 }
 
 async function chooseDisplayLanguage(page: Page, language: DocumentLang): Promise<void> {
