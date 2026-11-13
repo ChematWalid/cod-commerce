@@ -132,17 +132,26 @@ export class AccountTokenService {
   }
 
   /**
-   * Tries the user's emailed code. The guess is counted before the code is compared, so concurrent guesses cannot
-   * compare more than `OTP_MAX_ATTEMPTS` times.
+   * Tries the user's emailed code: {@link matchOtp}, then {@link consumeMatchedOtp} in `ctx`.
    *
-   * Callers must not wrap this in a transaction. The guess commits on its own connection so that the error it causes
-   * cannot roll it back; a surrounding transaction that has touched this row would block that commit forever, and one
-   * that rolls back after a right code would reopen the token with the guess still spent.
+   * @throws OtpInvalidError or OtpLockedError, as {@link matchOtp}.
+   */
+  async attemptOtp(ctx: OperationContext, userId: number, otp: string): Promise<AccountToken> {
+    const matched = await this.matchOtp(userId, otp);
+    return this.consumeMatchedOtp(ctx, matched);
+  }
+
+  /**
+   * Counts one guess at the user's emailed code and compares it, spending nothing else. The guess is counted before
+   * the code is compared, in one conditional statement, so concurrent guesses cannot compare more than
+   * `OTP_MAX_ATTEMPTS` times. It commits on its own connection, so the error it causes cannot roll it back.
+   *
+   * Call it before opening a transaction: one that already holds this row would block that commit forever.
    *
    * @throws OtpInvalidError for a wrong code, or when no code is open.
    * @throws OtpLockedError once the guesses are spent, even for the right code.
    */
-  async attemptOtp(ctx: OperationContext, userId: number, otp: string): Promise<AccountToken> {
+  async matchOtp(userId: number, otp: string): Promise<AccountToken> {
     const window = this.otpWindow();
     const claimed = await this.tokens.claimOtpAttempt(userId, window);
     if (claimed === undefined) {
@@ -151,7 +160,17 @@ export class AccountTokenService {
     if (claimed.otpHash === null || !this.hasher.matches(otp, claimed.otpHash)) {
       throw claimed.otpAttempts >= OTP_MAX_ATTEMPTS ? new OtpLockedError() : new OtpInvalidError();
     }
-    const consumed = await this.tokens.consumeOtpToken(ctx, claimed.id, window.now);
+    return claimed;
+  }
+
+  /**
+   * Uses the token whose code {@link matchOtp} accepted, in `ctx`: a caller transaction that rolls back reopens it,
+   * with the guess still counted.
+   *
+   * @throws OtpInvalidError when a concurrent caller used it first.
+   */
+  async consumeMatchedOtp(ctx: OperationContext, matched: AccountToken): Promise<AccountToken> {
+    const consumed = await this.tokens.consumeOtpToken(ctx, matched.id, this.clock.now());
     if (consumed === undefined) {
       throw new OtpInvalidError();
     }
