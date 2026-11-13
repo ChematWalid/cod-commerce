@@ -63,6 +63,11 @@ describe('sanitizeDiff', () => {
     ['api.?key', ['apikey', 'apiKey', 'api_key', 'api-key', 'API.KEY', 'xApiKey', 'xapikey', 'myapikeys']],
     ['authorization', ['authorization', 'proxyAuthorization', 'proxyauthorization']],
     ['cookie', ['cookie', 'setCookie', 'sessioncookie']],
+    [
+      'any of them with a capital inside the term',
+      ['passWord', 'PassWord', 'PASSword', 'SecRet', 'SECRETkey', 'toKen', 'TOKENvalue', 'oTp', 'OTPcode', 'HaSh'],
+    ],
+    ['api.?key, authorization and cookie in mixed case', ['ApI_kEy', 'APIkey', 'AuthoriZation', 'CooKie']],
   ])('redacts every spelling of the D66 term %s', (_term, keys) => {
     // Act
     const clean = sanitizeDiff(Object.fromEntries(keys.map((key) => [key, 'x'])));
