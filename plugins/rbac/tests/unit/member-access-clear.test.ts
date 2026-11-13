@@ -157,3 +157,61 @@ describe('MemberAccessService.setAccess with no role (the clear Team deactivates
     expect(writes.replaceFor).toHaveBeenCalledWith(ctx, scope, MEMBER, []);
   });
 });
+
+const withdrawBy = (
+  actor: number,
+  administratorId: number,
+  storeAccess: 'all' | 'selected',
+  storeIds: readonly string[],
+) => ({
+  actor: { administratorId: actor, scope, ip: null, userAgent: null },
+  administratorId,
+  storeAccess,
+  storeIds,
+});
+
+describe('MemberAccessService.withdrawAccess (Team deactivate, D804)', () => {
+  it('clears the member and returns the access it held, read in the same transaction under the lock', async () => {
+    // Arrange
+    const writes = { replaceFor: vi.fn(() => Promise.resolve()) };
+    const service = new MemberAccessService(servicePorts(writes));
+
+    // Act
+    const previous = await service.withdrawAccess(ctx, withdrawBy(OWNER, MEMBER, 'all', []));
+
+    // Assert
+    expect(previous).toEqual({
+      administratorId: String(MEMBER),
+      roles: [{ id: VIEWER_ROLE.id, name: VIEWER_ROLE.name }],
+      storeAccess: 'selected',
+      storeIds: [S2],
+    });
+    expect(writes.replaceFor).toHaveBeenCalledWith(ctx, scope, MEMBER, []);
+  });
+
+  it('returns no role for a member holding none, and writes nothing', async () => {
+    // Arrange
+    const writes = { replaceFor: vi.fn(() => Promise.resolve()) };
+    const service = new MemberAccessService(servicePorts(writes));
+
+    // Act
+    const previous = await service.withdrawAccess(ctx, withdrawBy(OWNER, 8, 'all', []));
+
+    // Assert
+    expect(previous.roles).toEqual([]);
+    expect(writes.replaceFor).not.toHaveBeenCalled();
+  });
+
+  it('applies the same D60 rules as a clear: a store-limited actor may not name all stores', async () => {
+    // Arrange
+    const writes = { replaceFor: vi.fn(() => Promise.resolve()) };
+    const service = new MemberAccessService(servicePorts(writes));
+
+    // Act
+    const withdrawal = service.withdrawAccess(ctx, withdrawBy(S2_MANAGER, MEMBER, 'all', []));
+
+    // Assert
+    await expect(withdrawal).rejects.toMatchObject({ code: RBAC_ERROR_CODES.STORE_NOT_ACCESSIBLE });
+    expect(writes.replaceFor).not.toHaveBeenCalled();
+  });
+});
