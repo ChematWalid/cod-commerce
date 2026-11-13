@@ -35,6 +35,7 @@ const CUSTOM_ROLE_PERMISSION = 'store.stores.view';
 const ADDED_ENGINE_GRANT = 'ReadTenantStore';
 /** Nothing in `ENGINE_GRANTS` for the permission above maps to this. */
 const REMOVED_ENGINE_GRANT = 'UpdateTenantBusiness';
+const PLATFORM_ONLY = [PLATFORM_STAFF_PERMISSION, 'CreateTenantBusiness', 'DeleteTenantBusiness'];
 
 describe('Converging the roles of existing businesses', () => {
   const { server, adminClient } = createRbacTestEnvironment(SNOWFLAKE_WORKER_ID);
@@ -108,12 +109,14 @@ describe('Converging the roles of existing businesses', () => {
       ]);
     });
 
-    it('leaves PlatformStaff off the Owner Vendure role', async () => {
+    it('takes every platform-only permission off an Owner Vendure role that held one (D802)', async () => {
       const { ownerRoleId } = await businessRow(businesses.a.businessId);
+      const held = (await vendureRole(ownerRoleId)).permissions;
+      await engine().updatePermissions(await context(), ownerRoleId, [...held, ...PLATFORM_ONLY]);
 
-      const { permissions } = await vendureRole(ownerRoleId);
+      await converge().convergeAll(await context());
 
-      expect(permissions).not.toContain(PLATFORM_STAFF_PERMISSION);
+      expect((await vendureRole(ownerRoleId)).permissions.filter((name) => PLATFORM_ONLY.includes(name))).toEqual([]);
     });
 
     it('changes nothing and flushes nobody on a second run', async () => {
