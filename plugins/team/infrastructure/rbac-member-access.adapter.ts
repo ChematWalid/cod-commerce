@@ -10,7 +10,7 @@ import { type TenantScope, toSnowflake } from '@cod/shared';
 import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { TeamSuspensionCheck } from '../application/member-suspension';
 import { MEMBER_REPOSITORY } from '../application/tokens';
-import type { MemberGrant } from '../domain/member-grant';
+import type { MemberGrant, MemberStoreGrant } from '../domain/member-grant';
 import type { ActorReachView } from '../domain/member-reach';
 import type { MemberAccessPort } from '../domain/ports/member-access.port';
 import type { MemberRepositoryPort } from '../domain/ports/member-repository.port';
@@ -65,7 +65,7 @@ export class RbacMemberAccessAdapter implements MemberAccessPort, OnApplicationB
     ctx: OperationContext,
     actor: TeamActor,
     administratorId: number,
-    clearing: Omit<MemberGrant, 'roleIds'>,
+    clearing: MemberStoreGrant,
   ): Promise<MemberGrant> {
     return grantOf(await this.access.withdrawAccess(rbacContextOf(ctx), { actor, administratorId, ...clearing }));
   }

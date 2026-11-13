@@ -171,7 +171,7 @@ const withdrawBy = (
 });
 
 describe('MemberAccessService.withdrawAccess (Team deactivate, D804)', () => {
-  it('clears the member and returns the access it held, read in the same transaction under the lock', async () => {
+  it('clears the member and returns the access it held', async () => {
     // Arrange
     const writes = { replaceFor: vi.fn(() => Promise.resolve()) };
     const service = new MemberAccessService(servicePorts(writes));

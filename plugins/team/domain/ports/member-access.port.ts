@@ -1,5 +1,5 @@
 import type { TenantScope } from '@cod/shared';
-import type { MemberGrant } from '../member-grant';
+import type { MemberGrant, MemberStoreGrant } from '../member-grant';
 import type { ActorReachView } from '../member-reach';
 import type { TeamActor } from '../team-actor';
 import type { OperationContext } from './operation-context';
@@ -36,7 +36,7 @@ export interface MemberAccessPort {
     ctx: OperationContext,
     actor: TeamActor,
     administratorId: number,
-    clearing: Omit<MemberGrant, 'roleIds'>,
+    clearing: MemberStoreGrant,
   ): Promise<MemberGrant>;
 
   /** Signs the administrators out of stale sessions after their access changed; call after commit. */

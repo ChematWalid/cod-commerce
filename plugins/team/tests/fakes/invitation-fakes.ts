@@ -1,5 +1,5 @@
 import type { TeamEmailLocale, TenantScope } from '@cod/shared';
-import type { MemberGrant } from '../../domain/member-grant';
+import type { MemberGrant, MemberStoreGrant } from '../../domain/member-grant';
 import type { ActorReachView } from '../../domain/member-reach';
 import type { BusinessLockPort } from '../../domain/ports/business-lock.port';
 import type { BusinessNamesPort } from '../../domain/ports/business-names.port';
@@ -59,9 +59,10 @@ export class FakeMemberAccess implements MemberAccessPort {
     ctx: OperationContext,
     actor: TeamActor,
     administratorId: number,
-    clearing: Omit<MemberGrant, 'roleIds'>,
+    clearing: MemberStoreGrant,
   ): Promise<MemberGrant> {
-    const held = this.held.get(administratorId) ?? { roleIds: [], ...clearing };
+    // rbac's view of a member holding no row (D804).
+    const held = this.held.get(administratorId) ?? { roleIds: [], storeAccess: 'selected', storeIds: [] };
     await this.setAccess(ctx, actor, administratorId, { roleIds: [], ...clearing });
     return held;
   }
