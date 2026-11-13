@@ -537,7 +537,7 @@ rest GET "/employees/$amina" - "$owner" "$demo"; assert_js "A untouched" "b.stat
 reset_limits
 invitation_token "$S2ONLY" 1
 EV_PREVIEW_TOKEN=$LAST_INVITATION_TOKEN EV_MAIL_EN=$PENDING EV_MAIL_AR=$KARIM EV_ACTIVE_EMAIL=$AMINA \
-  timeout 600 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S4-screens.mjs "$api/dashboard" "$mailpit" "$work/shots" \
+  timeout 900 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S4-screens.mjs "$api/dashboard" "$mailpit" "$work/shots" \
   > "$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
 command cp "$work"/shots/*.png "$out/screens/"
 
