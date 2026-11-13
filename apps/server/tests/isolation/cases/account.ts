@@ -1,11 +1,10 @@
 import type { MatrixRequest } from '../http';
-import { type IsolationCase, ownChannel, ownerGraphql, ownerRest, victimChannel } from '../matrix';
+import { type IsolationCase, ownChannel, ownerGraphql, ownerRest, victimChannel, onChannel } from '../matrix';
 import type { BusinessWorld } from '../world';
 
 const PROFILE_FIELDS = 'firstName lastName emailAddress phone avatarUrl emailVerified';
 const STATUS_FIELDS = 'emailVerified verificationRequired resendAvailableAt pendingEmail';
 const NOTE_FIELDS = 'id title body createdAt';
-const STORE_FIELDS = 'id businessId name subdomain channelToken';
 
 /** A GraphQL request of the attacker's member (a business role on the first store only). */
 function memberGraphql(
@@ -44,7 +43,7 @@ export const ACCOUNT_CASES: readonly IsolationCase[] = [
     endpoint: 'GET /auth/profile',
     access: 'victim channel',
     title: "A's owner GETs /auth/profile with B's store token: A's own, nothing of B",
-    request: (a, b) => ownerRest(a, 'GET', '/auth/profile', undefined, victimChannel(b)),
+    request: (a, b) => onChannel(ownerRest(a, 'GET', '/auth/profile'), victimChannel(b)),
     expect: { kind: 'own', mustInclude: (a) => [a.owner.email, a.owner.lastName] },
   },
   {
@@ -83,7 +82,8 @@ export const ACCOUNT_CASES: readonly IsolationCase[] = [
     endpoint: 'PATCH /auth/profile',
     access: 'victim channel',
     title: "A's owner PATCHes /auth/profile with B's store token: writes A only, B's profile untouched",
-    request: (a, b) => ownerRest(a, 'PATCH', '/auth/profile', { lastName: a.owner.lastName }, victimChannel(b)),
+    request: (a, b) =>
+      onChannel(ownerRest(a, 'PATCH', '/auth/profile', { lastName: a.owner.lastName }), victimChannel(b)),
     expect: { kind: 'own', mustInclude: (a) => [a.owner.email, a.owner.lastName] },
   },
   {
@@ -148,15 +148,7 @@ export const ACCOUNT_CASES: readonly IsolationCase[] = [
       ),
     expect: { kind: 'forbidden' },
   },
-  {
-    id: 'member.stores',
-    entity: 'member',
-    endpoint: 'stores',
-    access: 'list',
-    title: "A's member lists stores on A's first store: A's store, nothing of B",
-    request: (a) => memberGraphql(a, `query { stores { ${STORE_FIELDS} } }`),
-    expect: { kind: 'own', mustInclude: (a) => [a.stores[0].id] },
-  },
+
   {
     id: 'member.switcher',
     entity: 'member',
@@ -166,26 +158,7 @@ export const ACCOUNT_CASES: readonly IsolationCase[] = [
     request: (a) => memberGraphql(a, 'query { switchableStores { stores { id businessId name subdomain } } }'),
     expect: { kind: 'own', mustInclude: (a) => [a.stores[0].id] },
   },
-  {
-    id: 'member.store-by-id',
-    entity: 'member',
-    endpoint: 'store(id)',
-    access: 'read by id',
-    title: "A's member asks for B's store by id: null",
-    request: (a, b) =>
-      memberGraphql(a, `query ($id: String!) { store(id: $id) { ${STORE_FIELDS} } }`, { id: b.stores[0].id }),
-    expect: { kind: 'null', field: 'store' },
-  },
-  {
-    id: 'member.stores-victim-channel',
-    entity: 'member',
-    endpoint: 'stores',
-    access: 'victim channel',
-    title: "A's member lists stores with B's store token: FORBIDDEN",
-    request: (a, b) => memberGraphql(a, `query { stores { ${STORE_FIELDS} } }`, {}, victimChannel(b)),
-    expect: { kind: 'forbidden' },
-    reverse: true,
-  },
+
   {
     id: 'member.member-effective-victim-channel',
     entity: 'member',

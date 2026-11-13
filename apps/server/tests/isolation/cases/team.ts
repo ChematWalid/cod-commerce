@@ -3,7 +3,7 @@ import {
   type Expectation,
   type IsolationCase,
   type IsolationEntity,
-  ownChannel,
+  onChannel,
   ownerGraphql,
   ownerRest,
   victimChannel,
@@ -79,13 +79,13 @@ const isRest = (source: Source): boolean => /^(GET|POST|PATCH|DELETE) \//.test(s
 const endpointOf = (source: Source): string =>
   isRest(source) ? (source.split('?')[0] ?? source) : (/\{\s*(\w+)/.exec(source)?.[1] ?? source);
 
-/** A's owner calls `source`, naming row `id` (`$id`, or `:id` in a route), on A's store unless `channel` says. */
-function call(a: BusinessWorld, source: Source, id = '', body?: Record<string, unknown>, channel = ownChannel(a)) {
+/** A's owner calls `source` on A's store, naming row `id` (`$id`, or `:id` in a route). */
+function call(a: BusinessWorld, source: Source, id = '', body?: Record<string, unknown>): MatrixRequest {
   if (!isRest(source)) {
-    return ownerGraphql(a, source, { ...(id !== '' && { id }), ...(body && { input: body }) }, channel);
+    return ownerGraphql(a, source, { ...(id !== '' && { id }), ...(body && { input: body }) });
   }
   const [method, path] = source.split(' ') as [MatrixRequest['method'], string];
-  return ownerRest(a, method, path.replace(':id', id), body, channel);
+  return ownerRest(a, method, path.replace(':id', id), body);
 }
 
 /** One call naming one of B's Team rows, over GraphQL then over REST; the REST body may name the row as `memberId`. */
@@ -140,7 +140,7 @@ function onVictimStore(id: string, entity: IsolationEntity, source: Source, on?:
   const expect: Expectation = rest ? { kind: 'status', status: FORBIDDEN } : { kind: 'forbidden' };
   const title = `A's owner calls ${endpointOf(source)} with B's store token: ${rest ? String(FORBIDDEN) : 'FORBIDDEN'}`;
   const rowOf = (b: BusinessWorld) => (on === undefined ? '' : TARGETS[on].idOf(teamOf(b)));
-  const request = (a: BusinessWorld, b: BusinessWorld) => call(a, source, rowOf(b), undefined, victimChannel(b));
+  const request = (a: BusinessWorld, b: BusinessWorld) => onChannel(call(a, source, rowOf(b)), victimChannel(b));
   return { id, entity, endpoint: endpointOf(source), access: 'victim channel', title, request, expect };
 }
 

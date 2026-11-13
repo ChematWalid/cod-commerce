@@ -83,11 +83,9 @@ describe('P1 isolation: a store owner sees only their own business', () => {
       world.b.businessId,
     ]);
 
-    for (const table of TENANT_TABLES) {
-      expect({ table, ...counts[table] }).toEqual({ table, a: expect.any(Number), b: expect.any(Number) });
-      expect(counts[table]?.a, table).toBeGreaterThan(0);
-      expect(counts[table]?.b, table).toBeGreaterThan(0);
-    }
+    const empty = TENANT_TABLES.filter((table) => counts[table].a === 0 || counts[table].b === 0);
+
+    expect(empty).toEqual([]);
   });
 
   it.each(runsOf)('%s', (run) => {

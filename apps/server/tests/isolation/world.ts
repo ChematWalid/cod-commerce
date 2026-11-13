@@ -84,17 +84,17 @@ async function provision(options: WorldOptions, superadmin: Caller, label: 'A' |
     owner: { emailAddress: email, firstName: `Owner${label}`, lastName: 'Seed', password },
     store: { name: `Store ${label}1 ${suffix}`, subdomain: `${tag}-1`, language: 'ar' },
   };
-  const provisioned = fieldOf<{ business: { id: string; name: string }; store: Omit<WorldStore, 'label'> }>(
-    await http.graphql(superadmin, PROVISION_BUSINESS, { input }),
-    'provisionBusiness',
-  );
+  const provisioned = fieldOf(await http.graphql(superadmin, PROVISION_BUSINESS, { input }), 'provisionBusiness') as {
+    business: { id: string; name: string };
+    store: Omit<WorldStore, 'label'>;
+  };
   const first: WorldStore = { label: `${label}1`, ...provisioned.store };
   const session = await http.login(`owner ${label}`, email, password);
   const secondInput = { name: `Store ${label}2 ${suffix}`, subdomain: `${tag}-2`, language: 'fr' };
-  const second = fieldOf<Omit<WorldStore, 'label'>>(
+  const second = fieldOf(
     await http.graphql(session, CREATE_STORE, { input: secondInput }, channelOf(first)),
     'createStore',
-  );
+  ) as Omit<WorldStore, 'label'>;
   return {
     business: provisioned.business,
     email,
@@ -109,11 +109,11 @@ async function createMember(options: WorldOptions, superadmin: Caller, store: Wo
   const code = `member-${store.label.toLowerCase()}-${suffix}`;
   const email = `${code}@example.test`;
   const as = async <T>(query: string, variables: Record<string, unknown>, field: string): Promise<T> =>
-    fieldOf<T>(await http.graphql(superadmin, query, variables), field);
-  const channel = fieldOf<{ id: string }>(
+    fieldOf(await http.graphql(superadmin, query, variables), field) as T;
+  const channel = fieldOf(
     await http.graphql(superadmin, STOCK_ACTIVE_CHANNEL, {}, channelOf(store)),
     'activeChannel',
-  );
+  ) as { id: string };
   const roleInput = { code, description: code, permissions: MEMBER_STOCK_PERMISSIONS, channelIds: [channel.id] };
   const role = await as<{ id: string }>(STOCK_CREATE_ROLE, { input: roleInput }, 'createRole');
   const adminInput = { emailAddress: email, firstName: 'Member', lastName: store.label, password, roleIds: [role.id] };
@@ -132,7 +132,7 @@ async function buildBusiness(options: WorldOptions, superadmin: Caller, label: '
   const base = await provision(options, superadmin, label);
   const own = channelOf(base.stores[0]);
   const as = async <T>(query: string, variables: Record<string, unknown>, field: string): Promise<T> =>
-    fieldOf<T>(await http.graphql(base.session, query, variables, own), field);
+    fieldOf(await http.graphql(base.session, query, variables, own), field) as T;
   const ownerId = (await as<{ id: string }>(ACTIVE_ADMINISTRATOR, {}, 'activeAdministrator')).id;
   const lastName = `Private${label}${suffix}`;
   await as(UPDATE_PROFILE, { input: { lastName } }, 'updateAccountProfile');
@@ -145,10 +145,9 @@ async function buildBusiness(options: WorldOptions, superadmin: Caller, label: '
   const secret = await as<{ id: string }>(SET_SECRET, { input: { ...DEMO_SECRET, value } }, 'setTenantSecret');
   const noteInput = { title: `Note ${label} ${suffix}`, body: 'private' };
   const note = await as<{ id: string; title: string }>(CREATE_NOTE, { input: noteInput }, 'createTemplateNote');
-  const logo = fieldOf<{ assetId: string }>(
-    await http.upload(base.session, UPLOAD_LOGO, ONE_PIXEL_PNG, own),
-    'uploadBusinessLogo',
-  );
+  const logo = fieldOf(await http.upload(base.session, UPLOAD_LOGO, ONE_PIXEL_PNG, own), 'uploadBusinessLogo') as {
+    assetId: string;
+  };
   const scope = { key: OVERRIDDEN_FLAG, scope: 'BUSINESS', scopeId: base.business.id, enabled: true };
   fieldOf(await http.graphql(superadmin, SET_FLAG_OVERRIDE, { input: scope }), 'setFeatureFlagOverride');
   const memberSession = await http.login(`member ${label}`, member.email, options.password);

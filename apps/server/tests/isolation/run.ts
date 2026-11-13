@@ -11,10 +11,22 @@ export interface Outcome {
 }
 
 /**
+ * Below this length a value is a Vendure engine id (an administrator's or an asset's small integer), which another
+ * table reuses for its own rows: A's channel `2` is not B's asset `2`. Such ids are left out of the scan; their rows
+ * are still recognised by the unique values beside them (the owner's and member's addresses and names), and the logo
+ * asset by the refusals its cases expect.
+ */
+const MIN_FINGERPRINT_LENGTH = 8;
+
+/**
  * Every value that identifies the victim's data. Any of them in the attacker's answer is a leak, unless the attacker
  * sent it (an id the attacker names is not news to the attacker).
  */
 export function fingerprintsOf(victim: BusinessWorld): string[] {
+  return allValuesOf(victim).filter((value) => value.length >= MIN_FINGERPRINT_LENGTH);
+}
+
+function allValuesOf(victim: BusinessWorld): string[] {
   return [
     victim.businessId,
     victim.name,
@@ -40,56 +52,87 @@ const requestText = (request: MatrixRequest): string =>
 export function leaksIn(exchange: Exchange, victim: BusinessWorld): string[] {
   const sent = requestText(exchange.request);
   const answer = typeof exchange.body === 'string' ? exchange.body : JSON.stringify(exchange.body);
-  return fingerprintsOf(victim).filter((value) => !sent.includes(value) && answer.includes(value));
+  return fingerprintsOf(victim).filter((value) => !holds(sent, value) && holds(answer, value));
 }
+
+const holds = (text: string, value: string): boolean => text.includes(value);
 
 const operationOf = (request: MatrixRequest): string | undefined =>
   /(?:query|mutation)[^{]*\{\s*(\w+)/.exec((request.body as { query?: string } | undefined)?.query ?? '')?.[1];
 
+type Judge<K extends Expectation['kind']> = (
+  exchange: Exchange,
+  expect: Extract<Expectation, { kind: K }>,
+  attacker: BusinessWorld,
+) => string[];
+
+const bodyOf = (exchange: Exchange): GraphqlBody => exchange.body as GraphqlBody;
+
+const judgeForbidden: Judge<'forbidden'> = (exchange) => {
+  const codes = errorCodesOf(exchange);
+  const operation = operationOf(exchange.request);
+  const data = operation === undefined ? undefined : bodyOf(exchange).data?.[operation];
+  const refused = codes.includes('FORBIDDEN') && (data === undefined || data === null);
+  return refused ? [] : [`wanted FORBIDDEN, got codes [${codes.join()}]`];
+};
+
+const judgeNull: Judge<'null'> = (exchange, expect) => {
+  const codes = errorCodesOf(exchange);
+  const data = bodyOf(exchange).data;
+  return codes.length === 0 && data?.[expect.field] === null
+    ? []
+    : [`wanted ${expect.field} null, got codes [${codes.join()}] and ${JSON.stringify(data ?? null)}`];
+};
+
+const judgeCode: Judge<'code'> = (exchange, expect) => {
+  const codes = errorCodesOf(exchange);
+  return codes.includes(expect.code) ? [] : [`wanted code ${expect.code}, got [${codes.join()}]`];
+};
+
+const judgeStatus: Judge<'status'> = (exchange, expect) => {
+  const code = (exchange.body as { code?: string } | null)?.code;
+  const codeOk = expect.code === undefined || code === expect.code;
+  return exchange.status === expect.status && codeOk
+    ? []
+    : [`wanted HTTP ${String(expect.status)} ${expect.code ?? ''}, got ${String(exchange.status)} ${code ?? ''}`];
+};
+
+const judgeOwn: Judge<'own'> = (exchange, expect, attacker) => {
+  const codes = errorCodesOf(exchange);
+  const answer = JSON.stringify(exchange.body);
+  const missing = expect.mustInclude(attacker).filter((value) => !answer.includes(value));
+  const failed = exchange.status >= 400 || codes.length > 0;
+  return failed || missing.length > 0
+    ? [`wanted own data, got HTTP ${String(exchange.status)} codes [${codes.join()}], missing ${missing.join()}`]
+    : [];
+};
+
+const JUDGES: { readonly [K in Expectation['kind']]: Judge<K> } = {
+  forbidden: judgeForbidden,
+  null: judgeNull,
+  code: judgeCode,
+  status: judgeStatus,
+  own: judgeOwn,
+};
+
 /** What is wrong with the answer against the expectation, or nothing. */
 export function judge(exchange: Exchange, expect: Expectation, attacker: BusinessWorld): string[] {
-  const body = exchange.body as GraphqlBody;
-  const codes = errorCodesOf(exchange);
-  switch (expect.kind) {
-    case 'forbidden': {
-      const operation = operationOf(exchange.request);
-      const data = operation === undefined ? undefined : body.data?.[operation];
-      return codes.includes('FORBIDDEN') && (data === undefined || data === null)
-        ? []
-        : [`wanted FORBIDDEN, got codes [${codes.join()}]`];
-    }
-    case 'null':
-      return codes.length === 0 && body.data?.[expect.field] === null
-        ? []
-        : [`wanted ${expect.field} null, got codes [${codes.join()}] and ${JSON.stringify(body.data ?? null)}`];
-    case 'code':
-      return codes.includes(expect.code) ? [] : [`wanted code ${expect.code}, got [${codes.join()}]`];
-    case 'status': {
-      const code = (exchange.body as { code?: string } | null)?.code;
-      const statusOk = exchange.status === expect.status;
-      const codeOk = expect.code === undefined || code === expect.code;
-      return statusOk && codeOk
-        ? []
-        : [`wanted HTTP ${String(expect.status)} ${expect.code ?? ''}, got ${String(exchange.status)} ${code ?? ''}`];
-    }
-    case 'own': {
-      const answer = JSON.stringify(exchange.body);
-      const missing = expect.mustInclude(attacker).filter((value) => !answer.includes(value));
-      const failed = exchange.status >= 400 || codes.length > 0;
-      return failed || missing.length > 0
-        ? [`wanted own data, got HTTP ${String(exchange.status)} codes [${codes.join()}], missing ${missing.join()}`]
-        : [];
-    }
-  }
+  // The map pairs each kind with its judge; TypeScript cannot follow that pairing through the index, hence `never`.
+  return JUDGES[expect.kind](exchange, expect as never, attacker);
 }
 
-/** Runs one case with `attacker` against `victim`. */
+/** Who attacks whom in one run of a case. */
+export interface Direction {
+  readonly attacker: BusinessWorld;
+  readonly victim: BusinessWorld;
+}
+
+/** Runs one case in one direction. */
 export async function runCase(
   http: IsolationHttp,
   world: World,
   testCase: IsolationCase,
-  attacker: BusinessWorld,
-  victim: BusinessWorld,
+  { attacker, victim }: Direction,
 ): Promise<Outcome> {
   const exchange = await http.send(testCase.request(attacker, victim, world));
   const leaks = leaksIn(exchange, victim).map((value) => `leaks the victim's value ${value}`);
@@ -109,8 +152,10 @@ export async function runMatrix(
 ): Promise<Outcome[]> {
   const outcomes: Outcome[] = [];
   for (const testCase of cases) {
-    outcomes.push(await runCase(http, world, testCase, world.a, world.b));
-    if (testCase.reverse === true) outcomes.push(await runCase(http, world, testCase, world.b, world.a));
+    outcomes.push(await runCase(http, world, testCase, { attacker: world.a, victim: world.b }));
+    if (testCase.reverse === true) {
+      outcomes.push(await runCase(http, world, testCase, { attacker: world.b, victim: world.a }));
+    }
   }
   return outcomes;
 }

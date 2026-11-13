@@ -47,7 +47,7 @@ interface MemberRow {
 export async function seedTeam(http: IsolationHttp, business: BusinessWorld): Promise<TeamWorld> {
   const channel = ownChannel(business);
   const as = async <T>(query: string, variables: Record<string, unknown>, field: string): Promise<T> =>
-    fieldOf<T>(await http.graphql(business.owner, query, variables, channel), field);
+    fieldOf(await http.graphql(business.owner, query, variables, channel), field) as T;
   const tag = `${business.label} ${business.businessId}`;
   const commissionInput = {
     name: `Commission ${tag}`,

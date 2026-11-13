@@ -127,7 +127,7 @@ export function dataOf(exchange: Exchange): Record<string, unknown> {
 }
 
 /** One field of a GraphQL exchange's data. @throws Error when the call failed. */
-export const fieldOf = <T>(exchange: Exchange, field: string): T => dataOf(exchange)[field] as T;
+export const fieldOf = (exchange: Exchange, field: string): unknown => dataOf(exchange)[field];
 
 /** The error codes of a GraphQL exchange, in order. */
 export const errorCodesOf = (exchange: Exchange): string[] =>

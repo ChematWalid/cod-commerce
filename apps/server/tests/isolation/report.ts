@@ -29,8 +29,17 @@ export function placeholdersOf(world: World): [string, string][] {
   return [...of(world.a), ...of(world.b)].sort(([left], [right]) => right.length - left.length);
 }
 
+/** Below this length a value (a Vendure integer id) is replaced only where it stands as a quoted string. */
+const MIN_BARE_PLACEHOLDER_LENGTH = 8;
+
 const replaced = (text: string, placeholders: readonly [string, string][]): string =>
-  placeholders.reduce((result, [value, label]) => result.split(value).join(label), text);
+  placeholders.reduce(
+    (result, [value, label]) =>
+      value.length >= MIN_BARE_PLACEHOLDER_LENGTH
+        ? result.split(value).join(label)
+        : result.split(JSON.stringify(value)).join(JSON.stringify(label)),
+    text,
+  );
 
 const pretty = (value: unknown): string => (typeof value === 'string' ? value : JSON.stringify(value, null, 2));
 

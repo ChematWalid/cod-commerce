@@ -1,4 +1,4 @@
-import { type IsolationCase, ownerGraphql, ownerRest, victimChannel } from '../matrix';
+import { type IsolationCase, ownerGraphql, ownerRest, victimChannel, onChannel } from '../matrix';
 
 const ACCESS_FIELDS = 'administratorId roles { id name } storeAccess storeIds';
 const ACTIVITY_FIELDS = 'items { id action entityType entityId summary actor { id name } storeId } nextCursor';
@@ -132,7 +132,7 @@ export const MEMBER_ACTIVITY_CASES: readonly IsolationCase[] = [
     endpoint: 'GET /permissions',
     access: 'victim channel',
     title: "A's owner reads what it holds over REST with B's store token: 403",
-    request: (a, b) => ownerRest(a, 'GET', '/permissions', undefined, victimChannel(b)),
+    request: (a, b) => onChannel(ownerRest(a, 'GET', '/permissions'), victimChannel(b)),
     expect: { kind: 'status', status: FORBIDDEN },
   },
   {
@@ -141,7 +141,7 @@ export const MEMBER_ACTIVITY_CASES: readonly IsolationCase[] = [
     endpoint: 'GET /permissions/catalog',
     access: 'victim channel',
     title: "A's owner reads the permission catalog over REST with B's store token: 403",
-    request: (a, b) => ownerRest(a, 'GET', '/permissions/catalog', undefined, victimChannel(b)),
+    request: (a, b) => onChannel(ownerRest(a, 'GET', '/permissions/catalog'), victimChannel(b)),
     expect: { kind: 'status', status: FORBIDDEN },
   },
   {

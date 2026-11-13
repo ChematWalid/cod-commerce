@@ -1,4 +1,4 @@
-import { type IsolationCase, ownerGraphql, ownerRest, victimChannel } from '../matrix';
+import { type IsolationCase, ownerGraphql, ownerRest, victimChannel, onChannel } from '../matrix';
 
 const ROLE_FIELDS = 'id name description builtInKey permissions memberCount';
 const ROLE_BY_ID = `query ($id: String!) { businessRole(id: $id) { ${ROLE_FIELDS} } }`;
@@ -139,7 +139,7 @@ export const ROLE_CASES: readonly IsolationCase[] = [
     endpoint: 'GET /roles',
     access: 'victim channel',
     title: "A's owner lists roles over REST with B's store token: 403",
-    request: (a, b) => ownerRest(a, 'GET', '/roles', undefined, victimChannel(b)),
+    request: (a, b) => onChannel(ownerRest(a, 'GET', '/roles'), victimChannel(b)),
     expect: { kind: 'status', status: FORBIDDEN },
   },
 ];

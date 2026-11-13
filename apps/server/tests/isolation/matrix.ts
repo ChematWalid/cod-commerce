@@ -88,7 +88,12 @@ export function ownerRest(
   method: MatrixRequest['method'],
   path: string,
   body?: unknown,
-  channel = ownChannel(attacker),
 ): MatrixRequest {
-  return { method, path, caller: attacker.owner, channel, body };
+  return { method, path, caller: attacker.owner, channel: ownChannel(attacker), body };
 }
+
+/** The same request sent with another store's token. */
+export const onChannel = (request: MatrixRequest, channel: NonNullable<MatrixRequest['channel']>): MatrixRequest => ({
+  ...request,
+  channel,
+});
