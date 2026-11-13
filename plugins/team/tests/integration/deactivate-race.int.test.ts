@@ -6,7 +6,7 @@ import { RbacMemberAccessAdapter } from '../../infrastructure/rbac-member-access
 import { authTestOptions, createTeamTestEnvironment, TeamKit } from './team-kit';
 import { SET_MEMBER_ACCESS } from './team-operations';
 
-const SNOWFLAKE_WORKER_ID = 1024;
+const SNOWFLAKE_WORKER_ID = 1021;
 /** How long Team waits for rbac's concurrent call before going on; it finishes at once unless rbac's lock holds it. */
 const CONCURRENT_GRACE_MS = 1_500;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
