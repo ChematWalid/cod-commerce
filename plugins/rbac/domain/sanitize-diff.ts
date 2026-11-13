@@ -2,7 +2,8 @@ import { ACTIVITY_DIFF_MAX_BYTES, DIFF_MAX_DEPTH, DIFF_OMITTED_VALUE, REDACTED_V
 
 /**
  * The D66 terms, matched anywhere inside the words of a key, so `smsotp`, `pinhash` and `xapikey` are secrets too
- * (D800). `api.?key` spans a word break (`api_key`, `API.KEY`, `xApiKey`).
+ * (D800). `api.?key` spans a word break (`api_key`, `API.KEY`, `xApiKey`). The words are also read run together, so a
+ * capital inside a term (`passWord` → `pass word`) still matches.
  */
 const D66_TERM = /password|secret|token|otp|hash|api.?key|authorization|cookie/;
 
@@ -32,7 +33,7 @@ const meaningfulWordsOf = (key: string): string =>
 
 const isSensitiveKey = (key: string): boolean => {
   const words = meaningfulWordsOf(key);
-  return D66_TERM.test(words) || SENSITIVE_WORD.test(words);
+  return D66_TERM.test(words) || D66_TERM.test(words.replaceAll(' ', '')) || SENSITIVE_WORD.test(words);
 };
 
 /** What a diff becomes when it is too large to keep. */
