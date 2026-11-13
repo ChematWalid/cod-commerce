@@ -2,12 +2,14 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Provider } from '@nestjs/common';
 import { AccountTokenService } from '../application/account-token.service';
 import { OAuthSignInService, type PkcePair } from '../application/oauth-sign-in.service';
-import { OAUTH_BROWSER_BINDING, SECRET_HASHER } from '../application/tokens';
+import { AuthEmailService } from '../application/auth-email.service';
+import { OAUTH_BROWSER_BINDING, SECRET_HASHER, SESSION_TERMINATOR } from '../application/tokens';
 import { OAUTH_PKCE_VERIFIER_BYTES, OAUTH_STATE_SEAL_CONTEXT } from '../domain/constants';
 import type { OAuthProviderName } from '../domain/oauth';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { OAuthProviderPort } from '../domain/ports/oauth-provider.port';
 import type { SecretHasherPort } from '../domain/ports/secret-hasher.port';
+import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
 import { EmailClaimLock } from './email-claim-lock';
 import { FacebookOAuthProvider } from './facebook-oauth-provider';
 import { GoogleOAuthProvider } from './google-oauth-provider';
@@ -56,6 +58,8 @@ type SignInDependencies = [
   EmailClaimLock,
   AccountTokenService,
   SecretHasherPort,
+  SessionTerminatorPort,
+  AuthEmailService,
 ];
 
 /** The Nest wiring of the OAuth sign-in; `application/` stays free of Nest. */
@@ -68,13 +72,16 @@ export function oauthProviders({ oauth, apiBaseUrl, clock, tokenSecret }: OAuthS
     },
     {
       provide: OAuthSignInService,
-      useFactory: (...[identity, external, claims, tokens, hasher]: SignInDependencies) =>
+      useFactory: (...[identity, external, claims, tokens, hasher, terminator, emails]: SignInDependencies) =>
         new OAuthSignInService({
           providers: adaptersOf(oauth()),
           state: new SealedOAuthStateStore(
             new SealedPayloadCodec(tokenSecret(), SEAL_KEY_LABEL, OAUTH_STATE_SEAL_CONTEXT),
           ),
           identity,
+          passwords: identity,
+          terminator,
+          emails,
           external,
           claims,
           tokens,
@@ -83,7 +90,15 @@ export function oauthProviders({ oauth, apiBaseUrl, clock, tokenSecret }: OAuthS
           newPkce,
           apiBaseUrl: apiBaseUrl(),
         }),
-      inject: [VendureAccountIdentity, VendureExternalIdentity, EmailClaimLock, AccountTokenService, SECRET_HASHER],
+      inject: [
+        VendureAccountIdentity,
+        VendureExternalIdentity,
+        EmailClaimLock,
+        AccountTokenService,
+        SECRET_HASHER,
+        SESSION_TERMINATOR,
+        AuthEmailService,
+      ],
     },
   ];
 }

@@ -28,6 +28,12 @@ export class VendureExternalIdentity implements ExternalIdentityPort {
     return method === null ? undefined : accountUserId(method.user.id);
   }
 
+  hasAny(ctx: OperationContext, userId: number): Promise<boolean> {
+    return this.connection
+      .getRepository(requestContextOf(ctx), ExternalAuthenticationMethod)
+      .exists({ where: { user: { id: userId } } });
+  }
+
   async link(ctx: OperationContext, userId: number, provider: OAuthProviderName, subject: string): Promise<void> {
     const user = await this.connection.getRepository(requestContextOf(ctx), User).findOneByOrFail({ id: userId });
     await this.connection

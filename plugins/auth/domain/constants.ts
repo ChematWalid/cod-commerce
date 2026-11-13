@@ -3,6 +3,9 @@ import { OTP_LENGTH, QUEUES } from '@cod/shared';
 /** Random bytes of an account token before base64url (D25). */
 export const ACCOUNT_TOKEN_BYTES = 32;
 
+/** Random bytes of the password nobody is told that replaces a voided one (D608). */
+export const VOID_PASSWORD_BYTES = 32;
+
 /** How many distinct codes {@link OTP_LENGTH} digits can hold. */
 export const OTP_SPACE = 10 ** OTP_LENGTH;
 

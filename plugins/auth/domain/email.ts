@@ -7,6 +7,7 @@ export const AUTH_EMAIL_KINDS = [
   'email-change-confirm',
   'email-change-notice',
   'password-changed',
+  'provider-linked',
 ] as const;
 
 export type AuthEmailKind = (typeof AUTH_EMAIL_KINDS)[number];
@@ -26,6 +27,7 @@ export const AUTH_EMAIL_REQUIRED_VARS: Readonly<Record<AuthEmailKind, readonly s
   'email-change-confirm': ['name', 'link', 'newEmail'],
   'email-change-notice': ['name', 'newEmail'],
   'password-changed': ['name'],
+  'provider-linked': ['name', 'provider'],
 };
 
 /** What {@link AuthEmailService.enqueue} takes. */

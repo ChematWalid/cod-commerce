@@ -7,6 +7,11 @@ export interface AccountPasswordsPort {
   /** Replaces the password with no check of the old one: the caller has proven ownership another way. */
   set(ctx: OperationContext, userId: number, password: string): Promise<void>;
   /**
+   * Replaces the password with a random one nobody is told, so native login fails until a reset sets a new one. An
+   * account with no password login is left as it is.
+   */
+  voidPassword(ctx: OperationContext, userId: number): Promise<void>;
+  /**
    * Replaces the password after checking the current one.
    *
    * @throws CurrentPasswordWrongError or PasswordPolicyError; nothing is written.
