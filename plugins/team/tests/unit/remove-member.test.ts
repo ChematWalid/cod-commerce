@@ -92,7 +92,7 @@ describe('RemoveMemberService.remove', () => {
     expect(world.accounts.softDeleted).toEqual([]);
   });
 
-  it('removes a member holding no role without asking rbac', async () => {
+  it('removes a member holding no role through rbac too, so a role granted since is withdrawn (D804)', async () => {
     // Arrange
     const member = await activeMember(world, MEMBER, { roleIds: [], storeAccess: 'all', storeIds: [] });
 
@@ -101,7 +101,7 @@ describe('RemoveMemberService.remove', () => {
 
     // Assert
     expect(world.log).not.toContain('assertMayChangeHolder');
-    expect(world.log).not.toContain('setAccess');
+    expect(world.log).toContain('setAccess');
     expect(world.accounts.softDeleted).toEqual([MEMBER]);
   });
 
