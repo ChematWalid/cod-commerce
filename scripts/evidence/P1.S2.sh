@@ -4,7 +4,7 @@
 # (also 429, replay and cross-tenant), the emails Mailpit received, and browser screenshots, into docs/evidence/P1.S2/,
 # then tears the stack down. Never touches `cod` or `cod-verify`.
 #
-#   timeout 1200 scripts/evidence/P1.S2.sh   # always builds cod-platform:local first
+#   timeout 1800 scripts/evidence/P1.S2.sh   # always builds cod-platform:local first
 #
 # AUTH_TOKEN_SECRET comes from the environment or .env, or a synthetic default. Data is synthetic. Tokens and OTPs are
 # replaced by placeholders after their use is asserted; passwords and session tokens are never written.
@@ -565,7 +565,7 @@ admin=$admin_url
 
 # --- screens and the flows the browser proves ---------------------------------------------------
 reset_limits
-node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S2-screens.mjs "$api/dashboard" "$api2/dashboard" "$mailpit" "$work/shots" >"$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
+timeout 900 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S2-screens.mjs "$api/dashboard" "$api2/dashboard" "$mailpit" "$work/shots" >"$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
 command cp "$work"/shots/*.png "$out/screens/"
 
 # --- emails -------------------------------------------------------------------------------------
@@ -626,6 +626,23 @@ README
 } >"$out/README.md"
 
 # --- placeholders, sizes and redaction ------------------------------------------------------------
+# Every screen in both languages and both viewports (audit EV-3), so a later edit cannot drop a variant silently. A base
+# name listed in SCREEN_VARIANT_EXEMPT may have fewer, and needs a dated note in the seen file; none does today.
+SCREEN_VARIANT_EXEMPT=()
+check_screen_variants() { # check_screen_variants <dir> <expected-total>
+  local names stray base missing="" total
+  names=$(command find "$1" -maxdepth 1 -name '*.png' -printf '%f\n' | command sort)
+  stray=$(printf '%s\n' "$names" | command grep -vE -- '-(ar|en)-(desktop|mobile)\.png$' || true)
+  [[ -z "$stray" ]] || fail "screens without a language and viewport suffix: $stray"
+  for base in $(printf '%s\n' "$names" | command sed -E 's/-(ar|en)-(desktop|mobile)\.png$//' | command uniq -c | command awk '$1 != 4 {print $2}'); do
+    [[ " ${SCREEN_VARIANT_EXEMPT[*]} " == *" $base "* ]] || missing+=" $base"
+  done
+  [[ -z "$missing" ]] || fail "screens missing a language or viewport variant:$missing"
+  total=$(printf '%s\n' "$names" | command grep -c .)
+  ((total == $2)) || fail "$total screens, expected $2"
+}
+# 20 screens for P1.S2 and 10 for P1.S3, each in four variants.
+EXPECTED_SCREENS=80
 for t in "$out"/api/*.md; do normalise_file "$t"; done
 # The engine's own asset id is a small integer: only this JSON field is replaced.
 command sed -i -E 's/"assetId": "[0-9]+"/"assetId": "<ASSET_ID>"/' "$out/api/profile.md"
@@ -635,6 +652,7 @@ if command grep -rqE '^HTTP/1\.1 [0-9]{3}[^ 0-9]' "$out/api"; then fail "a place
 for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done
+check_screen_variants "$out/screens" "$EXPECTED_SCREENS"
 ((${#session_tokens[@]} >= 3 && ${#mail_tokens[@]} >= 3 && ${#otps[@]} >= 3)) || fail "the redaction check would be vacuous"
 for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" "$EV_PASSWORD" "$EV_NEW_PASSWORD" "$EV_RESET_PASSWORD" "$OAUTH_SECRET" \
   "${session_tokens[@]}" "${cookies[@]}" "${mail_tokens[@]}" wrong-password-value evidence-mock-access-token evidence-mock-code; do

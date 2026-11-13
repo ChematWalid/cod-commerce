@@ -4,7 +4,7 @@
 # cross-tenant cases and a permission removed mid-session, takes the screenshots, runs the browser suite against this stack, and
 # tears everything down. Never touches `cod` or `cod-verify`.
 #
-#   timeout 1500 scripts/evidence/P1.S3.sh   # always builds cod-platform:local first
+#   timeout 1800 scripts/evidence/P1.S3.sh   # always builds cod-platform:local first
 #
 # Data is synthetic. Ids and channel tokens are placeholders after their use is asserted; passwords and session tokens are never written.
 set -euo pipefail
@@ -429,7 +429,7 @@ target=$api
 
 # --- screens and the flows the browser proves ---------------------------------------------------
 reset_limits
-EV_OTHER_STORE_TOKEN=$demo2 timeout 420 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S3-screens.mjs "$api/dashboard" "$api2/dashboard" "$work/shots" \
+EV_OTHER_STORE_TOKEN=$demo2 timeout 720 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S3-screens.mjs "$api/dashboard" "$api2/dashboard" "$work/shots" \
   > "$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
 command cp "$work"/shots/*.png "$out/screens/"
 
@@ -480,12 +480,30 @@ README
 } >"$out/README.md"
 
 # --- placeholders, sizes and redaction ------------------------------------------------------------
+# Every screen in both languages and both viewports (audit EV-3), so a later edit cannot drop a variant silently. A base
+# name listed in SCREEN_VARIANT_EXEMPT may have fewer, and needs a dated note in the seen file; none does today.
+SCREEN_VARIANT_EXEMPT=()
+check_screen_variants() { # check_screen_variants <dir> <expected-total>
+  local names stray base missing="" total
+  names=$(command find "$1" -maxdepth 1 -name '*.png' -printf '%f\n' | command sort)
+  stray=$(printf '%s\n' "$names" | command grep -vE -- '-(ar|en)-(desktop|mobile)\.png$' || true)
+  [[ -z "$stray" ]] || fail "screens without a language and viewport suffix: $stray"
+  for base in $(printf '%s\n' "$names" | command sed -E 's/-(ar|en)-(desktop|mobile)\.png$//' | command uniq -c | command awk '$1 != 4 {print $2}'); do
+    [[ " ${SCREEN_VARIANT_EXEMPT[*]} " == *" $base "* ]] || missing+=" $base"
+  done
+  [[ -z "$missing" ]] || fail "screens missing a language or viewport variant:$missing"
+  total=$(printf '%s\n' "$names" | command grep -c .)
+  ((total == $2)) || fail "$total screens, expected $2"
+}
+# 20 screens for P1.S2 and 10 for P1.S3, each in four variants.
+EXPECTED_SCREENS=40
 for t in "$out"/api/*.md; do normalise_file "$t"; done
 if command grep -rqE '^HTTP/1\.1 [^0-9]' "$out/api"; then fail "a placeholder corrupted a status line"; fi
 if command grep -rqE '^HTTP/1\.1 [0-9]{3}[^ 0-9]' "$out/api"; then fail "a placeholder corrupted a status line"; fi
 for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done
+check_screen_variants "$out/screens" "$EXPECTED_SCREENS"
 ((${#session_tokens[@]} >= 4)) || fail "the redaction check would be vacuous"
 for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" "${session_tokens[@]}" "${cookies[@]}" "$demo" "$demo2" "$second"; do
   if command grep -rqaF -- "$secret" "$out/api" "$out/README.md"; then fail "a raw secret or token appears in $out"; fi
