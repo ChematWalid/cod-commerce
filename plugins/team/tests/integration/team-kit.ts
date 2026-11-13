@@ -26,11 +26,11 @@ import { TeamConvergeService } from '../../application/converge-members.service'
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { TeamPlugin } from '../../index';
 import { EchoTemplates } from '../fakes/echo-templates';
+import { signInFromFreshAddresses, TEST_CLIENT_IP_HEADER } from './fresh-sign-in-address';
 
 export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const DEFAULT_MAILPIT_SMTP_PORT = 1026;
-/** The header tests name the client address with, so one process can act as many addresses. */
-export const TEST_CLIENT_IP_HEADER = 'x-test-client-ip';
+export { TEST_CLIENT_IP_HEADER };
 /** The dashboard invitation links point at. */
 export const TEST_DASHBOARD_URL = 'http://localhost:3100/dashboard';
 /** Synthetic: every member a test creates signs in with it, and invitees choose it. */
@@ -117,6 +117,7 @@ export function createTeamTestEnvironment(
     [...OUTBOX_SCHEMAS, ...foreign.partitionedSchemas],
     PartitionMaintenanceService,
   );
+  signInFromFreshAddresses(environment.adminClient);
   return environment;
 }
 
