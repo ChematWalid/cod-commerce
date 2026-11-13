@@ -73,6 +73,13 @@ describe('sanitizeDiff', () => {
       ['footprintOken', 'FootprintOKEN', 'footprintsEcret', 'hashtagsECRET', 'HashtagsEcretId', 'footprintPassword'],
     ],
     ['any of them before a benign word', ['tokenFootprint', 'secretHashtag', 'passwordFootprints', 'otpHashtags']],
+    ['any of them run into a benign word', ['hashtagtoken', 'footprintsecret', 'obsessionpassword', 'hashtagOtp']],
+    ['any of them split by other punctuation', ['pass:word', 'api::key', 'to/ken']],
+    // A combining mark, composed or not, and a separator that NFKC widens (™ → TM) must not hide a term.
+    [
+      'any of them with marks or compatibility characters',
+      ['toke\u0301n', 'token\u0301', 'toke\u0144', 'api\u2122key', 'api\u00bdkey'],
+    ],
     ['any of them mid-run', ['authorizationHeader', 'cookieValue', 'cookiejar', 'apisKey', 'api1Key']],
     ['any of them in fullwidth letters', ['\uff50\uff41\uff53\uff53\uff57\uff4f\uff52\uff44', 'p\uff41ssword']],
   ])('redacts every spelling of the D66 term %s', (_term, keys) => {
@@ -99,12 +106,54 @@ describe('sanitizeDiff', () => {
     'HTTPSession',
     'v2Session',
     'PGPPrivateKey',
+    'privateRsaKey',
+    'private2Key',
+    'access_2_key',
+    'posSession',
+    'POSSession',
+    'possession_id',
+    'footprintCvv',
   ])('redacts the extra term in %s', (key) => {
     // Act
     const clean = sanitizeDiff({ [key]: 'x' });
 
     // Assert
     expect(clean).toEqual({ [key]: REDACTED_VALUE });
+  });
+
+  it('redacts a value of any kind under a sensitive key', () => {
+    // Arrange
+    const diff = { credentials: { pin: '1' }, session: { id: 's' }, password: ['p'], cvv: 123, otp: true };
+
+    // Act
+    const clean = sanitizeDiff(diff);
+
+    // Assert
+    expect(clean).toEqual(Object.fromEntries(Object.keys(diff).map((key) => [key, REDACTED_VALUE])));
+  });
+
+  it('walks arrays inside arrays, and stores an Array subclass as a plain array', () => {
+    // Arrange
+    class Rows extends Array<unknown> {
+      toJSON(): unknown {
+        return [...this].map(() => ({ password: 'leak' }));
+      }
+    }
+
+    // Act
+    const stored = JSON.stringify(sanitizeDiff({ nested: [[{ password: 'leak' }]], rows: Rows.from([{ id: 1 }]) }));
+
+    // Assert
+    expect(stored).not.toContain('leak');
+    expect(JSON.parse(stored)).toEqual({ nested: [[{ password: REDACTED_VALUE }]], rows: [{ id: 1 }] });
+  });
+
+  it('truncates a diff over the byte limit counted in UTF-8, not characters', () => {
+    // Act
+    const clean = sanitizeDiff({ note: '\u00e9'.repeat(9_000) });
+
+    // Assert
+    expect(clean).toEqual({ truncated: true });
   });
 
   it('redacts a key too long to read, failing closed', () => {
@@ -150,7 +199,7 @@ describe('sanitizeDiff', () => {
     expect(stored).not.toContain('leaf');
   });
 
-  it.each(['footprint', 'hashtag', 'obsession', 'possession'])('keeps %s', (key) => {
+  it.each(['footprint', 'hashtag', 'obsession'])('keeps %s', (key) => {
     // Act
     const clean = sanitizeDiff({ [key]: 'x' });
 
