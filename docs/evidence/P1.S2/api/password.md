@@ -201,8 +201,8 @@ HTTP/1.1 200 OK
 vendure-auth-token: [REDACTED]
 cache-control: no-store
 content-type: application/json; charset=utf-8
-set-cookie: session=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:26:36 GMT; samesite=lax; httponly
-set-cookie: session.sig=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:26:36 GMT; samesite=lax; httponly
+set-cookie: session=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:30:20 GMT; samesite=lax; httponly
+set-cookie: session.sig=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:30:20 GMT; samesite=lax; httponly
 
 {
   "errors": [
@@ -330,7 +330,7 @@ set-cookie: session=[REDACTED]; path=/; samesite=lax; httponly
 set-cookie: session.sig=[REDACTED]; path=/; samesite=lax; httponly
 
 {
-  "id": "8",
+  "id": "13",
   "identifier": "api-e-1@evidence.example.test"
 }
 ```

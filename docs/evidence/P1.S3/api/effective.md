@@ -100,6 +100,7 @@ content-type: application/json; charset=utf-8
         "store.pages.edit",
         "store.publish",
         "store.settings.edit",
+        "store.stores.archive",
         "store.stores.create",
         "store.stores.view",
         "team.commissions.delete",

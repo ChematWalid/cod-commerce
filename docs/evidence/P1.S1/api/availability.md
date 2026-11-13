@@ -6,6 +6,9 @@ No session and no channel token: the sign-up wizard has neither. Same answer fro
 
 ```http
 GET http://127.0.0.1:23100/stores/subdomain-availability?subdomain=fresh-name
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -22,6 +25,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/stores/subdomain-availability?subdomain=demo
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -38,6 +44,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/stores/subdomain-availability?subdomain=demo3
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -54,6 +63,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/stores/subdomain-availability?subdomain=admin
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -70,6 +82,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/stores/subdomain-availability?subdomain=A!
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8

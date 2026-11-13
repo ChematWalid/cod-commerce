@@ -1,7 +1,7 @@
 import { ACCOUNT_MENU_TEST_ID, ACCOUNT_THEME_TEST_ID, accountOptionTestId } from '@cod/plugin-merchant-shell';
 import type { Page } from 'playwright-core';
 import { DASHBOARD_URL } from './dashboard-pages';
-import { closeMenus } from './dashboard-session';
+import { closeAccountMenu } from './dashboard-session';
 
 /** The account menu's theme choices (`UserSettings.theme`). */
 export type ThemeChoice = 'light' | 'dark' | 'system';
@@ -25,7 +25,7 @@ export async function chooseTheme(page: Page, theme: ThemeChoice): Promise<void>
     await option.click();
     await saved;
   }
-  await closeMenus(page);
+  await closeAccountMenu(page);
 }
 
 /** Whether the document carries the `dark` class the stock stylesheet keys its dark tokens on. */

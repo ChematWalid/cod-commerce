@@ -10,6 +10,7 @@ import {
 } from '@cod/plugin-merchant-shell';
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { storeUserSettings } from './account-menu-fixtures';
 import { DASHBOARD_URL } from './dashboard-pages';
 import { loginAsDemoOwner, loginAsOwner, setDisplayLanguage } from './dashboard-session';
 import {
@@ -177,14 +178,18 @@ describe('general settings', () => {
   });
 
   it('lays out right to left at 390 px without overflow', async () => {
-    await setDisplayLanguage(page, 'ar');
-    await page.setViewportSize(PHONE);
-    await openSettings(page);
-    await byTestId(page, STORE_CARD_TEST_ID).waitFor();
+    try {
+      await setDisplayLanguage(page, 'ar');
+      await page.setViewportSize(PHONE);
+      await openSettings(page);
+      await byTestId(page, STORE_CARD_TEST_ID).waitFor();
 
-    await expect(page.locator('html').getAttribute('dir')).resolves.toBe('rtl');
-    await expect(page.getByLabel(ARABIC_BUSINESS_NAME_LABEL).count()).resolves.toBe(1);
-    await expect(hasHorizontalOverflow(page)).resolves.toBe(false);
-    await setDisplayLanguage(page, 'en');
+      await expect(page.locator('html').getAttribute('dir')).resolves.toBe('rtl');
+      await expect(page.getByLabel(ARABIC_BUSINESS_NAME_LABEL).count()).resolves.toBe(1);
+      await expect(hasHorizontalOverflow(page)).resolves.toBe(false);
+    } finally {
+      // Through the Admin API, not the menu: a failure here must not leave the owner in Arabic for the next files (#221).
+      await storeUserSettings(page, { displayLanguage: 'en' });
+    }
   });
 });

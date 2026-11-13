@@ -83,7 +83,7 @@ done < <(command grep -E '^(export[[:space:]]+)?[A-Z0-9_]*(PASSWORD|SECRET|TOKEN
 ((${#secret_values[@]} >= 2)) || fail "fewer than 2 secret values in .env"
 
 # --- image, from a tree that matches the commit the README names ---------------------------
-image_inputs=(. ':!docs/evidence' ':!scripts/evidence' ':!.superpowers')
+image_inputs=(. ':!docs/evidence' ':!scripts/evidence' ':!.superpowers' ':!apps/server/tests/browser' ':!.github/workflows/browser.yml')
 dirty=$(git status --porcelain -- "${image_inputs[@]}")
 [[ -z "$dirty" ]] || fail "uncommitted changes outside the evidence folders:
 $dirty"
@@ -194,7 +194,6 @@ Q_UPDATE_STORE="mutation (\$id: String!, \$input: UpdateStoreInput!) { updateSto
 Q_ARCHIVE='mutation ($id: String!) { archiveStore(id: $id) { id subdomain status } }'
 Q_CHANGE='mutation ($id: String!, $subdomain: String!) { changeStoreSubdomain(id: $id, subdomain: $subdomain) { id subdomain status } }'
 Q_CHANNELS='query { channels { items { id code token } } }'
-Q_ACTIVE_CHANNEL='query { activeChannel { code } }'
 Q_NOTE='mutation ($input: CreateTemplateNoteInput!) { createTemplateNote(input: $input) { id } }'
 Q_NOTES='query { templateNotes(take: 10) { id title } }'
 
@@ -221,8 +220,6 @@ TOKEN_B=$(store_of "$work/b-stores" second channelToken); STORE_B=$(store_of "$w
 remember CHANNEL_TOKEN_A "$TOKEN_A"; remember CHANNEL_TOKEN_A2 "$TOKEN_A2"; remember CHANNEL_TOKEN_B "$TOKEN_B"
 remember_id STORE_A_ID "$STORE_A"; remember_id STORE_A2_ID "$STORE_A2"; remember_id STORE_B_ID "$STORE_B"
 remember_id BUSINESS_A_ID "$BUSINESS_A"; remember_id BUSINESS_B_ID "$BUSINESS_B"
-gql "$Q_ACTIVE_CHANNEL" '{}' "$owner_a" "$TOKEN_A"
-CODE_A=$(js 'b.data.activeChannel.code' "$work/b")
 
 # Notes for the dashboard shots (setup).
 TITLE_A1='Call supplier' TITLE_A2='مكالمة المورد' TITLE_B1="B's private note"
@@ -395,7 +392,7 @@ export DEMO_STORE_NAME='Demo Store' DEMO_STORE_LOCALE=ar DEMO_STORE_HOST=demo.lo
 export SECOND_STORE_NAME='Second Store' SECOND_STORE_LOCALE=fr SECOND_STORE_HOST=second.localhost
 export STORE_NAME_TEST_ID=store-name NOT_FOUND_TEST_ID=not-found NOT_FOUND_TEXT='Page not found' UNKNOWN_HOST=nope.localhost
 node scripts/evidence/storefront-screens.mjs "$STOREFRONT_HOST_PORT" "$work/shots-store" "$work/store-table.md"
-OWNER_EMAIL_A=$OWNER_A OWNER_EMAIL_B=$OWNER_B CHANNEL_CODE_A=$CODE_A CHANNEL_TOKEN_A=$TOKEN_A \
+OWNER_EMAIL_A=$OWNER_A OWNER_EMAIL_B=$OWNER_B STORE_SUBDOMAIN_A=demo CHANNEL_TOKEN_A=$TOKEN_A \
   NOTE_TITLES="$TITLE_A1|$TITLE_A2" OTHER_BUSINESS_TITLE="$TITLE_B1" \
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/template-screens.mjs "$api/dashboard" "$work/shots-dash" "$work/dash-table.md"
 rm -rf "$out/screens"
@@ -441,7 +438,6 @@ Dashboard, signed in as the demo owner on the Arabic store:
 | File | URL | Viewport | Language | \`dir\` / \`lang\` asserted |
 | --- | --- | --- | --- | --- |
 $(command cat "$work/dash-table.md")
-| [\`dashboard-content-language-ar-desktop.png\`](screens/dashboard-content-language-ar-desktop.png) | \`/dashboard/template-notes\`, channel switcher open | desktop 1280x800 | ar | content language asserted \`ar\` |
 
 README
   [[ -f scripts/evidence/P1.S1-seen.md ]] && command cat scripts/evidence/P1.S1-seen.md
@@ -456,9 +452,9 @@ if command grep -rqE '^HTTP/1\.1 [^0-9]' "$out/api"; then fail "a placeholder co
 for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done
-(($(command ls "$out"/screens/*.png | command wc -l) == 11)) || fail "expected 11 PNGs"
+(($(command ls "$out"/screens/*.png | command wc -l) == 12)) || fail "expected 12 PNGs"
 ((${#login_tokens[@]} >= 3 && ${#cookies[@]} >= 1)) || fail "the redaction check would be vacuous"
-for secret in "${secret_values[@]}" "$DEMO_OWNER_PASSWORD" "$THIRD_OWNER_PASSWORD" "${login_tokens[@]}" "${cookies[@]}" "$TOKEN_A" "$TOKEN_A2" "$TOKEN_B"; do
+for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "${INTERNAL_HMAC_KEYS#*:}" "${TENANT_SECRET_KEKS#*:}" "$DEMO_OWNER_PASSWORD" "$THIRD_OWNER_PASSWORD" "${login_tokens[@]}" "${cookies[@]}" "$TOKEN_A" "$TOKEN_A2" "$TOKEN_B"; do
   if command grep -rqaF -- "$secret" "$out"; then fail "a raw secret or token appears in $out"; fi
 done
 echo "EVIDENCE-OK"

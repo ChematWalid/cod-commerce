@@ -140,7 +140,7 @@ content-type: application/json; charset=utf-8
     "accountStatus": {
       "emailVerified": false,
       "verificationRequired": true,
-      "resendAvailableAt": "2026-11-09T08:26:21.505Z",
+      "resendAvailableAt": "2026-11-13T12:30:03.639Z",
       "pendingEmail": null
     }
   }
@@ -163,8 +163,8 @@ HTTP/1.1 200 OK
 vendure-auth-token: [REDACTED]
 cache-control: no-store
 content-type: application/json; charset=utf-8
-set-cookie: session=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:25:28 GMT; samesite=lax; httponly
-set-cookie: session.sig=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:25:28 GMT; samesite=lax; httponly
+set-cookie: session=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:29:11 GMT; samesite=lax; httponly
+set-cookie: session.sig=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:29:11 GMT; samesite=lax; httponly
 
 {
   "errors": [
@@ -205,7 +205,7 @@ set-cookie: session=[REDACTED]; path=/; samesite=lax; httponly
 set-cookie: session.sig=[REDACTED]; path=/; samesite=lax; httponly
 
 {
-  "id": "5",
+  "id": "10",
   "identifier": "api-b-1@evidence.example.test"
 }
 ```
@@ -226,7 +226,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 401,
   "message": "Invalid credentials",
-  "timestamp": "2026-11-09T08:25:28.871Z",
+  "timestamp": "2026-11-13T12:29:11.923Z",
   "path": "/auth/login"
 }
 ```

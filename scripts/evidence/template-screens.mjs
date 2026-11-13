@@ -1,11 +1,11 @@
 // Screenshot helper of scripts/evidence/P1.S1.sh (CLAUDE.md §3a.14): drives the live dashboard of the cod-evidence
 // stack, signed in as a business owner (the merchant's real role), to the notes page and writes the PNGs
-// (ar/en x desktop/mobile), the content-language shot and the README table rows.
+// (ar/en x desktop/mobile), the content-language shots (desktop/mobile) and the README table rows.
 //
 //   node scripts/evidence/template-screens.mjs <dashboard-url> <out-dir> <table-file>
 //
 // Env: SUPERADMIN_USERNAME, DEMO_OWNER_PASSWORD (read by the session helpers), OWNER_EMAIL_A / OWNER_EMAIL_B (the
-// owners of the two businesses), CHANNEL_CODE_A / CHANNEL_TOKEN_A (A's Arabic store), NOTE_TITLES (A's titles that
+// owners of the two businesses), STORE_SUBDOMAIN_A / CHANNEL_TOKEN_A (A's Arabic store), NOTE_TITLES (A's titles that
 // must be on the page, separated by "|"), OTHER_BUSINESS_TITLE (B's note: never on A's shots, and on B's page once B's
 // owner signs in). Node 24 strips the types of the imported .ts files; nothing here needs a build step.
 /* global process, console, URL, document, localStorage, getComputedStyle -- Node globals, and browser globals inside page.evaluate callbacks */
@@ -13,9 +13,13 @@ import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ARABIC_FONT_FAMILY } from '../../plugins/merchant-shell/dashboard/constants.ts';
+import { ARABIC_FONT_FAMILY, STORE_SWITCHER_TEST_ID } from '../../plugins/merchant-shell/dashboard/constants.ts';
 import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '../../plugins/_template/dashboard/constants.ts';
-import { loginAsOwner, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
+import {
+  assertNoPageError,
+  loginAsOwner,
+  setDisplayLanguage,
+} from '../../apps/server/tests/browser/dashboard-session.ts';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');
@@ -25,18 +29,22 @@ if (!baseArg || !outDir || !tableFile)
   throw new Error('usage: template-screens.mjs <dashboard-url> <out-dir> <table-file>');
 const base = baseArg.replace(/\/$/, '');
 const {
-  CHANNEL_CODE_A,
+  STORE_SUBDOMAIN_A: storeSubdomain,
   CHANNEL_TOKEN_A: channelToken,
   OWNER_EMAIL_A,
   OWNER_EMAIL_B,
   OTHER_BUSINESS_TITLE: otherBusinessTitle,
 } = process.env;
 const noteTitles = (process.env.NOTE_TITLES ?? '').split('|').filter(Boolean);
-if (!channelToken || !CHANNEL_CODE_A || !OWNER_EMAIL_A || !OWNER_EMAIL_B || !otherBusinessTitle || !noteTitles.length) {
+if (!channelToken || !storeSubdomain || !OWNER_EMAIL_A || !OWNER_EMAIL_B || !otherBusinessTitle || !noteTitles.length) {
   throw new Error(
-    'CHANNEL_CODE_A, CHANNEL_TOKEN_A, OWNER_EMAIL_A, OWNER_EMAIL_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set',
+    'STORE_SUBDOMAIN_A, CHANNEL_TOKEN_A, OWNER_EMAIL_A, OWNER_EMAIL_B, OTHER_BUSINESS_TITLE and NOTE_TITLES must be set',
   );
 }
+// A subdomain is lowercase letters, digits and hyphens, so it goes into the exact-match pattern below unescaped.
+if (!/^[a-z0-9-]+$/.test(storeSubdomain)) throw new Error(`STORE_SUBDOMAIN_A is not a subdomain: ${storeSubdomain}`);
+/** Arabic store A's content language (D7: a store offers exactly its own language). */
+const STORE_LANGUAGE_A = 'ar';
 const MAX_BYTES = 300 * 1024;
 const PHONE_MAX_WIDTH = 768;
 /** The dashboard's localStorage key of the selected channel token (`@vendure/dashboard` storage-keys.ts). */
@@ -97,13 +105,42 @@ async function capture(page, file) {
   return fail(`${file} is ${size} bytes, over ${MAX_BYTES}`);
 }
 
-/** Selects a business in the dashboard's channel switcher (the first button of the sidebar, a menu of channel
- * codes) as a merchant would, and fails unless the dashboard persisted its token: writing \`localStorage\` alone
- * is overwritten by the dashboard's own channel state. */
-async function selectChannel(page, code, token) {
-  await page.locator('[data-sidebar="sidebar"] button').first().click();
-  await page.getByRole('menuitem', { name: code }).click();
+// The merchant store switcher in the top bar (D79), mirrored from apps/server/tests/browser/store-switcher-fixtures.ts,
+// which a node script cannot import (it needs vitest and the @cod packages at runtime).
+const switcher = (page) => page.locator(`[data-testid="${STORE_SWITCHER_TEST_ID}"]`);
+/** The active store's subdomain on the switcher's button; present once the stores loaded and one is active. */
+const switcherSubdomain = (page) => switcher(page).locator('bdi[dir="ltr"]');
+/** The menu entry whose subdomain line is exactly this subdomain, whatever the store's name. */
+const storeItem = (page, subdomain) =>
+  page.getByRole('menuitem').filter({ has: page.locator('bdi[dir="ltr"]', { hasText: new RegExp(`^${subdomain}$`) }) });
+
+async function waitForSwitcherOn(page, subdomain) {
+  await page.waitForFunction(
+    ([selector, expected]) => document.querySelector(selector)?.textContent?.trim() === expected,
+    [`[data-testid="${STORE_SWITCHER_TEST_ID}"] bdi[dir="ltr"]`, subdomain],
+  );
+}
+
+/** Waits until the dashboard's user settings carry this content language and their save went out (D7). */
+async function waitForContentLanguage(page, language) {
+  await page.waitForFunction(
+    ([key, expected]) => JSON.parse(localStorage.getItem(key) ?? '{}').contentLanguage === expected,
+    [USER_SETTINGS_KEY, language],
+  );
+  await page.waitForLoadState('networkidle');
+}
+
+/** Selects a store in the merchant store switcher as a merchant would, and fails unless the dashboard persisted
+ * its channel token, shows it on the switcher and moved the content language to the store's (D7). It first waits
+ * for the switcher to show an active store, so the session's own move to the first store cannot land after the
+ * choice. Writing \`localStorage\` alone is overwritten by the dashboard's own channel state. */
+async function selectStore(page, { subdomain, token, language }) {
+  await switcherSubdomain(page).waitFor({ state: 'visible', timeout: 30_000 });
+  await switcher(page).click();
+  await storeItem(page, subdomain).click();
   await page.waitForFunction(([key, value]) => localStorage.getItem(key) === value, [SELECTED_CHANNEL_KEY, token]);
+  await waitForSwitcherOn(page, subdomain);
+  await waitForContentLanguage(page, language);
 }
 
 /** The other business's owner sees that business's note and none of A's: the page is scoped by who signs in. */
@@ -125,17 +162,17 @@ async function assertOtherOwnerSeesOwnNotes(browser) {
   }
 }
 
-/** The dashboard's user menu sits in the collapsed sidebar on a phone, so the sign-in and language helpers run
- * in a desktop-sized context; its storage state (session, display language and the selected channel) then
- * opens the shot context at the target viewport. Business A is selected the way the channel switcher does it:
- * through the switcher, so the page's queries carry A's `vendure-token`. */
+/** The sign-in and language helpers are proven at a desktop size, so they run in a desktop-sized context; its
+ * storage state (session, display language, the selected channel and the content language) then opens the shot
+ * context at the target viewport. Store A is selected the way a merchant does it, through the store switcher in
+ * the top bar (D79), so the page's queries carry A's `vendure-token`. */
 async function prepareStorageState(browser, lang) {
   const context = await browser.newContext({ ...VIEWPORTS.desktop.options, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
     await loginAsOwner(page, base, OWNER_EMAIL_A);
     await setDisplayLanguage(page, lang);
-    await selectChannel(page, CHANNEL_CODE_A, channelToken);
+    await selectStore(page, { subdomain: storeSubdomain, token: channelToken, language: STORE_LANGUAGE_A });
     return await context.storageState();
   } finally {
     await context.close();
@@ -171,8 +208,9 @@ async function shootNotes(browser, vpName, lang, deviceScaleFactor) {
     if (lang === 'ar') assertArabicFont(state, label);
     if ((await marker.getByText(otherBusinessTitle, { exact: false }).count()) > 0)
       fail(`${label}: shows the other business's note`);
-    const alert = await page.getByRole('alert').count();
-    if (alert > 0) fail(`${label}: the page shows an alert instead of the notes`);
+    // The shared check skips the verification banner, also a role="alert": the seeded owners' emails are unverified
+    // by design (P1.S2), and the banner is mounted above every authenticated page since #97.
+    await assertNoPageError(page).catch((error) => fail(`${label}: ${error.message}`));
     await capture(page, join(outDir, `template-notes-${lang}-${vpName}.png`));
     return deviceScaleFactor;
   } finally {
@@ -180,48 +218,66 @@ async function shootNotes(browser, vpName, lang, deviceScaleFactor) {
   }
 }
 
-/** Arabic store: the dashboard's content language must follow the store (D7). The switcher menu is open in the shot. */
-async function shootContentLanguage(browser) {
+/** Arabic store: the dashboard's content language must follow the store (D7). The merchant menu has no
+ * content-language row, so D7 is asserted from the user settings; the shot shows the store switcher open, with
+ * store A active and checked. */
+async function shootContentLanguage(browser, vpName, deviceScaleFactor) {
+  const label = `dashboard-content-language ar/${vpName}`;
+  console.error(`context ${vpName}/content-language (scale ${deviceScaleFactor})`);
   const storageState = await prepareStorageState(browser, 'ar');
-  const context = await browser.newContext({ ...VIEWPORTS.desktop.options, storageState, reducedMotion: 'reduce' });
+  const options = { ...VIEWPORTS[vpName].options, deviceScaleFactor, storageState, reducedMotion: 'reduce' };
+  const context = await browser.newContext(options);
   try {
     const page = await context.newPage();
     await page.goto(`${base}${TEMPLATE_NOTES_PATH}`);
     await page.getByTestId(TEMPLATE_NOTES_TEST_ID).getByText(noteTitles[0], { exact: false }).first().waitFor();
+    await waitForSwitcherOn(page, storeSubdomain);
     await settle(page);
+    const state = await documentState(page);
+    assertDocument(state, 'ar', label);
+    assertArabicFont(state, label);
     const language = await page.evaluate(
       (key) => JSON.parse(localStorage.getItem(key) ?? '{}').contentLanguage,
       USER_SETTINGS_KEY,
     );
-    if (language !== 'ar') fail(`the Arabic store's content language is ${language}`);
-    await page.locator('[data-sidebar="sidebar"] button').first().click();
-    await page.getByRole('menuitem', { name: CHANNEL_CODE_A }).waitFor();
-    await capture(page, join(outDir, 'dashboard-content-language-ar-desktop.png'));
+    if (language !== STORE_LANGUAGE_A) fail(`${label}: the Arabic store's content language is ${language}`);
+    await switcher(page).click();
+    await storeItem(page, storeSubdomain).waitFor({ state: 'visible' });
+    await capture(page, join(outDir, `dashboard-content-language-ar-${vpName}.png`));
+    return deviceScaleFactor;
   } finally {
     await context.close();
   }
 }
 
-async function shootWithinBudget(browser, vpName, lang) {
+/** Shoots at the viewport's scale, and once more at scale 1 when a phone shot is over the size budget. */
+async function shootWithinBudget(vpName, shoot) {
   const scale = VIEWPORTS[vpName].options.deviceScaleFactor;
   try {
-    return { vpName, lang, scale: await shootNotes(browser, vpName, lang, scale) };
+    return await shoot(scale);
   } catch (error) {
     if (!(error instanceof ScaleBudgetError) || scale === 1) throw error;
-    return { vpName, lang, scale: await shootNotes(browser, vpName, lang, 1) };
+    return shoot(1);
   }
 }
 
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
-const rows = [];
+const notesRows = [];
+const languageRows = [];
 try {
   await assertOtherOwnerSeesOwnNotes(browser);
   for (const vpName of Object.keys(VIEWPORTS)) {
-    for (const lang of Object.keys(LANG_DIRS)) rows.push(await shootWithinBudget(browser, vpName, lang));
+    for (const lang of Object.keys(LANG_DIRS)) {
+      const scale = await shootWithinBudget(vpName, (s) => shootNotes(browser, vpName, lang, s));
+      notesRows.push({ vpName, lang, scale });
+    }
   }
-  await shootContentLanguage(browser);
+  for (const vpName of Object.keys(VIEWPORTS)) {
+    const scale = await shootWithinBudget(vpName, (s) => shootContentLanguage(browser, vpName, s));
+    languageRows.push({ vpName, scale });
+  }
 } finally {
   await browser.close();
 }
@@ -229,7 +285,7 @@ try {
 const files = readdirSync(outDir)
   .filter((f) => f.endsWith('.png'))
   .sort();
-if (files.length !== 5) fail(`expected 5 PNGs, found ${files.length}`);
+if (files.length !== 6) fail(`expected 6 PNGs, found ${files.length}`);
 for (const f of files) {
   const size = statSync(join(outDir, f)).size;
   if (size > MAX_BYTES) fail(`${f} is ${size} bytes, over ${MAX_BYTES}`);
@@ -237,12 +293,13 @@ for (const f of files) {
 }
 
 const vpText = (row) => VIEWPORTS[row.vpName].label.replace(/, scale 1$/, '') + `, scale ${row.scale}`;
-writeFileSync(
-  tableFile,
-  rows
-    .map((r) => {
-      const file = `template-notes-${r.lang}-${r.vpName}.png`;
-      return `| [\`${file}\`](screens/${file}) | \`/dashboard${TEMPLATE_NOTES_PATH}\` | ${vpText(r)} | ${r.lang} | \`${LANG_DIRS[r.lang]}\` / \`${r.lang}\` |`;
-    })
-    .join('\n') + '\n',
-);
+const notesRow = (r) => {
+  const file = `template-notes-${r.lang}-${r.vpName}.png`;
+  return `| [\`${file}\`](screens/${file}) | \`/dashboard${TEMPLATE_NOTES_PATH}\` | ${vpText(r)} | ${r.lang} | \`${LANG_DIRS[r.lang]}\` / \`${r.lang}\` |`;
+};
+const languageRow = (r) => {
+  const file = `dashboard-content-language-ar-${r.vpName}.png`;
+  const where = `\`/dashboard${TEMPLATE_NOTES_PATH}\`, store switcher open, store \`${storeSubdomain}\` active`;
+  return `| [\`${file}\`](screens/${file}) | ${where} | ${vpText(r)} | ar | \`rtl\` / \`ar\`, content language \`${STORE_LANGUAGE_A}\` (D7) |`;
+};
+writeFileSync(tableFile, [...notesRows.map(notesRow), ...languageRows.map(languageRow)].join('\n') + '\n');

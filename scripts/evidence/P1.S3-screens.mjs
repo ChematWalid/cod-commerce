@@ -1,6 +1,6 @@
-// Browser part of scripts/evidence/P1.S3.sh: the roles and activity screens in Arabic and English, desktop and mobile, then what
-// tests cannot show: a read-only member's page, a real refusal, the permissions-failed message, a selected-store member on another
-// store, and a role change reaching a member whose requests go to a second api process.
+// Browser part of scripts/evidence/P1.S3.sh: the roles and activity screens, then what tests cannot show: a read-only member's
+// page, a real refusal, the permissions-failed message, a selected-store member on another store, and a role change reaching a
+// member whose requests go to a second api process. Every screen is shot in Arabic and English, desktop and mobile.
 //
 //   node P1.S3-screens.mjs <dashboard-url> <second-api-dashboard-url> <out-dir>
 //
@@ -34,6 +34,9 @@ const ORDERS_MEMBER = 'orders@demo.example.test';
 const LICENCE_FOOTER = '[data-vendure-branding]';
 const CHANNEL_KEY = 'vendure-selected-channel-token';
 const ROLES_LINK = 'a[href$="/team/roles"]';
+// The merchant shell's `team.roles` leaf checks team.roles.view on the session's channel before it mounts the roles page,
+// and renders its own forbidden page without it (plugins/merchant-shell/dashboard/components/shell-leaf-page.tsx).
+const SHELL_FORBIDDEN = '[data-testid="shell-forbidden"]';
 const VIEWER_ROLE = 'Demo viewer';
 const VIEW_PERMISSION = 'team.roles.view';
 
@@ -169,9 +172,9 @@ async function shootOwnerScreens(browser, lang, vp) {
 }
 
 /** A member who may read roles sees them, and none of the write controls: the page follows the server's answer. */
-async function proveReadOnlyMember(browser, lang) {
+async function proveReadOnlyMember(browser, lang, vp) {
   const t = T[lang];
-  const page = await signedIn(browser, { email: LIMITED, lang });
+  const page = await signedIn(browser, { email: LIMITED, lang, vp });
   try {
     await page.goto(`${base}/team/roles`);
     await roleRow(page, VIEWER_ROLE).waitFor();
@@ -180,35 +183,39 @@ async function proveReadOnlyMember(browser, lang) {
     const rowMenus = await page.getByRole('button', { name: t('rbac.row-actions') }).count();
     if (newRole !== 0 || rowMenus !== 0)
       fail(`${lang}: limited member sees ${newRole} New role, ${rowMenus} row menus`);
-    await shoot(page, `member-limited-roles-${lang}-desktop`, lang);
-    proved(`${lang}: a member with only team.roles.view sees the table, no New role button and no row menu.`);
+    await shoot(page, `member-limited-roles-${lang}-${vp}`, lang);
+    if (vp === 'desktop')
+      proved(`${lang}: a member with only team.roles.view sees the table, no New role button and no row menu.`);
   } finally {
     await page.context().close();
   }
 }
 
-async function proveNoNavEntry(browser, lang) {
-  const page = await signedIn(browser, { email: ORDERS_MEMBER, lang });
+async function proveNoNavEntry(browser, lang, vp) {
+  const page = await signedIn(browser, { email: ORDERS_MEMBER, lang, vp });
   try {
     await settle(page);
-    if ((await page.locator(ROLES_LINK).count()) !== 0) fail(`${lang}: the orders member has a Roles link`);
+    // A phone-width page does not mount the sidebar, so the missing link is only checked where the sidebar is.
+    if (vp === 'desktop' && (await page.locator(ROLES_LINK).count()) !== 0)
+      fail(`${lang}: the orders member has a Roles link`);
     const answer = await graphql(page, 'query { businessRoles { id } }');
     if (codeOf(answer) !== 'FORBIDDEN') fail(`${lang}: orders member got ${JSON.stringify(answer)}`);
     await page.goto(`${base}/team/roles`);
-    await page.locator('p[role="alert"]').first().waitFor();
-    await shoot(page, `member-no-roles-${lang}-desktop`, lang);
-    proved(
-      `${lang}: a member without team.roles.view has no nav entry; the query answers FORBIDDEN and the page says so.`,
-    );
+    await page.locator(SHELL_FORBIDDEN).waitFor();
+    await shoot(page, `member-no-roles-${lang}-${vp}`, lang);
+    if (vp === 'desktop')
+      proved(
+        `${lang}: a member without team.roles.view has no nav entry; the query answers FORBIDDEN and the page shows the shell's forbidden page.`,
+      );
   } finally {
     await page.context().close();
   }
 }
 
 /** A refusal other than a taken name, from the real server, in the delete dialog of a role that still has a member. */
-async function proveRefusal(browser, lang) {
+async function proveRefusal(browser, lang, vp) {
   const t = T[lang];
-  const page = await signedIn(browser, { email: OWNER, lang });
+  const page = await signedIn(browser, { email: OWNER, lang, vp });
   try {
     await openRoles(page, t);
     await roleRow(page, VIEWER_ROLE)
@@ -220,8 +227,9 @@ async function proveRefusal(browser, lang) {
       .getByRole('button', { name: t('rbac.delete'), exact: true })
       .click();
     await page.getByText(t('rbac.role-in-use')).first().waitFor();
-    await shoot(page, `refusal-role-in-use-${lang}-desktop`, lang);
-    proved(`${lang}: deleting a role that has a member shows the translated rbac.role-in-use message.`);
+    await shoot(page, `refusal-role-in-use-${lang}-${vp}`, lang);
+    if (vp === 'desktop')
+      proved(`${lang}: deleting a role that has a member shows the translated rbac.role-in-use message.`);
   } finally {
     await page.context().close();
   }
@@ -231,9 +239,9 @@ async function proveRefusal(browser, lang) {
  * The server cannot be made to fail this query on demand, so the browser drops the one request. It proves the page's
  * reaction only: the failure stays visible and no write control appears.
  */
-async function provePermissionsFailureMessage(browser, lang) {
+async function provePermissionsFailureMessage(browser, lang, vp) {
   const t = T[lang];
-  const page = await signedIn(browser, { email: OWNER, lang });
+  const page = await signedIn(browser, { email: OWNER, lang, vp });
   try {
     await page.route('**/admin-api**', (route) =>
       route.request().postData()?.includes('effectivePermissions') ? route.abort() : route.continue(),
@@ -244,10 +252,11 @@ async function provePermissionsFailureMessage(browser, lang) {
     if ((await page.getByRole('button', { name: t('rbac.new-role'), exact: true }).count()) !== 0) {
       fail(`${lang}: write controls appeared without an effectivePermissions answer`);
     }
-    await shoot(page, `permissions-failed-${lang}-desktop`, lang);
-    proved(
-      `${lang}: with effectivePermissions dropped in the browser the page shows the generic message and no write control.`,
-    );
+    await shoot(page, `permissions-failed-${lang}-${vp}`, lang);
+    if (vp === 'desktop')
+      proved(
+        `${lang}: with effectivePermissions dropped in the browser the page shows the generic message and no write control.`,
+      );
   } finally {
     await page.context().close();
   }
@@ -278,10 +287,9 @@ function setViewerRead(owner, roleId, on) {
   );
 }
 
-async function proveChangeReachesSecondProcess(browser, lang) {
-  const t = T[lang];
+async function proveChangeReachesSecondProcess(browser, lang, vp) {
   const owner = await signedIn(browser, { email: OWNER, lang: 'en' });
-  const member = await signedIn(browser, { url: second, email: LIMITED, lang });
+  const member = await signedIn(browser, { url: second, email: LIMITED, lang, vp });
   try {
     const roles = await graphql(owner, 'query { businessRoles { id name } }');
     const roleId = roles.data.businessRoles.find((role) => role.name === VIEWER_ROLE).id;
@@ -293,17 +301,19 @@ async function proveChangeReachesSecondProcess(browser, lang) {
     if (codeOf(revoked) !== null) fail(`revoke: ${JSON.stringify(revoked)}`);
     const after = await graphql(member, 'query { businessRoles { id } }');
     if (codeOf(after) !== 'FORBIDDEN') fail(`after the change: ${JSON.stringify(after)}`);
-    proved(
-      `${lang}: the first request after the owner removed team.roles.view on one api is FORBIDDEN on the second api.`,
-    );
+    if (vp === 'desktop')
+      proved(
+        `${lang}: the first request after the owner removed team.roles.view on one api is FORBIDDEN on the second api.`,
+      );
+    // The reload reads the flushed session again, so the shell no longer grants the leaf and shows its forbidden page.
     await member.reload();
-    await member.getByText(t('rbac.error-forbidden')).first().waitFor();
-    await shoot(member, `live-revoke-second-api-${lang}-desktop`, lang);
+    await member.locator(SHELL_FORBIDDEN).waitFor();
+    await shoot(member, `live-revoke-second-api-${lang}-${vp}`, lang);
     const restored = await setViewerRead(owner, roleId, true);
     if (codeOf(restored) !== null) fail(`restore: ${JSON.stringify(restored)}`);
     const again = await graphql(member, 'query { businessRoles { id } }');
     if (codeOf(again) !== null) fail(`after restoring: ${JSON.stringify(again)}`);
-    proved(`${lang}: the first request after restoring it is answered on the second api.`);
+    if (vp === 'desktop') proved(`${lang}: the first request after restoring it is answered on the second api.`);
   } finally {
     await owner.context().close();
     await member.context().close();
@@ -329,11 +339,13 @@ async function main() {
     await proveLoginFooter(browser);
     for (const lang of LANGS) {
       for (const vp of Object.keys(VIEWPORTS)) await shootOwnerScreens(browser, lang, vp);
-      await proveReadOnlyMember(browser, lang);
-      await proveNoNavEntry(browser, lang);
-      await proveRefusal(browser, lang);
-      await provePermissionsFailureMessage(browser, lang);
-      await proveChangeReachesSecondProcess(browser, lang);
+      for (const vp of Object.keys(VIEWPORTS)) {
+        await proveReadOnlyMember(browser, lang, vp);
+        await proveNoNavEntry(browser, lang, vp);
+        await proveRefusal(browser, lang, vp);
+        await provePermissionsFailureMessage(browser, lang, vp);
+        await proveChangeReachesSecondProcess(browser, lang, vp);
+      }
     }
     await proveOtherStoreRefused(browser);
   } finally {

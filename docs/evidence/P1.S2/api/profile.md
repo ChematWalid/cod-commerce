@@ -124,8 +124,8 @@ HTTP/1.1 200 OK
 vendure-auth-token: [REDACTED]
 cache-control: no-store
 content-type: application/json; charset=utf-8
-set-cookie: session=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:26:43 GMT; samesite=lax; httponly
-set-cookie: session.sig=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:26:43 GMT; samesite=lax; httponly
+set-cookie: session=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:30:27 GMT; samesite=lax; httponly
+set-cookie: session.sig=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:30:27 GMT; samesite=lax; httponly
 
 {
   "errors": [
@@ -157,13 +157,13 @@ GET http://127.0.0.1:23100/auth/profile
 HTTP/1.1 403 Forbidden
 vendure-auth-token: [REDACTED]
 content-type: application/json; charset=utf-8
-set-cookie: session=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:26:43 GMT; samesite=lax; httponly
-set-cookie: session.sig=[REDACTED]; path=/; expires=Tue, 09 Nov 2027 14:26:43 GMT; samesite=lax; httponly
+set-cookie: session=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:30:28 GMT; samesite=lax; httponly
+set-cookie: session.sig=[REDACTED]; path=/; expires=Sat, 13 Nov 2027 18:30:28 GMT; samesite=lax; httponly
 
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-09T08:26:43.643Z",
+  "timestamp": "2026-11-13T12:30:28.143Z",
   "path": "/auth/profile"
 }
 ```

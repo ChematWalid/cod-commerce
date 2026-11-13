@@ -4,7 +4,7 @@
 # cross-tenant cases and a permission removed mid-session, takes the screenshots, runs the browser suite against this stack, and
 # tears everything down. Never touches `cod` or `cod-verify`.
 #
-#   timeout 1500 scripts/evidence/P1.S3.sh   # always builds cod-platform:local first
+#   timeout 1800 scripts/evidence/P1.S3.sh   # always builds cod-platform:local first
 #
 # Data is synthetic. Ids and channel tokens are placeholders after their use is asserted; passwords and session tokens are never written.
 set -euo pipefail
@@ -90,7 +90,13 @@ image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
 NEXT_DEPLOYMENT_ID="$(git rev-parse --short "$image_commit")"
 export NEXT_DEPLOYMENT_ID
 timeout 120 docker compose down -v --remove-orphans
-timeout 600 docker compose build migrate
+# EV_SKIP_BUILD=1 reuses cod-platform:local already built from this tree (a separate locked build, as P1-isolation.sh
+# does): on a loaded host the layer export alone can outlast the job's time limit. Honoured only while the image exists.
+if [[ "${EV_SKIP_BUILD:-0}" == 1 ]] && docker image inspect cod-platform:local >/dev/null 2>&1; then
+  echo "reusing cod-platform:local (EV_SKIP_BUILD=1)"
+else
+  timeout 600 docker compose build migrate
+fi
 # A fresh Postgres volume can outlast its healthcheck on a loaded host; the second try finds it ready.
 timeout 300 docker compose up -d api worker storefront mailpit || timeout 300 docker compose up -d api worker storefront mailpit
 wait_healthy api worker storefront
@@ -319,7 +325,7 @@ gql "$Q_SET_MEMBER" "$input" "$owner" "$demo"; expect_ok set-member2
 
 # --- activity.md ------------------------------------------------------------------------------
 f="$out/api/activity.md"
-begin "$f" "Activity log" "Newest first, with a cursor. A limited member with settings.activity-log.view sees the rows of the stores they can reach."
+begin "$f" "Activity log" "Newest first, with a cursor. A limited member with settings.activity-log.view sees the rows of the stores they can reach. No feature on main records a store-scoped row yet (the RBAC rows are business-wide), so the two store rows below are seeded straight into Postgres, one per Demo store; every read goes through the live API."
 input=$(vars "{input:{first:5}}")
 gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok activity; assert_js activity 'b.data.activityLog.items.length===5 && !!b.data.activityLog.nextCursor' "$work/b"
 cursor=$(js 'b.data.activityLog.nextCursor' "$work/b"); remember_id ACTIVITY_CURSOR "$cursor"
@@ -327,11 +333,7 @@ emit "$f" "activityLog, first page" "$Q_ACTIVITY" "$input" "$owner" "$demo"
 input=$(vars "{input:{first:5,after:'$cursor'}}")
 gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok activity2
 emit "$f" "activityLog, next page" "$Q_ACTIVITY" "$input" "$owner" "$demo"
-gql "$Q_ACTIVITY" '{}' "$limited" "$demo"; expect_ok "limited activity"
-assert_js "limited activity" "b.data.activityLog.items.length>0 && b.data.activityLog.items.every((i)=>i.storeId===null||i.storeId==='$demo_store')" "$work/b"
-emit "$f" "activityLog, a limited member on one selected store: only that store's rows and business-wide rows" "$Q_ACTIVITY" '{}' "$limited" "$demo"
-gql "$Q_ACTIVITY" '{}' "$orders" "$demo"; expect_code "orders activity" FORBIDDEN
-emit "$f" "activityLog without the permission: FORBIDDEN" "$Q_ACTIVITY" '{}' "$orders" "$demo"
+# The store-scoped reads follow after the screens and the browser suite, so neither ever sees the synthetic rows.
 
 # --- refusals.md ------------------------------------------------------------------------------
 f="$out/api/refusals.md"
@@ -429,15 +431,46 @@ target=$api
 
 # --- screens and the flows the browser proves ---------------------------------------------------
 reset_limits
-EV_OTHER_STORE_TOKEN=$demo2 timeout 420 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S3-screens.mjs "$api/dashboard" "$api2/dashboard" "$work/shots" \
+EV_OTHER_STORE_TOKEN=$demo2 timeout 720 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S3-screens.mjs "$api/dashboard" "$api2/dashboard" "$work/shots" \
   > "$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
 command cp "$work"/shots/*.png "$out/screens/"
 
 # --- the browser suite, on this stack (browser.yml does not run on pull requests) -------------
 reset_limits
+# The team fixtures expire invitations straight in Postgres: point them at this stack, not at .env's database (as P1.S4.sh).
 DASHBOARD_URL=$api/dashboard MAILPIT_URL=$mailpit SCREENSHOT_DIR=$work/browser-shots \
-  timeout 420 pnpm --filter @cod/server test:browser >"$work/browser.log" 2>&1 || fail "browser suite: $(command tail -40 "$work/browser.log")"
+  DATABASE_URL_DIRECT="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:$POSTGRES_HOST_PORT/$POSTGRES_DB" \
+  timeout 600 pnpm --filter @cod/server test:browser >"$work/browser.log" 2>&1 || fail "browser suite: $(command tail -40 "$work/browser.log")"
 browser_summary=$(command grep -E '^ *(Test Files|Tests) ' "$work/browser.log" | command sed -E 's/\x1b\[[0-9;]*m//g; s/^ +//')
+
+# --- activity.md, store scoping (audit RBAC-5) ---------------------------------------------------
+# After the screens and the browser suite, so neither sees the synthetic rows. The browser suite spent the shared rate-limit
+# budget and may have changed the member, so the member is reset and both members sign in again.
+f="$out/api/activity.md"
+reset_limits
+input=$(vars "{input:{administratorId:'$limited_admin',roleIds:['$viewer_role'],storeAccess:'selected',storeIds:['$demo_store']}}")
+gql "$Q_SET_MEMBER" "$input" "$owner" "$demo"; expect_ok "limited reset"
+login "$LIMITED"; limited=$LAST_TOKEN
+login "$ORDERS"; orders=$LAST_TOKEN
+# No feature on main records a store-scoped row yet, so one synthetic row per Demo store is written straight into Postgres.
+# Seeded after the last API write, max(id) + 1 puts both rows at the top of every page.
+demo_business=$(psql_value "select \"businessId\" from store where id = $demo_store" | command tr -d '\r\n')
+[[ "$demo_business" =~ ^[0-9]+$ ]] || fail "demo business id"
+seed_store_activity() { # seed_store_activity <store-id> -> the new row id
+  psql_value "insert into activity_log (\"businessId\", \"storeId\", id, \"actorAdministratorId\", action, \"entityType\", \"entityId\", summary, diff, ip, \"userAgent\", \"createdAt\") select $demo_business, $1, max(id) + 1, $owner_admin, 'evidence.store-scoped', 'store', '$1', 'Synthetic store-scoped row (evidence seed)', '{}'::jsonb, null, null, now() from activity_log returning id" |
+    command head -1 | command tr -d '\r\n'
+}
+row_demo=$(seed_store_activity "$demo_store"); remember_id ACTIVITY_ROW_DEMO "$row_demo"
+row_demo2=$(seed_store_activity "$demo2_store"); remember_id ACTIVITY_ROW_DEMO2 "$row_demo2"
+input=$(vars "{input:{first:3}}")
+gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok "owner store rows"
+assert_js "owner store rows" "const it=b.data.activityLog.items; it[0].storeId==='$demo2_store' && it[1].storeId==='$demo_store'" "$work/b"
+emit "$f" "activityLog, the owner (all stores) after one synthetic row was seeded on each Demo store" "$Q_ACTIVITY" "$input" "$owner" "$demo"
+gql "$Q_ACTIVITY" '{}' "$limited" "$demo"; expect_ok "limited activity"
+assert_js "limited activity" "const it=b.data.activityLog.items; it.some((i)=>i.storeId==='$demo_store') && it.some((i)=>i.storeId===null) && it.every((i)=>i.storeId===null||i.storeId==='$demo_store')" "$work/b"
+emit "$f" "activityLog, a limited member on one selected store: the Demo row and business-wide rows; the Demo2 row is filtered out" "$Q_ACTIVITY" '{}' "$limited" "$demo"
+gql "$Q_ACTIVITY" '{}' "$orders" "$demo"; expect_code "orders activity" FORBIDDEN
+emit "$f" "activityLog without the permission: FORBIDDEN" "$Q_ACTIVITY" '{}' "$orders" "$demo"
 
 # --- README -------------------------------------------------------------------------------------
 {
@@ -456,7 +489,7 @@ built from a tree with no uncommitted change outside the evidence folders and br
 | [\`api/effective.md\`](api/effective.md) | \`effectivePermissions\` for an owner and a limited member, \`GET /permissions\` |
 | [\`api/roles.md\`](api/roles.md) | Every role operation in GraphQL and REST, and the activity row after create, update, duplicate and delete |
 | [\`api/members.md\`](api/members.md) | \`memberAccess\`, \`setMemberAccess\` and its activity row |
-| [\`api/activity.md\`](api/activity.md) | \`activityLog\` pages and the cursor, FORBIDDEN without the permission |
+| [\`api/activity.md\`](api/activity.md) | \`activityLog\` pages and the cursor; a selected-store member sees the Demo store row and not the Demo2 one (both rows seeded); FORBIDDEN without the permission |
 | [\`api/refusals.md\`](api/refusals.md) | FORBIDDEN (REST and GraphQL, anonymous, a store outside the member's list), a built-in edit, a role in use, self-assignment, a refused escalation |
 | [\`api/isolation.md\`](api/isolation.md) | Cross-tenant: B's channel token, B's role, member and store ids |
 | [\`api/live-revoke.md\`](api/live-revoke.md) | A removed permission and a changed assignment stop working on the next request on a second api process, and a restored one works again |
@@ -480,12 +513,30 @@ README
 } >"$out/README.md"
 
 # --- placeholders, sizes and redaction ------------------------------------------------------------
+# Every screen in both languages and both viewports (audit EV-3), so a later edit cannot drop a variant silently. A base
+# name listed in SCREEN_VARIANT_EXEMPT may have fewer, and needs a dated note in the seen file; none does today.
+SCREEN_VARIANT_EXEMPT=()
+check_screen_variants() { # check_screen_variants <dir> <expected-total>
+  local names stray base missing="" total
+  names=$(command find "$1" -maxdepth 1 -name '*.png' -printf '%f\n' | command sort)
+  stray=$(printf '%s\n' "$names" | command grep -vE -- '-(ar|en)-(desktop|mobile)\.png$' || true)
+  [[ -z "$stray" ]] || fail "screens without a language and viewport suffix: $stray"
+  for base in $(printf '%s\n' "$names" | command sed -E 's/-(ar|en)-(desktop|mobile)\.png$//' | command sort | command uniq -c | command awk '$1 != 4 {print $2}'); do
+    [[ " ${SCREEN_VARIANT_EXEMPT[*]} " == *" $base "* ]] || missing+=" $base"
+  done
+  [[ -z "$missing" ]] || fail "screens missing a language or viewport variant:$missing"
+  total=$(printf '%s\n' "$names" | command grep -c .)
+  ((total == $2)) || fail "$total screens, expected $2"
+}
+# 20 screens for P1.S2 and 10 for P1.S3, each in four variants.
+EXPECTED_SCREENS=40
 for t in "$out"/api/*.md; do normalise_file "$t"; done
 if command grep -rqE '^HTTP/1\.1 [^0-9]' "$out/api"; then fail "a placeholder corrupted a status line"; fi
 if command grep -rqE '^HTTP/1\.1 [0-9]{3}[^ 0-9]' "$out/api"; then fail "a placeholder corrupted a status line"; fi
 for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done
+check_screen_variants "$out/screens" "$EXPECTED_SCREENS"
 ((${#session_tokens[@]} >= 4)) || fail "the redaction check would be vacuous"
 for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" "${session_tokens[@]}" "${cookies[@]}" "$demo" "$demo2" "$second"; do
   if command grep -rqaF -- "$secret" "$out/api" "$out/README.md"; then fail "a raw secret or token appears in $out"; fi
