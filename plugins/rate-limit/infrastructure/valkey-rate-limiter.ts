@@ -12,7 +12,7 @@ import { ALLOWED, type LockoutStatus, NOT_LOCKED, type RateLimitDecision } from 
 import { RATE_LIMIT_POLICIES, type RateLimitPolicyName } from '../domain/policies';
 import { RateLimiter } from '../domain/rate-limiter';
 import { InProcessBucket } from './in-process-bucket';
-import { LOCKOUT_SCRIPT, TOKEN_BUCKET_SCRIPT } from './limiter-scripts';
+import { LOCKOUT_SCRIPT, REFUND_SCRIPT, TOKEN_BUCKET_SCRIPT } from './limiter-scripts';
 
 /** How long a Valkey command may take before the limiter gives up on it (D31). */
 export const COMMAND_TIMEOUT_MS = 250;
@@ -35,6 +35,7 @@ const NO_EXPIRY = -1;
 /** The custom commands {@link createLimiterRedis} defines on the client. */
 export interface LimiterRedis extends Redis {
   rlTokenBucket(key: string, capacity: number, windowMs: number, nowMs?: number): Promise<[number, number, number]>;
+  rlRefund(key: string, capacity: number, windowMs: number, nowMs?: number): Promise<number>;
   rlLockout(
     lockKey: string,
     levelKey: string,
@@ -74,6 +75,7 @@ export function createLimiterRedis(url: string): LimiterRedis {
     connectionName: 'rate-limit',
   });
   redis.defineCommand('rlTokenBucket', { numberOfKeys: 1, lua: TOKEN_BUCKET_SCRIPT });
+  redis.defineCommand('rlRefund', { numberOfKeys: 1, lua: REFUND_SCRIPT });
   redis.defineCommand('rlLockout', { numberOfKeys: 2, lua: LOCKOUT_SCRIPT });
   return redis as LimiterRedis;
 }
@@ -137,20 +139,37 @@ export class ValkeyRateLimiter extends RateLimiter implements OnApplicationBoots
   }
 
   async consume(policy: RateLimitPolicyName, key: string): Promise<RateLimitDecision> {
-    const definition = RATE_LIMIT_POLICIES[policy];
     const fromValkey = await this.viaValkey(async () => {
-      const [allowed, retryAfterSeconds, exhausted] = await this.redis.rlTokenBucket(
-        `${KEY_PREFIX}:${policy}:${key}`,
-        definition.capacity,
-        definition.windowSeconds * MS_PER_SECOND,
-        ...(this.options.bucketClock === undefined ? [] : [this.options.bucketClock()]),
-      );
+      const [allowed, retryAfterSeconds, exhausted] = await this.redis.rlTokenBucket(...this.bucketArgs(policy, key));
       return { allowed: allowed === 1, retryAfterSeconds, exhausted: exhausted === 1 };
     });
     if (fromValkey !== undefined) {
       return fromValkey;
     }
-    return definition.outage === 'in-process' ? this.fallback.consume(policy, key) : ALLOWED;
+    return RATE_LIMIT_POLICIES[policy].outage === 'in-process' ? this.fallback.consume(policy, key) : ALLOWED;
+  }
+
+  /**
+   * Puts one token back, atomically and never above capacity. While Valkey is unreachable an `in-process`
+   * policy gives it back in memory: a token taken in Valkey just before the outage is then returned to a
+   * bucket that may still be full, so the refund is lost, which errs on the side of limiting.
+   */
+  async refund(policy: RateLimitPolicyName, key: string): Promise<void> {
+    const refunded = await this.viaValkey(() => this.redis.rlRefund(...this.bucketArgs(policy, key)));
+    if (refunded === undefined && RATE_LIMIT_POLICIES[policy].outage === 'in-process') {
+      this.fallback.refund(policy, key);
+    }
+  }
+
+  /** The bucket script arguments: key, capacity, window in ms and, in tests only, the clock. */
+  private bucketArgs(policy: RateLimitPolicyName, key: string): [string, number, number, ...number[]] {
+    const definition = RATE_LIMIT_POLICIES[policy];
+    return [
+      `${KEY_PREFIX}:${policy}:${key}`,
+      definition.capacity,
+      definition.windowSeconds * MS_PER_SECOND,
+      ...(this.options.bucketClock === undefined ? [] : [this.options.bucketClock()]),
+    ];
   }
 
   async lockout(key: string): Promise<LockoutStatus> {
