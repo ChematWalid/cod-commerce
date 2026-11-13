@@ -2,7 +2,7 @@
 
 Transcripts, emails and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P1.S2.sh`. Data is
 synthetic. Image built from a tree with no uncommitted change outside the evidence folders and browser tests, last
-image-relevant commit `881089ca8faceeaaa433597ecfd0e177207136a9`. Compose project `cod-evidence`; a second api container on port 23101 runs with
+image-relevant commit `f32bd2ae76915919ff1720bf44f3622e6d1bf66b`. Compose project `cod-evidence`; a second api container on port 23101 runs with
 `AUTH_OAUTH_ENABLED=true` against a mock provider (`scripts/evidence/P1.S2-oauth-mock.mjs`).
 
 ## API transcripts
@@ -34,6 +34,7 @@ Every line below is a failing assertion in the script if it does not hold; the s
 - availability retry ar: 429 and failed check both recovered
 - availability retry en: 429 and failed check both recovered
 - verify-link ar: confirmed, token left the URL
+- verify-link en: confirmed, token left the URL
 - otp en: banner gone
 - confirm-email ar: confirmed, token left the URL
 - ar: signed in with the new email and the new password
@@ -46,46 +47,39 @@ Every line below is a failing assertion in the script if it does not hold; the s
 
 ## What was seen in each screenshot (opened by eye, CLAUDE.md §3a.17)
 
+Run of 2026-11-13 (`fix/s4-audit-evidence`, #134): every screen in all four variants, Arabic and English at 1280x800 and 390x844,
+80 shots. All 80 were opened, four variants side by side per screen.
+
 Applies to every shot unless a row says otherwise: the product name is CodShop, the only third-party name is the
 licence-required login footer on the public pages (`Vendure v3.8.1`, ADR 0001), no other product name or logo. Arabic shots are
-`dir=rtl`, labels and text right-aligned, Arabic font loaded; English shots are `dir=ltr`. Layout intact at 1280x800 and at
-390x844 with no horizontal overflow (asserted by the script too).
+`dir=rtl`, labels and text right-aligned, Arabic font loaded; English shots are `dir=ltr`. Layout intact at both sizes with no
+horizontal overflow (asserted by the script too). Signed-in shots use the merchant shell (P1.S5): store switcher with the store
+name and slug in the top bar, no sidebar header or footer, sidebar collapsed to its trigger on mobile.
 
 | File(s) | Seen |
 | --- | --- |
-| `login-{ar,en}-{desktop,mobile}.png` | Welcome text, two fields, forgot link (at the inline end, so the left in Arabic), Sign in, "Create account". No provider button. Footer present. |
-| `forgot-*`, `reset-*` | Stock pages under our brand, translated, footer present. They have no language switch: the language is the browser's saved one. |
+| `login-*` | Welcome text, two fields, forgot link (at the inline end, so the left in Arabic), Sign in, "Create account". No provider button. Footer present. |
+| `forgot-*`, `reset-*` | Stock pages under our brand, translated, footer present. No language switch: the language is the browser's saved one. The long Arabic reset title wraps to two lines on mobile, centred. |
 | `register-1-*` | Three-segment progress, filling from the right in Arabic. Name fields side by side on desktop, stacked on mobile. Password hint translated. |
-| `register-2-*` | Business name, Back and Continue. |
-| `register-3-*` | Store name, address with the `.localhost` suffix, language select, logo picker, Create enabled once available. In Arabic the input is on the left and the suffix to its right, reading `free-1.localhost`, after the fix below. |
-| `register-rate-limited-{ar,en}-desktop.png` | Real 429 from the server: translated "too many checks" message in red, Create greyed out. The script then saw the same value recover with no edit. |
-| `verify-*`, `verify-link-ar-desktop.png` | Title, one sentence, one button: the token is spent only on the click. |
-| `verify-link-done-ar-desktop.png`, `confirm-email-done-{ar,en}-desktop.png` | Success sentence and "Go to dashboard"; the address bar has no query (asserted). |
-| `confirm-email-{ar,en}-desktop.png` | Translated title, sentence, button. |
-| `banner-{ar,en}-{desktop,mobile}.png` | Banner above Home with code field, Verify, and Resend greyed during the cooldown. On mobile the controls wrap to two rows and stay inside the card. |
+| `register-2-*` | Business name, Back and Continue; in Arabic Continue sits on the left. |
+| `register-3-*` | Store name, address with the `.localhost` suffix, "available" in green, language select, logo picker, Create enabled. In Arabic the input is on the left and the suffix to its right, reading `free-1.localhost`. |
+| `register-rate-limited-*` | Real 429 from the server: translated "too many checks" message in red, Create greyed out. Each variant uses its own address (`retry-<lang>-<viewport>-1`). |
+| `verify-*`, `verify-link-*` | Title, one sentence, one button: the token is spent only on the click. |
+| `verify-link-done-*`, `confirm-email-done-*` | Success sentence and "Go to dashboard"; the address bar has no query (asserted). |
+| `confirm-email-*` | Translated title, sentence, button. |
+| `banner-*` | Banner above Home with code field, Verify, and Resend greyed during the cooldown. On mobile the controls wrap and stay inside the card. |
 | `profile-*` | Photo picker, names, phone, read-only email. Banner above, as expected for an unverified account. |
-| `security-*` | Change password and change email blocks. The mobile shot is full-page. |
-| `security-password-changed-{ar,en}-desktop.png` | Translated success toast, fields cleared. |
-| `security-email-pending-{ar,en}-desktop.png` | Toast and "waiting for confirmation" with the new address, which stays left-to-right inside the Arabic sentence. A second toast is partly hidden behind the first: the password toast has not expired yet. |
-| `oauth-on-login-en-desktop.png`, `oauth-on-register-en-desktop.png` | Flag on: "Continue with Google" and "Continue with Facebook" as plain text buttons with no provider logo. |
-| `oauth-on-register-prefilled-en-desktop.png` | Email and names from the mock provider, no password field. |
+| `security-*` | Change password and change email blocks, banner above. The mobile shot is cropped at the viewport. |
+| `security-password-changed-*` | One translated success toast, fields cleared. No banner: the owner verified earlier in the run. On mobile the toast covers the top bar. |
+| `security-email-pending-*` | One toast and "waiting for confirmation" with the new address, which stays left-to-right inside the Arabic sentence. On Arabic mobile the address wraps after `owner-ar-new-`. |
+| `oauth-on-login-*`, `oauth-on-register-*` | Flag on: "Continue with Google" and "Continue with Facebook" as plain text buttons with no provider logo. |
+| `oauth-on-register-prefilled-*` | Email and names from the mock provider, no password field. On mobile the long email is cut at the input's edge (a normal input). |
 
 ### Defects
 
-- **Fixed.** On an Arabic page the address suffix sat to the left of the input and read `localhost.`: the stock stylesheet sets
-  `direction: rtl` on every element, so `dir="ltr"` had no effect. `text-field.tsx` now sets the direction inline on the row and
-  the suffix (commit `7fae30d`), with a browser test.
-- **Fixed in the test helper.** `assertNoPageError` took the verification banner, which has `role="alert"`, for a page error, and
-  seven existing browser tests failed for seeded owners. The helper now skips the banner.
-- **Not fixed, outside the auth screens.** The sidebar group label "Administration" is hard-coded English in the stock dashboard
-  (`nav-main.tsx`), so it shows on Arabic pages. For P1.S5, with the channel switcher.
-- **Not fixed, known.** The channel switcher shows a hex channel code in place of the store name (P1.S5, already deferred by P1.S1).
-- **Data, not a defect.** The English merchant's sidebar reads "Language: Arabic": that is the store language, and the wizard's default was kept.
-
-### Run of 2026-11-09 (final fix wave)
-
-Against the previous run, 45 of the 55 shots are pixel-identical. The other 10 (`banner-*-desktop`, `profile-*-desktop`,
-`security-*-desktop`, `security-password-changed-*-desktop`, `security-email-pending-*-desktop`, Arabic and English) differ only in the
-store switcher at the top of the sidebar, where the random hex channel code of this run's stack shows (the known P1.S5 item above). A
-pixel comparison gave a change box of about 140 by 12 pixels on each; `banner-ar-desktop` and `security-email-pending-en-desktop` were
-opened to confirm it. No screen changed in layout or wording: this fix wave changed no dashboard code.
+- **Resolved since the last run.** The hard-coded "Administration" sidebar label and the hex channel code in the switcher are gone:
+  the merchant shell (P1.S5) hides the sidebar header and shows the store name and slug in the top-bar switcher.
+- **Fixed earlier, still holds.** On an Arabic page the address suffix reads `free-1.localhost` (commit `7fae30d`).
+- **Cosmetic, not fixed.** The Arabic mobile "waiting for confirmation" line breaks the address at the hyphen. Readable; a
+  `break-all`/`dir=ltr` span would keep it whole. Left for the profile owner.
+- **Data, not a defect.** Only one toast shows on the security shots: the script now waits for the previous toast to close.

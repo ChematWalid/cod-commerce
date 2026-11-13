@@ -27,7 +27,7 @@ content-type: application/json; charset=utf-8
 GET http://127.0.0.1:23101/auth/oauth/google/start
 
 HTTP/1.1 302 Found
-set-cookie: cod_oauth_binding=[REDACTED]; Max-Age=900; Path=/; Expires=Mon, 09 Nov 2026 08:41:50 GMT; HttpOnly; SameSite=Lax
+set-cookie: cod_oauth_binding=[REDACTED]; Max-Age=900; Path=/; Expires=Fri, 13 Nov 2026 12:45:36 GMT; HttpOnly; SameSite=Lax
 location: http://127.0.0.1:23102/authorize?response_type=code&code_challenge_method=S256&client_id=evidence-google-client&redirect_uri=http%3A%2F%2F127.0.0.1%3A23101%2Fauth%2Foauth%2Fgoogle%2Fcallback&scope=openid+email+profile&state=<OAUTH_STATE>&code_challenge=<OAUTH_CODE_CHALLENGE>
 content-type: text/plain; charset=utf-8
 
@@ -57,7 +57,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-09T08:26:50.874Z",
+  "timestamp": "2026-11-13T12:30:36.294Z",
   "path": "/auth/oauth/twitter/start"
 }
 ```
