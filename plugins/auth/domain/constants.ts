@@ -64,6 +64,11 @@ export const OAUTH_STATE_TTL_MS = 600_000;
 
 /** The browser binding cookie (D36). It outlives `state` by the ticket's five minutes, so the ticket can be checked. */
 export const OAUTH_BINDING_COOKIE = 'cod_oauth_binding';
+/**
+ * Prefix of the binding cookie's name when it is Secure (AUTH-5, D602): the browser then refuses a cookie of that
+ * name set by a sibling subdomain, and store subdomains are merchant-chosen. Plain http cannot carry it.
+ */
+export const HOST_ONLY_COOKIE_PREFIX = '__Host-';
 export const OAUTH_BINDING_COOKIE_MAX_AGE_MS = 900_000;
 
 /** How long a provider may take to answer one server-side request. */
