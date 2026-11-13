@@ -37,6 +37,7 @@ Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUT
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S5.md`, ADR 0002 (tenant scoping), ADR 0003 (ids).
+- D500 in `docs/roadmap/P1-decisions.md` (#229): Vendure's `slugForEntity` is platform-staff only, so product and collection slug checks need a business-scoped endpoint of `plugins/catalog` (the stock dashboard slug field calls the refused query).
 - `docs/research/data-model.md` "Product" (Product, ProductOption, ProductVariant field lists, image CDN note).
 - `docs/research/second-pass.md` "Products" (create, image upload, variants matrix with auto SKU `<sku>-n`, Custom Price, Hidden, edit-page sections Offers / Store page / Details-Add Landing Page tabs).
 - `docs/research/dashboard-captures.md` "Products `/stores/:storeId/products`" and "Store settings → Profile → Sold-out products"; `api-surface.md` "Catalog & store" (`/products`, `/products/categories`, `/product-tags`, `/product-highlights`, `/brands`, `/upload`, `/stores/:id/sold-out-products(+/stop-orders,/resume-orders)`, `/media`).
