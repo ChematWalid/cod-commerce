@@ -215,3 +215,20 @@ describe('MemberAccessService.withdrawAccess (Team deactivate, D804)', () => {
     expect(writes.replaceFor).not.toHaveBeenCalled();
   });
 });
+
+describe('MemberAccessService.holdForMemberChange (D804)', () => {
+  it("takes rbac's business lock in the caller's transaction", async () => {
+    // Arrange
+    const acquire = vi.fn(() => Promise.resolve());
+    const service = new MemberAccessService({
+      ...servicePorts({ replaceFor: vi.fn(() => Promise.resolve()) }),
+      lock: { acquire },
+    });
+
+    // Act
+    await service.holdForMemberChange(ctx, scope);
+
+    // Assert
+    expect(acquire).toHaveBeenCalledWith(ctx, scope.businessId);
+  });
+});

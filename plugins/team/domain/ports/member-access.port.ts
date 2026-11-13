@@ -9,6 +9,12 @@ import type { OperationContext } from './operation-context';
  * exceeded, role not found, store not accessible, ...): Team's API maps those codes beside its own.
  */
 export interface MemberAccessPort {
+  /**
+   * Takes rbac's business lock in the transaction `ctx` carries, after Team's own (D213), so the access read next is
+   * the access a later write replaces: no rbac `setMemberAccess` commits in between (D804).
+   */
+  holdAccess(ctx: OperationContext, scope: TenantScope): Promise<void>;
+
   /** Refuses a grant the actor could not make, before anyone holds it (D208). Writes nothing. */
   preview(ctx: OperationContext, actor: TeamActor, grant: MemberGrant): Promise<void>;
 

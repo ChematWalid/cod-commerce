@@ -70,6 +70,10 @@ export class RbacMemberAccessAdapter implements MemberAccessPort, OnApplicationB
     return grantOf(await this.access.withdrawAccess(rbacContextOf(ctx), { actor, administratorId, ...clearing }));
   }
 
+  holdAccess(ctx: OperationContext, scope: TenantScope): Promise<void> {
+    return this.access.holdForMemberChange(rbacContextOf(ctx), scope);
+  }
+
   flush(administratorIds: readonly number[]): Promise<void> {
     return this.access.flushSessionsOf(administratorIds);
   }

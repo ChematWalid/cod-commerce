@@ -98,6 +98,15 @@ export class MemberAccessService {
   }
 
   /**
+   * Takes rbac's business lock in the caller's transaction and holds it until that transaction ends. A feature that
+   * reads a member's access and then changes it (Team, D804) takes it first, after its own lock (D213), so no
+   * {@link setAccess} commits between its read and its write.
+   */
+  async holdForMemberChange(ctx: OperationContext, scope: TenantScope): Promise<void> {
+    await this.ports.lock.acquire(ctx, scope.businessId);
+  }
+
+  /**
    * Evicts the cached sessions of these administrators (D55). A caller that ran {@link setAccess} inside its own
    * transaction calls it after that transaction commits.
    */
