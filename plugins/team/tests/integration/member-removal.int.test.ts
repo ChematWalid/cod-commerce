@@ -26,7 +26,9 @@ type Environment = ReturnType<typeof createTeamTestEnvironment>;
 
 /**
  * A removal made through server A must end the member's session that server B serves from the shared Valkey cache:
- * two servers on one Postgres stand in for two server processes (P1.S4 Task 4 harness, D204).
+ * two servers on one Postgres stand in for two server processes (P1.S4 Task 4 harness, D204). B refuses a removed
+ * administrator's old token even from an in-process cache (the soft-deleted user is rejected), so the test also reads
+ * B's session cache: the entry B cached must be gone once A answers, which only the cross-process flush achieves.
  */
 describe('removing a member, seen from a second server process', () => {
   const a = createTeamTestEnvironment(SERVER_A_WORKER_ID, foreignPlugins(), { sharedCache: SHARED_CACHE });
@@ -74,22 +76,27 @@ describe('removing a member, seen from a second server process', () => {
     }
   });
 
-  it('refuses on B the old token of a member removed through A, and the Owner role stops counting it', async () => {
+  it('drops from the shared cache and refuses on B the old token of a member removed through A, and the Owner role stops counting it', async () => {
     // Arrange
     const { a: business } = businesses;
     const coOwner = await kitA.teamMemberWith(business, await kitA.builtInRoleId(business, 'owner'));
     const holdersBefore = await ownerHolders();
     const token = await kitB.newSession(coOwner, business.stores[0]);
     const beforeRemoval = await kitB.rest('GET', '/employees');
+    const sessionsOnB = serverB().server.app.get(ConfigService).authOptions.sessionCacheStrategy;
+    const cachedBefore = await sessionsOnB.get(token);
     await kitA.newSession(business.owner, business.stores[0]);
 
     // Act
     const removed = await kitA.rest('DELETE', `/employees/${coOwner.memberId}`);
+    const cachedAfter = await sessionsOnB.get(token);
     kitB.useSession(token, business.stores[0]);
     const afterRemoval = await kitB.rest('GET', '/employees');
 
     // Assert
     expect([beforeRemoval.status, removed.status, afterRemoval.status]).toEqual([200, 200, 403]);
+    expect(cachedBefore).toBeDefined();
+    expect(cachedAfter).toBeUndefined();
     expect(await ownerHolders()).toBe((holdersBefore ?? 0) - 1);
   });
 });
