@@ -115,7 +115,8 @@ function writeTranscripts(outcomes: readonly Outcome[], placeholders: [string, s
   for (const [file, runs] of byFile) {
     const sections = runs.map((run) => {
       const verdict = run.failures.length === 0 ? 'Pass' : `FAIL: ${run.failures.join('; ')}`;
-      return `### ${headingOf(run)}\n\n${run.case.title}. **${verdict}.**\n\n${transcriptOf(run.exchange, placeholders)}\n`;
+      const reverse = run.attacker === 'B' ? "Reverse run: B's owner plays A's part and A is the victim. " : '';
+      return `### ${headingOf(run)}\n\n${reverse}${run.case.title}. **${verdict}.**\n\n${transcriptOf(run.exchange, placeholders)}\n`;
     });
     const title = `# Isolation: ${runs[0]?.case.entity ?? file}\n\nLive transcripts from \`scripts/evidence/P1-isolation.sh\`. Ids and store tokens are placeholders; sessions are named, never shown.\n\n`;
     writeFileSync(join(outDir as string, 'api', file), `${title}${sections.join('\n')}`);
