@@ -23,13 +23,14 @@
 
 ## Branches
 - `main` is protected: no direct pushes, no force-push, a PR is required, and CI must pass. (On a GitHub Free plan a private repo cannot have branch protection; then the P0.S1 pre-push hook and this rule are the protection — an agent never pushes to `main`.)
-- One branch per session, created from an up-to-date `main`:
+- One branch per session, created from an up-to-date phase branch `phase/P{n}` from P2 on (ADR 0018), or from `main` for work outside a phase:
   - features: `feat/p{n}-s{m}-<short-name>`
   - fixes: `fix/<short-name>`
   - docs: `docs/<short-name>`
   - chores/setup: `chore/<short-name>`
   - tests: `test/<short-name>`
-- Before starting: `git switch main && git pull --ff-only && git switch -c <branch>`.
+- Before starting: `git switch phase/P{n} && git pull --ff-only && git switch -c <branch>` (`main` for work outside a phase).
+- **Phase branch `phase/P{n}`:** created from `main` by the coordinator at the start of the phase; it takes the session PRs and ends in one `phase/P{n}` → `main` PR. Never force-pushed; the pre-push hook refuses only `main`, so the rule is the protection.
 
 ## Commits
 - Small and frequent. Commit **at least after every completed step of the session plan**, never one giant commit at the end.
@@ -55,10 +56,11 @@
   - **How it was verified**: tests run (with counts), browser checks, screenshots
   - **Follow-ups**: anything deferred, with the session that should take it
   - **Handoff**: link to `docs/roadmap/handoff/P{n}.S{m}.md`
-- **Working agreement (user, 2026-11-07):** the session squash-merges its own PR once CI is green and deletes the branch; the user decides scope, ADR acceptance, accounts and money through multiple-choice questions (CLAUDE.md §4).
+- **Working agreement (user, 2026-11-07):** the session squash-merges its own PR and deletes the branch; the user decides scope, ADR acceptance, accounts and money through multiple-choice questions (CLAUDE.md §4).
+- **Phase branches (user, 2026-11-13, ADR 0018):** from P2 on, session branches start from `phase/P{n}` and their PRs target it (`gh pr create --base phase/P{n}`); they are squash-merged at once, without waiting for CI. A red CI run blocks nothing: the next session or a fixer fixes it forward in its own PR. The phase ends with one `phase/P{n}` → `main` PR, merged only when CI and the browser tests are fully green.
 
 ## CI
-GitHub Actions on every PR: install → lint → typecheck → unit/integration tests (Postgres service container) → build, plus the `attribution-check` job. From P3.S5, a merge to `main` also builds the image and deploys staging. E2E (Playwright) is added in P10.S1.
+GitHub Actions on every PR (into `main` or a phase branch) and on every push to `main` and `phase/**`: install → lint → typecheck → unit/integration tests (Postgres service container) → build, plus the `attribution-check` job. The browser tests run on pushes to `main` and `phase/**`, nightly and on demand. Runs on a phase branch are background feedback; only the phase-end PR into `main` waits for them (ADR 0018). Locally, sessions run only lint, typecheck and unit tests of what they changed. From P3.S5, a merge to `main` also builds the image and deploys staging. E2E (Playwright) is added in P10.S1.
 
 ## Issues, milestones, releases
 - One issue per session: title `P{n}.S{m} <Title>`, label `phase-{n}`, milestone `P{n} <phase name>`, body = the session brief link.
@@ -72,7 +74,7 @@ GitHub Actions on every PR: install → lint → typecheck → unit/integration 
 3. Commit (`docs(roadmap): handoff P{n}.S{m}`).
 4. `git push -u origin <branch>`.
 5. `gh pr create` with the template.
-6. Squash-merge once CI is green (working agreement), report the PR link to the user, and stop.
+6. Squash-merge at once into `phase/P{n}` without waiting for CI (ADR 0018), report the PR link to the user, and stop. The phase-end `phase/P{n}` → `main` PR waits until CI and the browser tests are green.
 
 ## Verification standard
 - Unit tests for services and pure logic (pricing, spam rules, quotas, ledger) — required.

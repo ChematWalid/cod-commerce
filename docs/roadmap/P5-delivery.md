@@ -83,7 +83,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S1), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s1-carrier-dispatch from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s1-carrier-dispatch from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -161,7 +161,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S2), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s2-tracking from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s2-tracking from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -233,7 +233,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S3), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s3-returns from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s3-returns from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -305,7 +305,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S4), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s4-yalidine from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s4-yalidine from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -376,7 +376,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S5), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s5-ecotrack from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s5-ecotrack from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -445,7 +445,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S6), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s6-carriers-a from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s6-carriers-a from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -514,7 +514,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P5-delivery.md (section P5.S7), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p5-s7-carriers-b from an up-to-date main, small Conventional Commits after each step,
+branch feat/p5-s7-carriers-b from an up-to-date phase/P5 (PR into phase/P5, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md

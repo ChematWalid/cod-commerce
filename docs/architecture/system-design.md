@@ -592,7 +592,7 @@ Plus infrastructure and SLO burn-rate alerts (§10): fast burn pages, slow burn 
 ```mermaid
 flowchart LR
   PR["Pull request"] --> CI["lint, typecheck, unit, integration on PG service, build, image build, Trivy"]
-  CI --> Merge["Squash merge to main"]
+  CI --> Merge["Squash merge: session PRs into phase/Pn, green phase PR to main (ADR 0018)"]
   Merge --> Build["Build image once, tag git SHA, push GHCR, upload Next static to R2"]
   Build --> StgMig["Staging: migrate job with new image"]
   StgMig --> StgDeploy["Staging: kamal deploy rolling, readyz gate"]
