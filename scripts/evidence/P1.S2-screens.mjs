@@ -1,7 +1,9 @@
-// Browser part of scripts/evidence/P1.S2.sh: registers one Arabic and one English merchant through the wizard, takes the
-// screenshots (desktop and mobile, AR and EN), then runs what earlier tasks could not exercise: the address suffix,
-// availability retry after a real 429 and a failed check, the token leaving the URL, a successful password and email
-// change and reset, confirm-email-change, and the provider buttons with the OAuth flag on and off.
+// Browser part of scripts/evidence/P1.S2.sh: registers one Arabic and two English merchants through the wizard (the second
+// English one verifies by the link), takes every screenshot in desktop and mobile, Arabic and English, then runs what earlier
+// tasks could not exercise: the address suffix, availability retry after a real 429 and a failed check, the token leaving
+// the URL, a successful password and email change and reset, confirm-email-change, and the provider buttons with the OAuth
+// flag on and off. A one-time token or a credential change cannot be replayed, so those done states are shot on desktop and
+// then on the same page narrowed to the phone width.
 //
 //   node P1.S2-screens.mjs <dashboard-url> <oauth-dashboard-url> <mailpit-url> <out-dir>
 //
@@ -43,6 +45,7 @@ const WIZARD = 'register-wizard';
 const LICENCE_FOOTER = '[data-vendure-branding]';
 const HAMMER_LIMIT_MS = 15_000;
 const STALE_CHANNEL_KEY = 'vendure-selected-channel-token';
+const TOAST = '[data-sonner-toast]';
 // The merchant shell sends the dashboard root to Home; both api processes serve the dashboard under the same path.
 const HOME_PATH = '/home';
 const homePath = `${new URL(base).pathname}${HOME_PATH}`;
@@ -83,6 +86,15 @@ const merchants = Object.fromEntries(
   ]),
 );
 
+/** A second English merchant, verified by the link, since the main English one proves the code. */
+const linkMerchant = {
+  lang: 'en',
+  email: `owner-en-link-${RUN}@evidence.example.test`,
+  newEmail: `owner-en-link-new-${RUN}@evidence.example.test`,
+  subdomain: `ev-en-link-${RUN}`,
+  state: undefined,
+};
+
 async function settle(page) {
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => document.fonts.ready);
@@ -110,12 +122,15 @@ async function shoot(page, name, lang) {
   console.error(`shot ${name}`);
 }
 
-/** A public page in `lang`: the language switch writes the real settings, which every later context inherits. */
-async function publicState(browser, lang) {
+/**
+ * A public page in `lang`: the language switch writes the real settings, which every later context inherits. The settings
+ * live in the origin's storage, so the OAuth api process (another port) needs its own.
+ */
+async function publicState(browser, lang, origin = base) {
   const context = await browser.newContext({ ...VIEWPORTS.desktop, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
-    await page.goto(`${base}/register`);
+    await page.goto(`${origin}/register`);
     await page.getByTestId(WIZARD).waitFor();
     await page.locator(`button[lang="${lang}"]`).click();
     await page.waitForFunction((d) => document.documentElement.dir === d, lang === 'ar' ? 'rtl' : 'ltr');
@@ -237,9 +252,12 @@ async function shootMerchantPages(browser, merchant, vp) {
   }
 }
 
-/** A real 429 from the server, then the same value recovers with no edit. Also a failed check, which retries by itself. */
-async function availabilityRetry(browser, lang, storageState) {
-  const context = await browser.newContext({ ...VIEWPORTS.desktop, storageState, reducedMotion: 'reduce' });
+/**
+ * A real 429 from the server, then the same value recovers with no edit. With `withFailedCheck`, also a failed check, which
+ * retries by itself: that is behaviour, proved once, not a screen.
+ */
+async function availabilityRetry(browser, lang, vp, storageState, { withFailedCheck }) {
+  const context = await browser.newContext({ ...VIEWPORTS[vp], storageState, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
     await page.goto(`${base}/register`);
@@ -252,7 +270,7 @@ async function availabilityRetry(browser, lang, storageState) {
     const create = button(page, T[lang]('Create'));
 
     // The bucket refills one token a second: keep it empty until the field's own check has been refused.
-    const value = `retry-${lang}-${RUN}`;
+    const value = `retry-${lang}-${vp}-${RUN}`;
     const refused = page.waitForResponse((r) => r.url().includes(`subdomain=${value}`) && r.status() === 429);
     const hammering = page.evaluate(async (limitMs) => {
       globalThis.evidenceHammer = true;
@@ -267,9 +285,10 @@ async function availabilityRetry(browser, lang, storageState) {
     await hammering;
     await page.getByText(T[lang]('subdomain.rate-limited')).waitFor({ timeout: 2000 });
     if (await create.isEnabled()) fail('Create is enabled while rate limited');
-    await shoot(page, `register-rate-limited-${lang}-desktop`, lang);
+    await shoot(page, `register-rate-limited-${lang}-${vp}`, lang);
     await page.getByText(T[lang]('subdomain.available')).waitFor({ timeout: 30_000 });
     if (await create.isDisabled()) fail('Create stayed disabled after the 429 retry');
+    if (!withFailedCheck) return;
 
     let failures = 0;
     await page.route('**/stores/subdomain-availability*', async (route) => {
@@ -280,7 +299,7 @@ async function availabilityRetry(browser, lang, storageState) {
         await route.continue();
       }
     });
-    await address.fill(`again-${lang}-${RUN}`);
+    await address.fill(`again-${lang}-${vp}-${RUN}`);
     await page.getByText(T[lang]('subdomain.check-failed')).waitFor();
     if (await create.isEnabled()) fail('Create is enabled after a failed check');
     await page.getByText(T[lang]('subdomain.available')).waitFor({ timeout: 30_000 });
@@ -304,31 +323,53 @@ function assertNoToken(page, label) {
     fail(`${label}: the token is still in ${page.url()}`);
 }
 
-async function confirmLink(browser, merchant, url, title, action, done, shotName) {
-  const { lang } = merchant;
+/** The link page in `vp`, with a listener that records any request spending the token. */
+async function openLinkPage(browser, merchant, vp, url, title) {
   const context = await browser.newContext({
-    ...VIEWPORTS.desktop,
+    ...VIEWPORTS[vp],
     reducedMotion: 'reduce',
     storageState: merchant.publicState,
   });
+  const page = await context.newPage();
+  const spends = [];
+  page.on('request', (r) => {
+    if (/verifyEmail|confirmEmailChange/.test(r.postData() ?? '')) spends.push(r);
+  });
+  await page.goto(url);
+  await page.getByRole('heading', { name: title }).waitFor();
+  await settle(page);
+  return { page, spends };
+}
+
+/**
+ * The token is spent once, so the mobile shot of the page comes first, from a phone context that does not click; the done
+ * state can only be narrowed from the same desktop page after the click.
+ */
+async function confirmLink(browser, merchant, url, title, action, done, shotName) {
+  const { lang } = merchant;
+  const phone = await openLinkPage(browser, merchant, 'mobile', url, title);
   try {
-    const page = await context.newPage();
-    const spends = [];
-    page.on('request', (r) => {
-      if (/verifyEmail|confirmEmailChange/.test(r.postData() ?? '')) spends.push(r);
-    });
-    await page.goto(url);
-    await page.getByRole('heading', { name: title }).waitFor();
-    await settle(page);
+    if (phone.spends.length !== 0) fail(`${shotName}: the page spent the token on load`);
+    await shoot(phone.page, `${shotName}-${lang}-mobile`, lang);
+    if (phone.spends.length !== 0) fail(`${shotName}: the phone page spent the token`);
+  } finally {
+    await phone.page.context().close();
+  }
+  const { page, spends } = await openLinkPage(browser, merchant, 'desktop', url, title);
+  try {
     if (spends.length !== 0) fail(`${shotName}: the page spent the token on load`);
     await shoot(page, `${shotName}-${lang}-desktop`, lang);
     await button(page, action).click();
-    await page.getByRole('status').getByText(done).waitFor();
+    const status = page.getByRole('status').getByText(done);
+    await status.waitFor();
     assertNoToken(page, shotName);
     await shoot(page, `${shotName}-done-${lang}-desktop`, lang);
+    await page.setViewportSize(VIEWPORTS.mobile.viewport);
+    await status.waitFor();
+    await shoot(page, `${shotName}-done-${lang}-mobile`, lang);
     console.error(`${shotName} ${lang}: confirmed, token left the URL`);
   } finally {
-    await context.close();
+    await page.context().close();
   }
 }
 
@@ -354,6 +395,20 @@ async function verifyWithOtp(browser, merchant) {
   }
 }
 
+/**
+ * A credential change cannot be replayed, so the mobile shot narrows the same desktop page. Sonner pauses a toast's timer
+ * while the pointer is over it: hovering before each shot keeps the success toast on screen across the resize.
+ */
+async function shootBothWithToast(page, success, name, lang) {
+  await success.waitFor();
+  await page.locator(TOAST).first().hover();
+  await shoot(page, `${name}-desktop`, lang);
+  await page.setViewportSize(VIEWPORTS.mobile.viewport);
+  await page.locator(TOAST).first().hover();
+  await success.waitFor();
+  await shoot(page, `${name}-mobile`, lang);
+}
+
 async function securityFlows(browser, merchant) {
   const { lang, newEmail } = merchant;
   const t = T[lang];
@@ -375,13 +430,17 @@ async function securityFlows(browser, merchant) {
     await fresh.fill(NEW_PASSWORD);
     await confirmation.fill(NEW_PASSWORD);
     await button(page, t('Change password')).click();
-    await page.getByText(t('Password changed')).first().waitFor();
-    await shoot(page, `security-password-changed-${lang}-desktop`, lang);
+    const changed = page.getByText(t('Password changed')).first();
+    await shootBothWithToast(page, changed, `security-password-changed-${lang}`, lang);
+    // Let the toast expire so the email shots never show it behind their own.
+    await page.mouse.move(0, 0);
+    await page.locator(TOAST).first().waitFor({ state: 'detached', timeout: 15_000 });
+    await page.setViewportSize(VIEWPORTS.desktop.viewport);
     await field(page, t('New email')).fill(newEmail);
     await emailPassword.fill(NEW_PASSWORD);
     await button(page, t('Change email')).click();
-    await page.getByRole('status').getByText(newEmail).first().waitFor();
-    await shoot(page, `security-email-pending-${lang}-desktop`, lang);
+    const pending = page.getByRole('status').getByText(newEmail).first();
+    await shootBothWithToast(page, pending, `security-email-pending-${lang}`, lang);
   } finally {
     await context.close();
   }
@@ -425,34 +484,40 @@ async function completeEmailChangeAndReset(browser, merchant) {
   }
 }
 
-/** With the flag on (separate api process): both buttons, the redirect through the mock, and a provider sign-up. */
-async function oauthOn(browser) {
-  const context = await browser.newContext({ ...VIEWPORTS.desktop, reducedMotion: 'reduce' });
+const providerButton = (lang, name) => T[lang]('Continue with {provider}').replace('{provider}', name);
+
+/**
+ * With the flag on (separate api process): both buttons and the redirect through the mock, in `lang` and `vp`. With
+ * `complete`, also the provider sign-up to Home; once only, since the mock always answers with the same email.
+ */
+async function oauthOn(browser, lang, vp, storageState, { complete }) {
+  const t = T[lang];
+  const context = await browser.newContext({ ...VIEWPORTS[vp], storageState, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
     await page.goto(`${oauthBase}/login`);
-    const google = page.getByText('Continue with Google');
-    await google.waitFor();
-    await page.getByText('Continue with Facebook').waitFor();
-    await shoot(page, 'oauth-on-login-en-desktop', 'en');
+    const google = providerButton(lang, 'Google');
+    await page.getByText(google).waitFor();
+    await page.getByText(providerButton(lang, 'Facebook')).waitFor();
+    await shoot(page, `oauth-on-login-${lang}-${vp}`, lang);
     await page.goto(`${oauthBase}/register`);
-    await page.getByTestId(WIZARD).getByText('Continue with Google').waitFor();
-    await shoot(page, 'oauth-on-register-en-desktop', 'en');
-    await page.getByText('Continue with Google').click();
+    await page.getByTestId(WIZARD).getByText(google).waitFor();
+    await shoot(page, `oauth-on-register-${lang}-${vp}`, lang);
+    await page.getByText(google).click();
     await page.waitForURL((url) => url.pathname.endsWith('/register') && url.searchParams.has('ticket'));
     await page.getByTestId(WIZARD).waitFor();
-    const email = page.getByRole('textbox', { name: 'Email' });
+    const email = field(page, t('Email'));
     await page.waitForFunction((value) => document.querySelector('input[type="email"]')?.value === value, OAUTH_EMAIL);
     if ((await email.inputValue()) !== OAUTH_EMAIL) fail('the provider email was not prefilled');
-    if ((await page.getByRole('textbox', { name: 'Password', exact: true }).count()) !== 0)
-      fail('a provider sign-up asks for a password');
-    await shoot(page, 'oauth-on-register-prefilled-en-desktop', 'en');
-    await toBusinessStep(page, 'en');
-    await toStoreStep(page, 'en', 'Oauth Business');
-    await field(page, T.en('Store name')).fill('Oauth Store');
-    await field(page, T.en('Store address')).fill(`oauth-${RUN}`);
-    await page.getByText(T.en('subdomain.available')).waitFor();
-    await button(page, T.en('Create')).click();
+    if ((await field(page, t('Password'), true).count()) !== 0) fail('a provider sign-up asks for a password');
+    await shoot(page, `oauth-on-register-prefilled-${lang}-${vp}`, lang);
+    if (!complete) return;
+    await toBusinessStep(page, lang);
+    await toStoreStep(page, lang, 'Oauth Business');
+    await field(page, t('Store name')).fill('Oauth Store');
+    await field(page, t('Store address')).fill(`oauth-${RUN}`);
+    await page.getByText(t('subdomain.available')).waitFor();
+    await button(page, t('Create')).click();
     await page.waitForFunction(
       (home) => location.pathname.replace(/\/$/, '') === home && document.querySelector('[data-sidebar="sidebar"]'),
       homePath,
@@ -489,29 +554,38 @@ try {
   for (const lang of LANGS) {
     merchants[lang].publicState = publicStates[lang];
     for (const vp of Object.keys(VIEWPORTS)) await shootPublicPages(browser, lang, vp, publicStates[lang]);
-    await availabilityRetry(browser, lang, publicStates[lang]);
+    for (const vp of Object.keys(VIEWPORTS))
+      await availabilityRetry(browser, lang, vp, publicStates[lang], { withFailedCheck: vp === 'desktop' });
     await registerMerchant(browser, merchants[lang], publicStates[lang]);
     for (const vp of Object.keys(VIEWPORTS)) await shootMerchantPages(browser, merchants[lang], vp);
   }
-  // Arabic verifies by the link (in a browser with no session), English by the code.
-  const ar = merchants.ar;
-  const { token } = emailSecrets(await waitForEmail(mailpit, ar.email, { contains: '/verify-email' }));
-  await confirmLink(
-    browser,
-    ar,
-    `${base}/verify-email?token=${token}`,
-    T.ar('Verify your email'),
-    T.ar('Verify my email'),
-    T.ar('Your email is verified'),
-    'verify-link',
-  );
+  // Both languages verify by the link (in a browser with no session); English also proves the code, on its main merchant.
+  linkMerchant.publicState = publicStates.en;
+  await registerMerchant(browser, linkMerchant, publicStates.en);
+  for (const merchant of [merchants.ar, linkMerchant]) {
+    const t = T[merchant.lang];
+    const { token } = emailSecrets(await waitForEmail(mailpit, merchant.email, { contains: '/verify-email' }));
+    await confirmLink(
+      browser,
+      merchant,
+      `${base}/verify-email?token=${token}`,
+      t('Verify your email'),
+      t('Verify my email'),
+      t('Your email is verified'),
+      'verify-link',
+    );
+  }
   await verifyWithOtp(browser, merchants.en);
   for (const lang of LANGS) {
     await securityFlows(browser, merchants[lang]);
     await completeEmailChangeAndReset(browser, merchants[lang]);
   }
   await oauthOff(browser);
-  await oauthOn(browser);
+  for (const lang of LANGS) {
+    const oauthState = await publicState(browser, lang, oauthBase);
+    for (const vp of Object.keys(VIEWPORTS))
+      await oauthOn(browser, lang, vp, oauthState, { complete: lang === 'en' && vp === 'desktop' });
+  }
 } finally {
   await browser.close();
 }
