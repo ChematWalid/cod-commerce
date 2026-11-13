@@ -42,7 +42,11 @@ async function rolesOf(administratorId: number): Promise<string[]> {
  * and before Team takes rbac's lock: the interleaving of D804, made deterministic.
  */
 function setAccessDuringTeamRead(administratorId: number, roleIds: readonly string[]): void {
-  const read = RbacMemberAccessAdapter.prototype.accessOf;
+  type AccessOf = (
+    this: RbacMemberAccessAdapter,
+    ...args: Parameters<RbacMemberAccessAdapter['accessOf']>
+  ) => ReturnType<RbacMemberAccessAdapter['accessOf']>;
+  const read = Object.getOwnPropertyDescriptor(RbacMemberAccessAdapter.prototype, 'accessOf')?.value as AccessOf;
   let fired = false;
   vi.spyOn(RbacMemberAccessAdapter.prototype, 'accessOf').mockImplementation(async function (
     this: RbacMemberAccessAdapter,
