@@ -4,6 +4,7 @@ import {
   DOMAIN_EVENT_NAMES,
   INVITATION_RESEND_COOLDOWN_MS,
   INVITATION_TTL_MS,
+  isOutboxTopic,
   MEMBER_STATUSES,
   MEMBER_TABS,
   TEAM_ERROR_CODES,
@@ -36,5 +37,9 @@ describe('team contracts', () => {
 
   it('names the salary payment event', () => {
     expect(DOMAIN_EVENT_NAMES.SalaryPaid).toBe('salary.paid');
+  });
+
+  it('registers the salary payment event as an outbox topic, so it is written in the paying transaction', () => {
+    expect(isOutboxTopic(DOMAIN_EVENT_NAMES.SalaryPaid)).toBe(true);
   });
 });
