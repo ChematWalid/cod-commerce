@@ -3,7 +3,7 @@
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
 ## Project in one paragraph
-This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Vendure 3.8.1** (published `@vendure/*` packages, pinned) with a Next.js 16 storefront. Work runs as roadmap sessions: **one session = one branch = one PR**. Working agreement (user, 2026-11-07): the agent squash-merges its own PR once CI is green; the user decides via multiple-choice questions. The roadmap is in `docs/roadmap/README.md`, the briefs in `docs/roadmap/P{n}-*.md`, the plans in `docs/roadmap/plans/` and the handoffs in `docs/roadmap/handoff/`.
+This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Vendure 3.8.1** (published `@vendure/*` packages, pinned) with a Next.js 16 storefront. Work runs as roadmap sessions: **one session = one branch = one PR**. Working agreement (user, 2026-11-07): the agent squash-merges its own PR; the user decides via multiple-choice questions. From P2 on (ADR 0018), session PRs target `phase/P{n}` and merge at once; only the phase PR into `main` waits for green CI and browser tests. The roadmap is in `docs/roadmap/README.md`, the briefs in `docs/roadmap/P{n}-*.md`, the plans in `docs/roadmap/plans/` and the handoffs in `docs/roadmap/handoff/`.
 
 ## Progress
 | Session | Issue | Branch | PR | State |
@@ -35,7 +35,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
-**Working agreement (user, 2026-11-07):** the agent merges its own PRs once CI is green and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. Decisions so far:
+**Working agreement (user, 2026-11-07):** the agent merges its own PRs and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. **From P2 on (user, 2026-11-13, ADR 0018):** session PRs target `phase/P{n}` and merge at once while CI runs in the background; only the phase-end PR into `main` waits for green CI and browser tests. Decisions so far:
 - P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007).
 - No Cloudflare staging zone or latency probes for P0.S2a-3.
 - **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5.
@@ -94,7 +94,7 @@ gh pr create, and stop without merging.
 P0.S2a-2's handoff (`handoff/P0.S2a-2.md`) has the machine gotchas (shell aliases, HDD vs SSD, PgBouncer `KILL`/`RESUME`) and the ports already in use.
 
 ## Rules that bit us (read once)
-- Never push to `main`, never force-push, and use no `--no-verify`. Merging: per the working agreement above (squash-merge once CI is green).
+- Never push to `main`, never force-push, and use no `--no-verify`. Merging: per the working agreement above (P1: squash-merge once CI is green; from P2: squash-merge into `phase/P{n}` at once, phase PR into `main` only when fully green, ADR 0018).
 - Commits must contain no AI co-author trailer or "generated with" line. CI `attribution-check` fails the PR otherwise.
 - Never write the reference product's names, logo, theme names or copy, except in ADR 0007's banned list.
 - Never handle tokens or passwords. The user runs `gh auth login` and provides any credentials.

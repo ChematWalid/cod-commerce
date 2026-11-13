@@ -86,7 +86,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S1), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s1-order-states from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s1-order-states from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -162,7 +162,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S2), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s2-orders-list from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s2-orders-list from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -242,7 +242,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S3), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s3-order-detail from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s3-order-detail from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -312,7 +312,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S4), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s4-distribution from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s4-distribution from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -389,7 +389,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S5), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s5-spam-engine from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s5-spam-engine from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -456,7 +456,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S6), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s6-spam-rules from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s6-spam-rules from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -527,7 +527,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P4-order-ops.md (section P4.S7), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p4-s7-customers from an up-to-date main, small Conventional Commits after each step,
+branch feat/p4-s7-customers from an up-to-date phase/P4 (PR into phase/P4, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md

@@ -18,8 +18,8 @@ These rules are mandatory and override defaults. If a rule conflicts with a requ
 
 ## 1. Start of every session (in order)
 1. Identify the session ID (`P{n}.S{m}`). Read its brief, `docs/roadmap/CONTRIBUTING.md`, every file in the brief's "Read first", and the handoff notes of its prerequisites.
-2. Check prerequisites are **merged** on `main` (`gh pr list --state merged`); if not, stop and tell the user.
-3. Branch from an up-to-date `main`: `git switch main && git pull --ff-only && git switch -c <branch from the brief>`.
+2. Check prerequisites are **merged** on the phase branch `phase/P{n}` (or on `main` for an earlier phase) (`gh pr list --state merged`); if not, stop and tell the user.
+3. Branch from an up-to-date `phase/P{n}` (ADR 0018; `main` for work outside a phase): `git switch phase/P{n} && git pull --ff-only && git switch -c <branch from the brief>`. Look at its latest CI run (`gh run list --branch phase/P{n}`) and note an inherited red run in the handoff.
 4. Show the task list (one item per plan task) before doing work.
 
 ## 2. Plan before code — and save the plan
@@ -88,7 +88,8 @@ Goal: adding or changing a feature touches one place and stays easy. These rules
 19. **Security sweep before every merge (user, 2026-11-08).** Check open Dependabot alerts and GitGuardian/GitHub security notifications. Fix a real leaked secret or a new high/critical alert first, and alert the user.
 
 ## 4. Git & GitHub (details in CONTRIBUTING.md)
-- One branch per session; never push to `main`; never force-push. **Working agreement (user, 2026-11-07):** the agent squash-merges its own PR once CI is green; anything that is the user's decision is asked as a multiple-choice question (the user is the decider).
+- One branch per session; never push to `main`; never force-push. **Working agreement (user, 2026-11-07):** the agent squash-merges its own PR; anything that is the user's decision is asked as a multiple-choice question (the user is the decider).
+- **Phase branches (user, 2026-11-13, ADR 0018):** from P2 on, session PRs target `phase/P{n}` and are squash-merged at once, without waiting for CI. CI runs on GitHub in the background on every PR and every push to `phase/P{n}`; a red run blocks nothing and is fixed forward in its own PR. Locally, run only lint, typecheck and unit tests of what changed. The phase ends with one `phase/P{n}` → `main` PR, merged only when fully green (CI and browser).
 - PRs via `gh pr create` using `.github/pull_request_template.md`, title in Conventional Commits form, body with `Closes #<session issue>`.
 - **No Claude attribution, ever:** no `Co-Authored-By: Claude …` trailer, no "Generated with Claude Code" line in commits, PR titles or bodies; never add Claude as a collaborator. (Enforced by `.claude/settings.json`, `.githooks/commit-msg`, and the CI `attribution-check`.) Don't bypass hooks (`--no-verify`).
 - Commits are authored by the user's identity (`ChematWalid`).
@@ -104,8 +105,8 @@ Goal: adding or changing a feature touches one place and stays easy. These rules
 2. Write **`docs/roadmap/handoff/P{n}.S{m}.md`**: what was done, decisions made, deviations from the plan/brief, what is left, gotchas, commands to run it.
 3. Make sure the plan file reflects what was actually done (tick its checkboxes).
 4. Commit `docs(roadmap): handoff P{n}.S{m}` → `git push -u origin <branch>` → `gh pr create`.
-5. Wait for CI (`gh pr checks --watch`); fix failures with new commits.
-6. Squash-merge once CI is green (working agreement, §4), then report the PR link and a short summary to the user. Ask the user (multiple choice) to accept any new ADRs.
+5. Open the PR against `phase/P{n}` (`gh pr create --base phase/P{n}`) and squash-merge it at once, without waiting for CI (§4, ADR 0018). A later red run is fixed forward in a new PR.
+6. Report the PR link and a short summary to the user. Ask the user (multiple choice) to accept any new ADRs. The phase-end PR `phase/P{n}` → `main` is the exception: wait for CI (`gh pr checks --watch`) and the browser run, and merge only when all are green.
 
 ## 7. Environment
 - Arch Linux, zsh, native Docker (moved from Windows 11 on 2026-11-07). The interactive shell aliases `sed`, `cut`, `tr`, `grep`, `cat` and `ls` to other tools: in agent commands use `command <tool>` or a `bash` script. Never `pkill -f`/`kill $(pgrep -f …)` with a pattern that appears in your own command line.

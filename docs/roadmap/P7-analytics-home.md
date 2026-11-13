@@ -75,7 +75,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P7-analytics-home.md (section P7.S1), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p7-s1-analytics from an up-to-date main, small Conventional Commits after each step,
+branch feat/p7-s1-analytics from an up-to-date phase/P7 (PR into phase/P7, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -152,7 +152,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P7-analytics-home.md (section P7.S2), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p7-s2-home from an up-to-date main, small Conventional Commits after each step,
+branch feat/p7-s2-home from an up-to-date phase/P7 (PR into phase/P7, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md
@@ -226,7 +226,7 @@ Follow CLAUDE.md at the repo root for every step. First write your plan with the
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
 Read docs/roadmap/P7-analytics-home.md (section P7.S3), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
-branch feat/p7-s3-notifications from an up-to-date main, small Conventional Commits after each step,
+branch feat/p7-s3-notifications from an up-to-date phase/P7 (PR into phase/P7, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
 Use the writing-plans skill to expand the high-level plan, then implement it step by step,
 verifying each step. Finish with the end-of-session checklist in CONTRIBUTING.md

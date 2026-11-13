@@ -1,10 +1,11 @@
 name: browser
 
 # Browser tests of the dashboard and the storefront (Playwright against the built api and storefront). Not part of the pull-request pipeline:
-# ADR 0001 section 6 keeps CI at 10 minutes or less, so this runs on main, nightly and on demand.
+# ADR 0001 section 6 keeps CI at 10 minutes or less, so this runs on main, on the phase branches, nightly and on demand.
+# A phase/Pn -> main PR shows the run of its head commit, which is the phase branch tip (ADR 0018).
 on:
   push:
-    branches: [main]
+    branches: [main, 'phase/**']
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
