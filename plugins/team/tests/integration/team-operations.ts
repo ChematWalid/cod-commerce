@@ -50,6 +50,7 @@ export const ACTIVITY_LOG = gql`
     activityLog(input: $input) {
       items {
         action
+        entityType
         entityId
         summary
         diff
@@ -82,6 +83,7 @@ export interface InviteInput {
 /** One activity row as the log answers it. */
 export interface ActivityItem {
   readonly action: string;
+  readonly entityType: string;
   readonly entityId: string;
   readonly summary: string;
   readonly diff: Readonly<Record<string, unknown>>;

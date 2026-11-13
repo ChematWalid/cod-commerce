@@ -47,6 +47,20 @@ export const ACTIVITY_ACTIONS = {
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[keyof typeof ACTIVITY_ACTIONS];
 
 /**
+ * The entity types activity rows are written with. Each names one kind of id, so filtering on a type and an id never
+ * mixes an administrator (`member`) with a Team member (`team-member`).
+ */
+export const ACTIVITY_ENTITY_TYPES = {
+  ROLE: 'role',
+  MEMBER: 'member',
+  TEAM_MEMBER: 'team-member',
+  COMMISSION_CONFIG: 'commission-config',
+} as const;
+
+/** One of the {@link ACTIVITY_ENTITY_TYPES} values. */
+export type ActivityEntityType = (typeof ACTIVITY_ENTITY_TYPES)[keyof typeof ACTIVITY_ENTITY_TYPES];
+
+/**
  * Actions whose rows carry no store and describe a team member, its access or a commission (D217). rbac's activity
  * query shows them only to viewers with all-store access, so a store-limited viewer never learns of members outside
  * its reach (D211). The member-access change counts too: every Team action that touches access writes one next to

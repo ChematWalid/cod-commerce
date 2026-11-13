@@ -1,4 +1,10 @@
-import { MAX_CUSTOM_ROLES_PER_BUSINESS, type PermissionKey, type StoreId, type TenantContext } from '@cod/shared';
+import {
+  ACTIVITY_ENTITY_TYPES,
+  MAX_CUSTOM_ROLES_PER_BUSINESS,
+  type PermissionKey,
+  type StoreId,
+  type TenantContext,
+} from '@cod/shared';
 import type { BusinessRole, RoleBinding } from '../domain/business-role';
 import { ALL_STORES_SCOPE } from '../domain/constants';
 import { RoleLimitError, RoleNameTakenError, RoleNotFoundError } from '../domain/errors';
@@ -115,7 +121,7 @@ export class RoleWriter {
       ...fields,
       scope: actor.tenant,
       actorAdministratorId: actor.administratorId,
-      entityType: 'role',
+      entityType: ACTIVITY_ENTITY_TYPES.ROLE,
       ip: actor.ip,
       userAgent: actor.userAgent,
     });
