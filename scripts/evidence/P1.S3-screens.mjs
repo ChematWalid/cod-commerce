@@ -34,6 +34,9 @@ const ORDERS_MEMBER = 'orders@demo.example.test';
 const LICENCE_FOOTER = '[data-vendure-branding]';
 const CHANNEL_KEY = 'vendure-selected-channel-token';
 const ROLES_LINK = 'a[href$="/team/roles"]';
+// The merchant shell's `team.roles` leaf checks team.roles.view on the session's channel before it mounts the roles page,
+// and renders its own forbidden page without it (plugins/merchant-shell/dashboard/components/shell-leaf-page.tsx).
+const SHELL_FORBIDDEN = '[data-testid="shell-forbidden"]';
 const VIEWER_ROLE = 'Demo viewer';
 const VIEW_PERMISSION = 'team.roles.view';
 
@@ -198,11 +201,11 @@ async function proveNoNavEntry(browser, lang, vp) {
     const answer = await graphql(page, 'query { businessRoles { id } }');
     if (codeOf(answer) !== 'FORBIDDEN') fail(`${lang}: orders member got ${JSON.stringify(answer)}`);
     await page.goto(`${base}/team/roles`);
-    await page.locator('p[role="alert"]').first().waitFor();
+    await page.locator(SHELL_FORBIDDEN).waitFor();
     await shoot(page, `member-no-roles-${lang}-${vp}`, lang);
     if (vp === 'desktop')
       proved(
-        `${lang}: a member without team.roles.view has no nav entry; the query answers FORBIDDEN and the page says so.`,
+        `${lang}: a member without team.roles.view has no nav entry; the query answers FORBIDDEN and the page shows the shell's forbidden page.`,
       );
   } finally {
     await page.context().close();
@@ -285,7 +288,6 @@ function setViewerRead(owner, roleId, on) {
 }
 
 async function proveChangeReachesSecondProcess(browser, lang, vp) {
-  const t = T[lang];
   const owner = await signedIn(browser, { email: OWNER, lang: 'en' });
   const member = await signedIn(browser, { url: second, email: LIMITED, lang, vp });
   try {
@@ -303,8 +305,9 @@ async function proveChangeReachesSecondProcess(browser, lang, vp) {
       proved(
         `${lang}: the first request after the owner removed team.roles.view on one api is FORBIDDEN on the second api.`,
       );
+    // The reload reads the flushed session again, so the shell no longer grants the leaf and shows its forbidden page.
     await member.reload();
-    await member.getByText(t('rbac.error-forbidden')).first().waitFor();
+    await member.locator(SHELL_FORBIDDEN).waitFor();
     await shoot(member, `live-revoke-second-api-${lang}-${vp}`, lang);
     const restored = await setViewerRead(owner, roleId, true);
     if (codeOf(restored) !== null) fail(`restore: ${JSON.stringify(restored)}`);
