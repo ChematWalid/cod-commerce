@@ -15,7 +15,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ARABIC_FONT_FAMILY, STORE_SWITCHER_TEST_ID } from '../../plugins/merchant-shell/dashboard/constants.ts';
 import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '../../plugins/_template/dashboard/constants.ts';
-import { assertNoPageError, loginAsOwner, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
+import {
+  assertNoPageError,
+  loginAsOwner,
+  setDisplayLanguage,
+} from '../../apps/server/tests/browser/dashboard-session.ts';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');

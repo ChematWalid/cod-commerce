@@ -120,7 +120,13 @@ fi
 NEXT_DEPLOYMENT_ID="$(git rev-parse --short "$image_commit")"
 export NEXT_DEPLOYMENT_ID
 timeout 300 docker compose down -v --remove-orphans
-timeout 600 docker compose build migrate
+# EV_SKIP_BUILD=1 reuses cod-platform:local already built from this tree (a separate locked build, as P1-isolation.sh
+# does): on a loaded host the layer export alone can outlast the job's time limit. Honoured only while the image exists.
+if [[ "${EV_SKIP_BUILD:-0}" == 1 ]] && docker image inspect cod-platform:local >/dev/null 2>&1; then
+  echo "reusing cod-platform:local (EV_SKIP_BUILD=1)"
+else
+  timeout 600 docker compose build migrate
+fi
 APP_SERVICES=(api worker mailpit)
 timeout 300 docker compose up -d postgres
 wait_healthy postgres
