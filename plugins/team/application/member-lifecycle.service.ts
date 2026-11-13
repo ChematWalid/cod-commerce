@@ -134,10 +134,11 @@ export class MemberLifecycleService {
     if (member.status !== 'active') throw new MemberNotActiveError();
     assertNotOwner(member, await this.ports.owner.ownerAdministratorId(ctx, actor.scope));
     const administratorId = administratorOf(member);
-    const changed = await patchMember(this.ports, ctx, member, { status: 'inactive', suspendedAccess: grant });
-    if (grant.roleIds.length > 0) {
-      await this.ports.access.setAccess(ctx, actor, administratorId, clearingGrantOf(grant, reach.allStores));
-    }
+    // The snapshot is what rbac held when it withdrew it, under its lock, never the earlier read: a concurrent
+    // setMemberAccess is then either in the snapshot or refused after this commits (D804).
+    const { storeAccess, storeIds } = clearingGrantOf(grant, reach.allStores);
+    const held = await this.ports.access.withdrawAccess(ctx, actor, administratorId, { storeAccess, storeIds });
+    const changed = await patchMember(this.ports, ctx, member, { status: 'inactive', suspendedAccess: held });
     await recordAction(this.ports, ctx, actor, {
       member: changed,
       action: ACTIVITY_ACTIONS.MEMBER_DEACTIVATED,

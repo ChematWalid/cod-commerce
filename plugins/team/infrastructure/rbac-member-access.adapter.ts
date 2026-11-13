@@ -3,6 +3,7 @@ import {
   GrantPreviewService,
   MEMBER_SUSPENSION_CHECK,
   MemberAccessService,
+  type MemberAccessView,
   type MemberSuspensionRegistry,
 } from '@cod/plugin-rbac/member-access';
 import { type TenantScope, toSnowflake } from '@cod/shared';
@@ -18,6 +19,15 @@ import type { TeamActor } from '../domain/team-actor';
 import { toRequestContext } from './request-scope';
 
 const rbacContextOf = (ctx: OperationContext) => asRbacContext(toRequestContext(ctx));
+
+/** rbac's view of a member's access as Team's grant. */
+function grantOf(view: MemberAccessView): MemberGrant {
+  return {
+    roleIds: view.roles.map((role) => toSnowflake(role.id)),
+    storeAccess: view.storeAccess,
+    storeIds: view.storeIds.map(toSnowflake),
+  };
+}
 
 /**
  * {@link MemberAccessPort} on rbac's member access, the one source of truth for roles and stores (D204). rbac's
@@ -51,18 +61,22 @@ export class RbacMemberAccessAdapter implements MemberAccessPort, OnApplicationB
     await this.access.setAccess(rbacContextOf(ctx), { actor, administratorId, ...grant });
   }
 
+  async withdrawAccess(
+    ctx: OperationContext,
+    actor: TeamActor,
+    administratorId: number,
+    clearing: Omit<MemberGrant, 'roleIds'>,
+  ): Promise<MemberGrant> {
+    return grantOf(await this.access.withdrawAccess(rbacContextOf(ctx), { actor, administratorId, ...clearing }));
+  }
+
   flush(administratorIds: readonly number[]): Promise<void> {
     return this.access.flushSessionsOf(administratorIds);
   }
 
   async accessOf(ctx: OperationContext, scope: TenantScope, administratorId: number): Promise<MemberGrant | undefined> {
     const view = await this.access.getAccess(rbacContextOf(ctx), scope, administratorId);
-    if (view === undefined) return undefined;
-    return {
-      roleIds: view.roles.map((role) => toSnowflake(role.id)),
-      storeAccess: view.storeAccess,
-      storeIds: view.storeIds.map(toSnowflake),
-    };
+    return view === undefined ? undefined : grantOf(view);
   }
 
   async reachOf(ctx: OperationContext, actor: Pick<TeamActor, 'administratorId' | 'scope'>): Promise<ActorReachView> {

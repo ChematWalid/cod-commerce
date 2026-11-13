@@ -21,6 +21,18 @@ export interface MemberAccessPort {
   /** Gives the administrator exactly `grant`, as `actor`, with rbac's escalation rules; an empty role list clears it. */
   setAccess(ctx: OperationContext, actor: TeamActor, administratorId: number, grant: MemberGrant): Promise<void>;
 
+  /**
+   * Withdraws every role of the administrator, as `actor`, naming `clearing`'s store access, and returns the grant it
+   * held just before, read by rbac under its lock in the same transaction. A concurrent `setMemberAccess` is either in
+   * that grant or refused after it (D804).
+   */
+  withdrawAccess(
+    ctx: OperationContext,
+    actor: TeamActor,
+    administratorId: number,
+    clearing: Omit<MemberGrant, 'roleIds'>,
+  ): Promise<MemberGrant>;
+
   /** Signs the administrators out of stale sessions after their access changed; call after commit. */
   flush(administratorIds: readonly number[]): Promise<void>;
 

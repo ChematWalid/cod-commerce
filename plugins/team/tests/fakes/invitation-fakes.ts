@@ -50,6 +50,17 @@ export class FakeMemberAccess implements MemberAccessPort {
     return Promise.resolve();
   }
 
+  async withdrawAccess(
+    ctx: OperationContext,
+    actor: TeamActor,
+    administratorId: number,
+    clearing: Omit<MemberGrant, 'roleIds'>,
+  ): Promise<MemberGrant> {
+    const held = this.held.get(administratorId) ?? { roleIds: [], ...clearing };
+    await this.setAccess(ctx, actor, administratorId, { roleIds: [], ...clearing });
+    return held;
+  }
+
   accessOf(_ctx: OperationContext, _scope: TenantScope, administratorId: number): Promise<MemberGrant | undefined> {
     return Promise.resolve(this.held.get(administratorId));
   }
