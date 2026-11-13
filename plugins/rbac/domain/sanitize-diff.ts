@@ -1,26 +1,41 @@
-import { ACTIVITY_DIFF_MAX_BYTES, DIFF_MAX_DEPTH, DIFF_OMITTED_VALUE, REDACTED_VALUE } from './constants';
+import {
+  ACTIVITY_DIFF_MAX_BYTES,
+  DIFF_MAX_DEPTH,
+  DIFF_MAX_KEY_LENGTH,
+  DIFF_OMITTED_VALUE,
+  REDACTED_VALUE,
+} from './constants';
 
 /**
- * The D66 terms, matched anywhere in a key read as one run of lowercase letters and digits, so `smsotp`, `pinhash`,
- * `passWord`, `api_key` and `xApiKey` are secrets (D800). Sticky, so it is tried at each position in turn.
+ * The secret terms: those of D66 and the extras of P1.S3 (`session`, `cvv`, `credential`, `private key`, `access
+ * key`), matched anywhere in a key read as one run of lowercase letters and digits, so `smsotp`, `pinhash`,
+ * `passWord`, `api_key`, `sessionid` and `cvv2` are secrets (D800). Sticky, so it is tried at each position in turn.
  */
-const D66_TERM = /password|secret|token|otp|hash|api.?key|authorization|cookie/y;
+const SECRET_TERM =
+  /password|secret|token|otp|hash|api.?key|authorization|cookie|session|cvv|credential|private.?key|access.?key/y;
 
 /**
- * Whole words that hold a D66 term by accident and name no secret. A match is exempt only when it lies entirely
+ * Whole words that hold a secret term by accident and name no secret. A match is exempt only when it lies entirely
  * inside one of them, so `footprintOken` (`footprint` + `oken`, holding `token`) is still a secret. A short list on
  * purpose: a word missing from it is redacted, which only hides a harmless value from the log (D800).
  */
-const BENIGN_WORDS: ReadonlySet<string> = new Set(['footprint', 'footprints', 'hashtag', 'hashtags']);
+const BENIGN_WORDS: ReadonlySet<string> = new Set([
+  'footprint',
+  'footprints',
+  'hashtag',
+  'hashtags',
+  'obsession',
+  'obsessions',
+  'possession',
+  'possessions',
+]);
 
-/** Further secrets beyond D66, matched as whole words: `obsession` is not a `session`, `accessKeyboard` no `access key`. */
-const SENSITIVE_WORD = /\b(?:sessions?|cvv|credentials?|private ?keys?|access ?keys?)\b/;
-
-/** `API_Key`, `api-key` and `apiKey` all become `api key`. */
+/** `API_Key`, `api-key` and `apiKey` become `api key`; fullwidth letters read as their ASCII forms (NFKC). */
 const wordsOf = (key: string): string[] =>
   key
+    .normalize('NFKC')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ')
     .replace(/[^A-Za-z0-9]+/g, ' ')
     .toLowerCase()
     .split(' ')
@@ -37,11 +52,11 @@ function benignSpansOf(words: readonly string[]): (readonly [number, number])[] 
   return spans;
 }
 
-/** Whether `run` holds a D66 term that does not lie entirely inside one benign span. */
-function holdsD66Term(run: string, benign: readonly (readonly [number, number])[]): boolean {
+/** Whether `run` holds a secret term that does not lie entirely inside one benign span. */
+function holdsSecretTerm(run: string, benign: readonly (readonly [number, number])[]): boolean {
   for (let index = 0; index < run.length; index += 1) {
-    D66_TERM.lastIndex = index;
-    const match = D66_TERM.exec(run);
+    SECRET_TERM.lastIndex = index;
+    const match = SECRET_TERM.exec(run);
     if (match === null) continue;
     const end = index + match[0].length;
     if (!benign.some(([from, to]) => from <= index && end <= to)) return true;
@@ -49,9 +64,11 @@ function holdsD66Term(run: string, benign: readonly (readonly [number, number])[
   return false;
 }
 
+/** A key too long to read is redacted unread, which also bounds the work per key. */
 const isSensitiveKey = (key: string): boolean => {
+  if (key.length > DIFF_MAX_KEY_LENGTH) return true;
   const words = wordsOf(key);
-  return holdsD66Term(words.join(''), benignSpansOf(words)) || SENSITIVE_WORD.test(words.join(' '));
+  return holdsSecretTerm(words.join(''), benignSpansOf(words));
 };
 
 /** What a diff becomes when it is too large to keep. */
@@ -63,7 +80,10 @@ function sanitizeValue(value: unknown, depth: number, ancestors: ReadonlySet<obj
   if (typeof value === 'bigint') return value.toString();
   // A function never belongs in a diff, and an own `toJSON` would write whatever it returns unsanitized.
   if (typeof value === 'function') return DIFF_OMITTED_VALUE;
-  if (value instanceof Date) return value.toISOString();
+  // The real clock time, never a subclass's own `toISOString`; an invalid date has none.
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? DIFF_OMITTED_VALUE : Date.prototype.toISOString.call(value);
+  }
   if (typeof value !== 'object' || value === null) return value;
   if (depth >= DIFF_MAX_DEPTH || ancestors.has(value)) return DIFF_OMITTED_VALUE;
   const path = new Set(ancestors).add(value);
