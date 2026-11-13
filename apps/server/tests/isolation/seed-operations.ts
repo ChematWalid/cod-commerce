@@ -1,5 +1,10 @@
 /** The Admin API documents the isolation world is seeded with. */
 
+/** A store's language must be one the platform offers; a fresh database offers English only. */
+export const OFFER_PLATFORM_LANGUAGES = `mutation {
+  updateGlobalSettings(input: { availableLanguages: [ar, fr, en] }) { ... on GlobalSettings { id } }
+}`;
+
 export const PROVISION_BUSINESS = `mutation ($input: ProvisionBusinessInput!) {
   provisionBusiness(input: $input) { business { id name } store { id subdomain channelToken } }
 }`;

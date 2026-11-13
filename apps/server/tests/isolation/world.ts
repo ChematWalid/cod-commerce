@@ -7,6 +7,7 @@ import {
   CREATE_STORE,
   DEMO_SECRET,
   MEMBER_STOCK_PERMISSIONS,
+  OFFER_PLATFORM_LANGUAGES,
   ONE_PIXEL_PNG,
   OVERRIDDEN_FLAG,
   PROVISION_BUSINESS,
@@ -183,6 +184,7 @@ export async function postWebhooks(http: IsolationHttp, business: BusinessWorld)
 /** Seeds businesses A and B, each with a row in every P1 tenant table. */
 export async function buildWorld(options: WorldOptions): Promise<World> {
   const superadmin = await options.http.login('superadmin', options.superadmin.username, options.superadmin.password);
+  fieldOf(await options.http.graphql(superadmin, OFFER_PLATFORM_LANGUAGES), 'updateGlobalSettings');
   const a = await buildBusiness(options, superadmin, 'A');
   const b = await buildBusiness(options, superadmin, 'B');
   await postWebhooks(options.http, a);

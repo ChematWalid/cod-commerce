@@ -1,4 +1,9 @@
 import { randomBytes } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { AssetServerPlugin, PresetOnlyStrategy } from '@vendure/asset-server-plugin';
 import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -17,12 +22,15 @@ import {
   removeBullKeys,
 } from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
+import { ASSET_ROUTE } from '../../src/config/asset-storage.config';
 
 const SUITE = 'p1-isolation';
 const PORT = E2E_PORTS.isolation;
 /** The demo handler registers the one provider a tenant secret can be stored for, and the demo webhook. */
 const ENV = { PLATFORM_DEMO_HANDLERS: 'true' };
 const PASSWORD = 'synthetic-isolation-password';
+const CENSUS_WAIT_MS = 60_000;
+const CENSUS_POLL_MS = 500;
 
 /** The test name of each run of a case: A attacks B, and B attacks A for the reverse sample. */
 const runsOf = ISOLATION_CASES.flatMap((testCase) => [
@@ -39,6 +47,14 @@ const runsOf = ISOLATION_CASES.flatMap((testCase) => [
 describe('P1 isolation: a store owner sees only their own business', () => {
   const env = e2eEnv({ env: ENV });
   const { server } = createTestEnvironment(buildE2eConfig({}, { suite: SUITE, port: PORT, env: ENV }));
+  // CI's integration job runs no Garage, so the logos this suite uploads go to a local folder instead of S3. The plugin
+  // keeps its options statically, so this replaces what `buildVendureConfig` set; the live evidence uses the real S3.
+  AssetServerPlugin.init({
+    route: ASSET_ROUTE,
+    assetUploadDir: mkdtempSync(join(tmpdir(), 'cod-isolation-assets-')),
+    namingStrategy: new RandomAssetNamingStrategy(),
+    imageTransformStrategy: new PresetOnlyStrategy({ defaultPreset: 'medium' }),
+  });
   const http = new IsolationHttp(`http://localhost:${String(PORT)}`);
   let world: World;
   let outcomes: Map<string, Outcome>;
@@ -77,16 +93,28 @@ describe('P1 isolation: a store owner sees only their own business', () => {
     await removeBullKeys(e2eBullPrefix(SUITE));
   });
 
-  it('seeds a row of each business in every P1 tenant table', async () => {
-    const counts = await tenantRowCounts(server.app.get(TransactionalConnection), [
-      world.a.businessId,
-      world.b.businessId,
-    ]);
+  it(
+    'seeds a row of each business in every P1 tenant table',
+    async () => {
+      // The outbox rows come from the webhooks' asynchronous processing, so the census waits for them.
+      const emptyTables = async (): Promise<string[]> => {
+        const counts = await tenantRowCounts(server.app.get(TransactionalConnection), [
+          world.a.businessId,
+          world.b.businessId,
+        ]);
+        return TENANT_TABLES.filter((table) => counts[table].a === 0 || counts[table].b === 0);
+      };
+      const deadline = Date.now() + CENSUS_WAIT_MS;
+      let empty = await emptyTables();
+      while (empty.length > 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, CENSUS_POLL_MS));
+        empty = await emptyTables();
+      }
 
-    const empty = TENANT_TABLES.filter((table) => counts[table].a === 0 || counts[table].b === 0);
-
-    expect(empty).toEqual([]);
-  });
+      expect(empty).toEqual([]);
+    },
+    CENSUS_WAIT_MS + CENSUS_POLL_MS * 10,
+  );
 
   it.each(runsOf)('%s', (run) => {
     const outcome = outcomes.get(run);
