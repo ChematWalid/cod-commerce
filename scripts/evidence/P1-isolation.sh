@@ -5,6 +5,7 @@
 # the entity × endpoint matrix and owner A's screens; tears everything down on exit. Never touches `cod` or `cod-verify`.
 #
 #   flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 2400 scripts/evidence/P1-isolation.sh   # builds cod-platform:local
+#   (EV_SKIP_BUILD=1 reuses a cod-platform:local built from this tree, e.g. by a separate locked build)
 #
 # Data is synthetic. Ids and store tokens are placeholders in the transcripts; sessions are named, never shown; the
 # demo signing secrets are redacted. EV_WITH_TEAM=0 leaves out the team page (P1.S4).
@@ -77,7 +78,13 @@ image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
 NEXT_DEPLOYMENT_ID="$(git rev-parse --short "$image_commit")"
 export NEXT_DEPLOYMENT_ID
 timeout 300 docker compose down -v --remove-orphans
-timeout 1500 docker compose build migrate
+# EV_SKIP_BUILD=1 reuses an image already built from this tree: on a loaded host the layer export alone can outlast the
+# job's time limit. It is honoured only while the tagged image exists.
+if [[ "${EV_SKIP_BUILD:-0}" == 1 ]] && docker image inspect "$APP_IMAGE" >/dev/null 2>&1; then
+  echo "reusing $APP_IMAGE (EV_SKIP_BUILD=1)"
+else
+  timeout 1500 docker compose build migrate
+fi
 APP_SERVICES=(api worker mailpit)
 timeout 300 docker compose up -d postgres
 wait_healthy postgres
