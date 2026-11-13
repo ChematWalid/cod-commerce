@@ -26,18 +26,11 @@ const HOW_TO_FIX =
   'No business role can be granted these plugin permissions, so only an Owner could ever call their handlers. ' +
   "Guard the handlers with requirePermission('<area>.<action>') from @cod/plugin-rbac/guard instead of a " +
   'permission of your own, or map a catalogue key to the permission in ENGINE_GRANTS ' +
-  '(plugins/rbac/domain/engine-grants.ts).';
+  '(plugins/rbac/domain/engine-grants.ts), or list it in PLATFORM_ONLY_CUSTOM_PERMISSIONS ' +
+  '(plugins/tenancy/domain/constants.ts) when only platform staff may hold it.';
 
 /** Every permission a business role can carry: the catalogue's own names and their engine grants (D59). */
 const GRANTABLE: ReadonlySet<string> = new Set(enginePermissionsFor(PERMISSION_CATALOG.map((entry) => entry.key)));
-
-/**
- * Tenancy permissions that reach an Owner and no other role today. D59 and D97 map six tenancy permissions to
- * catalogue keys and leave these two out: they guard no handler. Each needs a product decision (a catalogue key and
- * an `ENGINE_GRANTS` entry, or the platform-only list); until then they are named here so that nothing new joins
- * them unnoticed.
- */
-const OWNER_ONLY_PENDING_DECISION: readonly string[] = ['CreateTenantBusiness', 'DeleteTenantBusiness'];
 
 /** The custom permissions of a process started with `ROLE=role`, after every plugin's `configuration` ran. */
 async function customPermissionsOf(role: ServerRole): Promise<Parameters<typeof ownerRolePermissions>[0]> {
@@ -58,20 +51,6 @@ describe('plugin permissions', () => {
 
     // Assert: the positive control shows the plugins' configuration functions ran
     expect(customPermissions.length).toBeGreaterThan(PERMISSION_CATALOG.length);
-    expect(
-      ownerOnly.filter((name) => !OWNER_ONLY_PENDING_DECISION.includes(name)),
-      HOW_TO_FIX,
-    ).toEqual([]);
-  });
-
-  it('keeps no exception that became grantable or no longer exists', async () => {
-    // Arrange
-    const ownerPermissions: readonly string[] = ownerRolePermissions(await customPermissionsOf('api'));
-
-    // Act
-    const stale = OWNER_ONLY_PENDING_DECISION.filter((name) => GRANTABLE.has(name) || !ownerPermissions.includes(name));
-
-    // Assert
-    expect(stale).toEqual([]);
+    expect(ownerOnly, HOW_TO_FIX).toEqual([]);
   });
 });
