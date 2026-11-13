@@ -246,6 +246,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/store/resolve?host=demo3.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
@@ -253,7 +256,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:33:09.114Z",
+  "timestamp": "2026-11-13T11:27:03.253Z",
   "path": "/store/resolve?host=demo3.localhost"
 }
 ```

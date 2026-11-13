@@ -6,6 +6,9 @@ Two api processes of the same image (ports 23100 and 23101). Both answer for the
 
 ```http
 GET http://127.0.0.1:23100/store/resolve?host=demo2.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -25,6 +28,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23101/store/resolve?host=demo2.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -75,6 +81,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/store/resolve?host=demo2.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
@@ -82,7 +91,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:33:13.228Z",
+  "timestamp": "2026-11-13T11:28:15.904Z",
   "path": "/store/resolve?host=demo2.localhost"
 }
 ```
@@ -91,6 +100,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23100/store/resolve?host=demo2-new.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
@@ -110,6 +122,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23101/store/resolve?host=demo2.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
@@ -117,7 +132,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 404,
   "message": "Not Found",
-  "timestamp": "2026-11-08T23:33:13.381Z",
+  "timestamp": "2026-11-13T11:28:16.026Z",
   "path": "/store/resolve?host=demo2.localhost"
 }
 ```
@@ -126,6 +141,9 @@ content-type: application/json; charset=utf-8
 
 ```http
 GET http://127.0.0.1:23101/store/resolve?host=demo2-new.localhost
+x-internal-kid: k1
+x-internal-ts: <unix seconds>
+x-internal-sig: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
