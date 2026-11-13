@@ -11,14 +11,11 @@ import {
 import { TEAM_WORLDS, type TeamWorld } from '../team-world';
 import type { BusinessWorld } from '../world';
 
-/**
- * The matrix rows of Team. They borrow `member` until the union gains Team's own rows ('team member', 'invitation',
- * 'commission', 'salary payment'); then only these constants change.
- */
-const TEAM_MEMBER: IsolationEntity = 'member';
-const INVITATION: IsolationEntity = 'member';
-const COMMISSION: IsolationEntity = 'member';
-const SALARY: IsolationEntity = 'member';
+/** The matrix rows of Team (P1.S4). */
+const TEAM_MEMBER: IsolationEntity = 'team member';
+const INVITATION: IsolationEntity = 'invitation';
+const COMMISSION: IsolationEntity = 'commission';
+const SALARY: IsolationEntity = 'salary payment';
 
 const MEMBER_NOT_FOUND = 'team.member-not-found';
 const COMMISSION_NOT_FOUND = 'team.commission-not-found';

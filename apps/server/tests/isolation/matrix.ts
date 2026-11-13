@@ -15,6 +15,10 @@ export type IsolationEntity =
   | 'account'
   | 'logo asset'
   | 'template note'
+  | 'team member'
+  | 'invitation'
+  | 'commission'
+  | 'salary payment'
   | 'stock Vendure data';
 
 /** How the attacker reaches for the victim's data; each is a column of the evidence matrix. */

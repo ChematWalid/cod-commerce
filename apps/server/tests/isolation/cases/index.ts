@@ -1,4 +1,5 @@
 import type { IsolationCase } from '../matrix';
+import { TEAM_CASES } from './team';
 import { ACCOUNT_CASES } from './account';
 import { PLATFORM_CASES } from './platform';
 import { MEMBER_ACTIVITY_CASES } from './rbac-members';
@@ -18,4 +19,5 @@ export const ISOLATION_CASES: readonly IsolationCase[] = [
   ...ACCOUNT_CASES,
   ...STOCK_READ_CASES,
   ...STOCK_WRITE_CASES,
+  ...TEAM_CASES,
 ];

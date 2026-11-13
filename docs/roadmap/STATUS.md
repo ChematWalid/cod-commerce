@@ -28,8 +28,9 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P1.S6** Platform plumbing: queue pools, partitions, outbox with relay, sweeper and reconciler, internal HMAC guard, envelope-encrypted tenant secrets and KEK rotation, webhook gateway, flags and kill switches, partitioned append-only `activity_log` | #9 | `feat/p1-s6-platform-plumbing` | #226 | **merged**; handoff `handoff/P1.S6.md`; evidence `docs/evidence/P1.S6/`; decisions D99-D130 in `P1-decisions.md` |
 | **P1.S4** Team members & invitations: `plugins/team`, invite/accept/resend/revoke, members list with tabs, member actions, pay salary placeholder (`salary.paid` on the outbox), commission configs, audit fixes #114, #160, #211, #139 | #7 | `feat/p1-s4-team` | #233 | **merged** (360e1c1); handoff `handoff/P1.S4.md`; evidence `docs/evidence/P1.S4/`; decisions D200-D222 in `P1-decisions.md` |
 | P1 audit fixes (`docs/audits/P1-audit.md`, #101) | — | `fix/*` | #102-#105, #213-#215, #218-#220, #224, #228 | **merged**; decisions D400-D405 |
-| P1 isolation review: `slugForEntity` cross-business oracle (#229) | — | `fix/slug-for-entity-tenant-leak` | #232 | **merged**; D500; open-operations gate |
-| P1.S4 follow-up: rbac audit fixes (`fix/s4-audit-rbac`) | — | `fix/s4-audit-rbac` | #234 | **merging** (coordinator: confirm merged) |
+| P1 isolation review: `slugForEntity` cross-business oracle (#229) | — | `fix/slug-for-entity-tenant-leak` | #232 | **merged** (f32bd2a); D500; open-operations gate |
+| P1.S4 follow-up: rbac and team audit fixes | — | `fix/s4-audit-rbac` | #234 | **merged** (3a3bf83) |
+| P1.S4 follow-up: auth audit fixes | — | `fix/s4-audit-auth` | #237 | **merged** (ce2e282) |
 | **P1 closing evidence**: a store owner sees only their own business | — | `test/p1-isolation-evidence` | #235 | **merged**; evidence `docs/evidence/P1-isolation/`; CI test `apps/server/tests/e2e/p1-isolation.e2e.test.ts` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.

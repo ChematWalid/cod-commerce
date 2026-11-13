@@ -2,7 +2,8 @@
  * Every P1 table that holds one business's data, with the SQL that counts a business's rows in it. The census proves
  * the world gave both businesses something to steal before the matrix reaches for it. `custom_domain` (a stub
  * until P8.S9, no endpoint writes it) and `business_order_sequence` (written by the first order, P4) stay empty in
- * P1 and are left out; `inbound_webhook_key` is keyed by provider account, not by business.
+ * P1 and are left out; `inbound_webhook_key` is keyed by provider account, not by business. `salary_payment` stays empty:
+ * only an active member other than the payer can be paid, and the only way to one is the invitation mail's token.
  */
 const BY_BUSINESS = (table: string): string => `SELECT count(*)::int AS n FROM "${table}" WHERE "businessId" = $1`;
 
@@ -21,6 +22,9 @@ export const TENANT_TABLE_COUNTS = {
   outbox_event: BY_BUSINESS('outbox_event'),
   outbox_delivery: BY_BUSINESS('outbox_delivery'),
   template_note: BY_BUSINESS('template_note'),
+  team_member: BY_BUSINESS('team_member'),
+  invitation: BY_BUSINESS('invitation'),
+  commission_config: BY_BUSINESS('commission_config'),
 } as const;
 
 export type TenantTable = keyof typeof TENANT_TABLE_COUNTS;

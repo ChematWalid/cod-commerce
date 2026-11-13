@@ -11,6 +11,8 @@ const SNAPSHOT = `query ($member: String!) {
   tenantSecrets { id ref last4 updatedAt }
   templateNotes { id title }
   accountProfile { lastName }
+  teamMembers(input: { tab: all }) { items { id email status baseSalary commissionConfigIds } }
+  teamCommissionConfigs { id name value }
 }`;
 
 /** The victim's business as its owner sees it, sorted so the comparison ignores order. */

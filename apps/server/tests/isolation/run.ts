@@ -1,5 +1,6 @@
 import { errorCodesOf, type Exchange, type GraphqlBody, type IsolationHttp, type MatrixRequest } from './http';
 import type { Expectation, IsolationCase } from './matrix';
+import { TEAM_WORLDS, teamFingerprints } from './team-world';
 import type { BusinessWorld, World } from './world';
 
 /** A case as it ran: who attacked whom, what came back, and what was wrong with it. */
@@ -23,7 +24,10 @@ const MIN_FINGERPRINT_LENGTH = 8;
  * sent it (an id the attacker names is not news to the attacker).
  */
 export function fingerprintsOf(victim: BusinessWorld): string[] {
-  return allValuesOf(victim).filter((value) => value.length >= MIN_FINGERPRINT_LENGTH);
+  const team = TEAM_WORLDS.get(victim.label);
+  return [...allValuesOf(victim), ...(team === undefined ? [] : teamFingerprints(team))].filter(
+    (value) => value.length >= MIN_FINGERPRINT_LENGTH,
+  );
 }
 
 function allValuesOf(victim: BusinessWorld): string[] {

@@ -2,9 +2,21 @@ import type { Exchange } from './http';
 import type { IsolationAccess, IsolationEntity } from './matrix';
 import type { Outcome } from './run';
 import type { TenantTable } from './tenant-tables';
+import { TEAM_WORLDS } from './team-world';
 import type { BusinessWorld, World } from './world';
 
 const ACCESS_COLUMNS: readonly IsolationAccess[] = ['read by id', 'list', 'write', 'victim channel'];
+
+/** The team rows' ids (P1.S4) as placeholders. */
+function teamPlaceholdersOf(label: 'A' | 'B'): [string, string][] {
+  const team = TEAM_WORLDS.get(label);
+  if (team === undefined) return [];
+  return [
+    [team.ownerMemberId, `<TEAM_MEMBER_${label}_OWNER>`],
+    [team.invited.memberId, `<TEAM_MEMBER_${label}_INVITED>`],
+    [team.commission.id, `<COMMISSION_${label}>`],
+  ];
+}
 
 /** Each run value of the world and the placeholder a transcript shows instead; secrets become `[REDACTED]`. */
 export function placeholdersOf(world: World): [string, string][] {
@@ -19,6 +31,7 @@ export function placeholdersOf(world: World): [string, string][] {
       [business.secret.id, `<SECRET_${l}>`],
       [business.note.id, `<NOTE_${l}>`],
       [business.logoAssetId, `<LOGO_${l}>`],
+      ...teamPlaceholdersOf(l),
       ...business.stores.flatMap((store): [string, string][] => [
         [store.channelToken, `<TOKEN_${store.label}>`],
         [store.id, `<STORE_${store.label}>`],

@@ -7,7 +7,7 @@
 #   flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 2400 scripts/evidence/P1-isolation.sh   # builds cod-platform:local
 #
 # Data is synthetic. Ids and store tokens are placeholders in the transcripts; sessions are named, never shown; the
-# demo signing secrets are redacted. Set EV_WITH_TEAM=1 once P1.S4's team pages exist.
+# demo signing secrets are redacted. EV_WITH_TEAM=0 leaves out the team page (P1.S4).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=../lib/wait-http.sh
@@ -32,6 +32,8 @@ export TENANT_SECRET_KEKS=${EV_TENANT_SECRET_KEKS:-k1:3a5c7e9f1b2d4f60718293a4b5
 export TENANT_SECRET_ACTIVE_KID=k1
 # The demo handler registers the one secret provider and the demo webhook the world seeds its inbound rows with.
 export PLATFORM_DEMO_HANDLERS=true
+# The team screen (P1.S4).
+export EV_WITH_TEAM=${EV_WITH_TEAM:-1}
 
 out=docs/evidence/P1-isolation
 api="http://127.0.0.1:$API_HOST_PORT"
@@ -100,7 +102,8 @@ command grep -q '^runs=[0-9]* failed=0 unchanged=true$' "$work/run.log" || fail 
 timeout 900 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1-isolation-screens.mjs \
   "$api/dashboard" "$out/screens" "$work/world.json" 2> >(command tee "$work/screens.log" >&2)
 shot_count=$(command ls "$out"/screens/*.png | command wc -l)
-((shot_count >= 24)) || fail "$shot_count screenshots, wanted at least 24"
+wanted_shots=$((EV_WITH_TEAM == 1 ? 28 : 24))
+((shot_count >= wanted_shots)) || fail "$shot_count screenshots, wanted at least $wanted_shots"
 
 # --- README --------------------------------------------------------------------------------------
 summary=$(command head -1 "$work/run.log")
@@ -108,7 +111,8 @@ summary=$(command head -1 "$work/run.log")
   printf '# P1 isolation: a store owner sees only their own business\n\n'
   printf 'Live evidence from `scripts/evidence/P1-isolation.sh` on image commit `%s`. Data is synthetic.\n\n' "$NEXT_DEPLOYMENT_ID"
   printf 'Two businesses, A and B, each get two stores, an owner, a store-limited member, a custom role, a tenant secret, a\n'
-  printf 'template note, a logo, a flag override and two signed demo webhooks. Then A'"'"'s owner (and B'"'"'s, for the cases marked\n'
+  printf 'template note, a logo, a flag override, two signed demo webhooks, and team rows (a pending invitation, a\n'
+  printf 'commission config and the owner'"'"'s member row). Then A'"'"'s owner (and B'"'"'s, for the cases marked\n'
   printf 'B→A) reaches for the other'"'"'s data through every merchant endpoint: by id, by list, by write, and with the other'"'"'s\n'
   printf 'store token. Each answer is judged (null, FORBIDDEN, a not-found code, or the caller'"'"'s own data only) and scanned for\n'
   printf 'every value that identifies the other business. Result: `%s`.\n\n' "$summary"
@@ -119,8 +123,8 @@ summary=$(command head -1 "$work/run.log")
   command cat "$out/census.md"
   printf '\nEach owner'"'"'s view of its own business (business, stores, roles, member access, secrets, notes, profile) was read\n'
   printf 'before and after the attacks and is unchanged (`unchanged=true` above).\n\n'
-  printf '## Screens\n\n`screens/<page>-<lang>-<viewport>.png`: owner A'"'"'s home, store switcher (open), settings, roles and\n'
-  printf 'activity log, in Arabic RTL and English, desktop (1280 px) and mobile (390 px), and B'"'"'s store opened by direct URL\n'
+  printf '## Screens\n\n`screens/<page>-<lang>-<viewport>.png`: owner A'"'"'s home, store switcher (open), settings, roles,\n'
+  printf 'activity log and team members, in Arabic RTL and English, desktop (1280 px) and mobile (390 px), and B'"'"'s store opened by direct URL\n'
   printf '(not found). The script fails if a screen shows any of B'"'"'s names, or if the switcher misses A'"'"'s stores.\n\n'
   for f in "$out"/screens/*.png; do printf -- '- [`%s`](screens/%s)\n' "$(basename "$f")" "$(basename "$f")"; done
 } >"$out/README.md"

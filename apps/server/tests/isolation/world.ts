@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { type Caller, fieldOf, type IsolationHttp } from './http';
+import { seedTeam, TEAM_WORLDS } from './team-world';
 import {
   ACTIVE_ADMINISTRATOR,
   CREATE_NOTE,
@@ -194,6 +195,9 @@ export async function buildWorld(options: WorldOptions): Promise<World> {
   fieldOf(await options.http.graphql(superadmin, OFFER_PLATFORM_LANGUAGES), 'updateGlobalSettings');
   const a = await buildBusiness(options, superadmin, 'A');
   const b = await buildBusiness(options, superadmin, 'B');
+  // Team rows (P1.S4), kept beside the world in TEAM_WORLDS for the team cases and the leak scan.
+  TEAM_WORLDS.set('A', await seedTeam(options.http, a));
+  TEAM_WORLDS.set('B', await seedTeam(options.http, b));
   await postWebhooks(options.http, a);
   await postWebhooks(options.http, b);
   return { a, b, superadmin };
