@@ -25,6 +25,8 @@ export async function commitMemberChange(
 ): Promise<TeamMember> {
   const change = await ports.transaction.run(ctx, actor.scope, async (transactional) => {
     await ports.lock.acquire(transactional, actor.scope);
+    // rbac's lock next, before the work reads the member's access, so that access is the one it replaces (D804).
+    await ports.access.holdAccess(transactional, actor.scope);
     return work(transactional);
   });
   if (change.signOut !== undefined) await ports.access.flush([change.signOut]);

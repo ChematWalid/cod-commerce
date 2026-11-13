@@ -9,3 +9,6 @@ export interface MemberGrant {
   readonly storeAccess: StoreAccessKind;
   readonly storeIds: readonly Snowflake[];
 }
+
+/** The store access a clear names: a {@link MemberGrant} without roles (D804). */
+export type MemberStoreGrant = Omit<MemberGrant, 'roleIds'>;

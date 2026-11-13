@@ -9,6 +9,7 @@ export {
   type MemberAccessActor,
   type MemberAccessView,
   type SetMemberAccessCommand,
+  type WithdrawMemberAccessCommand,
 } from './application/member-access.service';
 export { GrantPreviewService, type ActorReach, type PreviewGrantCommand } from './application/grant-preview.service';
 export type { MemberSuspensionRegistry } from './application/member-suspension-registry';

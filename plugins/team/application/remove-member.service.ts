@@ -39,8 +39,10 @@ export class RemoveMemberService {
     if (member.status === 'invited') throw new MemberNotFoundError();
     assertNotOwner(member, await this.ports.owner.ownerAdministratorId(ctx, actor.scope));
     const administratorId = administratorOf(member);
-    if (member.status === 'active' && grant.roleIds.length > 0) {
-      await this.ports.access.setAccess(ctx, actor, administratorId, clearingGrantOf(grant, reach.allStores));
+    if (member.status === 'active') {
+      // Always withdrawn, roleless or not: a role granted since Team's read is removed with the rest (D804).
+      const { storeAccess, storeIds } = clearingGrantOf(grant, reach.allStores);
+      await this.ports.access.withdrawAccess(ctx, actor, administratorId, { storeAccess, storeIds });
     } else {
       // rbac holds no role of a deactivated member, so setAccess would judge nothing: judge its snapshot instead (D60).
       await assertMayActOnMember(this.ports, ctx, actor, grant);

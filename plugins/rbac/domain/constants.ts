@@ -48,6 +48,8 @@ export const REDACTED_VALUE = '[REDACTED]';
 export const DIFF_OMITTED_VALUE = '[OMITTED]';
 /** The deepest nesting of a diff that is kept. */
 export const DIFF_MAX_DEPTH = 12;
+/** The longest diff key that is read for secret terms; a longer one is redacted unread (D800). */
+export const DIFF_MAX_KEY_LENGTH = 256;
 /** How long one cached-session delete may take before it is logged and given up (D55). */
 export const SESSION_CACHE_DELETE_TIMEOUT_MS = 1000;
 /** How long after the first delete the second one runs, for a reader that loaded before the commit (D55). */
