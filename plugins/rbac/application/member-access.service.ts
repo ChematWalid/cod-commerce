@@ -53,6 +53,15 @@ export interface MemberAccessView {
   readonly storeIds: readonly string[];
 }
 
+/** A withdrawal of every role of a member: who withdraws it, from whom, and the store access the clear names (D804). */
+export type WithdrawMemberAccessCommand = Omit<SetMemberAccessCommand, 'roleIds'>;
+
+/** A member's access just before and just after one change, both read under the rbac lock. */
+interface AccessChange {
+  readonly previous: MemberAccessView;
+  readonly current: MemberAccessView;
+}
+
 /** Sets who can do what on which stores (D53-D55, D60). P1.S4 calls {@link setAccess} from its invitation flow. */
 export class MemberAccessService {
   constructor(private readonly ports: MemberAccessPorts) {}
@@ -66,11 +75,26 @@ export class MemberAccessService {
    *   {@link MemberSuspendedError} for roles granted to a member a registered check reports suspended (D204)
    */
   async setAccess(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
-    const view = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
+    const change = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
       this.setInTransaction(transactional, command),
     );
     await this.ports.flusher.flushAdministrators([command.administratorId]);
-    return view;
+    return change.current;
+  }
+
+  /**
+   * Withdraws every role of the member, as {@link setAccess} with no role does, and returns the access the member held
+   * just before. That access is read under the rbac lock in the same transaction as the withdrawal, so a concurrent
+   * {@link setAccess} is either part of it or runs after it; Team snapshots it when it deactivates a member (D804).
+   *
+   * @throws a {@link RbacError} as {@link setAccess} does for a clear
+   */
+  async withdrawAccess(ctx: OperationContext, command: WithdrawMemberAccessCommand): Promise<MemberAccessView> {
+    const change = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
+      this.setInTransaction(transactional, { ...command, roleIds: [] }),
+    );
+    await this.ports.flusher.flushAdministrators([command.administratorId]);
+    return change.previous;
   }
 
   /**
@@ -129,7 +153,7 @@ export class MemberAccessService {
     );
   }
 
-  private async setInTransaction(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
+  private async setInTransaction(ctx: OperationContext, command: SetMemberAccessCommand): Promise<AccessChange> {
     const { scope } = command.actor;
     await this.ports.lock.acquire(ctx, scope.businessId);
     if (!(await this.ports.members.isMember(ctx, scope, command.administratorId))) throw new MemberNotFoundError();
@@ -143,9 +167,10 @@ export class MemberAccessService {
     if (command.roleIds.length > 0 && (await this.ports.suspension.isSuspended(ctx, scope, command.administratorId))) {
       throw new MemberSuspendedError();
     }
-    if (this.isUnchanged(world.before, after)) return this.viewOf(command.administratorId, after, world.roles);
-    await this.write(ctx, command, world, after);
-    return this.viewOf(command.administratorId, after, world.roles);
+    const previous = this.viewOf(command.administratorId, world.before, world.roles);
+    const current = this.viewOf(command.administratorId, after, world.roles);
+    if (!this.isUnchanged(world.before, after)) await this.write(ctx, command, world, after);
+    return { previous, current };
   }
 
   private nextRows(
