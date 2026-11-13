@@ -95,7 +95,12 @@ async function provision(options: WorldOptions, superadmin: Caller, label: 'A' |
     await http.graphql(session, CREATE_STORE, { input: secondInput }, channelOf(first)),
     'createStore',
   );
-  return { business: provisioned.business, email, session, stores: [first, { label: `${label}2`, ...second }] as const };
+  return {
+    business: provisioned.business,
+    email,
+    session,
+    stores: [first, { label: `${label}2`, ...second }] as const,
+  };
 }
 
 /** Creates a member through the stock API and links it to the business, as `createMember` does. */
@@ -112,7 +117,11 @@ async function createMember(options: WorldOptions, superadmin: Caller, store: Wo
   const roleInput = { code, description: code, permissions: MEMBER_STOCK_PERMISSIONS, channelIds: [channel.id] };
   const role = await as<{ id: string }>(STOCK_CREATE_ROLE, { input: roleInput }, 'createRole');
   const adminInput = { emailAddress: email, firstName: 'Member', lastName: store.label, password, roleIds: [role.id] };
-  const administrator = await as<{ id: string }>(STOCK_CREATE_ADMINISTRATOR, { input: adminInput }, 'createAdministrator');
+  const administrator = await as<{ id: string }>(
+    STOCK_CREATE_ADMINISTRATOR,
+    { input: adminInput },
+    'createAdministrator',
+  );
   await options.hooks.linkToBusiness(administrator.id, businessId);
   return { email, administratorId: administrator.id };
 }

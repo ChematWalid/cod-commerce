@@ -68,13 +68,17 @@ export function judge(exchange: Exchange, expect: Expectation, attacker: Busines
       const code = (exchange.body as { code?: string } | null)?.code;
       const statusOk = exchange.status === expect.status;
       const codeOk = expect.code === undefined || code === expect.code;
-      return statusOk && codeOk ? [] : [`wanted HTTP ${String(expect.status)} ${expect.code ?? ''}, got ${String(exchange.status)} ${code ?? ''}`];
+      return statusOk && codeOk
+        ? []
+        : [`wanted HTTP ${String(expect.status)} ${expect.code ?? ''}, got ${String(exchange.status)} ${code ?? ''}`];
     }
     case 'own': {
       const answer = JSON.stringify(exchange.body);
       const missing = expect.mustInclude(attacker).filter((value) => !answer.includes(value));
       const failed = exchange.status >= 400 || codes.length > 0;
-      return failed || missing.length > 0 ? [`wanted own data, got HTTP ${String(exchange.status)} codes [${codes.join()}], missing ${missing.join()}`] : [];
+      return failed || missing.length > 0
+        ? [`wanted own data, got HTTP ${String(exchange.status)} codes [${codes.join()}], missing ${missing.join()}`]
+        : [];
     }
   }
 }
@@ -89,11 +93,20 @@ export async function runCase(
 ): Promise<Outcome> {
   const exchange = await http.send(testCase.request(attacker, victim, world));
   const leaks = leaksIn(exchange, victim).map((value) => `leaks the victim's value ${value}`);
-  return { case: testCase, attacker: attacker.label, exchange, failures: [...judge(exchange, testCase.expect, attacker), ...leaks] };
+  return {
+    case: testCase,
+    attacker: attacker.label,
+    exchange,
+    failures: [...judge(exchange, testCase.expect, attacker), ...leaks],
+  };
 }
 
 /** Runs every case A→B, and the reverse-direction ones B→A too. */
-export async function runMatrix(http: IsolationHttp, world: World, cases: readonly IsolationCase[]): Promise<Outcome[]> {
+export async function runMatrix(
+  http: IsolationHttp,
+  world: World,
+  cases: readonly IsolationCase[],
+): Promise<Outcome[]> {
   const outcomes: Outcome[] = [];
   for (const testCase of cases) {
     outcomes.push(await runCase(http, world, testCase, world.a, world.b));

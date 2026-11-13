@@ -52,10 +52,10 @@ describe('P1 isolation: a store owner sees only their own business', () => {
       http,
       hooks: {
         linkToBusiness: async (administratorId, businessId) => {
-          await connection.rawConnection.query('UPDATE "administrator" SET "customFieldsBusinessid" = $1 WHERE "id" = $2', [
-            businessId,
-            administratorId.replace(/^T_/, ''),
-          ]);
+          await connection.rawConnection.query(
+            'UPDATE "administrator" SET "customFieldsBusinessid" = $1 WHERE "id" = $2',
+            [businessId, administratorId.replace(/^T_/, '')],
+          );
         },
       },
       superadmin: { username: env.SUPERADMIN_USERNAME, password: env.SUPERADMIN_PASSWORD },
@@ -64,7 +64,12 @@ describe('P1 isolation: a store owner sees only their own business', () => {
     });
     before = { a: await snapshotOf(http, world.a), b: await snapshotOf(http, world.b) };
     const ran = await runMatrix(http, world, ISOLATION_CASES);
-    outcomes = new Map(ran.map((outcome) => [`${outcome.case.id} (${outcome.attacker}→${outcome.attacker === 'A' ? 'B' : 'A'})`, outcome]));
+    outcomes = new Map(
+      ran.map((outcome) => [
+        `${outcome.case.id} (${outcome.attacker}→${outcome.attacker === 'A' ? 'B' : 'A'})`,
+        outcome,
+      ]),
+    );
   }, 300_000);
 
   afterAll(async () => {
@@ -73,7 +78,10 @@ describe('P1 isolation: a store owner sees only their own business', () => {
   });
 
   it('seeds a row of each business in every P1 tenant table', async () => {
-    const counts = await tenantRowCounts(server.app.get(TransactionalConnection), [world.a.businessId, world.b.businessId]);
+    const counts = await tenantRowCounts(server.app.get(TransactionalConnection), [
+      world.a.businessId,
+      world.b.businessId,
+    ]);
 
     for (const table of TENANT_TABLES) {
       expect({ table, ...counts[table] }).toEqual({ table, a: expect.any(Number), b: expect.any(Number) });
@@ -85,7 +93,10 @@ describe('P1 isolation: a store owner sees only their own business', () => {
   it.each(runsOf)('%s', (run) => {
     const outcome = outcomes.get(run);
 
-    expect(outcome?.failures, `${run}: HTTP ${String(outcome?.exchange.status)} ${JSON.stringify(outcome?.exchange.body).slice(0, 400)}`).toEqual([]);
+    expect(
+      outcome?.failures,
+      `${run}: HTTP ${String(outcome?.exchange.status)} ${JSON.stringify(outcome?.exchange.body).slice(0, 400)}`,
+    ).toEqual([]);
   });
 
   it("leaves each business's data as its owner saw it before the attacks", async () => {
