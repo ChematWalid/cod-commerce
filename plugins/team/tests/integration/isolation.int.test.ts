@@ -208,6 +208,46 @@ describe('two businesses (multi-tenant check)', () => {
     expect(await kit.query('SELECT id FROM administrator WHERE "emailAddress" = $1', [tampered])).toEqual([]);
   });
 
+  it("shows each business's token only its own invitation in the preview, never the other business", async () => {
+    // Arrange
+    const email = freshEmail('preview-both');
+    await ownerInvites('a', email);
+    await ownerInvites('b', email);
+    const tokens = (await waitForMessages(email, 2)).map(
+      (message) => invitationLinkIn(message).searchParams.get('token') ?? '',
+    );
+    const labelOf = async (token: string): Promise<Label> => {
+      const hash = createHash('sha256').update(token).digest('hex');
+      const [row] = await kit.query<{ businessId: string }>(
+        'SELECT "businessId" FROM invitation WHERE "tokenHash" = $1',
+        [hash],
+      );
+      return row?.businessId === businesses.a.businessId ? 'a' : 'b';
+    };
+
+    // Act
+    const previews = await Promise.all(
+      tokens.map(async (token) => ({
+        label: await labelOf(token),
+        answer: await kit.publicRest({ method: 'GET', path: `/team/invitations/preview?token=${token}` }),
+      })),
+    );
+
+    // Assert
+    expect(previews.map((preview) => preview.label).sort()).toEqual(['a', 'b']);
+    for (const { label, answer } of previews) {
+      const other = businesses[label === 'a' ? 'b' : 'a'];
+      expect(answer).toMatchObject({
+        status: 200,
+        body: { email, businessName: `${label} SARL`, inviterName: `${label} Owner` },
+      });
+      const shown = JSON.stringify(answer.body);
+      for (const secret of [other.businessId, `${label === 'a' ? 'b' : 'a'} SARL`, other.stores[0].subdomain]) {
+        expect(shown).not.toContain(secret);
+      }
+    }
+  });
+
   it('accepts the first of two invitations of one address and refuses the second without naming the other business (D201)', async () => {
     // Arrange
     const { a } = businesses;

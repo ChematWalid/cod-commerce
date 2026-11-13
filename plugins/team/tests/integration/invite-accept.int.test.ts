@@ -93,12 +93,15 @@ describe('invite and accept (brief step 2)', () => {
     // Arrange
     const { a } = businesses;
     const email = freshEmail('nadia');
+    featureChecks.length = 0;
     const invited = await inviteToA(email);
+    const checkedAtInvite = featureChecks.splice(0);
     const token = await tokenOf(email);
 
     // Act
     const preview = await kit.publicRest({ method: 'GET', path: `/team/invitations/preview?token=${token}` });
     const accepted = await accept(token);
+    const checkedAtAccept = featureChecks.splice(0);
 
     // Assert
     expect(invited).toMatchObject({ email, status: 'invited', administratorId: null, baseSalary: 42_000 });
@@ -119,7 +122,14 @@ describe('invite and accept (brief step 2)', () => {
       storeAccess: 'selected',
       storeIds: [a.stores[1].id],
     });
-    expect(featureChecks).toContainEqual({ feature: 'team-seats', scope: { businessId: a.businessId } });
+    const seatCheck = { feature: 'team-seats', scope: { businessId: a.businessId } };
+    expect(checkedAtInvite).toEqual([seatCheck]);
+    expect(checkedAtAccept).toEqual([seatCheck]);
+    for (const answer of [preview, accepted]) {
+      expect(answer.status).toBe(200);
+      expect(answer.headers.get('cache-control')).toBe('no-store');
+      expect(answer.headers.get('referrer-policy')).toBe('no-referrer');
+    }
   });
 
   it('gives the account only Authenticated and the role bindings, never UpdateAdministrator, and a verified address', async () => {
