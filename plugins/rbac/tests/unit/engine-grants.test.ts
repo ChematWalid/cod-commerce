@@ -22,7 +22,7 @@ describe('ENGINE_GRANTS', () => {
   });
 
   it('has no reviewed stock grant yet', () => {
-    expect(REVIEWED_STOCK_ENGINE_GRANTS).toEqual([]);
+    expect(REVIEWED_STOCK_ENGINE_GRANTS).toEqual({});
   });
 
   it('fails the check when a stock permission is added to a copy of the map', () => {
@@ -33,18 +33,29 @@ describe('ENGINE_GRANTS', () => {
     const unreviewed = unreviewedStockGrants(widened, STOCK_PERMISSIONS, REVIEWED_STOCK_ENGINE_GRANTS);
 
     // Assert
-    expect(unreviewed).toEqual(['UpdateAdministrator']);
+    expect(unreviewed).toEqual(['orders.cancel→UpdateAdministrator']);
   });
 
-  it('accepts a stock permission that is on the reviewed list', () => {
+  it('accepts a stock permission reviewed for that key', () => {
     // Arrange
     const widened = { ...ENGINE_GRANTS, 'orders.cancel': ['ReadCatalog'] };
 
     // Act
-    const unreviewed = unreviewedStockGrants(widened, STOCK_PERMISSIONS, ['ReadCatalog']);
+    const unreviewed = unreviewedStockGrants(widened, STOCK_PERMISSIONS, { 'orders.cancel': ['ReadCatalog'] });
 
     // Assert
     expect(unreviewed).toEqual([]);
+  });
+
+  it('fails the check when another key carries a stock permission reviewed for one key', () => {
+    // Arrange
+    const widened = { ...ENGINE_GRANTS, 'orders.cancel': ['ReadCatalog'], 'orders.view': ['ReadCatalog'] };
+
+    // Act
+    const unreviewed = unreviewedStockGrants(widened, STOCK_PERMISSIONS, { 'orders.cancel': ['ReadCatalog'] });
+
+    // Assert
+    expect(unreviewed).toEqual(['orders.view→ReadCatalog']);
   });
 });
 
