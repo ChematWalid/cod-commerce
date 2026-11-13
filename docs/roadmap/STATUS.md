@@ -1,4 +1,4 @@
-# Where we stopped: onboarding for the next agent (2026-11-12, after P1.S6: platform plumbing, P1.S4 next)
+# Where we stopped: onboarding for the next agent (2026-11-13, P1.S4 team members in review)
 
 Read this first, then `CLAUDE.md` (session rules, mandatory) and `docs/roadmap/CONTRIBUTING.md`.
 
@@ -25,7 +25,8 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P1.S2** Accounts & auth: `plugins/auth`, `plugins/rate-limit`, sign-up wizard, verification, reset, profile, OAuth behind a flag | #5 | `feat/p1-s2-auth` | see `gh pr list` | **merged**; handoff `handoff/P1.S2.md`; evidence `docs/evidence/P1.S2/`; decisions `P1-decisions.md` |
 | **P1.S3** Permissions catalog & roles: 93-permission catalog, `plugins/rbac`, built-in and custom roles, store-scoped access, activity log | #6 | `feat/p1-s3-rbac` | see `gh pr list` | **merged**; handoff `handoff/P1.S3.md`; evidence `docs/evidence/P1.S3/`; decisions `P1-decisions.md` |
 | **P1.S5** Admin shell, navigation & Arabic RTL: merchant sidebar and routes, store switcher and Create Store, account menu, general settings, branding, `i18n:check`, light/dark | #8 | `feat/p1-s5-admin-shell` | see `gh pr list` | **merged**; handoff `handoff/P1.S5.md`; evidence `docs/evidence/P1.S5/`; decisions `P1-decisions.md` |
-| **P1.S6** Platform plumbing: queue pools, partitions, outbox with relay, sweeper and reconciler, internal HMAC guard, envelope-encrypted tenant secrets and KEK rotation, webhook gateway, flags and kill switches, partitioned append-only `activity_log` | #9 | `feat/p1-s6-platform-plumbing` | #PR | **PR open**; handoff `handoff/P1.S6.md`; evidence `docs/evidence/P1.S6/`; decisions D99-D130 in `P1-decisions.md` |
+| **P1.S6** Platform plumbing: queue pools, partitions, outbox with relay, sweeper and reconciler, internal HMAC guard, envelope-encrypted tenant secrets and KEK rotation, webhook gateway, flags and kill switches, partitioned append-only `activity_log` | #9 | `feat/p1-s6-platform-plumbing` | #226 | **merged**; handoff `handoff/P1.S6.md`; evidence `docs/evidence/P1.S6/`; decisions D99-D130 in `P1-decisions.md` |
+| **P1.S4** Team members & invitations: `plugins/team`, invite/accept/resend/revoke, members list with tabs, member actions, pay salary placeholder (`salary.paid` on the outbox), commission configs, audit fixes #114, #160, #211, #139 | #7 | `feat/p1-s4-team` | #233 | **in review**; handoff `handoff/P1.S4.md`; evidence `docs/evidence/P1.S4/`; decisions D200-D222 in `P1-decisions.md` |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
@@ -69,7 +70,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
-3. P0, P1.S1 to P1.S3 and P1.S5 are merged; P1.S6 has its PR open. P1 runs in the order S6, S4. Next: **P1.S4**. Read `handoff/P1.S6.md` first, and log each decision in `P1-decisions.md`.
+3. P0, P1.S1 to P1.S3, P1.S5 and P1.S6 are merged; P1.S4 is in review (PR #233). Next: merge P1.S4 once CI is green, then the P1.S4 follow-ups (the auth audit session, `fix/s4-audit-rbac` PR #234 rebased on `main`, the evidence session; D219, D221), then **P2.S1**. Read `handoff/P1.S4.md` first, and log each decision in the phase's decisions file.
 4. Open items for later sessions, flagged while applying the ADRs:
    - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
