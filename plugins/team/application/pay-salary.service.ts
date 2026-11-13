@@ -17,7 +17,8 @@ export class PaySalaryService {
 
   /**
    * Under the business lock and the member's row lock, pays the base salary read now. A key already used for the
-   * member answers its first payment and publishes nothing; `SalaryPaid` reaches subscribers only once committed.
+   * member answers its first payment and publishes nothing; `SalaryPaid` is written to the outbox in the same
+   * transaction as the payment (D222), so subscribers see it only once committed.
    *
    * @throws {InvalidInputError} for an empty or too long idempotency key.
    * @throws {MemberNotFoundError} for no such member or one out of the actor's reach (D211).

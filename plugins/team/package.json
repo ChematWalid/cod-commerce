@@ -18,6 +18,7 @@
   "dependencies": {
     "@cod/plugin-auth": "workspace:*",
     "@cod/plugin-merchant-shell": "workspace:*",
+    "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
     "@cod/plugin-rbac": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
+    "@cod/plugin-platform-jobs": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",

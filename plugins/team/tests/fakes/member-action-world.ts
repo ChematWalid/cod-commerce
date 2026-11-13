@@ -28,7 +28,7 @@ export const OWNER_ROLE = toSnowflake('900');
 /** The business owner's administrator id; {@link ownerOfA} in the invitation tests. */
 export const OWNER_ID = 1;
 
-/** The salary-paid events published; a test reads them as a subscriber would after commit. */
+/** The salary-paid events published (the outbox rows the paying transaction would write). */
 export class RecordingSalaryPaid implements SalaryPaidPublisherPort {
   readonly published: SalaryPayment[] = [];
   readonly recipients: number[] = [];

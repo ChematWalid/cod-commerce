@@ -24,7 +24,7 @@ import {
   TRANSACTION,
 } from '../application/tokens';
 import { UpdateMemberService } from '../application/update-member.service';
-import { EventBusSalaryPaidPublisher } from './salary-paid.event';
+import { OutboxSalaryPaidPublisher } from './salary-paid.outbox';
 import { TenancyBusinessNamesAdapter } from './tenancy-business-names.adapter';
 
 /** The order of {@link PORT_TOKENS}, which the factory below receives. */
@@ -109,7 +109,7 @@ const USE_CASES: Provider[] = [UpdateMemberService, MemberLifecycleService, PayS
  */
 export const MEMBER_ACTION_PROVIDERS: Provider[] = [
   { provide: BUSINESS_OWNER, useClass: TenancyBusinessNamesAdapter },
-  { provide: SALARY_PAID_PUBLISHER, useClass: EventBusSalaryPaidPublisher },
+  { provide: SALARY_PAID_PUBLISHER, useClass: OutboxSalaryPaidPublisher },
   PORTS_PROVIDER,
   ...USE_CASES,
   {

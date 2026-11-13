@@ -1,4 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth/invitations';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac/member-access';
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenancyPlugin } from '@cod/plugin-tenancy';
@@ -73,8 +74,9 @@ function requireOptions(): TeamPluginOptions {
  * stay in rbac, accounts in tenancy and auth (D202 to D204); Team reaches them through its own ports.
  */
 @VendurePlugin({
-  // `RateLimitPlugin` serves the `@RateLimit` guard and the limiter; `AuthPlugin` the invitation account and email.
-  imports: [PluginCommonModule, TenancyPlugin, RbacPlugin, AuthPlugin, RateLimitPlugin],
+  // `RateLimitPlugin` serves the `@RateLimit` guard and the limiter; `AuthPlugin` the invitation account and email;
+  // `PlatformOutboxPlugin` the outbox `salary.paid` is written to (D222).
+  imports: [PluginCommonModule, TenancyPlugin, RbacPlugin, AuthPlugin, RateLimitPlugin, PlatformOutboxPlugin],
   entities: [TeamMemberEntity, InvitationEntity, CommissionConfigEntity, SalaryPaymentEntity],
   providers: [
     { provide: MEMBER_REPOSITORY, useClass: TypeOrmMemberRepository },
