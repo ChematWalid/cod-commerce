@@ -1,11 +1,19 @@
 import { ACTIVITY_DIFF_MAX_BYTES, DIFF_MAX_DEPTH, DIFF_OMITTED_VALUE, REDACTED_VALUE } from './constants';
 
-/** Unambiguous fragments: a key containing one is a secret, even written without word breaks (`authtoken`). */
-const SENSITIVE_FRAGMENT = /password|secret|token|authorization|cookie/i;
+/**
+ * The D66 terms, matched anywhere inside the words of a key, so `smsotp`, `pinhash` and `xapikey` are secrets too
+ * (D800). `api.?key` spans a word break (`api_key`, `API.KEY`, `xApiKey`).
+ */
+const D66_TERM = /password|secret|token|otp|hash|api.?key|authorization|cookie/;
 
-/** Short or common words: matched whole, so `footprint` is not an `otp` and `hashtag` is not a `hash` (D66). */
-const SENSITIVE_WORD =
-  /\b(?:otps?|(?:[a-z]+\d+)?hash(?:es)?|sessions?|cvv|credentials?|api ?keys?|private ?keys?|access ?keys?)\b/;
+/**
+ * Whole words that hold a D66 term by accident and name no secret. A short list on purpose: a word missing from it
+ * is redacted, which only hides a harmless value from the log (D800).
+ */
+const BENIGN_WORDS: ReadonlySet<string> = new Set(['footprint', 'footprints', 'hashtag', 'hashtags']);
+
+/** Further secrets beyond D66, matched as whole words: `obsession` is not a `session`, `accessKeyboard` no `access key`. */
+const SENSITIVE_WORD = /\b(?:sessions?|cvv|credentials?|private ?keys?|access ?keys?)\b/;
 
 /** `API_Key`, `api-key` and `apiKey` all become `api key`. */
 const wordsOf = (key: string): string =>
@@ -15,7 +23,17 @@ const wordsOf = (key: string): string =>
     .replace(/[^A-Za-z0-9]+/g, ' ')
     .toLowerCase();
 
-const isSensitiveKey = (key: string): boolean => SENSITIVE_FRAGMENT.test(key) || SENSITIVE_WORD.test(wordsOf(key));
+/** The words of `key` without the {@link BENIGN_WORDS}. */
+const meaningfulWordsOf = (key: string): string =>
+  wordsOf(key)
+    .split(' ')
+    .filter((word) => !BENIGN_WORDS.has(word))
+    .join(' ');
+
+const isSensitiveKey = (key: string): boolean => {
+  const words = meaningfulWordsOf(key);
+  return D66_TERM.test(words) || SENSITIVE_WORD.test(words);
+};
 
 /** What a diff becomes when it is too large to keep. */
 export const TRUNCATED_DIFF: Readonly<Record<string, unknown>> = { truncated: true };
