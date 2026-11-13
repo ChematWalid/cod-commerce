@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { teamMemberActivityDiffSchema, toBusinessId, toSnowflake } from '@cod/shared';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { EventBus, RequestContextService, TransactionalConnection } from '@vendure/core';
@@ -13,10 +13,10 @@ import { ACTIVITY_LOG, type ActivityItem, type PaymentAnswer } from './team-oper
 import { standaloneNumber } from '../support/standalone-number';
 
 const SNOWFLAKE_WORKER_ID = 1016;
-const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
-  RbacPlugin,
-  AuthPlugin.init(authTestOptions()),
-]);
+const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 /** Distinct values the activity rows must never carry (D216). */
 const OLD_SALARY = 52_817;
 const NEW_SALARY = 61_234;

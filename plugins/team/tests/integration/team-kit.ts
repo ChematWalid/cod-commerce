@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
-import type { BuiltInRoleKey } from '@cod/shared';
+import type { BuiltInRoleKey, PartitionedTableSchema } from '@cod/shared';
 import {
   type BusinessFixture,
   createMember,
@@ -13,6 +14,7 @@ import {
   PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
   type PluginTestEnvironmentOptions,
   type StoreFixture,
+  withPartitionedSchemas,
 } from '@cod/testing';
 import type { INestApplication } from '@nestjs/common';
 import { RequestContextService, TransactionalConnection, type VendureConfig } from '@vendure/core';
@@ -68,25 +70,36 @@ export function authTestOptions() {
 /** A second server's port, database and shared session cache (the cross-process harness of P1.S4 Task 4). */
 export type TeamServerOptions = Pick<PluginTestEnvironmentOptions, 'port' | 'attachToDatabase' | 'sharedCache'>;
 
+/** What a team test server takes from rbac and auth: their modules and the partitioned tables they write. */
+export interface TeamForeignModules {
+  readonly plugins: NonNullable<VendureConfig['plugins']>;
+  /** rbac's `ACTIVITY_LOG_SCHEMA`: granting a role writes the partitioned `activity_log` (D123). */
+  readonly partitionedSchemas: readonly PartitionedTableSchema[];
+}
+
 /**
  * A Vendure test server with Team and what it depends on. `foreign` holds rbac's and auth's modules: only a test file
  * may import another plugin's entry point (architecture rule `no-cross-plugin-internals`), so the test file passes them.
+ * `synchronize` cannot make a partitioned table, so `server.init` also creates `foreign.partitionedSchemas` (D130).
  */
 export function createTeamTestEnvironment(
   snowflakeWorkerId: number,
-  foreign: NonNullable<VendureConfig['plugins']>,
+  foreign: TeamForeignModules,
   serverOptions: TeamServerOptions = {},
 ): ReturnType<typeof createPluginTestEnvironment> {
-  return createPluginTestEnvironment({
+  const environment = createPluginTestEnvironment({
     plugins: [
+      PlatformPartitionsPlugin,
       RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: TEST_CLIENT_IP_HEADER }),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId }),
-      ...foreign,
+      ...foreign.plugins,
       TeamPlugin.init({ dashboardUrl: TEST_DASHBOARD_URL }),
     ],
     db: loadPluginTestDbConfig(process.env),
     ...serverOptions,
   });
+  withPartitionedSchemas(environment.server, foreign.partitionedSchemas, PartitionMaintenanceService);
+  return environment;
 }
 
 /** A fresh address no other test or run uses, so its Mailpit mailbox starts empty. */

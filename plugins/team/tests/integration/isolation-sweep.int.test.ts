@@ -1,5 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,10 +16,10 @@ import {
 import { authTestOptions, createTeamTestEnvironment, freshEmail, TeamKit } from './team-kit';
 
 const SNOWFLAKE_WORKER_ID = 1020;
-const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
-  RbacPlugin,
-  AuthPlugin.init(authTestOptions()),
-]);
+const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 const NOT_FOUND_CODES = ['team.member-not-found', 'team.commission-not-found'];
 const NOT_FOUND_STATUS = 404;
 const FORBIDDEN_STATUS = 403;

@@ -1,5 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { MEMBER_TABS, MEMBERS_PAGE_SIZE, type MemberTab } from '@cod/shared';
 import {
   type CredentialsFixture,
@@ -24,10 +24,10 @@ import {
 } from './team-operations';
 
 const SNOWFLAKE_WORKER_ID = 1014;
-const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
-  RbacPlugin,
-  AuthPlugin.init(authTestOptions()),
-]);
+const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 const SALARY = 27_500;
 
 /** The members the tests arrange in A (and one in B), by what each one is. */

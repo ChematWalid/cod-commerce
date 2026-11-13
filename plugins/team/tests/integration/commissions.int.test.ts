@@ -1,5 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { COMMISSION_BASES } from '@cod/shared';
 import { createTwoBusinesses, failureOf, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -23,10 +23,10 @@ import {
 import { authTestOptions, createTeamTestEnvironment, freshEmail, TeamKit } from './team-kit';
 
 const SNOWFLAKE_WORKER_ID = 1005;
-const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
-  RbacPlugin,
-  AuthPlugin.init(authTestOptions()),
-]);
+const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 let businesses: TwoBusinesses;
 let kit: TeamKit;
 

@@ -1,10 +1,10 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin, SESSION_FLUSH_SETTLE_MS } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin, SESSION_FLUSH_SETTLE_MS } from '@cod/plugin-rbac';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { ConfigService } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { authTestOptions, createTeamTestEnvironment, TEST_REDIS_URL, TeamKit } from './team-kit';
+import { authTestOptions, createTeamTestEnvironment, TEST_REDIS_URL, TeamKit, type TeamForeignModules } from './team-kit';
 
 const SERVER_A_WORKER_ID = 1018;
 const SERVER_B_WORKER_ID = 1019;
@@ -21,7 +21,10 @@ const BUSINESS_ROLES = gql`
   }
 `;
 
-const foreignPlugins = () => [RbacPlugin, AuthPlugin.init(authTestOptions())];
+const foreignPlugins = (): TeamForeignModules => ({
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 type Environment = ReturnType<typeof createTeamTestEnvironment>;
 
 /**

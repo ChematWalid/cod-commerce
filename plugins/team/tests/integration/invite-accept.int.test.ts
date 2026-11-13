@@ -1,5 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { createHash } from 'node:crypto';
 import { type FeatureKey, registerFeatureGate, type TenantScope } from '@cod/shared';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
@@ -18,10 +18,10 @@ import {
 } from './team-operations';
 
 const SNOWFLAKE_WORKER_ID = 1009;
-const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
-  RbacPlugin,
-  AuthPlugin.init(authTestOptions()),
-]);
+const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const;
 const ACCOUNT_STATUS = gql`
   query {
