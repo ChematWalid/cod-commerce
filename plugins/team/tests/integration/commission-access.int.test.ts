@@ -19,6 +19,7 @@ import {
 } from './commission-operations';
 import { authTestOptions, createTeamTestEnvironment, TeamKit } from './team-kit';
 import { ACTIVITY_LOG, type ActivityItem } from './team-operations';
+import { standaloneNumber } from '../support/standalone-number';
 
 const SNOWFLAKE_WORKER_ID = 1006;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
@@ -151,10 +152,9 @@ describe('the activity of commission configs (D216)', () => {
     const entries = rows.map((row) => ({ row, diff: teamCommissionActivityDiffSchema.parse(row.diff) }));
     expect(entries.find(({ diff }) => diff.changedFields.length === 1)?.diff.changedFields).toEqual(['value']);
     expect(rows.filter((row) => 'value' in row.diff)).toEqual([]);
-    // Ids and timestamps are long digit runs, so only a standalone number counts as a leaked value.
     const readable = entries.flatMap(({ row, diff }) => [row.summary, diff.name]).join('\n');
     for (const value of [FIRST_VALUE, SECOND_VALUE]) {
-      expect(readable).not.toMatch(new RegExp(`(?<!\\d)${String(value)}(?!\\d)`));
+      expect(readable).not.toMatch(standaloneNumber(value));
     }
   });
 });

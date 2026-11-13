@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { invitationLinkIn, settledCountTo, waitForMessages } from './mailpit';
 import { authTestOptions, createTeamTestEnvironment, freshEmail, MEMBER_PASSWORD, TeamKit } from './team-kit';
 import { ACTIVITY_LOG, type ActivityItem, INVITE_MEMBER, type InviteInput, RESEND_INVITATION } from './team-operations';
+import { standaloneNumber } from '../support/standalone-number';
 
 const SNOWFLAKE_WORKER_ID = 1011;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
@@ -185,8 +186,8 @@ describe('what the activity log shows of invitations (D216, D217)', () => {
       expect(item.storeId).toBeNull();
     }
     const serialized = JSON.stringify(activityLog.items);
-    expect(serialized).not.toContain(String(SALARY));
-    expect(serialized).not.toContain(String(COMMISSION_VALUE));
+    expect(serialized).not.toMatch(standaloneNumber(SALARY));
+    expect(serialized).not.toMatch(standaloneNumber(COMMISSION_VALUE));
     expect(serialized).not.toContain(email);
     expect(serialized).not.toContain(token);
   });
