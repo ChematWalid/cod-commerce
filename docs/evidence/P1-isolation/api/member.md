@@ -29,7 +29,7 @@ variables: {
       "roles": [
         {
           "id": "<ROLE_A>",
-          "name": "Role A b8b7305f"
+          "name": "Role A ee06632b"
         }
       ],
       "storeAccess": "selected",
@@ -70,7 +70,7 @@ variables: {
 
 ### member.by-id (B attacks A)
 
-A's owner reads B's member access: null. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads B's member access: null. **Pass.**
 
 ```http
 POST /admin-api
@@ -577,7 +577,7 @@ vendure-token: <TOKEN_B1>
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-13T07:12:37.575Z",
+  "timestamp": "2026-11-13T14:27:21.724Z",
   "path": "/permissions"
 }
 ```
@@ -599,7 +599,7 @@ vendure-token: <TOKEN_B1>
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-13T07:12:37.579Z",
+  "timestamp": "2026-11-13T14:27:21.727Z",
   "path": "/permissions/catalog"
 }
 ```
@@ -629,8 +629,8 @@ variables: {}
         {
           "id": "<STORE_A1>",
           "businessId": "<BUSINESS_A>",
-          "name": "Store A1 b8b7305f",
-          "subdomain": "a-b8b7305f-1"
+          "name": "Store A1 ee06632b",
+          "subdomain": "a-ee06632b-1"
         }
       ]
     }

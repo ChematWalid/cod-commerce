@@ -27,8 +27,8 @@ variables: {}
         "id": "<SECRET_A>",
         "provider": "demo-webhook",
         "ref": "signing",
-        "last4": "305f",
-        "updatedAt": "2026-11-13T07:12:24.932Z"
+        "last4": "632b",
+        "updatedAt": "2026-11-13T14:27:05.556Z"
       }
     ]
   }
@@ -37,7 +37,7 @@ variables: {}
 
 ### secret.list (B attacks A)
 
-A's owner lists tenant secrets: A's own only, never a value. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists tenant secrets: A's own only, never a value. **Pass.**
 
 ```http
 POST /admin-api
@@ -60,8 +60,8 @@ variables: {}
         "id": "<SECRET_B>",
         "provider": "demo-webhook",
         "ref": "signing",
-        "last4": "305f",
-        "updatedAt": "2026-11-13T07:12:27.397Z"
+        "last4": "632b",
+        "updatedAt": "2026-11-13T14:27:09.007Z"
       }
     ]
   }
@@ -112,7 +112,7 @@ variables: {
 
 ### secret.delete (B attacks A)
 
-A's owner deletes B's tenant secret by id: tenant-secret.not-found, B's secret survives. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner deletes B's tenant secret by id: tenant-secret.not-found, B's secret survives. **Pass.**
 
 ```http
 POST /admin-api
@@ -194,7 +194,7 @@ variables: {}
 
 ### secret.victim-channel-list (B attacks A)
 
-A's owner lists tenant secrets with B's store token: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists tenant secrets with B's store token: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api

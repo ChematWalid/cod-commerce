@@ -61,7 +61,7 @@ mutation ($input: CreateStoreInput!) { createStore(input: $input) { id subdomain
 variables: {
   "input": {
     "name": "Intruder store A",
-    "subdomain": "a-b8b7305f-1-logo",
+    "subdomain": "a-ee06632b-1-logo",
     "language": "ar",
     "logoAssetId": "<ADMIN_A_OWNER>"
   }

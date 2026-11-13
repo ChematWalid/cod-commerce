@@ -1,12 +1,13 @@
 # P1 isolation: a store owner sees only their own business
 
-Live evidence from `scripts/evidence/P1-isolation.sh` on image commit `d0aa75b`. Data is synthetic.
+Live evidence from `scripts/evidence/P1-isolation.sh` on image commit `275ac12`. Data is synthetic.
 
 Two businesses, A and B, each get two stores, an owner, a store-limited member, a custom role, a tenant secret, a
-template note, a logo, a flag override and two signed demo webhooks. Then A's owner (and B's, for the cases marked
+template note, a logo, a flag override, two signed demo webhooks, and team rows (a pending invitation, a
+commission config and the owner's member row). Then A's owner (and B's, for the cases marked
 B→A) reaches for the other's data through every merchant endpoint: by id, by list, by write, and with the other's
 store token. Each answer is judged (null, FORBIDDEN, a not-found code, or the caller's own data only) and scanned for
-every value that identifies the other business. Result: `runs=136 failed=0 unchanged=true`.
+every value that identifies the other business. Result: `runs=188 failed=0 unchanged=true`.
 
 The same cases run in CI as `apps/server/tests/e2e/p1-isolation.e2e.test.ts`.
 
@@ -27,6 +28,10 @@ The same cases run in CI as `apps/server/tests/e2e/p1-isolation.e2e.test.ts`.
 | account | — | [✅ accountProfile](api/account.md#accountprofile-a-attacks-b) | [✅ updateActiveAdministrator(input.emailAddress)](api/account.md#stockupdate-active-administrator-email-a-attacks-b) | [✅ accountProfile](api/account.md#accountprofile-victim-channel-a-attacks-b)<br>[✅ accountProfile (B→A)](api/account.md#accountprofile-victim-channel-b-attacks-a)<br>[✅ GET /auth/profile](api/account.md#accountrest-profile-victim-channel-a-attacks-b)<br>[✅ accountStatus](api/account.md#accountstatus-victim-channel-a-attacks-b)<br>[✅ updateAccountProfile(input)](api/account.md#accountupdate-profile-victim-channel-a-attacks-b)<br>[✅ PATCH /auth/profile](api/account.md#accountrest-update-profile-victim-channel-a-attacks-b) |
 | template note | [✅ templateNote(id)](api/template-note.md#noteby-id-a-attacks-b)<br>[✅ templateNote(id) (B→A)](api/template-note.md#noteby-id-b-attacks-a) | [✅ templateNotes](api/template-note.md#notelist-a-attacks-b)<br>[✅ templateNotes (B→A)](api/template-note.md#notelist-b-attacks-a) | [✅ createTemplateNote(input)](api/template-note.md#notecreate-victim-channel-a-attacks-b) | [✅ templateNotes](api/template-note.md#notevictim-channel-a-attacks-b) |
 | stock Vendure data | [✅ administrator(id)](api/stock-Vendure-data.md#stockadministrator-by-id-a-attacks-b)<br>[✅ administrator(id) (B→A)](api/stock-Vendure-data.md#stockadministrator-by-id-b-attacks-a)<br>[✅ asset(id)](api/stock-Vendure-data.md#stockasset-by-id-a-attacks-b)<br>[✅ asset(id) (B→A)](api/stock-Vendure-data.md#stockasset-by-id-b-attacks-a)<br>[✅ apiKey(id)](api/stock-Vendure-data.md#stockapi-key-by-id-a-attacks-b)<br>[✅ slugForEntity](api/stock-Vendure-data.md#stockslug-for-entity-a-attacks-b) | [✅ products](api/stock-Vendure-data.md#stockproducts-a-attacks-b)<br>[✅ products (B→A)](api/stock-Vendure-data.md#stockproducts-b-attacks-a)<br>[✅ orders](api/stock-Vendure-data.md#stockorders-a-attacks-b)<br>[✅ customers](api/stock-Vendure-data.md#stockcustomers-a-attacks-b)<br>[✅ assets](api/stock-Vendure-data.md#stockassets-a-attacks-b)<br>[✅ administrators](api/stock-Vendure-data.md#stockadministrators-a-attacks-b)<br>[✅ roles](api/stock-Vendure-data.md#stockroles-a-attacks-b)<br>[✅ channels](api/stock-Vendure-data.md#stockchannels-a-attacks-b)<br>[✅ apiKeys](api/stock-Vendure-data.md#stockapi-keys-a-attacks-b)<br>[✅ sellers](api/stock-Vendure-data.md#stocksellers-a-attacks-b) | [✅ createChannel](api/stock-Vendure-data.md#stockcreate-channel-a-attacks-b)<br>[✅ updateChannel](api/stock-Vendure-data.md#stockupdate-channel-a-attacks-b)<br>[✅ createRole](api/stock-Vendure-data.md#stockcreate-role-a-attacks-b)<br>[✅ createRole (B→A)](api/stock-Vendure-data.md#stockcreate-role-b-attacks-a)<br>[✅ updateRole](api/stock-Vendure-data.md#stockupdate-role-a-attacks-b)<br>[✅ deleteRole](api/stock-Vendure-data.md#stockdelete-role-a-attacks-b)<br>[✅ createAdministrator](api/stock-Vendure-data.md#stockcreate-administrator-a-attacks-b)<br>[✅ updateAdministrator](api/stock-Vendure-data.md#stockupdate-administrator-a-attacks-b)<br>[✅ assignRoleToAdministrator](api/stock-Vendure-data.md#stockassign-role-a-attacks-b)<br>[✅ createApiKey](api/stock-Vendure-data.md#stockcreate-api-key-a-attacks-b)<br>[✅ deleteApiKeys](api/stock-Vendure-data.md#stockdelete-api-keys-a-attacks-b)<br>[✅ createSeller](api/stock-Vendure-data.md#stockcreate-seller-a-attacks-b)<br>[✅ createCustomer](api/stock-Vendure-data.md#stockcreate-customer-a-attacks-b)<br>[✅ updateGlobalSettings](api/stock-Vendure-data.md#stockupdate-global-settings-a-attacks-b) | [✅ activeChannel](api/stock-Vendure-data.md#stockactive-channelvictim-channel-a-attacks-b)<br>[✅ activeChannel (B→A)](api/stock-Vendure-data.md#stockactive-channelvictim-channel-b-attacks-a)<br>[✅ me](api/stock-Vendure-data.md#stockmevictim-channel-a-attacks-b)<br>[✅ activeAdministrator](api/stock-Vendure-data.md#stockactive-administratorvictim-channel-a-attacks-b) |
+| team member | [✅ teamMember](api/team-member.md#team-memberby-id-a-attacks-b)<br>[✅ teamMember (B→A)](api/team-member.md#team-memberby-id-b-attacks-a)<br>[✅ GET /employees/:id](api/team-member.md#team-memberby-id-rest-a-attacks-b) | [✅ teamMembers](api/team-member.md#team-memberlist-a-attacks-b)<br>[✅ teamMembers (B→A)](api/team-member.md#team-memberlist-b-attacks-a)<br>[✅ GET /employees](api/team-member.md#team-memberlist-rest-a-attacks-b)<br>[✅ teamOrderManagers](api/team-member.md#order-managerlist-a-attacks-b)<br>[✅ GET /employees/order-managers](api/team-member.md#order-managerlist-rest-a-attacks-b) | [✅ updateTeamMember](api/team-member.md#team-memberupdate-a-attacks-b)<br>[✅ PATCH /employees/:id](api/team-member.md#team-memberupdate-rest-a-attacks-b)<br>[✅ setTeamMemberLimit](api/team-member.md#team-memberlimit-a-attacks-b)<br>[✅ POST /employees/:id/limit](api/team-member.md#team-memberlimit-rest-a-attacks-b)<br>[✅ setTeamMemberReceiving](api/team-member.md#order-managerreceiving-a-attacks-b)<br>[✅ POST /employees/:id/receiving](api/team-member.md#order-managerreceiving-rest-a-attacks-b)<br>[✅ deactivateTeamMember](api/team-member.md#team-memberdeactivate-a-attacks-b)<br>[✅ POST /employees/:id/deactivate](api/team-member.md#team-memberdeactivate-rest-a-attacks-b)<br>[✅ reactivateTeamMember](api/team-member.md#team-memberreactivate-a-attacks-b)<br>[✅ POST /employees/:id/reactivate](api/team-member.md#team-memberreactivate-rest-a-attacks-b)<br>[✅ removeTeamMember](api/team-member.md#team-memberremove-a-attacks-b)<br>[✅ DELETE /employees/:id](api/team-member.md#team-memberremove-rest-a-attacks-b) | [✅ teamMembers](api/team-member.md#team-membervictim-channel-a-attacks-b)<br>[✅ GET /employees](api/team-member.md#team-membervictim-channel-rest-a-attacks-b)<br>[✅ teamOrderManagers](api/team-member.md#order-managervictim-channel-a-attacks-b) |
+| invitation | [✅ teamMember](api/invitation.md#invitationby-id-a-attacks-b)<br>[✅ GET /employees/:id](api/invitation.md#invitationby-id-rest-a-attacks-b)<br>[✅ GET /team/invitations/preview](api/invitation.md#invitationpreview-guessed-token-a-attacks-b) | [✅ teamMembers](api/invitation.md#invitationlist-pending-a-attacks-b) | [✅ resendInvitation](api/invitation.md#invitationresend-a-attacks-b)<br>[✅ resendInvitation (B→A)](api/invitation.md#invitationresend-b-attacks-a)<br>[✅ POST /employees/resend-invitation](api/invitation.md#invitationresend-rest-a-attacks-b)<br>[✅ revokeInvitation](api/invitation.md#invitationrevoke-a-attacks-b)<br>[✅ POST /employees/:id/revoke-invitation](api/invitation.md#invitationrevoke-rest-a-attacks-b)<br>[✅ inviteMember(roleIds)](api/invitation.md#invitationinvite-with-victim-role-a-attacks-b)<br>[✅ POST /team/invitations/accept](api/invitation.md#invitationaccept-guessed-token-a-attacks-b) | [✅ revokeInvitation](api/invitation.md#invitationvictim-channel-revoke-a-attacks-b) |
+| commission | [✅ teamCommissionConfig](api/commission.md#commissionby-id-a-attacks-b)<br>[✅ GET /commissions/configs/:id](api/commission.md#commissionby-id-rest-a-attacks-b) | [✅ teamCommissionConfigs](api/commission.md#commissionlist-a-attacks-b)<br>[✅ GET /commissions/configs](api/commission.md#commissionlist-rest-a-attacks-b) | [✅ updateTeamCommissionConfig](api/commission.md#commissionupdate-a-attacks-b)<br>[✅ PATCH /commissions/configs/:id](api/commission.md#commissionupdate-rest-a-attacks-b)<br>[✅ deleteTeamCommissionConfig](api/commission.md#commissiondelete-a-attacks-b)<br>[✅ DELETE /commissions/configs/:id](api/commission.md#commissiondelete-rest-a-attacks-b)<br>[✅ inviteMember(commissionConfigIds)](api/commission.md#invitationinvite-with-victim-commission-a-attacks-b)<br>[✅ POST /employees](api/commission.md#invitationinvite-with-victim-commission-rest-a-attacks-b)<br>[✅ updateTeamMember(commissionConfigIds)](api/commission.md#team-membergive-victim-commission-a-attacks-b)<br>[✅ createTeamCommissionConfig(storeIds)](api/commission.md#commissioncreate-on-victim-store-a-attacks-b) | [✅ teamCommissionConfigs](api/commission.md#commissionvictim-channel-a-attacks-b)<br>[✅ GET /commissions/configs](api/commission.md#commissionvictim-channel-rest-a-attacks-b) |
+| salary payment | — | — | [✅ payTeamMember](api/salary-payment.md#salarypay-a-attacks-b)<br>[✅ POST /employees/:id/pay](api/salary-payment.md#salarypay-rest-a-attacks-b) | [✅ payTeamMember](api/salary-payment.md#salaryvictim-channel-pay-a-attacks-b) |
 
 ## Every business had something to take
 
@@ -40,7 +45,7 @@ Rows per business in each P1 tenant table, counted after seeding:
 | `business_role` | 8 | 8 |
 | `role_binding` | 2 | 2 |
 | `member_role_assignment` | 2 | 2 |
-| `activity_log` | 2 | 2 |
+| `activity_log` | 4 | 4 |
 | `tenant_secret` | 1 | 1 |
 | `tenant_data_key` | 1 | 1 |
 | `feature_flag_override` | 1 | 1 |
@@ -48,14 +53,17 @@ Rows per business in each P1 tenant table, counted after seeding:
 | `outbox_event` | 2 | 2 |
 | `outbox_delivery` | 2 | 2 |
 | `template_note` | 1 | 1 |
+| `team_member` | 2 | 2 |
+| `invitation` | 1 | 1 |
+| `commission_config` | 1 | 1 |
 
 Each owner's view of its own business (business, stores, roles, member access, secrets, notes, profile) was read
 before and after the attacks and is unchanged (`unchanged=true` above).
 
 ## Screens
 
-`screens/<page>-<lang>-<viewport>.png`: owner A's home, store switcher (open), settings, roles and
-activity log, in Arabic RTL and English, desktop (1280 px) and mobile (390 px), and B's store opened by direct URL
+`screens/<page>-<lang>-<viewport>.png`: owner A's home, store switcher (open), settings, roles,
+activity log and team members, in Arabic RTL and English, desktop (1280 px) and mobile (390 px), and B's store opened by direct URL
 (not found). The script fails if a screen shows any of B's names, or if the switcher misses A's stores.
 
 - [`activity-log-ar-desktop.png`](screens/activity-log-ar-desktop.png)
@@ -82,3 +90,7 @@ activity log, in Arabic RTL and English, desktop (1280 px) and mobile (390 px), 
 - [`switcher-open-ar-mobile.png`](screens/switcher-open-ar-mobile.png)
 - [`switcher-open-en-desktop.png`](screens/switcher-open-en-desktop.png)
 - [`switcher-open-en-mobile.png`](screens/switcher-open-en-mobile.png)
+- [`team-ar-desktop.png`](screens/team-ar-desktop.png)
+- [`team-ar-mobile.png`](screens/team-ar-mobile.png)
+- [`team-en-desktop.png`](screens/team-en-desktop.png)
+- [`team-en-mobile.png`](screens/team-en-mobile.png)

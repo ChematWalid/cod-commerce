@@ -24,7 +24,7 @@ variables: {}
   "data": {
     "activeBusiness": {
       "id": "<BUSINESS_A>",
-      "name": "Business A b8b7305f"
+      "name": "Business A ee06632b"
     }
   }
 }
@@ -32,7 +32,7 @@ variables: {}
 
 ### business.active (B attacks A)
 
-A's owner reads the active business: A's own. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads the active business: A's own. **Pass.**
 
 ```http
 POST /admin-api
@@ -52,7 +52,7 @@ variables: {}
   "data": {
     "activeBusiness": {
       "id": "<BUSINESS_B>",
-      "name": "Business B b8b7305f"
+      "name": "Business B ee06632b"
     }
   }
 }
@@ -87,7 +87,7 @@ variables: {
 
 ### business.by-id (B attacks A)
 
-A's owner asks for B's business by id: null. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner asks for B's business by id: null. **Pass.**
 
 ```http
 POST /admin-api
@@ -154,7 +154,7 @@ variables: {}
 
 ### business.victim-channel (B attacks A)
 
-A's owner sends B's store token: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner sends B's store token: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api
@@ -296,14 +296,14 @@ variables: {
   "input": {
     "name": "Intruder business A",
     "owner": {
-      "emailAddress": "intruder-owner-a-b8b7305f-1-prov@example.test",
+      "emailAddress": "intruder-owner-a-ee06632b-1-prov@example.test",
       "firstName": "Intruder",
       "lastName": "A",
       "password": "intruder-password"
     },
     "store": {
       "name": "Intruder store A",
-      "subdomain": "a-b8b7305f-1-prov",
+      "subdomain": "a-ee06632b-1-prov",
       "language": "ar"
     }
   }

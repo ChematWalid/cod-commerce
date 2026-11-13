@@ -30,14 +30,14 @@ variables: {
     "activityLog": {
       "items": [
         {
-          "id": "246894956453564416",
+          "id": "247004346531713024",
           "action": "rbac.role.created",
           "entityType": "role",
           "entityId": "<ROLE_A>",
-          "summary": "Role Role A b8b7305f created",
+          "summary": "Role Role A ee06632b created",
           "actor": {
             "id": "<ADMIN_A_OWNER>",
-            "name": "OwnerA PrivateAb8b7305f"
+            "name": "OwnerA PrivateAee06632b"
           },
           "storeId": null
         }

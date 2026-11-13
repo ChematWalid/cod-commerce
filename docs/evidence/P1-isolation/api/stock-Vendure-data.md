@@ -44,7 +44,7 @@ variables: {}
 
 ### stock.products (B attacks A)
 
-A's owner lists stock products on A's store: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists stock products on A's store: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api
@@ -128,7 +128,7 @@ variables: {
 
 ### stock.administrator-by-id (B attacks A)
 
-A's owner reads B's owner through the stock administrator(id): FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads B's owner through the stock administrator(id): FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api
@@ -336,7 +336,7 @@ variables: {
 
 ### stock.asset-by-id (B attacks A)
 
-A's owner reads B's logo through the stock asset(id): FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads B's logo through the stock asset(id): FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api
@@ -638,7 +638,7 @@ variables: {
   "input": {
     "entityName": "StoreEntity",
     "fieldName": "subdomain",
-    "inputValue": "b-b8b7305f-1"
+    "inputValue": "b-ee06632b-1"
   }
 }
 ```
@@ -710,7 +710,7 @@ variables: {}
 
 ### stock.active-channel.victim-channel (B attacks A)
 
-A's owner reads the active channel with B's store token: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads the active channel with B's store token: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api
@@ -770,16 +770,16 @@ variables: {}
   "data": {
     "me": {
       "id": "<ADMIN_A_OWNER>",
-      "identifier": "owner-a-b8b7305f@example.test",
+      "identifier": "owner-a-ee06632b@example.test",
       "channels": [
         {
           "id": "<ADMIN_A_OWNER>",
-          "code": "16e6cfce9b6c083ddc34baf812a9eb14",
+          "code": "3578e2a03d816ade7730e49faf2362c8",
           "token": "<TOKEN_A1>"
         },
         {
           "id": "<ADMIN_A_MEMBER>",
-          "code": "056918c27196de8fbfe250236fcee54e",
+          "code": "4968e3afaeaacf174f053cb4c174a4da",
           "token": "<TOKEN_A2>"
         }
       ]
@@ -810,7 +810,7 @@ variables: {}
   "data": {
     "activeAdministrator": {
       "id": "<ADMIN_A_OWNER>",
-      "emailAddress": "owner-a-b8b7305f@example.test"
+      "emailAddress": "owner-a-ee06632b@example.test"
     }
   }
 }
@@ -961,7 +961,7 @@ variables: {
 
 ### stock.create-role (B attacks A)
 
-A's owner creates a stock SuperAdmin role: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner creates a stock SuperAdmin role: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api

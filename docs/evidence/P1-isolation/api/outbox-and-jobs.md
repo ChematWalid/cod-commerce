@@ -44,7 +44,7 @@ variables: {}
 
 ### jobs.health (B attacks A)
 
-A's owner reads the platform-wide outbox and jobs health: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads the platform-wide outbox and jobs health: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api

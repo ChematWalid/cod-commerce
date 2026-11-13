@@ -25,9 +25,9 @@ variables: {}
     "templateNotes": [
       {
         "id": "<NOTE_A>",
-        "title": "Note A b8b7305f",
+        "title": "Note A ee06632b",
         "body": "private",
-        "createdAt": "2026-11-13T07:12:24.966Z"
+        "createdAt": "2026-11-13T14:27:05.588Z"
       }
     ]
   }
@@ -36,7 +36,7 @@ variables: {}
 
 ### note.list (B attacks A)
 
-A's owner lists template notes: A's note only. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists template notes: A's note only. **Pass.**
 
 ```http
 POST /admin-api
@@ -57,9 +57,9 @@ variables: {}
     "templateNotes": [
       {
         "id": "<NOTE_B>",
-        "title": "Note B b8b7305f",
+        "title": "Note B ee06632b",
         "body": "private",
-        "createdAt": "2026-11-13T07:12:27.426Z"
+        "createdAt": "2026-11-13T14:27:09.033Z"
       }
     ]
   }
@@ -95,7 +95,7 @@ variables: {
 
 ### note.by-id (B attacks A)
 
-A's owner asks for B's template note by id: null. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner asks for B's template note by id: null. **Pass.**
 
 ```http
 POST /admin-api

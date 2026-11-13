@@ -26,15 +26,15 @@ variables: {}
       {
         "id": "<STORE_A1>",
         "businessId": "<BUSINESS_A>",
-        "name": "Store A1 b8b7305f",
-        "subdomain": "a-b8b7305f-1",
+        "name": "Store A1 ee06632b",
+        "subdomain": "a-ee06632b-1",
         "channelToken": "<TOKEN_A1>"
       },
       {
         "id": "<STORE_A2>",
         "businessId": "<BUSINESS_A>",
-        "name": "Store A2 b8b7305f",
-        "subdomain": "a-b8b7305f-2",
+        "name": "Store A2 ee06632b",
+        "subdomain": "a-ee06632b-2",
         "channelToken": "<TOKEN_A2>"
       }
     ]
@@ -44,7 +44,7 @@ variables: {}
 
 ### store.list (B attacks A)
 
-A's owner lists stores: A1 and A2 only. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists stores: A1 and A2 only. **Pass.**
 
 ```http
 POST /admin-api
@@ -66,15 +66,15 @@ variables: {}
       {
         "id": "<STORE_B1>",
         "businessId": "<BUSINESS_B>",
-        "name": "Store B1 b8b7305f",
-        "subdomain": "b-b8b7305f-1",
+        "name": "Store B1 ee06632b",
+        "subdomain": "b-ee06632b-1",
         "channelToken": "<TOKEN_B1>"
       },
       {
         "id": "<STORE_B2>",
         "businessId": "<BUSINESS_B>",
-        "name": "Store B2 b8b7305f",
-        "subdomain": "b-b8b7305f-2",
+        "name": "Store B2 ee06632b",
+        "subdomain": "b-ee06632b-2",
         "channelToken": "<TOKEN_B2>"
       }
     ]
@@ -107,14 +107,14 @@ variables: {}
         {
           "id": "<STORE_A1>",
           "businessId": "<BUSINESS_A>",
-          "name": "Store A1 b8b7305f",
-          "subdomain": "a-b8b7305f-1"
+          "name": "Store A1 ee06632b",
+          "subdomain": "a-ee06632b-1"
         },
         {
           "id": "<STORE_A2>",
           "businessId": "<BUSINESS_A>",
-          "name": "Store A2 b8b7305f",
-          "subdomain": "a-b8b7305f-2"
+          "name": "Store A2 ee06632b",
+          "subdomain": "a-ee06632b-2"
         }
       ]
     }
@@ -124,7 +124,7 @@ variables: {}
 
 ### store.switcher (B attacks A)
 
-A's owner opens the store switcher: A's stores only. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner opens the store switcher: A's stores only. **Pass.**
 
 ```http
 POST /admin-api
@@ -147,14 +147,14 @@ variables: {}
         {
           "id": "<STORE_B1>",
           "businessId": "<BUSINESS_B>",
-          "name": "Store B1 b8b7305f",
-          "subdomain": "b-b8b7305f-1"
+          "name": "Store B1 ee06632b",
+          "subdomain": "b-ee06632b-1"
         },
         {
           "id": "<STORE_B2>",
           "businessId": "<BUSINESS_B>",
-          "name": "Store B2 b8b7305f",
-          "subdomain": "b-b8b7305f-2"
+          "name": "Store B2 ee06632b",
+          "subdomain": "b-ee06632b-2"
         }
       ]
     }
@@ -191,7 +191,7 @@ variables: {
 
 ### store.by-id (B attacks A)
 
-A's owner asks for B's store by id: null. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner asks for B's store by id: null. **Pass.**
 
 ```http
 POST /admin-api
@@ -263,7 +263,7 @@ variables: {
 
 ### store.update (B attacks A)
 
-A's owner renames B's store: tenancy.store-not-found. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner renames B's store: tenancy.store-not-found. **Pass.**
 
 ```http
 POST /admin-api
@@ -320,7 +320,7 @@ mutation ($id: String!, $subdomain: String!) { changeStoreSubdomain(id: $id, sub
 
 variables: {
   "id": "<STORE_B2>",
-  "subdomain": "hijack-b-b8b7305f-2"
+  "subdomain": "hijack-b-ee06632b-2"
 }
 ```
 
@@ -534,7 +534,7 @@ vendure-token: <TOKEN_A1>
 
 ### store.public-by-id (B attacks A)
 
-A's owner reads B1 through the storefront lookup with no internal signature: 404, empty body. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads B1 through the storefront lookup with no internal signature: 404, empty body. **Pass.**
 
 ```http
 GET /store/by-id/<STORE_A1>
@@ -554,7 +554,7 @@ vendure-token: <TOKEN_B1>
 A's owner resolves B1's host through the storefront lookup with no internal signature: 404, empty body. **Pass.**
 
 ```http
-GET /store/resolve?host=b-b8b7305f-1.localhost
+GET /store/resolve?host=b-ee06632b-1.localhost
 authorization: Bearer [session of owner A]
 vendure-token: <TOKEN_A1>
 
@@ -581,7 +581,7 @@ mutation ($input: CreateStoreInput!) { createStore(input: $input) { id subdomain
 variables: {
   "input": {
     "name": "Intruder store A",
-    "subdomain": "b-b8b7305f-1",
+    "subdomain": "b-ee06632b-1",
     "language": "ar"
   }
 }
@@ -627,7 +627,7 @@ mutation ($input: CreateStoreInput!) { createStore(input: $input) { id subdomain
 variables: {
   "input": {
     "name": "Intruder store A",
-    "subdomain": "a-b8b7305f-1-chan",
+    "subdomain": "a-ee06632b-1-chan",
     "language": "ar"
   }
 }
@@ -672,7 +672,7 @@ mutation ($id: String!, $subdomain: String!) { changeStoreSubdomain(id: $id, sub
 
 variables: {
   "id": "<STORE_A2>",
-  "subdomain": "b-b8b7305f-2"
+  "subdomain": "b-ee06632b-2"
 }
 ```
 

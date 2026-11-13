@@ -24,8 +24,8 @@ variables: {}
   "data": {
     "accountProfile": {
       "firstName": "OwnerA",
-      "lastName": "PrivateAb8b7305f",
-      "emailAddress": "owner-a-b8b7305f@example.test",
+      "lastName": "PrivateAee06632b",
+      "emailAddress": "owner-a-ee06632b@example.test",
       "phone": null,
       "avatarUrl": null,
       "emailVerified": false
@@ -56,8 +56,8 @@ variables: {}
   "data": {
     "accountProfile": {
       "firstName": "OwnerA",
-      "lastName": "PrivateAb8b7305f",
-      "emailAddress": "owner-a-b8b7305f@example.test",
+      "lastName": "PrivateAee06632b",
+      "emailAddress": "owner-a-ee06632b@example.test",
       "phone": null,
       "avatarUrl": null,
       "emailVerified": false
@@ -68,7 +68,7 @@ variables: {}
 
 ### account.profile-victim-channel (B attacks A)
 
-A's owner reads the account profile with B's store token: A's own, nothing of B. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner reads the account profile with B's store token: A's own, nothing of B. **Pass.**
 
 ```http
 POST /admin-api
@@ -88,8 +88,8 @@ variables: {}
   "data": {
     "accountProfile": {
       "firstName": "OwnerB",
-      "lastName": "PrivateBb8b7305f",
-      "emailAddress": "owner-b-b8b7305f@example.test",
+      "lastName": "PrivateBee06632b",
+      "emailAddress": "owner-b-ee06632b@example.test",
       "phone": null,
       "avatarUrl": null,
       "emailVerified": false
@@ -114,8 +114,8 @@ vendure-token: <TOKEN_B1>
 ```json
 {
   "firstName": "OwnerA",
-  "lastName": "PrivateAb8b7305f",
-  "emailAddress": "owner-a-b8b7305f@example.test",
+  "lastName": "PrivateAee06632b",
+  "emailAddress": "owner-a-ee06632b@example.test",
   "phone": null,
   "avatarUrl": null,
   "emailVerified": false
@@ -149,7 +149,7 @@ variables: {}
       "pendingEmail": null
     },
     "accountProfile": {
-      "emailAddress": "owner-a-b8b7305f@example.test"
+      "emailAddress": "owner-a-ee06632b@example.test"
     }
   }
 }
@@ -169,7 +169,7 @@ mutation ($input: UpdateAccountProfileInput!) { updateAccountProfile(input: $inp
 
 variables: {
   "input": {
-    "lastName": "PrivateAb8b7305f"
+    "lastName": "PrivateAee06632b"
   }
 }
 ```
@@ -181,8 +181,8 @@ variables: {
   "data": {
     "updateAccountProfile": {
       "firstName": "OwnerA",
-      "lastName": "PrivateAb8b7305f",
-      "emailAddress": "owner-a-b8b7305f@example.test",
+      "lastName": "PrivateAee06632b",
+      "emailAddress": "owner-a-ee06632b@example.test",
       "phone": null,
       "avatarUrl": null,
       "emailVerified": false
@@ -202,7 +202,7 @@ vendure-token: <TOKEN_B1>
 
 
 {
-  "lastName": "PrivateAb8b7305f"
+  "lastName": "PrivateAee06632b"
 }
 ```
 
@@ -211,8 +211,8 @@ vendure-token: <TOKEN_B1>
 ```json
 {
   "firstName": "OwnerA",
-  "lastName": "PrivateAb8b7305f",
-  "emailAddress": "owner-a-b8b7305f@example.test",
+  "lastName": "PrivateAee06632b",
+  "emailAddress": "owner-a-ee06632b@example.test",
   "phone": null,
   "avatarUrl": null,
   "emailVerified": false
@@ -233,7 +233,7 @@ mutation ($input: UpdateActiveAdministratorInput!) { updateActiveAdministrator(i
 
 variables: {
   "input": {
-    "emailAddress": "owner-b-b8b7305f@example.test"
+    "emailAddress": "owner-b-ee06632b@example.test"
   }
 }
 ```

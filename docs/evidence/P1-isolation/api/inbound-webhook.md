@@ -7,8 +7,8 @@ Live transcripts from `scripts/evidence/P1-isolation.sh`. Ids and store tokens a
 A, signing as a provider with A's secret, posts a webhook to B's store: 401, nothing stored for B. **Pass.**
 
 ```http
-POST /webhooks/demo/b-b8b7305f-1
-x-demo-signature: sha256=23f39eb45196f01e240cac8ec0b4e0f697a3edc3ba9c8c7f7d180715a68b7255
+POST /webhooks/demo/b-ee06632b-1
+x-demo-signature: sha256=412203e4252d5f80a5a4756f8b1620302c66acab32bfa8bacbc4b14487c0c0e1
 x-demo-event-id: isolation-cross-signed
 
 
@@ -23,11 +23,11 @@ x-demo-event-id: isolation-cross-signed
 
 ### webhook.cross-signed (B attacks A)
 
-A, signing as a provider with A's secret, posts a webhook to B's store: 401, nothing stored for B. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A, signing as a provider with A's secret, posts a webhook to B's store: 401, nothing stored for B. **Pass.**
 
 ```http
-POST /webhooks/demo/a-b8b7305f-1
-x-demo-signature: sha256=3617a041f0d15a851c047691c3b631f893eaf314a91cd0b5a85e0f1fed17b7e9
+POST /webhooks/demo/a-ee06632b-1
+x-demo-signature: sha256=e98ec97abcccd6a1e3cbf64806c22181e2eff9119ba3a8409c3e4e1e18983d77
 x-demo-event-id: isolation-cross-signed
 
 

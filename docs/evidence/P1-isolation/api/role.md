@@ -24,7 +24,7 @@ variables: {}
   "data": {
     "businessRoles": [
       {
-        "id": "246894948035596292",
+        "id": "247004335538442244",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -44,7 +44,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894948035596291",
+        "id": "247004335538442243",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -65,7 +65,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894948035596289",
+        "id": "247004335538442241",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -151,7 +151,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894948035596290",
+        "id": "247004335538442242",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -179,7 +179,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894948035596293",
+        "id": "247004335538442245",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -191,7 +191,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894948035596288",
+        "id": "247004335538442240",
         "name": "Owner",
         "description": "Can do everything in the business, including deleting records and changing settings.",
         "builtInKey": "owner",
@@ -295,7 +295,7 @@ variables: {}
       },
       {
         "id": "<ROLE_A>",
-        "name": "Role A b8b7305f",
+        "name": "Role A ee06632b",
         "description": null,
         "builtInKey": null,
         "permissions": [
@@ -306,7 +306,7 @@ variables: {}
         "memberCount": 1
       },
       {
-        "id": "246894948035596294",
+        "id": "247004335538442246",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
@@ -344,7 +344,7 @@ variables: {}
 
 ### role.list (B attacks A)
 
-A's owner lists business roles: A's roles only. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists business roles: A's roles only. **Pass.**
 
 ```http
 POST /admin-api
@@ -364,7 +364,7 @@ variables: {}
   "data": {
     "businessRoles": [
       {
-        "id": "246894962203955204",
+        "id": "247004354547027971",
         "name": "Accountant",
         "description": "Can keep the books and read every order, without changing orders.",
         "builtInKey": "accountant",
@@ -384,7 +384,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894962203955203",
+        "id": "247004354547027970",
         "name": "Inventory manager",
         "description": "Can keep products, collections and stock up to date, including purchase prices.",
         "builtInKey": "inventory-manager",
@@ -405,7 +405,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894962203955201",
+        "id": "247004354547027968",
         "name": "Manager",
         "description": "Can do everything except delete records, remove members or change business settings.",
         "builtInKey": "manager",
@@ -491,7 +491,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894962203955202",
+        "id": "247004354547027969",
         "name": "Order manager",
         "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
         "builtInKey": "order-manager",
@@ -519,7 +519,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894962203955205",
+        "id": "247004354547027972",
         "name": "Order tracker",
         "description": "Can follow shipments and update their status, and nothing else.",
         "builtInKey": "order-tracker",
@@ -531,7 +531,7 @@ variables: {}
         "memberCount": 0
       },
       {
-        "id": "246894962203955200",
+        "id": "247004354542833664",
         "name": "Owner",
         "description": "Can do everything in the business, including deleting records and changing settings.",
         "builtInKey": "owner",
@@ -635,7 +635,7 @@ variables: {}
       },
       {
         "id": "<ROLE_B>",
-        "name": "Role B b8b7305f",
+        "name": "Role B ee06632b",
         "description": null,
         "builtInKey": null,
         "permissions": [
@@ -646,7 +646,7 @@ variables: {}
         "memberCount": 1
       },
       {
-        "id": "246894962203955206",
+        "id": "247004354547027973",
         "name": "Store manager",
         "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
         "builtInKey": "store-manager",
@@ -711,7 +711,7 @@ variables: {
 
 ### role.by-id (B attacks A)
 
-A's owner asks for B's role by id: null. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner asks for B's role by id: null. **Pass.**
 
 ```http
 POST /admin-api
@@ -870,7 +870,7 @@ variables: {
 
 ### role.update (B attacks A)
 
-A's owner renames B's role: rbac.role-not-found, B's role unchanged. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner renames B's role: rbac.role-not-found, B's role unchanged. **Pass.**
 
 ```http
 POST /admin-api
@@ -997,7 +997,7 @@ variables: {}
 
 ### role.victim-channel (B attacks A)
 
-A's owner lists business roles with B's store token: FORBIDDEN. **Pass.**
+Reverse run: B's owner plays A's part and A is the victim. A's owner lists business roles with B's store token: FORBIDDEN. **Pass.**
 
 ```http
 POST /admin-api
@@ -1051,7 +1051,7 @@ vendure-token: <TOKEN_A1>
 ```json
 [
   {
-    "id": "246894948035596292",
+    "id": "247004335538442244",
     "name": "Accountant",
     "description": "Can keep the books and read every order, without changing orders.",
     "builtInKey": "accountant",
@@ -1121,10 +1121,10 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 11,
     "memberCount": 0,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   },
   {
-    "id": "246894948035596291",
+    "id": "247004335538442243",
     "name": "Inventory manager",
     "description": "Can keep products, collections and stock up to date, including purchase prices.",
     "builtInKey": "inventory-manager",
@@ -1195,10 +1195,10 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 12,
     "memberCount": 0,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   },
   {
-    "id": "246894948035596289",
+    "id": "247004335538442241",
     "name": "Manager",
     "description": "Can do everything except delete records, remove members or change business settings.",
     "builtInKey": "manager",
@@ -1334,10 +1334,10 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 77,
     "memberCount": 0,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   },
   {
-    "id": "246894948035596290",
+    "id": "247004335538442242",
     "name": "Order manager",
     "description": "Can handle orders from creation to delivery, returns and buyers, and nothing else.",
     "builtInKey": "order-manager",
@@ -1415,10 +1415,10 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 19,
     "memberCount": 0,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   },
   {
-    "id": "246894948035596293",
+    "id": "247004335538442245",
     "name": "Order tracker",
     "description": "Can follow shipments and update their status, and nothing else.",
     "builtInKey": "order-tracker",
@@ -1480,10 +1480,10 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 3,
     "memberCount": 0,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   },
   {
-    "id": "246894948035596288",
+    "id": "247004335538442240",
     "name": "Owner",
     "description": "Can do everything in the business, including deleting records and changing settings.",
     "builtInKey": "owner",
@@ -1636,11 +1636,11 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 94,
     "memberCount": 1,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   },
   {
     "id": "<ROLE_A>",
-    "name": "Role A b8b7305f",
+    "name": "Role A ee06632b",
     "description": null,
     "builtInKey": null,
     "isBuiltIn": false,
@@ -1701,10 +1701,10 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 3,
     "memberCount": 1,
-    "updatedAt": "2026-11-13T07:12:24.701Z"
+    "updatedAt": "2026-11-13T14:27:05.328Z"
   },
   {
-    "id": "246894948035596294",
+    "id": "247004335538442246",
     "name": "Store manager",
     "description": "Can run the storefront, its pages and domains, and maintain products and collections.",
     "builtInKey": "store-manager",
@@ -1786,7 +1786,7 @@ vendure-token: <TOKEN_A1>
     ],
     "permissionCount": 23,
     "memberCount": 0,
-    "updatedAt": "2026-11-13T07:12:22.698Z"
+    "updatedAt": "2026-11-13T14:27:02.711Z"
   }
 ]
 ```
@@ -1931,7 +1931,7 @@ vendure-token: <TOKEN_B1>
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-13T07:12:37.229Z",
+  "timestamp": "2026-11-13T14:27:21.441Z",
   "path": "/roles"
 }
 ```
