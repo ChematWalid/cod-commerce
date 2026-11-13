@@ -81,6 +81,8 @@ describe('auth flows in a real browser', () => {
   it('walks three steps, offers exactly the three store languages and shows a taken address', async () => {
     await openStoreStep(page, `${unique()}@evidence.example.test`);
     await page.getByRole('combobox', { name: 'Store language' }).click();
+    // allTextContents does not wait: the popup mounts its options after the click (#239).
+    await page.getByRole('option').nth(2).waitFor();
     await expect(page.getByRole('option').allTextContents()).resolves.toEqual(['العربية', 'Français', 'English']);
     await page.keyboard.press('Escape');
     await expect(createButton(page).isDisabled()).resolves.toBe(true);
