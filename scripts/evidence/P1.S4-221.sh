@@ -5,10 +5,16 @@
 # and every caller file of the menu helpers once. Writes the counts, the Chromium version and the log of every failed run to
 # docs/evidence/P1.S4-221/<label>.md, then tears everything down. Never touches `cod` or `cod-verify`.
 #
-#   timeout 2400 scripts/evidence/P1.S4-221.sh                         # label "after": any failure fails the script
-#   EV_LABEL=before EV_CALLERS=0 timeout 2400 scripts/evidence/P1.S4-221.sh  # record a red run, failures expected
+#   timeout 2400 scripts/evidence/P1.S4-221.sh                          # label "after": any failure fails the script
+#   EV_LABEL=before EV_TESTS_FROM=8fa54c1 timeout 2400 scripts/evidence/P1.S4-221.sh  # a red run with the old helpers
 #
-# EV_LOOPS (default 10) and EV_THROTTLED_LOOPS (default 2) set the loop counts, BROWSER_CPU_THROTTLE_RATE the slowdown (4).
+# EV_TESTS_FROM=<rev> runs the browser files that differ from <rev> at their <rev> version: they are swapped in after the
+# image is built (the build context holds apps/server/tests, so a swap before the build busts the image cache and the
+# rebuild alone outlasts its timeout) and put back on exit. EV_LOOPS and EV_THROTTLED_LOOPS set the loop counts (after: 6
+# and 2; before: 3 and 1, no caller files), EV_CALLERS=0|1 the caller-file run, BROWSER_CPU_THROTTLE_RATE the slowdown (4).
+# Budgets: EV_RUN_BUDGET_S per spec run (360; a green run takes under a minute, a red one about 45 s per failed case),
+# EV_CALLERS_BUDGET_S for the caller files (900), and EV_BUDGET_S for the whole script (2100, under the 2400 s wrapper
+# with room for the teardown). A run that would end past EV_BUDGET_S is skipped and recorded; "after" fails on a skip.
 # Data is synthetic. Passwords and session tokens are never written.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -35,7 +41,18 @@ export BROWSER_CPU_THROTTLE_RATE=${BROWSER_CPU_THROTTLE_RATE:-4}
 
 label=${EV_LABEL:-after}
 [[ "$label" =~ ^[a-z0-9-]+$ ]] || { echo "evidence: EV_LABEL must be lower-case letters, digits and dashes" >&2; exit 1; }
-loops=${EV_LOOPS:-10} throttled_loops=${EV_THROTTLED_LOOPS:-2} run_callers=${EV_CALLERS:-1}
+if [[ "$label" == before ]]; then
+  loops=${EV_LOOPS:-3} throttled_loops=${EV_THROTTLED_LOOPS:-1} run_callers=${EV_CALLERS:-0}
+else
+  loops=${EV_LOOPS:-6} throttled_loops=${EV_THROTTLED_LOOPS:-2} run_callers=${EV_CALLERS:-1}
+fi
+run_budget=${EV_RUN_BUDGET_S:-360} callers_budget=${EV_CALLERS_BUDGET_S:-900}
+deadline=$((SECONDS + ${EV_BUDGET_S:-2100}))
+tests_from=${EV_TESTS_FROM:-}
+for number in "$loops" "$throttled_loops" "$run_budget" "$callers_budget" "${EV_BUDGET_S:-2100}"; do
+  [[ "$number" =~ ^[0-9]+$ ]] || { echo "evidence: loop counts and budgets must be whole numbers" >&2; exit 1; }
+done
+swapped=() swap_back=""
 out=docs/evidence/P1.S4-221
 api="http://127.0.0.1:$API_HOST_PORT"
 mailpit="http://127.0.0.1:$MAILPIT_UI_HOST_PORT"
@@ -55,6 +72,9 @@ on_exit() {
   if ((status != 0)); then
     docker compose ps -a >&2 || true
     docker compose logs --no-color --tail=30 migrate api worker >&2 || true
+  fi
+  if ((${#swapped[@]} > 0)); then
+    git checkout "$swap_back" -- "${swapped[@]}" || echo "evidence: could not put back ${swapped[*]} from $swap_back" >&2
   fi
   timeout 300 docker compose down -v --remove-orphans >/dev/null 2>&1 || timeout 300 docker compose down -v --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$work"
@@ -93,6 +113,10 @@ $dirty"
 image_commit=$(git log -1 --format=%H -- "${image_inputs[@]}")
 tests_commit=$(git log -1 --format=%H -- apps/server/tests/browser)
 tests_dirty=$(git status --porcelain -- apps/server/tests/browser)
+if [[ -n "$tests_from" ]]; then
+  [[ -z "$tests_dirty" ]] || fail "EV_TESTS_FROM needs a clean apps/server/tests/browser (the swap is undone by a checkout)"
+  tests_from=$(git rev-parse --verify --quiet "$tests_from^{commit}") || fail "EV_TESTS_FROM is not a commit"
+fi
 NEXT_DEPLOYMENT_ID="$(git rev-parse --short "$image_commit")"
 export NEXT_DEPLOYMENT_ID
 timeout 300 docker compose down -v --remove-orphans
@@ -116,26 +140,38 @@ reset_limits() { # Every sign-in from this host shares one client address.
 }
 
 # A red run can stop with the owner's stored display language on Arabic; the next run must start from English.
+# The settings store answers only on a channel where the caller holds Authenticated: the owner's role sits on the store
+# channels and never on the default channel (vendure-channel-provisioner.ts createOwnerRole, channelIds: []), so a call
+# without a vendure-token is FORBIDDEN. Like the dashboard, the calls carry the token of one of the owner's store channels;
+# `vendure.dashboard.userSettings` is user-scoped, so any of them reaches the same value.
 reset_owner_language() {
   OWNER_EMAIL=$OWNER timeout 60 node -e '
 const [api] = process.argv.slice(1);
 const key = "vendure.dashboard.userSettings";
-const call = async (token, query, variables) => {
-  const headers = { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) };
+const defaultChannel = "__default_channel__";
+const call = async (session, query, variables) => {
+  const headers = { "content-type": "application/json" };
+  if (session) Object.assign(headers, { authorization: `Bearer ${session.token}`, "vendure-token": session.channel });
   const response = await fetch(`${api}/admin-api`, { method: "POST", headers, body: JSON.stringify({ query, variables }) });
   const body = await response.json();
   if (body.errors) throw new Error(JSON.stringify(body.errors));
   return { body, token: response.headers.get("vendure-auth-token") };
 };
 (async () => {
-  const login = await call(null, "mutation ($u: String!, $p: String!) { login(username: $u, password: $p) { __typename } }",
+  const login = await call(null, `mutation ($u: String!, $p: String!) { login(username: $u, password: $p) {
+    __typename ... on CurrentUser { channels { code token permissions } } } }`,
     { u: process.env.OWNER_EMAIL, p: process.env.DEMO_OWNER_PASSWORD });
   if (login.body.data.login.__typename !== "CurrentUser" || !login.token) throw new Error("owner sign-in failed");
-  const read = await call(login.token, "query ($key: String!) { getSettingsStoreValue(key: $key) }", { key });
+  const store = login.body.data.login.channels
+    .find((channel) => channel.code !== defaultChannel && channel.permissions.includes("Authenticated"));
+  if (!store) throw new Error("the owner holds no store channel");
+  const session = { token: login.token, channel: store.token };
+  const read = await call(session, "query ($key: String!) { getSettingsStoreValue(key: $key) }", { key });
   const value = { ...(read.body.data.getSettingsStoreValue ?? {}), displayLanguage: "en" };
-  const saved = await call(login.token, "mutation ($input: SettingsStoreInput!) { setSettingsStoreValue(input: $input) { result } }",
+  const saved = await call(session, "mutation ($input: SettingsStoreInput!) { setSettingsStoreValue(input: $input) { result error } }",
     { input: { key, value } });
-  if (!saved.body.data.setSettingsStoreValue.result) throw new Error("storing the display language failed");
+  const { result, error } = saved.body.data.setSettingsStoreValue;
+  if (!result) throw new Error(`storing the display language failed: ${error ?? "no reason given"}`);
 })().catch((error) => { console.error(error.message); process.exit(1); });' "$api" || fail "could not put the owner back on English"
 }
 
@@ -143,20 +179,39 @@ chromium_version=$(cd apps/server && timeout 60 node -e '
 require("playwright-core").chromium.launch().then(async (browser) => { console.log(browser.version()); await browser.close(); });')
 [[ -n "$chromium_version" ]] || fail "no Chromium version"
 
+# --- the browser files under test, after the image is built ------------------------------------
+if [[ -n "$tests_from" ]]; then
+  swap_back=$(git rev-parse HEAD)
+  while IFS= read -r file; do
+    git cat-file -e "$tests_from:$file" 2>/dev/null && swapped+=("$file")
+  done < <(git diff --name-only "$tests_from" "$swap_back" -- apps/server/tests/browser)
+  ((${#swapped[@]} > 0)) || fail "no browser file differs from $tests_from"
+  git checkout "$tests_from" -- "${swapped[@]}"
+  tests_commit="$tests_from (${swapped[*]##*/}; the rest at $swap_back)"
+  echo "evidence: running ${swapped[*]} at $tests_from" >&2
+fi
+
 # --- the runs ------------------------------------------------------------------------------------
 rm -rf "${out:?}/$label"
 mkdir -p "$out/$label"
-rows=() runs=0 failures=0
+rows=() runs=0 failures=0 skipped=0
 strip_ansi() { command sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
-# browser_run <name> <config> <vitest args...>: one vitest invocation, recorded as a row; a failure keeps its log.
+# browser_run <name> <budget s> <config> <vitest args...>: one vitest invocation, recorded as a row; a failure keeps its
+# log. A run that could end past the script deadline is skipped (and recorded) rather than cut by the outer wrapper.
 browser_run() {
-  local name=$1 config=$2 started=$SECONDS result=pass log="$work/run.log"
-  shift 2
+  local name=$1 budget=$2 config=$3 started=$SECONDS result=pass log="$work/run.log"
+  shift 3
+  runs=$((runs + 1))
+  if ((SECONDS + budget + 60 > deadline)); then
+    skipped=$((skipped + 1))
+    rows+=("| $runs | $name | skipped | the script budget left no room for a ${budget} s run | 0 s |")
+    echo "run $runs $name: skipped (budget)" >&2
+    return 0
+  fi
   reset_limits
   reset_owner_language
-  runs=$((runs + 1))
   if ! DASHBOARD_URL=$api/dashboard MAILPIT_URL=$mailpit SCREENSHOT_DIR=$work/shots \
-    timeout 900 pnpm --filter @cod/server exec vitest run --configLoader runner -c "$config" "$@" >"$log" 2>&1; then
+    timeout "$budget" pnpm --filter @cod/server exec vitest run --configLoader runner -c "$config" "$@" >"$log" 2>&1; then
     result=fail failures=$((failures + 1))
     strip_ansi <"$log" >"$out/$label/run-$runs-$name.log"
   fi
@@ -166,17 +221,18 @@ browser_run() {
   echo "run $runs $name: $result (${tests:-no summary})" >&2
 }
 
+# The caller files first: the longest run, and the one a late skip would cost the most.
+if [[ "$run_callers" == 1 ]]; then
+  browser_run callers "$callers_budget" "$PLAIN_CONFIG" "${CALLER_FILES[@]/#/tests/browser/}"
+fi
 for ((i = 1; i <= loops; i++)); do
-  browser_run general-settings-rtl "$PLAIN_CONFIG" "${GENERAL_SETTINGS[@]}"
-  browser_run account-menu-close "$PLAIN_CONFIG" "${ACCOUNT_MENU_CLOSE[@]}"
+  browser_run general-settings-rtl "$run_budget" "$PLAIN_CONFIG" "${GENERAL_SETTINGS[@]}"
+  browser_run account-menu-close "$run_budget" "$PLAIN_CONFIG" "${ACCOUNT_MENU_CLOSE[@]}"
 done
 for ((i = 1; i <= throttled_loops; i++)); do
-  browser_run general-settings-rtl-throttled "$THROTTLED_CONFIG" "${GENERAL_SETTINGS[@]}"
-  browser_run account-menu-close-throttled "$THROTTLED_CONFIG" "${ACCOUNT_MENU_CLOSE[@]}"
+  browser_run general-settings-rtl-throttled "$run_budget" "$THROTTLED_CONFIG" "${GENERAL_SETTINGS[@]}"
+  browser_run account-menu-close-throttled "$run_budget" "$THROTTLED_CONFIG" "${ACCOUNT_MENU_CLOSE[@]}"
 done
-if [[ "$run_callers" == 1 ]]; then
-  browser_run callers "$PLAIN_CONFIG" "${CALLER_FILES[@]/#/tests/browser/}"
-fi
 
 # --- the record ----------------------------------------------------------------------------------
 {
@@ -194,7 +250,9 @@ Produced by \`scripts/evidence/P1.S4-221.sh\` on a live compose stack (project \
 | Plain loops | $loops × (general-settings "right to left", account-menu-close) |
 | Throttled loops | $throttled_loops × the same, CDP CPU throttling ×$BROWSER_CPU_THROTTLE_RATE |
 | Caller files | $([[ "$run_callers" == 1 ]] && echo "${CALLER_FILES[*]}" || echo 'not run') |
+| Budgets | ${run_budget} s per spec run, ${callers_budget} s for the caller files, ${EV_BUDGET_S:-2100} s in all |
 | **Runs / failures** | **$runs / $failures** |
+| Skipped for time | $skipped |
 
 | Run | Spec | Result | Tests | Time |
 | --- | --- | --- | --- | --- |
@@ -220,5 +278,6 @@ for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" 
   if command grep -rqaF -- "$secret" "$out"; then fail "a raw secret appears in $out"; fi
 done
 if [[ "$label" != before ]] && ((failures > 0)); then fail "$failures of $runs runs failed; see $out/$label"; fi
-echo "runs=$runs failures=$failures"
+if [[ "$label" != before ]] && ((skipped > 0)); then fail "$skipped of $runs runs were skipped for time; see $out/$label.md"; fi
+echo "runs=$runs failures=$failures skipped=$skipped"
 echo "EVIDENCE-OK"
