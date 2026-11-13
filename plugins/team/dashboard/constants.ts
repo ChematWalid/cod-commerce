@@ -30,6 +30,9 @@ export const INVITATION_ACCEPT_ENDPOINT = '/team/invitations/accept';
 export const TEAM_PAGE_TEST_ID = 'team-members-page';
 export const ACCEPT_PAGE_TEST_ID = 'accept-invitation-page';
 
+/** What a table cell or details row shows when it has nothing to show. */
+export const EMPTY_VALUE = '—';
+
 /** Catalogue ids of the messages used from more than one file. */
 export const GENERIC_ERROR_MESSAGE_ID = 'team.error-generic';
 export const FORBIDDEN_MESSAGE_ID = 'team.error-forbidden';
