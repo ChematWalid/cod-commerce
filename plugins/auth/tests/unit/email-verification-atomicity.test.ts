@@ -52,7 +52,10 @@ describe('EmailVerificationService.verifyByCode atomicity', () => {
       },
     };
     tokens = new AccountTokenService(repository, new FakeSecretHasher(), nextId, clock);
-    const sealer = { seal: (value: unknown) => JSON.stringify(value), open: (value: string) => JSON.parse(value) as unknown };
+    const sealer = {
+      seal: (value: unknown) => JSON.stringify(value),
+      open: (value: string) => JSON.parse(value) as unknown,
+    };
     service = new EmailVerificationService({
       identity: {
         // A transaction over the in-memory rows: what the work wrote is undone when it throws.

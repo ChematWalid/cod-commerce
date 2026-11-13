@@ -55,7 +55,10 @@ describe('EmailVerificationService on the account throttle (D29, D44)', () => {
       },
     };
     tokens = new AccountTokenService(new InMemoryAccountTokenRepository(), hasher, nextId, clock);
-    const sealer = { seal: (value: unknown) => JSON.stringify(value), open: (value: string) => JSON.parse(value) as unknown };
+    const sealer = {
+      seal: (value: unknown) => JSON.stringify(value),
+      open: (value: string) => JSON.parse(value) as unknown,
+    };
     service = new EmailVerificationService({
       identity: {
         inTransaction: (_ctx, work) => work(ctx),
