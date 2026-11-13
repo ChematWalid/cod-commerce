@@ -634,7 +634,7 @@ check_screen_variants() { # check_screen_variants <dir> <expected-total>
   names=$(command find "$1" -maxdepth 1 -name '*.png' -printf '%f\n' | command sort)
   stray=$(printf '%s\n' "$names" | command grep -vE -- '-(ar|en)-(desktop|mobile)\.png$' || true)
   [[ -z "$stray" ]] || fail "screens without a language and viewport suffix: $stray"
-  for base in $(printf '%s\n' "$names" | command sed -E 's/-(ar|en)-(desktop|mobile)\.png$//' | command uniq -c | command awk '$1 != 4 {print $2}'); do
+  for base in $(printf '%s\n' "$names" | command sed -E 's/-(ar|en)-(desktop|mobile)\.png$//' | command sort | command uniq -c | command awk '$1 != 4 {print $2}'); do
     [[ " ${SCREEN_VARIANT_EXEMPT[*]} " == *" $base "* ]] || missing+=" $base"
   done
   [[ -z "$missing" ]] || fail "screens missing a language or viewport variant:$missing"
