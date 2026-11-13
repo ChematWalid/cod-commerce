@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ARABIC_FONT_FAMILY, STORE_SWITCHER_TEST_ID } from '../../plugins/merchant-shell/dashboard/constants.ts';
 import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '../../plugins/_template/dashboard/constants.ts';
-import { loginAsOwner, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
+import { assertNoPageError, loginAsOwner, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');
@@ -204,8 +204,9 @@ async function shootNotes(browser, vpName, lang, deviceScaleFactor) {
     if (lang === 'ar') assertArabicFont(state, label);
     if ((await marker.getByText(otherBusinessTitle, { exact: false }).count()) > 0)
       fail(`${label}: shows the other business's note`);
-    const alert = await page.getByRole('alert').count();
-    if (alert > 0) fail(`${label}: the page shows an alert instead of the notes`);
+    // The shared check skips the verification banner, also a role="alert": the seeded owners' emails are unverified
+    // by design (P1.S2), and the banner is mounted above every authenticated page since #97.
+    await assertNoPageError(page).catch((error) => fail(`${label}: ${error.message}`));
     await capture(page, join(outDir, `template-notes-${lang}-${vpName}.png`));
     return deviceScaleFactor;
   } finally {
