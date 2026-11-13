@@ -1,7 +1,9 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { randomBytes } from 'node:crypto';
+import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import {
+  ACTIVITY_LOG_SCHEMA,
   asOperationContext as asRbacContext,
   CreateRoleService,
   MemberAccessService,
@@ -17,6 +19,7 @@ import {
   loadPluginTestDbConfig,
   PLUGIN_TEST_INITIAL_DATA,
   type TwoBusinesses,
+  withPartitionedSchemas,
 } from '@cod/testing';
 import { RequestContextService, TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -33,6 +36,7 @@ const OWNER_PASSWORD = 'synthetic-owner-password';
 
 const { server, adminClient } = createPluginTestEnvironment({
   plugins: [
+    PlatformPartitionsPlugin,
     RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: '' }),
     TenancyPlugin.init({
       redisUrl: TEST_REDIS_URL,
@@ -46,6 +50,8 @@ const { server, adminClient } = createPluginTestEnvironment({
   ],
   db: loadPluginTestDbConfig(process.env),
 });
+// Granting a role writes the partitioned `activity_log`, which `synchronize` cannot make (D130).
+withPartitionedSchemas(server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
 
 let businesses: TwoBusinesses;
 

@@ -22,6 +22,7 @@ describe('OUTBOX_TOPICS', () => {
       'order.returned',
       'parcel.status_changed',
       'product.changed',
+      'salary.paid',
       'platform.demo',
     ]);
   });

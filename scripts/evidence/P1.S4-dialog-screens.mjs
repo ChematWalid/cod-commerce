@@ -12,7 +12,9 @@ async function closeDialog(page, role = 'dialog') {
 
 async function openRowAction(page, kit, email, actionId) {
   const { t, memberRow } = kit;
-  await memberRow(page, email).getByRole('button', { name: t('team.row-actions') }).click();
+  await memberRow(page, email)
+    .getByRole('button', { name: t('team.row-actions') })
+    .click();
   await page.getByRole('menuitem', { name: t(actionId), exact: true }).click();
 }
 

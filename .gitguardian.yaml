@@ -21,3 +21,5 @@ secret:
       match: 0000000000000000000000000000000000000000000000000000000000000000
     - name: deliberately broken database password fixture (RF5) in scripts/verify-stack.sh and the env unit test; never a credential
       match: p@ss/w:rd
+    - name: synthetic 43-character invitation token used only by the team and rate-limit tests that prove a token is never echoed (D205); never issued by the server
+      match: Zk3r9QbX2mVt7LpW4sYh8NcD1aFe6GuJ0oRi5TyKwMx

@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
+    "@cod/plugin-platform-partitions": "workspace:*",
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",

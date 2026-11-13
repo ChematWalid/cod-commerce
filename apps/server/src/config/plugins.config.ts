@@ -145,6 +145,11 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
     ...oauthOptions(env),
   });
 
+/** RBAC, auth and Team, in this order: Team builds on the services of the other two (D206). */
+function memberPlugins(env: AppEnv): VendurePluginEntry[] {
+  return [RbacPlugin, authPlugin(env), TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL })];
+}
+
 /**
  * The single registration point for plugins. Every role registers every plugin that declares entities, so
  * the `migrate` role creates every table (e.g. `scheduled_task_record`, B1); role-only plugins have none.
@@ -174,10 +179,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       cacheNamespace: env.APP_ENV,
     }),
     ...tenantDataPlugins(env),
-    RbacPlugin,
-    authPlugin(env),
-    // After rbac and auth, whose services Team builds on (D206).
-    TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
+    ...memberPlugins(env),
     assetServerPlugin(env),
   ];
   if (role !== 'api') {

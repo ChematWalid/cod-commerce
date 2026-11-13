@@ -1,5 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TEAM_EMAIL_MAX_LENGTH } from '@cod/shared';
 import { createMember, createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import gql from 'graphql-tag';
@@ -16,10 +16,10 @@ import {
 import type { InviteInput } from './team-operations';
 
 const SNOWFLAKE_WORKER_ID = 1010;
-const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
-  RbacPlugin,
-  AuthPlugin.init(authTestOptions()),
-]);
+const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
+  plugins: [RbacPlugin, AuthPlugin.init(authTestOptions())],
+  partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
+});
 const CREATE_STORE = gql`
   mutation ($input: CreateStoreInput!) {
     createStore(input: $input) {
