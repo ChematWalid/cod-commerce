@@ -144,7 +144,7 @@ describe('what an actor who could not make the grant learns from a resend', () =
   it.each([
     ['inside the cooldown', 0],
     ['past the resend limit', 5],
-  ])("answers 403 owner-restricted, not the cap it hit %s, and mails nothing", async (_case, resendCount) => {
+  ])('answers 403 owner-restricted, not the cap it hit %s, and mails nothing', async (_case, resendCount) => {
     // Arrange
     const { a } = businesses;
     await kit.signIn(a.owner, a.stores[0]);
