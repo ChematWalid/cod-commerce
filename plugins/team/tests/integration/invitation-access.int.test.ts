@@ -1,11 +1,12 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { RbacPlugin } from '@cod/plugin-rbac';
-import { teamMemberActivityDiffSchema } from '@cod/shared';
+import { ACTIVITY_ENTITY_TYPES, teamMemberActivityDiffSchema } from '@cod/shared';
 import { createTwoBusinesses, failureOf, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { invitationLinkIn, settledCountTo, waitForMessages } from './mailpit';
 import { authTestOptions, createTeamTestEnvironment, freshEmail, MEMBER_PASSWORD, TeamKit } from './team-kit';
 import { ACTIVITY_LOG, type ActivityItem, INVITE_MEMBER, type InviteInput, RESEND_INVITATION } from './team-operations';
+import { standaloneNumber } from '../support/standalone-number';
 
 const SNOWFLAKE_WORKER_ID = 1011;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
@@ -212,11 +213,12 @@ describe('what the activity log shows of invitations (D216, D217)', () => {
     ]);
     for (const item of activityLog.items) {
       expect(teamMemberActivityDiffSchema.safeParse(item.diff).success).toBe(true);
+      expect(item.entityType).toBe(ACTIVITY_ENTITY_TYPES.TEAM_MEMBER);
       expect(item.storeId).toBeNull();
     }
     const serialized = JSON.stringify(activityLog.items);
-    expect(serialized).not.toContain(String(SALARY));
-    expect(serialized).not.toContain(String(COMMISSION_VALUE));
+    expect(serialized).not.toMatch(standaloneNumber(SALARY));
+    expect(serialized).not.toMatch(standaloneNumber(COMMISSION_VALUE));
     expect(serialized).not.toContain(email);
     expect(serialized).not.toContain(token);
   });

@@ -1,6 +1,6 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { RbacPlugin } from '@cod/plugin-rbac';
-import { type PermissionKey, teamCommissionActivityDiffSchema } from '@cod/shared';
+import { ACTIVITY_ENTITY_TYPES, type PermissionKey, teamCommissionActivityDiffSchema } from '@cod/shared';
 import { createTwoBusinesses, failureOf, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -19,6 +19,7 @@ import {
 } from './commission-operations';
 import { authTestOptions, createTeamTestEnvironment, TeamKit } from './team-kit';
 import { ACTIVITY_LOG, type ActivityItem } from './team-operations';
+import { standaloneNumber } from '../support/standalone-number';
 
 const SNOWFLAKE_WORKER_ID = 1006;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
@@ -148,13 +149,13 @@ describe('the activity of commission configs (D216)', () => {
       'team.commission.deleted',
       'team.commission.updated',
     ]);
+    expect(new Set(rows.map((row) => row.entityType))).toEqual(new Set([ACTIVITY_ENTITY_TYPES.COMMISSION_CONFIG]));
     const entries = rows.map((row) => ({ row, diff: teamCommissionActivityDiffSchema.parse(row.diff) }));
     expect(entries.find(({ diff }) => diff.changedFields.length === 1)?.diff.changedFields).toEqual(['value']);
     expect(rows.filter((row) => 'value' in row.diff)).toEqual([]);
-    // Ids and timestamps are long digit runs, so only a standalone number counts as a leaked value.
     const readable = entries.flatMap(({ row, diff }) => [row.summary, diff.name]).join('\n');
     for (const value of [FIRST_VALUE, SECOND_VALUE]) {
-      expect(readable).not.toMatch(new RegExp(`(?<!\\d)${String(value)}(?!\\d)`));
+      expect(readable).not.toMatch(standaloneNumber(value));
     }
   });
 });

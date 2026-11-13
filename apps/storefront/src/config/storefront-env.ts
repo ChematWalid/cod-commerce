@@ -1,3 +1,4 @@
+import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { CacheConfigError, requireDeploymentId, requireRedisUrl } from '../../cache/cache-config';
 
 /**
@@ -9,7 +10,14 @@ import { CacheConfigError, requireDeploymentId, requireRedisUrl } from '../../ca
  */
 
 /** Every variable the storefront reads. The `.env.example` gate (`pnpm test:arch`) checks each one is documented. */
-export const STOREFRONT_ENV_KEYS = ['APP_ENV', 'NEXT_DEPLOYMENT_ID', 'REDIS_URL', 'INTERNAL_API_URL'] as const;
+export const STOREFRONT_ENV_KEYS = [
+  'APP_ENV',
+  'NEXT_DEPLOYMENT_ID',
+  'REDIS_URL',
+  'INTERNAL_API_URL',
+  'INTERNAL_HMAC_KEYS',
+  'INTERNAL_HMAC_ACTIVE_KID',
+] as const;
 
 const APP_ENVS: readonly string[] = ['development', 'test', 'staging', 'production'];
 const API_URL_PROTOCOLS: readonly string[] = ['http:', 'https:'];
@@ -21,6 +29,8 @@ export interface StorefrontEnv {
   readonly deploymentId: string;
   /** The API the proxy asks which store a host belongs to (D12). */
   readonly internalApiUrl: string;
+  /** The key the storefront signs its API calls with (D111): the active kid of `INTERNAL_HMAC_KEYS`. */
+  readonly internalSigningKey: InternalSigningKey;
 }
 
 /** The environment is invalid. The issues name variables and rules, never values: a URL can hold a password. */
@@ -66,6 +76,53 @@ export function internalApiUrl(): string {
   return readInternalApiUrl(process.env);
 }
 
+/** The signing key and the issues of `INTERNAL_HMAC_KEYS` and `INTERNAL_HMAC_ACTIVE_KID`; issues never hold a secret. */
+function signingKeyOf(env: NodeJS.Dict<string>): { key: InternalSigningKey | undefined; issues: string[] } {
+  const issues: string[] = [];
+  const keysValue = env['INTERNAL_HMAC_KEYS']?.trim();
+  const activeKid = env['INTERNAL_HMAC_ACTIVE_KID']?.trim();
+  let keys: readonly InternalSigningKey[] = [];
+  if (!keysValue) {
+    issues.push('INTERNAL_HMAC_KEYS is required');
+  } else {
+    try {
+      keys = parseInternalKeys(keysValue);
+    } catch (error) {
+      if (!(error instanceof InvalidInternalKeysError)) throw error;
+      issues.push(`INTERNAL_HMAC_KEYS is invalid (${error.message})`);
+    }
+  }
+  if (!activeKid) {
+    issues.push('INTERNAL_HMAC_ACTIVE_KID is required');
+    return { key: undefined, issues };
+  }
+  const key = keys.find((candidate) => candidate.kid === activeKid);
+  if (key === undefined && keys.length > 0)
+    issues.push('INTERNAL_HMAC_ACTIVE_KID must be one of the kids in INTERNAL_HMAC_KEYS');
+  return { key, issues };
+}
+
+/**
+ * The key this process signs with, validated like the boot check validates it.
+ *
+ * @throws StorefrontEnvError when the keys or the active kid are missing or invalid (the message holds no secret)
+ */
+export function readInternalSigningKey(env: NodeJS.Dict<string>): InternalSigningKey {
+  const { key, issues } = signingKeyOf(env);
+  if (key === undefined || issues.length > 0) throw new StorefrontEnvError(issues);
+  return key;
+}
+
+/**
+ * The signing key of this process, for `internalFetch`. Read on each call, not once at load, for the reason
+ * {@link internalApiUrl} is.
+ *
+ * @throws StorefrontEnvError when the keys or the active kid are missing or invalid
+ */
+export function internalSigningKey(): InternalSigningKey {
+  return readInternalSigningKey(process.env);
+}
+
 /** Runs a cache rule, turning its typed error into an issue; any other error is a bug and propagates. */
 function cacheValue(read: () => string, issues: string[]): string {
   try {
@@ -96,6 +153,10 @@ export function loadStorefrontEnv(env: NodeJS.Dict<string>): StorefrontEnv {
   const internalApiUrl = env['INTERNAL_API_URL']?.trim();
   const apiIssue = internalApiUrlIssue(internalApiUrl);
   if (apiIssue !== undefined) issues.push(apiIssue);
-  if (issues.length > 0 || internalApiUrl === undefined) throw new StorefrontEnvError(issues);
-  return { redisUrl, deploymentId, internalApiUrl };
+  const signing = signingKeyOf(env);
+  issues.push(...signing.issues);
+  if (issues.length > 0 || internalApiUrl === undefined || signing.key === undefined) {
+    throw new StorefrontEnvError(issues);
+  }
+  return { redisUrl, deploymentId, internalApiUrl, internalSigningKey: signing.key };
 }

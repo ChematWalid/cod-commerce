@@ -23,30 +23,35 @@ export class CommissionsController {
     return this.actions.bases();
   }
 
+  /** The business's commission structures (team.commissions.view). */
   @Get()
   @requirePermission('team.commissions.view')
   list(@Ctx() ctx: RequestContext): Promise<CommissionConfigDto[]> {
     return this.actions.list(ctx);
   }
 
+  /** Creates a commission structure (team.commissions.set); 409 `team.commission-name-taken`. */
   @Post()
   @requirePermission('team.commissions.set')
   create(@Ctx() ctx: RequestContext, @Body() body: unknown): Promise<CommissionConfigDto> {
     return this.actions.create(ctx, body);
   }
 
+  /** One commission structure (team.commissions.view); 404 `team.commission-not-found`. */
   @Get(':id')
   @requirePermission('team.commissions.view')
   get(@Ctx() ctx: RequestContext, @Param('id') id: string): Promise<CommissionConfigDto> {
     return this.actions.get(ctx, id);
   }
 
+  /** Edits a commission structure (team.commissions.edit); 409 `team.commission-name-taken`. */
   @Patch(':id')
   @requirePermission('team.commissions.edit')
   update(@Ctx() ctx: RequestContext, @Param('id') id: string, @Body() body: unknown): Promise<CommissionConfigDto> {
     return this.actions.update(ctx, id, body);
   }
 
+  /** Deletes a commission structure (team.commissions.delete); 409 `team.commission-in-use` while a member has it. */
   @Delete(':id')
   @requirePermission('team.commissions.delete')
   async delete(@Ctx() ctx: RequestContext, @Param('id') id: string): Promise<SuccessResult> {

@@ -1,5 +1,6 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { RbacPlugin } from '@cod/plugin-rbac';
+import { TEAM_EMAIL_MAX_LENGTH } from '@cod/shared';
 import { createMember, createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -125,7 +126,7 @@ describe('accept refusals (Review Focus 2 and 3)', () => {
   });
 
   it.each(['loses the privilege', 'is removed'])(
-    'refuses the accept when the inviter %s, keeps no account and revokes the invitation',
+    'refuses the accept when the inviter %s, keeps no account, revokes the invitation and removes the member',
     async (change) => {
       // Arrange
       const { a } = businesses;
@@ -146,11 +147,13 @@ describe('accept refusals (Review Focus 2 and 3)', () => {
       // Assert
       expect(answer).toMatchObject({ status: 400, body: { code: 'team.invitation-invalid' } });
       expect(await kit.query('SELECT id FROM administrator WHERE "emailAddress" = $1', [email])).toEqual([]);
-      const [invitation] = await kit.query<{ revokedAt: Date | null }>(
-        'SELECT i."revokedAt" FROM invitation i JOIN team_member m ON m.id = i."memberId" WHERE m."emailKey" = $1',
+      const [invitation] = await kit.query<{ revokedAt: Date | null; removedAt: Date | null }>(
+        `SELECT i."revokedAt", m."removedAt" FROM invitation i JOIN team_member m ON m.id = i."memberId"
+          WHERE m."emailKey" = $1`,
         [email],
       );
       expect(invitation?.revokedAt).toBeInstanceOf(Date);
+      expect(invitation?.removedAt).toBeInstanceOf(Date);
     },
   );
 });
@@ -174,6 +177,12 @@ describe('invite refusals (Review Focus 4 and 5)', () => {
     ['a negative salary', { baseSalary: -1 }, 400, 'team.invalid-input'],
     ['a fractional salary', { baseSalary: 1.5 }, 400, 'team.invalid-input'],
     ['selected access without a store', { storeIds: [] }, 400, 'team.invalid-input'],
+    [
+      'an email longer than the stored column',
+      { email: `${'a'.repeat(TEAM_EMAIL_MAX_LENGTH)}@shop.test` },
+      400,
+      'team.invalid-input',
+    ],
   ])('refuses %s, storing and mailing nothing', async (_case, overrides, status, code) => {
     // Arrange
     const email = freshEmail('bad');

@@ -1,7 +1,7 @@
 import { useLingui } from '@lingui/react';
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@vendure/dashboard';
 import { type ReactNode, useState } from 'react';
-import { commissionValueText } from '../commission-draft';
+import { commissionNoticeIdOf, commissionValueText } from '../commission-draft';
 import type { CommissionBasisDto, CommissionConfigDto } from '../dto';
 import { basisLabelOf, formatDzd, useUiLanguage } from '../labels';
 import { CommissionInlineForm } from './commission-inline-form';
@@ -11,6 +11,8 @@ interface CommissionPickerProps {
   readonly configs: readonly CommissionConfigDto[];
   readonly bases: readonly CommissionBasisDto[];
   readonly selected: readonly string[];
+  /** Whether the caller holds `team.commissions.view`; without it only a neutral notice shows. */
+  readonly canSee: boolean;
   /** Whether the caller holds `team.commissions.set`, which the inline form needs. */
   readonly canCreate: boolean;
   readonly onChange: (selected: readonly string[]) => void;
@@ -109,29 +111,50 @@ function CommissionCreator({ bases, onCreated }: CreatorProps): ReactNode {
   );
 }
 
+function ChosenList(props: {
+  readonly chosen: readonly CommissionConfigDto[];
+  readonly bases: readonly CommissionBasisDto[];
+  readonly onRemove: (id: string) => void;
+}): ReactNode {
+  return (
+    <ul className="grid gap-1">
+      {props.chosen.map((config) => (
+        <ChosenRow
+          key={config.id}
+          config={config}
+          bases={props.bases}
+          onRemove={() => {
+            props.onRemove(config.id);
+          }}
+        />
+      ))}
+    </ul>
+  );
+}
+
 /**
  * The commission structures a member is given, picked from the business's configs. With none yet, the empty state
- * offers a small form for a first one (when the caller may create configs).
+ * offers a small form for a first one (when the caller may create configs). A caller who may not see the configs gets
+ * a neutral notice, and the member's configs are kept as they are.
  */
-export function CommissionPicker({ configs, bases, selected, canCreate, onChange }: CommissionPickerProps): ReactNode {
+export function CommissionPicker(props: CommissionPickerProps): ReactNode {
+  const { configs, bases, selected, canSee, canCreate, onChange } = props;
   const { i18n } = useLingui();
+  const noticeId = commissionNoticeIdOf({ canSee, configCount: configs.length });
+  const notice = noticeId !== undefined && <p className="text-muted-foreground text-sm">{i18n._(noticeId)}</p>;
+  if (!canSee) return notice;
   const chosen = configs.filter((config) => selected.includes(config.id));
   const options = configs.filter((config) => !selected.includes(config.id));
   return (
     <div className="grid gap-2">
       {chosen.length > 0 && (
-        <ul className="grid gap-1">
-          {chosen.map((config) => (
-            <ChosenRow
-              key={config.id}
-              config={config}
-              bases={bases}
-              onRemove={() => {
-                onChange(selected.filter((id) => id !== config.id));
-              }}
-            />
-          ))}
-        </ul>
+        <ChosenList
+          chosen={chosen}
+          bases={bases}
+          onRemove={(removed) => {
+            onChange(selected.filter((id) => id !== removed));
+          }}
+        />
       )}
       {options.length > 0 && (
         <AddCommission
@@ -141,7 +164,7 @@ export function CommissionPicker({ configs, bases, selected, canCreate, onChange
           }}
         />
       )}
-      {configs.length === 0 && <p className="text-muted-foreground text-sm">{i18n._('team.commission-empty')}</p>}
+      {notice}
       {canCreate && (
         <CommissionCreator
           bases={bases}

@@ -5,9 +5,8 @@
 name: ${COMPOSE_PROJECT_NAME:-cod}
 
 # The server roles share one image and one environment; no env_file, so nothing leaks in unlisted.
-# APP_ENV comes from .env (development when copied from .env.example); without it, it falls back to
-# production, where loadEnv refuses the placeholders and needs real secrets. P3.S5 decides how a
-# production .env is produced.
+# APP_ENV comes from .env (development when copied from .env.example) and has no fallback: loadEnv requires it
+# (D400), and a deployed value needs real secrets. P3.S5 decides how a production .env is produced.
 #
 # COMPOSE_* variables hold an address or port as the containers see it. They have their own names because
 # .env also holds the host-side values of the same settings (API_PORT=3100, INTERNAL_API_URL=http://localhost:3100)
@@ -24,7 +23,7 @@ x-app: &app
   image: ${APP_IMAGE:-cod-platform:local}
   environment: &app-env
     TZ: UTC
-    APP_ENV: ${APP_ENV:-production}
+    APP_ENV: ${APP_ENV:?set APP_ENV (development, test, staging or production)}
     DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}}
     DATABASE_URL_DIRECT: ${COMPOSE_DATABASE_URL_DIRECT:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}}
     DB_POOL_MAX: ${DB_POOL_MAX:-}
@@ -41,7 +40,14 @@ x-app: &app
     CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
     TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-}
     LOG_LEVEL: ${LOG_LEVEL:-}
+    # Retired by WORKER_POOL (D100): passed through only so boot refuses a value left in an old `.env`.
+    WORKER_ACTIVE_QUEUES: ${WORKER_ACTIVE_QUEUES:-}
     AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET}
+    INTERNAL_HMAC_KEYS: ${INTERNAL_HMAC_KEYS}
+    INTERNAL_HMAC_ACTIVE_KID: ${INTERNAL_HMAC_ACTIVE_KID:-}
+    TENANT_SECRET_KEKS: ${TENANT_SECRET_KEKS}
+    TENANT_SECRET_ACTIVE_KID: ${TENANT_SECRET_ACTIVE_KID:-}
+    PLATFORM_DEMO_HANDLERS: ${PLATFORM_DEMO_HANDLERS:-}
     AUTH_DASHBOARD_URL: ${AUTH_DASHBOARD_URL:-}
     SMTP_HOST: ${SMTP_HOST:-}
     SMTP_PORT: ${SMTP_PORT:-}
@@ -221,8 +227,8 @@ services:
     environment:
       <<: *app-env
       ROLE: worker
-      # Empty: the worker consumes every queue (ADR 0013 addendum).
-      WORKER_ACTIVE_QUEUES: ${WORKER_ACTIVE_QUEUES:-}
+      # critical | bulk | all: the queue pools this worker runs (D100). One worker runs every pool at Launch.
+      WORKER_POOL: ${WORKER_POOL:-all}
     depends_on: *app-depends-on
     ports:
       - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:${COMPOSE_WORKER_HEALTH_PORT:-3020}'
@@ -236,10 +242,13 @@ services:
     environment:
       TZ: UTC
       ROLE: storefront
-      APP_ENV: ${APP_ENV:-production}
+      APP_ENV: ${APP_ENV:?set APP_ENV (development, test, staging or production)}
       REDIS_URL: ${COMPOSE_REDIS_URL:-redis://valkey:6379}
       # Validated at boot and read by the proxy on each request to find the store behind a host (D12).
       INTERNAL_API_URL: ${COMPOSE_INTERNAL_API_URL:-http://api:${COMPOSE_API_PORT:-3000}}
+      # The storefront signs every api call with the active key (ADR 0008, D111); the api verifies with the list.
+      INTERNAL_HMAC_KEYS: ${INTERNAL_HMAC_KEYS}
+      INTERNAL_HMAC_ACTIVE_KID: ${INTERNAL_HMAC_ACTIVE_KID}
       # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
       # always match the deployment the assets were built for.
     depends_on:

@@ -1,0 +1,168 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "flags.nav-platform"
+msgstr "المنصة"
+
+#. js-lingui-explicit-id
+msgid "flags.nav-flags"
+msgstr "مفاتيح الميزات"
+
+#. js-lingui-explicit-id
+msgid "flags.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "flags.empty"
+msgstr "لا توجد مفاتيح ميزات بعد."
+
+#. js-lingui-explicit-id
+msgid "flags.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "flags.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "flags.saved"
+msgstr "تم الحفظ."
+
+#. js-lingui-explicit-id
+msgid "flags.column-key"
+msgstr "المفتاح"
+
+#. js-lingui-explicit-id
+msgid "flags.column-description"
+msgstr "الوصف"
+
+#. js-lingui-explicit-id
+msgid "flags.column-default"
+msgstr "مفعّل افتراضيًا"
+
+#. js-lingui-explicit-id
+msgid "flags.column-rollout"
+msgstr "نسبة الإطلاق (%)"
+
+#. js-lingui-explicit-id
+msgid "flags.column-overrides"
+msgstr "الاستثناءات"
+
+#. js-lingui-explicit-id
+msgid "flags.column-scope"
+msgstr "النطاق"
+
+#. js-lingui-explicit-id
+msgid "flags.column-state"
+msgstr "الحالة"
+
+#. js-lingui-explicit-id
+msgid "flags.default-switch"
+msgstr "الحالة الافتراضية للمفتاح {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.rollout-input"
+msgstr "نسبة إطلاق المفتاح {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.rollout-invalid"
+msgstr "أدخل عددًا صحيحًا من 0 إلى 100."
+
+#. js-lingui-explicit-id
+msgid "flags.overrides-toggle"
+msgstr "عرض استثناءات المفتاح {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.overrides-empty"
+msgstr "لا توجد استثناءات. تسري القيمة الافتراضية ونسبة الإطلاق على الجميع."
+
+#. js-lingui-explicit-id
+msgid "flags.add-override"
+msgstr "إضافة استثناء"
+
+#. js-lingui-explicit-id
+msgid "flags.remove-override"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "flags.override-dialog-title"
+msgstr "استثناء جديد للمفتاح {flag}"
+
+#. js-lingui-explicit-id
+msgid "flags.override-enabled"
+msgstr "مفعّل لهذا الهدف"
+
+#. js-lingui-explicit-id
+msgid "flags.target-id"
+msgstr "معرّف الهدف"
+
+#. js-lingui-explicit-id
+msgid "flags.target-hint"
+msgstr "مفتاح خطة، أو معرّف نشاط تجاري أو متجر."
+
+#. js-lingui-explicit-id
+msgid "flags.scope-business"
+msgstr "النشاط التجاري"
+
+#. js-lingui-explicit-id
+msgid "flags.scope-store"
+msgstr "المتجر"
+
+#. js-lingui-explicit-id
+msgid "flags.scope-plan"
+msgstr "الخطة"
+
+#. js-lingui-explicit-id
+msgid "flags.state-on"
+msgstr "مفعّل"
+
+#. js-lingui-explicit-id
+msgid "flags.state-off"
+msgstr "معطّل"
+
+#. js-lingui-explicit-id
+msgid "flags.error-generic"
+msgstr "حدث خطأ ما. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "flags.error-forbidden"
+msgstr "ليست لديك صلاحية لتنفيذ هذا الإجراء."
+
+#. js-lingui-explicit-id
+msgid "flags.unknown-key"
+msgstr "هذا المفتاح غير موجود. أعد تحميل الصفحة."
+
+#. js-lingui-explicit-id
+msgid "flags.invalid-rollout"
+msgstr "يجب أن تكون نسبة الإطلاق عددًا صحيحًا من 0 إلى 100."
+
+#. js-lingui-explicit-id
+msgid "flags.invalid-description"
+msgstr "يجب أن يتكون الوصف من 1 إلى 200 حرف."
+
+#. js-lingui-explicit-id
+msgid "flags.unknown-scope-target"
+msgstr "لا يوجد نشاط تجاري أو متجر بهذا المعرّف. تحقق منه وحاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "flags.invalid-plan-key"
+msgstr "يتكون مفتاح الخطة من 1 إلى 64 حرفًا."
+
+#. js-lingui-explicit-id
+msgid "flags.description.intake.spool.enabled"
+msgstr "استقبال الطلبات الجديدة في قائمة الاستقبال. إيقافه يوقف استقبال الطلبات أثناء معالجة عطل."
+
+#. js-lingui-explicit-id
+msgid "flags.description.inbound-webhooks.enabled"
+msgstr "قبول الإشعارات الواردة من مزوّدي الخدمة. إيقافه يعيد الرد 503 ليعيد المزوّدون المحاولة لاحقًا."
+
+#. js-lingui-explicit-id
+msgid "flags.description.ai.enabled"
+msgstr "تشغيل ميزات الذكاء الاصطناعي (الاقتراحات والردود). إيقافه يوقف كل استدعاءات الذكاء الاصطناعي."
+
+#. js-lingui-explicit-id
+msgid "flags.description.capi.enabled"
+msgstr "إرسال أحداث التحويل من الخادم إلى منصات الإعلانات. إيقافه يوقف عمليات الإرسال."

@@ -20,6 +20,7 @@ import {
   useLocalFormat,
 } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
+import { targetNameOf, targetTypeMessageIdOf } from '../activity-target';
 import { LtrRun } from '../components/ltr-run';
 import { ACTIVITY_LOG_NAV_TITLE, ACTIVITY_LOG_PATH, ACTIVITY_LOG_QUERY_KEY, LOADING_MESSAGE_ID } from '../constants';
 import { errorMessageId } from '../error-messages';
@@ -38,19 +39,6 @@ const HEADERS = [
 const JSON_INDENT = 2;
 const JSON_STYLE = { direction: 'ltr', textAlign: 'left' } as const;
 const KNOWN_ACTIONS: ReadonlySet<string> = new Set(Object.values(ACTIVITY_ACTIONS));
-const ENTITY_MESSAGE_IDS: Readonly<Record<string, string>> = {
-  role: 'rbac.target-role',
-  member: 'rbac.target-member',
-};
-
-/** The role's name a diff records: a plain text on create and delete, `{ before, after }` on update. */
-function targetNameOf(diff: unknown): string | null {
-  if (typeof diff !== 'object' || diff === null || !('name' in diff)) return null;
-  const { name } = diff;
-  if (typeof name === 'string') return name;
-  if (typeof name !== 'object' || name === null || !('after' in name)) return null;
-  return typeof name.after === 'string' ? name.after : null;
-}
 
 function ActionCell({ action }: { readonly action: string }): ReactNode {
   const { i18n } = useLingui();
@@ -59,10 +47,10 @@ function ActionCell({ action }: { readonly action: string }): ReactNode {
 
 function TargetCell({ item }: { readonly item: ActivityLogItemDto }): ReactNode {
   const { i18n } = useLingui();
-  const typeMessageId = ENTITY_MESSAGE_IDS[item.entityType];
+  const typeMessageId = targetTypeMessageIdOf(item.entityType);
   return (
     <span className="flex flex-wrap items-center gap-1">
-      {typeMessageId === undefined ? <LtrRun>{item.entityType}</LtrRun> : i18n._(typeMessageId)}
+      {typeMessageId === null ? <LtrRun>{item.entityType}</LtrRun> : i18n._(typeMessageId)}
       <bdi>{targetNameOf(item.diff) ?? <LtrRun>{item.entityId}</LtrRun>}</bdi>
     </span>
   );

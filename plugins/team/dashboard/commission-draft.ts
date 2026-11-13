@@ -47,3 +47,18 @@ export function commissionInputOf(draft: CommissionDraft): CommissionConfigInput
 export function commissionValueText(kind: CommissionValueKind, value: number): string {
   return kind === 'fixed' ? String(value) : String(value / BPS_PER_PERCENT);
 }
+
+/** What the commission field may know: whether the caller sees the configs, and how many it got. */
+export interface CommissionFieldView {
+  readonly canSee: boolean;
+  readonly configCount: number;
+}
+
+/**
+ * The message id under the commission field. A caller without `team.commissions.view` is told the configs are hidden,
+ * never that none exist: the business or the edited member may well have some.
+ */
+export function commissionNoticeIdOf({ canSee, configCount }: CommissionFieldView): string | undefined {
+  if (!canSee) return 'team.commission-hidden';
+  return configCount === 0 ? 'team.commission-empty' : undefined;
+}

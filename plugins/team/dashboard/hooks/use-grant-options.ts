@@ -26,6 +26,7 @@ export function useGrantOptions(open: boolean, held: ReadonlySet<string>): Grant
       stores: stores.data ?? [],
       commissions: commissions.data ?? [],
       bases: bases.data ?? [],
+      canSeeCommissions: held.has(VIEW_COMMISSIONS_KEY),
       canCreateCommission: seesCommissions && held.has(SET_COMMISSIONS_KEY),
     },
     loading: queries.some((query) => query.isPending),

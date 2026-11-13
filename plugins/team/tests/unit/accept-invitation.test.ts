@@ -1,10 +1,11 @@
 import { ACTIVITY_ACTIONS, INVITATION_TTL_MS, teamMemberActivityDiffSchema, toSnowflake } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { AcceptInvitationService } from '../../application/accept-invitation.service';
+import { InviteMemberService } from '../../application/invite-member.service';
 import { PreviewInvitationService } from '../../application/preview-invitation.service';
 import { AccountElsewhereError, InvitationExpiredError, InvitationInvalidError } from '../../domain/errors';
 import type { TeamMember } from '../../domain/team-member';
-import { type InvitationWorld, invitationWorld, RbacRefusal } from '../fakes/invitation-world';
+import { type InvitationWorld, invitationWorld, ownerOfA, RbacRefusal } from '../fakes/invitation-world';
 import { invitedMember, openInvitation, scopeA, T0 } from '../support/builders';
 
 const ACCEPT = { token: 'token-0', firstName: 'Nadia', lastName: 'Saidi', password: 'synthetic-member-password' };
@@ -21,12 +22,17 @@ function pending(world: InvitationWorld): TeamMember {
   return member;
 }
 
-/** Nothing of the accept is left: no account, no grant, the member still invited, the token still open. */
-function expectNothingKept(world: InvitationWorld): void {
+/** Nothing of the accept is kept: no account, no grant, the member never activated. */
+function expectNoAccountKept(world: InvitationWorld): void {
   expect(world.accounts.created).toEqual([]);
   expect(world.accounts.verified).toEqual([]);
   expect(world.access.grants).toEqual([]);
   expect(world.members.rows[0]?.status).toBe('invited');
+}
+
+/** Nothing of the accept is left: no account, no grant, the member still invited, no activity row. */
+function expectNothingKept(world: InvitationWorld): void {
+  expectNoAccountKept(world);
   expect(world.activity.rows).toEqual([]);
 }
 
@@ -154,7 +160,7 @@ describe('AcceptInvitationService', () => {
     ['an inviter who was removed', 'rbac.member-not-found'],
     ['a role deleted since', 'rbac.role-not-found'],
     ['a store archived since', 'rbac.store-access-invalid'],
-  ])('refuses %s with the one opaque code, keeps nothing and revokes the invitation', async (_case, code) => {
+  ])('refuses %s with the one opaque code, keeps no account and revokes the invitation', async (_case, code) => {
     // Arrange
     const world = invitationWorld();
     pending(world);
@@ -165,9 +171,39 @@ describe('AcceptInvitationService', () => {
 
     // Assert
     await expect(accepting).rejects.toBeInstanceOf(InvitationInvalidError);
-    expectNothingKept(world);
+    expectNoAccountKept(world);
     expect(world.invitations.rows[0]).toMatchObject({ acceptedAt: null, revokedAt: T0 });
     expect(world.access.flushed).toEqual([]);
+  });
+
+  it('removes the member of an unusable invitation, by no actor, so its address can be invited again', async () => {
+    // Arrange
+    const world = invitationWorld();
+    const member = pending(world);
+    world.access.setAccessRefusal = new RbacRefusal('rbac.member-not-found');
+    await expect(new AcceptInvitationService(world.ports).accept(world.ctx, ACCEPT)).rejects.toBeInstanceOf(
+      InvitationInvalidError,
+    );
+    world.access.setAccessRefusal = undefined;
+
+    // Act
+    await new InviteMemberService(world.ports).invite(world.ctx, ownerOfA, {
+      email: 'nadia@example.test',
+      roleIds: GRANT.roleIds,
+      storeAccess: 'selected',
+      storeIds: GRANT.storeIds,
+      baseSalary: 0,
+      commissionConfigIds: [],
+      locale: 'en',
+    });
+
+    // Assert
+    expect(world.members.rows[0]).toMatchObject({ id: member.id, removedAt: T0, updatedAt: T0 });
+    const [revoked] = world.activity.rows;
+    expect(revoked?.action).toBe(ACTIVITY_ACTIONS.INVITATION_REVOKED);
+    expect(revoked?.actorAdministratorId).toBeNull();
+    expect(teamMemberActivityDiffSchema.parse(revoked?.diff)).toMatchObject({ memberId: member.id });
+    expect(world.members.rows.filter((row) => row.removedAt === null)).toHaveLength(1);
   });
 
   it('lets an unexpected failure through unchanged, keeping nothing', async () => {

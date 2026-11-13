@@ -6,6 +6,7 @@
 // Env: DEMO_OWNER_PASSWORD (read by the session helper, never printed), EV_PREVIEW_TOKEN (an open invitation's token, never
 // printed nor shown: the accept page drops it from the address on load), EV_MAIL_EN and EV_MAIL_AR (an invitee who received
 // an English or an Arabic invitation), EV_ACTIVE_EMAIL (an active member the actions are opened on).
+// The details, edit, commission, confirmation and accept-refusal shots live in P1.S4-dialog-screens.mjs.
 /* global process, console, URL, document */
 import { mkdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,6 +14,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loginAsOwner, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
 import { emailSecrets, waitForEmail } from '../../apps/server/tests/browser/mailpit.ts';
+import {
+  shootAcceptRefusal,
+  shootConfirmDialog,
+  shootDetailsDialog,
+  shootEditDialog,
+} from './P1.S4-dialog-screens.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');
@@ -131,14 +138,16 @@ async function shootInviteDialog(page, lang, vp) {
   const submit = dialog.getByRole('button', { name: t('team.invite-submit') });
   await dialog.getByRole('checkbox', { name: ORDER_MANAGER[lang], exact: true }).waitFor();
   await shoot(page, `invite-empty-${lang}-${vp}`, lang, { fullPage: false });
-  await dialog.getByRole('textbox', { name: t('team.field-email') }).fill('not-an-email');
+  await dialog.getByRole('textbox', { name: t('team.invite-field-email') }).fill('not-an-email');
   await dialog.getByRole('textbox', { name: t('team.field-salary') }).fill('-5');
   for (const id of ['team.invite-error-email', 'team.invite-error-roles', 'team.invite-error-salary']) {
     await dialog.getByText(t(id), { exact: true }).waitFor();
   }
   if (!(await submit.isDisabled())) fail(`${lang} ${vp}: Send invitation is enabled on an invalid form`);
   await shoot(page, `invite-errors-${lang}-${vp}`, lang, { fullPage: false });
-  await dialog.getByRole('textbox', { name: t('team.field-email') }).fill(`new.member.${vp}@invitee.example.test`);
+  await dialog
+    .getByRole('textbox', { name: t('team.invite-field-email') })
+    .fill(`new.member.${vp}@invitee.example.test`);
   await dialog.getByRole('checkbox', { name: ORDER_MANAGER[lang], exact: true }).click();
   await dialog.getByRole('textbox', { name: t('team.field-salary') }).fill('28000');
   if (await submit.isDisabled()) fail(`${lang} ${vp}: Send invitation is disabled on a valid form`);
@@ -184,6 +193,17 @@ async function shootRowDialogs(page, lang, vp) {
   );
 }
 
+/** What P1.S4-dialog-screens.mjs needs of this script, for one language. */
+const kitOf = (lang) => ({
+  t: T[lang],
+  shoot,
+  proved,
+  base,
+  memberRow,
+  acceptPage: ACCEPT_PAGE,
+  publicLanguage: PUBLIC_LANGUAGE,
+});
+
 async function shootOwnerScreens(browser, lang, vp) {
   const page = await signedIn(browser, { lang, vp });
   try {
@@ -191,6 +211,10 @@ async function shootOwnerScreens(browser, lang, vp) {
     await shootTabs(page, lang, vp);
     await shootInviteDialog(page, lang, vp);
     await shootRowDialogs(page, lang, vp);
+    const on = { email: ACTIVE, lang, vp };
+    await shootDetailsDialog(page, kitOf(lang), on);
+    await shootEditDialog(page, kitOf(lang), on);
+    await shootConfirmDialog(page, kitOf(lang), on);
   } finally {
     await page.context().close();
   }
@@ -263,6 +287,8 @@ async function main() {
         await shootOwnerScreens(browser, lang, vp);
         await shootEmptyState(browser, lang, vp);
         await shootAcceptPage(browser, lang, vp);
+        const contextOptions = { ...VIEWPORTS[vp], reducedMotion: 'reduce' };
+        await shootAcceptRefusal(browser, kitOf(lang), { lang, vp, contextOptions });
         await shootMail(browser, lang, vp);
       }
     }

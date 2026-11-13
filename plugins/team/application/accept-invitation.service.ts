@@ -50,7 +50,7 @@ export class AcceptInvitationService {
    * the invitation's roles and stores as the inviter, and activates the member. Sessions are flushed after commit.
    *
    * @throws {InvitationInvalidError} for a token that opens nothing, or any refusal of the grant (the invitation is
-   *   then revoked) or of the account; the token stays open otherwise.
+   *   then revoked and its member removed) or of the account; the token stays open otherwise.
    * @throws {InvitationExpiredError} for the invitation of this token once its lifetime is over.
    * @throws {AccountElsewhereError} when the address already has an account (D201).
    */
@@ -156,11 +156,29 @@ export class AcceptInvitationService {
     return expired ? new InvitationExpiredError() : new InvitationInvalidError();
   }
 
-  /** In a transaction of its own, after the failed one rolled back (D213). */
-  private async revokeUnusable(ctx: OperationContext, { scope, location }: AcceptRun): Promise<void> {
+  /**
+   * In a transaction of its own, after the failed one rolled back (D213): revokes the invitation and removes its
+   * still-invited member, as a revoke would, so no dead row stays on Pending holding the address. No one acted, so
+   * the activity row has no actor.
+   */
+  private async revokeUnusable(ctx: OperationContext, { scope, location, origin }: AcceptRun): Promise<void> {
+    const { lock, invitations, members, clock } = this.ports;
     await this.ports.transaction.run(ctx, scope, async (transactional) => {
-      await this.ports.invitations.update(transactional, scope, location.invitationId, {
-        revokedAt: this.ports.clock.now(),
+      await lock.acquire(transactional, scope);
+      const now = clock.now();
+      const invitation = await invitations.findById(transactional, scope, location.invitationId);
+      if (invitation === undefined) return;
+      await invitations.update(transactional, scope, invitation.id, { revokedAt: now });
+      const member = await members.findById(transactional, scope, invitation.memberId);
+      if (member?.status !== 'invited' || member.removedAt !== null) return;
+      await members.update(transactional, scope, member.id, { removedAt: now, updatedAt: now });
+      await recordMemberActivity(this.ports, transactional, {
+        scope,
+        actorAdministratorId: null,
+        origin,
+        action: ACTIVITY_ACTIONS.INVITATION_REVOKED,
+        summary: 'Invitation revoked',
+        member,
       });
     });
   }

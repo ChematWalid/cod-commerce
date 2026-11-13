@@ -10,6 +10,7 @@ import { asOperationContext } from '../../domain/ports/operation-context';
 import { SalaryPaidEvent } from '../../infrastructure/salary-paid.event';
 import { authTestOptions, createTeamTestEnvironment, TeamKit } from './team-kit';
 import { ACTIVITY_LOG, type ActivityItem, type PaymentAnswer } from './team-operations';
+import { standaloneNumber } from '../support/standalone-number';
 
 const SNOWFLAKE_WORKER_ID = 1016;
 const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, [
@@ -177,7 +178,8 @@ describe('the activity of member actions, read without team.members.edit (D216)'
       expect.arrayContaining(['baseSalary', 'commissionConfigIds', 'status']),
     );
     const serialized = JSON.stringify(rows);
-    for (const secret of [OLD_SALARY, NEW_SALARY, COMMISSION_VALUE]) expect(serialized).not.toContain(String(secret));
+    for (const secret of [OLD_SALARY, NEW_SALARY, COMMISSION_VALUE])
+      expect(serialized).not.toMatch(standaloneNumber(secret));
     expect(serialized).not.toContain(member.email);
   });
 });

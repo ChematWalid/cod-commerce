@@ -20,7 +20,13 @@ const JS_FILES = ['**/*.{js,mjs,cjs}'];
 const DOMAIN_FILES = ['**/plugins/*/domain/**'];
 const SHARED_FILES = ['packages/shared/src/**'];
 const MAGIC_NUMBER_FILES = ['**/plugins/*/domain/**', '**/plugins/*/application/**', 'packages/shared/src/**'];
-const MAGIC_NUMBER_EXEMPT = ['**/constants.ts', 'packages/shared/src/wilayas/**', 'packages/shared/src/platform/**'];
+// queues.ts is the queue registry: a table of named policy numbers (ADR 0013), the constants themselves.
+const MAGIC_NUMBER_EXEMPT = [
+  '**/constants.ts',
+  'packages/shared/src/wilayas/**',
+  'packages/shared/src/platform/**',
+  'packages/shared/src/queues.ts',
+];
 const TEST_FILES = ['**/*.test.ts', '**/tests/**'];
 const MIGRATION_FILES = ['apps/server/src/migrations/**'];
 const BOUNDARY_FILES = ['plugins/**', '**/tests/fixtures/arch/plugins/**'];
@@ -44,6 +50,7 @@ const PLUGIN_ROOT_FILES = [
   '**/plugins/*/guard.ts',
   '**/plugins/*/member-access.ts',
   '**/plugins/*/invitations.ts',
+  '**/plugins/*/kek-ring.ts',
   '**/plugins/*/provisioning.ts',
   '**/plugins/*/*.plugin.ts',
   '**/plugins/*/*.config.{ts,mts}',
@@ -181,6 +188,8 @@ export function codEslintConfig({ tsconfigRootDir }) {
           '**/src/gql/**',
           '.claude/**',
           'docs/**',
+          // Run by ts-node from apps/server (P1.S6-sign.ts), outside every tsconfig; prettier still checks it.
+          'scripts/evidence/*.ts',
           '**/tests/fixtures/**',
         ],
       },
@@ -226,6 +235,9 @@ export function codEslintConfig({ tsconfigRootDir }) {
         plugins: { boundaries },
         settings: {
           'import/resolver': { node: { extensions: ['.ts', '.tsx', '.mts', '.js'] } },
+          // Patterns match paths relative to the repository root, not to the process cwd: a checkout under a dot
+          // segment (.claude/worktrees/x) otherwise matches no element, as `**` skips dot segments (#222).
+          'boundaries/root-path': tsconfigRootDir,
           'boundaries/elements': boundaryElements,
           'boundaries/files': boundaryFiles,
         },

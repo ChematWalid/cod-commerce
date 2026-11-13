@@ -10,12 +10,14 @@ import type { TeamMemberDetailsDto, TeamMemberPageDto } from './member-dto';
 export class MembersReadResolver {
   constructor(private readonly reads: MemberReadActions) {}
 
+  /** One page of the business's members within the caller's store reach, by tab and search (team.members.view). */
   @Query()
   @requirePermission('team.members.view')
   teamMembers(@Ctx() ctx: RequestContext, @Args('input') input: unknown): Promise<TeamMemberPageDto> {
     return withTeamErrors(() => this.reads.list(ctx, input));
   }
 
+  /** One member within the caller's store reach (team.members.view); `team.member-not-found` otherwise. */
   @Query()
   @requirePermission('team.members.view')
   teamMember(@Ctx() ctx: RequestContext, @Args('id') id: string): Promise<TeamMemberDetailsDto> {

@@ -29,7 +29,9 @@ describe('worker activeQueues with the BullMQ job queue', () => {
   const { server } = createTestEnvironment(
     buildE2eConfig(
       { jobQueueOptions: { activeQueues: ['probe-critical'] }, plugins: [QueueProbePlugin] },
-      { suite: SUITE, port: E2E_PORTS.activeQueues },
+      // The probe queues are outside the registry, so the pooled strategy would refuse them: this file keeps the
+      // stock strategy, whose limitation the `it.fails` test below records (upstream signal, ADR 0013).
+      { suite: SUITE, port: E2E_PORTS.activeQueues, stockJobQueue: true },
     ),
   );
   const redis = e2eRedis();

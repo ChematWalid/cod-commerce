@@ -1,4 +1,4 @@
-import { ACTIVITY_ACTIONS, type TenantScope } from '@cod/shared';
+import { ACTIVITY_ACTIONS, ACTIVITY_ENTITY_TYPES, type TenantScope } from '@cod/shared';
 import type { BusinessRole, MemberAssignment } from '../domain/business-role';
 import type { MemberStoreAccess } from '../domain/constants';
 import { MemberNotFoundError, MemberSuspendedError } from '../domain/errors';
@@ -207,7 +207,7 @@ export class MemberAccessService {
       scope: actor.scope,
       actorAdministratorId: actor.administratorId,
       action: ACTIVITY_ACTIONS.MEMBER_ACCESS_CHANGED,
-      entityType: 'member',
+      entityType: ACTIVITY_ENTITY_TYPES.MEMBER,
       entityId: String(administratorId),
       summary: 'Member access changed',
       diff: { before: this.diffSide(before), after: this.diffSide(after) },

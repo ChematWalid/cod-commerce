@@ -164,6 +164,14 @@ msgid "rbac.target-member"
 msgstr "Member"
 
 #. js-lingui-explicit-id
+msgid "rbac.target-team-member"
+msgstr "Team member"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-commission"
+msgstr "Commission structure"
+
+#. js-lingui-explicit-id
 msgid "rbac.actor-system"
 msgstr "System"
 

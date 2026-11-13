@@ -1,7 +1,7 @@
-import { COMMISSION_NAME_MAX_LENGTH } from '@cod/shared';
+import { COMMISSION_NAME_MAX_LENGTH, TEAM_EMAIL_MAX_LENGTH } from '@cod/shared';
 
-/** Longest stored email address (RFC 5321 path limit). */
-export const EMAIL_MAX_LENGTH = 320;
+/** Longest stored email address: the invite body's own cap, so a valid body always fits the column. */
+export const EMAIL_MAX_LENGTH = TEAM_EMAIL_MAX_LENGTH;
 /** Column width of a member status, a store access kind or a commission value kind. */
 export const SHORT_KIND_MAX_LENGTH = 10;
 /** Column width of a commission basis. */

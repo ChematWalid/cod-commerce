@@ -184,6 +184,10 @@ msgid "team.edit-title"
 msgstr "تعديل {name}"
 
 #. js-lingui-explicit-id
+msgid "team.invite-field-email"
+msgstr "البريد الإلكتروني *"
+
+#. js-lingui-explicit-id
 msgid "team.field-email"
 msgstr "البريد الإلكتروني"
 
@@ -234,6 +238,10 @@ msgstr "إضافة عمولة"
 #. js-lingui-explicit-id
 msgid "team.commission-remove"
 msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "team.commission-hidden"
+msgstr "لا يمكنك عرض هياكل العمولات."
 
 #. js-lingui-explicit-id
 msgid "team.commission-empty"

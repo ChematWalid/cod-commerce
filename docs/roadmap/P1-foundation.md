@@ -261,25 +261,25 @@ link and stop without merging.
 - `docs/feature-inventory.md` "Still not covered" and "Left out of the read-only walkthrough" notes (invitation emails and the salary "Pay" dialog were not exercised in the source; mirror the placeholder).
 
 **Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
-- #110 AUTH-2 (medium): fix(auth): void a pre-set password on the first provider link
-- #111 AUTH-3 (medium): test(auth): cover otp-account limits against the real limiter
-- #114 RBAC-3 (medium): fix(rbac): ignore soft-deleted administrators in membership checks
-- #134 EV-3 (medium): docs(evidence): complete or note the single-viewport P1 screens
-- #138 TEN-13 (medium): fix(tenancy): decide the fate of the two unused business permissions
-- #139 FLAKY-1 (medium): test(rbac): stop the converge test racing a delayed session delete
-- #141 RL-1 (low): fix(auth): take the pair token before checking the password
-- #145 AUTH-1 (low): fix(auth): refuse an empty first name on the profile mutation
-- #146 AUTH-4 (low): fix(auth): remove provider links when an account is soft-deleted
-- #147 AUTH-5 (low): fix(auth): give the OAuth binding cookie the __Host- prefix
-- #148 AUTH-6 (low): feat(auth): send a notice after a password reset
-- #151 AUTH-9 (low): fix(auth): make OTP verification atomic
-- #152 AUTH-10 (low): test(auth): fix the wrong body of one endpoint registry fixture
-- #160 RBAC-4 (low): fix(rbac): apply reach checks to roles bound only to archived stores
-- #161 RBAC-5 (low): docs(evidence): make the store-filtered activity log section real
-- #162 RBAC-6 (low): fix(rbac): widen sanitizeDiff to the full D66 list
-- #163 RBAC-7 (low): test(rbac): extend the D59 engine-grants test to plugin permissions
-- #164 RBAC-8 (low): docs(rbac): record that templateOf was never built
-- #211 CO-10 (low): test(rbac): prove the cross-process session flush in a test
+- #110 AUTH-2 (medium): fix(auth): void a pre-set password on the first provider link -> moved to the auth audit session (D219)
+- #111 AUTH-3 (medium): test(auth): cover otp-account limits against the real limiter -> moved to the auth audit session (D219)
+- #114 RBAC-3 (medium): fix(rbac): ignore soft-deleted administrators in membership checks -> closed by the P1.S4 PR (`feat/p1-s4-team`)
+- #134 EV-3 (medium): docs(evidence): complete or note the single-viewport P1 screens -> moved to the evidence session (D219)
+- #138 TEN-13 (medium): fix(tenancy): decide the fate of the two unused business permissions -> moved to `fix/s4-audit-rbac` (D219)
+- #139 FLAKY-1 (medium): test(rbac): stop the converge test racing a delayed session delete -> closed by the P1.S4 PR (`feat/p1-s4-team`)
+- #141 RL-1 (low): fix(auth): take the pair token before checking the password -> moved to the auth audit session (D219)
+- #145 AUTH-1 (low): fix(auth): refuse an empty first name on the profile mutation -> moved to the auth audit session (D219)
+- #146 AUTH-4 (low): fix(auth): remove provider links when an account is soft-deleted -> moved to the auth audit session (D219)
+- #147 AUTH-5 (low): fix(auth): give the OAuth binding cookie the __Host- prefix -> moved to the auth audit session (D219)
+- #148 AUTH-6 (low): feat(auth): send a notice after a password reset -> moved to the auth audit session (D219)
+- #151 AUTH-9 (low): fix(auth): make OTP verification atomic -> moved to the auth audit session (D219)
+- #152 AUTH-10 (low): test(auth): fix the wrong body of one endpoint registry fixture -> moved to the auth audit session (D219)
+- #160 RBAC-4 (low): fix(rbac): apply reach checks to roles bound only to archived stores -> closed by the P1.S4 PR (`feat/p1-s4-team`)
+- #161 RBAC-5 (low): docs(evidence): make the store-filtered activity log section real -> moved to the evidence session (D219)
+- #162 RBAC-6 (low): fix(rbac): widen sanitizeDiff to the full D66 list -> moved to `fix/s4-audit-rbac` (D219)
+- #163 RBAC-7 (low): test(rbac): extend the D59 engine-grants test to plugin permissions -> moved to `fix/s4-audit-rbac` (D219)
+- #164 RBAC-8 (low): docs(rbac): record that templateOf was never built -> moved to `fix/s4-audit-rbac` (D219)
+- #211 CO-10 (low): test(rbac): prove the cross-process session flush in a test -> closed by the P1.S4 PR (`feat/p1-s4-team`)
 
 **High-level plan**
 1. Entities: `TeamMember` (businessId, userId?, email, status invited|active|inactive, roleIds, storeAccess, baseSalary, maxOpenOrders?, receivingOrders, invitedAt, joinedAt), `Invitation` (token hash, expiry, resendCount), `CommissionConfig` (businessId, name, basis e.g. per confirmed / per delivered order, amount or %, scope) → commit `feat(team): member, invitation and commission config entities`.
@@ -417,6 +417,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P1.S6-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`; handoffs `P1.S1.md`, `P0.S2b.md`; `docs/adr/` 0002, 0008 (internal HMAC), 0013, 0016 (outbox, gateway, partitioning, pooling outcome of spike D).
 - `docs/architecture/system-design.md` §2.3, §2.5, §5, §7 (tenant secrets), §10 (job reconciler, Valkey loss); `docs/architecture/README.md` "Review log" rows 1, 3, 4, 7.
 

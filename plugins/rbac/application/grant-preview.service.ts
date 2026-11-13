@@ -1,7 +1,7 @@
-import type { StoreId, TenantScope } from '@cod/shared';
+import { type StoreId, type TenantScope, toSnowflake } from '@cod/shared';
 import type { BusinessRole } from '../domain/business-role';
 import { ALL_STORES_SCOPE } from '../domain/constants';
-import { assertCanGrantAccess, assertOwnerChangeAllowed } from '../domain/escalation-rules';
+import { assertCanChangeTarget, assertCanGrantAccess, assertOwnerChangeAllowed } from '../domain/escalation-rules';
 import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
 import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-repository.port';
 import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
@@ -67,6 +67,32 @@ export class GrantPreviewService {
         permissions: roles.get(businessRoleId)?.permissions ?? [],
       })),
     });
+  }
+
+  /**
+   * Refuses to act on a member holding `command`'s grant when the actor could not change that holder with `setAccess`
+   * (D60.4, D60.7). Unlike {@link previewGrant}, the grant is judged by what remains of it: a role deleted since grants
+   * nothing and an archived store still counts (D210), so a grant gone in part never waves an actor through.
+   *
+   * @throws a {@link RbacError}: Owner restricted, privilege exceeded
+   */
+  async assertMayChangeHolder(ctx: OperationContext, command: PreviewGrantCommand): Promise<void> {
+    const stores = await this.ports.directory.stores(ctx, command.actor.scope.businessId);
+    const roles = new Map(
+      (await this.ports.roles.all(ctx, command.actor.scope)).map((role) => [role.id as string, role]),
+    );
+    const reachStoreIds = reachStoreIdsOf(stores);
+    const actor = await this.actorOf(ctx, command.actor, roles, reachStoreIds);
+    const rows = command.roleIds
+      .filter((roleId) => roles.has(roleId))
+      .map((roleId) => ({
+        businessRoleId: toSnowflake(roleId),
+        storeAccess: command.storeAccess,
+        storeIds: command.storeIds.map(toSnowflake),
+      }));
+    const target = buildActor(actor.administratorId, rows, roles, reachStoreIds);
+    assertOwnerChangeAllowed(actor, target.isOwnerHolder);
+    assertCanChangeTarget(actor, target);
   }
 
   /** The stores the actor's roles reach, archived ones included (D210); no role reaches no store. */

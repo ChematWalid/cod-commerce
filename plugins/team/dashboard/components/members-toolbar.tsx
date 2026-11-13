@@ -1,8 +1,9 @@
-import { MEMBER_SEARCH_MAX_LENGTH, MEMBERS_PAGE_SIZE, type MemberTab } from '@cod/shared';
+import { MEMBER_SEARCH_MAX_LENGTH, type MemberTab } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Button, Input, Tabs, TabsList, TabsTrigger } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import type { TeamMemberCountsDto } from '../dto';
+import { pageCountOf } from '../member-paging';
 import { tabsOf } from '../member-view-model';
 import { LtrRun } from './ltr-run';
 
@@ -59,7 +60,7 @@ interface PagerProps {
 /** Previous and next, shown only when the tab holds more than one page. */
 export function MembersPager({ page, total, onPage }: PagerProps): ReactNode {
   const { i18n } = useLingui();
-  const pages = Math.max(1, Math.ceil(total / MEMBERS_PAGE_SIZE));
+  const pages = pageCountOf(total);
   if (pages === 1) return null;
   return (
     <div className="flex items-center justify-end gap-2 text-sm">

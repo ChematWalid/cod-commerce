@@ -20,7 +20,10 @@ const TOKEN_EPSILON = 1e-9;
 /** Tokens added per millisecond. */
 const refillRate = (policy: RateLimitPolicy): number => policy.capacity / (policy.windowSeconds * MS_PER_SECOND);
 
-/** The bucket's tokens at `nowMs`, refilled up to capacity. A clock that went backwards refills nothing. */
+/**
+ * The bucket's tokens at `nowMs`, refilled up to capacity. A stamp in the future (a clock that went backwards,
+ * or was ahead) refills nothing and counts as now.
+ */
 function refilled(state: BucketState | undefined, policy: RateLimitPolicy, nowMs: number): number {
   if (state === undefined) {
     return policy.capacity;
@@ -35,8 +38,8 @@ function refilled(state: BucketState | undefined, policy: RateLimitPolicy, nowMs
  */
 export function takeToken(state: BucketState | undefined, policy: RateLimitPolicy, nowMs: number): BucketStep {
   const tokens = refilled(state, policy, nowMs);
-  // Never move the stamp back: instances with slightly different clocks would otherwise refill twice.
-  const updatedAtMs = Math.max(nowMs, state?.updatedAtMs ?? nowMs);
+  // The stamp is always "now": a future stamp kept as is would freeze refill until real time caught up (RL-5).
+  const updatedAtMs = nowMs;
   if (tokens + TOKEN_EPSILON >= 1) {
     const remaining = tokens - 1;
     const decision = { ...ALLOWED, exhausted: remaining + TOKEN_EPSILON < 1 };

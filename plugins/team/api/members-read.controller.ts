@@ -18,6 +18,7 @@ export class MembersReadController {
     return this.reads.list(ctx, query);
   }
 
+  /** One member of the business within the caller's store reach (team.members.view); 404 `team.member-not-found`. */
   @Get(':id')
   @requirePermission('team.members.view')
   get(@Ctx() ctx: RequestContext, @Param('id') id: string): Promise<TeamMemberDetailsDto> {

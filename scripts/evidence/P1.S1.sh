@@ -22,6 +22,15 @@ export POSTGRES_HOST_PORT=25433 PGBOUNCER_HOST_PORT=26432 VALKEY_HOST_PORT=26380
 export MAILPIT_SMTP_HOST_PORT=21026 MAILPIT_UI_HOST_PORT=28026 API_HOST_PORT=23100 WORKER_HEALTH_HOST_PORT=23020
 export STOREFRONT_HOST_PORT=23001 PLATFORM_DOMAIN=localhost
 export APP_IMAGE=${APP_IMAGE:-cod-platform:local}
+# Synthetic keys the api and the storefront need to boot (P1.S6); the signer uses the active one.
+export AUTH_TOKEN_SECRET=${AUTH_TOKEN_SECRET:-evidence-auth-token-secret-synthetic-0123456789}
+export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBOARD_URL=http://127.0.0.1:$API_HOST_PORT/dashboard
+export SMTP_TLS=none SMTP_USERNAME='' SMTP_PASSWORD=''
+export INTERNAL_HMAC_KEYS=k1:evidence-internal-hmac-key-synthetic-0000000001 INTERNAL_HMAC_ACTIVE_KID=k1
+export TENANT_SECRET_KEKS=k1:3a5c7e9f1b2d4f60718293a4b5c6d7e8f9a0b1c2d3e4f5061728394a5b6c7d8e TENANT_SECRET_ACTIVE_KID=k1
+export WORKER_ACTIVE_QUEUES=''
+# shellcheck source=lib/sign.sh
+. scripts/evidence/lib/sign.sh
 # Synthetic; never printed (transcripts show [REDACTED]).
 export DEMO_OWNER_PASSWORD=${DEMO_OWNER_PASSWORD:-evidence-demo-owner-password}
 THIRD_OWNER_PASSWORD=evidence-third-owner-password
@@ -95,7 +104,8 @@ seed() {
   command grep '"seed-demo.done"' "$work/seed.log" || fail "the demo seed printed no result: $(command tail -20 "$work/seed.log")"
 }
 first=$(seed); second=$(seed)
-[[ "$first" == '{"event":"seed-demo.done","created":["demo","demo2","second","second2"]}' ]] || fail "first seed: $first"
+# The P1.S1 businesses come first; later sessions' seed steps add their own rows (store members) after them.
+[[ "$first" == '{"event":"seed-demo.done","created":["demo","demo2","second","second2"'[],]* ]] || fail "first seed: $first"
 [[ "$second" == '{"event":"seed-demo.done","created":[]}' ]] || fail "second seed: $second"
 
 # --- the second api process -----------------------------------------------------------------
@@ -148,11 +158,15 @@ emit() { # emit <file> <title> <query> <shown-vars> <session|-> <channel|->
   SHOWN_HEADERS=$(printf '%s\n' "${shown[@]}") SHOWN_BODY=$shown_body TITLE=$2 METHOD=POST URL="$admin" \
     node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$1"
 }
-rest() { # rest <url> -> status in $status, body in $work/b
-  status=$(curl -sS -D "$work/h" -o "$work/b" --max-time 30 -w '%{http_code}' "$1") || status=000
+REST_SHOWN=""
+rest() { # rest <url> -> status in $status, body in $work/b; a guarded route is signed (P1.S6)
+  local -a signed=()
+  REST_SHOWN=""
+  if is_guarded_url "$1"; then sign_args GET "$1"; signed=("${SIGN_ARGS[@]}"); REST_SHOWN=$SIGN_SHOWN; fi
+  status=$(curl -sS -D "$work/h" -o "$work/b" --max-time 30 "${signed[@]}" -w '%{http_code}' "$1") || status=000
   [[ "$status" != 000 ]] || fail "no HTTP answer from $1"
 }
-emit_rest() { SHOWN_HEADERS="" SHOWN_BODY=- TITLE=$2 METHOD=GET URL="$3" node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$1"; }
+emit_rest() { SHOWN_HEADERS=$REST_SHOWN SHOWN_BODY=- TITLE=$2 METHOD=GET URL="$3" node scripts/evidence/transcript.mjs "$work/h" "$work/b" "$1"; }
 begin() { printf '# %s\n\n%s\n\n' "$2" "$3" >"$1"; }
 vars() { node -e 'console.log(JSON.stringify(eval("("+process.argv[1]+")")))' "$1"; }
 
@@ -349,6 +363,9 @@ for base in "$api" "$api2"; do
   [[ "$status" == 200 ]] || fail "priming $base: $status"
   emit_rest "$f" "Before: old host on $base" "$base/store/resolve?host=demo2.localhost"
 done
+# Signing takes seconds and the propagation budget is one, so the polled urls are signed beforehand (valid for 60 s).
+SIGN_CACHE=()
+for base in "$api" "$api2"; do presign_get "$base/store/resolve?host=demo2.localhost"; presign_get "$base/store/resolve?host=demo2-new.localhost"; done
 gql "$Q_CHANGE" "$(vars "{id:'$STORE_A2',subdomain:'demo2-new'}")" "$owner_a" "$TOKEN_A"
 changed_at=$(date +%s%3N)
 assert_js "change" 'b.data.changeStoreSubdomain.subdomain==="demo2-new"' "$work/b"
@@ -356,7 +373,8 @@ emit "$f" "changeStoreSubdomain on the first process" "$Q_CHANGE" '{"id":"<STORE
 await_status() { # await_status <url> <status>: waits until the url answers status, else fails after the budget
   local url=$1 want=$2 elapsed code
   while :; do
-    code=$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' "$url")
+    sign_args GET "$url"
+    code=$(curl -s -o /dev/null --max-time 2 "${SIGN_ARGS[@]}" -w '%{http_code}' "$url")
     elapsed=$(($(date +%s%3N) - changed_at))
     [[ "$code" == "$want" ]] && { echo "$elapsed"; return 0; }
     ((elapsed < MAX_PROPAGATION_MS)) || fail "$url answered $code after ${elapsed} ms, wanted $want"
@@ -368,6 +386,7 @@ for base in "$api" "$api2"; do
   rest "$base/store/resolve?host=demo2.localhost"; emit_rest "$f" "After: old host on $base" "$base/store/resolve?host=demo2.localhost"
   rest "$base/store/resolve?host=demo2-new.localhost"; emit_rest "$f" "After: new host on $base" "$base/store/resolve?host=demo2-new.localhost"
 done
+SIGN_CACHE=()
 gql "$Q_CHANGE" "$(vars "{id:'$STORE_A2',subdomain:'demo2'}")" "$owner_a" "$TOKEN_A"
 assert_js "change back" '!b.errors' "$work/b"
 

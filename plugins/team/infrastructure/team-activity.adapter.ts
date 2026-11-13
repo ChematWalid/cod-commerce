@@ -1,13 +1,10 @@
 import { ActivityRecordEvent } from '@cod/plugin-rbac/member-access';
-import { teamCommissionActivityDiffSchema, teamMemberActivityDiffSchema } from '@cod/shared';
+import { ACTIVITY_ENTITY_TYPES, teamCommissionActivityDiffSchema, teamMemberActivityDiffSchema } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { EventBus } from '@vendure/core';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { TeamActivityPort, TeamCommissionActivity, TeamMemberActivity } from '../domain/ports/team-activity.port';
 import { toRequestContext } from './request-scope';
-
-/** The entity type of a commission's activity rows. */
-const COMMISSION_ENTITY_TYPE = 'commission-config';
 
 /**
  * {@link TeamActivityPort} on rbac's activity log, through its blocking event: the row joins the caller's
@@ -24,7 +21,7 @@ export class TeamActivityAdapter implements TeamActivityPort {
     await this.events.publish(
       new ActivityRecordEvent(
         toRequestContext(ctx),
-        { ...entry, entityType: 'member', entityId: checked.memberId, diff: checked },
+        { ...entry, entityType: ACTIVITY_ENTITY_TYPES.TEAM_MEMBER, entityId: checked.memberId, diff: checked },
         scope,
       ),
     );
@@ -36,7 +33,12 @@ export class TeamActivityAdapter implements TeamActivityPort {
     await this.events.publish(
       new ActivityRecordEvent(
         toRequestContext(ctx),
-        { ...entry, entityType: COMMISSION_ENTITY_TYPE, entityId: checked.commissionConfigId, diff: checked },
+        {
+          ...entry,
+          entityType: ACTIVITY_ENTITY_TYPES.COMMISSION_CONFIG,
+          entityId: checked.commissionConfigId,
+          diff: checked,
+        },
         scope,
       ),
     );

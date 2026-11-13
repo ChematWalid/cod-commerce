@@ -18,12 +18,14 @@ interface SuccessResult {
 export class InvitationsAdminController {
   constructor(private readonly actions: InvitationActions) {}
 
+  /** Invites a person by email (team.members.invite); 409 `team.email-already-member`, 429 past the mail budget (D205). */
   @Post()
   @requirePermission('team.members.invite')
   invite(@Ctx() ctx: RequestContext, @Body() body: unknown): Promise<TeamMemberDto> {
     return this.actions.invite(ctx, body);
   }
 
+  /** Mails a fresh link to an invited member and voids the old one (team.members.invite); 429 `team.resend-cooldown`. */
   @Post('resend-invitation')
   @HttpCode(HttpStatus.OK)
   @requirePermission('team.members.invite')
@@ -31,6 +33,7 @@ export class InvitationsAdminController {
     return this.actions.resend(ctx, fieldOf(body, 'memberId'));
   }
 
+  /** Withdraws an invited member's invitation (team.members.invite); 409 `team.member-not-pending` once accepted. */
   @Post(':id/revoke-invitation')
   @HttpCode(HttpStatus.OK)
   @requirePermission('team.members.invite')

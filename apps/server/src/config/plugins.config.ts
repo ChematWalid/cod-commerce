@@ -1,18 +1,27 @@
 import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
+import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
+import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
+import { parseKekRing, PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
+import { PlatformWebhooksPlugin } from '@cod/plugin-platform-webhooks';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
+import { parseInternalKeys } from '@cod/shared/internal-auth';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
 import { DefaultSchedulerPlugin, RedisCachePlugin, type VendureConfig } from '@vendure/core';
 import { authEmailTemplates } from '../email';
 import { assetServerPlugin } from './asset-storage.config';
+import { isDeployed } from './deployed-env';
+import { MigrateNoSchedulerPlugin } from './migrate-no-scheduler.plugin';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
 import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
@@ -38,8 +47,41 @@ const DASHBOARD_APP_DIR = path.join(__dirname, '../../dist/dashboard');
 const hardenPlugin = (env: AppEnv): VendurePluginEntry =>
   HardenPlugin.init({
     maxQueryComplexity: HARDEN_MAX_QUERY_COMPLEXITY,
-    apiMode: env.APP_ENV === 'production' ? 'prod' : 'dev',
+    apiMode: isDeployed(env) ? 'prod' : 'dev',
   });
+
+/** The readiness probes; only the worker serves its own health port. */
+const healthPlugin = (env: AppEnv, role: ServerRole): VendurePluginEntry =>
+  PlatformHealthPlugin.init({
+    redisUrl: env.REDIS_URL,
+    workerHealthPort: env.WORKER_HEALTH_PORT,
+    serveWorkerHealth: role === 'worker',
+  });
+
+/** Guards the Shop API, /store and /_internal on every host with the internal signature (D112). */
+const webhooksPlugin = (env: AppEnv): VendurePluginEntry =>
+  PlatformWebhooksPlugin.init({
+    internalKeys: parseInternalKeys(env.INTERNAL_HMAC_KEYS),
+    demoHandlers: env.PLATFORM_DEMO_HANDLERS,
+  });
+
+/**
+ * The platform plugins with tenant tables (and the flags, which read tenancy): they register after tenancy, which
+ * scopes their rows. The outbox needs
+ * jobs and partitions before it (the relay queue and the retention policies); the secrets' Admin API guards with
+ * the permissions `RbacPlugin` defines.
+ */
+const tenantDataPlugins = (env: AppEnv): VendurePluginEntry[] => [
+  PlatformOutboxPlugin,
+  PlatformFlagsPlugin.init({ redisUrl: env.REDIS_URL, appEnv: env.APP_ENV }),
+  PlatformSecretsPlugin.init({ kekRing: parseKekRing(env.TENANT_SECRET_KEKS, env.TENANT_SECRET_ACTIVE_KID) }),
+];
+
+/** What answers or refuses requests before the rest of the app: the probes and the internal-only guard. */
+const requestPathPlugins = (env: AppEnv, role: ServerRole): VendurePluginEntry[] => [
+  healthPlugin(env, role),
+  webhooksPlugin(env),
+];
 
 /** The OAuth flag: the options stay absent while it is off, and that absence is what switches the feature off (D36). */
 function oauthOptions(env: AppEnv): Pick<AuthPluginOptions, 'oauth'> {
@@ -110,17 +152,18 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
 export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[] {
   const everyRole: VendurePluginEntry[] = [
     BullMQJobQueuePlugin.init(bullMqOptions(env)),
+    // Right after BullMQ's plugin: its configuration replaces the stock strategy and index task with the pooled
+    // ones (D100), and the stock plugin keeps providing the Redis health indicator the pools use.
+    PlatformJobsPlugin.init({ redisUrl: env.REDIS_URL, appEnv: env.APP_ENV, pooledQueues: bullMqOptions(env) }),
+    // Owning plugins register their tables' partition policies in `onModuleInit`; the registry closes at bootstrap.
+    PlatformPartitionsPlugin,
     // Sessions live in this cache, so environments sharing a Valkey must never read each other's keys.
     RedisCachePlugin.init({
       redisOptions: redisOptionsFromUrl(env.REDIS_URL),
       namespace: `${CACHE_NAMESPACE_PREFIX}:${env.APP_ENV}`,
     }),
     DefaultSchedulerPlugin.init(),
-    PlatformHealthPlugin.init({
-      redisUrl: env.REDIS_URL,
-      workerHealthPort: env.WORKER_HEALTH_PORT,
-      serveWorkerHealth: role === 'worker',
-    }),
+    ...requestPathPlugins(env, role),
     TemplatePlugin,
     // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
@@ -128,7 +171,9 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
       redisUrl: env.REDIS_URL,
       platformDomain: env.PLATFORM_DOMAIN,
       snowflakeWorkerId: env.SNOWFLAKE_WORKER_ID,
+      cacheNamespace: env.APP_ENV,
     }),
+    ...tenantDataPlugins(env),
     RbacPlugin,
     authPlugin(env),
     // After rbac and auth, whose services Team builds on (D206).
@@ -136,7 +181,8 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     assetServerPlugin(env),
   ];
   if (role !== 'api') {
-    return everyRole;
+    // Last on `migrate`, so it runs after `DefaultSchedulerPlugin`'s configuration (D122, SRV-12).
+    return role === 'migrate' ? [...everyRole, MigrateNoSchedulerPlugin] : everyRole;
   }
   return [
     ...everyRole,

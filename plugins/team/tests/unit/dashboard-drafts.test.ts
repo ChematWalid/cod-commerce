@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { acceptInputOf } from '../../dashboard/accept-form';
-import { commissionInputOf, type CommissionDraft, emptyCommissionDraft } from '../../dashboard/commission-draft';
+import {
+  commissionInputOf,
+  commissionNoticeIdOf,
+  type CommissionDraft,
+  emptyCommissionDraft,
+} from '../../dashboard/commission-draft';
 import { orderLimitOf } from '../../dashboard/order-limit';
 
 const draft = (patch: Partial<CommissionDraft>): CommissionDraft => ({
@@ -69,5 +74,19 @@ describe('accept form', () => {
     ['a short password', { password: 'short' }],
   ])('refuses %s', (_case, patch) => {
     expect(acceptInputOf('tok', { ...filled, ...patch })).toBeNull();
+  });
+});
+
+describe('commission field notice', () => {
+  it('says the structures are hidden from a caller who may not see them, whatever the business has', () => {
+    expect(commissionNoticeIdOf({ canSee: false, configCount: 0 })).toBe('team.commission-hidden');
+  });
+
+  it('says none exist yet only to a caller who sees an empty list', () => {
+    expect(commissionNoticeIdOf({ canSee: true, configCount: 0 })).toBe('team.commission-empty');
+  });
+
+  it('shows no notice beside a list of structures', () => {
+    expect(commissionNoticeIdOf({ canSee: true, configCount: 2 })).toBeUndefined();
   });
 });

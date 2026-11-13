@@ -1,3 +1,4 @@
+import { toStoreId } from '@cod/shared';
 import { asOperationContext, ProvisionBusinessService } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import { AccountTokenService } from '../application/account-token.service';
@@ -51,6 +52,8 @@ function registerMerchant({ dashboardUrl, oauthEnabled }: FlowSettings): Provide
         claims,
         provisioner: {
           provision: (ctx, command) => provisioning.provision(asOperationContext(ctx), command),
+          forgetStoreHost: (store) =>
+            provisioning.forgetStoreHost({ id: toStoreId(store.id), subdomain: store.subdomain }),
         },
         tokens,
         emails,

@@ -43,6 +43,10 @@ export class RbacMemberAccessAdapter implements MemberAccessPort, OnApplicationB
     return this.previews.previewGrant(rbacContextOf(ctx), { actor, ...grant });
   }
 
+  assertMayChangeHolder(ctx: OperationContext, actor: TeamActor, grant: MemberGrant): Promise<void> {
+    return this.previews.assertMayChangeHolder(rbacContextOf(ctx), { actor, ...grant });
+  }
+
   async setAccess(ctx: OperationContext, actor: TeamActor, administratorId: number, grant: MemberGrant): Promise<void> {
     await this.access.setAccess(rbacContextOf(ctx), { actor, administratorId, ...grant });
   }

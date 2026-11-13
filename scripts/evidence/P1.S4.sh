@@ -476,14 +476,19 @@ emit_rest "$f" "The same member limits one who works on all stores: not found" P
 gql "$Q_UPDATE_ROLE" "$(vars "{id:'$viewer_role',input:{revokes:['team.members.view','team.members.edit']}}")" "$owner" "$demo"; expect_ok "revoke team view"
 # Rate limits: the budgets are spent by refused calls, so no mail is sent and no account is made.
 reset_limits
-# The bucket refills one token a second: the accept goes straight after the refused preview, and both are written after.
+# The bucket refills one token a second, also while it is drained: previews go on until one is refused (bounded, so a
+# budget that never runs out still fails), then the accept goes straight after it, and both are written after.
 body=$(accept_body unknown-token Late Comer "$INVITEE_PASSWORD")
-for ((i = 0; i < ACCEPT_IP_BUDGET; i++)); do rest GET "/team/invitations/preview?token=unknown-$i" - - -; done
-rest GET '/team/invitations/preview?token=unknown-last' - - -; preview_status=$status
+preview_status=
+for ((i = 0; i < 2 * ACCEPT_IP_BUDGET; i++)); do
+  rest GET "/team/invitations/preview?token=unknown-$i" - - -
+  [[ "$status" == 429 ]] && { preview_status=$status; break; }
+  [[ "$status" == 400 ]] || fail "accept ip drain $i: preview answered $status"
+done
+[[ "$preview_status" == 429 ]] || fail "accept ip limit: no preview refused after $((2 * ACCEPT_IP_BUDGET))"
 command cp "$work/h" "$work/preview-h"; command cp "$work/b" "$work/preview-b"
 rest POST /team/invitations/accept "$body" - -; expect_status "accept limit" 429
 command cp "$work/h" "$work/accept-h"; command cp "$work/b" "$work/accept-b"
-[[ "$preview_status" == 429 ]] || fail "accept ip limit: preview answered $preview_status"
 command cp "$work/preview-h" "$work/h"; command cp "$work/preview-b" "$work/b"
 emit_rest "$f" "Preview past the per-address budget ($ACCEPT_IP_BUDGET a minute): 429" GET '/team/invitations/preview?token=[REDACTED]' -
 command cp "$work/accept-h" "$work/h"; command cp "$work/accept-b" "$work/b"
@@ -537,7 +542,7 @@ rest GET "/employees/$amina" - "$owner" "$demo"; assert_js "A untouched" "b.stat
 reset_limits
 invitation_token "$S2ONLY" 1
 EV_PREVIEW_TOKEN=$LAST_INVITATION_TOKEN EV_MAIL_EN=$PENDING EV_MAIL_AR=$KARIM EV_ACTIVE_EMAIL=$AMINA \
-  timeout 600 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S4-screens.mjs "$api/dashboard" "$mailpit" "$work/shots" \
+  timeout 900 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P1.S4-screens.mjs "$api/dashboard" "$mailpit" "$work/shots" \
   > "$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
 command cp "$work"/shots/*.png "$out/screens/"
 

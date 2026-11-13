@@ -1,4 +1,4 @@
-import { ACTIVITY_ACTIONS, RBAC_ERROR_CODES, TEAM_ERROR_CODES } from '@cod/shared';
+import { ACTIVITY_ACTIONS, RBAC_ERROR_CODES, TEAM_ERROR_CODES, toSnowflake } from '@cod/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RemoveMemberService } from '../../application/remove-member.service';
 import type { RevokeInvitationService } from '../../application/revoke-invitation.service';
@@ -15,6 +15,7 @@ import {
 } from '../fakes/member-action-world';
 
 const MEMBER = 30;
+const DELETED_ROLE = toSnowflake('9999');
 let world: MemberActionWorld;
 let revoke: ReturnType<typeof vi.fn<RevokeInvitationService['revoke']>>;
 let service: RemoveMemberService;
@@ -51,7 +52,7 @@ describe('RemoveMemberService.remove', () => {
 
     // Assert
     expect(world.log).not.toContain('setAccess');
-    expect(world.log.indexOf('preview')).toBeLessThan(world.log.indexOf('softDelete'));
+    expect(world.log.indexOf('assertMayChangeHolder')).toBeLessThan(world.log.indexOf('softDelete'));
     expect(world.accounts.softDeleted).toEqual([MEMBER]);
     expect(world.members.rows[0]).toMatchObject({ suspendedAccess: null });
   });
@@ -61,7 +62,7 @@ describe('RemoveMemberService.remove', () => {
     async (code) => {
       // Arrange
       const member = await inactiveMember(world, MEMBER, { roleIds: [OWNER_ROLE], storeAccess: 'all', storeIds: [] });
-      world.access.previewRefusal = new RbacRefusal(code);
+      world.access.holderRefusal = new RbacRefusal(code);
 
       // Act
       const change = service.remove(world.ctx, managerOfA, member.id);
@@ -73,16 +74,22 @@ describe('RemoveMemberService.remove', () => {
     },
   );
 
-  it('removes a deactivated member whose former role is gone since', async () => {
+  it('refuses a deactivated co-owner whose snapshot also names a role deleted since (D60.7)', async () => {
     // Arrange
-    const member = await inactiveMember(world, MEMBER);
+    const member = await inactiveMember(world, MEMBER, {
+      roleIds: [OWNER_ROLE, DELETED_ROLE],
+      storeAccess: 'all',
+      storeIds: [],
+    });
     world.access.previewRefusal = new RbacRefusal(RBAC_ERROR_CODES.ROLE_NOT_FOUND);
+    world.access.holderRefusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
 
     // Act
-    await service.remove(world.ctx, managerOfA, member.id);
+    const change = service.remove(world.ctx, managerOfA, member.id);
 
     // Assert
-    expect(world.accounts.softDeleted).toEqual([MEMBER]);
+    await expect(change).rejects.toMatchObject({ code: RBAC_ERROR_CODES.OWNER_RESTRICTED });
+    expect(world.accounts.softDeleted).toEqual([]);
   });
 
   it('removes a member holding no role without asking rbac', async () => {
@@ -93,7 +100,7 @@ describe('RemoveMemberService.remove', () => {
     await service.remove(world.ctx, managerOfA, member.id);
 
     // Assert
-    expect(world.log).not.toContain('preview');
+    expect(world.log).not.toContain('assertMayChangeHolder');
     expect(world.log).not.toContain('setAccess');
     expect(world.accounts.softDeleted).toEqual([MEMBER]);
   });

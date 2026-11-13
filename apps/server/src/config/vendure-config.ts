@@ -1,9 +1,11 @@
 import { DefaultLogger, LogLevel, type VendureConfig } from '@vendure/core';
+// Not in the package index; `SchedulerService` tests for exactly this class.
+import { NoopSchedulerStrategy } from '@vendure/core/dist/scheduler/noop-scheduler-strategy';
 import { buildAuthConfig } from './auth.config';
 import { buildDbConfig } from './db.config';
 import { DzdMoneyStrategy } from './dzd-money-strategy';
 import type { AppEnv, LogLevelName, ServerRole } from './env';
-import { buildJobQueueConfig } from './job-queue.config';
+import { assertPooledJobQueue, buildJobQueueConfig } from './job-queue.config';
 import { buildPlugins } from './plugins.config';
 
 const VENDURE_LOG_LEVELS: Record<LogLevelName, LogLevel> = {
@@ -17,9 +19,11 @@ const VENDURE_LOG_LEVELS: Record<LogLevelName, LogLevel> = {
 /**
  * The Vendure config of one server role. It only composes the per-concern builders. The built-in health
  * checks stay empty because `PlatformHealthPlugin` serves the probes (ADR 0013).
+ *
+ * @throws Error when `activeQueues` is set without the pooled job queue strategy (ADR 0013 addendum).
  */
 export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig {
-  return {
+  const config: VendureConfig = {
     apiOptions: {
       port: env.API_PORT,
       trustProxy: env.TRUSTED_PROXY_HOPS,
@@ -34,5 +38,10 @@ export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig
     systemOptions: { healthChecks: [] },
     logger: new DefaultLogger({ level: VENDURE_LOG_LEVELS[env.LOG_LEVEL] }),
     plugins: buildPlugins(env, role),
+    // `DefaultSchedulerPlugin` replaces this in its own configuration step; `buildPlugins` puts a plugin last that
+    // puts it back for `migrate` (D122, audit SRV-12).
+    ...(role === 'migrate' ? { schedulerOptions: { schedulerStrategy: new NoopSchedulerStrategy() } } : {}),
   };
+  assertPooledJobQueue(config);
+  return config;
 }

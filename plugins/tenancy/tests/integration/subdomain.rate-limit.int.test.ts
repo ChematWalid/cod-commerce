@@ -114,6 +114,26 @@ describe('subdomain availability rate limit', () => {
     expect(((await response.json()) as GraphqlBody).errors?.[0]?.extensions.code).toBe('RATE_LIMITED');
   });
 
+  it('spends one token per aliased field, so one request cannot hide 61 checks', async () => {
+    // Arrange
+    const aliases = Array.from(
+      { length: SUBDOMAIN_IP_CAPACITY + 1 },
+      (_, index) => `a${String(index)}: subdomainAvailability(subdomain: "free-name") { status }`,
+    );
+
+    // Act
+    const response = await fetch(`${origin()}/admin-api`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', [CLIENT_IP_HEADER]: freshIp() },
+      body: JSON.stringify({ query: `query { ${aliases.join(' ')} }` }),
+    });
+    const body = (await response.json()) as GraphqlBody;
+
+    // Assert
+    const limited = (body.errors ?? []).filter((error) => error.extensions.code === 'RATE_LIMITED');
+    expect(limited).toHaveLength(1);
+  });
+
   it('serves a request under the limit as before', async () => {
     // Act
     const response = await queryAvailability(freshIp());

@@ -65,6 +65,11 @@ export class TenantRepository<T extends TenantEntity> {
     return lockToTenant(query, scope.businessId);
   }
 
+  /** True when the scope's context holds an active transaction, so a write through it commits or rolls back with it. */
+  inTransaction(scope: TenantScope): boolean {
+    return this.repository(scope).queryRunner?.isTransactionActive === true;
+  }
+
   private repository(scope: TenantScope): Repository<T> {
     if (!scope.businessId) throw new TenantScopeMissingError();
     return this.connection.getRepository(requestContextOf(scope), this.entity);

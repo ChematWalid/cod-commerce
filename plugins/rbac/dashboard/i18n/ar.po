@@ -164,6 +164,14 @@ msgid "rbac.target-member"
 msgstr "العضو"
 
 #. js-lingui-explicit-id
+msgid "rbac.target-team-member"
+msgstr "عضو الفريق"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-commission"
+msgstr "هيكل العمولة"
+
+#. js-lingui-explicit-id
 msgid "rbac.actor-system"
 msgstr "النظام"
 

@@ -5,6 +5,7 @@ const TENANCY_ENTRY = 'plugins/tenancy/index.ts';
 const RATE_LIMIT_ENTRY = 'plugins/rate-limit/index.ts';
 const PROVISIONING_ENTRY = 'plugins/tenancy/provisioning.ts';
 const SHELL_API = 'plugins/merchant-shell/dashboard/shell-api.ts';
+const PLATFORM_JOBS_ENTRY = 'plugins/platform-jobs/index.ts';
 const RBAC_ENTRY = 'plugins/rbac/index.ts';
 const RBAC_GUARD_ENTRY = 'plugins/rbac/guard.ts';
 const RBAC_MEMBER_ACCESS_ENTRY = 'plugins/rbac/member-access.ts';
@@ -62,6 +63,7 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('no-unresolved-workspace-import', 'application/uses-unresolved-package.ts', '@cod/plugin-missing'),
   violation('plugin-core-no-tenancy-entry', 'application/uses-rate-limit-entry.ts', RATE_LIMIT_ENTRY),
   violation('plugin-core-no-tenancy-entry', 'application/uses-tenancy-entry.ts', TENANCY_ENTRY),
+  violation('plugin-core-no-tenancy-entry', 'application/uses-platform-package.ts', PLATFORM_JOBS_ENTRY),
   violation('plugin-core-no-tenancy-entry', 'application/uses-tenancy-package.ts', TENANCY_ENTRY),
   violation('plugin-root-no-dashboard', 'dashboard-leak.plugin.ts', HIDDEN_IN_DASHBOARD),
   violation('production-no-tests', 'infrastructure/uses-tests.ts', HIDDEN_IN_TESTS),

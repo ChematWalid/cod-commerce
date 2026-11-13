@@ -16,6 +16,8 @@ const LOG_CONTEXT = 'HostResolution';
 export interface HostResolutionOptions {
   readonly redisUrl: string;
   readonly platformDomain: string;
+  /** Namespaces the shared cache and its invalidations; the server passes `APP_ENV`. */
+  readonly cacheNamespace?: string;
 }
 
 function connect(redisUrl: string, options: RedisOptions): Redis {
@@ -36,13 +38,19 @@ export function hostResolutionProviders(options: () => HostResolutionOptions): P
     { provide: HOST_LOCAL_CACHE, useFactory: () => new LruHostCache() },
     {
       provide: HOST_SHARED_CACHE,
-      useFactory: () => new ValkeyHostCache(connect(options().redisUrl, HOST_CACHE_REDIS_OPTIONS)),
+      useFactory: () =>
+        new ValkeyHostCache(connect(options().redisUrl, HOST_CACHE_REDIS_OPTIONS), options().cacheNamespace),
     },
     {
       provide: HostInvalidationSubscriber,
-      useFactory: (local: HostCachePort) =>
-        new HostInvalidationSubscriber(connect(options().redisUrl, { maxRetriesPerRequest: null }), local),
-      inject: [HOST_LOCAL_CACHE],
+      useFactory: (local: HostCachePort, shared: HostCachePort) =>
+        new HostInvalidationSubscriber(
+          connect(options().redisUrl, { maxRetriesPerRequest: null }),
+          local,
+          options().cacheNamespace,
+          shared,
+        ),
+      inject: [HOST_LOCAL_CACHE, HOST_SHARED_CACHE],
     },
     {
       provide: ResolveHostService,

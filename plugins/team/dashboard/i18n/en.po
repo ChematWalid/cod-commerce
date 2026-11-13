@@ -184,6 +184,10 @@ msgid "team.edit-title"
 msgstr "Edit {name}"
 
 #. js-lingui-explicit-id
+msgid "team.invite-field-email"
+msgstr "Email *"
+
+#. js-lingui-explicit-id
 msgid "team.field-email"
 msgstr "Email"
 
@@ -234,6 +238,10 @@ msgstr "Add commission"
 #. js-lingui-explicit-id
 msgid "team.commission-remove"
 msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "team.commission-hidden"
+msgstr "You cannot see commission structures."
 
 #. js-lingui-explicit-id
 msgid "team.commission-empty"
