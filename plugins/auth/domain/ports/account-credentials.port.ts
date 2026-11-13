@@ -41,6 +41,6 @@ export interface AccountThrottlePort {
   spendForEmail(policy: AccountLimitPolicy, email: string): Promise<void>;
   /** @throws a rate-limit error once the user's bucket is empty. */
   spendForUser(policy: AccountLimitPolicy, userId: number): Promise<void>;
-  /** Forgets the login lockout of this email from the caller's address (D29). */
+  /** Forgets the login lockout of this email from the caller's address and gives its pair a token back (D29, D605). */
   clearLoginLockout(ctx: OperationContext, email: string): Promise<void>;
 }

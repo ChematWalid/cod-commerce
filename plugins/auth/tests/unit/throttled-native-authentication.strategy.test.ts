@@ -9,6 +9,8 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SECRET_HASHER } from '../../application/tokens';
 import { loginEmailKey, loginPairKey } from '../../domain/login-throttle-keys';
+import type { OperationContext } from '../../domain/ports/operation-context';
+import { AccountThrottle } from '../../infrastructure/account-throttle';
 import { ThrottledNativeAuthenticationStrategy } from '../../infrastructure/throttled-native-authentication.strategy';
 import { FakeSecretHasher } from '../fakes/fake-secret-hasher';
 import { InMemoryRateLimiter } from '../fakes/in-memory-rate-limiter';
@@ -27,6 +29,8 @@ const USER = { id: 1 } as User;
 interface Harness {
   readonly strategy: ThrottledNativeAuthenticationStrategy;
   readonly limiter: InMemoryRateLimiter;
+  /** The account-flow throttle on the same limiter, as the password reset uses it. */
+  readonly throttle: AccountThrottle;
   readonly pairKey: (ip: string) => string;
   /** How many attempts reached the password check. */
   readonly checks: () => number;
@@ -35,9 +39,10 @@ interface Harness {
 async function harness(): Promise<Harness> {
   const limiter = new InMemoryRateLimiter();
   const hasher = new FakeSecretHasher();
+  const clientIp = new ClientIpResolver('');
   const services = new Map<unknown, unknown>([
     [RateLimiter, limiter],
-    [ClientIpResolver, new ClientIpResolver('')],
+    [ClientIpResolver, clientIp],
     [SECRET_HASHER, hasher],
   ]);
   const injector = { get: (token: unknown) => services.get(token) } as unknown as Injector;
@@ -51,7 +56,8 @@ async function harness(): Promise<Harness> {
   const strategy = new ThrottledNativeAuthenticationStrategy();
   await strategy.init(injector);
   const emailKey = loginEmailKey(hasher, EMAIL);
-  return { strategy, limiter, pairKey: (ip) => loginPairKey(emailKey, ip), checks: () => checks };
+  const throttle = new AccountThrottle(limiter, clientIp, hasher);
+  return { strategy, limiter, throttle, pairKey: (ip) => loginPairKey(emailKey, ip), checks: () => checks };
 }
 
 const contextFrom = (ip: string): RequestContext => ({ req: { ip, headers: {} } }) as unknown as RequestContext;
@@ -135,5 +141,19 @@ describe('ThrottledNativeAuthenticationStrategy pair limit (D29, RL-1)', () => {
 
     // Assert
     expect(user).toBe(USER);
+  });
+
+  it('lets the correct password in from the locked address once a password reset cleared the lockout', async () => {
+    // Arrange
+    const { strategy, limiter, throttle, pairKey } = await harness();
+    await failSequentially(strategy, PAIR_LIMIT);
+
+    // Act
+    await throttle.clearLoginLockout(contextFrom(ATTACKER_IP) as unknown as OperationContext, EMAIL);
+    const user = await strategy.authenticate(contextFrom(ATTACKER_IP), credentials(PASSWORD));
+
+    // Assert
+    expect(user).toBe(USER);
+    expect((await limiter.isLocked(pairKey(ATTACKER_IP))).locked).toBe(false);
   });
 });
