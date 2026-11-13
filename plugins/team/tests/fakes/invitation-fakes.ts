@@ -1,5 +1,5 @@
 import type { TeamEmailLocale, TenantScope } from '@cod/shared';
-import type { MemberGrant } from '../../domain/member-grant';
+import type { MemberGrant, MemberStoreGrant } from '../../domain/member-grant';
 import type { ActorReachView } from '../../domain/member-reach';
 import type { BusinessLockPort } from '../../domain/ports/business-lock.port';
 import type { BusinessNamesPort } from '../../domain/ports/business-names.port';
@@ -31,6 +31,11 @@ export class FakeMemberAccess implements MemberAccessPort {
 
   constructor(private readonly log: CallLog) {}
 
+  holdAccess(): Promise<void> {
+    this.log.push('holdAccess');
+    return Promise.resolve();
+  }
+
   preview(): Promise<void> {
     this.log.push('preview');
     return this.previewRefusal === undefined ? Promise.resolve() : Promise.reject(this.previewRefusal);
@@ -48,6 +53,18 @@ export class FakeMemberAccess implements MemberAccessPort {
     if (grant.roleIds.length === 0) this.held.delete(administratorId);
     else this.held.set(administratorId, grant);
     return Promise.resolve();
+  }
+
+  async withdrawAccess(
+    ctx: OperationContext,
+    actor: TeamActor,
+    administratorId: number,
+    clearing: MemberStoreGrant,
+  ): Promise<MemberGrant> {
+    // rbac's view of a member holding no row (D804).
+    const held = this.held.get(administratorId) ?? { roleIds: [], storeAccess: 'selected', storeIds: [] };
+    await this.setAccess(ctx, actor, administratorId, { roleIds: [], ...clearing });
+    return held;
   }
 
   accessOf(_ctx: OperationContext, _scope: TenantScope, administratorId: number): Promise<MemberGrant | undefined> {

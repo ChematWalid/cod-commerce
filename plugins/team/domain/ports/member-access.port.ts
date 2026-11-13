@@ -1,5 +1,5 @@
 import type { TenantScope } from '@cod/shared';
-import type { MemberGrant } from '../member-grant';
+import type { MemberGrant, MemberStoreGrant } from '../member-grant';
 import type { ActorReachView } from '../member-reach';
 import type { TeamActor } from '../team-actor';
 import type { OperationContext } from './operation-context';
@@ -9,6 +9,12 @@ import type { OperationContext } from './operation-context';
  * exceeded, role not found, store not accessible, ...): Team's API maps those codes beside its own.
  */
 export interface MemberAccessPort {
+  /**
+   * Takes rbac's business lock in the transaction `ctx` carries, after Team's own (D213), so the access read next is
+   * the access a later write replaces: no rbac `setMemberAccess` commits in between (D804).
+   */
+  holdAccess(ctx: OperationContext, scope: TenantScope): Promise<void>;
+
   /** Refuses a grant the actor could not make, before anyone holds it (D208). Writes nothing. */
   preview(ctx: OperationContext, actor: TeamActor, grant: MemberGrant): Promise<void>;
 
@@ -20,6 +26,18 @@ export interface MemberAccessPort {
 
   /** Gives the administrator exactly `grant`, as `actor`, with rbac's escalation rules; an empty role list clears it. */
   setAccess(ctx: OperationContext, actor: TeamActor, administratorId: number, grant: MemberGrant): Promise<void>;
+
+  /**
+   * Withdraws every role of the administrator, as `actor`, naming `clearing`'s store access, and returns the grant it
+   * held just before, read by rbac under its lock in the same transaction. A concurrent `setMemberAccess` is either in
+   * that grant or refused after it (D804).
+   */
+  withdrawAccess(
+    ctx: OperationContext,
+    actor: TeamActor,
+    administratorId: number,
+    clearing: MemberStoreGrant,
+  ): Promise<MemberGrant>;
 
   /** Signs the administrators out of stale sessions after their access changed; call after commit. */
   flush(administratorIds: readonly number[]): Promise<void>;

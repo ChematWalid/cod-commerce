@@ -141,6 +141,36 @@ describe("who may resend or revoke the owner's Owner invitation (D60, Review Foc
   });
 });
 
+describe('what an actor who could not make the grant learns from a resend', () => {
+  it.each([
+    ['inside the cooldown', 0],
+    ['past the resend limit', 5],
+  ])('answers 403 owner-restricted, not the cap it hit %s, and mails nothing', async (_case, resendCount) => {
+    // Arrange
+    const { a } = businesses;
+    await kit.signIn(a.owner, a.stores[0]);
+    const email = freshEmail('owner-capped');
+    const invited = await kit.rest(
+      'POST',
+      '/employees',
+      bodyForA(email, await kit.builtInRoleId(a, 'owner'), { storeAccess: 'all', storeIds: [] }),
+    );
+    expect(invited.status).toBe(201);
+    const memberId = (invited.body as { id: string }).id;
+    await waitForMessages(email, 1);
+    await kit.query('UPDATE invitation SET "resendCount" = $2 WHERE "memberId" = $1', [memberId, resendCount]);
+    const manager = await kit.memberWith(a, await kit.builtInRoleId(a, 'manager'));
+    await kit.signIn(manager, a.stores[0]);
+
+    // Act
+    const resent = await kit.rest('POST', '/employees/resend-invitation', { memberId });
+
+    // Assert
+    expect(resent).toMatchObject({ status: 403, body: { code: 'rbac.owner-restricted' } });
+    expect(await settledCountTo(email)).toBe(1);
+  });
+});
+
 describe('what the activity log shows of invitations (D216, D217)', () => {
   it('shows an all-store viewer the invite, resend and accept rows, with no salary, address or commission value', async () => {
     // Arrange

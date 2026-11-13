@@ -197,9 +197,7 @@ describe('Business provisioning', () => {
     expect([...(roles[0]?.permissions ?? [])].sort()).toEqual(
       [
         'Authenticated',
-        'CreateTenantBusiness',
         'CreateTenantStore',
-        'DeleteTenantBusiness',
         'DeleteTenantStore',
         'ReadTenantBusiness',
         'ReadTenantStore',
