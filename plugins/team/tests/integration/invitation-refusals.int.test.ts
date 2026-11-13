@@ -163,6 +163,8 @@ describe('invite refusals (Review Focus 4 and 5)', () => {
     // Arrange
     const email = freshEmail('case');
     expect((await ownerInvites(await bodyForA(email))).status).toBe(201);
+    // The first mail goes through the email queue after commit: wait for it, so the count below only sees the refusal.
+    await waitForMessages(email);
 
     // Act
     const again = await ownerInvites(await bodyForA(`  ${email.toUpperCase()} `));
