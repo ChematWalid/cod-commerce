@@ -12,6 +12,12 @@ export interface MemberAccessPort {
   /** Refuses a grant the actor could not make, before anyone holds it (D208). Writes nothing. */
   preview(ctx: OperationContext, actor: TeamActor, grant: MemberGrant): Promise<void>;
 
+  /**
+   * Refuses to act on a member holding `grant` when the actor could not change that holder (D60.4, D60.7). The grant is
+   * judged by what remains of it: a role deleted since grants nothing, an archived store still counts. Writes nothing.
+   */
+  assertMayChangeHolder(ctx: OperationContext, actor: TeamActor, grant: MemberGrant): Promise<void>;
+
   /** Gives the administrator exactly `grant`, as `actor`, with rbac's escalation rules; an empty role list clears it. */
   setAccess(ctx: OperationContext, actor: TeamActor, administratorId: number, grant: MemberGrant): Promise<void>;
 

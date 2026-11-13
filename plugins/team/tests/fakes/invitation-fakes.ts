@@ -24,6 +24,7 @@ export class FakeMemberAccess implements MemberAccessPort {
   /** What each administrator holds in rbac now; a successful `setAccess` replaces it. */
   readonly held = new Map<number, MemberGrant>();
   previewRefusal: Error | undefined;
+  holderRefusal: Error | undefined;
   setAccessRefusal: Error | undefined;
   readonly grants: { administratorId: number; actor: TeamActor; grant: MemberGrant }[] = [];
   readonly flushed: (readonly number[])[] = [];
@@ -33,6 +34,11 @@ export class FakeMemberAccess implements MemberAccessPort {
   preview(): Promise<void> {
     this.log.push('preview');
     return this.previewRefusal === undefined ? Promise.resolve() : Promise.reject(this.previewRefusal);
+  }
+
+  assertMayChangeHolder(): Promise<void> {
+    this.log.push('assertMayChangeHolder');
+    return this.holderRefusal === undefined ? Promise.resolve() : Promise.reject(this.holderRefusal);
   }
 
   setAccess(_ctx: OperationContext, actor: TeamActor, administratorId: number, grant: MemberGrant): Promise<void> {

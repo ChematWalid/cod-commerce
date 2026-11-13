@@ -80,7 +80,7 @@ describe('UpdateMemberService.update', () => {
   it('refuses a pay edit of a member whose grant the actor could not make (D60)', async () => {
     // Arrange
     const holder = await activeMember(world, MEMBER, { roleIds: [OWNER_ROLE], storeAccess: 'all', storeIds: [] });
-    world.access.previewRefusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
+    world.access.holderRefusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
 
     // Act
     const change = service.update(world.ctx, managerOfA, { id: holder.id, edit: { baseSalary: 1 } });
@@ -99,8 +99,26 @@ describe('UpdateMemberService.update', () => {
     await service.update(world.ctx, managerOfA, { id: member.id, edit: { baseSalary: 2 } });
 
     // Assert
-    expect(world.log).toContain('preview');
+    expect(world.log).toContain('assertMayChangeHolder');
     expect(world.members.rows[0]?.baseSalary).toBe(2);
+  });
+
+  it('refuses a pay edit of a deactivated Owner holder whose snapshot names a role deleted since (D60.7)', async () => {
+    // Arrange
+    const member = await inactiveMember(world, MEMBER, {
+      roleIds: [OWNER_ROLE, toSnowflake('9999')],
+      storeAccess: 'all',
+      storeIds: [],
+    });
+    world.access.previewRefusal = new RbacRefusal(RBAC_ERROR_CODES.ROLE_NOT_FOUND);
+    world.access.holderRefusal = new RbacRefusal(RBAC_ERROR_CODES.OWNER_RESTRICTED);
+
+    // Act
+    const change = service.update(world.ctx, managerOfA, { id: member.id, edit: { baseSalary: 2 } });
+
+    // Assert
+    await expect(change).rejects.toMatchObject({ code: RBAC_ERROR_CODES.OWNER_RESTRICTED });
+    expect(world.members.rows[0]?.baseSalary).toBe(member.baseSalary);
   });
 
   it('refuses a commission of no config of the business', async () => {

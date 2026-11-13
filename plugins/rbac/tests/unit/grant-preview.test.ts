@@ -143,3 +143,44 @@ describe('GrantPreviewService.reachOf', () => {
     expect(reach).toEqual({ allStores: false, storeIds: [] });
   });
 });
+
+describe('GrantPreviewService.assertMayChangeHolder', () => {
+  const DELETED_ROLE = '999';
+
+  it.each([
+    [
+      'an Owner holder whose grant also names a deleted role',
+      grant(S1_MANAGER, [ROLES.owner.id, DELETED_ROLE], 'all'),
+      RBAC_CODES.OWNER_RESTRICTED,
+    ],
+    [
+      'a holder on an archived store the actor lacks',
+      grant(S1_MANAGER, [ROLES.viewer.id], 'selected', [S1, ARCHIVED]),
+      RBAC_CODES.PRIVILEGE_EXCEEDED,
+    ],
+    ['an all-stores holder from a store-limited actor', grant(S1_MANAGER, [ROLES.viewer.id], 'all'), RBAC_CODES.PRIVILEGE_EXCEEDED],
+    [
+      'a holder of a permission the actor lacks',
+      grant(S1_MANAGER, [ROLES.deleter.id], 'selected', [S1]),
+      RBAC_CODES.PRIVILEGE_EXCEEDED,
+    ],
+  ] as const)('refuses %s', async (_name, command, code) => {
+    // Act
+    const judged = service.assertMayChangeHolder(ctx, command);
+
+    // Assert
+    await expect(judged).rejects.toMatchObject({ code });
+  });
+
+  it.each([
+    ['a holder within reach on the actor’s store', grant(S1_MANAGER, [ROLES.viewer.id], 'selected', [S1])],
+    ['a holder of deleted roles only', grant(S1_MANAGER, [DELETED_ROLE], 'all')],
+    ['an Owner holder on an archived store, for the owner', grant(OWNER, [ROLES.owner.id], 'selected', [ARCHIVED])],
+  ] as const)('accepts %s', async (_name, command) => {
+    // Act
+    const judged = service.assertMayChangeHolder(ctx, command);
+
+    // Assert
+    await expect(judged).resolves.toBeUndefined();
+  });
+});
