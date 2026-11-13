@@ -14,7 +14,7 @@ export const MERCHANT_SECTIONS = [
   'Settings',
 ];
 
-/** Every leaf except `/team/roles` and `/settings`, which have real pages, in tree order. */
+/** Every leaf except `/team`, `/team/roles` and `/settings`, which have real pages, in tree order. */
 export const SKELETON_LEAVES = [
   '/home',
   '/cod-orders',
@@ -40,7 +40,6 @@ export const SKELETON_LEAVES = [
   '/finance/ads',
   '/finance/wallets',
   '/finance/study',
-  '/team',
   '/team/distribution',
   '/delivery',
   '/apps',

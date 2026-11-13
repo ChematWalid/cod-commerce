@@ -1,6 +1,10 @@
 import { EMAIL_CHANGE_TTL_MS, emailSchema, RESEND_COOLDOWN_MS } from '@cod/shared';
 import { accountLink } from '../domain/account-link';
-import { CONFIRM_EMAIL_CHANGE_PATH, PENDING_EMAIL_MAX_LENGTH } from '../domain/constants';
+import {
+  CONFIRM_EMAIL_CHANGE_PATH,
+  CREDENTIAL_TAKEOVER_VOIDED_PURPOSES,
+  PENDING_EMAIL_MAX_LENGTH,
+} from '../domain/constants';
 import { CurrentPasswordWrongError, EmailInvalidError, InvalidTokenError } from '../domain/errors';
 import type { AccountPasswordsPort, AccountThrottlePort } from '../domain/ports/account-credentials.port';
 import type { AccountIdentityPort, AccountRecord, EmailClaimPort } from '../domain/ports/account-identity.port';
@@ -133,7 +137,7 @@ export class ChangeEmailService {
     }
     await identity.changeEmail(ctx, account, pendingEmail);
     await identity.markEmailVerified(ctx, account.administratorId, clock.now());
-    await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change', 'oauth-ticket']);
+    await tokens.voidOpen(ctx, account.userId, CREDENTIAL_TAKEOVER_VOIDED_PURPOSES);
     return terminator.endOthers(ctx, String(account.userId), keepSessionToken);
   }
 }

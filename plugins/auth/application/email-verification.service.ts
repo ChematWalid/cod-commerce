@@ -14,7 +14,7 @@ export interface EmailVerificationPorts {
   readonly identity: Pick<AccountIdentityPort, 'inTransaction' | 'findByUserId' | 'markEmailVerified'>;
   readonly tokens: Pick<
     AccountTokenService,
-    'consume' | 'attemptOtp' | 'issueAfterCooldown' | 'lastIssuedAt' | 'pendingEmailOf'
+    'consume' | 'matchOtp' | 'consumeMatchedOtp' | 'issueAfterCooldown' | 'lastIssuedAt' | 'pendingEmailOf'
   >;
   readonly emails: Pick<AuthEmailService, 'enqueue'>;
   readonly throttle: Pick<AccountThrottlePort, 'spendForUser'>;
@@ -49,7 +49,8 @@ export class EmailVerificationService {
   }
 
   /**
-   * Runs outside any transaction: `attemptOtp` commits each guess on its own connection.
+   * The guess is counted and compared first, committed on its own; using the token and marking the email verified
+   * then commit together, so a failed write leaves the code usable (D607).
    *
    * @throws OtpInvalidError or OtpLockedError.
    */
@@ -60,8 +61,11 @@ export class EmailVerificationService {
     }
     // A resend gives fresh tries, so only this cap bounds the guesses at codes over time (D44).
     await this.ports.throttle.spendForUser('otp-account-daily', userId);
-    const consumed = await this.ports.tokens.attemptOtp(ctx, userId, code);
-    await this.markVerified(ctx, consumed.userId);
+    const matched = await this.ports.tokens.matchOtp(userId, code);
+    await this.ports.identity.inTransaction(ctx, async (transactional) => {
+      const consumed = await this.ports.tokens.consumeMatchedOtp(transactional, matched);
+      await this.markVerified(transactional, consumed.userId);
+    });
   }
 
   /** @throws CooldownError inside the cooldown. */

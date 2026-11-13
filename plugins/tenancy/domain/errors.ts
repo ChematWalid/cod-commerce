@@ -166,3 +166,30 @@ export class TransactionRequiredError extends DomainError {
     super('An order number must be taken inside the order transaction');
   }
 }
+
+/** No live administrator with this id belongs to the business: it does not exist, was removed, or is someone else's. */
+export class MemberNotInBusinessError extends DomainError {
+  readonly code = 'tenancy.member-not-in-business';
+
+  constructor() {
+    super('The administrator is not a member of this business');
+  }
+}
+
+/** The business owner's account cannot be removed. */
+export class BusinessOwnerProtectedError extends DomainError {
+  readonly code = 'tenancy.business-owner-protected';
+
+  constructor() {
+    super("The business owner's account cannot be removed");
+  }
+}
+
+/** A live administrator already holds this email address; it names no business, so nothing leaks across tenants. */
+export class MemberEmailTakenError extends DomainError {
+  readonly code = 'tenancy.member-email-taken';
+
+  constructor() {
+    super('An account with this email address already exists');
+  }
+}

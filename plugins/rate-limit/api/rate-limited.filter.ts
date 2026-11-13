@@ -2,6 +2,9 @@ import { type ArgumentsHost, Catch, type ExceptionFilter, HttpStatus } from '@ne
 import { type I18nRequest, parseContext } from '@vendure/core';
 import { RateLimitedError } from './rate-limited.error';
 
+/** The path without its query string, which may carry a secret such as an invitation token (D205). */
+const pathOf = (url: string): string => url.split('?')[0] ?? url;
+
 /**
  * Answers a {@link RateLimitedError} with `Retry-After` on both surfaces (D30). REST gets status 429. GraphQL
  * keeps status 200, because Apollo owns it, and the error travels in the body as Vendure's own filter does it.
@@ -20,7 +23,7 @@ export class RateLimitedFilter implements ExceptionFilter<RateLimitedError> {
       // Only GraphQL errors pass through Vendure's translation; on REST the i18n key would reach the client.
       message: (req as Partial<I18nRequest>).t?.(error.message) ?? error.message,
       retryAfterSeconds: error.retryAfterSeconds,
-      path: req.url,
+      path: pathOf(req.url),
     });
     return undefined;
   }

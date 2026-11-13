@@ -55,6 +55,21 @@ describe('ValkeyRateLimiter storage', () => {
     // Assert
     expect(decisions.filter((decision) => decision.allowed)).toHaveLength(10);
   });
+
+  it('never lets concurrent refunds fill a bucket above its capacity (RL-1)', async () => {
+    // Arrange
+    const clock = new ManualClock();
+    const limiter = limiterOn(clock);
+    const key = `test-${randomUUID()}`;
+    await Promise.all(Array.from({ length: 10 }, () => limiter.consume('login-pair', key)));
+
+    // Act
+    await Promise.all(Array.from({ length: 30 }, () => limiter.refund('login-pair', key)));
+    const decisions = await Promise.all(Array.from({ length: 20 }, () => limiter.consume('login-pair', key)));
+
+    // Assert
+    expect(decisions.filter((decision) => decision.allowed)).toHaveLength(10);
+  });
 });
 
 describe('ValkeyRateLimiter clock (RL-5)', () => {

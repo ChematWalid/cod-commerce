@@ -1,22 +1,14 @@
-import { toPostgresFields } from '@cod/shared';
-import { CurrencyCode, type InitialData, LanguageCode, type VendureConfig } from '@vendure/core';
+import { CurrencyCode, type InitialData, LanguageCode } from '@vendure/core';
 import {
   createTestEnvironment,
   E2E_DEFAULT_CHANNEL_TOKEN,
   PostgresInitializer,
   registerInitializer,
-  testConfig,
+  TestServer,
 } from '@vendure/testing';
-import type { PluginTestDbConfig } from './plugin-test-db-config';
+import { buildPluginTestConfig, type PluginTestEnvironmentOptions } from './plugin-test-config';
 
-/** What {@link createPluginTestEnvironment} boots. */
-export interface PluginTestEnvironmentOptions {
-  /** The plugins under test (classes, or the modules their `init` returns), added to Vendure's `testConfig`. */
-  readonly plugins: NonNullable<VendureConfig['plugins']>;
-  readonly db: PluginTestDbConfig;
-  /** The most connections the server's pool opens; the driver's default (10) when omitted. */
-  readonly poolSize?: number;
-}
+export type { PluginTestEnvironmentOptions, SharedCacheOptions } from './plugin-test-config';
 
 /** The currency of the channels a plugin test creates: the platform's (ADR 0004). */
 export const PLUGIN_TEST_CURRENCY_CODE = CurrencyCode.DZD;
@@ -39,6 +31,14 @@ export const PLUGIN_TEST_INITIAL_DATA: InitialData = {
 // test-only: the server's RF4 e2e proves the committed migrations match the entities.
 registerInitializer('postgres', new PostgresInitializer());
 
+/** A server that joins the database of another server in the same file: `init` only boots it. */
+class AttachedTestServer extends TestServer {
+  // The stock `init` runs the initializer, which drops and recreates the database the first server owns.
+  override init(): Promise<void> {
+    return this.bootstrap();
+  }
+}
+
 /**
  * A Vendure test server and GraphQL clients for a plugin's integration tests: Vendure's `testConfig` on
  * Postgres (one database per test file, created on `db.databaseUrl`) with `plugins` registered. The caller
@@ -47,17 +47,9 @@ registerInitializer('postgres', new PostgresInitializer());
 export function createPluginTestEnvironment(
   options: PluginTestEnvironmentOptions,
 ): ReturnType<typeof createTestEnvironment> {
-  const config: Required<VendureConfig> = {
-    ...testConfig,
-    // Replaced, not merged: `testConfig`'s sql.js options must not leak into the Postgres connection.
-    dbConnectionOptions: {
-      type: 'postgres',
-      ...toPostgresFields(options.db.databaseUrl),
-      synchronize: true,
-      logging: false,
-      ...(options.poolSize === undefined ? {} : { extra: { max: options.poolSize } }),
-    },
-    plugins: [...testConfig.plugins, ...options.plugins],
-  };
-  return createTestEnvironment(config);
+  const config = buildPluginTestConfig(options);
+  const environment = createTestEnvironment(config);
+  return options.attachToDatabase === undefined
+    ? environment
+    : { ...environment, server: new AttachedTestServer(config) };
 }

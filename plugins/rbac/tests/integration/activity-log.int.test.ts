@@ -1,5 +1,5 @@
 import { asOperationContext } from '../../domain/ports/operation-context';
-import { toBusinessId, toStoreId, vendurePermissionName } from '@cod/shared';
+import { ACTIVITY_ACTIONS, toBusinessId, toStoreId, vendurePermissionName } from '@cod/shared';
 import {
   type BusinessFixture,
   type CredentialsFixture,
@@ -235,6 +235,33 @@ describe('the activity log', () => {
       // Assert
       expect(asMember.sort()).toEqual(['business-wide', 'in']);
       expect(asOwner.sort()).toEqual(['business-wide', 'in', 'out']);
+    });
+
+    it('shows storeless team and member-access rows only to an all-stores viewer, and a role row to both (D217)', async () => {
+      // Arrange
+      const [storeOne, storeTwo] = businesses.a.stores;
+      const entityType = 'all-stores-only';
+      await seed(businesses.a, { entityType, entityId: 'team', action: ACTIVITY_ACTIONS.MEMBER_INVITED });
+      await seed(businesses.a, {
+        entityType,
+        entityId: 'store-two-member',
+        action: ACTIVITY_ACTIONS.MEMBER_ACCESS_CHANGED,
+        diff: {
+          before: { roleIds: [], storeAccess: null, storeIds: [] },
+          after: { roleIds: ['1'], storeAccess: 'selected', storeIds: [storeTwo.id] },
+        },
+      });
+      await seed(businesses.a, { entityType, entityId: 'role', action: ACTIVITY_ACTIONS.ROLE_CREATED });
+
+      // Act
+      await actAs(adminClient, storeOneViewer, storeOne);
+      const asStoreOneViewer = await entityIds({ entityType });
+      await actAs(adminClient, businesses.a.owner, storeOne);
+      const asOwner = await entityIds({ entityType });
+
+      // Assert
+      expect(asStoreOneViewer).toEqual(['role']);
+      expect(asOwner.sort()).toEqual(['role', 'store-two-member', 'team']);
     });
   });
 

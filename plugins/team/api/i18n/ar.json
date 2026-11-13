@@ -1,0 +1,26 @@
+{
+  "error": {
+    "team-member-not-found": "عضو الفريق غير موجود.",
+    "team-email-already-member": "هذا البريد الإلكتروني لعضو في فريقك بالفعل.",
+    "team-invitation-invalid": "لا يمكن استخدام رابط الدعوة هذا. اطلب دعوة جديدة.",
+    "team-invitation-expired": "انتهت صلاحية هذه الدعوة. اطلب دعوة جديدة.",
+    "team-resend-cooldown": "أُرسلت الدعوة للتو. انتظر دقيقة قبل إرسالها مرة أخرى.",
+    "team-member-not-pending": "هذا العضو لا ينتظر دعوة.",
+    "team-member-not-active": "هذا العضو غير نشط.",
+    "team-owner-protected": "لا يمكن تغيير مالك النشاط التجاري بهذه الطريقة.",
+    "team-account-elsewhere": "هذا البريد الإلكتروني مرتبط بنشاط تجاري آخر. استخدم بريدًا إلكترونيًا مختلفًا للانضمام.",
+    "team-commission-not-found": "العمولة غير موجودة.",
+    "team-commission-in-use": "هذه العمولة لا تزال مسندة إلى عضو.",
+    "team-commission-name-taken": "توجد عمولة بهذا الاسم بالفعل.",
+    "team-invalid-input": "بعض البيانات غير صالحة.",
+    "team-access-unavailable": "الأدوار أو المتاجر السابقة لهذا العضو لم تعد موجودة.",
+    "team-member-suspended": "هذا العضو معطّل.",
+    "team-self-action": "لا يمكنك القيام بهذا على حسابك أنت.",
+    "team-resend-limit": "لا يمكن إرسال هذه الدعوة مرة أخرى. ألغها ثم ادعُ من جديد.",
+    "team-too-many-pending": "هناك دعوات كثيرة قيد الانتظار. ألغِ بعضها قبل دعوة المزيد."
+  },
+  "commission-basis": {
+    "per-confirmed-order": "لكل طلب مؤكَّد",
+    "per-delivered-order": "لكل طلب مُسلَّم"
+  }
+}

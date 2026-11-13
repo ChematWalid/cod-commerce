@@ -28,5 +28,8 @@ export const BUSINESS_DIRECTORY: unique symbol = Symbol('RbacBusinessDirectory')
 /** Injection token of the `TransactionPort` adapter. */
 export const TRANSACTION: unique symbol = Symbol('RbacTransaction');
 
+/** Injection token of the `MemberSuspensionRegistry` that other plugins register their suspension checks on (D204). */
+export const MEMBER_SUSPENSION_CHECK: unique symbol = Symbol('RbacMemberSuspensionCheck');
+
 /** Injection token of the `RbacLockPort` adapter. */
 export const RBAC_LOCK: unique symbol = Symbol('RbacLock');

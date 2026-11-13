@@ -17,8 +17,11 @@ import { RolesController } from './api/roles.controller';
 import { RolesResolver } from './api/roles.resolver';
 import { adminApiSchema } from './api/schema';
 import { ActivityLogService } from './application/activity-log.service';
+import { GrantPreviewService } from './application/grant-preview.service';
+import { MemberAccessService } from './application/member-access.service';
 import { BindingProjector } from './application/binding-projector.service';
 import { GetActivityLogService } from './application/get-activity-log.service';
+import { LiveMemberAssignments } from './application/live-member-assignments';
 import { ExtendAllBindingsService } from './application/extend-all-bindings.service';
 import { RbacConvergeService } from './application/rbac-converge.service';
 import { SeedBuiltInRolesService } from './application/seed-built-in-roles.service';
@@ -30,6 +33,7 @@ import {
   CLOCK,
   ENGINE_ROLES,
   MEMBER_ASSIGNMENTS,
+  MEMBER_SUSPENSION_CHECK,
   RBAC_LOCK,
   ROLE_BINDINGS,
   SESSION_FLUSHER,
@@ -86,7 +90,13 @@ const systemClock: ClockPort = { now: () => new Date() };
     { provide: CLOCK, useValue: systemClock },
     { provide: BUSINESS_ROLES, useClass: TypeOrmBusinessRoleRepository },
     { provide: ROLE_BINDINGS, useClass: TypeOrmRoleBindingRepository },
-    { provide: MEMBER_ASSIGNMENTS, useClass: TypeOrmMemberAssignmentRepository },
+    TypeOrmMemberAssignmentRepository,
+    {
+      provide: MEMBER_ASSIGNMENTS,
+      useFactory: (rows: MemberAssignmentRepositoryPort, actors: ActorDirectoryPort) =>
+        new LiveMemberAssignments(rows, actors),
+      inject: [TypeOrmMemberAssignmentRepository, ACTOR_DIRECTORY],
+    },
     { provide: ENGINE_ROLES, useClass: VendureEngineRoles },
     { provide: SESSION_FLUSHER, useClass: RoleSessionFlusher },
     { provide: RBAC_LOCK, useClass: RbacLock },
@@ -191,6 +201,8 @@ const systemClock: ClockPort = { now: () => new Date() };
     RbacLifecycleHook,
     StoreAccessFlushSubscriber,
   ],
+  // Other plugins reach these through the member-access entry, from their adapters and module files only (D206).
+  exports: [MemberAccessService, GrantPreviewService, MEMBER_SUSPENSION_CHECK],
   controllers: [RolesController, RoleEditsController, PermissionsController],
   adminApiExtensions: {
     schema: adminApiSchema,

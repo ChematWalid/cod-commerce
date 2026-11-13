@@ -34,6 +34,14 @@ describe('the auth endpoint registry', () => {
     expect(inRegistry).toEqual(expect.arrayContaining(inSchema));
   });
 
+  it('gives every public route the answer its fixture must get', () => {
+    // Act
+    const unanswered = ROUTE_REGISTRY.filter((entry) => entry.access === 'public' && entry.answer === undefined);
+
+    // Assert
+    expect(unanswered.map(routeKey)).toEqual([]);
+  });
+
   it('leaves no handler without an @Allow', () => {
     // Act
     const unguarded = [...declaredOperations(), ...declaredRoutes()].filter((entry) => entry.access === 'unguarded');

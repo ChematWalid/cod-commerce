@@ -78,13 +78,19 @@ describe('architecture rules', () => {
 
     expect(good.cruisedModules).toEqual(
       expect.arrayContaining([
+        'plugins/auth/invitations.ts',
         'plugins/good/api/uses-rbac-guard-package.ts',
         'plugins/good/dashboard/uses-shell-api-package.ts',
+        'plugins/good/infrastructure/uses-auth-invitations-package.ts',
         'plugins/good/infrastructure/uses-platform-package.ts',
+        'plugins/good/infrastructure/uses-rbac-member-access-package.ts',
         'plugins/good/infrastructure/uses-tenancy-package.ts',
+        'plugins/good/invitations-wiring.plugin.ts',
+        'plugins/good/member-access-wiring.plugin.ts',
         'plugins/platform-jobs/index.ts',
         'plugins/merchant-shell/dashboard/shell-api.ts',
         'plugins/rbac/guard.ts',
+        'plugins/rbac/member-access.ts',
         'plugins/tenancy/index.ts',
       ]),
     );

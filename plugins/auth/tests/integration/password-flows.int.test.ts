@@ -10,6 +10,9 @@ const WEAK_PASSWORD = 'short';
 const WRONG_PASSWORD = 'synthetic-wrong-password';
 const FORBIDDEN = 'FORBIDDEN';
 const LOCKING_FAILURES = 10;
+/** Verification at registration, the reset link, then the notice. */
+const MAILS_AFTER_RESET = 3;
+const PASSWORD_CHANGED_KIND = 'password-changed';
 const FORGOT = `mutation ($email: String!) {
   requestPasswordReset(emailAddress: $email) { ... on Success { success } ... on ErrorResult { errorCode } }
 }`;
@@ -165,6 +168,21 @@ describe('reset password', () => {
     expect(locked.code).toBe('RATE_LIMITED');
     expect(typename(reset)).toBe('CurrentUser');
     expect(login.code).toBe('OK');
+  });
+
+  it('mails exactly one password-changed notice to the account email', async () => {
+    // Arrange
+    const { email } = await kit.owner();
+    const token = await forgot(email);
+
+    // Act
+    await client.graphql(RESET, { token, password: NEW_PASSWORD });
+    const messages = await waitForMessages(email, MAILS_AFTER_RESET);
+    const notices = messages.filter((message) => message.Subject.includes(PASSWORD_CHANGED_KIND));
+
+    // Assert
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.To.map((to) => to.Address)).toEqual([email]);
   });
 
   it('opens a session on REST and refuses a replay with the stable code', async () => {

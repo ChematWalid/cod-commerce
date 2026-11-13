@@ -1,0 +1,28 @@
+/* Layout of Team's own surfaces. Unlayered, so these win over Tailwind's utilities; the shell's rtl.css already
+   moves every dialog's close button to the inline end. */
+
+/* The header and footer stay put while a long grant form scrolls, also on a phone. */
+.cod-team-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+}
+
+.cod-team-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-inline: 2px;
+}
+
+/* A business with many roles or stores keeps the dialog short. */
+.cod-team-choice-list {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+/* Four tabs with counts wrap on a phone instead of pushing the page sideways. */
+.cod-team-tabs {
+  flex-wrap: wrap;
+  height: auto;
+}

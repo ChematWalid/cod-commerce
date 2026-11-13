@@ -8,11 +8,10 @@ import { CANCEL_ORDER } from './built-in-roles-kit';
 import { actAs } from './rbac-kit';
 import { createRbacTestEnvironment } from './rbac-test-environment';
 import { allStoresRole, RoleApi, type RoleAnswer, RoleTeam } from './roles-kit';
+import { settle } from './session-kit';
 
 const SNOWFLAKE_WORKER_ID = 1022;
 const REPEAT_MARGIN_MS = 300;
-
-const settle = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('a role change mid-session', () => {
   const { server, adminClient } = createRbacTestEnvironment(SNOWFLAKE_WORKER_ID);
