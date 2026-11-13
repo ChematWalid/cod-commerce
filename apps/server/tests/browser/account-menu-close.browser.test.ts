@@ -3,7 +3,7 @@ import { type Browser, type BrowserContext, chromium, type Page } from 'playwrig
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it } from 'vitest';
 import { expectAccountMenuClosed, nudgePointerOnto, storeUserSettings, userSettings } from './account-menu-fixtures';
 import { DASHBOARD_URL } from './dashboard-pages';
-import { closeMenus, loginAsDemoOwner, setDisplayLanguage } from './dashboard-session';
+import { closeAccountMenu, loginAsDemoOwner, setDisplayLanguage } from './dashboard-session';
 import { chooseTheme } from './shell-appearance-fixtures';
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
@@ -59,7 +59,7 @@ describe('closing the account menu after a change (#221)', () => {
     await page.waitForFunction(() => document.documentElement.dir === 'ltr');
     await nudgePointerOnto(page, `[data-testid="${ACCOUNT_LANGUAGE_TEST_ID}"]`);
 
-    await closeMenus(page);
+    await closeAccountMenu(page, 'ltr');
 
     await expectAccountMenuClosed(page, 'ltr');
   });

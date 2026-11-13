@@ -131,50 +131,97 @@ async function chooseLanguageInAccountMenu(page: Page, language: DocumentLang): 
   await page.locator(`[data-testid="${ACCOUNT_LANGUAGE_TEST_ID}"]`).click();
   const option = page.locator(`[data-testid="${ACCOUNT_LANGUAGE_TEST_ID}-${language}"]`);
   if ((await option.getAttribute('aria-checked')) === 'true') {
-    await closeMenus(page);
+    await closeAccountMenu(page, directionOf(language));
     return;
   }
   const saved = page.waitForResponse(isSettingsSave);
   await option.click();
   await saved;
-  await closeMenus(page);
+  await closeAccountMenu(page, directionOf(language));
 }
 
 /** Menus nest no deeper than the account menu's submenus. */
 const MAX_MENU_LEVELS = 3;
 
+/** An open submenu trigger in an open menu (Base UI 1.9 `data-popup-open`); structural, so a renamed row still matches. */
+const OPEN_SUBMENU_TRIGGER = '[role="menu"]:not([data-closed]) [aria-haspopup="menu"][data-popup-open]';
+
+/** The document direction of a display language: Arabic is the only right-to-left platform language. */
+const directionOf = (language: DocumentLang): 'ltr' | 'rtl' => (language === 'ar' ? 'rtl' : 'ltr');
+
 /**
- * Radio rows keep the menu open, and Escape closes one level (the submenu first), so it is pressed until none is left,
- * each time waiting until that level has closed.
+ * Closes the merchant's account menu by Base UI's own open state, never by counting menus (#221). Each pass parks the
+ * pointer on the root trigger, which opens on click only, so no hover can reopen a submenu, then Escape closes the
+ * innermost open level and the wait is on that level's own trigger (gone from the DOM counts as closed). `dir` is the
+ * direction a language change just set: nothing is measured before the page flips, as the trigger changes sides.
  */
-export async function closeMenus(page: Page): Promise<void> {
-  const menus = page.getByRole('menu');
-  for (let level = 0; level < MAX_MENU_LEVELS; level += 1) {
-    const open = await menus.count();
-    if (open === 0) break;
-    await page.keyboard.press('Escape');
-    await withMenuDump(page, `level ${String(level)}, ${String(open)} open`, () =>
-      page.waitForFunction((before: number) => document.querySelectorAll('[role="menu"]').length < before, open),
+export async function closeAccountMenu(page: Page, dir?: 'ltr' | 'rtl'): Promise<void> {
+  if (dir !== undefined) {
+    await withMenuDump(page, `html[dir=${dir}]`, () =>
+      page.waitForFunction((want) => document.documentElement.dir === want, dir),
     );
   }
-  await withMenuDump(page, 'menus detached', () => menus.first().waitFor({ state: 'detached' }));
+  for (let level = 0; level < MAX_MENU_LEVELS; level += 1) {
+    await parkPointer(page);
+    if (!(await isAccountMenuOpen(page))) break;
+    await closeInnermostLevel(page, level);
+  }
+  if (await isAccountMenuOpen(page)) {
+    throw new MenuCloseError(`still open after ${String(MAX_MENU_LEVELS)} levels`, await dumpMenuState(page));
+  }
+  await withMenuDump(page, 'menus detached', () =>
+    page.locator('[role="menu"]').first().waitFor({ state: 'detached' }),
+  );
 }
 
-/** What the page showed when a menu step timed out: enough to tell a reopened submenu, a lost Escape and a stale count apart. */
+const isAccountMenuOpen = async (page: Page): Promise<boolean> =>
+  (await accountMenuTrigger(page).getAttribute('aria-expanded')) === 'true';
+
+/** Puts the pointer on the centre of the root trigger; throws rather than leave it where a hover could reopen a submenu. */
+async function parkPointer(page: Page): Promise<void> {
+  const box = await accountMenuTrigger(page).boundingBox();
+  if (box === null) throw new MenuCloseError('park the pointer: the trigger has no box', await dumpMenuState(page));
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+/**
+ * Presses Escape once and waits until the innermost open level has closed: a submenu trigger drops `data-popup-open`,
+ * the root trigger's `aria-expanded` leaves `true`. A trigger that has left the DOM counts as closed.
+ */
+async function closeInnermostLevel(page: Page, level: number): Promise<void> {
+  const trigger = await page.evaluateHandle(
+    ({ submenu, root }) => [...document.querySelectorAll(submenu)].at(-1) ?? document.querySelector(root),
+    { submenu: OPEN_SUBMENU_TRIGGER, root: `[data-testid="${ACCOUNT_MENU_TEST_ID}"]` },
+  );
+  try {
+    await page.keyboard.press('Escape');
+    await withMenuDump(page, `level ${String(level)}`, () =>
+      page.waitForFunction((element) => {
+        if (element === null || !element.isConnected) return true;
+        return element.closest('[role="menu"]') === null
+          ? element.getAttribute('aria-expanded') !== 'true'
+          : !element.hasAttribute('data-popup-open');
+      }, trigger),
+    );
+  } finally {
+    await trigger.dispose();
+  }
+}
+
+/** What the page showed when a menu step failed: enough to tell a reopened submenu, a lost Escape and a stale node apart. */
 interface MenuState {
   readonly dir: string;
   readonly lang: string;
   readonly focused: string;
   readonly hovered: string;
-  /** Every `[role=menu]` node in the DOM, with its positioner. */
+  /** Every `[role=menu]` node with its positioner, then every menu trigger. */
   readonly menus: readonly string[];
-  /** Every menu trigger, with `aria-expanded` and `data-popup-open`. */
   readonly triggers: readonly string[];
 }
 
-/** A menu step that timed out, carrying the menu state at that moment (#221). */
+/** The account menu did not close, carrying the menu state at that moment (#221). */
 export class MenuCloseError extends Error {
-  constructor(step: string, state: MenuState, cause: unknown) {
+  constructor(step: string, state: MenuState, cause?: unknown) {
     super(`the account menu did not close (${step}): ${JSON.stringify(state, null, 2)}`, { cause });
     this.name = 'MenuCloseError';
   }
@@ -182,18 +229,10 @@ export class MenuCloseError extends Error {
 
 const dumpMenuState = (page: Page): Promise<MenuState> =>
   page.evaluate(() => {
-    const shown = [
-      'data-testid',
-      'role',
-      'aria-expanded',
-      'aria-hidden',
-      'data-open',
-      'data-closed',
-      'data-popup-open',
-    ];
+    const shown = 'data-testid role aria-expanded aria-hidden data-open data-closed data-popup-open inert'.split(' ');
     const describe = (element: Element | null | undefined): string => {
       if (element === null || element === undefined) return 'none';
-      const flags = [...shown, 'data-ending-style', 'data-starting-style', 'inert', 'hidden']
+      const flags = [...shown, 'hidden', 'data-ending-style', 'data-starting-style']
         .filter((name) => element.hasAttribute(name))
         .map((name) => `${name}=${element.getAttribute(name) ?? ''}`);
       return `<${element.tagName.toLowerCase()} ${flags.join(' ')}>`;
