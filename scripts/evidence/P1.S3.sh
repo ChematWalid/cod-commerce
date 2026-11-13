@@ -319,7 +319,7 @@ gql "$Q_SET_MEMBER" "$input" "$owner" "$demo"; expect_ok set-member2
 
 # --- activity.md ------------------------------------------------------------------------------
 f="$out/api/activity.md"
-begin "$f" "Activity log" "Newest first, with a cursor. A limited member with settings.activity-log.view sees the rows of the stores they can reach."
+begin "$f" "Activity log" "Newest first, with a cursor. A limited member with settings.activity-log.view sees the rows of the stores they can reach. No feature on main records a store-scoped row yet (the RBAC rows are business-wide), so the two store rows below are seeded straight into Postgres, one per Demo store; every read goes through the live API."
 input=$(vars "{input:{first:5}}")
 gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok activity; assert_js activity 'b.data.activityLog.items.length===5 && !!b.data.activityLog.nextCursor' "$work/b"
 cursor=$(js 'b.data.activityLog.nextCursor' "$work/b"); remember_id ACTIVITY_CURSOR "$cursor"
@@ -327,11 +327,7 @@ emit "$f" "activityLog, first page" "$Q_ACTIVITY" "$input" "$owner" "$demo"
 input=$(vars "{input:{first:5,after:'$cursor'}}")
 gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok activity2
 emit "$f" "activityLog, next page" "$Q_ACTIVITY" "$input" "$owner" "$demo"
-gql "$Q_ACTIVITY" '{}' "$limited" "$demo"; expect_ok "limited activity"
-assert_js "limited activity" "b.data.activityLog.items.length>0 && b.data.activityLog.items.every((i)=>i.storeId===null||i.storeId==='$demo_store')" "$work/b"
-emit "$f" "activityLog, a limited member on one selected store: only that store's rows and business-wide rows" "$Q_ACTIVITY" '{}' "$limited" "$demo"
-gql "$Q_ACTIVITY" '{}' "$orders" "$demo"; expect_code "orders activity" FORBIDDEN
-emit "$f" "activityLog without the permission: FORBIDDEN" "$Q_ACTIVITY" '{}' "$orders" "$demo"
+# The store-scoped reads follow after the screens and the browser suite, so neither ever sees the synthetic rows.
 
 # --- refusals.md ------------------------------------------------------------------------------
 f="$out/api/refusals.md"
@@ -439,6 +435,35 @@ DASHBOARD_URL=$api/dashboard MAILPIT_URL=$mailpit SCREENSHOT_DIR=$work/browser-s
   timeout 420 pnpm --filter @cod/server test:browser >"$work/browser.log" 2>&1 || fail "browser suite: $(command tail -40 "$work/browser.log")"
 browser_summary=$(command grep -E '^ *(Test Files|Tests) ' "$work/browser.log" | command sed -E 's/\x1b\[[0-9;]*m//g; s/^ +//')
 
+# --- activity.md, store scoping (audit RBAC-5) ---------------------------------------------------
+# After the screens and the browser suite, so neither sees the synthetic rows. The browser suite spent the shared rate-limit
+# budget and may have changed the member, so the member is reset and both members sign in again.
+f="$out/api/activity.md"
+reset_limits
+input=$(vars "{input:{administratorId:'$limited_admin',roleIds:['$viewer_role'],storeAccess:'selected',storeIds:['$demo_store']}}")
+gql "$Q_SET_MEMBER" "$input" "$owner" "$demo"; expect_ok "limited reset"
+login "$LIMITED"; limited=$LAST_TOKEN
+login "$ORDERS"; orders=$LAST_TOKEN
+# No feature on main records a store-scoped row yet, so one synthetic row per Demo store is written straight into Postgres.
+# Seeded after the last API write, max(id) + 1 puts both rows at the top of every page.
+demo_business=$(psql_value "select \"businessId\" from store where id = $demo_store" | command tr -d '\r\n')
+[[ "$demo_business" =~ ^[0-9]+$ ]] || fail "demo business id"
+seed_store_activity() { # seed_store_activity <store-id> -> the new row id
+  psql_value "insert into activity_log (\"businessId\", \"storeId\", id, \"actorAdministratorId\", action, \"entityType\", \"entityId\", summary, diff, ip, \"userAgent\", \"createdAt\") select $demo_business, $1, max(id) + 1, $owner_admin, 'evidence.store-scoped', 'store', '$1', 'Synthetic store-scoped row (evidence seed)', '{}'::jsonb, null, null, now() from activity_log returning id" |
+    command head -1 | command tr -d '\r\n'
+}
+row_demo=$(seed_store_activity "$demo_store"); remember_id ACTIVITY_ROW_DEMO "$row_demo"
+row_demo2=$(seed_store_activity "$demo2_store"); remember_id ACTIVITY_ROW_DEMO2 "$row_demo2"
+input=$(vars "{input:{first:3}}")
+gql "$Q_ACTIVITY" "$input" "$owner" "$demo"; expect_ok "owner store rows"
+assert_js "owner store rows" "const it=b.data.activityLog.items; it[0].storeId==='$demo2_store' && it[1].storeId==='$demo_store'" "$work/b"
+emit "$f" "activityLog, the owner (all stores) after one synthetic row was seeded on each Demo store" "$Q_ACTIVITY" "$input" "$owner" "$demo"
+gql "$Q_ACTIVITY" '{}' "$limited" "$demo"; expect_ok "limited activity"
+assert_js "limited activity" "const it=b.data.activityLog.items; it.some((i)=>i.storeId==='$demo_store') && it.some((i)=>i.storeId===null) && it.every((i)=>i.storeId===null||i.storeId==='$demo_store')" "$work/b"
+emit "$f" "activityLog, a limited member on one selected store: the Demo row and business-wide rows; the Demo2 row is filtered out" "$Q_ACTIVITY" '{}' "$limited" "$demo"
+gql "$Q_ACTIVITY" '{}' "$orders" "$demo"; expect_code "orders activity" FORBIDDEN
+emit "$f" "activityLog without the permission: FORBIDDEN" "$Q_ACTIVITY" '{}' "$orders" "$demo"
+
 # --- README -------------------------------------------------------------------------------------
 {
   cat <<README
@@ -456,7 +481,7 @@ built from a tree with no uncommitted change outside the evidence folders and br
 | [\`api/effective.md\`](api/effective.md) | \`effectivePermissions\` for an owner and a limited member, \`GET /permissions\` |
 | [\`api/roles.md\`](api/roles.md) | Every role operation in GraphQL and REST, and the activity row after create, update, duplicate and delete |
 | [\`api/members.md\`](api/members.md) | \`memberAccess\`, \`setMemberAccess\` and its activity row |
-| [\`api/activity.md\`](api/activity.md) | \`activityLog\` pages and the cursor, FORBIDDEN without the permission |
+| [\`api/activity.md\`](api/activity.md) | \`activityLog\` pages and the cursor; a selected-store member sees the Demo store row and not the Demo2 one (both rows seeded); FORBIDDEN without the permission |
 | [\`api/refusals.md\`](api/refusals.md) | FORBIDDEN (REST and GraphQL, anonymous, a store outside the member's list), a built-in edit, a role in use, self-assignment, a refused escalation |
 | [\`api/isolation.md\`](api/isolation.md) | Cross-tenant: B's channel token, B's role, member and store ids |
 | [\`api/live-revoke.md\`](api/live-revoke.md) | A removed permission and a changed assignment stop working on the next request on a second api process, and a restored one works again |
