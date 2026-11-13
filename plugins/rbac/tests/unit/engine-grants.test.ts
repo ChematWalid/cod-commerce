@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ENGINE_GRANTS,
   enginePermissionsFor,
+  REVIEWED_PLUGIN_ENGINE_GRANTS,
   REVIEWED_STOCK_ENGINE_GRANTS,
+  unreviewedPluginGrants,
   unreviewedStockGrants,
 } from '../../domain/engine-grants';
 
@@ -40,6 +42,59 @@ describe('ENGINE_GRANTS', () => {
 
     // Act
     const unreviewed = unreviewedStockGrants(widened, STOCK_PERMISSIONS, ['ReadCatalog']);
+
+    // Assert
+    expect(unreviewed).toEqual([]);
+  });
+});
+
+describe('ENGINE_GRANTS plugin permissions', () => {
+  it('holds no plugin permission that has not been reviewed', () => {
+    // Act
+    const unreviewed = unreviewedPluginGrants(ENGINE_GRANTS, STOCK_PERMISSIONS, REVIEWED_PLUGIN_ENGINE_GRANTS);
+
+    // Assert
+    expect(unreviewed).toEqual([]);
+  });
+
+  it('reviews exactly the six tenancy permissions of D59 and D97', () => {
+    expect([...REVIEWED_PLUGIN_ENGINE_GRANTS].sort()).toEqual(
+      [
+        'CreateTenantStore',
+        'DeleteTenantStore',
+        'ReadTenantBusiness',
+        'ReadTenantStore',
+        'UpdateTenantBusiness',
+        'UpdateTenantStore',
+      ].sort(),
+    );
+  });
+
+  it('keeps no reviewed plugin permission the map no longer grants', () => {
+    // Act
+    const granted = new Set(Object.values(ENGINE_GRANTS).flat());
+
+    // Assert
+    expect(REVIEWED_PLUGIN_ENGINE_GRANTS.filter((name) => !granted.has(name))).toEqual([]);
+  });
+
+  it('fails the check when an unlisted plugin permission is added to a copy of the map', () => {
+    // Arrange
+    const widened = { ...ENGINE_GRANTS, 'orders.cancel': ['DeleteTenantBusiness'] };
+
+    // Act
+    const unreviewed = unreviewedPluginGrants(widened, STOCK_PERMISSIONS, REVIEWED_PLUGIN_ENGINE_GRANTS);
+
+    // Assert
+    expect(unreviewed).toEqual(['DeleteTenantBusiness']);
+  });
+
+  it('leaves stock permissions to the stock check', () => {
+    // Arrange
+    const widened = { ...ENGINE_GRANTS, 'orders.cancel': ['UpdateAdministrator'] };
+
+    // Act
+    const unreviewed = unreviewedPluginGrants(widened, STOCK_PERMISSIONS, REVIEWED_PLUGIN_ENGINE_GRANTS);
 
     // Assert
     expect(unreviewed).toEqual([]);
