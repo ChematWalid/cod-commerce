@@ -130,7 +130,7 @@ describe('UpdateMemberService.update racing rbac setMemberAccess (D804)', () => 
     });
   });
 
-  it("takes rbac's lock right after Team's own, before reading the member (D213 order)", async () => {
+  it("takes rbac's lock right after Team's own (D213 order)", async () => {
     // Arrange
     const world = memberActionWorld();
     const member = await activeMember(world, ADMINISTRATOR);

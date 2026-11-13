@@ -73,10 +73,12 @@ function setAccessDuringTeamRead(administratorId: number, roleIds: readonly stri
     return seen;
   });
   return new Promise((resolve) => {
+    const started = Date.now();
     const wait = setInterval(() => {
-      if (outcome === undefined) return;
+      if (outcome === undefined && Date.now() - started < 4 * CONCURRENT_GRACE_MS) return;
       clearInterval(wait);
-      resolve(outcome);
+      // A Team action that never read the member fails the test with this code instead of hanging it.
+      resolve(outcome ?? ['TEAM_NEVER_READ_THE_MEMBER']);
     }, 50);
   });
 }
@@ -140,11 +142,11 @@ describe('a Team action while rbac changes the same member (D804)', () => {
 
     // Assert
     expect(removed.status).toBe(200);
-    expect(concurrentCodes).not.toEqual([]);
+    expect(concurrentCodes).toEqual(['rbac.member-not-found']);
     expect(await rolesOf(member.administratorId)).toEqual([]);
   });
 
-  it('keeps a role rbac withdrew while a store-only edit was reading the member', async () => {
+  it('does not write back a role rbac withdrew while a store-only edit was reading the member', async () => {
     // Arrange
     const kept = await kit.customRole(businesses.a, ['team.members.view']);
     const withdrawn = await kit.customRole(businesses.a, ['orders.view']);
@@ -157,11 +159,12 @@ describe('a Team action while rbac changes the same member (D804)', () => {
       storeAccess: 'selected',
       storeIds: [businesses.a.stores[1].id],
     });
-    await concurrent;
+    const concurrentCodes = await concurrent;
     vi.restoreAllMocks();
 
     // Assert
     expect(edited.status).toBe(200);
+    expect(concurrentCodes).toEqual([]);
     expect(await rolesOf(member.administratorId)).not.toContain(withdrawn);
   });
 });
