@@ -1,6 +1,16 @@
-import { lacksArabicPluralForms, placeholdersDiffer, type ParsedCatalogue } from './entry-checks';
+import {
+  flattensEnglishPlural,
+  lacksArabicPluralForms,
+  placeholdersDiffer,
+  type ParsedCatalogue,
+} from './entry-checks';
 import { parsePoCatalogue, type PoEntry } from './po-catalogue';
-import { scanDashboardSource, type DashboardSource, type TemplateMessageId } from './scan-message-ids';
+import {
+  scanDashboardSource,
+  type DashboardSource,
+  type ScannedMessages,
+  type TemplateMessageId,
+} from './scan-message-ids';
 
 export type { DashboardSource } from './scan-message-ids';
 
@@ -51,6 +61,15 @@ function parseAll(input: PluginCatalogueInput): Catalogues {
   return parsed;
 }
 
+function scanPlugin(input: PluginCatalogueInput, sharedNonMessageLiterals: readonly string[]): ScannedMessages[] {
+  const skipped = new Set([...sharedNonMessageLiterals, ...(input.nonMessageLiterals ?? [])]);
+  return input.sources.map((source) => scanDashboardSource(source, skipped));
+}
+
+const idsOf = (input: PluginCatalogueInput, scanned: readonly ScannedMessages[]): string[] => [
+  ...new Set([...scanned.flatMap((source) => source.ids), ...(input.dynamicIds ?? [])]),
+];
+
 /**
  * The ids a plugin dashboard uses: scanned from its sources, then its registered dynamic ids, without repeats.
  * `sharedNonMessageLiterals` are the shell's, which hold for every dashboard (its leaf ids reach `registerShellPage`).
@@ -59,23 +78,19 @@ export function usedMessageIds(
   input: PluginCatalogueInput,
   sharedNonMessageLiterals: readonly string[] = [],
 ): string[] {
-  const scanned = scanPlugin(input, sharedNonMessageLiterals).flatMap((source) => source.ids);
-  return [...new Set([...scanned, ...(input.dynamicIds ?? [])])];
+  return idsOf(input, scanPlugin(input, sharedNonMessageLiterals));
 }
 
-function scanPlugin(input: PluginCatalogueInput, sharedNonMessageLiterals: readonly string[]) {
-  const skipped = new Set([...sharedNonMessageLiterals, ...(input.nonMessageLiterals ?? [])]);
-  return input.sources.map((source) => scanDashboardSource(source, skipped));
-}
-
-/** Template-literal ids that no registered dynamic id matches: their ids cannot be checked otherwise. */
-function dynamicProblems(input: PluginCatalogueInput, sharedNonMessageLiterals: readonly string[]): CatalogueProblem[] {
+/**
+ * Template-literal ids that no registered dynamic id matches, once per template text: their ids cannot be checked
+ * otherwise. A template with no dot in its fixed parts never matches (see `TemplateMessageId.pattern`).
+ */
+function dynamicProblems(input: PluginCatalogueInput, scanned: readonly ScannedMessages[]): CatalogueProblem[] {
   const registered = input.dynamicIds ?? [];
-  const unmatched = (template: TemplateMessageId): boolean => !registered.some((id) => template.pattern.test(id));
-  return scanPlugin(input, sharedNonMessageLiterals)
-    .flatMap((source) => source.templates)
-    .filter(unmatched)
-    .map((template) => ({ plugin: input.plugin, locale: 'en', id: template.text, kind: 'dynamic' }));
+  const unmatched = ({ pattern }: TemplateMessageId): boolean =>
+    pattern === null || !registered.some((id) => pattern.test(id));
+  const texts = new Set(scanned.flatMap((source) => source.templates.filter(unmatched).map(({ text }) => text)));
+  return [...texts].map((id) => ({ plugin: input.plugin, locale: 'en', id, kind: 'dynamic' }));
 }
 
 const localesFor = (id: string): readonly CatalogueLocale[] =>
@@ -92,9 +107,16 @@ function gapOf(
   return candidates.some((text) => text !== undefined) ? 'empty' : 'missing';
 }
 
-function pluralProblems(plugin: string, arabic: ParsedCatalogue | undefined): CatalogueProblem[] {
-  return [...(arabic ?? new Map<string, PoEntry>())]
-    .filter(([, entry]) => lacksArabicPluralForms(entry))
+/** The English entry of `id`: the plugin's own, else the shell's. */
+const englishEntry = (id: string, own: Catalogues, shell: Catalogues): PoEntry | undefined =>
+  own.en?.get(id) ?? shell.en?.get(id);
+
+/** Own Arabic entries that lack a plural form or category, or drop a plural their English text has. */
+function pluralProblems(plugin: string, own: Catalogues, shell: Catalogues): CatalogueProblem[] {
+  const flattened = ([id, entry]: [string, PoEntry]): boolean =>
+    lacksArabicPluralForms(entry) || flattensEnglishPlural(englishEntry(id, own, shell), entry);
+  return [...(own.ar ?? new Map<string, PoEntry>())]
+    .filter(flattened)
     .map(([id]) => ({ plugin, locale: 'ar', id, kind: 'plural' }));
 }
 
@@ -109,7 +131,7 @@ function fuzzyProblems(plugin: string, own: Catalogues): CatalogueProblem[] {
 
 /** Translations of the plugin's own catalogues whose placeholders differ from the English text (own or shell). */
 function placeholderProblems(plugin: string, own: Catalogues, shell: Catalogues): CatalogueProblem[] {
-  const english = (id: string): string => own.en?.get(id)?.translation ?? shell.en?.get(id)?.translation ?? '';
+  const english = (id: string): string => englishEntry(id, own, shell)?.translation ?? '';
   return entriesOf(own)
     .filter(([locale]) => locale !== 'en')
     .flatMap(([locale, catalogue]) =>
@@ -131,7 +153,7 @@ function literalProblems(plugin: PluginCatalogueInput, own: Catalogues): Catalog
 /**
  * Checks every plugin dashboard against its catalogues (D89). Each used id needs a non-blank translation in English
  * and Arabic, in the plugin's own catalogue or the shell's; a `subdomain.*` id needs French too; an Arabic plural
- * has all six forms or categories; no own entry is fuzzy or names other placeholders than its English text; a
+ * has all six forms or categories and keeps every plural of its English text; no own entry is fuzzy or names other placeholders than its English text; a
  * template-literal id matches a registered dynamic id; a declared non-message literal is no msgid of the plugin's
  * own catalogues. Pure: the caller reads the files.
  */
@@ -142,7 +164,8 @@ export function checkCatalogues(input: {
   const shell = shellInput ? parseAll(shellInput) : {};
   return input.plugins.flatMap((plugin) => {
     const own = parseAll(plugin);
-    const gaps = usedMessageIds(plugin, shellInput?.nonMessageLiterals).flatMap((id) =>
+    const scanned = scanPlugin(plugin, shellInput?.nonMessageLiterals ?? []);
+    const gaps = idsOf(plugin, scanned).flatMap((id) =>
       localesFor(id).flatMap((locale) => {
         const kind = gapOf(id, locale, own, shell);
         return kind === null ? [] : [{ plugin: plugin.plugin, locale, id, kind }];
@@ -150,10 +173,10 @@ export function checkCatalogues(input: {
     );
     return [
       ...gaps,
-      ...pluralProblems(plugin.plugin, own.ar),
+      ...pluralProblems(plugin.plugin, own, shell),
       ...fuzzyProblems(plugin.plugin, own),
       ...placeholderProblems(plugin.plugin, own, shell),
-      ...dynamicProblems(plugin, shellInput?.nonMessageLiterals ?? []),
+      ...dynamicProblems(plugin, scanned),
       ...literalProblems(plugin, own),
     ];
   });

@@ -1,6 +1,8 @@
-/** What the check needs from an ICU message: its argument names and the selectors of each `plural` block. */
+/** What the check needs from an ICU message: its argument names, its plural arguments and each plural's selectors. */
 export interface IcuSummary {
   readonly argumentNames: ReadonlySet<string>;
+  /** The names of the arguments formatted as `plural`, such as `count` in `{count, plural, …}`. */
+  readonly pluralArguments: ReadonlySet<string>;
   readonly pluralSelectors: readonly (readonly string[])[];
 }
 
@@ -13,6 +15,7 @@ interface Cursor {
   readonly text: string;
   index: number;
   readonly names: Set<string>;
+  readonly pluralNames: Set<string>;
   readonly plurals: string[][];
 }
 
@@ -56,6 +59,7 @@ function readArgument(cursor: Cursor): void {
   if (cursor.text[cursor.index++] !== ',') return;
   const type = readUntil(cursor, ',}').trim();
   if (cursor.text[cursor.index++] !== ',') return;
+  if (type === 'plural') cursor.pluralNames.add(name);
   if (OPTION_TYPES.has(type)) readOptions(cursor, type === 'plural');
   else skipToClose(cursor);
 }
@@ -75,7 +79,7 @@ function readMessage(cursor: Cursor, nested: boolean): void {
  * interpreted; a malformed message yields what could be read.
  */
 export function summariseIcu(text: string): IcuSummary {
-  const cursor: Cursor = { text, index: 0, names: new Set(), plurals: [] };
+  const cursor: Cursor = { text, index: 0, names: new Set(), pluralNames: new Set(), plurals: [] };
   readMessage(cursor, false);
-  return { argumentNames: cursor.names, pluralSelectors: cursor.plurals };
+  return { argumentNames: cursor.names, pluralArguments: cursor.pluralNames, pluralSelectors: cursor.plurals };
 }

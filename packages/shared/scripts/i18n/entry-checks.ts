@@ -22,6 +22,18 @@ export function lacksArabicPluralForms(entry: PoEntry): boolean {
   );
 }
 
+/**
+ * Whether an Arabic entry drops a plural its English entry has: a gettext plural (`msgid_plural`) translated as a
+ * single string, or an ICU `plural` argument flattened to `{count}` or rewritten as a `select`. A blank Arabic
+ * entry is left to the gap check.
+ */
+export function flattensEnglishPlural(english: PoEntry | undefined, arabic: PoEntry): boolean {
+  if (english === undefined || isBlank(arabic.translation)) return false;
+  if (english.plural) return !arabic.plural;
+  const arabicPlurals = summariseIcu(arabic.translation).pluralArguments;
+  return [...summariseIcu(english.translation).pluralArguments].some((name) => !arabicPlurals.has(name));
+}
+
 const sortedNames = (text: string): string => [...summariseIcu(text).argumentNames].sort().join(',');
 
 /**
