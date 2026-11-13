@@ -1,6 +1,6 @@
 import { fieldOf, type IsolationHttp } from './http';
 import { ownChannel } from './matrix';
-import type { BusinessWorld } from './world';
+import type { BusinessWorld } from './world-types';
 
 /**
  * The Team rows (plugins/team, P1.S4) of one business, seeded through the Team Admin API as its owner. A salary

@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { type Caller, fieldOf, type IsolationHttp } from './http';
 import { seedTeam, TEAM_WORLDS } from './team-world';
+import type { BusinessWorld, World, WorldStore } from './world-types';
 import {
   ACTIVE_ADMINISTRATOR,
   CREATE_NOTE,
@@ -22,35 +23,7 @@ import {
   UPLOAD_LOGO,
 } from './seed-operations';
 
-/** A store of the world: its label (`A1`) names it in transcripts. */
-export interface WorldStore {
-  readonly label: string;
-  readonly id: string;
-  readonly subdomain: string;
-  readonly channelToken: string;
-}
-
-/** One business with a row in every P1 tenant table. */
-export interface BusinessWorld {
-  readonly label: 'A' | 'B';
-  readonly businessId: string;
-  readonly name: string;
-  readonly stores: readonly [WorldStore, WorldStore];
-  readonly owner: Caller & { readonly email: string; readonly administratorId: string; readonly lastName: string };
-  /** A member with a business role on the first store only. */
-  readonly member: Caller & { readonly email: string; readonly administratorId: string };
-  readonly role: { readonly id: string; readonly name: string };
-  readonly secret: { readonly id: string; readonly value: string };
-  readonly note: { readonly id: string; readonly title: string };
-  readonly logoAssetId: string;
-}
-
-/** The two businesses and the platform superadmin who provisioned them. */
-export interface World {
-  readonly a: BusinessWorld;
-  readonly b: BusinessWorld;
-  readonly superadmin: Caller;
-}
+export type { BusinessWorld, World, WorldStore } from './world-types';
 
 /** What only the host can do: link an administrator to a business (an `internal` custom field, D2). */
 export interface WorldHooks {

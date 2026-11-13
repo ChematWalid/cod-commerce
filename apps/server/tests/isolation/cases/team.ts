@@ -9,7 +9,7 @@ import {
   victimChannel,
 } from '../matrix';
 import { TEAM_WORLDS, type TeamWorld } from '../team-world';
-import type { BusinessWorld } from '../world';
+import type { BusinessWorld } from '../world-types';
 
 /** The matrix rows of Team (P1.S4). */
 const TEAM_MEMBER: IsolationEntity = 'team member';

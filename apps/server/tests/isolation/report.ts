@@ -3,7 +3,7 @@ import type { IsolationAccess, IsolationEntity } from './matrix';
 import type { Outcome } from './run';
 import type { TenantTable } from './tenant-tables';
 import { TEAM_WORLDS } from './team-world';
-import type { BusinessWorld, World } from './world';
+import type { BusinessWorld, World } from './world-types';
 
 const ACCESS_COLUMNS: readonly IsolationAccess[] = ['read by id', 'list', 'write', 'victim channel'];
 

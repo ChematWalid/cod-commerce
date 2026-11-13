@@ -1,5 +1,5 @@
 import type { MatrixRequest } from './http';
-import type { BusinessWorld, World } from './world';
+import type { BusinessWorld, World } from './world-types';
 
 /** The P1 tenant data the matrix covers; each is a row of the evidence matrix. */
 export type IsolationEntity =

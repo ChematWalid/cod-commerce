@@ -1,7 +1,7 @@
 import { errorCodesOf, type Exchange, type GraphqlBody, type IsolationHttp, type MatrixRequest } from './http';
 import type { Expectation, IsolationCase } from './matrix';
 import { TEAM_WORLDS, teamFingerprints } from './team-world';
-import type { BusinessWorld, World } from './world';
+import type { BusinessWorld, World } from './world-types';
 
 /** A case as it ran: who attacked whom, what came back, and what was wrong with it. */
 export interface Outcome {

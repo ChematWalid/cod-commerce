@@ -1,6 +1,6 @@
 import { dataOf, type IsolationHttp } from './http';
 import { ownChannel } from './matrix';
-import type { BusinessWorld } from './world';
+import type { BusinessWorld } from './world-types';
 
 /** What the victim's owner reads of its own business; any change across the attacks is a cross-business write. */
 const SNAPSHOT = `query ($member: String!) {

@@ -1,6 +1,6 @@
 import type { MatrixRequest } from '../http';
 import { type IsolationCase, ownChannel, ownerGraphql, ownerRest, victimChannel, onChannel } from '../matrix';
-import type { BusinessWorld } from '../world';
+import type { BusinessWorld } from '../world-types';
 
 const PROFILE_FIELDS = 'firstName lastName emailAddress phone avatarUrl emailVerified';
 const STATUS_FIELDS = 'emailVerified verificationRequired resendAvailableAt pendingEmail';

@@ -1,5 +1,5 @@
 import { type IsolationCase, ownerGraphql, victimChannel } from '../matrix';
-import type { BusinessWorld } from '../world';
+import type { BusinessWorld } from '../world-types';
 
 const CREATE_STORE = 'mutation ($input: CreateStoreInput!) { createStore(input: $input) { id subdomain } }';
 const UPDATE_STORE =
