@@ -25,6 +25,8 @@ export const MAX_ROLES_PER_GRANT = 20;
 export const MAX_STORES_PER_GRANT = 200;
 /** Most commission configs one member may be linked to. */
 export const MAX_COMMISSIONS_PER_MEMBER = 20;
+/** Longest member email address, as stored (RFC 5321 path limit). */
+export const TEAM_EMAIL_MAX_LENGTH = 320;
 /** Longest first or last name of a member. */
 export const MEMBER_NAME_MAX_LENGTH = 100;
 

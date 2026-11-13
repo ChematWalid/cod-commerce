@@ -19,6 +19,7 @@ import {
   MEMBER_TABS,
   SALARY_MAX_DZD,
   STORE_ACCESS_KINDS,
+  TEAM_EMAIL_MAX_LENGTH,
   TEAM_EMAIL_LOCALES,
 } from './constants';
 import { TEAM_ERROR_CODES } from './error-codes';
@@ -60,7 +61,7 @@ const storeRule = { message: TEAM_ERROR_CODES.INVALID_INPUT, path: ['storeIds'] 
 /** The body of "invite a member": the grant the invitee gets on accept, and the pay terms. */
 export const inviteMemberSchema = z
   .object({
-    email: emailSchema,
+    email: emailSchema.pipe(z.string().max(TEAM_EMAIL_MAX_LENGTH, invalid)),
     roleIds: roleIdsSchema,
     storeAccess: storeAccessSchema,
     storeIds: storeIdsSchema.default([]),

@@ -1,5 +1,6 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { RbacPlugin } from '@cod/plugin-rbac';
+import { TEAM_EMAIL_MAX_LENGTH } from '@cod/shared';
 import { createMember, createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -174,6 +175,12 @@ describe('invite refusals (Review Focus 4 and 5)', () => {
     ['a negative salary', { baseSalary: -1 }, 400, 'team.invalid-input'],
     ['a fractional salary', { baseSalary: 1.5 }, 400, 'team.invalid-input'],
     ['selected access without a store', { storeIds: [] }, 400, 'team.invalid-input'],
+    [
+      'an email longer than the stored column',
+      { email: `${'a'.repeat(TEAM_EMAIL_MAX_LENGTH)}@shop.test` },
+      400,
+      'team.invalid-input',
+    ],
   ])('refuses %s, storing and mailing nothing', async (_case, overrides, status, code) => {
     // Arrange
     const email = freshEmail('bad');

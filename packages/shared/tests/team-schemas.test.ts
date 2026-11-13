@@ -14,6 +14,7 @@ import {
   payMemberSchema,
   SALARY_MAX_DZD,
   setLimitSchema,
+  TEAM_EMAIL_MAX_LENGTH,
   setReceivingSchema,
   updateMemberSchema,
 } from '../src/index';
@@ -88,6 +89,15 @@ describe('inviteMemberSchema', () => {
       commissionConfigIds: [STORE_ID, STORE_ID, STORE_ID],
     });
     expect(parsed).toMatchObject({ roleIds: [ROLE_ID], storeIds: [STORE_ID], commissionConfigIds: [STORE_ID] });
+  });
+
+  it('accepts an email at the stored length and refuses one over it with team.invalid-input', () => {
+    const domain = '@shop.test';
+    const emailOf = (length: number) => `${'a'.repeat(length - domain.length)}${domain}`;
+    expect(inviteMemberSchema.safeParse({ ...validInvite, email: emailOf(TEAM_EMAIL_MAX_LENGTH) }).success).toBe(true);
+    const over = inviteMemberSchema.safeParse({ ...validInvite, email: emailOf(TEAM_EMAIL_MAX_LENGTH + 1) });
+    expect(over.success).toBe(false);
+    expect(issueMessagesOf(over)).toEqual(['team.invalid-input']);
   });
 
   it('accepts the salary bounds', () => {
