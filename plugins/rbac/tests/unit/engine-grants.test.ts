@@ -57,25 +57,38 @@ describe('ENGINE_GRANTS plugin permissions', () => {
     expect(unreviewed).toEqual([]);
   });
 
-  it('reviews exactly the six tenancy permissions of D59 and D97', () => {
-    expect([...REVIEWED_PLUGIN_ENGINE_GRANTS].sort()).toEqual(
-      [
-        'CreateTenantStore',
-        'DeleteTenantStore',
-        'ReadTenantBusiness',
-        'ReadTenantStore',
-        'UpdateTenantBusiness',
-        'UpdateTenantStore',
-      ].sort(),
-    );
+  it('reviews exactly the six key-to-permission pairs of D59 and D97', () => {
+    expect(REVIEWED_PLUGIN_ENGINE_GRANTS).toEqual({
+      'store.stores.view': ['ReadTenantStore'],
+      'store.stores.create': ['CreateTenantStore'],
+      'store.stores.archive': ['DeleteTenantStore'],
+      'store.settings.edit': ['UpdateTenantStore'],
+      'settings.business.view': ['ReadTenantBusiness'],
+      'settings.business.edit': ['UpdateTenantBusiness'],
+    });
   });
 
-  it('keeps no reviewed plugin permission the map no longer grants', () => {
+  it('keeps no reviewed pair the map no longer grants', () => {
     // Act
-    const granted = new Set(Object.values(ENGINE_GRANTS).flat());
+    const stale = Object.entries(REVIEWED_PLUGIN_ENGINE_GRANTS).flatMap(([key, names]) =>
+      (names ?? [])
+        .filter((name) => !(ENGINE_GRANTS[key as keyof typeof ENGINE_GRANTS] ?? []).includes(name))
+        .map((name) => `${key}→${name}`),
+    );
 
     // Assert
-    expect(REVIEWED_PLUGIN_ENGINE_GRANTS.filter((name) => !granted.has(name))).toEqual([]);
+    expect(stale).toEqual([]);
+  });
+
+  it('fails the check when another key is mapped to an already reviewed permission', () => {
+    // Arrange
+    const widened = { ...ENGINE_GRANTS, 'orders.view': ['UpdateTenantBusiness'] };
+
+    // Act
+    const unreviewed = unreviewedPluginGrants(widened, STOCK_PERMISSIONS, REVIEWED_PLUGIN_ENGINE_GRANTS);
+
+    // Assert
+    expect(unreviewed).toEqual(['orders.view→UpdateTenantBusiness']);
   });
 
   it('fails the check when an unlisted plugin permission is added to a copy of the map', () => {
@@ -86,7 +99,7 @@ describe('ENGINE_GRANTS plugin permissions', () => {
     const unreviewed = unreviewedPluginGrants(widened, STOCK_PERMISSIONS, REVIEWED_PLUGIN_ENGINE_GRANTS);
 
     // Assert
-    expect(unreviewed).toEqual(['DeleteTenantBusiness']);
+    expect(unreviewed).toEqual(['orders.cancel→DeleteTenantBusiness']);
   });
 
   it('leaves stock permissions to the stock check', () => {
