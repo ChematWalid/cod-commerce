@@ -581,11 +581,15 @@ try {
     await completeEmailChangeAndReset(browser, merchants[lang]);
   }
   await oauthOff(browser);
-  for (const lang of LANGS) {
-    const oauthState = await publicState(browser, lang, oauthBase);
-    for (const vp of Object.keys(VIEWPORTS))
-      await oauthOn(browser, lang, vp, oauthState, { complete: lang === 'en' && vp === 'desktop' });
-  }
+  // The completing variant runs last: once the mock's single email owns an account, the provider callback signs that
+  // account in (oauth-complete -> Home) instead of returning to /register?ticket, so no variant after it could pass.
+  const oauthStates = {};
+  for (const lang of LANGS) oauthStates[lang] = await publicState(browser, lang, oauthBase);
+  const isCompleting = (lang, vp) => lang === 'en' && vp === 'desktop';
+  const variants = LANGS.flatMap((lang) => Object.keys(VIEWPORTS).map((vp) => [lang, vp]));
+  const ordered = [...variants.filter((v) => !isCompleting(...v)), ...variants.filter((v) => isCompleting(...v))];
+  for (const [lang, vp] of ordered)
+    await oauthOn(browser, lang, vp, oauthStates[lang], { complete: isCompleting(lang, vp) });
 } finally {
   await browser.close();
 }
