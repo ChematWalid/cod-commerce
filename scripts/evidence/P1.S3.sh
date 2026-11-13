@@ -437,8 +437,10 @@ command cp "$work"/shots/*.png "$out/screens/"
 
 # --- the browser suite, on this stack (browser.yml does not run on pull requests) -------------
 reset_limits
+# The team fixtures expire invitations straight in Postgres: point them at this stack, not at .env's database (as P1.S4.sh).
 DASHBOARD_URL=$api/dashboard MAILPIT_URL=$mailpit SCREENSHOT_DIR=$work/browser-shots \
-  timeout 420 pnpm --filter @cod/server test:browser >"$work/browser.log" 2>&1 || fail "browser suite: $(command tail -40 "$work/browser.log")"
+  DATABASE_URL_DIRECT="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:$POSTGRES_HOST_PORT/$POSTGRES_DB" \
+  timeout 600 pnpm --filter @cod/server test:browser >"$work/browser.log" 2>&1 || fail "browser suite: $(command tail -40 "$work/browser.log")"
 browser_summary=$(command grep -E '^ *(Test Files|Tests) ' "$work/browser.log" | command sed -E 's/\x1b\[[0-9;]*m//g; s/^ +//')
 
 # --- activity.md, store scoping (audit RBAC-5) ---------------------------------------------------
