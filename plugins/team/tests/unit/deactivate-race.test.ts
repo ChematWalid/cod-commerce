@@ -1,6 +1,7 @@
 import { toSnowflake } from '@cod/shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MemberLifecycleService } from '../../application/member-lifecycle.service';
+import { RemoveMemberService } from '../../application/remove-member.service';
 import type { MemberGrant } from '../../domain/member-grant';
 import {
   activeMember,
@@ -61,5 +62,21 @@ describe('MemberLifecycleService.deactivate racing rbac setMemberAccess (D804)',
 
     // Assert
     expect(world.access.held.get(ADMINISTRATOR)).toEqual(latest);
+  });
+});
+
+describe('RemoveMemberService.remove racing rbac setMemberAccess (D804)', () => {
+  it('withdraws a role granted after Team read a roleless member, so the removed account holds nothing', async () => {
+    // Arrange
+    const world = memberActionWorld();
+    const member = await activeMember(world, ADMINISTRATOR, ROLELESS);
+    grantCommittedAfterTeamRead(world, { roleIds: [AGENT_ROLE], storeAccess: 'selected', storeIds: [S1] });
+    const service = new RemoveMemberService(world.ports, { revoke: vi.fn() });
+
+    // Act
+    await service.remove(world.ctx, managerOfA, member.id);
+
+    // Assert
+    expect(world.access.held.get(ADMINISTRATOR)).toBeUndefined();
   });
 });
