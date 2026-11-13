@@ -1,7 +1,7 @@
 import { AuthPlugin } from '@cod/plugin-auth';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
-import { RbacPlugin } from '@cod/plugin-rbac';
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import {
   createPluginTestEnvironment,
@@ -45,7 +45,8 @@ const { server } = createPluginTestEnvironment({
   ],
   db: loadPluginTestDbConfig(process.env),
 });
-withPartitionedSchemas(server, OUTBOX_SCHEMAS, PartitionMaintenanceService);
+// rbac registers its partitioned `activity_log` with the maintenance too, which fails on a table that was never made.
+withPartitionedSchemas(server, [...OUTBOX_SCHEMAS, ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
 
 let requestContext: RequestContext;
 let ctx: OperationContext;
