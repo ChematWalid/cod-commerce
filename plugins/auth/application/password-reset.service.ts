@@ -1,6 +1,6 @@
 import { normalizeEmail, passwordSchema, RESET_TOKEN_TTL_MS } from '@cod/shared';
 import { accountLink } from '../domain/account-link';
-import { RESET_PASSWORD_PATH } from '../domain/constants';
+import { CREDENTIAL_TAKEOVER_VOIDED_PURPOSES, NO_SESSION_KEPT, RESET_PASSWORD_PATH } from '../domain/constants';
 import { InvalidTokenError, PasswordPolicyError } from '../domain/errors';
 import type {
   AccountPasswordsPort,
@@ -46,9 +46,6 @@ interface AppliedReset {
   readonly account: AccountRecord;
   readonly ended: readonly string[];
 }
-
-/** No session has this token, so `endOthers` ends them all. */
-const NO_SESSION_KEPT = '';
 
 /** Forgot password: our hashed token in place of the stock plaintext column (D21, D25). */
 export class PasswordResetService {
@@ -116,7 +113,7 @@ export class PasswordResetService {
       throw new InvalidTokenError();
     }
     await passwords.set(ctx, account.userId, password);
-    await tokens.voidOpen(ctx, account.userId, ['password-reset', 'email-change', 'oauth-ticket']);
+    await tokens.voidOpen(ctx, account.userId, CREDENTIAL_TAKEOVER_VOIDED_PURPOSES);
     await this.settleProof(ctx, account);
     const ended = await terminator.endOthers(ctx, String(account.userId), NO_SESSION_KEPT);
     await this.mailNotice(ctx, account);

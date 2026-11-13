@@ -1,4 +1,5 @@
 import { OTP_LENGTH, QUEUES } from '@cod/shared';
+import type { AccountTokenPurpose } from './account-token';
 
 /** Random bytes of an account token before base64url (D25). */
 export const ACCOUNT_TOKEN_BYTES = 32;
@@ -26,6 +27,19 @@ export const ADMINISTRATOR_PHONE_MAX_LENGTH = 20;
 
 /** Length of `Administrator.customFields.emailLocale`. */
 export const EMAIL_LOCALE_LENGTH = 2;
+
+/**
+ * The open tokens voided when someone else may have held the credentials: a password reset, a confirmed email change
+ * and a first proven provider link (AUTH-2). The emailed verification code stays: it only proves the mailbox.
+ */
+export const CREDENTIAL_TAKEOVER_VOIDED_PURPOSES: readonly AccountTokenPurpose[] = [
+  'password-reset',
+  'email-change',
+  'oauth-ticket',
+];
+
+/** No session has this token, so `endOthers` ends them all. */
+export const NO_SESSION_KEPT = '';
 
 /** How long one session cache delete may take; a cache that hangs must not hold up a logout. */
 export const SESSION_CACHE_DELETE_TIMEOUT_MS = 1000;

@@ -1,4 +1,4 @@
-import type { AccountTokenPurpose } from '../domain/account-token';
+import { CREDENTIAL_TAKEOVER_VOIDED_PURPOSES, NO_SESSION_KEPT } from '../domain/constants';
 import { OAuthEmailUnconfirmedError, OAuthLinkRequiresVerificationError } from '../domain/errors';
 import type { OAuthIdentity } from '../domain/oauth';
 import type { AccountPasswordsPort } from '../domain/ports/account-credentials.port';
@@ -18,12 +18,6 @@ export interface ProviderLinkPorts {
   readonly tokens: Pick<AccountTokenService, 'voidOpen'>;
   readonly emails: Pick<AuthEmailService, 'enqueue'>;
 }
-
-/** The tokens a takeover voids; the new sign-in ticket is issued after them. */
-const TAKEOVER_VOIDED_PURPOSES: readonly AccountTokenPurpose[] = ['password-reset', 'email-change', 'oauth-ticket'];
-
-/** No session has this token, so `endOthers` ends them all. */
-const NO_SESSION_KEPT = '';
 
 /** Links a provider login to an account that already holds its email (AUTH-2, D608). */
 export class ProviderLinker {
@@ -60,7 +54,8 @@ export class ProviderLinker {
       await identity.setProviderLinkUnproven(ctx, holder.administratorId, false);
     }
     await passwords.voidPassword(ctx, holder.userId);
-    await tokens.voidOpen(ctx, holder.userId, TAKEOVER_VOIDED_PURPOSES);
+    // The new sign-in ticket is issued after this, so voiding open oauth-tickets never voids it.
+    await tokens.voidOpen(ctx, holder.userId, CREDENTIAL_TAKEOVER_VOIDED_PURPOSES);
     return terminator.endOthers(ctx, String(holder.userId), NO_SESSION_KEPT);
   }
 
