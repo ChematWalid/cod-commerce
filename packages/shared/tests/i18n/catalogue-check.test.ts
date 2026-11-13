@@ -165,3 +165,91 @@ describe('checkCatalogues', () => {
     expect(check({ ...plugin, catalogues })).toEqual([]);
   });
 });
+
+describe('checkCatalogues, the shapes the first gate missed (#124)', () => {
+  /** The plugin's Arabic catalogue replaced by `arabic`, English kept. */
+  const withArabic = (plugin: PluginCatalogueInput, arabic: string): PluginCatalogueInput => ({
+    ...plugin,
+    catalogues: { ...plugin.catalogues, ar: arabic },
+  });
+
+  it('reports a non-dotted id chosen by a conditional', () => {
+    const plugin = withArabic(
+      pluginWith(`i18n._(flag ? 'Save' : 'Cancel')`, { Save: 'Save', Cancel: 'Cancel' }),
+      po({ Cancel: 'إلغاء' }),
+    );
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'missing', id: 'Save' }]);
+  });
+
+  it('reports a non-dotted id behind ??', () => {
+    const plugin = withArabic(pluginWith(`i18n._((label ?? 'Fallback') as string)`, { Fallback: 'Fallback' }), po({}));
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'missing', id: 'Fallback' }]);
+  });
+
+  it('reports a whitespace-only translation', () => {
+    const plugin = withArabic(
+      pluginWith(`i18n._('demo.blank')`, { 'demo.blank': 'Blank' }),
+      po({ 'demo.blank': '   ' }),
+    );
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'empty', id: 'demo.blank' }]);
+  });
+
+  it('reports a gettext Arabic plural with two of six forms', () => {
+    const entry = 'msgid "demo.item"\nmsgid_plural "demo.items"\nmsgstr[0] "عنصر"\nmsgstr[1] "عناصر"\n';
+    const plugin = withArabic(pluginWith(`i18n._('demo.item')`, { 'demo.item': 'Item' }), `${po({})}\n${entry}`);
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'plural', id: 'demo.item' }]);
+  });
+
+  it('reports an ICU Arabic plural lacking few although "few" appears in text', () => {
+    const full = '{a, plural, zero {} one {} two {} few {} many {} other {}}';
+    const short = '{b, plural, one {# طلب} other {# طلبات}}';
+    const plugin = pluginWith(`i18n._('demo.count')`, { 'demo.count': `${full} ${short}` });
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'plural', id: 'demo.count' }]);
+  });
+
+  it('reports a fuzzy entry', () => {
+    const fuzzy = '#, fuzzy\nmsgid "demo.title"\nmsgstr "عنوان"\n';
+    const plugin = withArabic(pluginWith(`i18n._('demo.title')`, { 'demo.title': 'Title' }), `${po({})}\n${fuzzy}`);
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'fuzzy', id: 'demo.title' }]);
+  });
+
+  it('reports a placeholder missing from the Arabic text', () => {
+    const plugin = withArabic(
+      pluginWith(`i18n._('demo.left')`, { 'demo.left': '{count} left' }),
+      po({ 'demo.left': 'متبقي' }),
+    );
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'ar', kind: 'placeholder', id: 'demo.left' }]);
+  });
+
+  it('reports a template-literal id with substitutions outside dynamic-ids', () => {
+    const plugin = pluginWith('i18n._(`demo.status.${status}`)', {});
+
+    expect(check(plugin)).toEqual([{ plugin: 'demo', locale: 'en', kind: 'dynamic', id: 'demo.status.${status}' }]);
+  });
+
+  it('accepts a template-literal id whose shape a registered dynamic id matches', () => {
+    const entries = { 'demo.status.active': 'Active' };
+    const plugin = pluginWith('i18n._(`demo.status.${status}`)', entries, { dynamicIds: ['demo.status.active'] });
+
+    expect(check(plugin)).toEqual([]);
+  });
+
+  it('keeps the plural argument and the words of plural branches out of the placeholder comparison', () => {
+    const english = '{count, plural, one {# order for {name}} other {# orders for {name}}}';
+    const arabic =
+      '{count, plural, zero {لا شيء لـ {name}} one {طلب} two {طلبان} few {#} many {#} other {# لـ {name}}}';
+    const plugin = withArabic(
+      pluginWith(`i18n._('demo.orders')`, { 'demo.orders': english }),
+      po({ 'demo.orders': arabic }),
+    );
+
+    expect(check(plugin)).toEqual([]);
+  });
+});
