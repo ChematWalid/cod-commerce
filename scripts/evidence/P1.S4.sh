@@ -272,6 +272,20 @@ second_owner_member=$(member_of "$second_owner" "$second" "$SECOND_OWNER"); reme
 invite_body() { # invite_body <email> <role> <storeAccess> <storeIds-js-array> <salary> <locale>
   vars "{email:'$1',roleIds:['$2'],storeAccess:'$3',storeIds:$4,baseSalary:$5,locale:'$6'}"
 }
+mail_count() { # mail_count <to>: the messages Mailpit holds for that address
+  node -e 'fetch(process.argv[1]+"/api/v1/search?query="+encodeURIComponent("to:\""+process.argv[2]+"\"")).then((r)=>r.json()).then((b)=>console.log(b.messages.length))' "$mailpit" "$1"
+}
+# Invitation mail leaves through a queue after the commit, so a count taken right after a refused call could miss a
+# mail queued wrongly. A control invite sent after that call, once its own mail is in Mailpit (bounded wait), shows the
+# queue went past the refused call; the control member is then revoked so no lists or counts change.
+await_mail_queue() { # await_mail_queue <tag>
+  local control="control-$1-$EV_RUN@invitee.example.test" control_id
+  rest POST /employees "$(invite_body "$control" "$om_role" all '[]' 1 en)" "$owner" "$demo"; expect_created "control $1"
+  control_id=$(js 'b.id' "$work/b")
+  timeout 60 node scripts/evidence/P1.S2-mailpit.mjs secrets "$mailpit" "$control" /accept-invitation 1 >/dev/null ||
+    fail "control $1: its invitation mail did not arrive"
+  rest POST "/employees/$control_id/revoke-invitation" - "$owner" "$demo"; expect_status "control $1 revoke" 200
+}
 
 # --- invite.md --------------------------------------------------------------------------------
 f="$out/api/invite.md"
@@ -435,9 +449,10 @@ rest POST "/employees/$pending/revoke-invitation" - "$owner" "$demo"; expect_sta
 emit_rest "$f" "POST /employees/:id/revoke-invitation" POST "/employees/$pending/revoke-invitation" -
 rest GET "/team/invitations/preview?token=$new_token" - - -; expect_rest_code "revoked link" 400 team.invitation-invalid
 emit_rest "$f" "The revoked link: the generic refusal" GET "$PREVIEW_SHOWN" -
-mails=$(node -e 'fetch(process.argv[1]+"/api/v1/search?query="+encodeURIComponent("to:\""+process.argv[2]+"\"")).then((r)=>r.json()).then((b)=>console.log(b.messages.length))' "$mailpit" "$PENDING")
+await_mail_queue resend
+mails=$(mail_count "$PENDING")
 [[ "$mails" == 2 ]] || fail "the refused resend mailed: $mails messages"
-printf 'Mailpit check: %s received exactly 2 messages (the refused resend sent none).\n\n' "$PENDING" >>"$f"
+printf 'Mailpit check: %s received exactly 2 messages (the refused resend sent none), counted once a control invite sent after it had its mail.\n\n' "$PENDING" >>"$f"
 
 # --- refusals.md ------------------------------------------------------------------------------
 f="$out/api/refusals.md"
@@ -506,7 +521,8 @@ rest POST /employees "$body" "$second_owner" "$second"; expect_status "invite li
 assert_js "invite limit" 'b.statusCode===429 && b.retryAfterSeconds>0' "$work/b"
 emit_rest "$f" "Business B's owner after $INVITE_ACTOR_BUDGET invites this hour (each refused, so none mailed): 429" POST /employees "$body"
 reset_limits
-late_mails=$(node -e 'fetch(process.argv[1]+"/api/v1/search?query="+encodeURIComponent("to:\"late@invitee.example.test\"")).then((r)=>r.json()).then((b)=>console.log(b.messages.length))' "$mailpit")
+await_mail_queue invite-limit
+late_mails=$(mail_count late@invitee.example.test)
 [[ "$late_mails" == 0 ]] || fail "the refused invite mailed"
 
 # --- isolation.md -----------------------------------------------------------------------------
