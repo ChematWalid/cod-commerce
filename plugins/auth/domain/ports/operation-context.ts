@@ -7,3 +7,8 @@ declare const operationContextBrand: unique symbol;
 export interface OperationContext {
   readonly [operationContextBrand]: 'OperationContext';
 }
+
+/** Brands a framework context at the outer edge of the plugin, or of a plugin calling auth through its entry. */
+export function asOperationContext(context: object): OperationContext {
+  return context as OperationContext;
+}

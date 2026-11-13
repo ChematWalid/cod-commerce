@@ -59,13 +59,15 @@ export function requireVar(vars: AuthEmailVars, name: string): string {
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
 const ARABIC_FEW_MAX = 10;
 
-type Unit = 'minute' | 'hour';
+type Unit = 'minute' | 'hour' | 'day';
 
 const ARABIC_UNITS: Readonly<Record<Unit, { one: string; two: string; few: string; many: string }>> = {
   minute: { one: 'دقيقة واحدة', two: 'دقيقتان', few: 'دقائق', many: 'دقيقة' },
   hour: { one: 'ساعة واحدة', two: 'ساعتان', few: 'ساعات', many: 'ساعة' },
+  day: { one: 'يوم واحد', two: 'يومان', few: 'أيام', many: 'يومًا' },
 };
 
 function inUnit(locale: AuthEmailLocale, count: number, unit: Unit): string {
@@ -82,8 +84,14 @@ function inUnit(locale: AuthEmailLocale, count: number, unit: Unit): string {
   return `${String(count)} ${count <= ARABIC_FEW_MAX ? words.few : words.many}`;
 }
 
-/** A lifetime in words ("10 minutes", "24 hours"), computed from the shared constants so copy never drifts from them. */
+/**
+ * A lifetime in words ("10 minutes", "24 hours", "7 days"), computed from the shared constants so copy never drifts
+ * from them. Days start above one day, so the 24-hour links keep the wording their emails always had.
+ */
 export function describeDuration(locale: AuthEmailLocale, ms: number): string {
+  if (ms > DAY_MS && ms % DAY_MS === 0) {
+    return inUnit(locale, ms / DAY_MS, 'day');
+  }
   return ms % HOUR_MS === 0
     ? inUnit(locale, ms / HOUR_MS, 'hour')
     : inUnit(locale, Math.round(ms / MINUTE_MS), 'minute');

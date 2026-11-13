@@ -1,40 +1,32 @@
-import { ACTIVITY_ACTIONS, type PermissionKey, type Snowflake, type StoreId, type TenantScope } from '@cod/shared';
+import { ACTIVITY_ACTIONS, ACTIVITY_ENTITY_TYPES, type TenantScope } from '@cod/shared';
 import type { BusinessRole, MemberAssignment } from '../domain/business-role';
-import { ALL_STORES_SCOPE, type MemberStoreAccess } from '../domain/constants';
-import { MemberNotFoundError, RoleNotFoundError } from '../domain/errors';
-import {
-  assertCanChangeTarget,
-  assertCanGrantAccess,
-  assertNotSelf,
-  assertOwnerChangeAllowed,
-  assertOwnerKept,
-} from '../domain/escalation-rules';
+import type { MemberStoreAccess } from '../domain/constants';
+import { MemberNotFoundError, MemberSuspendedError } from '../domain/errors';
+import { assertNotSelf } from '../domain/escalation-rules';
 import type { ActorDirectoryPort } from '../domain/ports/actor-directory.port';
 import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
 import type { BusinessRoleRepositoryPort } from '../domain/ports/business-role-repository.port';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { EngineRolesPort } from '../domain/ports/engine-roles.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
+import type { MemberSuspensionCheck } from '../domain/ports/member-suspension.port';
 import type { MemberAssignmentRepositoryPort } from '../domain/ports/member-assignment-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { RbacLockPort } from '../domain/ports/rbac-lock.port';
 import type { SessionFlusherPort } from '../domain/ports/session-flusher.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
+import { type ResolvedStoreAccess, resolveStoreAccess, sameReach, storeRowId } from '../domain/store-access';
 import {
-  accessChange,
-  activeStoreIdsOf,
-  type Actor,
-  buildActor,
-  holdsAllAccess,
-  type RequestedStoreAccess,
-  type ResolvedStoreAccess,
-  type RoleOnStore,
-  resolveStoreAccess,
-  sameReach,
-  storeRowId,
-} from '../domain/store-access';
+  type AccessWorld,
+  checkAccessRules,
+  loadAccessWorld,
+  rolesInOrder,
+  type SetMemberAccessCommand,
+} from './access-world';
 import type { ActivityLogService } from './activity-log.service';
 import type { BindingProjector } from './binding-projector.service';
+
+export type { MemberAccessActor, SetMemberAccessCommand } from './access-world';
 
 /** What the service reads and writes through. */
 export interface MemberAccessPorts {
@@ -48,23 +40,9 @@ export interface MemberAccessPorts {
   readonly projector: Pick<BindingProjector, 'bindingsFor' | 'releaseUnheld'>;
   readonly activity: Pick<ActivityLogService, 'record'>;
   readonly flusher: SessionFlusherPort;
+  readonly suspension: MemberSuspensionCheck;
   readonly ids: IdGeneratorPort;
   readonly clock: ClockPort;
-}
-
-/** Who is making the change and from where, as the activity row keeps it. */
-export interface MemberAccessActor {
-  readonly administratorId: number;
-  readonly scope: TenantScope;
-  readonly ip: string | null;
-  readonly userAgent: string | null;
-}
-
-/** Replaces a member's roles and store access (D54). */
-export interface SetMemberAccessCommand extends RequestedStoreAccess {
-  readonly actor: MemberAccessActor;
-  readonly administratorId: number;
-  readonly roleIds: readonly string[];
 }
 
 /** A member's roles and store access as clients read them. */
@@ -75,24 +53,14 @@ export interface MemberAccessView {
   readonly storeIds: readonly string[];
 }
 
-/** Everything the rules read, loaded under the lock. */
-interface AccessWorld {
-  readonly stores: Awaited<ReturnType<BusinessDirectoryPort['stores']>>;
-  readonly activeStoreIds: readonly StoreId[];
-  readonly roles: ReadonlyMap<string, BusinessRole>;
-  readonly owner: BusinessRole;
-  readonly businessOwnerId: number | null;
-  readonly actor: Actor;
-  readonly target: Actor;
-  readonly before: readonly MemberAssignment[];
-}
+/** A withdrawal of every role of a member: who withdraws it, from whom, and the store access the clear names (D804). */
+export type WithdrawMemberAccessCommand = Omit<SetMemberAccessCommand, 'roleIds'>;
 
-const rolesInOrder = (ids: readonly string[], roles: ReadonlyMap<string, BusinessRole>): readonly BusinessRole[] =>
-  [...new Set(ids)].map((id) => {
-    const role = roles.get(id);
-    if (role === undefined) throw new RoleNotFoundError();
-    return role;
-  });
+/** A member's access just before and just after one change, both read under the rbac lock. */
+interface AccessChange {
+  readonly previous: MemberAccessView;
+  readonly current: MemberAccessView;
+}
 
 /** Sets who can do what on which stores (D53-D55, D60). P1.S4 calls {@link setAccess} from its invitation flow. */
 export class MemberAccessService {
@@ -100,16 +68,50 @@ export class MemberAccessService {
 
   /**
    * Replaces the member's access in one transaction, then evicts their sessions (D55). When `ctx` already carries a
-   * transaction this one joins it, and the eviction then runs before that outer commit, so the caller must flush too.
+   * transaction this one joins it, and the eviction then runs before that outer commit, so the caller must call
+   * {@link flushSessionsOf} once it commits. Withdrawing every role of a suspended member is allowed; granting is not.
    *
-   * @throws a {@link RbacError} for a member or role not found, an invalid store access, or a refusal under D60
+   * @throws a {@link RbacError} for a member or role not found, an invalid store access, a refusal under D60, or
+   *   {@link MemberSuspendedError} for roles granted to a member a registered check reports suspended (D204)
    */
   async setAccess(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
-    const view = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
+    const change = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
       this.setInTransaction(transactional, command),
     );
     await this.ports.flusher.flushAdministrators([command.administratorId]);
-    return view;
+    return change.current;
+  }
+
+  /**
+   * Withdraws every role of the member, as {@link setAccess} with no role does, and returns the access the member held
+   * just before. That access is read under the rbac lock in the same transaction as the withdrawal, so a concurrent
+   * {@link setAccess} is either part of it or runs after it; Team snapshots it when it deactivates a member (D804).
+   *
+   * @throws a {@link RbacError} as {@link setAccess} does for a clear
+   */
+  async withdrawAccess(ctx: OperationContext, command: WithdrawMemberAccessCommand): Promise<MemberAccessView> {
+    const change = await this.ports.transaction.run(ctx, command.actor.scope, (transactional) =>
+      this.setInTransaction(transactional, { ...command, roleIds: [] }),
+    );
+    await this.ports.flusher.flushAdministrators([command.administratorId]);
+    return change.previous;
+  }
+
+  /**
+   * Takes rbac's business lock in the caller's transaction and holds it until that transaction ends. A feature that
+   * reads a member's access and then changes it (Team, D804) takes it first, after its own lock (D213), so no
+   * {@link setAccess} commits between its read and its write.
+   */
+  async holdForMemberChange(ctx: OperationContext, scope: TenantScope): Promise<void> {
+    await this.ports.lock.acquire(ctx, scope.businessId);
+  }
+
+  /**
+   * Evicts the cached sessions of these administrators (D55). A caller that ran {@link setAccess} inside its own
+   * transaction calls it after that transaction commits.
+   */
+  async flushSessionsOf(administratorIds: readonly number[]): Promise<void> {
+    await this.ports.flusher.flushAdministrators(administratorIds);
   }
 
   /** The member's access, or `undefined` when the id names nobody in this business. */
@@ -124,42 +126,60 @@ export class MemberAccessService {
     return this.viewOf(administratorId, held, new Map((await roles.all(ctx, scope)).map((role) => [role.id, role])));
   }
 
-  private async setInTransaction(ctx: OperationContext, command: SetMemberAccessCommand): Promise<MemberAccessView> {
+  /**
+   * Every live administrator of the business holding at least one role, once each, in ascending order. Team adopts
+   * them as members (D215); a soft-deleted holder is not listed (audit RBAC-3).
+   */
+  async memberAdministratorIds(ctx: OperationContext, scope: TenantScope): Promise<readonly number[]> {
+    const roleIds = (await this.ports.roles.all(ctx, scope)).map((role) => role.id);
+    if (roleIds.length === 0) return [];
+    const rows = await this.ports.assignments.ofRoles(ctx, scope, roleIds);
+    return [...new Set(rows.map((row) => row.administratorId))].sort((left, right) => left - right);
+  }
+
+  /** The name of every role of the business, by role id. Team names the roles of invitations and snapshots (D204). */
+  async roleNames(ctx: OperationContext, scope: TenantScope): Promise<ReadonlyMap<string, string>> {
+    return new Map((await this.ports.roles.all(ctx, scope)).map((role) => [role.id as string, role.name]));
+  }
+
+  /**
+   * The access of every live role holder of the business, by administrator id, read in two queries whatever the
+   * team size: Team's members list shows and filters by it (D211). An administrator holding no role is absent.
+   */
+  async accessOfHolders(ctx: OperationContext, scope: TenantScope): Promise<ReadonlyMap<number, MemberAccessView>> {
+    const all = await this.ports.roles.all(ctx, scope);
+    if (all.length === 0) return new Map();
+    const rows = await this.ports.assignments.ofRoles(
+      ctx,
+      scope,
+      all.map((role) => role.id),
+    );
+    const byHolder = new Map<number, MemberAssignment[]>();
+    for (const row of rows) byHolder.set(row.administratorId, [...(byHolder.get(row.administratorId) ?? []), row]);
+    const roles = new Map<string, BusinessRole>(all.map((role) => [role.id, role]));
+    return new Map(
+      [...byHolder].map(([administratorId, held]) => [administratorId, this.viewOf(administratorId, held, roles)]),
+    );
+  }
+
+  private async setInTransaction(ctx: OperationContext, command: SetMemberAccessCommand): Promise<AccessChange> {
     const { scope } = command.actor;
     await this.ports.lock.acquire(ctx, scope.businessId);
     if (!(await this.ports.members.isMember(ctx, scope, command.administratorId))) throw new MemberNotFoundError();
     assertNotSelf(command.actor.administratorId, command.administratorId);
-    const world = await this.loadWorld(ctx, command);
+    const world = await loadAccessWorld(this.ports, ctx, command);
     const roles = rolesInOrder(command.roleIds, world.roles);
     const access = resolveStoreAccess(command, world.stores);
     const after = this.nextRows(command, roles, access);
-    await this.checkRules(ctx, command, world, after);
-    if (this.isUnchanged(world.before, after)) return this.viewOf(command.administratorId, after, world.roles);
-    await this.write(ctx, command, world, after);
-    return this.viewOf(command.administratorId, after, world.roles);
-  }
-
-  private async loadWorld(ctx: OperationContext, command: SetMemberAccessCommand): Promise<AccessWorld> {
-    const { directory, roles: roleRows, assignments } = this.ports;
-    const { scope } = command.actor;
-    const stores = await directory.stores(ctx, scope.businessId);
-    const activeStoreIds = activeStoreIdsOf(stores);
-    const all = await roleRows.all(ctx, scope);
-    const roles = new Map(all.map((role) => [role.id as string, role]));
-    const owner = all.find((role) => role.builtInKey === 'owner');
-    if (owner === undefined) throw new Error('The business has no owner role');
-    const actorRows = await assignments.ofAdministrator(ctx, scope, command.actor.administratorId);
-    const before = await assignments.ofAdministrator(ctx, scope, command.administratorId);
-    return {
-      stores,
-      activeStoreIds,
-      roles,
-      owner,
-      businessOwnerId: await directory.ownerAdministratorOf(ctx, scope.businessId),
-      actor: buildActor(command.actor.administratorId, actorRows, roles, activeStoreIds),
-      target: buildActor(command.administratorId, before, roles, activeStoreIds),
-      before,
-    };
+    await checkAccessRules(this.ports, ctx, { command, world, after });
+    // After the D60 rules, so only an actor allowed to make the change learns the member is suspended (D211).
+    if (command.roleIds.length > 0 && (await this.ports.suspension.isSuspended(ctx, scope, command.administratorId))) {
+      throw new MemberSuspendedError();
+    }
+    const previous = this.viewOf(command.administratorId, world.before, world.roles);
+    const current = this.viewOf(command.administratorId, after, world.roles);
+    if (!this.isUnchanged(world.before, after)) await this.write(ctx, command, world, after);
+    return { previous, current };
   }
 
   private nextRows(
@@ -177,46 +197,6 @@ export class MemberAccessService {
       storeIds: access.storeIds.map(storeRowId),
       createdAt: now,
     }));
-  }
-
-  /** Who may touch Owner first, so a non-holder cannot probe who the owner is; then D60.8, .4, .3. */
-  private async checkRules(
-    ctx: OperationContext,
-    command: SetMemberAccessCommand,
-    world: AccessWorld,
-    after: readonly MemberAssignment[],
-  ): Promise<void> {
-    const { actor, target, owner, activeStoreIds, before, roles } = world;
-    const ownerBefore = before.find((row) => row.businessRoleId === owner.id);
-    const ownerAfter = after.find((row) => row.businessRoleId === owner.id);
-    assertOwnerChangeAllowed(actor, !sameReach(ownerBefore, ownerAfter));
-    assertOwnerKept({
-      isBusinessOwner: command.administratorId === world.businessOwnerId,
-      heldOwner: ownerBefore !== undefined,
-      keepsOwnerOnAllStores: ownerAfter?.storeAccess === ALL_STORES_SCOPE,
-      otherAllAccessHolders: await this.otherAllAccessOwners(ctx, command, owner.id),
-    });
-    assertCanChangeTarget(actor, target);
-    assertCanGrantAccess(actor, {
-      wantsAllStores: command.storeAccess === ALL_STORES_SCOPE,
-      grants: accessChange(before, after, activeStoreIds).map((pair) => this.grantOf(pair, roles)),
-    });
-  }
-
-  private grantOf(
-    { businessRoleId, storeId }: RoleOnStore,
-    roles: ReadonlyMap<string, BusinessRole>,
-  ): { readonly storeId: StoreId; readonly permissions: readonly PermissionKey[] } {
-    return { storeId, permissions: roles.get(businessRoleId)?.permissions ?? [] };
-  }
-
-  private async otherAllAccessOwners(
-    ctx: OperationContext,
-    command: SetMemberAccessCommand,
-    ownerRoleId: Snowflake,
-  ): Promise<number> {
-    const holders = await this.ports.assignments.ofRoles(ctx, command.actor.scope, [ownerRoleId]);
-    return holders.filter((row) => row.administratorId !== command.administratorId && holdsAllAccess([row])).length;
   }
 
   private isUnchanged(before: readonly MemberAssignment[], after: readonly MemberAssignment[]): boolean {
@@ -261,7 +241,7 @@ export class MemberAccessService {
       scope: actor.scope,
       actorAdministratorId: actor.administratorId,
       action: ACTIVITY_ACTIONS.MEMBER_ACCESS_CHANGED,
-      entityType: 'member',
+      entityType: ACTIVITY_ENTITY_TYPES.MEMBER,
       entityId: String(administratorId),
       summary: 'Member access changed',
       diff: { before: this.diffSide(before), after: this.diffSide(after) },

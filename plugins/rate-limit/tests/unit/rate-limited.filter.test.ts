@@ -27,8 +27,8 @@ class RecordingResponse {
 
 const REQUEST = { url: '/stores/subdomain-availability', headers: {} };
 
-const restHost = (res: RecordingResponse): ArgumentsHost => {
-  const host = new ExecutionContextHost([REQUEST, res]);
+const restHost = (res: RecordingResponse, request: typeof REQUEST = REQUEST): ArgumentsHost => {
+  const host = new ExecutionContextHost([request, res]);
   host.setType('http');
   return host;
 };
@@ -52,6 +52,20 @@ describe('RateLimitedFilter', () => {
     expect(res.statusCode).toBe(429);
     expect(res.headers['Retry-After']).toBe('7');
     expect(res.body).toMatchObject({ statusCode: 429, retryAfterSeconds: 7, path: REQUEST.url });
+  });
+
+  it('never echoes the query string, which may carry a secret such as an invitation token (D205)', () => {
+    // Arrange
+    const res = new RecordingResponse();
+    const token = 'Zk3r9QbX2mVt7LpW4sYh8NcD1aFe6GuJ0oRi5TyKwMx';
+    const request = { url: `/team/invitations/preview?token=${token}`, headers: {} };
+
+    // Act
+    new RateLimitedFilter().catch(new RateLimitedError(30), restHost(res, request));
+
+    // Assert
+    expect(res.body).toMatchObject({ path: '/team/invitations/preview' });
+    expect(JSON.stringify(res.body)).not.toContain(token);
   });
 
   it('sets Retry-After on GraphQL and hands the error back for the body, leaving the status alone', () => {

@@ -9,6 +9,8 @@ import { renderEmailChangeConfirm } from './email-change-confirm';
 import { renderEmailChangeNotice } from './email-change-notice';
 import { renderPasswordChanged } from './password-changed';
 import { renderPasswordReset } from './password-reset';
+import { renderProviderLinked } from './provider-linked';
+import { renderTeamInvitation } from './team-invitation';
 import { renderVerification } from './verification';
 
 type Renderer = (locale: AuthEmailLocale, vars: AuthEmailVars) => RenderedEmail;
@@ -20,6 +22,8 @@ const RENDERERS: Readonly<Record<AuthEmailKind, Renderer>> = {
   'email-change-confirm': renderEmailChangeConfirm,
   'email-change-notice': renderEmailChangeNotice,
   'password-changed': renderPasswordChanged,
+  'team-invitation': renderTeamInvitation,
+  'provider-linked': renderProviderLinked,
 };
 
 /** The wording of the account emails in Arabic and English (D32), injected into `AuthPlugin.init`. */

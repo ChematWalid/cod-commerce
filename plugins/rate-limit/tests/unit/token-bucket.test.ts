@@ -21,6 +21,10 @@ describe('RATE_LIMIT_POLICIES', () => {
       'current-password-ip': [60, 60],
       'register-ip': [20, 3600],
       'subdomain-ip': [60, 60],
+      'invitation-accept-ip': [60, 60],
+      'team-invite-business': [100, 3600],
+      'team-invite-actor': [30, 3600],
+      'team-resend-actor': [30, 3600],
     });
   });
 

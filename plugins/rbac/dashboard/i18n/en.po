@@ -164,6 +164,14 @@ msgid "rbac.target-member"
 msgstr "Member"
 
 #. js-lingui-explicit-id
+msgid "rbac.target-team-member"
+msgstr "Team member"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-commission"
+msgstr "Commission structure"
+
+#. js-lingui-explicit-id
 msgid "rbac.actor-system"
 msgstr "System"
 
@@ -198,6 +206,54 @@ msgstr "Role duplicated"
 #. js-lingui-explicit-id
 msgid "rbac.member-access.changed"
 msgstr "Member access changed"
+
+#. js-lingui-explicit-id
+msgid "team.member.invited"
+msgstr "Member invited"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.resent"
+msgstr "Invitation resent"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.revoked"
+msgstr "Invitation revoked"
+
+#. js-lingui-explicit-id
+msgid "team.invitation.accepted"
+msgstr "Invitation accepted"
+
+#. js-lingui-explicit-id
+msgid "team.member.updated"
+msgstr "Member updated"
+
+#. js-lingui-explicit-id
+msgid "team.member.deactivated"
+msgstr "Member deactivated"
+
+#. js-lingui-explicit-id
+msgid "team.member.reactivated"
+msgstr "Member reactivated"
+
+#. js-lingui-explicit-id
+msgid "team.member.removed"
+msgstr "Member removed"
+
+#. js-lingui-explicit-id
+msgid "team.salary.paid"
+msgstr "Salary paid"
+
+#. js-lingui-explicit-id
+msgid "team.commission.created"
+msgstr "Commission created"
+
+#. js-lingui-explicit-id
+msgid "team.commission.updated"
+msgstr "Commission updated"
+
+#. js-lingui-explicit-id
+msgid "team.commission.deleted"
+msgstr "Commission deleted"
 
 #. js-lingui-explicit-id
 msgid "rbac.role-not-found"
@@ -262,3 +318,7 @@ msgstr "That store is not accessible."
 #. js-lingui-explicit-id
 msgid "rbac.store-access-invalid"
 msgstr "Selected-store access needs at least one store."
+
+#. js-lingui-explicit-id
+msgid "rbac.member-suspended"
+msgstr "This member is deactivated. Reactivate them from Team before giving them roles."

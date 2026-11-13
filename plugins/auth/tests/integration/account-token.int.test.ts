@@ -3,6 +3,7 @@ import { PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { RequestContext, TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AccountTokenService } from '../../application/account-token.service';
+import type { AccountToken } from '../../domain/account-token';
 import { InvalidTokenError, OtpInvalidError, OtpLockedError } from '../../domain/errors';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import { AccountTokenEntity } from '../../infrastructure/account-token.entity';
@@ -71,6 +72,10 @@ const issueVerification = async (): Promise<{ token: string; otp: string }> => {
   return { token, otp };
 };
 
+/** Match then consume, as a caller with no follow-up write would. */
+const guessAndConsume = async (on: OperationContext, userId: number, otp: string): Promise<AccountToken> =>
+  service.consumeMatchedOtp(on, await service.matchOtp(userId, otp));
+
 const attemptsOf = async (): Promise<AccountTokenEntity> => rows().findOneByOrFail({ userId: USER });
 
 describe('one-time codes under concurrency', () => {
@@ -80,7 +85,7 @@ describe('one-time codes under concurrency', () => {
 
     // Act
     const failures = await Promise.all(
-      Array.from({ length: CONCURRENT_GUESSES }, () => failureOf(service.attemptOtp(ctx, USER, WRONG_OTP))),
+      Array.from({ length: CONCURRENT_GUESSES }, () => failureOf(guessAndConsume(ctx, USER, WRONG_OTP))),
     );
 
     // Assert
@@ -98,7 +103,7 @@ describe('one-time codes under concurrency', () => {
     const guesses = Array.from({ length: CONCURRENT_GUESSES + 1 }, (_, index) => (index === 10 ? otp : WRONG_OTP));
 
     // Act
-    const results = await Promise.all(guesses.map((guess) => failureOf(service.attemptOtp(ctx, USER, guess))));
+    const results = await Promise.all(guesses.map((guess) => failureOf(guessAndConsume(ctx, USER, guess))));
 
     // Assert: the right code either took one of the five slots and consumed the row, or was refused.
     const row = await attemptsOf();
@@ -113,11 +118,11 @@ describe('one-time codes under concurrency', () => {
     // Arrange
     const { otp } = await issueVerification();
     await Promise.all(
-      Array.from({ length: CONCURRENT_GUESSES }, () => failureOf(service.attemptOtp(ctx, USER, WRONG_OTP))),
+      Array.from({ length: CONCURRENT_GUESSES }, () => failureOf(guessAndConsume(ctx, USER, WRONG_OTP))),
     );
 
     // Act
-    const failure = await failureOf(service.attemptOtp(ctx, USER, otp));
+    const failure = await failureOf(guessAndConsume(ctx, USER, otp));
 
     // Assert
     expect(failure).toBeInstanceOf(OtpLockedError);
@@ -131,7 +136,7 @@ describe('one-time codes under concurrency', () => {
     // Act
     const failure = await failureOf(
       connection.withTransaction(RequestContext.empty(), (transactional) =>
-        service.attemptOtp(transactional as unknown as OperationContext, USER, WRONG_OTP),
+        guessAndConsume(transactional as unknown as OperationContext, USER, WRONG_OTP),
       ),
     );
 
@@ -147,7 +152,7 @@ describe('one-time codes under concurrency', () => {
     // Act
     await failureOf(
       connection.withTransaction(RequestContext.empty(), async (transactional) => {
-        await service.attemptOtp(transactional as unknown as OperationContext, USER, otp);
+        await guessAndConsume(transactional as unknown as OperationContext, USER, otp);
         throw new Error('later step failed');
       }),
     );

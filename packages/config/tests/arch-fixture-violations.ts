@@ -8,6 +8,8 @@ const SHELL_API = 'plugins/merchant-shell/dashboard/shell-api.ts';
 const PLATFORM_JOBS_ENTRY = 'plugins/platform-jobs/index.ts';
 const RBAC_ENTRY = 'plugins/rbac/index.ts';
 const RBAC_GUARD_ENTRY = 'plugins/rbac/guard.ts';
+const RBAC_MEMBER_ACCESS_ENTRY = 'plugins/rbac/member-access.ts';
+const AUTH_INVITATIONS_ENTRY = 'plugins/auth/invitations.ts';
 const ADAPTER = `${BAD}/infrastructure/adapter.ts`;
 const OWN_ENTRY = `${BAD}/index.ts`;
 /** Code parked where the permission and data access gates do not scan: production code must not import it. */
@@ -27,6 +29,12 @@ const violation = (rule: string, from: string, to: string): ArchitectureViolatio
  * package-name twin (`*-package.ts`), the import form the real plugins use.
  */
 export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
+  violation('auth-invitations-entry-infra-only', 'api/uses-auth-invitations-package.ts', AUTH_INVITATIONS_ENTRY),
+  violation(
+    'auth-invitations-entry-infra-only',
+    'application/uses-auth-invitations-package.ts',
+    AUTH_INVITATIONS_ENTRY,
+  ),
   violation('application-is-pure', 'application/uses-typeorm.ts', TYPEORM),
   violation('application-is-pure', 'application/uses-vendure-type.ts', '@vendure/core'),
   violation('application-no-concretes', 'application/district-pricing.service.ts', ADAPTER),
@@ -64,6 +72,12 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('rbac-guard-entry-api-only', 'dashboard/uses-rbac-guard-package.ts', RBAC_GUARD_ENTRY),
   violation('rbac-guard-entry-api-only', 'domain/uses-rbac-guard-package.ts', RBAC_GUARD_ENTRY),
   violation('rbac-guard-entry-api-only', 'infrastructure/uses-rbac-guard-package.ts', RBAC_GUARD_ENTRY),
+  violation('rbac-member-access-entry-infra-only', 'api/uses-rbac-member-access-package.ts', RBAC_MEMBER_ACCESS_ENTRY),
+  violation(
+    'rbac-member-access-entry-infra-only',
+    'application/uses-rbac-member-access-package.ts',
+    RBAC_MEMBER_ACCESS_ENTRY,
+  ),
   violation('tenancy-provisioning-entry-restricted', 'infrastructure/uses-provisioning-entry.ts', PROVISIONING_ENTRY),
   violation('tenancy-provisioning-entry-restricted', 'infrastructure/uses-provisioning-package.ts', PROVISIONING_ENTRY),
 ];

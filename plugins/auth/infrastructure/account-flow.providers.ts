@@ -6,6 +6,7 @@ import { AuthEmailService } from '../application/auth-email.service';
 import { ChangeEmailService } from '../application/change-email.service';
 import { ChangePasswordService } from '../application/change-password.service';
 import { EmailVerificationService } from '../application/email-verification.service';
+import { InvitedAccountService } from '../application/invited-account.service';
 import { OAuthSignInService } from '../application/oauth-sign-in.service';
 import { PasswordResetService } from '../application/password-reset.service';
 import { RegisterMerchantService } from '../application/register-merchant.service';
@@ -150,7 +151,19 @@ function changeEmail({ dashboardUrl, clock }: FlowSettings): Provider {
   };
 }
 
-/** The Nest wiring of the verification, reset and change services; `application/` stays free of Nest. */
+function invitedAccount({ clock }: FlowSettings): Provider {
+  return {
+    provide: InvitedAccountService,
+    useFactory: (identity: VendureAccountIdentity, claims: EmailClaimLock) =>
+      new InvitedAccountService({ identity, claims, clock }),
+    inject: [VendureAccountIdentity, EmailClaimLock],
+  };
+}
+
+/**
+ * The Nest wiring of the verification, reset, change and invited-account services; `application/` stays free of
+ * Nest.
+ */
 export function accountFlowProviders(settings: FlowSettings): Provider[] {
   return [
     AccountThrottle,
@@ -161,5 +174,6 @@ export function accountFlowProviders(settings: FlowSettings): Provider[] {
     passwordReset(settings),
     changePassword,
     changeEmail(settings),
+    invitedAccount(settings),
   ];
 }

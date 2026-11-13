@@ -33,6 +33,7 @@ import { AccountTokenService } from './application/account-token.service';
 import { AuthEmailDelivery } from './application/auth-email-delivery';
 import { AuthEmailService } from './application/auth-email.service';
 import { BusinessLogoService } from './application/business-logo.service';
+import { InvitedAccountService } from './application/invited-account.service';
 import {
   ACCOUNT_TOKEN_REPOSITORY,
   AUTH_EMAIL_TEMPLATES,
@@ -236,7 +237,8 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
       oauthEnabled: () => requireOptions().oauth !== undefined,
     }),
   ],
-  exports: [AccountTokenService, AuthEmailService],
+  // `InvitedAccountService` and `AuthEmailService` reach Team through the invitations entry (D203, D206).
+  exports: [AccountTokenService, AuthEmailService, InvitedAccountService],
   // `SessionResolver`, `AccountGuardResolver` and `PasswordResolver` replace four stock mutations (D21).
   adminApiExtensions: {
     schema: authAdminApiSchema,

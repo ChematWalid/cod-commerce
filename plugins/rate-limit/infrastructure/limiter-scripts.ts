@@ -46,6 +46,38 @@ return {allowed, retry, exhausted}
 `;
 
 /**
+ * Gives one token back in one round trip. It is `returnToken` (domain/token-bucket.ts) in Lua and must stay
+ * equal to it: refill from the stored stamp to now, add one token, never above capacity. A missing bucket is
+ * full, so nothing is written.
+ *
+ * KEYS[1] bucket hash; ARGV: capacity, window in ms, and optionally now in ms (tests only). Returns 1 when a
+ * token was put back, 0 when the bucket was already gone.
+ */
+export const REFUND_SCRIPT = `
+local capacity = tonumber(ARGV[1])
+local windowMs = tonumber(ARGV[2])
+local nowMs = tonumber(ARGV[3])
+if nowMs == nil then
+  local time = redis.call('TIME')
+  nowMs = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
+end
+local stored = redis.call('HMGET', KEYS[1], 't', 'u')
+local tokens = tonumber(stored[1])
+local updated = tonumber(stored[2])
+if tokens == nil or updated == nil then
+  return 0
+end
+if updated > nowMs then
+  updated = nowMs
+end
+local elapsed = nowMs - updated
+tokens = math.min(capacity, tokens + elapsed * capacity / windowMs + 1)
+redis.call('HSET', KEYS[1], 't', tostring(tokens), 'u', tostring(nowMs))
+redis.call('PEXPIRE', KEYS[1], windowMs)
+return 1
+`;
+
+/**
  * Starts the next lockout of a key: twice the previous one, 60 s the first time, never above the cap.
  * KEYS[1] the lock (expires when the lockout ends), KEYS[2] the memory of its length.
  * ARGV: initial seconds, max seconds, memory seconds, growth factor. Returns the length in seconds.

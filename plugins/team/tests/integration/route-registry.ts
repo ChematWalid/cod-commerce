@@ -1,0 +1,167 @@
+import {
+  commissionInput,
+  FOREIGN_ROLE_REFUSAL,
+  FOREIGN_STORE_REFUSAL,
+  IDEMPOTENCY_KEY,
+  inviteInput,
+  type RouteEntry,
+  type TargetIds,
+  UNKNOWN_TOKEN,
+} from './registry-calls';
+
+const memberUrl =
+  (suffix = '') =>
+  (ids: TargetIds): string =>
+    `/employees/${ids.memberId}${suffix}`;
+const commissionUrl = (ids: TargetIds): string => `/commissions/configs/${ids.commissionId}`;
+const fixed = (url: string) => (): string => url;
+
+/** Every REST route the plugin's controllers declare. */
+export const ROUTE_REGISTRY: readonly RouteEntry[] = [
+  {
+    method: 'POST',
+    route: '/employees',
+    access: 'team.members.invite',
+    foreign: 'refused',
+    refusedWith: FOREIGN_ROLE_REFUSAL,
+    url: fixed('/employees'),
+    body: inviteInput,
+  },
+  {
+    method: 'POST',
+    route: '/employees/resend-invitation',
+    access: 'team.members.invite',
+    foreign: 'not-found',
+    url: fixed('/employees/resend-invitation'),
+    body: (ids) => ({ memberId: ids.invitedMemberId }),
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/revoke-invitation',
+    access: 'team.members.invite',
+    foreign: 'not-found',
+    url: (ids) => `/employees/${ids.invitedMemberId}/revoke-invitation`,
+  },
+  {
+    method: 'GET',
+    route: '/employees',
+    access: 'team.members.view',
+    foreign: 'own-only',
+    url: fixed('/employees?tab=all&page=1'),
+  },
+  { method: 'GET', route: '/employees/:id', access: 'team.members.view', foreign: 'not-found', url: memberUrl() },
+  {
+    method: 'GET',
+    route: '/employees/order-managers',
+    access: 'team.members.view',
+    foreign: 'own-only',
+    url: fixed('/employees/order-managers'),
+  },
+  {
+    method: 'PATCH',
+    route: '/employees/:id',
+    access: 'team.members.edit',
+    foreign: 'not-found',
+    url: memberUrl(),
+    body: () => ({ baseSalary: 0 }),
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/limit',
+    access: 'team.members.edit',
+    foreign: 'not-found',
+    url: memberUrl('/limit'),
+    body: () => ({ maxOpenOrders: 5 }),
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/receiving',
+    access: 'team.members.edit',
+    foreign: 'not-found',
+    url: memberUrl('/receiving'),
+    body: () => ({ receivingOrders: false }),
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/deactivate',
+    access: 'team.members.edit',
+    foreign: 'not-found',
+    url: memberUrl('/deactivate'),
+  },
+  {
+    method: 'POST',
+    route: '/employees/:id/reactivate',
+    access: 'team.members.edit',
+    foreign: 'not-found',
+    url: memberUrl('/reactivate'),
+  },
+  { method: 'DELETE', route: '/employees/:id', access: 'team.members.remove', foreign: 'not-found', url: memberUrl() },
+  {
+    method: 'POST',
+    route: '/employees/:id/pay',
+    access: 'team.members.edit',
+    foreign: 'not-found',
+    url: memberUrl('/pay'),
+    body: () => ({ idempotencyKey: IDEMPOTENCY_KEY }),
+  },
+  {
+    method: 'GET',
+    route: '/commissions/configs/actions',
+    access: 'team.commissions.view',
+    foreign: 'own-only',
+    url: fixed('/commissions/configs/actions'),
+  },
+  {
+    method: 'GET',
+    route: '/commissions/configs',
+    access: 'team.commissions.view',
+    foreign: 'own-only',
+    url: fixed('/commissions/configs'),
+  },
+  {
+    method: 'POST',
+    route: '/commissions/configs',
+    access: 'team.commissions.set',
+    foreign: 'refused',
+    refusedWith: FOREIGN_STORE_REFUSAL,
+    url: fixed('/commissions/configs'),
+    body: commissionInput,
+  },
+  {
+    method: 'GET',
+    route: '/commissions/configs/:id',
+    access: 'team.commissions.view',
+    foreign: 'not-found',
+    url: commissionUrl,
+  },
+  {
+    method: 'PATCH',
+    route: '/commissions/configs/:id',
+    access: 'team.commissions.edit',
+    foreign: 'not-found',
+    url: commissionUrl,
+    body: () => ({ value: 2 }),
+  },
+  {
+    method: 'DELETE',
+    route: '/commissions/configs/:id',
+    access: 'team.commissions.delete',
+    foreign: 'not-found',
+    url: commissionUrl,
+  },
+  {
+    method: 'GET',
+    route: '/team/invitations/preview',
+    access: 'public',
+    foreign: 'token-bound',
+    url: fixed(`/team/invitations/preview?token=${UNKNOWN_TOKEN}`),
+  },
+  {
+    method: 'POST',
+    route: '/team/invitations/accept',
+    access: 'public',
+    foreign: 'token-bound',
+    url: fixed('/team/invitations/accept'),
+    body: () => ({ token: UNKNOWN_TOKEN, firstName: 'No', lastName: 'Body', password: 'synthetic-password-1' }),
+  },
+];

@@ -17,9 +17,11 @@ const PLUGIN_PACKAGE_PREFIX = '@cod/plugin-';
  * list with the manifests, so a new sub-entry is added here on purpose.
  */
 export const PLUGIN_SUB_ENTRIES = [
+  '@cod/plugin-auth/invitations',
   '@cod/plugin-merchant-shell/shell-api',
   '@cod/plugin-platform-secrets/kek-ring',
   '@cod/plugin-rbac/guard',
+  '@cod/plugin-rbac/member-access',
   '@cod/plugin-tenancy/provisioning',
 ];
 

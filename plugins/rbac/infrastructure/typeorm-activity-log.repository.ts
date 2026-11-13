@@ -1,6 +1,6 @@
 import type { OperationContext } from '../domain/ports/operation-context';
 import { RequestTenantScope, type TenantRepository, TenantRepositoryFactory, tenantQuery } from '@cod/plugin-tenancy';
-import { type TenantScope, toSnowflake } from '@cod/shared';
+import { ALL_STORES_ONLY_ACTIVITY_ACTIONS, type TenantScope, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
@@ -82,11 +82,18 @@ export class TypeOrmActivityLogRepository implements ActivityLogPort {
     return select.orderBy(`${ALIAS}.id`, 'DESC').limit(query.limit);
   }
 
+  /**
+   * A store-limited viewer sees the rows of its stores and storeless rows, except the actions only all-store viewers
+   * see (D217): those rows carry no store and describe members the viewer may not reach (D211).
+   */
   private limitToVisibleStores(
     select: SelectQueryBuilder<ActivityLogEntity>,
     stores: ActivityQuery['visibleStoreIds'],
   ): void {
     if (stores === ALL_STORES_SCOPE) return;
+    select.andWhere(`${ALIAS}.action NOT IN (:...allStoresOnlyActions)`, {
+      allStoresOnlyActions: ALL_STORES_ONLY_ACTIVITY_ACTIONS,
+    });
     if (stores.length === 0) {
       select.andWhere(`${ALIAS}.storeId IS NULL`);
       return;

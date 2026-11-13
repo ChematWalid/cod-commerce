@@ -140,6 +140,15 @@ export class StoreAccessInvalidError extends RbacError {
   }
 }
 
+/** The member is deactivated in Team, so granting roles would silently undo it (D204). */
+export class MemberSuspendedError extends RbacError {
+  readonly code = RBAC_ERROR_CODES.MEMBER_SUSPENDED;
+
+  constructor() {
+    super('This member is deactivated');
+  }
+}
+
 /** A business whose row has no owner role or administrator, so its Owner cannot be bound (D57). */
 export class BusinessOwnerLinkMissingError extends Error {
   constructor(businessId: BusinessId) {
