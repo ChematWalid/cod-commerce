@@ -28,6 +28,10 @@ export class ScriptedRedis {
     return this.run(() => [1, 0, 0]);
   }
 
+  rlRefund(): Promise<number> {
+    return this.run(() => 1);
+  }
+
   rlLockout(lockKey: string, _levelKey: string, initial: number): Promise<number> {
     return this.run(() => {
       this.locks.set(lockKey, this.now() + initial * 1000);

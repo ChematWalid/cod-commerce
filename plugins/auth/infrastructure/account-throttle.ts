@@ -27,9 +27,15 @@ export class AccountThrottle implements AccountThrottlePort {
     return this.spend(policy, String(userId));
   }
 
+  /**
+   * The login takes a pair token before the password check (RL-1), so a drained pair would still refuse the
+   * new password after the lockout is gone; one token back lets the next login reach the check (D605).
+   */
   async clearLoginLockout(ctx: OperationContext, email: string): Promise<void> {
     const ip = this.clientIp.resolve((ctx as unknown as RequestContext).req ?? NO_CLIENT);
-    await this.limiter.clearLockout(loginPairKey(loginEmailKey(this.hasher, normalizeEmail(email)), ip));
+    const pairKey = loginPairKey(loginEmailKey(this.hasher, normalizeEmail(email)), ip);
+    await this.limiter.refund('login-pair', pairKey);
+    await this.limiter.clearLockout(pairKey);
   }
 
   private async spend(policy: AccountLimitPolicy, key: string): Promise<void> {

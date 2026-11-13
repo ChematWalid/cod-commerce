@@ -21,6 +21,7 @@ class RecordingLimiter extends RateLimiter {
     return Promise.resolve(this.decision);
   }
 
+  refund = () => Promise.reject(new Error('unused'));
   lockout = () => Promise.reject(new Error('unused'));
   isLocked = () => Promise.reject(new Error('unused'));
   clearLockout = () => Promise.reject(new Error('unused'));

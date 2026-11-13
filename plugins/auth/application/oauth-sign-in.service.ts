@@ -1,12 +1,7 @@
 import { normalizeEmail, OAUTH_TICKET_TTL_MS } from '@cod/shared';
 import type { AccountToken } from '../domain/account-token';
 import { OAUTH_STATE_TTL_MS } from '../domain/constants';
-import {
-  InvalidTokenError,
-  OAuthEmailUnconfirmedError,
-  OAuthFailedError,
-  OAuthLinkRequiresVerificationError,
-} from '../domain/errors';
+import { InvalidTokenError, OAuthFailedError } from '../domain/errors';
 import type {
   OAuthCompletion,
   OAuthFlowState,
@@ -22,7 +17,9 @@ import type { OAuthProviderPort } from '../domain/ports/oauth-provider.port';
 import type { OAuthStateStorePort } from '../domain/ports/oauth-state-store.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { SecretHasherPort } from '../domain/ports/secret-hasher.port';
+import type { SessionTerminatorPort } from '../domain/ports/session-terminator.port';
 import type { AccountTokenService } from './account-token.service';
+import { ProviderLinker, type ProviderLinkPorts } from './provider-link';
 
 /** The PKCE pair of one flow. */
 export interface PkcePair {
@@ -31,7 +28,7 @@ export interface PkcePair {
 }
 
 /** What {@link OAuthSignInService} works with. */
-export interface OAuthSignInPorts {
+export interface OAuthSignInPorts extends ProviderLinkPorts {
   readonly providers: Partial<Readonly<Record<OAuthProviderName, OAuthProviderPort>>>;
   readonly state: OAuthStateStorePort;
   readonly identity: Pick<
@@ -40,7 +37,8 @@ export interface OAuthSignInPorts {
   >;
   readonly external: ExternalIdentityPort;
   readonly claims: EmailClaimPort;
-  readonly tokens: Pick<AccountTokenService, 'issue' | 'consumeBound' | 'peekBound'>;
+  readonly tokens: Pick<AccountTokenService, 'issue' | 'consumeBound' | 'peekBound' | 'voidOpen'>;
+  readonly terminator: Pick<SessionTerminatorPort, 'endOthers' | 'flushCache'>;
   readonly hasher: SecretHasherPort;
   readonly clock: ClockPort;
   readonly newPkce: () => PkcePair;
@@ -73,9 +71,19 @@ export interface OAuthRegistrationOutcome {
   readonly signInTicket: string;
 }
 
+/** A settled callback and the sessions it ended, which stop working once the cache forgets them. */
+interface SettledCallback {
+  readonly completion: OAuthCompletion;
+  readonly ended: readonly string[];
+}
+
 /** Google and Facebook sign-in: a redirect code flow ending in a single-use ticket bound to the browser (D36). */
 export class OAuthSignInService {
-  constructor(private readonly ports: OAuthSignInPorts) {}
+  private readonly linker: ProviderLinker;
+
+  constructor(private readonly ports: OAuthSignInPorts) {
+    this.linker = new ProviderLinker(ports);
+  }
 
   /** Whether `provider` is one this deployment offers. */
   offers(provider: string): provider is OAuthProviderName {
@@ -118,9 +126,12 @@ export class OAuthSignInService {
     }
     const raw = await this.provider(provider).exchange(params.code, flow.codeVerifier, this.callback(provider));
     const identity = { ...raw, email: raw.email === null ? null : normalizeEmail(raw.email) };
-    return this.ports.identity.inTransaction(ctx, (transactional) =>
+    const { completion, ended } = await this.ports.identity.inTransaction(ctx, (transactional) =>
       this.settle(transactional, identity, flow.bindingHash),
     );
+    // After the commit: evicting earlier would let a concurrent request re-cache a session from its visible row.
+    await this.ports.terminator.flushCache(ended);
+    return completion;
   }
 
   /** What a new identity's ticket holds, for its own browser. Spends nothing. @throws InvalidTokenError otherwise. */
@@ -227,22 +238,21 @@ export class OAuthSignInService {
   }
 
   /** Subject first, so a changed email still finds the account; only then does the email come into it. */
-  private async settle(ctx: OperationContext, identity: OAuthIdentity, bindingHash: string): Promise<OAuthCompletion> {
+  private async settle(ctx: OperationContext, identity: OAuthIdentity, bindingHash: string): Promise<SettledCallback> {
     if (identity.email !== null) {
       await this.ports.claims.claim(ctx, identity.email);
     }
     await this.ports.claims.claim(ctx, subjectClaim(identity));
     const known = await this.accountOfSubject(ctx, identity);
     if (known !== undefined) {
-      return { destination: 'sign-in', ticket: await this.issue(ctx, known.userId, bindingHash) };
+      return settled('sign-in', await this.issue(ctx, known.userId, bindingHash));
     }
     const holder = identity.email === null ? undefined : await this.ports.identity.findByEmail(ctx, identity.email);
     if (holder === undefined) {
-      return { destination: 'register', ticket: await this.issue(ctx, null, bindingHash, identity) };
+      return settled('register', await this.issue(ctx, null, bindingHash, identity));
     }
-    assertLinkable(identity, holder);
-    await this.ports.external.link(ctx, holder.userId, identity.provider, identity.subject);
-    return { destination: 'sign-in', ticket: await this.issue(ctx, holder.userId, bindingHash) };
+    const ended = await this.linker.link(ctx, holder, identity);
+    return settled('sign-in', await this.issue(ctx, holder.userId, bindingHash), ended);
   }
 
   private async accountOfSubject(ctx: OperationContext, identity: OAuthIdentity): Promise<AccountRecord | undefined> {
@@ -285,16 +295,6 @@ function subjectClaim(identity: OAuthIdentity): string {
   return `oauth:${identity.provider}:${identity.subject}`;
 }
 
-/**
- * Linking hands the account to whoever holds the provider login. Both sides must have proven the address, or a
- * pre-set password or a provider account with someone else's email would take the account over. A platform
- * administrator is never linked: social sign-in must not reach that role.
- */
-function assertLinkable(identity: OAuthIdentity, holder: AccountRecord): void {
-  if (holder.emailVerifiedAt === null || holder.businessId === null) {
-    throw new OAuthLinkRequiresVerificationError();
-  }
-  if (!identity.emailVerified) {
-    throw new OAuthEmailUnconfirmedError();
-  }
+function settled(destination: OAuthCompletion['destination'], ticket: string, ended: string[] = []): SettledCallback {
+  return { completion: { destination, ticket }, ended };
 }

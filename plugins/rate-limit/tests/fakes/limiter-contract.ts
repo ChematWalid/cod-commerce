@@ -123,6 +123,74 @@ export function describeLimiterContract(name: string, create: () => LimiterHarne
     });
   });
 
+  describe(`${name}: refunds`, () => {
+    /** Takes `times` tokens of `key` under login-pair, one after the other. */
+    async function take(limiter: RateLimiter, key: string, times: number): Promise<boolean[]> {
+      const allowed = [];
+      for (let i = 0; i < times; i += 1) {
+        allowed.push((await limiter.consume('login-pair', key)).allowed);
+      }
+      return allowed;
+    }
+
+    it('gives a taken token back, so the next request on a drained bucket is allowed', async () => {
+      // Arrange
+      const { limiter, uniqueKey } = create();
+      const key = uniqueKey();
+      await take(limiter, key, LOGIN_PAIR.capacity);
+
+      // Act
+      await limiter.refund('login-pair', key);
+      const afterRefund = await limiter.consume('login-pair', key);
+
+      // Assert
+      expect(afterRefund).toEqual({ allowed: true, retryAfterSeconds: 0, exhausted: true });
+    });
+
+    it('never fills a bucket above its capacity', async () => {
+      // Arrange
+      const { limiter, uniqueKey } = create();
+      const key = uniqueKey();
+      await take(limiter, key, 1);
+
+      // Act
+      await limiter.refund('login-pair', key);
+      await limiter.refund('login-pair', key);
+      const allowed = await take(limiter, key, LOGIN_PAIR.capacity + 1);
+
+      // Assert
+      expect(allowed).toEqual([...Array<boolean>(LOGIN_PAIR.capacity).fill(true), false]);
+    });
+
+    it('leaves an untouched bucket full', async () => {
+      // Arrange
+      const { limiter, uniqueKey } = create();
+      const key = uniqueKey();
+
+      // Act
+      await limiter.refund('login-pair', key);
+      const allowed = await take(limiter, key, LOGIN_PAIR.capacity + 1);
+
+      // Assert
+      expect(allowed).toEqual([...Array<boolean>(LOGIN_PAIR.capacity).fill(true), false]);
+    });
+
+    it('keeps the refill earned before the refund', async () => {
+      // Arrange: 10 per minute refills one token every 6 s
+      const { limiter, clock, uniqueKey } = create();
+      const key = uniqueKey();
+      await take(limiter, key, LOGIN_PAIR.capacity);
+      clock.advanceSeconds(LOGIN_PAIR.windowSeconds / LOGIN_PAIR.capacity);
+
+      // Act
+      await limiter.refund('login-pair', key);
+      const allowed = await take(limiter, key, 3);
+
+      // Assert
+      expect(allowed).toEqual([true, true, false]);
+    });
+  });
+
   describe(`${name}: lockouts`, () => {
     it('doubles from 60 s and caps at 3600 s', async () => {
       // Arrange
