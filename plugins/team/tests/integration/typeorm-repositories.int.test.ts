@@ -1,8 +1,14 @@
 import { AuthPlugin } from '@cod/plugin-auth';
+import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
 import { TenancyPlugin, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
+import {
+  createPluginTestEnvironment,
+  loadPluginTestDbConfig,
+  PLUGIN_TEST_INITIAL_DATA,
+  withPartitionedSchemas,
+} from '@cod/testing';
 import { type RequestContext, RequestContextService, TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
@@ -21,14 +27,17 @@ import { describeMemberRepositoryContract } from '../contract/member-repository.
 import type { RepositoryHarness } from '../contract/repository-harness';
 import { describeSalaryPaymentRepositoryContract } from '../contract/salary-payment-repository.contract';
 import { invitedMember, openInvitation, scopeA } from '../support/builders';
-import { authTestOptions } from './team-kit';
+import { authTestOptions, OUTBOX_SCHEMAS, teamOutboxPlugins } from './team-kit';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 
 const { server } = createPluginTestEnvironment({
   plugins: [
+    PlatformPartitionsPlugin,
     RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: '' }),
     TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId: 1007 }),
+    // Team writes `salary.paid` to the outbox (D222), whose tables are partitioned.
+    ...teamOutboxPlugins(),
     RbacPlugin,
     // Team's invitations need auth's invited accounts and mail queue.
     AuthPlugin.init(authTestOptions()),
@@ -36,6 +45,7 @@ const { server } = createPluginTestEnvironment({
   ],
   db: loadPluginTestDbConfig(process.env),
 });
+withPartitionedSchemas(server, OUTBOX_SCHEMAS, PartitionMaintenanceService);
 
 let requestContext: RequestContext;
 let ctx: OperationContext;

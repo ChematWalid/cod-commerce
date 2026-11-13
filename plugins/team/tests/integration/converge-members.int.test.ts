@@ -26,7 +26,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
 import { TeamConvergeService, TeamPlugin } from '../../index';
 import { TeamMemberEntity } from '../../infrastructure/team-member.entity';
-import { authTestOptions } from './team-kit';
+import { authTestOptions, OUTBOX_SCHEMAS, teamOutboxPlugins } from './team-kit';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const SNOWFLAKE_WORKER_ID = 1008;
@@ -43,6 +43,8 @@ const { server, adminClient } = createPluginTestEnvironment({
       platformDomain: 'localhost',
       snowflakeWorkerId: SNOWFLAKE_WORKER_ID,
     }),
+    // Team writes `salary.paid` to the outbox (D222), whose tables are partitioned.
+    ...teamOutboxPlugins(),
     RbacPlugin,
     // Team's invitations need auth's invited accounts and mail queue.
     AuthPlugin.init(authTestOptions()),
@@ -50,8 +52,8 @@ const { server, adminClient } = createPluginTestEnvironment({
   ],
   db: loadPluginTestDbConfig(process.env),
 });
-// Granting a role writes the partitioned `activity_log`, which `synchronize` cannot make (D130).
-withPartitionedSchemas(server, [ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
+// Granting a role writes the partitioned `activity_log`, which `synchronize` cannot make (D130); so is the outbox.
+withPartitionedSchemas(server, [...OUTBOX_SCHEMAS, ACTIVITY_LOG_SCHEMA], PartitionMaintenanceService);
 
 let businesses: TwoBusinesses;
 

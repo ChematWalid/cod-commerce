@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
@@ -67,6 +69,16 @@ export function authTestOptions() {
   };
 }
 
+/**
+ * The platform outbox Team writes `salary.paid` to (D222) and the job queues its relay runs on. Its event and delivery
+ * tables are partitioned: pass {@link OUTBOX_SCHEMAS} to `withPartitionedSchemas` with these plugins.
+ */
+export function teamOutboxPlugins(): NonNullable<VendureConfig['plugins']> {
+  return [PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: 'test-team' }), PlatformOutboxPlugin];
+}
+
+export { OUTBOX_SCHEMAS };
+
 /** A second server's port, database and shared session cache (the cross-process harness of P1.S4 Task 4). */
 export type TeamServerOptions = Pick<PluginTestEnvironmentOptions, 'port' | 'attachToDatabase' | 'sharedCache'>;
 
@@ -80,7 +92,8 @@ export interface TeamForeignModules {
 /**
  * A Vendure test server with Team and what it depends on. `foreign` holds rbac's and auth's modules: only a test file
  * may import another plugin's entry point (architecture rule `no-cross-plugin-internals`), so the test file passes them.
- * `synchronize` cannot make a partitioned table, so `server.init` also creates `foreign.partitionedSchemas` (D130).
+ * `synchronize` cannot make a partitioned table, so `server.init` also creates `foreign.partitionedSchemas` and the
+ * outbox's tables (D130).
  */
 export function createTeamTestEnvironment(
   snowflakeWorkerId: number,
@@ -92,13 +105,18 @@ export function createTeamTestEnvironment(
       PlatformPartitionsPlugin,
       RateLimitPlugin.init({ redisUrl: TEST_REDIS_URL, clientIpHeader: TEST_CLIENT_IP_HEADER }),
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId }),
+      ...teamOutboxPlugins(),
       ...foreign.plugins,
       TeamPlugin.init({ dashboardUrl: TEST_DASHBOARD_URL }),
     ],
     db: loadPluginTestDbConfig(process.env),
     ...serverOptions,
   });
-  withPartitionedSchemas(environment.server, foreign.partitionedSchemas, PartitionMaintenanceService);
+  withPartitionedSchemas(
+    environment.server,
+    [...OUTBOX_SCHEMAS, ...foreign.partitionedSchemas],
+    PartitionMaintenanceService,
+  );
   return environment;
 }
 

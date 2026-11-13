@@ -1,13 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import { AuthPlugin } from '@cod/plugin-auth';
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
-import { teamMemberActivityDiffSchema, toBusinessId, toSnowflake } from '@cod/shared';
+import {
+  DOMAIN_EVENT_NAMES,
+  type SalaryPaidPayload,
+  teamMemberActivityDiffSchema,
+  toBusinessId,
+  toSnowflake,
+} from '@cod/shared';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
-import { EventBus, RequestContextService, TransactionalConnection } from '@vendure/core';
+import { RequestContextService, TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PaySalaryService } from '../../application/pay-salary.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
-import { SalaryPaidEvent } from '../../infrastructure/salary-paid.event';
 import { authTestOptions, createTeamTestEnvironment, TeamKit } from './team-kit';
 import { ACTIVITY_LOG, type ActivityItem, type PaymentAnswer } from './team-operations';
 import { standaloneNumber } from '../support/standalone-number';
@@ -21,37 +26,32 @@ const { server, adminClient } = createTeamTestEnvironment(SNOWFLAKE_WORKER_ID, {
 const OLD_SALARY = 52_817;
 const NEW_SALARY = 61_234;
 const COMMISSION_VALUE = 7_391;
-const EVENT_WAIT_MS = 2_000;
-const EVENT_POLL_MS = 50;
 
 let businesses: TwoBusinesses;
 let kit: TeamKit;
-const published: SalaryPaidEvent[] = [];
 
 beforeAll(async () => {
   await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
   businesses = await createTwoBusinesses(adminClient);
   kit = new TeamKit(server.app, adminClient);
-  // A subscriber as the ledger (P6.S4) will be: Vendure hands it the event once the paying transaction committed.
-  server.app
-    .get(EventBus)
-    .ofType(SalaryPaidEvent)
-    .subscribe((event) => published.push(event));
 });
 
 afterAll(async () => {
   await server.destroy();
 });
 
-/** The events of one member, after waiting for the post-commit delivery of `expected` of them. */
-async function eventsOf(memberId: string, expected: number): Promise<SalaryPaidEvent[]> {
-  const deadline = Date.now() + EVENT_WAIT_MS;
-  const mine = () => published.filter((event) => event.payload.memberId === memberId);
-  while (mine().length < expected && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, EVENT_POLL_MS));
-  }
-  return mine();
+/** A `salary.paid` outbox row: written in the paying transaction, so it is there as soon as the pay answered (D222). */
+interface SalaryPaidRow {
+  readonly businessId: string;
+  readonly aggregateId: string;
+  readonly payload: SalaryPaidPayload;
 }
+
+const outboxRowsOf = (memberId: string) =>
+  kit.query<SalaryPaidRow>(
+    `SELECT "businessId", "aggregateId", payload FROM outbox_event WHERE topic = $1 AND payload->>'memberId' = $2`,
+    [DOMAIN_EVENT_NAMES.SalaryPaid, memberId],
+  );
 
 /** An active member of A on every store, its salary set, with the owner signed in. */
 async function paidMember(salary: number) {
@@ -65,7 +65,7 @@ const paymentRows = (memberId: string) =>
   kit.query<{ id: string; amount: number }>('SELECT id, amount FROM salary_payment WHERE "memberId" = $1', [memberId]);
 
 describe('paying a salary (D212)', () => {
-  it('books the base salary once per key, even for two parallel clicks, and publishes it once after commit', async () => {
+  it('books the base salary once per key, even for two parallel clicks, with one outbox row per payment', async () => {
     // Arrange
     const member = await paidMember(OLD_SALARY);
     const pay = (key: string) => kit.rest('POST', `/employees/${member.memberId}/pay`, { idempotencyKey: key });
@@ -73,15 +73,19 @@ describe('paying a salary (D212)', () => {
     // Act
     const [first, second] = await Promise.all([pay('click-1'), pay('click-1')]);
     const other = await pay('click-2');
+    const repeated = await pay('click-2');
 
     // Assert
-    expect([first.status, second.status, other.status]).toEqual([200, 200, 200]);
+    expect([first.status, second.status, other.status, repeated.status]).toEqual([200, 200, 200, 200]);
+    expect((repeated.body as PaymentAnswer).id).toBe((other.body as PaymentAnswer).id);
     expect((first.body as PaymentAnswer).id).toBe((second.body as PaymentAnswer).id);
     expect(first.body).toMatchObject({ amount: OLD_SALARY, idempotencyKey: 'click-1' });
     const rows = await paymentRows(member.memberId);
     expect(rows).toHaveLength(2);
-    const events = await eventsOf(member.memberId, 2);
+    const events = await outboxRowsOf(member.memberId);
+    expect(events.map((event) => event.aggregateId).sort()).toEqual(rows.map((row) => row.id).sort());
     expect(events.map((event) => event.payload.paymentId).sort()).toEqual(rows.map((row) => row.id).sort());
+    expect(events.every((event) => event.businessId === businesses.a.businessId)).toBe(true);
     expect(events[0]?.payload).toMatchObject({ amount: OLD_SALARY, administratorId: member.administratorId });
   });
 
@@ -97,13 +101,13 @@ describe('paying a salary (D212)', () => {
 
     // Assert
     const [row] = await paymentRows(member.memberId);
-    const [event] = await eventsOf(member.memberId, 1);
+    const [event] = await outboxRowsOf(member.memberId);
     expect([OLD_SALARY, NEW_SALARY]).toContain(row?.amount);
     expect((paid.body as PaymentAnswer).amount).toBe(row?.amount);
     expect(event?.payload.amount).toBe(row?.amount);
   });
 
-  it('stores nothing and publishes nothing when the paying transaction rolls back', async () => {
+  it('stores neither the payment nor its outbox row when the paying transaction rolls back', async () => {
     // Arrange
     const member = await paidMember(OLD_SALARY);
     const app = server.app;
@@ -126,7 +130,7 @@ describe('paying a salary (D212)', () => {
     // Assert
     await expect(work).rejects.toThrow('roll the payment back');
     expect(await paymentRows(member.memberId)).toEqual([]);
-    expect(await eventsOf(member.memberId, 1)).toEqual([]);
+    expect(await outboxRowsOf(member.memberId)).toEqual([]);
   });
 
   it('refuses to let the owner pay its own member row', async () => {
