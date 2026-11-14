@@ -14,6 +14,7 @@ import {
   removeGroup,
   removeValue,
 } from '../model/options-draft';
+import { startReorderDrag } from '../model/reorder-drag';
 
 interface OptionsEditorProps {
   readonly options: OptionsDraft;
@@ -97,33 +98,40 @@ function MoveButtons(props: MoveButtonsProps): ReactNode {
 }
 
 /**
- * Drag and drop reordering of a list: the props each item takes. Dropping item `from` onto item `to` moves it by
- * `to - from`, the same move as the earlier/later buttons. Events stop at the item, so dragging a value never drags
- * or drops its option too.
+ * Drag and drop reordering of a list. Each item gets a `handle`, the part that is dragged, and a `zone`, the part a
+ * drop lands on. Dropping item `from` onto item `to` moves it by `to - from`, the same move as the earlier/later
+ * buttons. The handle never holds a text field: a draggable ancestor blocks the caret in Firefox, and a text drag out
+ * of the field would bubble up as a reorder. Events stop at the item, so dragging a value never drags its option too.
  */
 function useReorderDrag(disabled: boolean, onMove: (from: number, delta: number) => void) {
   const [dragged, setDragged] = useState<number | null>(null);
   return (position: number) => ({
-    draggable: !disabled,
-    className: dragged === position ? 'cod-catalog-dragging' : undefined,
-    onDragStart: (event: DragEvent) => {
-      event.stopPropagation();
-      setDragged(position);
+    handle: {
+      draggable: !disabled,
+      onDragStart: (event: DragEvent) => {
+        event.stopPropagation();
+        startReorderDrag(event.dataTransfer, position);
+        setDragged(position);
+      },
+      onDragEnd: (event: DragEvent) => {
+        event.stopPropagation();
+        setDragged(null);
+      },
     },
-    onDragEnd: (event: DragEvent) => {
-      event.stopPropagation();
-      setDragged(null);
-    },
-    onDragOver: (event: DragEvent) => {
-      if (dragged === null) return;
-      event.preventDefault();
-      event.stopPropagation();
-    },
-    onDrop: (event: DragEvent) => {
-      if (dragged === null) return;
-      event.stopPropagation();
-      onMove(dragged, position - dragged);
-      setDragged(null);
+    zone: {
+      className: dragged === position ? 'cod-catalog-dragging' : undefined,
+      onDragOver: (event: DragEvent) => {
+        if (dragged === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      onDrop: (event: DragEvent) => {
+        if (dragged === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onMove(dragged, position - dragged);
+        setDragged(null);
+      },
     },
   });
 }
@@ -138,25 +146,28 @@ function ValueChips({ group, index, editor }: GroupProps): ReactNode {
   });
   return (
     <ul className="flex flex-wrap gap-2">
-      {group.values.map((value, valueIndex) => (
-        <li key={value} {...dragProps(valueIndex)}>
-          <Badge variant="outline" className="gap-1">
-            <span className="[overflow-wrap:anywhere]">{value}</span>
-            <MoveButtons
-              position={valueIndex}
-              count={group.values.length}
-              disabled={disabled}
-              sideways
-              onMove={(delta) => {
-                onChange(moveValue(options, index, valueIndex, delta));
-              }}
-              onRemove={() => {
-                onChange(removeValue(options, index, valueIndex));
-              }}
-            />
-          </Badge>
-        </li>
-      ))}
+      {group.values.map((value, valueIndex) => {
+        const drag = dragProps(valueIndex);
+        return (
+          <li key={value} {...drag.zone} {...drag.handle}>
+            <Badge variant="outline" className="gap-1">
+              <span className="[overflow-wrap:anywhere]">{value}</span>
+              <MoveButtons
+                position={valueIndex}
+                count={group.values.length}
+                disabled={disabled}
+                sideways
+                onMove={(delta) => {
+                  onChange(moveValue(options, index, valueIndex, delta));
+                }}
+                onRemove={() => {
+                  onChange(removeValue(options, index, valueIndex));
+                }}
+              />
+            </Badge>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -187,14 +198,14 @@ function ValueInput({ group, index, editor }: GroupProps): ReactNode {
   );
 }
 
-/** One option: its name, move and remove buttons, its values, and the field adding one. Drag it to reorder. */
+/** One option: its name, move and remove buttons, its values, and the field adding one. Drag its name row to reorder. */
 function OptionGroupCard(props: GroupProps & { readonly dragProps: ReorderDragProps }): ReactNode {
   const { group, index, editor } = props;
   const { options, disabled, onChange } = editor;
   return (
-    <li {...props.dragProps}>
+    <li {...props.dragProps.zone}>
       <div className="grid gap-2 rounded-md border p-3">
-        <div className="flex items-center justify-between gap-2">
+        <div {...props.dragProps.handle} className="flex cursor-grab items-center justify-between gap-2">
           <span className="font-medium [overflow-wrap:anywhere]">{group.name}</span>
           <MoveButtons
             position={index}
