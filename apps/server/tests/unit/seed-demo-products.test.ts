@@ -1,6 +1,14 @@
-import { type BusinessId, toStoreId } from '@cod/shared';
+import { type BusinessId, toBusinessId, toStoreId } from '@cod/shared';
+import type { INestApplicationContext } from '@nestjs/common';
+import { ChannelService, type RequestContext } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
-import { type DemoProductSeedPorts, type DemoStoreTarget, seedDemoProducts } from '../../src/seed/seed-demo-products';
+import {
+  DemoStoreChannelMissingError,
+  type DemoProductSeedPorts,
+  type DemoStoreTarget,
+  demoProductSeedPorts,
+  seedDemoProducts,
+} from '../../src/seed/seed-demo-products';
 
 /** Two businesses whose stores the directory lists newest first, and a recorder of what was seeded. */
 function fakePorts(): DemoProductSeedPorts & { readonly seeded: DemoStoreTarget[] } {
@@ -55,5 +63,29 @@ describe('seedDemoProducts', () => {
 
     // Assert
     expect(created).toEqual([]);
+  });
+});
+
+describe('demoProductSeedPorts', () => {
+  it('refuses a store whose channel does not exist with a typed error', async () => {
+    // Arrange
+    const channels = { findOne: () => Promise.resolve(undefined) };
+    const app = {
+      get: (token: unknown) => {
+        if (token === ChannelService) return channels;
+        throw new Error('unexpected service');
+      },
+    } as unknown as INestApplicationContext;
+    const ports = demoProductSeedPorts(app, {} as RequestContext, () => Promise.resolve(undefined));
+
+    // Act
+    const seeding = ports.seedStore({
+      businessId: toBusinessId('101'),
+      store: { id: toStoreId('1001'), channelId: 11 },
+    });
+
+    // Assert
+    await expect(seeding).rejects.toBeInstanceOf(DemoStoreChannelMissingError);
+    await expect(seeding).rejects.toThrow('The demo store channel 11 does not exist');
   });
 });

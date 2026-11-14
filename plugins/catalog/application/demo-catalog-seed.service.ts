@@ -3,6 +3,7 @@ import { type DemoProductSpec, demoProductsFor } from '../domain/demo-products';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { isSkuTaken } from '../domain/sku';
 import type { StoreScope } from '../domain/store-scope';
+import { nameKeyOf } from '../domain/taxonomy';
 import { BrandService } from './brand.service';
 import type { ProductPorts } from './catalog-ports';
 import { CreateProductService } from './create-product.service';
@@ -19,7 +20,8 @@ interface DemoReferences {
 /**
  * Gives a demo store its five synthetic products (D2129) through the same use cases a merchant's save runs, so the
  * seeded rows obey every catalog rule. A product whose SKU the store already holds is skipped, and a brand, tag or
- * highlight a previous run left behind is reused by its name, so a second run creates nothing.
+ * highlight a previous run left behind is reused, so a second run creates nothing. Brands and tags are matched by name
+ * key, as their unique index compares them, so a merchant's re-cased "demo brand" is reused rather than refused.
  */
 export class DemoCatalogSeedService {
   private readonly creating: CreateProductService;
@@ -67,12 +69,12 @@ export class DemoCatalogSeedService {
   }
 
   private async brandIdOf(ctx: OperationContext, scope: StoreScope, name: string): Promise<Snowflake> {
-    const existing = (await this.brands.list(ctx, scope)).find((brand) => brand.name === name);
+    const existing = (await this.brands.list(ctx, scope)).find((brand) => brand.nameKey === nameKeyOf(name));
     return (existing ?? (await this.brands.create(ctx, scope, { name }))).id;
   }
 
   private async tagIdOf(ctx: OperationContext, scope: StoreScope, name: string): Promise<Snowflake> {
-    const existing = (await this.tags.list(ctx, scope)).find((tag) => tag.name === name);
+    const existing = (await this.tags.list(ctx, scope)).find((tag) => tag.nameKey === nameKeyOf(name));
     return (existing ?? (await this.tags.create(ctx, scope, { name }))).id;
   }
 

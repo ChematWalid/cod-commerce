@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { DemoCatalogSeedService } from '../../application/demo-catalog-seed.service';
 import { demoProductsFor } from '../../domain/demo-products';
 import { ProductWorld } from '../fakes/product-world';
-import { scopeA, scopeB } from '../support/builders';
+import { brandOf, scopeA, scopeA2, scopeB, tagOf } from '../support/builders';
 
 describe('DemoCatalogSeedService', () => {
   let world: ProductWorld;
@@ -71,13 +71,65 @@ describe('DemoCatalogSeedService', () => {
     expect(await world.highlights.list(world.ctxOf(scopeA), scopeA)).toHaveLength(3);
   });
 
-  it('seeds each store on its own', async () => {
+  it('reuses a brand and a tag whose names differ only by case', async () => {
+    // Arrange
+    const spec = demoProductsFor('en').find((product) => product.brandName !== null);
+    if (spec?.brandName == null) throw new Error('no branded product');
+    const [tagName] = spec.tagNames;
+    if (tagName === undefined) throw new Error('no tagged product');
+    const brand = brandOf(scopeA, spec.brandName.toLowerCase());
+    const tag = tagOf(scopeA, tagName.toUpperCase());
+    await world.brands.insert(world.ctxOf(scopeA), scopeA, brand);
+    await world.tags.insert(world.ctxOf(scopeA), scopeA, tag);
+
     // Act
     await service.seedStore(world.ctxOf(scopeA), scopeA, 'en');
-    const created = await service.seedStore(world.ctxOf(scopeB), scopeB, 'fr');
+
+    // Assert
+    const product = (await allProducts()).find((record) => record.sku === spec.sku);
+    expect(product?.brandId).toBe(brand.id);
+    expect(await world.brands.list(world.ctxOf(scopeA), scopeA)).toHaveLength(1);
+    expect(await world.tags.list(world.ctxOf(scopeA), scopeA)).toEqual([tag]);
+  });
+
+  it('seeds a store of business B whatever business A already holds', async () => {
+    // Arrange
+    await service.seedStore(world.ctxOf(scopeA), scopeA, 'en');
+    const taxonomyOf = async (scope = scopeA) => ({
+      brands: await world.brands.list(world.ctxOf(scope), scope),
+      tags: await world.tags.list(world.ctxOf(scope), scope),
+      highlights: await world.highlights.list(world.ctxOf(scope), scope),
+    });
+    const before = await taxonomyOf();
+    world.searchHits = (await allProducts()).map((product) => product.id);
+
+    // Act
+    const created = await service.seedStore(world.ctxOf(scopeB), scopeB, 'en');
 
     // Assert
     expect(created).toHaveLength(5);
     expect(await allProducts(scopeB)).toHaveLength(5);
+    const ofB = await taxonomyOf(scopeB);
+    expect(ofB.brands).toHaveLength(1);
+    expect(ofB.brands[0]?.id).not.toBe(before.brands[0]?.id);
+    expect(ofB.tags).toHaveLength(1);
+    expect(ofB.highlights).toHaveLength(3);
+    expect(await allProducts()).toHaveLength(5);
+    expect(await taxonomyOf()).toEqual(before);
+  });
+
+  it('seeds another store of the same business on its own', async () => {
+    // Arrange
+    await service.seedStore(world.ctxOf(scopeA), scopeA, 'en');
+    world.searchHits = (await allProducts()).map((product) => product.id);
+
+    // Act
+    const created = await service.seedStore(world.ctxOf(scopeA2), scopeA2, 'en');
+
+    // Assert
+    expect(created).toHaveLength(5);
+    expect(await allProducts(scopeA2)).toHaveLength(5);
+    expect(await world.brands.list(world.ctxOf(scopeA2), scopeA2)).toHaveLength(1);
+    expect(await allProducts()).toHaveLength(5);
   });
 });

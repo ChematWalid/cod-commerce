@@ -4,6 +4,14 @@ import { type BusinessId, type StoreId, toBusinessId } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
 import { ChannelService, type RequestContext, RequestContextService } from '@vendure/core';
 
+/** A demo store's channel is gone: the seed cannot write its catalog anywhere, so the run stops. */
+export class DemoStoreChannelMissingError extends Error {
+  constructor(readonly channelId: number) {
+    super(`The demo store channel ${String(channelId)} does not exist`);
+    this.name = 'DemoStoreChannelMissingError';
+  }
+}
+
 /** A store of a demo business and the Vendure channel its catalog lives in. */
 export interface DemoStore {
   readonly id: StoreId;
@@ -59,7 +67,7 @@ async function storeContext(
   channelId: number,
 ): Promise<RequestContext> {
   const channel = await app.get(ChannelService).findOne(ctx, channelId);
-  if (channel === undefined) throw new Error(`The demo store channel ${String(channelId)} does not exist`);
+  if (channel === undefined) throw new DemoStoreChannelMissingError(channelId);
   return app.get(RequestContextService).create({ apiType: 'admin', channelOrToken: channel });
 }
 
