@@ -18,9 +18,8 @@ import { useCatalogProduct, useMediaLibrary } from '../editor-queries';
 import { useEditorSave } from '../hooks/use-editor-save';
 import { useStoreScope } from '../hooks/use-store-scope';
 import { type EditorForm, type EditorFormErrors, editorFormOf, emptyEditorForm } from '../model/editor-form';
-import { listErrorMessageId } from '../model/list-view';
+import { editorLoadViewOf } from '../model/editor-load';
 import { resetsVariants } from '../model/options-draft';
-import { isStoreSwitched } from '../model/store-bound-fetch';
 import { type StoreScope, useHeldPermissions } from '../queries';
 
 const SAVE_ACTION_ID = 'catalog-save';
@@ -173,15 +172,26 @@ function EditorPage(props: EditorProps): ReactNode {
   );
 }
 
-/** Loads the product of the URL in the URL's store, then opens it; not found when the store has no such product. */
+/**
+ * Loads the product of the URL in the URL's store, then opens it; not found when the store has no such product. A
+ * failed refetch leaves the open editor (and its unsaved edits) in place, above a notice.
+ */
 function ExistingProduct(props: Omit<EditorProps, 'product'> & { readonly productId: string }): ReactNode {
   const { i18n } = useLingui();
-  const answer = useCatalogProduct(props.scope, props.productId);
-  if (answer.isError && !isStoreSwitched(answer.error))
-    return <p role="alert">{i18n._(listErrorMessageId(answer.error))}</p>;
-  if (!answer.isSuccess || answer.isPlaceholderData) return <p>{i18n._('catalog.loading')}</p>;
-  if (answer.data === null) return <p role="alert">{i18n._('catalog.product-not-found')}</p>;
-  return <EditorPage key={answer.data.id} {...props} product={answer.data} />;
+  const view = editorLoadViewOf(useCatalogProduct(props.scope, props.productId));
+  if (view.kind === 'loading') return <p>{i18n._('catalog.loading')}</p>;
+  if (view.kind === 'error') return <p role="alert">{i18n._(view.messageId)}</p>;
+  if (view.kind === 'not-found') return <p role="alert">{i18n._('catalog.product-not-found')}</p>;
+  return (
+    <>
+      {view.refetchErrorId !== undefined && (
+        <p role="alert" className="text-destructive px-4 text-sm">
+          {i18n._(view.refetchErrorId)}
+        </p>
+      )}
+      <EditorPage key={view.product.id} {...props} product={view.product} />
+    </>
+  );
 }
 
 function ProductEditor({ store, productId }: Pick<EditorProps, 'store' | 'productId'>): ReactNode {
