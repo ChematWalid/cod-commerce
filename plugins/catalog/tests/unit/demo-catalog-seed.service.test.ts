@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DemoCatalogSeedService } from '../../application/demo-catalog-seed.service';
 import { demoProductsFor } from '../../domain/demo-products';
+import { InvalidCatalogInputError } from '../../domain/errors';
 import { ProductWorld } from '../fakes/product-world';
 import { brandOf, scopeA, scopeA2, scopeB, tagOf } from '../support/builders';
 
@@ -131,5 +132,18 @@ describe('DemoCatalogSeedService', () => {
     expect(await allProducts(scopeA2)).toHaveLength(5);
     expect(await world.brands.list(world.ctxOf(scopeA2), scopeA2)).toHaveLength(1);
     expect(await allProducts()).toHaveLength(5);
+  });
+
+  it("refuses a scope whose store is not the context's channel, before writing anything", async () => {
+    // Arrange
+    const ctxOfA = world.ctxOf(scopeA);
+
+    // Act
+    const seeding = service.seedStore(ctxOfA, scopeA2, 'en');
+
+    // Assert
+    await expect(seeding).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    expect(await allProducts()).toEqual([]);
+    expect(await world.brands.list(world.ctxOf(scopeA2), scopeA2)).toEqual([]);
   });
 });

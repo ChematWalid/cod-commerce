@@ -78,3 +78,31 @@ describe('TenancyStoreSettings.activeStoreOf (D2142)', () => {
     expect(store).toBeUndefined();
   });
 });
+
+describe('TenancyStoreSettings.isChannelOf', () => {
+  it("accepts a store of the business whose channel is the context's", async () => {
+    // Arrange
+    const { stores, settingsOf } = storesAnswering(activeSettings);
+
+    // Act
+    const paired = await stores.isChannelOf(ctx, scopeA);
+
+    // Assert
+    expect(paired).toBe(true);
+    expect(settingsOf).toHaveBeenCalledWith(expect.anything(), scopeA.businessId, scopeA.storeId);
+  });
+
+  it.each<[string, Settings]>([
+    ['a store the business does not hold', null],
+    ["a store whose channel is not the context's", { ...activeSettings, channelId: REQUEST_CHANNEL + 1 }],
+  ])('refuses %s', async (_case, settings) => {
+    // Arrange
+    const { stores } = storesAnswering(settings);
+
+    // Act
+    const paired = await stores.isChannelOf(ctx, scopeA);
+
+    // Assert
+    expect(paired).toBe(false);
+  });
+});

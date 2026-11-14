@@ -107,6 +107,7 @@ export class ProductWorld {
     soldOut: new SettingsFlagSoldOutSource(this.settings),
     stores: {
       activeStoreOf: (ctx) => Promise.resolve(this.activeStores.get(storeOf(ctx))),
+      isChannelOf: (ctx, scope) => Promise.resolve(storeOf(ctx) === scope.storeId),
     },
   };
 

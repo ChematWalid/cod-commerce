@@ -15,4 +15,11 @@ export interface StoreSettingsPort {
    * for a context without a resolved tenant, with another channel than its store's, or of an archived store.
    */
   activeStoreOf(ctx: OperationContext): Promise<ActiveStore | undefined>;
+
+  /**
+   * Whether `scope` names a store of its business whose channel is the context's, archived or not. For a caller
+   * without a resolved tenant (the demo seed) that names the store itself: products follow the channel, their links
+   * and settings the scope, so the two must agree.
+   */
+  isChannelOf(ctx: OperationContext, scope: StoreScope): Promise<boolean>;
 }

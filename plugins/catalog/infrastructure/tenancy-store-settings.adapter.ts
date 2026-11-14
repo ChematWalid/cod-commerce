@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { idsAreEqual } from '@vendure/core';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { ActiveStore, StoreSettingsPort } from '../domain/ports/store-settings.port';
+import type { StoreScope } from '../domain/store-scope';
 import { toRequestContext } from './request-scope';
 
 /**
@@ -23,5 +24,11 @@ export class TenancyStoreSettings implements StoreSettingsPort {
     if (settings === null || settings.status !== 'active') return undefined;
     if (!idsAreEqual(settings.channelId, request.channelId)) return undefined;
     return { scope: { businessId, storeId: activeStoreId }, soldOutBehavior: settings.soldOutBehavior };
+  }
+
+  async isChannelOf(ctx: OperationContext, { businessId, storeId }: StoreScope): Promise<boolean> {
+    const request = toRequestContext(ctx);
+    const settings = await this.reader.settingsOf(asTenancyContext(request), businessId, storeId);
+    return settings !== null && idsAreEqual(settings.channelId, request.channelId);
   }
 }

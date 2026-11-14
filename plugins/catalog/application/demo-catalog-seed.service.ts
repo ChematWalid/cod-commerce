@@ -1,5 +1,6 @@
 import { type ProductInput, productInputSchema, type Snowflake } from '@cod/shared';
 import { type DemoProductSpec, demoProductsFor } from '../domain/demo-products';
+import { InvalidCatalogInputError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { isSkuTaken } from '../domain/sku';
 import type { StoreScope } from '../domain/store-scope';
@@ -40,8 +41,11 @@ export class DemoCatalogSeedService {
    * Seeds the store of `scope`, whose channel `ctx` runs in, with the demo products of `language`.
    *
    * @returns the SKUs of the products it created
+   * @throws {@link InvalidCatalogInputError} when `scope` is not the store of `ctx`'s channel: products follow the
+   * channel and their links the scope, so a mismatch would split each product across two stores (D2142).
    */
   async seedStore(ctx: OperationContext, scope: StoreScope, language: string): Promise<readonly string[]> {
+    if (!(await this.ports.stores.isChannelOf(ctx, scope))) throw new InvalidCatalogInputError();
     const created: string[] = [];
     for (const spec of demoProductsFor(language)) {
       if (await this.holdsSku(ctx, spec.sku)) continue;
