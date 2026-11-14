@@ -2,7 +2,7 @@ import { STORE_SWITCH_TIMEOUT_MESSAGE_ID } from '../constants';
 
 /**
  * Where a Create Store stands (D87, SHELL-8). After a timeout the store may already exist, so the form stays closed to a
- * second submit and offers a re-check of the session instead.
+ * second submit and offers a re-check of the session instead, also after the dialog is closed and opened again.
  */
 export type CreateStoreState =
   | { readonly kind: 'idle'; readonly errorId?: string }
@@ -18,7 +18,7 @@ export type CreateStoreEvent =
   | { readonly type: 'found' }
   | { readonly type: 'timed-out' }
   | { readonly type: 'recheck' }
-  | { readonly type: 'reset' };
+  | { readonly type: 'closed' };
 
 export const INITIAL_CREATE_STORE_STATE: CreateStoreState = { kind: 'idle' };
 
@@ -40,7 +40,7 @@ const afterTimeout = (state: TimedOutState, event: CreateStoreEvent): CreateStor
 
 /** The state after `event`; an event the state does not expect leaves it as it is. */
 export function nextCreateStoreState(state: CreateStoreState, event: CreateStoreEvent): CreateStoreState {
-  if (event.type === 'reset') return INITIAL_CREATE_STORE_STATE;
+  if (event.type === 'closed') return state.kind === 'timed-out' ? state : INITIAL_CREATE_STORE_STATE;
   switch (state.kind) {
     case 'idle':
       return event.type === 'submitted' ? { kind: 'creating' } : state;

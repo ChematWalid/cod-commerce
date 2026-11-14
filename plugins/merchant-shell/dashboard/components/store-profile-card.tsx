@@ -25,7 +25,8 @@ interface StoreProfileCardProps {
   readonly canEdit: boolean;
   /**
    * Whether the caller may also upload a logo: the upload needs `settings.business.edit` (D2120). Without it the
-   * logo only shows.
+   * logo only shows. This gates uploading a new file only; the server lets `updateStore` pick any asset already on
+   * the store's channel.
    */
   readonly canUploadLogo: boolean;
 }

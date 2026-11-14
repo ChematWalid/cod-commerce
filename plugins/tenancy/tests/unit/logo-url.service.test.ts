@@ -75,4 +75,50 @@ describe('LogoUrlService', () => {
     expect(none).toBeNull();
     expect(missing).toBeNull();
   });
+
+  it("returns the url of a store's logo held by the store's own channel", async () => {
+    // Arrange
+    const service = new LogoUrlService({ platform, assets });
+
+    // Act
+    const url = await service.storeUrlOf(ctx, { channelId: 3, logoAssetId: ASSET_OF_A });
+
+    // Assert
+    expect(url).toBe('https://assets.test/preview/5.png');
+  });
+
+  it("returns null for a store's logo held only by a sibling store's channel, as updateStore would refuse it", async () => {
+    // Arrange
+    const service = new LogoUrlService({ platform, assets });
+
+    // Act
+    const url = await service.storeUrlOf(ctx, { channelId: 2, logoAssetId: ASSET_OF_A });
+
+    // Assert
+    expect(url).toBeNull();
+  });
+
+  it('looks a store logo up on its own channel only, without listing the business stores', async () => {
+    // Arrange
+    const seen: (readonly number[])[] = [];
+    const counting: AssetAccessPort = {
+      ...assets,
+      previewUrlInChannels: (innerCtx, assetId, channelIds) => {
+        seen.push(channelIds);
+        return assets.previewUrlInChannels(innerCtx, assetId, channelIds);
+      },
+    };
+    const noListing: Pick<PlatformStorePort, 'findStoreAccess'> = {
+      findStoreAccess: () => Promise.reject(new Error('a store logo must not list the business stores')),
+    };
+    const service = new LogoUrlService({ platform: noListing, assets: counting });
+
+    // Act
+    await service.storeUrlOf(ctx, { channelId: 4, logoAssetId: ASSET_OF_B });
+    const none = await service.storeUrlOf(ctx, { channelId: 4, logoAssetId: null });
+
+    // Assert
+    expect(seen).toEqual([[4]]);
+    expect(none).toBeNull();
+  });
 });

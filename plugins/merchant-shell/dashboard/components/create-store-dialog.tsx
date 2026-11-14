@@ -110,7 +110,7 @@ export function CreateStoreDialog({ open, platformDomain, switchTo, onOpenChange
   const check = useSubdomainAvailability(form.subdomain);
   const close = (): void => {
     setForm(EMPTY_FORM);
-    create.reset();
+    create.close();
     onOpenChange(false);
   };
   const create = useCreateStore(switchTo, close);

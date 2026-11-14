@@ -24,16 +24,14 @@ export class BusinessLogoUrlResolver {
   }
 }
 
-/** `Store.logoUrl`, checked against the channels of the store's own business like {@link BusinessLogoUrlResolver}. */
+/** `Store.logoUrl`, checked against the store's own channel, the rule `updateStore` writes it under (D2120). */
 @Resolver('Store')
 export class StoreLogoUrlResolver {
   constructor(private readonly logos: LogoUrlService) {}
 
-  /** The logo's preview URL, or `null` when there is none or it is not the business's own asset. */
+  /** The logo's preview URL, or `null` when there is none or the store's channel does not hold it. */
   @ResolveField()
   logoUrl(@Ctx() ctx: RequestContext, @Parent() store: Store): Promise<string | null> {
-    return withApiErrors(() =>
-      this.logos.urlOf(asOperationContext(ctx), toBusinessId(store.businessId), store.logoAssetId),
-    );
+    return withApiErrors(() => this.logos.storeUrlOf(asOperationContext(ctx), store));
   }
 }

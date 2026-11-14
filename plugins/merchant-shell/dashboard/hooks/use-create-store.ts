@@ -64,7 +64,8 @@ export interface CreateStore {
   /** Set after a timeout: waits for the same store again instead of creating another one. */
   readonly recheck: (() => void) | undefined;
   readonly errorId: string | undefined;
-  readonly reset: () => void;
+  /** Clears the form's outcome when the dialog closes, except a timeout, which a reopened dialog still shows. */
+  readonly close: () => void;
 }
 
 /**
@@ -137,8 +138,8 @@ function createStoreView(
     canSubmit: canSubmitStore(state),
     recheck: canRecheck(state) ? recheck : undefined,
     errorId: createStoreErrorIdOf(state),
-    reset: () => {
-      dispatch({ type: 'reset' });
+    close: () => {
+      dispatch({ type: 'closed' });
     },
   };
 }

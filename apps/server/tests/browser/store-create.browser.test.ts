@@ -1,4 +1,9 @@
-import { CREATE_STORE_DIALOG_TEST_ID, STORE_CREATE_TEST_ID, STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
+import {
+  CREATE_STORE_DIALOG_TEST_ID,
+  CREATE_STORE_RECHECK_TEST_ID,
+  STORE_CREATE_TEST_ID,
+  STORE_SWITCHER_TEST_ID,
+} from '@cod/plugin-merchant-shell';
 import { type Browser, type BrowserContext, chromium, type Locator, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
@@ -22,6 +27,9 @@ const LONG_ARABIC_NAME = 'متجر'.repeat(15);
 /** The dialog waits up to 10 s for the new store's channel (D87). */
 const SWITCH_AFTER_CREATE_MS = 12_000;
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
+const CREATE_STORE_OPERATION = /mutation ShellCreateStore\b/;
+/** A channel token no session ever lists, so the dialog's wait for it times out. */
+const NEVER_LISTED_TOKEN = 'never-listed-channel-token';
 
 const runId = Date.now().toString(36);
 let sequence = 0;
@@ -95,6 +103,37 @@ describe('create store and store language', () => {
       if (created !== undefined) disposable.push(created.id);
     } finally {
       await setDisplayLanguage(page, 'en');
+    }
+  });
+
+  it('after a timeout offers Check again instead of Create, also once the dialog is closed and reopened (SHELL-8)', async () => {
+    // The server answers with a store whose channel never reaches the session; nothing is created.
+    await page.route('**/admin-api**', async (route) => {
+      if (!CREATE_STORE_OPERATION.test(route.request().postData() ?? '')) return route.fallback();
+      return route.fulfill({ json: { data: { createStore: { id: 'T_0', channelToken: NEVER_LISTED_TOKEN } } } });
+    });
+    try {
+      await loginAsDemoOwner(page, DASHBOARD_URL);
+      await byTestId(page, STORE_SWITCHER_TEST_ID).click();
+      await byTestId(page, STORE_CREATE_TEST_ID).click();
+      const dialog = byTestId(page, CREATE_STORE_DIALOG_TEST_ID);
+      await dialog.getByRole('textbox').nth(0).fill(`Timed out ${runId}`);
+      await dialog.getByRole('textbox').nth(1).fill(uniqueSubdomain());
+      await expect.poll(() => dialog.locator('button[type="submit"]').isEnabled()).toBe(true);
+      await dialog.locator('button[type="submit"]').click();
+
+      await byTestId(page, CREATE_STORE_RECHECK_TEST_ID).waitFor({ timeout: SWITCH_AFTER_CREATE_MS });
+      expect(await dialog.locator('button[type="submit"]').count()).toBe(0);
+
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
+      await dialog.waitFor({ state: 'detached' });
+      await byTestId(page, STORE_SWITCHER_TEST_ID).click();
+      await byTestId(page, STORE_CREATE_TEST_ID).click();
+
+      await byTestId(page, CREATE_STORE_RECHECK_TEST_ID).waitFor();
+      expect(await byTestId(page, CREATE_STORE_DIALOG_TEST_ID).locator('button[type="submit"]').count()).toBe(0);
+    } finally {
+      await page.unroute('**/admin-api**');
     }
   });
 

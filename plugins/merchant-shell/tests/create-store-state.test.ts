@@ -76,8 +76,29 @@ describe('create store state', () => {
     expect(canRecheck(failed)).toBe(false);
   });
 
-  it('starts over when the dialog is reset', () => {
-    expect(nextCreateStoreState(timedOut(), { type: 'reset' })).toEqual(INITIAL_CREATE_STORE_STATE);
+  it('starts over when the dialog is closed after a refusal', () => {
+    // Arrange
+    const submitted = nextCreateStoreState(INITIAL_CREATE_STORE_STATE, { type: 'submitted' });
+    const refused = nextCreateStoreState(submitted, { type: 'failed', messageId: 'shell.store.create.failed' });
+
+    // Act
+    const closed = nextCreateStoreState(refused, { type: 'closed' });
+
+    // Assert
+    expect(closed).toEqual(INITIAL_CREATE_STORE_STATE);
+  });
+
+  it('keeps a timed-out store across closing and reopening the dialog, so Create stays replaced by a re-check', () => {
+    // Arrange
+    const state = timedOut();
+
+    // Act
+    const closed = nextCreateStoreState(state, { type: 'closed' });
+
+    // Assert
+    expect(closed).toEqual(state);
+    expect(canSubmitStore(closed)).toBe(false);
+    expect(canRecheck(closed)).toBe(true);
   });
 
   it('ignores a timeout or a found channel it is not waiting for', () => {

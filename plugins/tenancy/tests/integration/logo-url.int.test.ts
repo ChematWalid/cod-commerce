@@ -1,10 +1,12 @@
-import { TransactionalConnection } from '@vendure/core';
+import { Asset, type AssetStorageStrategy, ConfigService, TransactionalConnection } from '@vendure/core';
 import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
 import { BusinessEntity } from '../../infrastructure/business.entity';
 import { UPDATE_BUSINESS, UPDATE_STORE } from './admin-api-operations';
 import { seedAsset } from './admin-api-session';
 import { useStoreApi } from './store-api-harness';
+
+type AssetRequest = Parameters<NonNullable<AssetStorageStrategy['toAbsoluteUrl']>>[0];
 
 const BUSINESS_LOGO = gql`
   query {
@@ -37,6 +39,20 @@ describe('logoUrl is resolved only for an asset of the business', () => {
   const { server, adminClient, asAlpha } = api;
   const businesses = () => server.app.get(TransactionalConnection).rawConnection.getRepository(BusinessEntity);
 
+  /** The URL the configured storage strategy gives `assetId`'s preview: what a browser loads, not the raw key. */
+  async function absolutePreviewUrl(assetId: number): Promise<string> {
+    const { preview } = await server.app
+      .get(TransactionalConnection)
+      .rawConnection.getRepository(Asset)
+      .findOneByOrFail({ id: assetId });
+    const storage = server.app.get(ConfigService).assetOptions.assetStorageStrategy;
+    if (storage.toAbsoluteUrl === undefined) throw new Error('the storage strategy gives no absolute URLs');
+    // The testing strategy ignores the request; a real one reads its host from it.
+    const absolute = storage.toAbsoluteUrl({} as AssetRequest, preview);
+    expect(absolute).not.toBe(preview);
+    return absolute;
+  }
+
   it("returns a url for the business's own logo", async () => {
     // Arrange
     const logoAssetId = await seedAsset(server.app, api.alpha.store.channelId);
@@ -49,7 +65,7 @@ describe('logoUrl is resolved only for an asset of the business', () => {
     const { store } = await adminClient.query<{ store: LogoView }>(STORE_LOGO, { id: api.alpha.store.id });
 
     // Assert
-    expect(activeBusiness.logoUrl).toContain('preview/');
+    expect(activeBusiness.logoUrl).toBe(await absolutePreviewUrl(engineId(logoAssetId)));
     expect(store.logoUrl).toBe(activeBusiness.logoUrl);
   });
 

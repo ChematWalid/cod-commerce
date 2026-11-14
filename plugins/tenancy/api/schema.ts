@@ -30,7 +30,7 @@ export const adminApiSchema = gql`
     name: String!
     description: String!
     logoAssetId: ID
-    "The logo's preview URL; null without a logo, or when the asset is not one of the business's own (D2120)."
+    "The logo's preview URL; null without a logo, or when the store's own channel does not hold the asset (D2120)."
     logoUrl: String
     language: String!
     subdomain: String!
