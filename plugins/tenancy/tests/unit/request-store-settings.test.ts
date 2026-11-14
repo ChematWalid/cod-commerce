@@ -71,6 +71,19 @@ describe('RequestStoreSettings', () => {
     expect(reader.businesses).toEqual([]);
   });
 
+  it('reads another store the caller holds a role on, not only the active one', async () => {
+    // Arrange
+    const reader = new RecordingReader();
+    const ctx = contextOf({ businessId: BUSINESS_A, storeIds: [STORE_A, OTHER_STORE_OF_A], activeStoreId: STORE_A });
+
+    // Act
+    const settings = await new RequestStoreSettings(reader).settingsOf(ctx, OTHER_STORE_OF_A);
+
+    // Assert
+    expect(settings).toEqual(SETTINGS);
+    expect(reader.businesses).toEqual([BUSINESS_A]);
+  });
+
   it('refuses a request that did not pass the tenant guard', async () => {
     // Arrange
     const reader = new RecordingReader();

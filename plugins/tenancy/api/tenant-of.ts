@@ -21,11 +21,13 @@ export function rememberTenant(ctx: RequestContext, tenant: TenantContext): void
 }
 
 /**
- * The tenant already resolved for this context, if any. For code that must also run outside a tenant-scoped request
- * (the tenant guard, the naming strategy, D2106) and therefore decides itself what "no tenant" means.
+ * The tenant already resolved for this context, or `undefined` on any request that did not pass `@TenantScoped()`
+ * (and on a scoped one before the guard ran). For code that must also run outside a tenant-scoped request (the tenant
+ * guard, the naming strategy, D2106).
  *
- * Never let it drive data access: `undefined` is not "no filter". A handler reads its tenant with {@link tenantOf},
- * which fails closed, and a store's settings with `RequestStoreSettings`.
+ * A caller that gets `undefined` must refuse, or do only what needs no tenant: `undefined` never means "no filter"
+ * and must not drive data access. A handler reads its tenant with {@link tenantOf}, which throws instead, and a
+ * store's settings with `RequestStoreSettings`, which also limits them to the caller's reachable stores.
  */
 export function findTenant(ctx: RequestContext): TenantContext | undefined {
   const anchor = anchorOf(ctx);
