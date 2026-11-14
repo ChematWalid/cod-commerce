@@ -23,6 +23,17 @@ describe('keepsPackBoundary (D2227)', () => {
     expect(keepsPackBoundary('pack', { variants: [{ oldPrice: 100 }] })).toBe(false);
     expect(keepsPackBoundary('pack', { variants: [{}] })).toBe(true);
   });
+
+  it("keeps a pack's variant matrix and weight read-only: catalog-packs computes them", () => {
+    expect(keepsPackBoundary('pack', { optionGroups: [] })).toBe(false);
+    expect(keepsPackBoundary('pack', { optionGroups: [{ name: 'Size', values: ['S', 'M'] }] })).toBe(false);
+    expect(keepsPackBoundary('pack', { weight: 1 })).toBe(false);
+    expect(keepsPackBoundary('pack', { weight: null })).toBe(false);
+  });
+
+  it('lets a physical product edit its options and weight', () => {
+    expect(keepsPackBoundary('physical', { optionGroups: [{ name: 'Size', values: ['S'] }], weight: 1 })).toBe(true);
+  });
 });
 
 describe('UpdateProductService and packs (D2227)', () => {
@@ -69,6 +80,17 @@ describe('UpdateProductService and packs (D2227)', () => {
     // Assert
     await expect(product).rejects.toBeInstanceOf(InvalidCatalogInputError);
     await expect(variant).rejects.toBeInstanceOf(InvalidCatalogInputError);
+  });
+
+  it('refuses an options or weight edit on a pack and saves nothing', async () => {
+    // Act
+    const options = update(pack.id, { optionGroups: [{ name: 'Size', values: ['S', 'M', 'L'] }] });
+    const weight = update(pack.id, { weight: 1 });
+
+    // Assert
+    await expect(options).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    await expect(weight).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    expect(world.products.calls.filter((call) => call.startsWith('update:'))).toEqual([]);
   });
 
   it('still edits the other fields of a pack', async () => {
