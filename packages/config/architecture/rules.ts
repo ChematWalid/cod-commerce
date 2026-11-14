@@ -195,7 +195,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'catalog-entry-infra-only',
     comment:
-      "The catalog entry exports Nest services and catalog's module: outside catalog only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or an app may import it; application/, domain/ and api/ reach it through their own ports (D2104, D2137). dashboard/ is refused by dashboard-no-server-entry too.",
+      "The catalog entry exports Nest services and catalog's module: outside catalog only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2104, D2137). Frontend apps never import it: they are API clients and must not bundle server services (ADR 0017). dashboard/ is refused by dashboard-no-server-entry too.",
     severity: 'error',
     from: {
       pathNot: [
@@ -203,7 +203,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
         '^plugins/[^/]+/tests/',
         '^plugins/catalog/',
-        '^apps/',
+        '^apps/server/',
       ],
     },
     to: { path: CATALOG_ENTRY },

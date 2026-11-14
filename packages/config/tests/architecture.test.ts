@@ -58,18 +58,35 @@ describe('architecture rules', () => {
     });
   });
 
-  it('lets an app import the catalog entry', async () => {
-    // Arrange: apps register the plugin and call its exported services (D2104, D2129)
-    const roots = ['apps/good'];
+  it('lets the server app import the catalog entry', async () => {
+    // Arrange: the server app registers the plugin and calls its exported services (D2104, D2129)
+    const roots = ['apps/server'];
 
     // Act
     const good = await checkArchitecture({ baseDir: fixturesArch, roots });
 
     // Assert
     expect(good.cruisedModules).toEqual(
-      expect.arrayContaining(['apps/good/uses-catalog-package.ts', 'plugins/catalog/index.ts']),
+      expect.arrayContaining(['apps/server/uses-catalog-package.ts', 'plugins/catalog/index.ts']),
     );
     expect(good.violations).toEqual([]);
+  });
+
+  it('refuses the catalog entry in a frontend app', async () => {
+    // Arrange: frontends are API clients and never bundle server services (ADR 0017)
+    const roots = ['apps/storefront'];
+
+    // Act
+    const bad = await checkArchitecture({ baseDir: fixturesArch, roots });
+
+    // Assert
+    expect(bad.violations).toEqual([
+      {
+        rule: 'catalog-entry-infra-only',
+        from: 'apps/storefront/uses-catalog-package.ts',
+        to: 'plugins/catalog/index.ts',
+      },
+    ]);
   });
 
   it('accepts a plugin that follows the dependency direction', async () => {
