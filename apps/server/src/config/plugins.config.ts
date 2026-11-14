@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
@@ -147,11 +148,18 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
   });
 
 /**
- * RBAC, auth, catalog and Team, in this order: Team builds on the services of the others (D206) and registers its
- * order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137).
+ * RBAC, auth, catalog, collections and Team, in this order: Team builds on the services of the others (D206) and
+ * registers its order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137);
+ * collections import the catalog's module, so they come right after it (P2.S3).
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
-  return [RbacPlugin, authPlugin(env), CatalogPlugin, TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL })];
+  return [
+    RbacPlugin,
+    authPlugin(env),
+    CatalogPlugin,
+    CollectionsRulesPlugin,
+    TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
+  ];
 }
 
 /**
