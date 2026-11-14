@@ -1,3 +1,4 @@
+import { CATALOG_MAX_PAGE_SIZE, type Snowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { SortOrder } from '@vendure/common/lib/generated-types';
 import {
@@ -154,9 +155,29 @@ export class VendureProductCatalog implements ProductCatalogPort {
     return { slug: normal, productId: holder === undefined ? undefined : coreIdOf(holder.id) };
   }
 
+  async clearBrand(ctx: OperationContext, brandId: Snowflake): Promise<readonly CoreId[]> {
+    const request = toRequestContext(ctx);
+    const branded = await this.idsWithBrand(request, brandId);
+    for (const id of branded) await this.products.update(request, { id, customFields: { brandId: null } });
+    return branded;
+  }
+
   async existingCollections(ctx: OperationContext, ids: readonly CoreId[]): Promise<readonly CoreId[]> {
     const found = await this.collections.findByIds(toRequestContext(ctx), [...ids]);
     return found.map((collection) => coreIdOf(collection.id));
+  }
+
+  /** Every live product of the store naming `brandId`, read page by page before any of them changes. */
+  private async idsWithBrand(ctx: RequestContext, brandId: Snowflake): Promise<CoreId[]> {
+    const ids: CoreId[] = [];
+    let totalItems = Number.POSITIVE_INFINITY;
+    while (ids.length < totalItems) {
+      const page = await this.products.findAll(ctx, brandPageOf(brandId, ids.length), []);
+      if (page.items.length === 0) break;
+      ids.push(...page.items.map((product) => coreIdOf(product.id)));
+      totalItems = page.totalItems;
+    }
+    return ids;
   }
 
   private targetOf(ctx: RequestContext, productId: CoreId): OptionTarget {
@@ -184,6 +205,12 @@ export class VendureProductCatalog implements ProductCatalogPort {
     const variants = await this.variants.getVariantsByProductId(ctx, id, {}, ['options']);
     return productRecordOf(product, variants.items, languageOf(ctx));
   }
+}
+
+/** One page of the products naming `brandId`, in id order so pages neither overlap nor skip a row. */
+function brandPageOf(brandId: Snowflake, skip: number): ListQueryOptions<Product> {
+  const filter = { brandId: { eq: brandId } };
+  return { skip, take: CATALOG_MAX_PAGE_SIZE, sort: { id: SortOrder.ASC }, filter } as ListQueryOptions<Product>;
 }
 
 /** The Vendure list options of a page: newest first; our custom fields filter by name (D2123). */

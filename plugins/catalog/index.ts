@@ -5,3 +5,6 @@ export { CatalogPlugin } from './catalog.plugin';
 export { CatalogProductQueries } from './infrastructure/catalog-product-queries';
 export type { ProductView } from './application/product-view';
 export type { ProductViewPage } from './application/list-products.service';
+export { ORDER_MANAGER_CHECK_REGISTRAR } from './application/tokens';
+export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/ports/order-manager-check.port';
+export type { OperationContext as CatalogOperationContext } from './domain/ports/operation-context';

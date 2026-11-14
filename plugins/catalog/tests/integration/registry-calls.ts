@@ -5,7 +5,13 @@ export interface TargetIds {
   readonly productId: string;
   readonly variantId: string;
   readonly collectionId: string;
+  readonly brandId: string;
+  readonly tagId: string;
+  readonly highlightId: string;
 }
+
+/** The id of {@link TargetIds} an entry names: the one a malformed id replaces and an own-only answer must not hold. */
+export type TargetIdField = keyof TargetIds;
 
 /**
  * What another business's caller gets when it names the target's ids: `null` (a read of none), `not-found` (the
@@ -20,6 +26,10 @@ export interface OperationEntry {
   readonly foreign: ForeignOutcome;
   /** Whether the call names one id that a malformed id can replace. */
   readonly byId: boolean;
+  /** The id the entry is about; `productId` when absent. */
+  readonly idField?: TargetIdField;
+  /** The not-found code a foreign id answers; the product's when absent. */
+  readonly notFound?: string;
   readonly document: string;
   readonly variables: (ids: TargetIds) => Readonly<Record<string, unknown>>;
 }
@@ -30,6 +40,10 @@ export interface RouteEntry {
   readonly route: string;
   readonly access: PermissionKey;
   readonly foreign: ForeignOutcome;
+  /** The id the entry is about; `productId` when absent. */
+  readonly idField?: TargetIdField;
+  /** The not-found code a foreign id answers; the product's when absent. */
+  readonly notFound?: string;
   readonly url: (ids: TargetIds) => string;
   readonly body?: (ids: TargetIds) => Readonly<Record<string, unknown>>;
 }

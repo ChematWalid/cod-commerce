@@ -1,5 +1,6 @@
 import type { ProductChangeKind, TenantScope } from '@cod/shared';
 import type { ProductPorts } from '../../application/catalog-ports';
+import { OrderManagerCheckRegistry } from '../../application/order-manager-check.registry';
 import type { CoreId } from '../../domain/core-id';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { StoreScope } from '../../domain/store-scope';
@@ -28,6 +29,8 @@ export class ProductWorld {
   readonly settings = new InMemoryProductSettingsRepository();
   readonly media = new InMemoryMediaRepository();
   readonly collections = new InMemoryProductCollectionRepository();
+  /** Where a test registers a fake team check (D2114); empty by default, like a server without team. */
+  readonly orderManagerChecks = new OrderManagerCheckRegistry();
   readonly events: PublishedEvent[] = [];
   /** Product ids the fake search answers with, whatever the text. */
   searchHits: CoreId[] = [];
@@ -59,6 +62,7 @@ export class ProductWorld {
     sanitizer: { sanitize: (html) => html.replaceAll(/<script>.*?<\/script>/g, '') },
     ids: { next: newId },
     clock: { now: () => T0 },
+    orderManagers: this.orderManagerChecks,
   };
 
   /** The context of a call made in `scope`'s store channel. */

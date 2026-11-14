@@ -3,7 +3,7 @@ import { failureOf } from '@cod/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { catalogSuite, CREATE_PRODUCT } from './catalog-kit';
 
-const suite = catalogSuite(1027, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+const suite = catalogSuite(1023, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 /** Text a database or Vendure fault carries that no client may read (D2136). */
 const LEAKS = [/catalog_product_settings/i, /relation/i, /does not exist/i, /QueryFailedError/];
 

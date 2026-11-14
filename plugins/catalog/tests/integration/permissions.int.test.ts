@@ -5,8 +5,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { PRODUCT_PERMISSIONS } from '../../api/permissions';
 import { catalogSuite } from './catalog-kit';
 import { OPERATION_REGISTRY, ROUTE_REGISTRY, type TargetIds } from './endpoint-registry';
+import { createTaxonomy } from './taxonomy-kit';
 
-const suite = catalogSuite(1026, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+const suite = catalogSuite(1022, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FORBIDDEN = 'FORBIDDEN';
 const FORBIDDEN_STATUS = 403;
 const PRODUCT_KEYS = Object.values(PRODUCT_PERMISSIONS);
@@ -25,7 +26,8 @@ describe('catalog handlers refuse a role that lacks their key', () => {
       title: 'Guarded',
       optionGroups: [{ name: 'Size', values: ['S'] }],
     });
-    ids = { productId: product.id, variantId: product.variants[0]?.id ?? '', collectionId };
+    const taxonomy = await createTaxonomy(suite.kit);
+    ids = { productId: product.id, variantId: product.variants[0]?.id ?? '', collectionId, ...taxonomy };
   });
 
   it.each(OPERATION_REGISTRY.filter((entry) => entry.access !== 'catalog.products.view'))(

@@ -1,11 +1,12 @@
 import gql from 'graphql-tag';
+import { taxonomyAdminApiSchema } from './taxonomy-schema';
 
 /**
  * The catalog's Admin API (D2101): every name is prefixed so none collides with Vendure's own product API. Vendure
  * ids (products, variants, options, images, collections) are `ID`; our snowflakes (brands, tags, highlights, order
  * managers) are `String` (D1).
  */
-export const catalogAdminApiSchema = gql`
+const productAdminApiSchema = gql`
   enum CatalogProductStatus {
     active
     hidden
@@ -227,4 +228,10 @@ export const catalogAdminApiSchema = gql`
     setCatalogProductStatus(id: ID!, status: CatalogProductStatus!): CatalogProduct!
     deleteCatalogProduct(id: ID!): Boolean!
   }
+`;
+
+/** Every operation of the catalog's Admin API: products, then brands, tags and highlights (Task 12). */
+export const catalogAdminApiSchema = gql`
+  ${productAdminApiSchema}
+  ${taxonomyAdminApiSchema}
 `;

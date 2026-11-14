@@ -60,6 +60,12 @@ export interface ProductCatalogPort {
    */
   findBySlug(ctx: OperationContext, slug: string): Promise<SlugLookup>;
 
+  /**
+   * Clears `brandId` from every live product of the store that names it, before the brand is deleted (D2140), and
+   * returns the products it changed.
+   */
+  clearBrand(ctx: OperationContext, brandId: Snowflake): Promise<readonly CoreId[]>;
+
   /** The collections of the store among `ids`; others, of another channel or none at all, are left out (D2134). */
   existingCollections(ctx: OperationContext, ids: readonly CoreId[]): Promise<readonly CoreId[]>;
 }

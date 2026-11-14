@@ -2,7 +2,7 @@ import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { describe, expect, it } from 'vitest';
 import { catalogSuite, SLUG } from './catalog-kit';
 
-const suite = catalogSuite(1024, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+const suite = catalogSuite(1020, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const ARABIC_SLUG = 'حذاء-رياضي-أحمر';
 
 interface SlugAnswer {

@@ -2,7 +2,8 @@ import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { CATALOG_ERROR_CODES, CATALOG_MAX_PAGE_SIZE } from '@cod/shared';
 import { failureOf } from '@cod/testing';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { catalogSuite, insertNameRow, type ProductResult, PRODUCTS, UPDATE_PRODUCT } from './catalog-kit';
+import { catalogSuite, type ProductResult, PRODUCTS, UPDATE_PRODUCT } from './catalog-kit';
+import { insertNameRow } from './rows';
 
 const suite = catalogSuite(1023, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 

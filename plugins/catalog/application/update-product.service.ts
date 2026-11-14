@@ -7,7 +7,7 @@ import type { StoreScope } from '../domain/store-scope';
 import { planVariantMatrix } from '../domain/variant-matrix';
 import type { ProductPorts } from './catalog-ports';
 import { fieldsAfterPatch, slugOf } from './product-fields';
-import { type CheckedReferences, coreIdsOf, ProductReferenceCheck } from './product-references';
+import { type CheckedReferences, coreIdsOf, ProductReferenceCheck, type ReferenceInput } from './product-references';
 import { type ProductSaveResult, saveLinks, viewOf, warningsOf } from './product-view';
 
 /** The variant edits of a patch, each naming a live variant of `record`; any other id answers not found (D2135). */
@@ -29,6 +29,13 @@ const variantAssetIdsOf = (patch: ProductPatchCommand): string[] =>
   (patch.variants ?? []).flatMap((variant) =>
     typeof variant.featuredAssetId === 'string' ? [variant.featuredAssetId] : [],
   );
+
+/** Every id a patch names, for the reference check. */
+const referencesOf = (patch: ProductPatchCommand): ReferenceInput => ({
+  ...patch,
+  variantAssetIds: variantAssetIdsOf(patch),
+  orderManagerIds: patch.settings?.orderManagerIds,
+});
 
 /** The update of `record` that `patch` asks for; the matrix is always re-planned so names follow the title. */
 function updateOf(
@@ -78,7 +85,7 @@ export class UpdateProductService {
       if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();
-      const refs = await this.references.check(tx, scope, { ...patch, variantAssetIds: variantAssetIdsOf(patch) });
+      const refs = await this.references.check(tx, scope, referencesOf(patch));
       const saved = await this.save(tx, id, updateOf(record, patch, refs, this.ports));
       await saveLinks(this.ports, tx, { scope, productId: id }, { refs, settings: patch.settings });
       await this.ports.events.publish(tx, scope, id, 'updated');

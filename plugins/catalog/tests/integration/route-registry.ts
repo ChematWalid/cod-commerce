@@ -1,4 +1,5 @@
 import type { RouteEntry } from './registry-calls';
+import { TAXONOMY_ROUTES } from './taxonomy-registry';
 
 const productUrl =
   (suffix = '') =>
@@ -59,4 +60,5 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     foreign: 'not-found',
     url: productUrl(),
   },
+  ...TAXONOMY_ROUTES,
 ];

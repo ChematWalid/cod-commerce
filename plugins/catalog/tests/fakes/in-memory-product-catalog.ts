@@ -169,6 +169,14 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
     return Promise.resolve({ slug: normal, productId: holder?.record.id });
   }
 
+  clearBrand(ctx: OperationContext, brandId: string): Promise<readonly CoreId[]> {
+    const branded = this.stored.filter(
+      (row) => row.storeId === storeOf(ctx) && !row.deleted && row.record.brandId === brandId,
+    );
+    for (const row of branded) row.record = { ...row.record, brandId: null };
+    return Promise.resolve(branded.map((row) => row.record.id));
+  }
+
   existingCollections(ctx: OperationContext, ids: readonly CoreId[]): Promise<readonly CoreId[]> {
     const own = this.collections.get(storeOf(ctx)) ?? new Set<string>();
     return Promise.resolve(ids.filter((id) => own.has(id)));

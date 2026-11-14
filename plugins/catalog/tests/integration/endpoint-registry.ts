@@ -3,6 +3,7 @@
  * another business gets back. The coverage test and the isolation sweep both read it.
  */
 import type { OperationEntry, TargetIds } from './registry-calls';
+import { TAXONOMY_OPERATIONS } from './taxonomy-registry';
 
 export { ROUTE_REGISTRY } from './route-registry';
 export {
@@ -11,6 +12,7 @@ export {
   operationKey,
   type RouteEntry,
   routeKey,
+  type TargetIdField,
   type TargetIds,
 } from './registry-calls';
 
@@ -83,4 +85,5 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     document: 'mutation ($id: ID!) { deleteCatalogProduct(id: $id) }',
     variables: (ids) => ({ id: ids.productId }),
   },
+  ...TAXONOMY_OPERATIONS,
 ];

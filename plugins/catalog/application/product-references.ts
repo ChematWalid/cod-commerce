@@ -4,6 +4,7 @@ import {
   BrandNotFoundError,
   HighlightNotFoundError,
   MediaNotFoundError,
+  OrderManagerUnknownError,
   ProductNotFoundError,
   TagNotFoundError,
 } from '../domain/errors';
@@ -11,6 +12,7 @@ import { assertHighlightCount } from '../domain/highlights';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import type { ProductPorts } from './catalog-ports';
+import { checkOrderManagers } from './product-settings.service';
 
 /** The ids a product body names, as sent; `undefined` means "not sent", `null` clears a single id. */
 export interface ReferenceInput {
@@ -22,6 +24,8 @@ export interface ReferenceInput {
   readonly assetIds?: readonly string[];
   /** Featured images of edited variants; checked like product images. */
   readonly variantAssetIds?: readonly string[];
+  /** The order managers the settings name; team's check must accept each for the store (D2114). */
+  readonly orderManagerIds?: readonly string[];
 }
 
 /** The same ids once each is known to belong to the caller's store (D2134, D2135); `undefined` stays "not sent". */
@@ -62,8 +66,9 @@ const allFound = (wanted: readonly string[], found: readonly string[]): boolean 
 /**
  * Checks that every id a product body names is the caller's: brands, tags and highlights of the active store,
  * collections of its channel, images of the media the caller may use (the active store's until the team check of
- * D2132 is registered). Another business's id, the business's other store's id and a malformed id all answer "not
- * found" with the entity's code; nothing is written before every id passed.
+ * D2132 is registered), order managers team's check accepts for the store (D2114). Another business's id, the
+ * business's other store's id and a malformed id all answer "not found" with the entity's code; nothing is written
+ * before every id passed.
  */
 export class ProductReferenceCheck {
   constructor(private readonly ports: ProductPorts) {}
@@ -75,6 +80,7 @@ export class ProductReferenceCheck {
       this.highlights(ctx, scope, input.highlightIds),
       this.collections(ctx, input.collectionIds),
       this.assets(ctx, scope, input),
+      checkOrderManagers(this.ports, ctx, scope, snowflakesOf(input.orderManagerIds ?? [], OrderManagerUnknownError)),
     ]);
     return { brandId, tagIds, highlightIds, collectionIds, ...assets };
   }

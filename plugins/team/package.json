@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@cod/plugin-auth": "workspace:*",
+    "@cod/plugin-catalog": "workspace:*",
     "@cod/plugin-merchant-shell": "workspace:*",
     "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",

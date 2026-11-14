@@ -1,4 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth/invitations';
+import { CatalogPlugin } from '@cod/plugin-catalog';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac/member-access';
@@ -38,6 +39,7 @@ import {
   SALARY_PAYMENT_REPOSITORY,
   TRANSACTION,
 } from './application/tokens';
+import { CatalogOrderManagerCheck } from './infrastructure/catalog-order-manager.check';
 import { CommissionConfigEntity } from './infrastructure/commission-config.entity';
 import { COMMISSION_PROVIDERS } from './infrastructure/commission.providers';
 import { CONVERGE_PROVIDERS } from './infrastructure/converge.providers';
@@ -75,8 +77,17 @@ function requireOptions(): TeamPluginOptions {
  */
 @VendurePlugin({
   // `RateLimitPlugin` serves the `@RateLimit` guard and the limiter; `AuthPlugin` the invitation account and email;
-  // `PlatformOutboxPlugin` the outbox `salary.paid` is written to (D222).
-  imports: [PluginCommonModule, TenancyPlugin, RbacPlugin, AuthPlugin, RateLimitPlugin, PlatformOutboxPlugin],
+  // `PlatformOutboxPlugin` the outbox `salary.paid` is written to (D222); `CatalogPlugin` the registrar of the
+  // order-manager check (D2114, D2137).
+  imports: [
+    PluginCommonModule,
+    TenancyPlugin,
+    RbacPlugin,
+    AuthPlugin,
+    RateLimitPlugin,
+    PlatformOutboxPlugin,
+    CatalogPlugin,
+  ],
   entities: [TeamMemberEntity, InvitationEntity, CommissionConfigEntity, SalaryPaymentEntity],
   providers: [
     { provide: MEMBER_REPOSITORY, useClass: TypeOrmMemberRepository },
@@ -104,6 +115,7 @@ function requireOptions(): TeamPluginOptions {
     TeamRequestActors,
     TeamThrottle,
     TeamTranslations,
+    CatalogOrderManagerCheck,
   ],
   adminApiExtensions: {
     schema: teamAdminApiSchema,

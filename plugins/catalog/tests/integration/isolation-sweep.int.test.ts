@@ -9,10 +9,12 @@ import {
   OPERATION_REGISTRY,
   type RouteEntry,
   ROUTE_REGISTRY,
+  type TargetIdField,
   type TargetIds,
 } from './endpoint-registry';
+import { createTaxonomy } from './taxonomy-kit';
 
-const suite = catalogSuite(1028, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+const suite = catalogSuite(1020, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const NOT_FOUND = CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND;
 const MALFORMED_IDS = ['abc', '-1', '1.5', '99999999999999999999', ''];
 /** Text no answer may carry: SQL, entity names, stacks (D2136). */
@@ -43,17 +45,29 @@ async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Out
   }
 }
 
-/** A's own outcome must not hold B's product: null, not found, or an answer about A's store only. */
+/** What the sweep reads of a registry entry. */
+interface SweptEntry {
+  readonly foreign: string;
+  readonly idField?: TargetIdField;
+  readonly notFound?: string;
+}
+
+const fieldOf = (entry: SweptEntry): TargetIdField => entry.idField ?? 'productId';
+
+/** A's own outcome must not hold B's row: null, not found, or an answer about A's store only. */
 function expectForeign(
-  entry: { foreign: string },
+  entry: SweptEntry,
   outcome: { code: string | undefined; data: unknown; text: string },
   ids: TargetIds,
 ) {
   if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
-  if (entry.foreign === 'not-found') expect(outcome.code).toBe(NOT_FOUND);
-  if (entry.foreign === 'own-only') expect(outcome.text).not.toContain(`"${ids.productId}"`);
+  if (entry.foreign === 'not-found') expect(outcome.code).toBe(entry.notFound ?? NOT_FOUND);
+  if (entry.foreign === 'own-only') expect(outcome.text).not.toContain(`"${ids[fieldOf(entry)]}"`);
   for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
 }
+
+/** The product entries: the store-isolation block below aims them at a product of A's first store. */
+const isProductEntry = (entry: SweptEntry): boolean => entry.idField === undefined;
 
 describe('catalog isolation sweep (two businesses)', () => {
   let idsOfB: TargetIds;
@@ -69,8 +83,10 @@ describe('catalog isolation sweep (two businesses)', () => {
       collectionIds: [`T_${collectionId}`],
       optionGroups: [{ name: 'Size', values: ['S'] }],
     });
-    idsOfB = { productId: product.id, variantId: product.variants[0]?.id ?? '', collectionId: `T_${collectionId}` };
-    restIdsOfB = { productId: rawId(product.id), variantId: rawId(idsOfB.variantId), collectionId };
+    const taxonomy = await createTaxonomy(suite.kit);
+    const variantId = product.variants[0]?.id ?? '';
+    idsOfB = { productId: product.id, variantId, collectionId: `T_${collectionId}`, ...taxonomy };
+    restIdsOfB = { productId: rawId(product.id), variantId: rawId(variantId), collectionId, ...taxonomy };
   });
 
   it.each(OPERATION_REGISTRY)("$operation as A against B's ids answers $foreign", async (entry) => {
@@ -110,7 +126,7 @@ describe('catalog isolation sweep (two businesses)', () => {
     await suite.kit.asOwner(suite.fixtures.a);
 
     // Act
-    const outcome = await callOperation(entry, { ...idsOfB, productId: id });
+    const outcome = await callOperation(entry, { ...idsOfB, [fieldOf(entry)]: id });
 
     // Assert
     expectForeign(entry, outcome, idsOfB);
@@ -127,7 +143,7 @@ describe('catalog isolation sweep (two businesses)', () => {
     // Act
     const answer = await suite.kit.rest(
       entry.method,
-      entry.url({ ...restIdsOfB, productId: encodeURIComponent(id) }),
+      entry.url({ ...restIdsOfB, [fieldOf(entry)]: encodeURIComponent(id) }),
       entry.body?.(restIdsOfB),
     );
 
@@ -171,7 +187,7 @@ describe('catalog isolation sweep (two businesses)', () => {
       inFirst = await suite.kit.createProduct({ title: 'First store only', label: 'Original' });
     });
 
-    it.each(OPERATION_REGISTRY.filter((entry) => entry.byId))(
+    it.each(OPERATION_REGISTRY.filter((entry) => entry.byId && isProductEntry(entry)))(
       "$operation from A's second store against its first store's product answers $foreign",
       async (entry) => {
         // Arrange
@@ -186,7 +202,7 @@ describe('catalog isolation sweep (two businesses)', () => {
       },
     );
 
-    it.each(ROUTE_REGISTRY.filter((entry) => entry.route.includes(':id')))(
+    it.each(ROUTE_REGISTRY.filter((entry) => entry.route.includes(':id') && isProductEntry(entry)))(
       "$method $route from A's second store against its first store's product answers 404",
       async (entry: RouteEntry) => {
         // Arrange

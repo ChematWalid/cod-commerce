@@ -20,7 +20,8 @@ export class CreateProductService {
   }
 
   async create(ctx: OperationContext, scope: StoreScope, command: ProductCommand): Promise<ProductSaveResult> {
-    const refs = await this.references.check(ctx, scope, command);
+    const orderManagerIds = command.settings?.orderManagerIds;
+    const refs = await this.references.check(ctx, scope, { ...command, orderManagerIds });
     const fields = fieldsOfCommand(command, refs, this.ports.sanitizer);
     const plan = planVariantMatrix({
       productName: fields.title,

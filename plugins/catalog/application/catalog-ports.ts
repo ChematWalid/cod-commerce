@@ -4,6 +4,7 @@ import type { DescriptionSanitizerPort } from '../domain/ports/description-sanit
 import type { HighlightRepositoryPort } from '../domain/ports/highlight-repository.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { MediaRepositoryPort } from '../domain/ports/media-repository.port';
+import type { OrderManagerCheckSource } from '../domain/ports/order-manager-check.port';
 import type { ProductCatalogPort } from '../domain/ports/product-catalog.port';
 import type { ProductCollectionRepositoryPort } from '../domain/ports/product-collection-repository.port';
 import type { ProductEventsPort } from '../domain/ports/product-events.port';
@@ -12,7 +13,10 @@ import type { ProductSettingsRepositoryPort } from '../domain/ports/product-sett
 import type { TagRepositoryPort } from '../domain/ports/tag-repository.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 
-/** Everything the product use cases reach the outside through; one bundle, wired once (product.providers.ts). */
+/**
+ * Everything the product and taxonomy use cases reach the outside through; one bundle, wired once
+ * (product.providers.ts).
+ */
 export interface ProductPorts {
   readonly products: ProductCatalogPort;
   readonly search: ProductSearchPort;
@@ -27,4 +31,6 @@ export interface ProductPorts {
   readonly sanitizer: DescriptionSanitizerPort;
   readonly ids: IdGeneratorPort;
   readonly clock: ClockPort;
+  /** Team's order-manager check, once registered (D2114). */
+  readonly orderManagers: OrderManagerCheckSource;
 }

@@ -268,25 +268,3 @@ export function catalogSuite(snowflakeWorkerId: number, foreign: CatalogForeignM
 
 /** The database id behind a GraphQL `ID` (the test id strategy answers `T_<id>`). */
 export const rawId = (id: string): string => id.replace(/^T_/, '');
-
-/** A synthetic snowflake for rows the tests insert directly. */
-/** A snowflake-sized id no generator hands out, for rows a test inserts by SQL. */
-export const syntheticId = (): string => String(1_300_000_000_000_000_000n + BigInt(Math.floor(Math.random() * 1e9)));
-
-/**
- * A brand or tag row of `store` inserted directly (their API arrives in Task 12); returns its id. Test-only access.
- */
-export async function insertNameRow(
-  kit: CatalogKit,
-  table: 'catalog_brand' | 'catalog_tag',
-  business: BusinessFixture,
-  store: StoreFixture,
-): Promise<string> {
-  const id = syntheticId();
-  const name = `Name ${id}`;
-  await kit.query(
-    `INSERT INTO "${table}" ("businessId", "storeId", "id", "name", "nameKey", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, now(), now())`,
-    [business.businessId, store.id, id, name, name.toLowerCase()],
-  );
-  return id;
-}

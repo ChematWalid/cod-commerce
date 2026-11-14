@@ -3,7 +3,7 @@ import { failureOf } from '@cod/testing';
 import { describe, expect, it } from 'vitest';
 import { catalogSuite, CREATE_PRODUCT, PRODUCTS } from './catalog-kit';
 
-const suite = catalogSuite(1025, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+const suite = catalogSuite(1021, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FORBIDDEN = 'FORBIDDEN';
 const FORBIDDEN_STATUS = 403;
 

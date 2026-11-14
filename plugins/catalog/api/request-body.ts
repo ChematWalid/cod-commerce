@@ -1,15 +1,24 @@
+import { CATALOG_ERROR_CODES, type DomainError } from '@cod/shared';
 import type { z } from 'zod';
-import { InvalidCatalogInputError } from '../domain/errors';
+import { InvalidCatalogInputError, MatrixTooLargeError, TooManyHighlightsError } from '../domain/errors';
+
+/** The shared schemas' refusals that carry their own code (brief AC3, D2124); every other one is invalid input. */
+const CODED_REFUSALS: ReadonlyMap<string, new () => DomainError> = new Map<string, new () => DomainError>([
+  [CATALOG_ERROR_CODES.TOO_MANY_HIGHLIGHTS, TooManyHighlightsError],
+  [CATALOG_ERROR_CODES.MATRIX_TOO_LARGE, MatrixTooLargeError],
+]);
 
 /**
  * Parses a request body or GraphQL input with a shared schema (ADR 0017 §1).
  *
- * @throws {InvalidCatalogInputError} naming no value, so nothing the caller sent is echoed.
+ * @throws {TooManyHighlightsError} or {MatrixTooLargeError} when the first refusal is that cap.
+ * @throws {InvalidCatalogInputError} for any other refusal, naming no value, so nothing the caller sent is echoed.
  */
 export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const parsed = schema.safeParse(input);
-  if (!parsed.success) throw new InvalidCatalogInputError();
-  return parsed.data;
+  if (parsed.success) return parsed.data;
+  const coded = CODED_REFUSALS.get(parsed.error.issues[0]?.message ?? '');
+  throw coded === undefined ? new InvalidCatalogInputError() : new coded();
 }
 
 /**

@@ -19,7 +19,9 @@ fields, brands, tags, highlights, product settings and a per-business media libr
 
 The entry exports `CatalogPlugin` and the read facade `CatalogProductQueries` (with its `ProductView` and
 `ProductViewPage` types): the products of the request's active store, the store taken from the resolved tenant
-(D2142). Later tasks add more services; the session handoff lists what P2.S2-S5 and P3 may use.
+(D2142). It also exports `ORDER_MANAGER_CHECK_REGISTRAR` with the `OrderManagerCheck`, `OrderManagerCheckRegistrar`
+and `CatalogOperationContext` types: Team registers its check there on bootstrap (D2114, D2132); a second
+registration throws. Later tasks add more services; the session handoff lists what P2.S2-S5 and P3 may use.
 
 ## API (Task 11)
 
@@ -28,6 +30,16 @@ GraphQL `catalogProducts`, `catalogProduct`, `catalogSlugAvailability`, `createC
 `GET /catalog/products/slug-availability`, `GET|PATCH|DELETE /catalog/products/:id`, `POST /catalog/products`,
 `POST /catalog/products/:id/status`. Both run the same `ProductActions`; the tenant comes from the session and
 the `vendure-token` channel, never from the path (D2102).
+
+## Store taxonomy (Task 12)
+
+GraphQL `catalogBrands`, `createCatalogBrand`, `updateCatalogBrand`, `deleteCatalogBrand` and the same for tags and
+highlights; REST `GET|POST /catalog/brands`, `PATCH|DELETE /catalog/brands/:id`, and the same under `/catalog/tags`
+and `/catalog/highlights`. Reads need `catalog.products.view`, writes `catalog.products.edit`. Everything is
+store-scoped: an id of the business's other store answers not found. Deleting a brand clears `brandId` on that
+store's products in the same transaction (D2140) and publishes `product.changed` for each. Product settings ride
+on the product's create and update (`settings`); their order managers are checked by Team's registered check, and
+refused with `catalog.order-managers-unavailable` while none is registered (D2114).
 
 ## Registration (D2137)
 

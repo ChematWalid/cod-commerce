@@ -1,4 +1,3 @@
-import { tenantOf } from '@cod/plugin-tenancy';
 import {
   PRODUCT_STATUSES,
   productInputSchema,
@@ -10,7 +9,6 @@ import { Injectable } from '@nestjs/common';
 import type { RequestContext } from '@vendure/core';
 import { z } from 'zod';
 import { asOperationContext } from '../domain/ports/operation-context';
-import type { StoreScope } from '../domain/store-scope';
 import {
   type CatalogProductDto,
   type CatalogProductListDto,
@@ -22,15 +20,10 @@ import {
 } from './dto';
 import { ProductReadUseCases, ProductWriteUseCases } from './product-use-cases';
 import { idArgOf, parseInput } from './request-body';
+import { scopeOf } from './store-scope-of';
 
 const statusSchema = z.enum(PRODUCT_STATUSES);
 const slugSchema = z.string().max(SLUG_QUERY_MAX);
-
-/** The caller's business and active store, as the tenant guard resolved them. */
-function scopeOf(ctx: RequestContext): StoreScope {
-  const { businessId, activeStoreId } = tenantOf(ctx);
-  return { businessId, storeId: activeStoreId };
-}
 
 /**
  * One path per product action for both API surfaces (team pattern): parse the input, take the tenant from the

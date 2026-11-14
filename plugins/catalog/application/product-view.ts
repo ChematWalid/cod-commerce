@@ -1,6 +1,5 @@
 import type { Snowflake } from '@cod/shared';
 import type { CoreId } from '../domain/core-id';
-import { assertOrderManagers } from '../domain/order-managers';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { priceWarningsOf } from '../domain/price-warnings';
 import type { ProductRecord } from '../domain/product';
@@ -8,12 +7,12 @@ import {
   DEFAULT_PRODUCT_SETTINGS,
   type ProductSettingsChange,
   type ProductSettingsValues,
-  settingsAfter,
   settingsValuesOf,
 } from '../domain/product-settings';
 import type { StoreScope } from '../domain/store-scope';
 import type { ProductPorts } from './catalog-ports';
 import type { CheckedReferences } from './product-references';
+import { type ProductTarget, saveProductSettings } from './product-settings.service';
 
 /** A product with its links and settings in the store: what every read and save answers. */
 export interface ProductView extends ProductRecord {
@@ -60,38 +59,20 @@ export interface ProductLinks {
 
 /**
  * Writes the tag, highlight and collection links that were sent, and the settings when sent or when the product has
- * none yet. Order managers are refused until the team check is registered (D2114, Task 12).
+ * none yet (their order managers checked by team's check, D2114).
  */
-/** The product a save writes links for, in its store. */
-export interface ProductTarget {
-  readonly scope: StoreScope;
-  readonly productId: CoreId;
-}
-
 export async function saveLinks(
   ports: ProductPorts,
   ctx: OperationContext,
-  { scope, productId }: ProductTarget,
+  target: ProductTarget,
   links: ProductLinks,
 ): Promise<void> {
+  const { scope, productId } = target;
   const { tagIds, highlightIds, collectionIds } = links.refs;
   if (tagIds !== undefined) await ports.tags.replaceProductTags(ctx, scope, productId, tagIds);
   if (highlightIds !== undefined) await ports.highlights.replaceProductHighlights(ctx, scope, productId, highlightIds);
   if (collectionIds !== undefined) {
     await ports.collections.replaceProductCollections(ctx, scope, productId, collectionIds);
   }
-  await saveSettings(ports, ctx, { scope, productId }, links.settings);
-}
-
-async function saveSettings(
-  ports: ProductPorts,
-  ctx: OperationContext,
-  { scope, productId }: ProductTarget,
-  change: ProductSettingsChange | undefined,
-): Promise<void> {
-  const current = await ports.settings.findByProduct(ctx, scope, productId);
-  if (change === undefined && current !== undefined) return;
-  assertOrderManagers(change?.orderManagerIds ?? [], null);
-  const identity = { id: ports.ids.next(), scope, productId, now: ports.clock.now() };
-  await ports.settings.upsert(ctx, scope, settingsAfter(current, change ?? {}, identity));
+  await saveProductSettings(ports, ctx, target, links.settings);
 }

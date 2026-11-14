@@ -13,3 +13,4 @@ export const DESCRIPTION_SANITIZER = Symbol('CatalogDescriptionSanitizer');
 export const ID_GENERATOR = Symbol('CatalogIdGenerator');
 export const CLOCK = Symbol('CatalogClock');
 export const PRODUCT_PORTS = Symbol('CatalogProductPorts');
+export const ORDER_MANAGER_CHECK_REGISTRAR = Symbol('CatalogOrderManagerCheckRegistrar');

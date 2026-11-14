@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { CatalogPlugin } from '@cod/plugin-catalog';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
@@ -107,6 +108,8 @@ export function createTeamTestEnvironment(
       TenancyPlugin.init({ redisUrl: TEST_REDIS_URL, platformDomain: 'localhost', snowflakeWorkerId }),
       ...teamOutboxPlugins(),
       ...foreign.plugins,
+      // Team imports the catalog's module to register its order-manager check (D2137): it must be configured.
+      CatalogPlugin,
       TeamPlugin.init({ dashboardUrl: TEST_DASHBOARD_URL }),
     ],
     db: loadPluginTestDbConfig(process.env),

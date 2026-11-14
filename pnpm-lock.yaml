@@ -1117,6 +1117,9 @@ importers:
       '@cod/plugin-auth':
         specifier: workspace:*
         version: link:../auth
+      '@cod/plugin-catalog':
+        specifier: workspace:*
+        version: link:../catalog
       '@cod/plugin-merchant-shell':
         specifier: workspace:*
         version: link:../merchant-shell

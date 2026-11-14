@@ -1,12 +1,16 @@
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import type { ProductPorts } from '../application/catalog-ports';
+import { BrandService } from '../application/brand.service';
 import { CreateProductService } from '../application/create-product.service';
 import { DeleteProductService } from '../application/delete-product.service';
 import { GetProductService } from '../application/get-product.service';
+import { HighlightService } from '../application/highlight.service';
 import { ListProductsService } from '../application/list-products.service';
+import { OrderManagerCheckRegistry } from '../application/order-manager-check.registry';
 import { SetProductStatusService } from '../application/set-product-status.service';
 import { SlugAvailabilityService } from '../application/slug-availability.service';
+import { TagService } from '../application/tag.service';
 import {
   BRAND_REPOSITORY,
   CLOCK,
@@ -14,6 +18,7 @@ import {
   HIGHLIGHT_REPOSITORY,
   ID_GENERATOR,
   MEDIA_REPOSITORY,
+  ORDER_MANAGER_CHECK_REGISTRAR,
   PRODUCT_CATALOG,
   PRODUCT_COLLECTION_REPOSITORY,
   PRODUCT_EVENTS,
@@ -61,6 +66,7 @@ const PORT_TOKENS = [
   DESCRIPTION_SANITIZER,
   ID_GENERATOR,
   CLOCK,
+  ORDER_MANAGER_CHECK_REGISTRAR,
 ] as const;
 
 const PORT_KEYS = [
@@ -77,6 +83,7 @@ const PORT_KEYS = [
   'sanitizer',
   'ids',
   'clock',
+  'orderManagers',
 ] as const satisfies readonly (keyof ProductPorts)[];
 
 /** A use case built from the port bundle. */
@@ -86,7 +93,7 @@ const useCase = (type: new (ports: ProductPorts) => object): Provider => ({
   inject: [PRODUCT_PORTS],
 });
 
-/** Wires the product use cases (Task 11) to their adapters; Tasks 12-13 reuse the repositories. */
+/** Wires the product and taxonomy use cases to their adapters; Task 13 reuses the repositories. */
 export const PRODUCT_PROVIDERS: Provider[] = [
   VendureOptionSync,
   VendureVariantSync,
@@ -102,6 +109,8 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   { provide: MEDIA_REPOSITORY, useClass: TypeOrmMediaRepository },
   { provide: DESCRIPTION_SANITIZER, useClass: HtmlDescriptionSanitizer },
   { provide: CLOCK, useValue: SYSTEM_CLOCK },
+  // One registry for the module: team registers its check on it, the use cases read it (D2114, D2137).
+  { provide: ORDER_MANAGER_CHECK_REGISTRAR, useClass: OrderManagerCheckRegistry },
   {
     provide: ID_GENERATOR,
     useFactory: (ids: SnowflakeIdGeneratorPort) => new SnowflakeCatalogIdGenerator(ids),
@@ -137,4 +146,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(SetProductStatusService),
   useCase(DeleteProductService),
   useCase(SlugAvailabilityService),
+  useCase(BrandService),
+  useCase(TagService),
+  useCase(HighlightService),
 ];

@@ -3,15 +3,8 @@ import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { type BusinessFixture, failureOf, type StoreFixture } from '@cod/testing';
 import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
-import {
-  catalogSuite,
-  insertNameRow,
-  PRODUCT,
-  type ProductResult,
-  rawId,
-  syntheticId,
-  UPDATE_PRODUCT,
-} from './catalog-kit';
+import { catalogSuite, PRODUCT, type ProductResult, rawId, UPDATE_PRODUCT } from './catalog-kit';
+import { insertNameRow, syntheticId } from './rows';
 
 const suite = catalogSuite(1022, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const DEFAULT_CHANNEL_ID = 1;
