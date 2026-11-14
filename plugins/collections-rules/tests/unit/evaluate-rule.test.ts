@@ -178,6 +178,22 @@ describe('matchesRule', () => {
     expect(arabicMatched).toBe(true);
   });
 
+  it('reads only the named option: Size Red does not match Color is any of [Red]', () => {
+    // Arrange
+    const sizeRed = facts({
+      productId: '1',
+      variants: [{ hidden: false, price: 2_000, oldPrice: null, options: [{ name: 'Size', value: 'Red' }] }],
+    });
+
+    // Act
+    const colorAnyOf = matchesRule(ruleOf('all', optionIs('Color', 'is_any_of', 'Red')), sizeRed);
+    const colorIsNot = matchesRule(ruleOf('all', optionIs('Color', 'is_not', 'Red')), sizeRed);
+
+    // Assert
+    expect(colorAnyOf).toBe(false);
+    expect(colorIsNot).toBe(true);
+  });
+
   it('ignores hidden variants for option, price and on-sale conditions', () => {
     // Arrange: the only Red variant is hidden, cheap and on sale; the visible one is Blue at 3 000
     const product = facts({ productId: '1', price: 3_000, variants: [red(true, 500, 900), blue(false, 3_000)] });
