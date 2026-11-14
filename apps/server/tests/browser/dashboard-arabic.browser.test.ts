@@ -1,5 +1,9 @@
-import { SHELL_PLACEHOLDER_PATH, SHELL_PLACEHOLDER_TEST_ID } from '@cod/plugin-merchant-shell';
-import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '@cod/plugin-template';
+import {
+  BUSINESS_CARD_TEST_ID,
+  SETTINGS_PATH,
+  SHELL_PLACEHOLDER_PATH,
+  SHELL_PLACEHOLDER_TEST_ID,
+} from '@cod/plugin-merchant-shell';
 import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
@@ -42,12 +46,12 @@ describe('dashboard in Arabic', () => {
     await expect(page.getByRole('heading', { level: 1 }).textContent()).resolves.toBe('واجهة التاجر');
   });
 
-  it('translates the notes page title', async () => {
-    await page.goto(`${DASHBOARD_URL}${TEMPLATE_NOTES_PATH}`);
-    await page.getByTestId(TEMPLATE_NOTES_TEST_ID).waitFor({ state: 'attached' });
+  it('translates the general settings page title', async () => {
+    await page.goto(`${DASHBOARD_URL}${SETTINGS_PATH}`);
+    await page.getByTestId(BUSINESS_CARD_TEST_ID).waitFor({ state: 'attached' });
     await assertNoPageError(page);
 
-    await expect(page.getByRole('heading', { level: 1 }).textContent()).resolves.toBe('الملاحظات');
+    await expect(page.getByRole('heading', { level: 1 }).textContent()).resolves.toBe('عامة');
   });
 
   it.each([

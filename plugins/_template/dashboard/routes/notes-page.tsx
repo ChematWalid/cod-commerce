@@ -2,7 +2,7 @@ import { useLingui } from '@lingui/react';
 import { useQuery } from '@tanstack/react-query';
 import { api, Page, PageBlock, PageLayout, PageTitle } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
-import { TEMPLATE_NOTES_NAV_ITEM, TEMPLATE_NOTES_PAGE_SIZE, TEMPLATE_NOTES_TEST_ID } from '../constants';
+import { TEMPLATE_NOTES_PAGE_SIZE, TEMPLATE_NOTES_TEST_ID, TEMPLATE_NOTES_TITLE } from '../constants';
 import {
   TEMPLATE_NOTES_QUERY,
   type TemplateNoteDto,
@@ -62,13 +62,17 @@ function NotesList({ state }: { readonly state: NotesState }): ReactNode {
   );
 }
 
-/** The template's notes page: the newest notes of the business of the selected channel. */
+/**
+ * The template's notes page: the newest notes of the business of the selected channel. Reference code only: no route
+ * mounts it (D2111). A merchant page is registered in the shell with `registerShellPage`, as in
+ * `plugins/catalog/dashboard/index.tsx`.
+ */
 export function NotesPage(): ReactNode {
   const state = useTemplateNotes();
   const { i18n } = useLingui();
   return (
     <Page pageId={PAGE_ID}>
-      <PageTitle>{i18n._(TEMPLATE_NOTES_NAV_ITEM.title)}</PageTitle>
+      <PageTitle>{i18n._(TEMPLATE_NOTES_TITLE)}</PageTitle>
       <PageLayout>
         <PageBlock column="main" blockId={NOTES_BLOCK_ID}>
           <div data-testid={TEMPLATE_NOTES_TEST_ID}>

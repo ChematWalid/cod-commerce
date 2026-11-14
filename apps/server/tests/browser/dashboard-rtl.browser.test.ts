@@ -7,7 +7,6 @@ import {
   SHELL_PLACEHOLDER_PATH,
   SHELL_PLACEHOLDER_TEST_ID,
 } from '@cod/plugin-merchant-shell';
-import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '@cod/plugin-template';
 import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -16,13 +15,7 @@ import {
   type DashboardPageUnderTest,
   SCREENSHOT_DIR,
 } from './dashboard-pages';
-import {
-  assertNoPageError,
-  createNoteInSelectedStore,
-  DASHBOARD_LABELS,
-  loginAsDemoOwner,
-  setDisplayLanguage,
-} from './dashboard-session';
+import { assertNoPageError, DASHBOARD_LABELS, loginAsDemoOwner, setDisplayLanguage } from './dashboard-session';
 
 /** What the document says about its language, direction and Arabic font once a page has rendered. */
 interface DocumentState {
@@ -106,17 +99,6 @@ describe('merchant dashboard host (ADR 0010)', () => {
     expect(state.arabicFacesLoaded).toBeGreaterThan(0);
     expect(state.bodyFontFamily).toContain(ARABIC_FONT_FAMILY);
     await page.screenshot({ path: screenshotPath(target, 'ar'), fullPage: true });
-  });
-
-  it("lists a note of the owner's store on the notes page", async () => {
-    const title = `browser-note-${String(Date.now())}`;
-    await loginAsDemoOwner(page, DASHBOARD_URL);
-    await createNoteInSelectedStore(page, title);
-
-    await page.goto(`${DASHBOARD_URL}${TEMPLATE_NOTES_PATH}`);
-
-    await page.getByTestId(TEMPLATE_NOTES_TEST_ID).getByText(title).waitFor({ state: 'visible' });
-    await assertNoPageError(page);
   });
 
   it('renders the platform languages from @cod/shared', async () => {

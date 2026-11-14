@@ -151,6 +151,15 @@ function memberPlugins(env: AppEnv): VendurePluginEntry[] {
 }
 
 /**
+ * Plugins that exist to show and test the platform's own patterns: the reference plugin. Staging has the
+ * production shape, so only development and test register them (D2111, #170); their committed migrations still
+ * create their tables everywhere.
+ */
+function developmentOnlyPlugins(env: AppEnv): VendurePluginEntry[] {
+  return env.APP_ENV === 'development' || env.APP_ENV === 'test' ? [TemplatePlugin] : [];
+}
+
+/**
  * The single registration point for plugins. Every role registers every plugin that declares entities, so
  * the `migrate` role creates every table (e.g. `scheduled_task_record`, B1); role-only plugins have none.
  */
@@ -169,7 +178,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     }),
     DefaultSchedulerPlugin.init(),
     ...requestPathPlugins(env, role),
-    TemplatePlugin,
+    ...developmentOnlyPlugins(env),
     // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
     TenancyPlugin.init({

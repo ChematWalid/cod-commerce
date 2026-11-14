@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Historical, the template route was removed in P2.S1 (D2111); the committed evidence stays. The screenshot step
+# drives that route through scripts/evidence/template-screens.mjs, so the script stops at once.
 # Proof-of-working evidence for P0.S2b-6 (CLAUDE.md §3a.14): runs the real compose stack under its own project
 # (cod-evidence, every *_HOST_PORT shifted by 20000), records live Admin API transcripts of the plugin template
 # (create/read, typed error, FORBIDDEN, two-business isolation, input shape) and screenshots its dashboard page
@@ -11,6 +13,8 @@
 # Data is synthetic (.env placeholders, two generated businesses). Generated note ids and timestamps are
 # replaced by placeholders after their format is asserted, so re-runs regenerate identical files.
 set -euo pipefail
+echo "evidence: P0.S2b-6.sh is historical, the template route was removed in P2.S1 (D2111); the committed evidence stays" >&2
+exit 1
 cd "$(dirname "$0")/../.."
 # shellcheck source=../lib/wait-http.sh
 . scripts/lib/wait-http.sh

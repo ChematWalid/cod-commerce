@@ -1,18 +1,22 @@
+import { hasControlCharacter } from '@cod/shared';
 import { NOTE_TITLE_MAX_LENGTH } from './constants';
 import { InvalidNoteTitleError } from './errors';
 
-/** A note's title: trimmed, never blank, at most {@link NOTE_TITLE_MAX_LENGTH} characters. */
+/**
+ * A note's title: trimmed, never blank, at most {@link NOTE_TITLE_MAX_LENGTH} characters, one line without control
+ * characters (a NUL or an escape sequence would reach logs and the dashboard, #171).
+ */
 export class NoteTitle {
   private constructor(readonly value: string) {}
 
   /**
    * Trims `raw` and validates it.
    *
-   * @throws {InvalidNoteTitleError} when the trimmed title is empty or too long.
+   * @throws {InvalidNoteTitleError} when the trimmed title is empty, too long or holds a control character.
    */
   static create(raw: string): NoteTitle {
     const value = raw.trim();
-    if (value === '' || value.length > NOTE_TITLE_MAX_LENGTH) {
+    if (value === '' || value.length > NOTE_TITLE_MAX_LENGTH || hasControlCharacter(value)) {
       throw new InvalidNoteTitleError();
     }
     return new NoteTitle(value);

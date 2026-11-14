@@ -50,5 +50,8 @@ export const vendurePreset: ViteUserConfig = {
     fileParallelism: false,
     testTimeout: VENDURE_TEST_TIMEOUT_MS,
     hookTimeout: VENDURE_TEST_TIMEOUT_MS,
+    // Off until each integration suite is checked in CI (D2118): integration suites cannot run locally (D218), so a
+    // suite opts in from its own config, as the template's does.
+    expect: { ...unitPreset.test?.expect, requireAssertions: false },
   },
 };

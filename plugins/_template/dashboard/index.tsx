@@ -1,7 +1,6 @@
 import { defineDashboardExtension } from '@vendure/dashboard';
-import { TEMPLATE_NOTES_NAV_ITEM, TEMPLATE_NOTES_PATH } from './constants';
-import { NotesPage } from './routes/notes-page';
 
-defineDashboardExtension({
-  routes: [{ path: TEMPLATE_NOTES_PATH, component: () => <NotesPage />, navMenuItem: TEMPLATE_NOTES_NAV_ITEM }],
-});
+// No route and no nav item (D2111, TPL-2): merchants never see a stock section, and the shell's leaves hold one page
+// each. `routes/notes-page.tsx` stays as reference code; a merchant page is registered with `registerShellPage`
+// from `@cod/plugin-merchant-shell/shell-api`, as in `plugins/catalog/dashboard/index.tsx`.
+defineDashboardExtension({});

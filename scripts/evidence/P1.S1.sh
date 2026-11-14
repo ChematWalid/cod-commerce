@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Historical, the template route was removed in P2.S1 (D2111); the committed evidence stays. The screenshot step
+# drives that route through scripts/evidence/template-screens.mjs, so the script stops at once.
 # Proof-of-working evidence for P1.S1 (CLAUDE.md §3a.14): runs the real compose stack under its own project (cod-evidence,
 # host ports +20000), plus a second api container of the same image, seeds the demo businesses and records live
 # transcripts of every new tenancy operation and REST route (cross-tenant not-found, FORBIDDEN, anonymous availability,
@@ -9,6 +11,8 @@
 #
 # Data is synthetic. Generated ids and channel tokens are replaced by placeholders after their use is asserted.
 set -euo pipefail
+echo "evidence: P1.S1.sh is historical, the template route was removed in P2.S1 (D2111); the committed evidence stays" >&2
+exit 1
 cd "$(dirname "$0")/../.."
 # shellcheck source=../lib/wait-http.sh
 . scripts/lib/wait-http.sh

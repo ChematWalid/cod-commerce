@@ -24,5 +24,7 @@ export const unitPreset: ViteUserConfig = {
       ...NON_UNIT_SUFFIXES.map((suffix) => `tests/**/*.${suffix}.test.${TEST_EXTENSIONS}`),
     ],
     env: { TZ: 'UTC' },
+    // A test that asserts nothing fails instead of passing blind (#172, D2118).
+    expect: { requireAssertions: true },
   },
 };
