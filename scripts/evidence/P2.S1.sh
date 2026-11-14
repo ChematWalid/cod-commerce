@@ -81,7 +81,9 @@ secret_values=()
 while IFS='=' read -r _ value; do
   value=${value%\"}; value=${value#\"}
   [[ -n "$value" ]] && secret_values+=("$value")
-done < <(command grep -E '^(export[[:space:]]+)?[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|_KEY)=' .env)
+  # Key lists are "kid:key"; the key alone is what could leak.
+  [[ "$value" == *:* ]] && secret_values+=("${value#*:}")
+done < <(command grep -E '^(export[[:space:]]+)?[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|_KEY|_KEYS|_KEKS)=' .env)
 ((${#secret_values[@]} >= 2)) || fail "fewer than 2 secret values in .env"
 
 # --- image, from a tree that matches the commit the README names ---------------------------
