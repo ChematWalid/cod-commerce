@@ -20,6 +20,8 @@ const inDashboard = (content: string, name = 'x.tsx'): SourceFile => ({
 });
 const violationsOf = (content: string, name?: string): string[] =>
   findDashboardStyleViolations([inDashboard(content, name)]);
+const inCssOf = (content: string): string[] =>
+  findDashboardStyleViolations([{ path: 'plugins/demo/dashboard/styles/x.css', content }]);
 
 describe('findDashboardStyleViolations', () => {
   it.each([
@@ -167,6 +169,95 @@ describe('findDashboardStyleViolations', () => {
 
   it('reports both rules for one file', () => {
     expect(violationsOf('<i className="ml-2 bg-white" />')).toHaveLength(2);
+  });
+});
+
+describe('findDashboardStyleViolations closes the SHELL-4 bypasses (#125)', () => {
+  it.each([
+    'float-left',
+    'clear-right',
+    'rounded-l',
+    'rounded-r',
+    'rounded-tl-md',
+    'rounded-br',
+    'border-l',
+    'border-r',
+    'scroll-ml-2',
+    'scroll-pr-4',
+  ])('flags the physical utility %s', (utility) => {
+    const violations = violationsOf(`<div className="flex ${utility} gap-2" />`);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain('physical utility');
+  });
+
+  it.each(['bg-red-500', 'text-slate-700', 'border-gray-200', 'ring-blue-500/50', 'hover:fill-emerald-50'])(
+    'flags the palette colour class %s',
+    (utility) => {
+      const violations = violationsOf(`<div className="flex ${utility}" />`);
+
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toContain('colour literal');
+    },
+  );
+
+  it.each(['oklch(0.5 0.1 20)', 'oklab(0.5 0.1 0.1)', 'lab(50% 40 59)', 'lch(52% 72 56)', 'hwb(10 20% 30%)'])(
+    'flags the colour function %s',
+    (literal) => {
+      expect(violationsOf(`const x = "${literal}";`)).toHaveLength(1);
+    },
+  );
+
+  it('flags color-mix()', () => {
+    const violations = violationsOf('const x = "color-mix(in srgb, var(--primary) 50%, transparent)";');
+
+    expect(violations).toEqual([expect.stringContaining('"color-mix("')]);
+  });
+
+  it.each(['color: red', 'background: white', 'border: 1px solid rebeccapurple', 'outline-color: Navy'])(
+    'flags the named CSS colour in "%s"',
+    (declaration) => {
+      const violations = inCssOf(`a {\n  ${declaration};\n}`);
+
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toContain('colour literal');
+    },
+  );
+
+  it('accepts theme colours, transparent and currentColor in CSS', () => {
+    const css = 'a { color: var(--foreground); background: transparent; border-color: currentColor; }';
+
+    expect(inCssOf(css)).toEqual([]);
+  });
+
+  it.each([
+    'style={{ marginLeft: 4 }}',
+    "style={{ textAlign: 'right' }}",
+    "style={{ paddingRight: '1rem' }}",
+    'style={{ left: 0 }}',
+    'style={{ borderLeftWidth: 1 }}',
+    "style={{ float: 'left' }}",
+    'const BOX_STYLE = { gap: 4, right: 0 } as const;',
+  ])('flags the physical inline style in %s', (source) => {
+    const violations = violationsOf(source);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain('physical property');
+  });
+
+  it.each([
+    '<div className="rounded-s-md border-s space-x-2 divide-x rounded-lg border-ring rounded-t-md" />',
+    '<bdi dir="ltr" style={{ direction: \'ltr\' }} />',
+    "const JSON_STYLE = { direction: 'ltr', textAlign: 'left' } as const;",
+    "const LTR_STYLE = { direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' } as const;",
+    "style={{ marginInlineStart: 4, textAlign: 'start', float: 'none' }}",
+    'const sameSet = (left: readonly string[], right: readonly string[]): boolean => left.length === right.length;',
+    'const side = isOpen ? left : right;',
+    'function Pair(): null { const f = (left: number, right: number): number => left + right; return null; }',
+    '<div className="scroll-ms-2 float-start clear-end rounded-ss-md border-x" />',
+    'const accent = "var(--color-primary)"; const css = "a { color: var(--red); }";',
+  ])('accepts %s', (source) => {
+    expect(violationsOf(source)).toEqual([]);
   });
 });
 

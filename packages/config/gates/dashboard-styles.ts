@@ -1,4 +1,6 @@
 import type { SourceFile } from './branding';
+import { findPhysicalInlineStyles } from './inline-styles';
+import { findNamedCssColours } from './named-colours';
 
 /** Dashboard sources of a plugin: `plugins/<name>/dashboard/**` TypeScript, TSX and CSS (ADR 0005, ADR 0010). */
 const DASHBOARD_SOURCE = /^plugins\/[^/]+\/dashboard\/.+\.(?:ts|tsx|css)$/;
@@ -15,9 +17,13 @@ const UTILITY = String.raw`(-?[a-z][\w-]*)`;
 const CLASS_TOKEN = new RegExp(String.raw`(?<![\w:./-])${VARIANTS}${UTILITY}`, 'g');
 const CSS_CLASS_TOKEN = new RegExp(String.raw`(?<![\w:/-])${VARIANTS}${UTILITY}`, 'g');
 
-/** Utilities that name a physical side. Their logical twins (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`, `text-start`, `rounded-s-`, `border-s-`) are the rule. */
+/**
+ * Utilities that name a physical side. Their logical twins (`ms-`, `me-`, `ps-`, `pe-`, `scroll-ms-`, `start-`,
+ * `end-`, `text-start`, `float-start`, `rounded-s`, `rounded-ss`, `border-s`) are the rule.
+ * `space-x-*` and `divide-x-*` are logical in Tailwind 4.3.5 (margin-inline / border-inline), D2119.
+ */
 const PHYSICAL_UTILITY =
-  /^-?(?:ml-|mr-|pl-|pr-|left-(?!to-right)|right-(?!to-left)|text-left$|text-right$|rounded-l-|rounded-r-|border-l-|border-r-)/;
+  /^-?(?:ml-|mr-|pl-|pr-|scroll-[mp][lr]-|left-(?!to-right)|right-(?!to-left)|text-left$|text-right$|(?:float|clear)-(?:left|right)$|rounded-(?:[lr]|[tb][lr])(?:-|$)|border-[lr](?:-|$))/;
 
 /**
  * A CSS declaration that names a physical side: a property with a `left` or `right` part (`margin-left`, `left`,
@@ -45,15 +51,24 @@ const ALLOWED_PHYSICAL_PROPERTIES: readonly { readonly path: string; readonly de
   { path: 'plugins/platform-flags/dashboard/styles/flags.css', declaration: 'right: auto' },
 ];
 
-/** Utilities that paint a fixed colour instead of a theme token. */
-const COLOUR_UTILITY = /^(?:bg-white|bg-black|text-white|text-black)(?![\w-])/;
+/** Tailwind's default palette: a class such as `bg-red-500` paints a fixed colour. */
+const PALETTE =
+  'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|mauve|olive|mist|taupe';
+/** Utilities that take a colour. */
+const COLOUR_TAKER =
+  'bg|text|border(?:-[xytrblse])?|ring(?:-offset)?|fill|stroke|from|via|to|outline|decoration|shadow|inset-shadow|inset-ring|accent|caret|divide|placeholder';
+
+/** Utilities that paint a fixed colour instead of a theme token: `bg-white`, `text-black`, `bg-red-500`. */
+const COLOUR_UTILITY = new RegExp(
+  String.raw`^(?:(?:bg|text)-(?:white|black)|(?:${COLOUR_TAKER})-(?:${PALETTE})-\d{2,3})(?![\w-])`,
+);
 
 /**
  * Colour functions and hex literals. A hex literal has 3, 4, 6 or 8 digits and stands alone; an in-page link
- * (`href="#add"`) is not one.
+ * (`href="#add"`) is not one. `color-mix()` is flagged too: mixing belongs in the theme, not in a plugin.
  */
 const COLOUR_LITERAL =
-  /(?<![\w&])(?<!href=["'])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|\b(?:rgba?|hsla?)\(/g;
+  /(?<![\w&])(?<!href=["'])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![\w$.-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color-mix|color)\(/g;
 
 const CSS_COMMENT = /\/\*[\s\S]*?\*\//g;
 
@@ -74,7 +89,7 @@ function physicalUses(path: string, content: string): string[] {
 }
 
 function physicalProperties(path: string, content: string): string[] {
-  if (!isCss(path)) return [];
+  if (!isCss(path)) return findPhysicalInlineStyles(content);
   const allowed = new Set(ALLOWED_PHYSICAL_PROPERTIES.filter((entry) => entry.path === path).map((e) => e.declaration));
   return [...content.replace(CSS_COMMENT, '').matchAll(PHYSICAL_PROPERTY)]
     .map(([, declaration = '']) => declaration.trim().replace(/\s*:\s*/, ': '))
@@ -85,13 +100,15 @@ function colourUses(path: string, content: string): string[] {
   const utilities = classTokens(path, content)
     .filter(({ utility }) => COLOUR_UTILITY.test(utility))
     .map(({ variants, utility }) => `${variants}${utility}`);
-  return [...utilities, ...[...content.matchAll(COLOUR_LITERAL)].map(([literal]) => literal)];
+  const named = isCss(path) ? findNamedCssColours(content.replace(CSS_COMMENT, '')) : [];
+  return [...utilities, ...[...content.matchAll(COLOUR_LITERAL)].map(([literal]) => literal), ...named];
 }
 
 /**
  * Checks the dashboard style rules: layout uses logical utilities (`ms-2`, `text-start`) and, in CSS, logical
- * properties (`margin-inline-start`) so it mirrors under `dir="rtl"`, and colour comes from the theme tokens
- * (`bg-background`) so dark mode follows. Icons are unaffected.
+ * properties (`margin-inline-start`) and inline style keys (`marginInlineStart`) so it mirrors under `dir="rtl"`,
+ * and colour comes from the theme tokens (`bg-background`, `var(--…)`), never a palette class, a colour function or a
+ * named CSS colour, so dark mode follows. Icons are unaffected.
  *
  * @param files the repo-relative files to scan; those outside `plugins/*\/dashboard` are ignored
  * @returns one message per offending use; empty when the sources are clean
