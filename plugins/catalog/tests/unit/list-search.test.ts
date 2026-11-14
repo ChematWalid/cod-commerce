@@ -106,7 +106,7 @@ describe('list search', () => {
     expect(next).toBe(state);
   });
 
-  it('tells a search, a filter or the Draft tab from the whole store', () => {
+  it('tells a search, a filter, the Draft tab or the Sold out tab from the whole store', () => {
     // Arrange
     const narrowed = [
       { ...INITIAL_LIST_STATE, search: 'shoe' },
@@ -114,13 +114,14 @@ describe('list search', () => {
       { ...INITIAL_LIST_STATE, brandId: '7000000000000000001' },
       { ...INITIAL_LIST_STATE, tagId: '7000000000000000002' },
       { ...INITIAL_LIST_STATE, tab: 'draft' as const },
+      { ...INITIAL_LIST_STATE, tab: 'sold-out' as const },
     ];
 
     // Act
     const answers = narrowed.map((state) => isNarrowed(listQueryOf(state)));
 
     // Assert
-    expect(answers).toEqual([true, true, true, true, true]);
+    expect(answers).toEqual([true, true, true, true, true, true]);
     expect(isNarrowed(listQueryOf({ ...INITIAL_LIST_STATE, search: '  ', page: 3 }))).toBe(false);
   });
 });

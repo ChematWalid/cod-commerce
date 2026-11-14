@@ -67,10 +67,14 @@ export function clampPage(
   return state.page > lastPage ? withPage(state, lastPage) : state;
 }
 
-/** Whether `query` asks for less than every product: an empty answer then means no match, not an empty store. */
+/**
+ * Whether `query` asks for less than every product (any tab but All, a search or a filter): an empty answer then means
+ * no match, not an empty store.
+ */
 export function isNarrowed(query: ProductListQueryInput): boolean {
   return (
-    query.tab === 'draft' ||
+    // An absent tab is All, the schema's default.
+    (query.tab !== undefined && query.tab !== 'all') ||
     query.q !== undefined ||
     query.collectionId !== undefined ||
     query.brandId !== undefined ||
