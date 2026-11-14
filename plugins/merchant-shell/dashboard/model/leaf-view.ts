@@ -78,6 +78,16 @@ export function decideLeafView({ leaf, storeParam, activeChannelId, stores, chan
   return allowed ? { kind: 'page', store } : { kind: 'forbidden' };
 }
 
+/** The key of a page without a store; a store's key is never empty, so the two never meet. */
+const NO_STORE_PAGE_KEY = '';
+
+/**
+ * The React key of a gated page: its store's id. A switch keeps the route mounted (the URL reads the active store), so
+ * without it a page would keep the previous store's filters or form ids and send them to the new store.
+ */
+export const pageKeyOf = (view: Extract<LeafView, { kind: 'page' }>): string =>
+  view.store === undefined ? NO_STORE_PAGE_KEY : `store-${view.store.id}`;
+
 /** The id of a {@link storeScopedLeaf}: it names no sidebar entry and is never registered. */
 const STORE_SCOPED_PAGE_ID = 'store-scoped-page';
 /** Such a page shows no sidebar title or crumb of the shell: the page titles itself. */

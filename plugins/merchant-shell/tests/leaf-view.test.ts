@@ -1,6 +1,6 @@
 import { vendurePermissionName } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
-import { decideLeafView, type LeafViewInput, storeScopedLeaf } from '../dashboard/model/leaf-view';
+import { decideLeafView, type LeafViewInput, pageKeyOf, storeScopedLeaf } from '../dashboard/model/leaf-view';
 import { SHELL_LEAVES, type ShellLeaf } from '../dashboard/model/tree';
 import type { SwitchableStoreView } from '../dashboard/model/types';
 
@@ -109,6 +109,20 @@ describe('decideLeafView', () => {
       const channels = [{ id: '1', permissions: [vendurePermissionName('catalog.products.edit')] }, A2_CHANNEL];
       expect(decideLeafView(input({ leaf: editor, channels }))).toEqual({ kind: 'page', store: A1 });
       expect(decideLeafView(input({ leaf: editor }))).toEqual({ kind: 'forbidden' });
+    });
+  });
+
+  describe('pageKeyOf', () => {
+    it('gives each store its own page key, so a store switch mounts the page afresh', () => {
+      expect(pageKeyOf({ kind: 'page', store: A1 })).not.toEqual(pageKeyOf({ kind: 'page', store: A2 }));
+    });
+
+    it('keeps the key of the same store, so a refetch of the stores keeps the page state', () => {
+      expect(pageKeyOf({ kind: 'page', store: A1 })).toEqual(pageKeyOf({ kind: 'page', store: { ...A1 } }));
+    });
+
+    it('gives a page without a store a key of its own', () => {
+      expect(pageKeyOf({ kind: 'page', store: undefined })).not.toEqual(pageKeyOf({ kind: 'page', store: A1 }));
     });
   });
 });

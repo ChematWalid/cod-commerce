@@ -1,9 +1,9 @@
 import { useParams } from '@tanstack/react-router';
 import { ErrorPage, useAuth } from '@vendure/dashboard';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { Fragment, type ReactNode, useEffect, useRef } from 'react';
 import { SHELL_FORBIDDEN_TEST_ID } from '../constants';
 import { useSettledActiveChannel } from '../hooks/use-settled-active-channel';
-import { decideLeafView, type LeafView } from '../model/leaf-view';
+import { decideLeafView, type LeafView, pageKeyOf } from '../model/leaf-view';
 import type { ShellLeaf, ShellLeafId } from '../model/tree';
 import { useSwitchableStores } from '../queries';
 import { getShellPage } from '../registry/shell-pages';
@@ -65,7 +65,8 @@ export function LeafGate({ leaf, children }: LeafGateProps): ReactNode {
   if (stores.isError && stores.data === undefined) return <ErrorPage error={stores.error} />;
   switch (view.kind) {
     case 'page':
-      return children(view);
+      // Keyed by store: every page below starts afresh on a store switch, with none of the old store's local state.
+      return <Fragment key={pageKeyOf(view)}>{children(view)}</Fragment>;
     case 'forbidden':
       return (
         <div data-testid={SHELL_FORBIDDEN_TEST_ID} className="contents">
