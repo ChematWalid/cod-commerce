@@ -67,50 +67,33 @@ import { VendureVariantSync } from './vendure-variant-sync.adapter';
 
 const SYSTEM_CLOCK: ClockPort = { now: () => new Date() };
 
-/** The order of the injected adapters, which the bundle factory receives. */
-const PORT_TOKENS = [
-  PRODUCT_CATALOG,
-  PRODUCT_SEARCH,
-  PRODUCT_EVENTS,
-  TRANSACTION,
-  BRAND_REPOSITORY,
-  TAG_REPOSITORY,
-  HIGHLIGHT_REPOSITORY,
-  PRODUCT_SETTINGS_REPOSITORY,
-  MEDIA_REPOSITORY,
-  MEDIA_STORAGE,
-  PRODUCT_COLLECTION_REPOSITORY,
-  DESCRIPTION_SANITIZER,
-  ID_GENERATOR,
-  CLOCK,
-  TAXONOMY_LOCK,
-  MEDIA_LOCK,
-  ORDER_MANAGER_CHECK_REGISTRAR,
-  SOLD_OUT_SOURCE,
-  STORE_SETTINGS,
-] as const;
+/**
+ * The token each bundle key is injected from, declared once: a key missing from `ProductPorts` or a port left out
+ * fails typecheck, and the bundle factory pairs keys and adapters by name, never by position.
+ */
+export const PORT_TOKEN_OF = {
+  products: PRODUCT_CATALOG,
+  search: PRODUCT_SEARCH,
+  events: PRODUCT_EVENTS,
+  transaction: TRANSACTION,
+  brands: BRAND_REPOSITORY,
+  tags: TAG_REPOSITORY,
+  highlights: HIGHLIGHT_REPOSITORY,
+  settings: PRODUCT_SETTINGS_REPOSITORY,
+  media: MEDIA_REPOSITORY,
+  storage: MEDIA_STORAGE,
+  collections: PRODUCT_COLLECTION_REPOSITORY,
+  sanitizer: DESCRIPTION_SANITIZER,
+  ids: ID_GENERATOR,
+  clock: CLOCK,
+  taxonomyLock: TAXONOMY_LOCK,
+  mediaLock: MEDIA_LOCK,
+  orderManagers: ORDER_MANAGER_CHECK_REGISTRAR,
+  soldOut: SOLD_OUT_SOURCE,
+  stores: STORE_SETTINGS,
+} as const satisfies Record<keyof ProductPorts, symbol>;
 
-const PORT_KEYS = [
-  'products',
-  'search',
-  'events',
-  'transaction',
-  'brands',
-  'tags',
-  'highlights',
-  'settings',
-  'media',
-  'storage',
-  'collections',
-  'sanitizer',
-  'ids',
-  'clock',
-  'taxonomyLock',
-  'mediaLock',
-  'orderManagers',
-  'soldOut',
-  'stores',
-] as const satisfies readonly (keyof ProductPorts)[];
+const PORT_ENTRIES = Object.entries(PORT_TOKEN_OF) as readonly [keyof ProductPorts, symbol][];
 
 /** A use case built from the port bundle. */
 const useCase = (type: new (ports: ProductPorts) => object): Provider => ({
@@ -172,9 +155,10 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   },
   {
     provide: PRODUCT_PORTS,
-    useFactory: (...adapters: ProductPorts[keyof ProductPorts][]): ProductPorts =>
-      Object.fromEntries(PORT_KEYS.map((key, index) => [key, adapters[index]])) as unknown as ProductPorts,
-    inject: [...PORT_TOKENS],
+    // Nest hands the adapters in `inject` order, which is PORT_ENTRIES' own order: each lands on its entry's key.
+    useFactory: (...adapters: unknown[]): ProductPorts =>
+      Object.fromEntries(PORT_ENTRIES.map(([key], index) => [key, adapters[index]])) as unknown as ProductPorts,
+    inject: PORT_ENTRIES.map(([, token]) => token),
   },
   useCase(CreateProductService),
   useCase(UpdateProductService),
