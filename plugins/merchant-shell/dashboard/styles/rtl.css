@@ -74,3 +74,9 @@ html:not([data-platform-staff]) [data-sidebar='header'],
 html:not([data-platform-staff]) [data-sidebar='footer'] {
   display: none;
 }
+
+/* The stock switch moves its thumb by a physical translate, so in RTL an "on" switch kept its thumb on the right, where
+   "off" sits. Move it to the inline end instead (seen on General settings, P2.S1 evidence). */
+html[dir='rtl'] [data-slot='switch-thumb'][data-checked] {
+  translate: calc(-100% + 2px) 0;
+}
