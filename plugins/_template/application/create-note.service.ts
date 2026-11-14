@@ -20,7 +20,7 @@ export class CreateNoteService {
   /**
    * Validates and stores a new note under `scope`; nothing is stored when the note is invalid.
    *
-   * @throws {InvalidNoteTitleError} or {NoteBodyTooLongError} for an invalid command.
+   * @throws {InvalidNoteTitleError}, {NoteBodyTooLongError} or {InvalidNoteBodyError} for an invalid command.
    */
   async execute(scope: TenantScope, command: CreateNoteCommand): Promise<Note> {
     const note = createNote({

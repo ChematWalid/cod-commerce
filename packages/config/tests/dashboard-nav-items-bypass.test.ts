@@ -113,3 +113,117 @@ describe('findStockNavSections on forms it must not skip', () => {
     ]);
   });
 });
+
+/** Forms found in review round 3 of P2.S1 task 5: assignments, bracket access and the nav carriers. */
+describe('findStockNavSections on assignments, bracket access and nav carriers', () => {
+  const INDEX = 'plugins/x/dashboard/index.tsx';
+  const violationsOf = (content: string): string[] => findStockNavSections([dashboardFile(content, INDEX)]);
+  const stock = (section: string): string => `${INDEX} puts a nav item in the stock section '${section}' (#122, D2111)`;
+  const unreadableItem = (text: string): string => `${INDEX} has a navMenuItem '${text}' it cannot read (#122, D2111)`;
+  const unreadableEntry = (text: string): string =>
+    `${INDEX} has a navSections entry '${text}' it cannot read (#122, D2111)`;
+
+  it.each([
+    ['a property assignment', "const item: Record<string, string> = {};\nitem.sectionId = 'catalog';", 'catalog'],
+    ['an element assignment', "const item: Record<string, string> = {};\nitem['sectionId'] = 'sales';", 'sales'],
+    ['an element assignment through a const key', "const k = 'sectionId';\nitem[k] = 'sales';", 'sales'],
+    [
+      'a computed key and value behind consts',
+      "const S = 'catalog';\nconst k = 'sectionId';\nconst I = { [k]: S };",
+      'catalog',
+    ],
+    [
+      'a shorthand navSections id',
+      "const id = 'catalog';\ndefineDashboardExtension({ navSections: [{ id, title: 'X' }] });",
+      'catalog',
+    ],
+  ])('flags a stock section set through %s', (_form, content, section) => {
+    // Act
+    const violations = violationsOf(content);
+
+    // Assert
+    expect(violations).toEqual([stock(section)]);
+  });
+
+  it('flags an element assignment through a key it cannot resolve', () => {
+    // Act
+    const violations = violationsOf("item[keyOf()] = 'catalog';");
+
+    // Assert
+    expect(violations).toEqual([`${INDEX} sets a property through 'keyOf()', a key it cannot resolve (#122, D2111)`]);
+  });
+
+  it('flags the imperative nav API reached by bracket access on the namespace', () => {
+    // Arrange
+    const content = "import * as d from '@vendure/dashboard';\nd['addNavMenuItem']({ id: 'x' }, 'catalog');";
+
+    // Act
+    const violations = violationsOf(content);
+
+    // Assert
+    expect(violations).toEqual([
+      `${INDEX} uses 'addNavMenuItem', which edits the stock nav outside the merchant shell (ADR 0010) (#122, D2111)`,
+    ]);
+  });
+
+  it('flags a dashboard namespace member it cannot resolve', () => {
+    // Arrange
+    const content = "import * as vd from '@vendure/dashboard';\nvd['addNavMenu' + 'Item']({ id: 'x' }, 'catalog');";
+
+    // Act
+    const violations = violationsOf(content);
+
+    // Assert
+    expect(violations).toEqual([
+      `${INDEX} reaches @vendure/dashboard through 'vd['addNavMenu' + 'Item']', a member it cannot resolve (ADR 0010) (#122, D2111)`,
+    ]);
+  });
+
+  it.each([
+    [
+      'an import from outside the dashboard',
+      "import { ITEM } from '@cod/shared';\nconst R = { navMenuItem: ITEM };",
+      'ITEM',
+    ],
+    ['a helper call', "const R = { navMenuItem: navItem('catalog') };", "navItem('catalog')"],
+    ['a spread', "const R = { navMenuItem: { ...BASE, id: 'x' } };", "{ ...BASE, id: 'x' }"],
+    ['no sectionId', "const R = { navMenuItem: { id: 'x' } };", "{ id: 'x' }"],
+    [
+      'a const with a computed key it cannot resolve',
+      "const ITEM = { ['section' + 'Id']: 'cat' + 'alog' };\nconst R = { navMenuItem: ITEM };",
+      'ITEM',
+    ],
+  ])('flags a navMenuItem given as %s', (_form, content, text) => {
+    // Act
+    const violations = violationsOf(content);
+
+    // Assert
+    expect(violations).toEqual([unreadableItem(text)]);
+  });
+
+  it('accepts a navMenuItem const of the same plugin in an own section', () => {
+    // Arrange
+    const item = dashboardFile(
+      "export const ITEM = { sectionId: 'platform', id: 'x' };",
+      'plugins/x/dashboard/item.ts',
+    );
+    const route = dashboardFile('export const R = { navMenuItem: ITEM };', 'plugins/x/dashboard/route.tsx');
+
+    // Act
+    const violations = findStockNavSections([item, route]);
+
+    // Assert
+    expect(violations).toEqual([]);
+  });
+
+  it.each([
+    ['a spread', "[{ ...{ id: 'catalog' }, title: 'X' }]", "{ ...{ id: 'catalog' }, title: 'X' }"],
+    ['no id', "[{ title: 'X' }]", "{ title: 'X' }"],
+  ])('flags a navSections entry with %s', (_form, sections, text) => {
+    // Act
+    const violations = violationsOf(`defineDashboardExtension({ navSections: ${sections} });`);
+
+    // Assert
+    expect(violations).toEqual([unreadableEntry(text)]);
+  });
+});

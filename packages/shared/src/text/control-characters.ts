@@ -50,7 +50,7 @@ function isControlCodePoint(codePoint: number, allowLineBreaks: boolean): boolea
  * Tells whether `value` holds a control character: C0 (U+0000-U+001F), DEL, C1 (U+0080-U+009F)
  * or the Unicode line and paragraph separators (U+2028, U+2029).
  * A NUL breaks Postgres `text`; the others corrupt logs, CSV exports and rendered names.
- * Bidi formatting characters are out of scope: Arabic text uses them legitimately.
+ * Bidi controls are left to {@link hasBidiControl}: multi-line text pasted from an editor may hold embeddings.
  *
  * @param options.allowLineBreaks - when true, tab, `\n`, `\r`, U+2028 and U+2029 are not counted
  */
@@ -58,6 +58,35 @@ export function hasControlCharacter(value: string, options: ControlCharacterOpti
   const allowLineBreaks = options.allowLineBreaks ?? false;
   for (const character of value) {
     if (isControlCodePoint(character.codePointAt(0) ?? 0, allowLineBreaks)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** The embedding and override controls LRE, RLE, PDF, LRO and RLO (U+202A-U+202E). */
+const BIDI_EMBEDDING_MIN = 0x202a;
+const BIDI_EMBEDDING_MAX = 0x202e;
+/** The isolate controls LRI, RLI, FSI and PDI (U+2066-U+2069). */
+const BIDI_ISOLATE_MIN = 0x2066;
+const BIDI_ISOLATE_MAX = 0x2069;
+
+function isBidiControlCodePoint(codePoint: number): boolean {
+  return (
+    (codePoint >= BIDI_EMBEDDING_MIN && codePoint <= BIDI_EMBEDDING_MAX) ||
+    (codePoint >= BIDI_ISOLATE_MIN && codePoint <= BIDI_ISOLATE_MAX)
+  );
+}
+
+/**
+ * Tells whether `value` holds a bidi embedding, override or isolate control (U+202A-U+202E, U+2066-U+2069).
+ * They reorder the text shown in the dashboard and in logs ('Invoice' + RLO + 'fdp.exe' reads as an .exe name,
+ * Trojan Source), so single-line fields such as a title or a name refuse them alongside {@link hasControlCharacter}.
+ * The direction marks Arabic text needs, LRM (U+200E), RLM (U+200F) and ALM (U+061C), are not counted.
+ */
+export function hasBidiControl(value: string): boolean {
+  for (const character of value) {
+    if (isBidiControlCodePoint(character.codePointAt(0) ?? 0)) {
       return true;
     }
   }

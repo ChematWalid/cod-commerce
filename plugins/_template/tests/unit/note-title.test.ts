@@ -55,6 +55,14 @@ describe('NoteTitle', () => {
     expect(create).toThrow(InvalidNoteTitleError);
   });
 
+  it('refuses a bidi override in a title', () => {
+    // Act
+    const create = (): NoteTitle => NoteTitle.create('Invoice\u202Efdp.exe');
+
+    // Assert
+    expect(create).toThrow(InvalidNoteTitleError);
+  });
+
   it('keeps an Arabic title with its direction marks', () => {
     // Act
     const title = NoteTitle.create('\u200Fاتصل بالمورد');

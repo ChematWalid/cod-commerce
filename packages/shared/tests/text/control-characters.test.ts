@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasControlCharacter } from '../../src/index';
+import { hasBidiControl, hasControlCharacter } from '../../src/index';
 
 describe('hasControlCharacter', () => {
   it('finds a NUL', () => {
@@ -47,5 +47,29 @@ describe('hasControlCharacter', () => {
     expect(hasControlCharacter('a\u2028b')).toBe(true);
     expect(hasControlCharacter('a\u2029b')).toBe(true);
     expect(hasControlCharacter('a\u2028b\u2029c', { allowLineBreaks: true })).toBe(false);
+  });
+});
+
+describe('hasBidiControl', () => {
+  it.each([
+    ['RLO', '\u202E'],
+    ['LRE', '\u202A'],
+    ['PDF', '\u202C'],
+    ['LRI', '\u2066'],
+    ['PDI', '\u2069'],
+  ])('finds the embedding, override or isolate control %s', (_name, control) => {
+    // Act
+    const found = hasBidiControl(`Invoice${control}fdp.exe`);
+
+    // Assert
+    expect(found).toBe(true);
+  });
+
+  it('keeps the direction marks RLM, LRM and ALM that Arabic text needs', () => {
+    // Act
+    const found = hasBidiControl('\u200Fحذاء\u061C SKU-1\u200E');
+
+    // Assert
+    expect(found).toBe(false);
   });
 });

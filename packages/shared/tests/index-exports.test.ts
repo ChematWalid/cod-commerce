@@ -68,6 +68,7 @@ const RUNTIME_EXPORTS = [
   'commissionConfigSchema',
   'listMembersQuerySchema',
   'hasControlCharacter',
+  'hasBidiControl',
   'tenantKey',
   'tenantObjectPrefix',
   'tenantObjectKey',
