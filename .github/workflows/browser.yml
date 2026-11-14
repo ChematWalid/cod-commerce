@@ -126,8 +126,16 @@ jobs:
         run: ROLE=api pnpm --filter @cod/server build:dashboard
       - name: Migrate
         run: ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-migrate.js
+      # The seed's real wiring (owner lookup, store channel context, store language) runs only here: the first run must
+      # give the demo stores their products, and a second run must create nothing (D2129).
       - name: Seed the demo businesses
-        run: ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-seed-demo.js
+        run: |
+          ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-seed-demo.js | tee seed-demo.log
+          grep -F '"DEMO-TEE"' seed-demo.log
+      - name: Seed again, which creates nothing
+        run: |
+          ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-seed-demo.js | tee seed-demo-again.log
+          grep -F '"event":"seed-demo.done","created":[]' seed-demo-again.log
       - name: Start the api
         run: |
           ROLE=api API_PORT=3100 setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-api.js > api.log 2>&1 &

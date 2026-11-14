@@ -14,6 +14,11 @@ export const TEAM_INVITE_BUSINESS_CAPACITY = 100;
 /** Invitations, or resends, one administrator may send per hour (D205). */
 export const TEAM_ACTOR_MAIL_CAPACITY = 30;
 
+/** Media uploads one business may make per hour: the shared bucket must not be filled by one business (D2138). */
+export const CATALOG_MEDIA_BUSINESS_CAPACITY = 1000;
+/** Media uploads one administrator may make per hour (D2138). */
+export const CATALOG_MEDIA_ACTOR_CAPACITY = 120;
+
 /** Wrong or right code guesses per day one account may make, whatever the resends (D44). */
 export const OTP_DAILY_CAPACITY = 50;
 

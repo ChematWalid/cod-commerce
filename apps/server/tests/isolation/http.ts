@@ -26,7 +26,18 @@ export interface MatrixRequest {
   readonly body?: unknown;
   readonly rawBody?: string;
   readonly headers?: Readonly<Record<string, string>>;
+  /** A file sent as a GraphQL multipart upload at `variables.file`; `body` then holds the query and variables. */
+  readonly upload?: UploadedFile;
 }
+
+/** A file as a client uploads it: its bytes and the name it claims. */
+export interface UploadedFile {
+  readonly bytes: Buffer;
+  readonly name: string;
+}
+
+/** The type every upload claims; the server reads the bytes, never the claim. */
+const CLAIMED_TYPE = 'image/png';
 
 /** What came back, with the body parsed when it is JSON. */
 export interface Exchange {
@@ -47,6 +58,7 @@ export class IsolationHttp {
 
   /** Sends `request` and returns the exchange. */
   async send(request: MatrixRequest): Promise<Exchange> {
+    if (request.upload !== undefined) return this.sendUpload(request, request.upload);
     const headers: Record<string, string> = { ...request.headers };
     const body = request.rawBody ?? (request.body === undefined ? undefined : JSON.stringify(request.body));
     if (body !== undefined) headers['content-type'] = 'application/json';
@@ -59,20 +71,24 @@ export class IsolationHttp {
     return { request, status: response.status, body: parseBody(text) };
   }
 
-  /** A GraphQL multipart upload of one file as `$file` (the logo upload). */
-  async upload(caller: Caller, query: string, file: Buffer, channel: NonNullable<MatrixRequest['channel']>) {
+  /** A GraphQL multipart upload of one file as `$file` (the logo upload, the catalog's media). */
+  upload(caller: Caller, query: string, file: UploadedFile, channel: NonNullable<MatrixRequest['channel']>) {
+    const body = { query, variables: { file: null } };
+    return this.send({ method: 'POST', path: '/admin-api', caller, channel, body, upload: file });
+  }
+
+  private async sendUpload(request: MatrixRequest, file: UploadedFile): Promise<Exchange> {
     const form = new FormData();
-    form.append('operations', JSON.stringify({ query, variables: { file: null } }));
+    form.append('operations', JSON.stringify(request.body));
     form.append('map', JSON.stringify({ 0: ['variables.file'] }));
-    form.append('0', new Blob([new Uint8Array(file)], { type: 'image/png' }), 'logo.png');
-    const request: MatrixRequest = { method: 'POST', path: '/admin-api', caller, channel };
-    const response = await fetch(new URL('/admin-api', this.baseUrl), {
+    form.append('0', new Blob([new Uint8Array(file.bytes)], { type: CLAIMED_TYPE }), file.name);
+    const response = await fetch(new URL(request.path, this.baseUrl), {
       method: 'POST',
       // Apollo refuses a multipart request without this header (its CSRF prevention).
-      headers: { 'apollo-require-preflight': 'true', ...this.sessionHeaders(request) },
+      headers: { 'apollo-require-preflight': 'true', ...request.headers, ...this.sessionHeaders(request) },
       body: form,
     });
-    return { request, status: response.status, body: parseBody(await response.text()) } satisfies Exchange;
+    return { request, status: response.status, body: parseBody(await response.text()) };
   }
 
   private sessionHeaders(request: MatrixRequest): Record<string, string> {

@@ -1,9 +1,13 @@
 # `plugins/_template`: the reference plugin
 
 A tenant-scoped "notes" feature that shows every rule of CLAUDE.md §3a in working code: every layer, a port
-with two adapters, tenant filtering, typed errors with one error mapping, a dashboard page, and every test
-kind. It is registered on every role and its `templateNotes` query and dashboard page (`/dashboard/template-notes`)
-are live, so it stays honest: the full gate runs it.
+with two adapters, tenant filtering, typed errors with one error mapping, a dashboard page component, and every
+test kind. It is a development aid: `buildPlugins` registers it on every role only when `APP_ENV` is `development`
+or `test`, never on staging or production (D2111, #170). There its `templateNotes` query is live, so it stays
+honest: the full gate runs it. Its dashboard page has no route and no nav item: merchants never see a stock
+section (#122). A merchant page is registered in the shell with `registerShellPage` from
+`@cod/plugin-merchant-shell/shell-api`; the live example is
+`plugins/merchant-shell/dashboard/index.tsx` (`registerShellPage('settings.general', ...)`).
 
 ## Layout and layer rules
 
@@ -49,16 +53,20 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
    - the plugin class and `template.plugin.ts`, also in `tsconfig.build.json`'s `include`;
    - the entity and its table, and the GraphQL types and fields;
    - the error codes (`domain/errors.ts`) and the DI token strings (`application/tokens.ts`);
-   - the dashboard constants and nav item (`dashboard/constants.ts`: path, test id, nav id and title, permission),
-     the page and block ids in the route file, and the query key;
+   - the dashboard constants (`dashboard/constants.ts`: test id, title), the page and block ids in the page file,
+     and the query key;
    - the `index.ts` exports.
 2. **Register** it: add `"@cod/plugin-<name>": "workspace:*"` to `apps/server/package.json`, run `pnpm install`,
    and add one line in `buildPlugins` (`apps/server/src/config/plugins.config.ts`). A plugin with entities goes
-   on every role, so `migrate` creates its tables. Add a line for it to
-   `apps/server/tests/unit/plugins-registered.test.ts`.
+   on every role, so `migrate` creates its tables (unlike this template, a feature plugin is registered in every
+   `APP_ENV`). Add a line for it to `apps/server/tests/unit/plugins-registered.test.ts`.
    - The **dashboard** extension needs no registration: `build:dashboard` picks up the `dashboard` entry of every
-     plugin that `buildPlugins` returns for the api role. Re-run `pnpm --filter @cod/server build:dashboard` to see
-     a change on the api's `/dashboard`.
+     plugin that `buildPlugins` returns for the api role. A merchant page fills a shell leaf with
+     `registerShellPage` (see `plugins/merchant-shell/dashboard/index.tsx`); never add a `navMenuItem` or a `navSections`
+     entry in a stock section (`BUILT_IN_NAV_SECTION_IDS`: `insights`, `catalog`, `sales`, `customers`, `marketing`,
+     `system`, `settings`), never call `addNavMenuItem`, `addNavMenuSection` or `setNavMenuConfig`, and name a section
+     with a literal or a `const` of your own plugin:
+     `packages/config/tests/dashboard-nav-items.test.ts` fails otherwise. Re-run `pnpm --filter @cod/server build:dashboard` to see a change on the api's `/dashboard`.
    - **Permissions**: pick the catalogue keys of your area, or add them in
      `packages/shared/src/permissions/catalog/` (its tests pin the counts, D61), and name them in
      `api/permissions.ts`. Guard every handler with `requirePermission(key)` from `@cod/plugin-rbac/guard`.
@@ -98,5 +106,5 @@ Postgres; `DATABASE_URL_DIRECT` comes from `apps/server/.env` or the environment
 ## What changes later
 
 - The dashboard's strings are in `dashboard/i18n/*.po` (Arabic and English).
-- The nav item in `dashboard/constants.ts` still names the removed `ReadTemplateNote` permission; moving it to
-  the catalogue key is follow-up TPL-2.
+- The P1 isolation e2e and `scripts/evidence/P1-isolation.sh` reach the template note row only on a server whose
+  `APP_ENV` is `test` or `development`.

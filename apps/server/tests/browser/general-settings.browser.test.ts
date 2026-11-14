@@ -1,4 +1,6 @@
 import {
+  BUSINESS_LOGO_INPUT_TEST_ID,
+  BUSINESS_LOGO_TEST_ID,
   BUSINESS_NAME_TEST_ID,
   BUSINESS_SAVE_TEST_ID,
   SETTINGS_ERROR_TEST_ID,
@@ -7,6 +9,7 @@ import {
   STORE_NAME_TEST_ID,
   STORE_SAVE_TEST_ID,
   STORE_SWITCHER_TEST_ID,
+  soldOutOptionTestId,
 } from '@cod/plugin-merchant-shell';
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -29,6 +32,12 @@ const PHONE = { width: 390, height: 844 } as const;
 const OVER_LONG_NAME = 'x'.repeat(256);
 const NAME_INVALID_ENGLISH = 'Enter a name of up to 255 characters.';
 const ARABIC_BUSINESS_NAME_LABEL = 'اسم النشاط';
+
+/** A one-pixel PNG: the smallest image the logo upload accepts. */
+const ONE_PIXEL_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
 
 const runId = Date.now().toString(36);
 let sequence = 0;
@@ -126,6 +135,67 @@ describe('general settings', () => {
         input: { name: original },
       });
     }
+  });
+
+  it('shows the business logo after upload', async () => {
+    const before = await adminApi<{ activeBusiness: { logoAssetId: string | null } }>(
+      page,
+      'query { activeBusiness { logoAssetId } }',
+    );
+    try {
+      await openSettings(page);
+
+      await byTestId(page, BUSINESS_LOGO_INPUT_TEST_ID).setInputFiles({
+        name: 'logo.png',
+        mimeType: 'image/png',
+        buffer: ONE_PIXEL_PNG,
+      });
+      await expect.poll(() => byTestId(page, BUSINESS_SAVE_TEST_ID).isEnabled()).toBe(true);
+      await byTestId(page, BUSINESS_SAVE_TEST_ID).click();
+      await expect.poll(() => byTestId(page, BUSINESS_SAVE_TEST_ID).isDisabled()).toBe(true);
+      await page.reload();
+      await byTestId(page, BUSINESS_LOGO_TEST_ID).waitFor();
+
+      const logo = byTestId(page, BUSINESS_LOGO_TEST_ID);
+      await expect(logo.getAttribute('src')).resolves.toContain('preview/');
+      await expect
+        .poll(() =>
+          logo.evaluate(
+            (image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+          ),
+        )
+        .toBe(true);
+    } finally {
+      await adminApi(page, 'mutation ($input: UpdateBusinessInput!) { updateBusiness(input: $input) { id } }', {
+        input: { logoAssetId: before.activeBusiness.logoAssetId },
+      });
+    }
+  });
+
+  it('saves sold-out hide and keeps it after reload', async () => {
+    const subdomain = uniqueSubdomain();
+    const store = await createDisposableStore(page, { name: `Sold out ${runId}`, subdomain, language: 'ar' });
+    disposable.push(store.id);
+    await page.goto(`${DASHBOARD_URL}/home`, { waitUntil: 'domcontentloaded' });
+    await chooseStore(page, subdomain);
+    await expectSwitcherOn(page, subdomain);
+    await openSettings(page);
+    const hide = byTestId(page, soldOutOptionTestId('hide'));
+    await expect.poll(() => byTestId(page, soldOutOptionTestId('keep')).getAttribute('aria-checked')).toBe('true');
+
+    await hide.click();
+    await byTestId(page, STORE_SAVE_TEST_ID).click();
+    await expect.poll(() => byTestId(page, STORE_SAVE_TEST_ID).isDisabled()).toBe(true);
+    await page.reload();
+    await byTestId(page, STORE_NAME_TEST_ID).waitFor();
+
+    await expect.poll(() => byTestId(page, soldOutOptionTestId('hide')).getAttribute('aria-checked')).toBe('true');
+    const saved = await adminApi<{ store: { soldOutBehavior: string } }>(
+      page,
+      'query ($id: String!) { store(id: $id) { soldOutBehavior } }',
+      { id: store.id },
+    );
+    expect(saved.store.soldOutBehavior).toBe('hide');
   });
 
   it("shows the server's refusal by its catalogue sentence", async () => {

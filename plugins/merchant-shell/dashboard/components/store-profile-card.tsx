@@ -1,19 +1,34 @@
 import { useLingui } from '@lingui/react';
 import { Label, Textarea, toast } from '@vendure/dashboard';
 import { type ReactNode, type SyntheticEvent, useId, useState } from 'react';
-import { STORE_CARD_TEST_ID, STORE_DESCRIPTION_TEST_ID, STORE_NAME_TEST_ID, STORE_SAVE_TEST_ID } from '../constants';
+import {
+  STORE_CARD_TEST_ID,
+  STORE_DESCRIPTION_TEST_ID,
+  STORE_LOGO_INPUT_TEST_ID,
+  STORE_LOGO_TEST_ID,
+  STORE_NAME_TEST_ID,
+  STORE_SAVE_TEST_ID,
+} from '../constants';
 import { useUpdateStore } from '../hooks/use-settings-mutations';
 import { settingsErrorMessageId } from '../model/api-error';
 import { canSaveStore, draftOfStore, type StoreDraft, storePatchOf } from '../model/settings-form';
 import type { StoreRecord } from '../model/types';
+import { LogoField } from './logo-field';
 import { SettingsCardFooter } from './settings-card-footer';
 import { StoreLanguageSelect } from './store-language-select';
+import { StoreOperationsFields } from './store-operations-fields';
 import { TextField } from './text-field';
 
 interface StoreProfileCardProps {
   readonly store: StoreRecord;
   /** Whether the caller holds `store.settings.edit`; without it the fields only show. */
   readonly canEdit: boolean;
+  /**
+   * Whether the caller may also upload a logo: the upload needs `settings.business.edit` (D2120). Without it the
+   * logo only shows. This gates uploading a new file only; the server lets `updateStore` pick any asset already on
+   * the store's channel.
+   */
+  readonly canUploadLogo: boolean;
 }
 
 function DescriptionField({
@@ -44,7 +59,7 @@ function DescriptionField({
   );
 }
 
-/** The three inputs of the card: all read-only unless `canEdit`. */
+/** The identity inputs of the card: all read-only unless `canEdit`. */
 function StoreFields({
   draft,
   canEdit,
@@ -84,8 +99,8 @@ function StoreFields({
   );
 }
 
-/** The store's name, description and language. The form restarts from the saved record whenever the record changes. */
-function StoreForm({ store, canEdit }: StoreProfileCardProps): ReactNode {
+/** The draft of the Store card and its Save, which sends only what changed. */
+function useStoreForm(store: StoreRecord, canEdit: boolean) {
   const { i18n } = useLingui();
   const saved = draftOfStore(store);
   const [draft, setDraft] = useState<StoreDraft>(saved);
@@ -100,9 +115,37 @@ function StoreForm({ store, canEdit }: StoreProfileCardProps): ReactNode {
       },
     });
   };
+  return { draft, setDraft, update, canSave, submit };
+}
+
+/**
+ * The store's logo, name, description, language, address field and sold-out behaviour. The form restarts from the
+ * saved record whenever the record changes.
+ */
+function StoreForm({ store, canEdit, canUploadLogo }: StoreProfileCardProps): ReactNode {
+  const { i18n } = useLingui();
+  const { draft, setDraft, update, canSave, submit } = useStoreForm(store, canEdit);
   return (
     <form className="grid max-w-xl gap-4" onSubmit={submit} noValidate>
+      <LogoField
+        label={i18n._('shell.settings.store.logo')}
+        currentUrl={store.logoUrl}
+        canUpload={canEdit && canUploadLogo}
+        imageTestId={STORE_LOGO_TEST_ID}
+        inputTestId={STORE_LOGO_INPUT_TEST_ID}
+        onUploaded={(logoAssetId) => {
+          setDraft((current) => ({ ...current, logoAssetId }));
+        }}
+      />
       <StoreFields draft={draft} canEdit={canEdit} onChange={setDraft} />
+      <StoreOperationsFields
+        showAddressField={draft.showAddressField}
+        soldOutBehavior={draft.soldOutBehavior}
+        disabled={!canEdit}
+        onChange={(patch) => {
+          setDraft((current) => ({ ...current, ...patch }));
+        }}
+      />
       {canEdit && (
         <SettingsCardFooter
           saveTestId={STORE_SAVE_TEST_ID}
@@ -115,15 +158,23 @@ function StoreForm({ store, canEdit }: StoreProfileCardProps): ReactNode {
   );
 }
 
-/** The active store's card of General settings. Logo, delivery fee group, carrier and address field wait for their data. */
-export function StoreProfileCard({ store, canEdit }: StoreProfileCardProps): ReactNode {
+/**
+ * The active store's card of General settings (CO-6). The delivery fee group (P3.S1) and the carrier (P5.S1) wait for
+ * their data.
+ */
+export function StoreProfileCard({ store, canEdit, canUploadLogo }: StoreProfileCardProps): ReactNode {
+  const savedKey = [
+    store.id,
+    store.name,
+    store.description,
+    store.language,
+    store.logoAssetId ?? '',
+    String(store.showAddressField),
+    store.soldOutBehavior,
+  ].join(':');
   return (
     <div data-testid={STORE_CARD_TEST_ID}>
-      <StoreForm
-        key={`${store.id}:${store.name}:${store.description}:${store.language}`}
-        store={store}
-        canEdit={canEdit}
-      />
+      <StoreForm key={savedKey} store={store} canEdit={canEdit} canUploadLogo={canUploadLogo} />
     </div>
   );
 }

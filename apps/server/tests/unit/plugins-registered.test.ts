@@ -1,4 +1,5 @@
-import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { AuthPlugin } from '@cod/plugin-auth';
+import { CatalogPlugin } from '@cod/plugin-catalog';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -14,16 +15,54 @@ import { describe, expect, it } from 'vitest';
 import { authEmailTemplates } from '../../src/email';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
 import { buildPlugins } from '../../src/config/plugins.config';
-import { CORE_ENV, STRONG_SECRETS, syntheticSecret } from '../support/deployed-env.fixture';
+import { TenantAssetNamingStrategy } from '../../src/config/tenant-asset-naming.strategy';
+import {
+  CORE_ENV,
+  DEPLOYED_OVERRIDES,
+  STRONG_SECRETS,
+  syntheticSecret,
+  TEST_ENV,
+} from '../support/deployed-env.fixture';
 
 const valid = CORE_ENV;
 const SMTP_PASSWORD = syntheticSecret('smtp-password', 19);
+/** A staging or production environment: the shape of a deployed server. */
+const deployedEnv = (appEnv: 'staging' | 'production', role: ServerRole) =>
+  loadEnv({ ...TEST_ENV, ...DEPLOYED_OVERRIDES, APP_ENV: appEnv, ROLE: role });
 
 describe('buildPlugins', () => {
-  // A plugin with entities must be in every role, or `migrate` would not create its tables (B1).
-  it.each(SERVER_ROLES)('registers TemplatePlugin for the %s role', (role: ServerRole) => {
+  // The reference plugin is a development aid: staging has the production shape, so neither registers it (D2111).
+  it.each(SERVER_ROLES)('does not register TemplatePlugin in production for the %s role', (role: ServerRole) => {
     // Arrange
-    const env = loadEnv({ ...valid, ROLE: role });
+    const env = deployedEnv('production', role);
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).not.toContain(TemplatePlugin);
+  });
+
+  it.each(SERVER_ROLES)('does not register TemplatePlugin in staging for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = deployedEnv('staging', role);
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).not.toContain(TemplatePlugin);
+  });
+
+  // In development and test it is on every role, so `migrate` creates its table there (B1).
+  it.each(
+    SERVER_ROLES.flatMap((role) => [
+      { appEnv: 'development' as const, role },
+      { appEnv: 'test' as const, role },
+    ]),
+  )('registers TemplatePlugin in $appEnv for the $role role', ({ appEnv, role }) => {
+    // Arrange
+    const env = loadEnv({ ...valid, APP_ENV: appEnv, ROLE: role });
 
     // Act
     const plugins = buildPlugins(env, role);
@@ -172,6 +211,22 @@ describe('buildPlugins', () => {
     expect(plugins).toContain(RbacPlugin);
   });
 
+  // Team imports catalog's module to register its order-manager check: Catalog configures once, between them (D2137).
+  it.each(SERVER_ROLES)(
+    'registers CatalogPlugin once for the %s role, after AuthPlugin and before TeamPlugin',
+    (role: ServerRole) => {
+      // Arrange
+      const env = loadEnv({ ...valid, ROLE: role });
+      const expectedOrder: readonly unknown[] = [AuthPlugin, CatalogPlugin, TeamPlugin];
+
+      // Act
+      const plugins = buildPlugins(env, role);
+
+      // Assert: each of the three appears once, in this order
+      expect(plugins.filter((plugin) => expectedOrder.includes(plugin))).toEqual(expectedOrder);
+    },
+  );
+
   it.each(SERVER_ROLES)('registers TeamPlugin with the dashboard URL for the %s role', (role: ServerRole) => {
     // Arrange
     const env = loadEnv({ ...valid, ROLE: role });
@@ -211,7 +266,7 @@ describe('buildPlugins', () => {
     const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
     expect(options.route).toBe('assets');
     expect(options.storageStrategyFactory).toBeTypeOf('function');
-    expect(options.namingStrategy).toBeInstanceOf(RandomAssetNamingStrategy);
+    expect(options.namingStrategy).toBeInstanceOf(TenantAssetNamingStrategy);
   });
 
   it('lets an anonymous asset request pick a preset only, never its own size', async () => {
@@ -220,7 +275,6 @@ describe('buildPlugins', () => {
     buildPlugins(env, 'api');
     const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
     const strategy = options.imageTransformStrategy as ImageTransformStrategy;
-    const medium = { name: 'medium', width: 500, height: 500, mode: 'resize' } as const;
     const input = {
       width: 37,
       height: 11,
@@ -237,7 +291,7 @@ describe('buildPlugins', () => {
     const parameters = await strategy.getImageTransformParameters({
       req: {} as never,
       input,
-      availablePresets: [medium],
+      availablePresets: [{ name: 'medium', width: 500, height: 500, mode: 'resize' }],
     });
 
     // Assert

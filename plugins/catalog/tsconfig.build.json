@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "customConditions": []
+  },
+  "include": [
+    "index.ts",
+    "catalog.plugin.ts",
+    "domain/**/*.ts",
+    "application/**/*.ts",
+    "infrastructure/**/*.ts",
+    "api/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules", "tests", "dashboard", "*.config.ts"]
+}

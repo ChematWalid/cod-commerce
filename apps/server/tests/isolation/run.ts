@@ -1,5 +1,6 @@
 import { errorCodesOf, type Exchange, type GraphqlBody, type IsolationHttp, type MatrixRequest } from './http';
 import type { Expectation, IsolationCase } from './matrix';
+import { CATALOG_WORLDS, catalogFingerprints } from './catalog-world';
 import { TEAM_WORLDS, teamFingerprints } from './team-world';
 import type { BusinessWorld, World } from './world-types';
 
@@ -25,9 +26,12 @@ const MIN_FINGERPRINT_LENGTH = 8;
  */
 export function fingerprintsOf(victim: BusinessWorld): string[] {
   const team = TEAM_WORLDS.get(victim.label);
-  return [...allValuesOf(victim), ...(team === undefined ? [] : teamFingerprints(team))].filter(
-    (value) => value.length >= MIN_FINGERPRINT_LENGTH,
-  );
+  const catalog = CATALOG_WORLDS.get(victim.label);
+  return [
+    ...allValuesOf(victim),
+    ...(team === undefined ? [] : teamFingerprints(team)),
+    ...(catalog === undefined ? [] : catalogFingerprints(catalog)),
+  ].filter((value) => value.length >= MIN_FINGERPRINT_LENGTH);
 }
 
 function allValuesOf(victim: BusinessWorld): string[] {
@@ -105,10 +109,12 @@ const judgeOwn: Judge<'own'> = (exchange, expect, attacker) => {
   const codes = errorCodesOf(exchange);
   const answer = JSON.stringify(exchange.body);
   const missing = expect.mustInclude(attacker).filter((value) => !answer.includes(value));
+  const present = (expect.mustExclude?.(attacker) ?? []).filter((value) => answer.includes(value));
   const failed = exchange.status >= 400 || codes.length > 0;
-  return failed || missing.length > 0
-    ? [`wanted own data, got HTTP ${String(exchange.status)} codes [${codes.join()}], missing ${missing.join()}`]
-    : [];
+  if (failed || missing.length > 0) {
+    return [`wanted own data, got HTTP ${String(exchange.status)} codes [${codes.join()}], missing ${missing.join()}`];
+  }
+  return present.length > 0 ? [`shows data the caller may not see: ${present.join()}`] : [];
 };
 
 const JUDGES: { readonly [K in Expectation['kind']]: Judge<K> } = {

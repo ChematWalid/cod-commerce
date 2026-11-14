@@ -1,14 +1,18 @@
+import { PRODUCT_LIST_TEST_ID, PRODUCT_ROW_TEST_ID } from '@cod/plugin-catalog';
 import { MERCHANT_NOT_FOUND_TEST_ID, STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DASHBOARD_URL } from './dashboard-pages';
 import { assertNoPageError, loginAsDemoOwner, loginAsOwner } from './dashboard-session';
 import {
+  adminApi,
   archiveStore,
   byTestId,
   chooseStore,
   createDisposableStore,
   expectSwitcherOn,
+  foreignRowsSeen,
+  foreignStore,
   memberAccess,
   ownAdministratorId,
   selectedToken,
@@ -17,9 +21,9 @@ import {
   switchableStores,
   switcherSubdomain,
   tokenChangesFrom,
+  watchForeignRows,
 } from './store-switcher-fixtures';
 
-const SECOND_BUSINESS_OWNER_EMAIL = 'owner@second.example.test';
 const LIMITED_MEMBER_EMAIL = 'limited@demo.example.test';
 const ME_OPERATION = 'CurrentUserInformation';
 const ACTIVE_CHANNEL_SELECTION = 'activeChannel {';
@@ -37,6 +41,31 @@ function uniqueSubdomain(): string {
 const open = (page: Page, path: string) => page.goto(`${DASHBOARD_URL}${path}`, { waitUntil: 'domcontentloaded' });
 const dashboardPath = (path: string): string => `${new URL(DASHBOARD_URL).pathname}${path}`;
 const pathOf = (page: Page): string => new URL(page.url()).pathname;
+
+/** A product of `store`, created with that store's channel token after opening its list. */
+async function productOf(page: Page, store: StoreRow, title: string): Promise<string> {
+  await open(page, `/stores/${store.id}/products`);
+  await expectSwitcherOn(page, store.subdomain);
+  const { createCatalogProduct } = await adminApi<{ createCatalogProduct: { product: { id: string } } }>(
+    page,
+    'mutation ($input: CreateCatalogProductInput!) { createCatalogProduct(input: $input) { product { id } } }',
+    { input: { title, status: 'active', price: 2500 } },
+  );
+  return createCatalogProduct.product.id;
+}
+
+/** Deletes a product of `store`, sent with that store's channel token. */
+async function deleteProductOf(page: Page, store: StoreRow, productId: string): Promise<void> {
+  await open(page, `/stores/${store.id}/products`);
+  await expectSwitcherOn(page, store.subdomain);
+  await adminApi(page, 'mutation ($id: ID!) { deleteCatalogProduct(id: $id) }', { id: productId });
+}
+
+/** Waits until the list keyed by `store` shows the row of `productId`. */
+const rowUnder = (page: Page, store: StoreRow, productId: string) =>
+  page
+    .locator(`[data-store-id="${store.id}"] [data-testid="${PRODUCT_ROW_TEST_ID}"][data-product-id="${productId}"]`)
+    .waitFor();
 
 describe('store switcher', () => {
   let browser: Browser;
@@ -64,17 +93,6 @@ describe('store switcher', () => {
     await context.close();
   });
 
-  /** A store of another business, read through that business's owner. */
-  async function foreignStore(): Promise<StoreRow> {
-    const other = await browser.newContext();
-    const otherPage = await other.newPage();
-    await loginAsOwner(otherPage, DASHBOARD_URL, SECOND_BUSINESS_OWNER_EMAIL);
-    const [foreign] = await switchableStores(otherPage);
-    await other.close();
-    if (foreign === undefined) throw new Error('the second business has a store');
-    return foreign;
-  }
-
   async function ownStores(): Promise<readonly [StoreRow, StoreRow]> {
     const [first, second] = await switchableStores(page);
     if (first === undefined || second === undefined) throw new Error('the demo owner has two stores');
@@ -82,7 +100,7 @@ describe('store switcher', () => {
   }
 
   it('lists the stores of the business and no store of another business', async () => {
-    const foreign = await foreignStore();
+    const foreign = await foreignStore(browser);
     await loginAsDemoOwner(page, DASHBOARD_URL);
     const [first, second] = await ownStores();
 
@@ -125,10 +143,38 @@ describe('store switcher', () => {
     await assertNoPageError(page);
     expect(pathOf(page)).toBe(dashboardPath('/stores/active/products'));
     await expectSwitcherOn(page, second.subdomain);
+    await byTestId(page, PRODUCT_LIST_TEST_ID).waitFor();
+  });
+
+  it('switching A to B to A never shows a row of one store in the list of the other', async () => {
+    await loginAsDemoOwner(page, DASHBOARD_URL);
+    const [first, second] = await ownStores();
+    const firstProduct = await productOf(page, first, `Switch A ${runId}`);
+    const secondProduct = await productOf(page, second, `Switch B ${runId}`);
+    try {
+      await open(page, `/stores/${first.id}/products`);
+      await rowUnder(page, first, firstProduct);
+      await watchForeignRows(page, [
+        { storeId: first.id, productId: secondProduct },
+        { storeId: second.id, productId: firstProduct },
+      ]);
+
+      await chooseStore(page, second.subdomain);
+      await rowUnder(page, second, secondProduct);
+      await chooseStore(page, first.subdomain);
+      await rowUnder(page, first, firstProduct);
+      await chooseStore(page, second.subdomain);
+      await rowUnder(page, second, secondProduct);
+
+      await expect(foreignRowsSeen(page)).resolves.toEqual([]);
+    } finally {
+      await deleteProductOf(page, first, firstProduct);
+      await deleteProductOf(page, second, secondProduct);
+    }
   });
 
   it('a store of another business is not found and an own store switches', async () => {
-    const foreign = await foreignStore();
+    const foreign = await foreignStore(browser);
     await loginAsDemoOwner(page, DASHBOARD_URL);
     const [first, second] = await ownStores();
 

@@ -19,6 +19,10 @@ function varsFor(kind: AuthEmailKind): Record<string, string> {
 }
 
 const CASES = AUTH_EMAIL_KINDS.flatMap((kind) => AUTH_EMAIL_LOCALES.map((locale) => ({ kind, locale })));
+/** The kinds whose email carries a link or a code; the others (a notice) have neither to check. */
+const LINK_OR_CODE_CASES = CASES.filter(({ kind }) =>
+  AUTH_EMAIL_REQUIRED_VARS[kind].some((name) => name === 'link' || name === 'code'),
+);
 
 describe('auth email templates', () => {
   it.each(CASES)('renders a subject, html and text for $kind in $locale', ({ kind, locale }) => {
@@ -32,15 +36,19 @@ describe('auth email templates', () => {
     expect(email.subject).not.toMatch(/[\r\n]/);
   });
 
-  it.each(CASES)('puts the link and code of $kind in $locale in both bodies', ({ kind, locale }) => {
+  it.each(LINK_OR_CODE_CASES)('puts the link and code of $kind in $locale in both bodies', ({ kind, locale }) => {
+    // Arrange
     const vars = varsFor(kind);
+    const expected = (['link', 'code'] as const).flatMap((name) => (name in vars ? [vars[name]] : []));
+
+    // Act
     const email = authEmailTemplates.render(kind, locale, vars);
 
-    for (const name of ['link', 'code'] as const) {
-      if (name in vars) {
-        expect(email.text).toContain(vars[name]);
-        expect(email.html).toContain(vars[name]);
-      }
+    // Assert
+    expect(expected).not.toEqual([]);
+    for (const value of expected) {
+      expect(email.text).toContain(value);
+      expect(email.html).toContain(value);
     }
   });
 

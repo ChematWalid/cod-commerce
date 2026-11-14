@@ -89,29 +89,6 @@ export async function assertNoPageError(page: Page): Promise<void> {
   if ((await alerts.count()) > 0) throw new Error(`the page shows an error: ${await alerts.first().innerText()}`);
 }
 
-/** The dashboard's localStorage key of the selected channel token (`@vendure/dashboard` storage-keys.ts). */
-const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
-
-/** Creates a note in the store the dashboard has selected, through the Admin API, with the signed-in session. */
-export async function createNoteInSelectedStore(page: Page, title: string): Promise<void> {
-  const errors = await page.evaluate(
-    async ([key, noteTitle]) => {
-      const response = await fetch('/admin-api', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json', 'vendure-token': localStorage.getItem(key) ?? '' },
-        body: JSON.stringify({
-          query: 'mutation ($input: CreateTemplateNoteInput!) { createTemplateNote(input: $input) { id } }',
-          variables: { input: { title: noteTitle, body: 'browser test' } },
-        }),
-      });
-      return ((await response.json()) as { errors?: unknown }).errors;
-    },
-    [SELECTED_CHANNEL_KEY, title] as const,
-  );
-  if (errors !== undefined) throw new Error(`createTemplateNote failed: ${JSON.stringify(errors)}`);
-}
-
 const isSettingsSave = (response: Response): boolean =>
   response.request().postData()?.includes(SAVE_SETTINGS_MUTATION) ?? false;
 

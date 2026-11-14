@@ -30,12 +30,11 @@ import { SHELL_NAV_ICONS } from './nav/icons';
 import { registerShellPage } from './registry/shell-pages';
 import { GeneralSettingsPage } from './routes/general-settings-page';
 import { shellRoutes } from './routes/shell-routes';
-import { shellPlaceholderRoute } from './routes/shell-placeholder';
 
 registerShellPage('settings.general', { component: GeneralSettingsPage });
 
 defineDashboardExtension({
-  routes: [shellPlaceholderRoute, ...shellRoutes],
+  routes: [...shellRoutes],
   navSections: (config) => buildMerchantNav(config, SHELL_NAV_ICONS),
   login: { logo: { component: LoginBrand }, beforeForm: { component: LoginWelcome } },
   // Items without a position come first, in this order; the bell replaces the stock alerts and the account menu follows.

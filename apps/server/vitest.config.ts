@@ -19,10 +19,20 @@ export default defineConfig({
     fileParallelism: presetTest.fileParallelism,
     testTimeout: presetTest.testTimeout,
     hookTimeout: presetTest.hookTimeout,
+    expect: presetTest.expect,
     setupFiles: ['tests/setup-env.ts'],
     projects: [
       { extends: true, test: { name: 'unit', include: presetTest.include, exclude: presetTest.exclude } },
-      { extends: true, test: { name: 'e2e', include: E2E_INCLUDE, exclude: ['**/node_modules/**'] } },
+      {
+        extends: true,
+        test: {
+          name: 'e2e',
+          include: E2E_INCLUDE,
+          exclude: ['**/node_modules/**'],
+          // Off until these suites are checked in CI (D2118): they cannot run locally (D218).
+          expect: { ...presetTest.expect, requireAssertions: false },
+        },
+      },
     ],
   },
 });

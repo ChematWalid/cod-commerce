@@ -43,6 +43,7 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 
 **Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
 - #153 TEN-4 (low): fix(tenancy): check ownership of default carrier and fee group ids
+- #207 CO-6 (low, carried from P2.S1, D2120): add the **Default delivery fee group** field to Store settings → Profile (`StoreOperationsFields` in `plugins/merchant-shell/dashboard/components/store-operations-fields.tsx`; `UpdateStoreInput.defaultDeliveryFeeGroupId` already exists), with a browser test and screenshots. P2.S1 built the logo, show-address and sold-out fields.
 
 **High-level plan**
 1. Shared types/zod: `Province`, `Town`, `DeliveryFeeGroup`, `ShippingQuote` in `packages/shared` → commit `feat(shared): geo and delivery-fee types`

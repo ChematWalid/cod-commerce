@@ -14,3 +14,4 @@ export { TextField } from './components/text-field';
 export { DEFAULT_STORE_LANGUAGE, STORE_LANGUAGE_OPTIONS, SUBDOMAIN_REASON_MESSAGE_IDS } from './constants';
 export { usePlatformStaff } from './hooks/use-platform-staff';
 export { MerchantNotFound } from './components/merchant-route-guard';
+export { StoreScopedPage, type StoreScopedPageProps } from './components/store-scoped-page';

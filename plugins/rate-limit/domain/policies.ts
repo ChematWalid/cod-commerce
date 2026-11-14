@@ -1,5 +1,7 @@
 import {
   ACCOUNT_CAPACITY,
+  CATALOG_MEDIA_ACTOR_CAPACITY,
+  CATALOG_MEDIA_BUSINESS_CAPACITY,
   DAY_WINDOW_SECONDS,
   HOUR_WINDOW_SECONDS,
   IP_CAPACITY,
@@ -30,12 +32,15 @@ const perMinute = (capacity: number, outage: OutageMode): RateLimitPolicy => ({
   outage,
 });
 
-/** Invitation mail keeps limiting from memory during an outage: each request sends an email (D205). */
-const mailPerHour = (capacity: number): RateLimitPolicy => ({
+/** An hourly budget that keeps limiting from memory during an outage. */
+const perHour = (capacity: number): RateLimitPolicy => ({
   capacity,
   windowSeconds: HOUR_WINDOW_SECONDS,
   outage: 'in-process',
 });
+
+/** Invitation mail keeps limiting from memory during an outage: each request sends an email (D205). */
+const mailPerHour = perHour;
 
 /**
  * Every policy (D29). Credential and token guessing policies keep limiting from memory during an outage,
@@ -60,6 +65,9 @@ export const RATE_LIMIT_POLICIES = {
   'team-invite-business': mailPerHour(TEAM_INVITE_BUSINESS_CAPACITY),
   'team-invite-actor': mailPerHour(TEAM_ACTOR_MAIL_CAPACITY),
   'team-resend-actor': mailPerHour(TEAM_ACTOR_MAIL_CAPACITY),
+  // Catalog media uploads (D2138): each one writes a file to the shared bucket, so they keep limiting from memory too.
+  'catalog-media-business': perHour(CATALOG_MEDIA_BUSINESS_CAPACITY),
+  'catalog-media-actor': perHour(CATALOG_MEDIA_ACTOR_CAPACITY),
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** One of the {@link RATE_LIMIT_POLICIES}. */

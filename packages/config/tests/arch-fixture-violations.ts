@@ -10,6 +10,7 @@ const RBAC_ENTRY = 'plugins/rbac/index.ts';
 const RBAC_GUARD_ENTRY = 'plugins/rbac/guard.ts';
 const RBAC_MEMBER_ACCESS_ENTRY = 'plugins/rbac/member-access.ts';
 const AUTH_INVITATIONS_ENTRY = 'plugins/auth/invitations.ts';
+const CATALOG_ENTRY = 'plugins/catalog/index.ts';
 const ADAPTER = `${BAD}/infrastructure/adapter.ts`;
 const OWN_ENTRY = `${BAD}/index.ts`;
 /** Code parked where the permission and data access gates do not scan: production code must not import it. */
@@ -36,6 +37,8 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
     AUTH_INVITATIONS_ENTRY,
   ),
   violation('application-is-pure', 'application/uses-typeorm.ts', TYPEORM),
+  violation('catalog-entry-infra-only', 'api/uses-catalog-package.ts', CATALOG_ENTRY),
+  violation('catalog-entry-infra-only', 'application/uses-catalog-package.ts', CATALOG_ENTRY),
   violation('application-is-pure', 'application/uses-vendure-type.ts', '@vendure/core'),
   violation('application-no-concretes', 'application/district-pricing.service.ts', ADAPTER),
   violation('application-no-concretes', 'application/uses-infrastructure.ts', ADAPTER),
@@ -52,6 +55,11 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('layers-no-own-entry', 'application/uses-own-package.ts', OWN_ENTRY),
   violation('layers-no-own-entry', 'domain/uses-own-package.ts', OWN_ENTRY),
   violation('no-cross-plugin-internals', 'api/uses-other-plugin.ts', 'plugins/other/domain/secret.ts'),
+  violation(
+    'no-cross-plugin-internals',
+    'infrastructure/uses-catalog-internals.ts',
+    'plugins/catalog/domain/variant-rule.ts',
+  ),
   violation('no-cross-plugin-internals', 'api/uses-rbac-entry-package.ts', RBAC_ENTRY),
   violation('no-cross-plugin-internals', 'api/uses-shell-api-package.ts', SHELL_API),
   violation('no-cross-plugin-internals', 'api/uses-shell-api.ts', SHELL_API),

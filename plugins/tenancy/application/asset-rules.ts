@@ -21,3 +21,13 @@ export async function assertAssetInChannels(
     throw new AssetNotAvailableError();
   }
 }
+
+/** The URL a logo is shown from, or `null` when no listed channel holds the asset. */
+export async function logoUrlInChannels(
+  assets: AssetAccessPort,
+  ctx: OperationContext,
+  assetId: number,
+  channelIds: readonly number[],
+): Promise<string | null> {
+  return (await assets.previewUrlInChannels(ctx, assetId, channelIds)) ?? null;
+}

@@ -4,10 +4,6 @@ msgstr ""
 "Language: ar\n"
 
 #. js-lingui-explicit-id
-msgid "Merchant shell"
-msgstr "واجهة التاجر"
-
-#. js-lingui-explicit-id
 msgid "Welcome to {name}"
 msgstr "مرحبًا بك في {name}"
 
@@ -277,7 +273,7 @@ msgstr "تعذّر إنشاء المتجر. حاول مرة أخرى."
 
 #. js-lingui-explicit-id
 msgid "shell.store.create.switch-timeout"
-msgstr "تم إنشاء متجرك، لكن تعذّر فتحه الآن. أعد تحميل الصفحة لرؤيته."
+msgstr "تم إنشاء متجرك، لكن تعذّر فتحه الآن. تحقّق مرة أخرى بعد لحظات."
 
 #. js-lingui-explicit-id
 msgid "shell.topbar.credits"
@@ -394,3 +390,63 @@ msgstr "تمت أرشفة هذا المتجر، فلا يمكن تعديله ب�
 #. js-lingui-explicit-id
 msgid "tenancy.business-not-found"
 msgstr "تعذّر العثور على هذا النشاط."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.logo"
+msgstr "شعار النشاط"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.logo"
+msgstr "شعار المتجر"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-none"
+msgstr "لا يوجد شعار"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-upload"
+msgstr "رفع شعار"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-uploading"
+msgstr "جارٍ الرفع…"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-too-large"
+msgstr "يجب ألا يتجاوز حجم الصورة 5 ميغابايت."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-type"
+msgstr "استخدم صورة بصيغة PNG أو JPEG أو GIF أو WebP."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-failed"
+msgstr "تعذّر رفع الشعار. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "tenancy.asset-not-available"
+msgstr "لا يمكن استخدام هذه الصورة هنا. ارفعها مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.show-address"
+msgstr "إظهار حقل العنوان"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.show-address-hint"
+msgstr "اطلب من المشترين عنوانهم عند الطلب."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.sold-out"
+msgstr "المنتجات النافدة"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.sold-out-keep"
+msgstr "إبقاؤها ظاهرة مع علامة النفاد"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.sold-out-hide"
+msgstr "إخفاؤها من القوائم وصفحات المنتجات"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.recheck"
+msgstr "تحقّق مرة أخرى"

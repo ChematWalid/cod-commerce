@@ -3,7 +3,9 @@ import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } 
 import { Redis } from 'ioredis';
 import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
+import { RequestStoreSettings } from './api/request-store-settings';
 import { BusinessResolver } from './api/business.resolver';
+import { BusinessLogoUrlResolver, StoreLogoUrlResolver } from './api/logo-url.resolver';
 import { SlugForEntityResolver } from './api/slug-for-entity.resolver';
 import { adminApiSchema } from './api/schema';
 import { StoreFieldsResolver, StoreMutationResolver, StoreQueryResolver } from './api/store.resolver';
@@ -22,6 +24,7 @@ import type { StoreAdminPorts } from './application/store-admin-ports';
 import type { TenancyPorts } from './application/tenancy-ports';
 import { type TenantLifecycleRegistrar, TenantLifecycleRegistry } from './application/tenant-lifecycle.registry';
 import { UpdateBusinessService } from './application/update-business.service';
+import { LogoUrlService } from './application/logo-url.service';
 import { UpdateStoreService } from './application/update-store.service';
 import {
   ASSET_ACCESS,
@@ -41,6 +44,7 @@ import {
 } from './application/tokens';
 import type { AssetAccessPort } from './domain/ports/asset-access.port';
 import { BusinessStoreDirectory } from './domain/ports/business-store-directory.port';
+import { StoreSettingsReader } from './domain/ports/store-settings-reader.port';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { MemberAccountPort } from './domain/ports/member-account.port';
@@ -55,6 +59,7 @@ import { CustomDomainEntity } from './infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
 import { hostResolutionProviders } from './infrastructure/host-resolution.providers';
 import { StoreEntity } from './infrastructure/store.entity';
+import { TenantStoreSettingsReader } from './infrastructure/store-settings-reader.adapter';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 import { OrderNumberService } from './infrastructure/order-number.service';
 import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
@@ -123,6 +128,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
 const STORE_USE_CASES = [
   GetBusinessService,
   UpdateBusinessService,
+  LogoUrlService,
   GetStoresService,
   UpdateStoreService,
   ArchiveStoreService,
@@ -145,6 +151,8 @@ const STORE_USE_CASES = [
     PlatformStoreLookup,
     { provide: PLATFORM_STORE, useExisting: PlatformStoreLookup },
     { provide: BusinessStoreDirectory, useExisting: PlatformStoreLookup },
+    { provide: StoreSettingsReader, useClass: TenantStoreSettingsReader },
+    RequestStoreSettings,
     SuperadminContextFactory,
     { provide: TENANT_LIFECYCLE, useClass: TenantLifecycleRegistry },
     {
@@ -221,6 +229,10 @@ const STORE_USE_CASES = [
     OrderNumberService,
     PlatformStoreLookup,
     ProvisionBusinessService,
+    // Catalog reads a store's sold-out behaviour and language (P2.S1, D2106): handlers through the request's
+    // business, jobs through the business they were enqueued for.
+    RequestStoreSettings,
+    StoreSettingsReader,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
     TenantContextResolver,
@@ -236,6 +248,8 @@ const STORE_USE_CASES = [
       StoreQueryResolver,
       StoreMutationResolver,
       StoreFieldsResolver,
+      BusinessLogoUrlResolver,
+      StoreLogoUrlResolver,
       SlugForEntityResolver,
     ],
   },

@@ -9,6 +9,7 @@ import {
   SubdomainTakenError,
   UnsupportedStoreLanguageError,
 } from '../../domain/errors';
+import type { AssetAccessPort } from '../../domain/ports/asset-access.port';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import {
   FakeChannelProvisioner,
@@ -44,14 +45,14 @@ describe('CreateStoreService', () => {
   let platform: InMemoryPlatformStore;
   let hosts: RecordingHostInvalidator;
 
-  const serviceWith = (channels: FakeChannelProvisioner): CreateStoreService =>
+  const serviceWith = (channels: FakeChannelProvisioner, assets: AssetAccessPort = openAssets): CreateStoreService =>
     new CreateStoreService(
       {
         channels,
         platform,
         transaction: inlineTransaction,
         ids: new SequentialIdGenerator('500'),
-        assets: openAssets,
+        assets,
         lifecycle: noLifecycle,
         clock: () => NOW,
       },
@@ -87,6 +88,39 @@ describe('CreateStoreService', () => {
       status: 'active',
     });
     expect(platform.stores).toEqual([store]);
+  });
+
+  it("shares the chosen logo with the new store's channel, so the store's own channel holds it", async () => {
+    // Arrange
+    const shared: { assetId: number; channelId: number }[] = [];
+    const recording: AssetAccessPort = {
+      ...openAssets,
+      shareWithChannel: (_ctx, assetId, channelId) => {
+        shared.push({ assetId, channelId });
+        return Promise.resolve();
+      },
+    };
+
+    // Act
+    const store = await serviceWith(provisioner, recording).create(ctx, BUSINESS_ID, { ...INPUT, logoAssetId: 42 });
+
+    // Assert
+    expect(store.logoAssetId).toBe(42);
+    expect(shared).toEqual([{ assetId: 42, channelId: store.channelId }]);
+  });
+
+  it('shares no asset when the store opens without a logo', async () => {
+    // Arrange
+    const recording: AssetAccessPort = {
+      ...openAssets,
+      shareWithChannel: () => Promise.reject(new Error('no logo, nothing to share')),
+    };
+
+    // Act
+    const store = await serviceWith(provisioner, recording).create(ctx, BUSINESS_ID, INPUT);
+
+    // Assert
+    expect(store.logoAssetId).toBeNull();
   });
 
   it('stores the subdomain in lowercase', async () => {
