@@ -197,6 +197,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S3-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S1.md`.
 - `docs/research/second-pass.md` "Collections" (create page `/stores/:sid/categories/new`; "Products must match All / Any"; condition fields Tag, Brand, Price, On sale, Title + every product option name; operators "is any of" / "is not"; live "which products match" preview; manual Add products; Visibility; Organization/position).
 - `docs/research/data-model.md` "Product" (`categoryId`, `categoryIds[]`, `collections[]`); `api-surface.md` "Catalog & store" (`/products/categories`); `dashboard-captures.md` "Collections `/stores/:storeId/categories`".
