@@ -1,4 +1,5 @@
 import { DomainError } from '../errors/domain-error';
+import { previewValue } from '../errors/value-preview';
 import { hasControlCharacter } from '../text/control-characters';
 import { toStoreId, type StoreId } from './tenant-context';
 import { type BusinessId, toBusinessId } from './tenant-scope';
@@ -27,8 +28,14 @@ const FORBIDDEN_PART_CHARACTERS = /[:/*?[\]\\\s]/u;
  */
 const RESERVED_PARTS: ReadonlySet<string> = new Set([BUSINESS_SEGMENT, STORE_SEGMENT]);
 
-/** How many characters of a refused part the error message shows. */
-const PART_PREVIEW_LENGTH = 32;
+/**
+ * A lone UTF-16 surrogate becomes U+FFFD once UTF-8 encoded for Valkey or the object store, so two
+ * different parts would collide on the wire.
+ */
+const LONE_SURROGATE = /\p{Cs}/u;
+
+/** Path segments that would climb out of, or stay at, the tenant prefix on path-normalising stores. */
+const DOT_SEGMENTS: ReadonlySet<string> = new Set(['.', '..']);
 
 /** The tenant a key or object belongs to: a business, optionally narrowed to one of its stores. */
 export interface TenantKeyScope {
@@ -36,22 +43,16 @@ export interface TenantKeyScope {
   readonly storeId?: StoreId;
 }
 
-/** Thrown when a key has no part, or a part is empty, reserved or holds a forbidden character. */
+/**
+ * Thrown when a key has no part, or a part is not a string, is empty, is reserved, is not well-formed
+ * UTF-16 or holds a forbidden character.
+ */
 export class InvalidTenantKeyPartError extends DomainError {
   readonly code = 'tenancy.invalid-key-part';
 
-  constructor(part: string | undefined) {
-    super(`Invalid tenant key part: ${describePart(part)}`);
+  constructor(part: unknown) {
+    super(`Invalid tenant key part: ${previewValue(part)}`);
   }
-}
-
-// The part comes from callers' data: bound it and escape it so it cannot flood or inject into logs.
-function describePart(part: string | undefined): string {
-  if (part === undefined) {
-    return 'none given';
-  }
-  const escaped = JSON.stringify(part.slice(0, PART_PREVIEW_LENGTH)).replace(/[^\x20-\x7e]/gu, '?');
-  return part.length > PART_PREVIEW_LENGTH ? `${escaped}…` : escaped;
 }
 
 function scopeSegments(scope: TenantKeyScope): readonly string[] {
@@ -63,27 +64,40 @@ function scopeSegments(scope: TenantKeyScope): readonly string[] {
   return [...business, STORE_SEGMENT, toStoreId(scope.storeId)];
 }
 
-function checkedPart(part: string): string {
-  const invalid =
-    part === '' || RESERVED_PARTS.has(part) || FORBIDDEN_PART_CHARACTERS.test(part) || hasControlCharacter(part);
-  if (invalid) {
+function isValidPart(part: string): boolean {
+  return !(
+    part === '' ||
+    RESERVED_PARTS.has(part) ||
+    FORBIDDEN_PART_CHARACTERS.test(part) ||
+    LONE_SURROGATE.test(part) ||
+    hasControlCharacter(part)
+  );
+}
+
+// `unknown`: JavaScript or deserialised callers bypass the signature and must still get the typed error.
+function checkedPart(part: unknown): string {
+  if (typeof part !== 'string' || !isValidPart(part)) {
     throw new InvalidTenantKeyPartError(part);
   }
   return part;
+}
+
+function checkedObjectPart(part: unknown): string {
+  if (typeof part === 'string' && DOT_SEGMENTS.has(part)) {
+    throw new InvalidTenantKeyPartError(part);
+  }
+  return checkedPart(part);
 }
 
 /**
  * Builds a tenant-scoped cache, lock or queue key: `b:{businessId}[:s:{storeId}]:{parts}` (ADR 0002 §5).
  *
  * @throws {@link InvalidBusinessIdError} or `InvalidSnowflakeError` (`ids.invalid-snowflake`) when an id of `scope` is invalid
- * @throws {@link InvalidTenantKeyPartError} when no part is given, or a part is empty, is a segment
- *   marker (`b`, `s`), or holds `:`, `/`, a glob character, whitespace or a control character
+ * @throws {@link InvalidTenantKeyPartError} when no part is given, or a part is not a string, is empty,
+ *   is a segment marker (`b`, `s`), holds a lone surrogate, or holds `:`, `/`, a glob character,
+ *   whitespace or a control character
  */
 export function tenantKey(scope: TenantKeyScope, first: string, ...rest: readonly string[]): string {
-  // The signature already demands a part; the runtime check covers untyped callers.
-  if ((first as unknown) === undefined) {
-    throw new InvalidTenantKeyPartError(undefined);
-  }
   return [...scopeSegments(scope), ...[first, ...rest].map(checkedPart)].join(KEY_SEPARATOR);
 }
 
@@ -95,4 +109,16 @@ export function tenantKey(scope: TenantKeyScope, first: string, ...rest: readonl
  */
 export function tenantObjectPrefix(scope: TenantKeyScope): string {
   return `${scopeSegments(scope).join(OBJECT_SEPARATOR)}${OBJECT_SEPARATOR}`;
+}
+
+/**
+ * Builds a full tenant object key: `b/{businessId}[/s/{storeId}]/{parts joined by '/'}` (ADR 0002 §5).
+ * Prefer it to appending to {@link tenantObjectPrefix}: each part is checked, so a business object
+ * can never start with a store segment nor climb out of its prefix.
+ *
+ * @throws {@link InvalidBusinessIdError} or `InvalidSnowflakeError` (`ids.invalid-snowflake`) when an id of `scope` is invalid
+ * @throws {@link InvalidTenantKeyPartError} on the {@link tenantKey} part rules, and for a `.` or `..` part
+ */
+export function tenantObjectKey(scope: TenantKeyScope, first: string, ...rest: readonly string[]): string {
+  return `${tenantObjectPrefix(scope)}${[first, ...rest].map(checkedObjectPart).join(OBJECT_SEPARATOR)}`;
 }

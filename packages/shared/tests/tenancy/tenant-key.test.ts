@@ -6,6 +6,7 @@ import {
   InvalidTenantKeyPartError,
   type StoreId,
   tenantKey,
+  tenantObjectKey,
   tenantObjectPrefix,
   toBusinessId,
   toStoreId,
@@ -114,6 +115,25 @@ describe('tenantKey', () => {
     expect(message.length).toBeLessThan(120);
   });
 
+  it('refuses a non-string part in any position', () => {
+    // Arrange
+    const untyped = tenantKey as unknown as (scope: { businessId: BusinessId }, ...parts: unknown[]) => string;
+    const scope = { businessId: BUSINESS_A };
+
+    // Act + Assert
+    for (const bad of [undefined, null, 5]) {
+      expect(() => untyped(scope, bad)).toThrow(InvalidTenantKeyPartError);
+      expect(() => untyped(scope, 'a', bad)).toThrow(InvalidTenantKeyPartError);
+    }
+  });
+
+  it('refuses a lone surrogate in a part', () => {
+    // Two lone surrogates both encode to U+FFFD in UTF-8, so the keys would collide on the wire.
+    expect(() => tenantKey({ businessId: BUSINESS_A }, 'a\uD800')).toThrow(InvalidTenantKeyPartError);
+    expect(() => tenantKey({ businessId: BUSINESS_A }, 'a\uDC01')).toThrow(InvalidTenantKeyPartError);
+    expect(tenantKey({ businessId: BUSINESS_A }, 'a\u{1F600}')).toBe('b:1:a\u{1F600}');
+  });
+
   it('carries the stable error code', () => {
     expect(() => tenantKey({ businessId: BUSINESS_A }, '')).toThrow(
       expect.objectContaining({ code: 'tenancy.invalid-key-part' }),
@@ -141,5 +161,52 @@ describe('tenantObjectPrefix', () => {
     expect(() => tenantObjectPrefix({ businessId: BUSINESS_A, storeId: '2/../3' as StoreId })).toThrow(
       expect.objectContaining({ code: 'ids.invalid-snowflake' }),
     );
+  });
+});
+
+describe('tenantObjectPrefix isolation', () => {
+  it('gives two businesses disjoint object prefixes', () => {
+    // Arrange
+    const prefixes = [
+      tenantObjectPrefix({ businessId: BUSINESS_A }),
+      tenantObjectPrefix({ businessId: BUSINESS_A, storeId: STORE }),
+      tenantObjectPrefix({ businessId: BUSINESS_B }),
+      tenantObjectPrefix({ businessId: BUSINESS_B, storeId: STORE }),
+      tenantObjectPrefix({ businessId: toBusinessId('11') }),
+    ];
+    const businessOf = (prefix: string): string => prefix.split('/')[1] ?? '';
+
+    // Act + Assert
+    for (const left of prefixes) {
+      for (const right of prefixes) {
+        if (businessOf(left) !== businessOf(right)) {
+          expect(right.startsWith(left)).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+describe('tenantObjectKey', () => {
+  it('appends the parts to the tenant prefix', () => {
+    expect(tenantObjectKey({ businessId: BUSINESS_A, storeId: STORE }, 'source', '3f', 'abc.png')).toBe(
+      'b/1/s/2/source/3f/abc.png',
+    );
+  });
+
+  it('a business object cannot land in a store namespace', () => {
+    expect(() => tenantObjectKey({ businessId: BUSINESS_A }, 's', '2', 'abc.png')).toThrow(InvalidTenantKeyPartError);
+  });
+
+  it('refuses path traversal, separators and empty parts', () => {
+    for (const part of ['..', '.', '', '../x', 'a/b', 'a\\b']) {
+      expect(() => tenantObjectKey({ businessId: BUSINESS_A }, 'source', part)).toThrow(InvalidTenantKeyPartError);
+    }
+  });
+
+  it('refuses a key that names no object', () => {
+    const noParts = tenantObjectKey as unknown as (scope: { businessId: BusinessId }) => string;
+
+    expect(() => noParts({ businessId: BUSINESS_A })).toThrow(InvalidTenantKeyPartError);
   });
 });

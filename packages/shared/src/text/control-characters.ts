@@ -26,7 +26,7 @@ const LINE_BREAK_CODE_POINTS: ReadonlySet<number> = new Set([
 
 /** Options of {@link hasControlCharacter}. */
 export interface ControlCharacterOptions {
-  /** Accept tab, line feed and carriage return (multi-line fields such as a body). */
+  /** Accept tab and the line breaks (`\n`, `\r`, U+2028, U+2029), for multi-line fields such as a body. */
   readonly allowLineBreaks?: boolean;
 }
 

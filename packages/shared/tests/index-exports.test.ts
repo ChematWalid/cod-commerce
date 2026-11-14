@@ -70,6 +70,7 @@ const RUNTIME_EXPORTS = [
   'hasControlCharacter',
   'tenantKey',
   'tenantObjectPrefix',
+  'tenantObjectKey',
   'InvalidTenantKeyPartError',
 ] as const;
 
