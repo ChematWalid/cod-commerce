@@ -1,12 +1,14 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
+import type { QuoteKeyRing } from '@cod/shared/quote-keys';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { QUOTE_KEY_RING } from './application/tokens';
 
-/**
- * How the server configures {@link OffersPlugin}. Empty until the quote key ring arrives (P2.S4 Task 4).
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- the options grow with the key ring (Task 4).
-export interface OffersPluginOptions {}
+/** How the server configures {@link OffersPlugin}. */
+export interface OffersPluginOptions {
+  /** The HMAC keys of the signed quotes, built from `QUOTE_HMAC_KEYS` and its active kid (D2422). */
+  readonly quoteKeys: QuoteKeyRing;
+}
 
 /**
  * The pricing and offer engine of a store (ADR 0004, D2400): offers, discount codes and signed quotes. It imports
@@ -14,6 +16,7 @@ export interface OffersPluginOptions {}
  */
 @VendurePlugin({
   imports: [PluginCommonModule, TenancyPlugin, CatalogPlugin],
+  providers: [{ provide: QUOTE_KEY_RING, useFactory: (): QuoteKeyRing => OffersPlugin.requireOptions().quoteKeys }],
   compatibility: '^3.8.0',
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- a Vendure plugin is a decorated class

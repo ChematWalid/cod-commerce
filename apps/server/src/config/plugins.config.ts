@@ -16,6 +16,7 @@ import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { parseInternalKeys } from '@cod/shared/internal-auth';
+import { parseQuoteKeys, quoteKeyRing } from '@cod/shared/quote-keys';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -157,7 +158,7 @@ function memberPlugins(env: AppEnv): VendurePluginEntry[] {
     RbacPlugin,
     authPlugin(env),
     CatalogPlugin,
-    OffersPlugin,
+    OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
   ];
 }

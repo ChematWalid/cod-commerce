@@ -38,6 +38,7 @@ const STRENGTH_CHECKED_SECRETS: Readonly<Record<string, number | undefined>> = {
   S3_SECRET_KEY: undefined,
   INTERNAL_HMAC_KEYS: undefined,
   TENANT_SECRET_KEKS: undefined,
+  QUOTE_HMAC_KEYS: undefined,
 };
 
 /** The last label of a name that RFC 2606 and RFC 6761 reserve: it never resolves on the public internet. */

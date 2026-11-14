@@ -19,6 +19,8 @@ secret:
       match: change-me-internal-hmac-000000000000000000000
     - name: .env.example placeholder TENANT_SECRET_KEKS, 64 zeros (also Dockerfile ARG and CI env); loadEnv rejects it in staging and production
       match: 0000000000000000000000000000000000000000000000000000000000000000
+    - name: .env.example placeholder QUOTE_HMAC_KEYS (also Dockerfile ARG and CI env); loadEnv rejects it in staging and production
+      match: change-me-quote-hmac-00000000000000000000000000
     - name: deliberately broken database password fixture (RF5) in scripts/verify-stack.sh and the env unit test; never a credential
       match: p@ss/w:rd
     - name: synthetic 43-character invitation token used only by the team and rate-limit tests that prove a token is never echoed (D205); never issued by the server
