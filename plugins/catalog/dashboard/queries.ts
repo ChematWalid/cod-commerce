@@ -8,7 +8,7 @@ import {
   PRODUCTS_QUERY_KEY,
   TAGS_QUERY_KEY,
 } from './constants';
-import { fetchForStore } from './model/store-bound-fetch';
+import { fetchForStore, retriesStoreSwitch } from './model/store-bound-fetch';
 import { placeholderWithinStore } from './model/store-placeholder';
 import type { CatalogMediaPreviewDto, CatalogNamedDto, CatalogProductListInput, CatalogProductPageDto } from './dto';
 
@@ -63,7 +63,8 @@ export function readRequestToken(): string | null {
 
 /**
  * A query of `scope`'s store, keyed by it and waiting while the store is unknown. While a new key loads it shows the
- * previous answer only if that answer is of the same store ({@link placeholderWithinStore}).
+ * previous answer only if that answer is of the same store ({@link placeholderWithinStore}). Only a dropped answer of
+ * a switched store is retried ({@link retriesStoreSwitch}).
  */
 export function storeQuery<T>(
   prefix: readonly string[],
@@ -75,7 +76,7 @@ export function storeQuery<T>(
     queryKey: [...prefix, scope?.storeId ?? null, extra],
     queryFn: scope === null ? skipToken : () => fetchForStore(scope.channelToken, readRequestToken, fetchAnswer),
     placeholderData: placeholderWithinStore(prefix.length, scope?.storeId ?? null)<T>,
-    retry: false,
+    retry: retriesStoreSwitch,
   } as const;
 }
 

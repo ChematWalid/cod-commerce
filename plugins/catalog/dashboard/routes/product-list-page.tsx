@@ -42,7 +42,6 @@ import {
 } from '../model/list-search';
 import { listErrorMessageId } from '../model/list-view';
 import { soldOutOrdersOffered } from '../model/sold-out-view';
-import { isStoreSwitched } from '../model/store-bound-fetch';
 import {
   type StoreScope,
   useCatalogBrands,
@@ -88,9 +87,8 @@ function ListBody(props: {
   const { i18n } = useLingui();
   const previews = useMediaPreviews(props.scope);
   const { products } = props;
-  // A dropped answer of the store switched away from: the list is about to show the new store, not an error.
-  if (products.isError && !isStoreSwitched(products.error))
-    return <p role="alert">{i18n._(listErrorMessageId(products.error))}</p>;
+  // A switch in this tab is retried until the page mounts for the new store; one that persists shows its message.
+  if (products.isError) return <p role="alert">{i18n._(listErrorMessageId(products.error))}</p>;
   // A page past the end is about to move back (`useLastPageClamp`): it says nothing about the store meanwhile.
   if (!products.isSuccess || props.pastLastPage) return <p>{i18n._('catalog.loading')}</p>;
   if (products.data.items.length === 0) {
