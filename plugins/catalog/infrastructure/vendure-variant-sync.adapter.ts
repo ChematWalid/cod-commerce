@@ -6,14 +6,14 @@ import type { CoreId } from '../domain/core-id';
 import type { OptionGroupRecord, ProductFields, VariantChange, VariantRecord } from '../domain/product';
 import type { MatrixPlan, NewVariant } from '../domain/variant-matrix';
 import type { OptionTarget } from './vendure-option-sync';
-import { clearableId, type VariantCustomFields } from './vendure-product-mapper';
+import { clearableId, engineIdOf, type VariantCustomFields } from './vendure-product-mapper';
 
 /** The option ids of a combination, one per group in group order. */
-function optionIdsOf(groups: readonly OptionGroupRecord[], optionValues: readonly string[]): CoreId[] {
+function optionIdsOf(groups: readonly OptionGroupRecord[], optionValues: readonly string[]): number[] {
   return groups.flatMap((group, index) => {
     const wanted = comparableText(optionValues[index] ?? '');
     const option = group.values.find((value) => comparableText(value.name) === wanted);
-    return option === undefined ? [] : [option.id];
+    return option === undefined ? [] : [engineIdOf(option.id)];
   });
 }
 
@@ -25,7 +25,7 @@ function changeInput(change: VariantChange): UpdateProductVariantInput {
     ...(change.barcode === undefined ? {} : { barcode: change.barcode }),
   };
   return {
-    id: change.id,
+    id: engineIdOf(change.id),
     ...(change.price === undefined ? {} : { price: change.price }),
     ...(change.sku === undefined ? {} : { sku: change.sku ?? '' }),
     ...(change.featuredAssetId === undefined ? {} : { featuredAssetId: clearableId(change.featuredAssetId) }),
@@ -48,20 +48,39 @@ export class VendureVariantSync {
     groups: readonly OptionGroupRecord[],
     { current, fields }: { readonly current: readonly VariantRecord[]; readonly fields: ProductFields },
   ): Promise<void> {
+    await this.retire(target, plan, current);
+    await this.createNew(target, plan, groups, fields);
+  }
+
+  /** Soft-deletes the removed combinations and renames the kept ones; no variant is created yet. */
+  async retire(target: OptionTarget, plan: MatrixPlan, current: readonly VariantRecord[]): Promise<void> {
     if (plan.remove.length > 0) await this.variants.softDelete(target.ctx, [...plan.remove]);
     const renamed = plan.keep.filter((kept) => current.find((variant) => variant.id === kept.id)?.name !== kept.name);
-    if (renamed.length > 0) {
-      await this.variants.update(
-        target.ctx,
-        renamed.map((kept) => ({ id: kept.id, translations: [{ languageCode: target.language, name: kept.name }] })),
-      );
-    }
-    if (plan.create.length > 0) {
-      await this.variants.create(
-        target.ctx,
-        plan.create.map((created) => this.newVariantInput(target, created, groups, fields)),
-      );
-    }
+    if (renamed.length === 0) return;
+    await this.variants.update(
+      target.ctx,
+      renamed.map((kept) => ({
+        id: engineIdOf(kept.id),
+        translations: [{ languageCode: target.language, name: kept.name }],
+      })),
+    );
+  }
+
+  /**
+   * Creates the planned new combinations. Core checks each against the product's live option groups, so a group the
+   * plan drops must be detached first (`VendureOptionSync.removeStale`).
+   */
+  async createNew(
+    target: OptionTarget,
+    plan: MatrixPlan,
+    groups: readonly OptionGroupRecord[],
+    fields: ProductFields,
+  ): Promise<void> {
+    if (plan.create.length === 0) return;
+    await this.variants.create(
+      target.ctx,
+      plan.create.map((created) => this.newVariantInput(target, created, groups, fields)),
+    );
   }
 
   private newVariantInput(
@@ -91,7 +110,7 @@ export class VendureVariantSync {
   async syncDefault(target: OptionTarget, variantId: CoreId, fields: ProductFields): Promise<void> {
     const customFields: Partial<VariantCustomFields> = { oldPrice: fields.oldPrice, barcode: fields.barcode };
     await this.variants.update(target.ctx, [
-      { id: variantId, price: fields.price, sku: fields.sku ?? '', customFields },
+      { id: engineIdOf(variantId), price: fields.price, sku: fields.sku ?? '', customFields },
     ]);
   }
 

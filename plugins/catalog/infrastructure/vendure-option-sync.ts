@@ -12,7 +12,7 @@ import { comparableText } from '../domain/comparable-text';
 import type { CoreId } from '../domain/core-id';
 import type { OptionGroupRecord, OptionValueRecord } from '../domain/product';
 import type { OptionGroupSpec } from '../domain/variant-matrix';
-import { coreIdOf } from './vendure-product-mapper';
+import { coreIdOf, engineIdOf } from './vendure-product-mapper';
 
 /** The options of a product after a sync, and what must go once the variants that use it are removed. */
 export interface OptionSyncResult {
@@ -116,7 +116,7 @@ export class VendureOptionSync {
     position: number,
   ): Promise<OptionGroupRecord> {
     await this.groupService.update(target.ctx, {
-      id: existing.id,
+      id: engineIdOf(existing.id),
       translations: [{ languageCode: target.language, name: spec.name }],
       customFields: { position },
     });
@@ -128,7 +128,7 @@ export class VendureOptionSync {
         continue;
       }
       await this.optionService.update(target.ctx, {
-        id: option.id,
+        id: engineIdOf(option.id),
         translations: [{ languageCode: target.language, name }],
         customFields: { position: index },
       });

@@ -22,7 +22,14 @@ import { createsDefaultVariant, type MatrixPlan } from '../domain/variant-matrix
 import { toRequestContext } from './request-scope';
 import { derivedSlug, merchantSlug } from './stored-slug';
 import type { OptionTarget } from './vendure-option-sync';
-import { brandIdOf, clearableId, coreIdOf, type ProductCustomFields, productRecordOf } from './vendure-product-mapper';
+import {
+  brandIdOf,
+  clearableId,
+  coreIdOf,
+  engineIdOf,
+  type ProductCustomFields,
+  productRecordOf,
+} from './vendure-product-mapper';
 import { VendureProductStructure } from './vendure-product-structure';
 
 /** Relations a product is read with; its variants are read apart, with their channel price. */
@@ -103,15 +110,15 @@ export class VendureProductCatalog implements ProductCatalogPort {
     const record = await this.read(request, id);
     if (record === undefined) return undefined;
     const slug = update.slug === null ? null : merchantSlug(update.slug);
-    await this.products.update(request, { id, ...productInputOf(request, update.fields, slug) });
+    await this.products.update(request, { id: engineIdOf(id), ...productInputOf(request, update.fields, slug) });
     const target = this.targetOf(request, id);
     if (update.matrix !== null) {
       const synced = await this.structure.options.sync(target, record.optionGroups, update.matrix.groups);
-      await this.structure.variants.apply(target, update.matrix.plan, synced.groups, {
-        current: record.variants,
-        fields: update.fields,
-      });
+      // Retired variants first, then the options nobody uses, then the new variants: core checks a new variant
+      // against the product's live groups, so a dropped group must be gone before (a product leaving its options).
+      await this.structure.variants.retire(target, update.matrix.plan, record.variants);
       await this.structure.options.removeStale(target, synced);
+      await this.structure.variants.createNew(target, update.matrix.plan, synced.groups, update.fields);
     }
     // A default variant created by this save already holds the planned SKU and the product's defaults.
     if (update.matrix === null || !createsDefaultVariant(update.matrix.plan)) {
@@ -164,7 +171,7 @@ export class VendureProductCatalog implements ProductCatalogPort {
       await this.structure.lock.acquire(request, id);
       const product = await this.products.findOne(request, id, []);
       if (product === undefined || brandIdOf(product) !== brandId) continue;
-      await this.products.update(request, { id, customFields: { brandId: null } });
+      await this.products.update(request, { id: engineIdOf(id), customFields: { brandId: null } });
       cleared.push(id);
     }
     return cleared;

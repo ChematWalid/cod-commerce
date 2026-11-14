@@ -53,6 +53,12 @@ const loaded = <T>(relation: readonly T[] | undefined): readonly T[] => relation
 export const coreIdOf = (id: ID): CoreId => toCoreId(String(id));
 
 /**
+ * A core id as Vendure's own entities hold it: the integer of its SERIAL column. Most services accept the string, but
+ * core compares some ids strictly (`samplesEach` in the variant option check), where `"3"` is not `3`.
+ */
+export const engineIdOf = (id: string): number => Number(id);
+
+/**
  * Vendure clears a featured image on `null` (`AssetService.updateFeaturedAsset`), but its generated input types leave
  * `null` out; this keeps the clear without widening the type everywhere.
  */
