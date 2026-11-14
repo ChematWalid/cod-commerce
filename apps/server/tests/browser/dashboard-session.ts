@@ -81,12 +81,18 @@ export async function loginAsOwner(page: Page, baseUrl: string, email: string): 
 export const loginAsDemoOwner = (page: Page, baseUrl: string): Promise<void> =>
   loginAsOwner(page, baseUrl, DEMO_OWNER_EMAIL);
 
-/** Waits for a page's queries, then fails if the page reports one as failed instead of showing its content. */
-export async function assertNoPageError(page: Page): Promise<void> {
+/**
+ * Waits for a page's queries, then fails if the page reports one as failed instead of showing its content.
+ * `expected` names the one alert a test asserts on purpose (a not-found answer); any other alert still fails.
+ */
+export async function assertNoPageError(page: Page, expected?: string): Promise<void> {
   await page.waitForLoadState('networkidle');
   // The verification banner is also an alert, and a seeded owner's email is unverified by design.
   const alerts = page.locator(`[role="alert"]:not([data-testid="${VERIFY_BANNER_TEST_ID}"])`);
-  if ((await alerts.count()) > 0) throw new Error(`the page shows an error: ${await alerts.first().innerText()}`);
+  const unexpected = expected === undefined ? alerts : alerts.filter({ hasNotText: expected });
+  if ((await unexpected.count()) > 0) {
+    throw new Error(`the page shows an error: ${await unexpected.first().innerText()}`);
+  }
 }
 
 const isSettingsSave = (response: Response): boolean =>

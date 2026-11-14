@@ -111,6 +111,17 @@ describe('browser.yml', () => {
     expect(job.services?.['valkey']?.image).toBe(integration.services?.['valkey']?.image);
   });
 
+  it('starts the compose object storage with the placeholder keys and waits for it before the api (P2.S1 uploads)', () => {
+    const garage = index('docker compose --env-file .env.example up -d --wait garage');
+
+    expect(garage).toBeGreaterThanOrEqual(0);
+    expect(garage).toBeLessThan(index('apps/server/dist/main-api.js'));
+    expect(job.env?.['S3_ENDPOINT']).toBe('http://localhost:3900');
+    expect(read('.env.example')).toContain(`S3_ACCESS_KEY=${job.env?.['S3_ACCESS_KEY'] ?? 'missing'}`);
+    expect(read('.env.example')).toContain(`S3_SECRET_KEY=${job.env?.['S3_SECRET_KEY'] ?? 'missing'}`);
+    expect(read('.env.example')).toContain(`S3_BUCKET_PRIVATE=${job.env?.['S3_BUCKET_PRIVATE'] ?? 'missing'}`);
+  });
+
   it('stays inside the ADR 0001 time budget', () => {
     expect(job['timeout-minutes']).toBeLessThanOrEqual(10);
   });
