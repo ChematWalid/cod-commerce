@@ -123,7 +123,9 @@ describe('product saves and taxonomy deletes stay apart', () => {
 
     // Act
     await create({ brandId: brand.id });
-    const fromOtherStore = await brands.delete(world.ctxOf(scopeA2), scopeA2, brand.id).catch((error: unknown) => error);
+    const fromOtherStore = await brands
+      .delete(world.ctxOf(scopeA2), scopeA2, brand.id)
+      .catch((error: unknown) => error);
     await brands.delete(world.ctxOf(scopeA), scopeA, brand.id);
 
     // Assert
