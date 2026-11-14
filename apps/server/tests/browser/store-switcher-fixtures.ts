@@ -138,3 +138,34 @@ export const expectSwitcherOn = (page: Page, subdomain: string) =>
 
 export const tokenChangesFrom = (page: Page, before: string | null) =>
   expect.poll(async () => selectedToken(page)).not.toBe(before);
+
+/** A product row the list must never show under `storeId`: one of another store. */
+export interface ForeignRow {
+  readonly storeId: string;
+  readonly productId: string;
+}
+
+/**
+ * Records, from now on, every render in which the product list keyed by a store (`data-store-id`) shows a row of
+ * another store. Unlike `watchFor`, it survives no reload: a store switch keeps the page, so none is needed.
+ */
+export const watchForeignRows = (page: Page, rows: readonly ForeignRow[]): Promise<void> =>
+  page.evaluate((watched: readonly ForeignRow[]) => {
+    const record = window as unknown as { __foreignRows?: string[] };
+    record.__foreignRows = [];
+    const check = (): void => {
+      for (const list of document.querySelectorAll<HTMLElement>('[data-store-id]')) {
+        const shown = watched.filter(
+          (row) =>
+            row.storeId === list.getAttribute('data-store-id') &&
+            list.querySelector(`[data-product-id="${row.productId}"]`) !== null,
+        );
+        record.__foreignRows?.push(...shown.map((row) => `${row.productId} under ${row.storeId}`));
+      }
+    };
+    new MutationObserver(check).observe(document.body, { childList: true, subtree: true, attributes: true });
+  }, rows);
+
+/** The foreign rows {@link watchForeignRows} saw, empty when the list only ever showed each store's own rows. */
+export const foreignRowsSeen = (page: Page): Promise<readonly string[]> =>
+  page.evaluate(() => (window as unknown as { __foreignRows?: string[] }).__foreignRows ?? []);

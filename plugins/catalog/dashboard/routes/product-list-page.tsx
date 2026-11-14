@@ -1,4 +1,9 @@
-import { ACTIVE_STORE_ALIAS, type ShellPageProps, storePathFor } from '@cod/plugin-merchant-shell/shell-api';
+import {
+  ACTIVE_STORE_ALIAS,
+  type ShellPageProps,
+  storePathFor,
+  type SwitchableStoreView,
+} from '@cod/plugin-merchant-shell/shell-api';
 import { CATALOG_PRODUCT_LIST_PAGE_ID } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -10,6 +15,7 @@ import {
   PageActionBar,
   PageLayout,
   PageTitle,
+  useAuth,
 } from '@vendure/dashboard';
 import { type ReactNode, useDeferredValue, useEffect, useState } from 'react';
 import { DeleteDialog } from '../components/delete-dialog';
@@ -39,6 +45,7 @@ import {
   withPage,
 } from '../model/list-search';
 import { listErrorMessageId } from '../model/list-view';
+import { isStoreSwitched } from '../model/store-bound-fetch';
 import {
   type StoreScope,
   useCatalogBrands,
@@ -74,7 +81,7 @@ function useRowCommands(storeAlias: string) {
 }
 
 function ListBody(props: {
-  readonly scope: StoreScope;
+  readonly scope: StoreScope | null;
   readonly products: ReturnType<typeof useCatalogProducts>;
   readonly narrowed: boolean;
   readonly pastLastPage: boolean;
@@ -84,7 +91,9 @@ function ListBody(props: {
   const { i18n } = useLingui();
   const previews = useMediaPreviews(props.scope);
   const { products } = props;
-  if (products.isError) return <p role="alert">{i18n._(listErrorMessageId(products.error))}</p>;
+  // A dropped answer of the store switched away from: the list is about to show the new store, not an error.
+  if (products.isError && !isStoreSwitched(products.error))
+    return <p role="alert">{i18n._(listErrorMessageId(products.error))}</p>;
   // A page past the end is about to move back (`useLastPageClamp`): it says nothing about the store meanwhile.
   if (!products.isSuccess || props.pastLastPage) return <p>{i18n._('catalog.loading')}</p>;
   if (products.data.items.length === 0) {
@@ -132,7 +141,7 @@ function useLastPageClamp(list: ListState, totalItems: number | undefined): bool
 }
 
 /** The tabs, the search and the filters; each change starts again at page 1. */
-function ListToolbar({ list, scope }: { readonly list: ListState; readonly scope: StoreScope }): ReactNode {
+function ListToolbar({ list, scope }: { readonly list: ListState; readonly scope: StoreScope | null }): ReactNode {
   const brands = useCatalogBrands(scope);
   const tags = useCatalogTags(scope);
   const change = (next: ProductListFilterChange): void => {
@@ -152,7 +161,7 @@ function ListToolbar({ list, scope }: { readonly list: ListState; readonly scope
 }
 
 interface ProductListProps {
-  readonly scope: StoreScope;
+  readonly scope: StoreScope | null;
   readonly held: ReadonlySet<string>;
   readonly onCommand: (action: RowCommand, product: CatalogProductRowDto) => void;
 }
@@ -163,7 +172,7 @@ function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
   const products = useCatalogProducts(scope, list.query);
   const pastLastPage = useLastPageClamp(list, products.data?.totalItems);
   return (
-    <div className="grid gap-4" data-testid={PRODUCT_LIST_TEST_ID}>
+    <div className="grid gap-4" data-testid={PRODUCT_LIST_TEST_ID} data-store-id={scope?.storeId}>
       <ListToolbar list={list} scope={scope} />
       <ListBody
         scope={scope}
@@ -184,11 +193,19 @@ function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
   );
 }
 
+/** The store the page's queries answer for, once the session holds its channel token. */
+function useStoreScope(store: SwitchableStoreView | undefined): StoreScope | null {
+  const { channels } = useAuth();
+  if (store === undefined) return null;
+  const channelToken = channels?.find((channel) => channel.id === store.channelId)?.token;
+  return channelToken === undefined ? null : { storeId: store.id, channelToken };
+}
+
 /** The store's products (the `products.all` leaf): tabs, search, filters, the table and its row actions (AC4). */
 export function ProductListPage({ store }: ShellPageProps): ReactNode {
   const { i18n } = useLingui();
   const storeAlias = store?.id ?? ACTIVE_STORE_ALIAS;
-  const scope: StoreScope = store?.id ?? null;
+  const scope = useStoreScope(store);
   const held = useHeldPermissions(scope);
   const rows = useRowCommands(storeAlias);
   return (
