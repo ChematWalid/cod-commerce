@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { EXPORT_HEADER, IMPORT_FIELD_KEYS, IMPORT_FIELDS, normalizeImportHeader } from '../../src/index';
+import {
+  EXPORT_HEADER,
+  IMPORT_FIELD_KEYS,
+  IMPORT_FIELDS,
+  MAX_OPTION_GROUPS,
+  normalizeImportHeader,
+} from '../../src/index';
 
 describe('import fields (D2209)', () => {
   it('every field key is unique and snake_case', () => {
@@ -68,5 +74,31 @@ describe('import fields (D2209)', () => {
     expect(normalizeImportHeader('Clé produit')).toBe('cle produit');
     expect(normalizeImportHeader('\u0627\u0644\u0633\u0650\u0651\u0639\u0631')).toBe(normalizeImportHeader('السعر'));
     expect(normalizeImportHeader('\u0627\u0644\u0633\u0640\u0640\u0639\u0631')).toBe(normalizeImportHeader('السعر'));
+  });
+
+  it('ignores the direction marks and zero-width characters of pasted Arabic headers', () => {
+    // Arrange: RLM, LRM, ALM, ZWSP, ZWNJ, ZWJ and WORD JOINER around "السعر".
+    const marked = ['‏', '‎', '؜', '​', '‌', '‍', '⁠'].map((mark) => `${mark}السعر${mark}`);
+
+    // Act
+    const normalised = marked.map(normalizeImportHeader);
+
+    // Assert
+    for (const header of normalised) expect(header).toBe(normalizeImportHeader('السعر'));
+  });
+
+  it('folds typographic apostrophes and treats parentheses as separators', () => {
+    expect(normalizeImportHeader('Nom de l’option 1')).toBe(normalizeImportHeader("nom de l'option 1"));
+    expect(normalizeImportHeader('nom de lʼoption 1')).toBe(normalizeImportHeader("nom de l'option 1"));
+    expect(normalizeImportHeader('Poids(g)')).toBe(normalizeImportHeader('poids (g)'));
+    expect(normalizeImportHeader('Weight(g)')).toBe(normalizeImportHeader('weight (g)'));
+  });
+
+  it('has one name and one value column per option group the catalog allows', () => {
+    const names = IMPORT_FIELD_KEYS.filter((key) => /^option\d+_name$/.test(key));
+    const values = IMPORT_FIELD_KEYS.filter((key) => /^option\d+_value$/.test(key));
+
+    expect(names).toHaveLength(MAX_OPTION_GROUPS);
+    expect(values).toHaveLength(MAX_OPTION_GROUPS);
   });
 });

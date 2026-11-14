@@ -25,7 +25,7 @@ import {
   IMPORT_PREVIEW_PAGE_MAX,
 } from './constants';
 import { CATALOG_IMPORT_ERROR_CODES } from './error-codes';
-import { IMPORT_FIELD_KEY_ENUM, IMPORT_FIELD_KEYS } from './fields';
+import { EXPORT_KEPT_FIELDS, IMPORT_FIELD_KEY_ENUM, IMPORT_FIELD_KEYS, type ImportFieldKey } from './fields';
 
 const invalidImportInput = { message: CATALOG_IMPORT_ERROR_CODES.INVALID_INPUT };
 const LINK_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:']);
@@ -39,13 +39,26 @@ function dedupeIds(ids: readonly string[]): string[] {
   return [...firstByKey.values()];
 }
 
-/** Between `min` and `max` referenced ids; repeats are dropped, not refused (D2211, D2213). */
+/** A raw id list may repeat ids up to this factor of its cap; beyond, the body is refused before de-duplication. */
+const RAW_ID_LIST_FACTOR = 2;
+
+/**
+ * Between `min` and `max` distinct referenced ids; repeats are dropped, not refused, and the cap counts the ids left
+ * (D2211, D2213, D2225). The raw list is bounded at {@link RAW_ID_LIST_FACTOR} times the cap.
+ */
 function dedupedIdListSchema(min: number, max: number) {
   return z
     .array(catalogRefIdSchema, invalidImportInput)
     .min(min, invalidImportInput)
-    .max(max, invalidImportInput)
-    .transform(dedupeIds);
+    .max(max * RAW_ID_LIST_FACTOR, invalidImportInput)
+    .transform(dedupeIds)
+    .pipe(z.array(z.string()).max(max, invalidImportInput));
+}
+
+/** True when no id is both added and removed, ids compared as the boundary parses them. */
+function hasNoTagInBoth(changes: { addTagIds?: readonly string[]; removeTagIds?: readonly string[] }): boolean {
+  const added = new Set((changes.addTagIds ?? []).map(catalogRefIdKey));
+  return !(changes.removeTagIds ?? []).some((id) => added.has(catalogRefIdKey(id)));
 }
 
 const wholeNumber = z.number(invalidImportInput).int(invalidImportInput);
@@ -77,10 +90,12 @@ const bulkChangesSchema = catalogObject({
   removeTagIds: dedupedIdListSchema(1, MAX_PRODUCT_TAGS).optional(),
   collectionIds: catalogRefIdListSchema(MAX_PRODUCT_COLLECTIONS).optional(),
   price: priceChangeSchema.optional(),
-}).refine(
-  (changes) => Object.values(changes as Record<string, unknown>).some((value) => value !== undefined),
-  invalidImportInput,
-);
+})
+  .refine(
+    (changes) => Object.values(changes as Record<string, unknown>).some((value) => value !== undefined),
+    invalidImportInput,
+  )
+  .refine(hasNoTagInBoth, invalidImportInput);
 
 /**
  * "Bulk edit" of selected products (D2213): 1 to 500 ids (repeats dropped) and at least one change; `brandId: null`
@@ -108,16 +123,25 @@ export const productBulkEditDiffSchema = catalogObject({
 export type ProductBulkEditDiff = z.output<typeof productBulkEditDiffSchema>;
 
 const formatSchema = z.enum(IMPORT_FORMATS, invalidImportInput);
+
+/** The chosen columns plus {@link EXPORT_KEPT_FIELDS}, in export header order whatever the order given (D2226). */
+function exportColumnsOf(fields: readonly ImportFieldKey[]): ImportFieldKey[] {
+  const chosen = new Set<ImportFieldKey>([...EXPORT_KEPT_FIELDS, ...fields]);
+  return IMPORT_FIELD_KEYS.filter((key) => chosen.has(key));
+}
+
 const exportFieldsSchema = z
   .array(z.enum(IMPORT_FIELD_KEY_ENUM, invalidImportInput), invalidImportInput)
   .min(1, invalidImportInput)
   .max(IMPORT_FIELD_KEYS.length, invalidImportInput)
   .refine(hasNoRepeat, invalidImportInput)
+  .transform(exportColumnsOf)
   .optional();
 
 /**
  * "Export products" (D2211): the selected ids (at most the synchronous cap, repeats dropped) or every product the
- * list's query finds; optionally only some columns, in export order whatever the order given.
+ * list's query finds; optionally only some columns. `fields` comes out in export header order and always holds
+ * `product_key`, `name` and `price`, so the file re-imports as updates (D2226); absent, every column is written.
  */
 export const exportInputSchema = z.discriminatedUnion(
   'scope',

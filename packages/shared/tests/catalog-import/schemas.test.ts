@@ -87,6 +87,32 @@ describe('bulkEditInputSchema (D2213)', () => {
     expect(bulkEditInputSchema.safeParse({ productIds: idsOf(501), changes: statusChange }).success).toBe(false);
   });
 
+  it('caps the ids after dropping repeats, and the raw list at twice the cap', () => {
+    // Arrange
+    const repeated = Array.from({ length: BULK_EDIT_MAX_PRODUCTS + 1 }, () => '1');
+    const huge = Array.from({ length: 2 * BULK_EDIT_MAX_PRODUCTS + 1 }, () => '1');
+
+    // Act
+    const parsed = bulkEditInputSchema.safeParse({ productIds: repeated, changes: statusChange });
+    const refused = bulkEditInputSchema.safeParse({ productIds: huge, changes: statusChange });
+
+    // Assert
+    expect(parsed.success && parsed.data.productIds).toEqual(['1']);
+    expect(refused.success).toBe(false);
+  });
+
+  it('refuses a tag both added and removed, compared as the boundary parses ids', () => {
+    // Act
+    const parsed = bulkEditInputSchema.safeParse({
+      productIds: ['1'],
+      changes: { addTagIds: ['5'], removeTagIds: ['05'] },
+    });
+
+    // Assert
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues[0]?.message).toBe(CATALOG_IMPORT_ERROR_CODES.INVALID_INPUT);
+  });
+
   it('refuses no product and no change', () => {
     expect(bulkEditInputSchema.safeParse({ productIds: [], changes: statusChange }).success).toBe(false);
     expect(bulkEditInputSchema.safeParse({ productIds: ['1'], changes: {} }).success).toBe(false);
@@ -150,6 +176,23 @@ describe('exportInputSchema (D2211)', () => {
     expect(parsed).toMatchObject({ scope: 'filtered', query: { tab: 'draft', q: 'robe' } });
   });
 
+  it('orders the chosen columns as the export header and always keeps product_key, name and price', () => {
+    // Act
+    const parsed = exportInputSchema.parse({
+      scope: 'selected',
+      format: 'csv',
+      productIds: ['1'],
+      fields: ['description', 'variant_sku', 'name'],
+    });
+
+    // Assert
+    expect(parsed.fields).toEqual(['product_key', 'name', 'description', 'price', 'variant_sku']);
+  });
+
+  it('exports every column when none is chosen', () => {
+    expect(exportInputSchema.parse({ scope: 'selected', format: 'csv', productIds: ['1'] }).fields).toBeUndefined();
+  });
+
   it('refuses an unknown format, scope or field', () => {
     expect(exportInputSchema.safeParse({ scope: 'selected', format: 'pdf', productIds: ['1'] }).success).toBe(false);
     expect(exportInputSchema.safeParse({ scope: 'all', format: 'csv' }).success).toBe(false);
@@ -160,6 +203,10 @@ describe('exportInputSchema (D2211)', () => {
 });
 
 describe('uploadInputSchema (D2208)', () => {
+  it('keeps the content type allow-list read-only', () => {
+    expect(Object.isFrozen(IMPORT_CONTENT_TYPES)).toBe(true);
+  });
+
   it('accepts an xlsx up to 10 MiB', () => {
     expect(
       uploadInputSchema.safeParse({ format: 'xlsx', size: IMPORT_MAX_BYTES, contentType: XLSX_TYPE }).success,

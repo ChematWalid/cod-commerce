@@ -46,8 +46,12 @@ export const IMPORT_CONTENT_TYPE_OF_FORMAT = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   csv: 'text/csv',
 } as const satisfies Record<ImportFormat, string>;
-/** Content types an upload may declare. */
-export const IMPORT_CONTENT_TYPES = IMPORT_FORMATS.map((format) => IMPORT_CONTENT_TYPE_OF_FORMAT[format]);
+/** One of the content types of {@link IMPORT_CONTENT_TYPE_OF_FORMAT}. */
+export type ImportContentType = (typeof IMPORT_CONTENT_TYPE_OF_FORMAT)[ImportFormat];
+/** Content types an upload may declare; frozen, so the schemas and their readers keep one list. */
+export const IMPORT_CONTENT_TYPES: readonly ImportContentType[] = Object.freeze(
+  IMPORT_FORMATS.map((format) => IMPORT_CONTENT_TYPE_OF_FORMAT[format]),
+);
 
 /** Lifecycle of an import job (D2210). */
 export const IMPORT_JOB_STATUSES = [

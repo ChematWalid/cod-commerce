@@ -92,25 +92,32 @@ export type ImportFieldKey = (typeof IMPORT_FIELDS)[number]['key'];
 export const IMPORT_FIELD_KEYS: readonly ImportFieldKey[] = IMPORT_FIELDS.map(({ key }) => key);
 /** The header row an export writes: the field keys, in order, so the file re-imports (AC3). */
 export const EXPORT_HEADER: readonly ImportFieldKey[] = IMPORT_FIELD_KEYS;
+/** Columns every export writes, even a partial one: the update key and the two required columns (D2224, D2226). */
+export const EXPORT_KEPT_FIELDS: readonly ImportFieldKey[] = Object.freeze(['product_key', 'name', 'price'] as const);
 /** The column keys as an enum-like object, for schemas. */
 export const IMPORT_FIELD_KEY_ENUM = Object.fromEntries(IMPORT_FIELD_KEYS.map((key) => [key, key])) as {
   readonly [Key in ImportFieldKey]: Key;
 };
 
 const COMBINING_MARKS = /\p{M}/gu;
-const TATWEEL_AND_BOM = /[\u0640\uFEFF]/g;
-const SEPARATORS = /[\s_\-.:]+/g;
+/** Tatweel and every format character: BOM, direction marks (LRM, RLM, ALM) and zero-width joiners and spaces. */
+const TATWEEL_AND_FORMAT = /[\u0640\p{Cf}]/gu;
+/** Typographic apostrophes Word and Excel autocorrect type for `'`. */
+const TYPOGRAPHIC_APOSTROPHES = /[\u2018\u2019\u02BC]/g;
+const SEPARATORS = /[\s_\-.:()]+/g;
 
 /**
- * How a header cell is compared with the aliases: compatibility form without marks (accents, Arabic short vowels,
- * hamza seats), tatweel or BOM, lower case, with runs of spaces, `_`, `-`, `.` and `:` as one space. "Prix_de-Vente"
- * and "prix de vente" are one header, as are "Clé" and "cle".
+ * How a header cell is compared with the aliases (D2224): compatibility form without marks (accents, Arabic short
+ * vowels, hamza seats), tatweel or format characters (BOM, direction marks, zero-width characters), typographic
+ * apostrophes as `'`, lower case, with runs of spaces, `_`, `-`, `.`, `:` and parentheses as one space.
+ * "Prix_de-Vente" and "prix de vente" are one header, as are "Clé" and "cle", and "Poids(g)" and "poids (g)".
  */
 export function normalizeImportHeader(header: string): string {
   return header
     .normalize('NFKD')
     .replace(COMBINING_MARKS, '')
-    .replace(TATWEEL_AND_BOM, '')
+    .replace(TATWEEL_AND_FORMAT, '')
+    .replace(TYPOGRAPHIC_APOSTROPHES, "'")
     .toLowerCase()
     .replace(SEPARATORS, ' ')
     .trim();

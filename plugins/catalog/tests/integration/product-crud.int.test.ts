@@ -209,4 +209,27 @@ describe('product create, read, update and delete', () => {
     expect(read.body).toMatchObject({ id, title: 'Rest' });
     expect(deleted.body).toEqual({ success: true });
   });
+
+  it('refuses an edit that crosses the pack boundary or prices a pack (D2227)', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const physical = await suite.kit.createProduct({ title: 'Single' });
+    const pack = await suite.kit.createProduct({ title: 'Duo', type: 'pack' });
+    const updating = (id: string, input: Record<string, unknown>) =>
+      failureOf(suite.kit.gql(UPDATE_PRODUCT, { id, input }));
+
+    // Act
+    const failures = await Promise.all([
+      updating(physical.id, { type: 'pack' }),
+      updating(pack.id, { type: 'physical' }),
+      updating(pack.id, { price: 1 }),
+    ]);
+
+    // Assert
+    expect(failures.map((failure) => failure.codes)).toEqual([
+      [CATALOG_ERROR_CODES.INVALID_INPUT],
+      [CATALOG_ERROR_CODES.INVALID_INPUT],
+      [CATALOG_ERROR_CODES.INVALID_INPUT],
+    ]);
+  });
 });
