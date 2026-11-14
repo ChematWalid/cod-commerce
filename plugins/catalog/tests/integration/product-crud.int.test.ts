@@ -210,7 +210,7 @@ describe('product create, read, update and delete', () => {
     expect(deleted.body).toEqual({ success: true });
   });
 
-  it("refuses an edit that crosses the pack boundary or edits a pack's price, options or weight (D2227)", async () => {
+  it('refuses an edit that crosses the pack boundary, or a pack edit or create carrying price, options or weight (D2227)', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
     const physical = await suite.kit.createProduct({ title: 'Single' });
@@ -225,10 +225,16 @@ describe('product create, read, update and delete', () => {
       updating(pack.id, { price: 1 }),
       updating(pack.id, { optionGroups: [{ name: 'Size', values: ['S', 'M'] }] }),
       updating(pack.id, { weight: 1 }),
+      failureOf(
+        suite.kit.createProduct({ title: 'Trio', type: 'pack', optionGroups: [{ name: 'Size', values: ['S', 'M'] }] }),
+      ),
+      failureOf(suite.kit.createProduct({ title: 'Trio', type: 'pack', weight: 500 })),
     ]);
 
     // Assert
     expect(failures.map((failure) => failure.codes)).toEqual([
+      [CATALOG_ERROR_CODES.INVALID_INPUT],
+      [CATALOG_ERROR_CODES.INVALID_INPUT],
       [CATALOG_ERROR_CODES.INVALID_INPUT],
       [CATALOG_ERROR_CODES.INVALID_INPUT],
       [CATALOG_ERROR_CODES.INVALID_INPUT],

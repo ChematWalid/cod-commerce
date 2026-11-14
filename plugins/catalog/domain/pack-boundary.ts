@@ -32,3 +32,21 @@ export function keepsPackBoundary(current: ProductType, patch: PackBoundaryPatch
   if (patch.type !== undefined && (patch.type === PACK_PRODUCT_TYPE) !== isPack) return false;
   return !(isPack && touchesComputedValue(patch));
 }
+
+/** The parts of a create command that a pack may not carry: catalog-packs computes them once the pack is composed. */
+export type PackCreateCommand = {
+  readonly type: ProductType;
+  readonly optionGroups: readonly unknown[];
+  readonly weight?: number | null;
+  readonly oldPrice?: number | null;
+};
+
+/**
+ * True when a create keeps the pack boundary (D2227): a pack is created with one default variant, no weight and no
+ * old price, so it never carries a matrix or a value that the catalog API could not later change and catalog-packs
+ * did not compute. Its price is a placeholder until the pack is composed (D2203).
+ */
+export function createsWithinPackBoundary(command: PackCreateCommand): boolean {
+  if (command.type !== PACK_PRODUCT_TYPE) return true;
+  return command.optionGroups.length === 0 && (command.weight ?? null) === null && (command.oldPrice ?? null) === null;
+}

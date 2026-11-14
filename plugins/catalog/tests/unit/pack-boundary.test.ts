@@ -4,7 +4,7 @@ import { CreateProductService } from '../../application/create-product.service';
 import { UpdateProductService } from '../../application/update-product.service';
 import type { ProductView } from '../../application/product-view';
 import { InvalidCatalogInputError } from '../../domain/errors';
-import { keepsPackBoundary } from '../../domain/pack-boundary';
+import { createsWithinPackBoundary, keepsPackBoundary } from '../../domain/pack-boundary';
 import { ProductWorld } from '../fakes/product-world';
 import { scopeA } from '../support/builders';
 
@@ -33,6 +33,45 @@ describe('keepsPackBoundary (D2227)', () => {
 
   it('lets a physical product edit its options and weight', () => {
     expect(keepsPackBoundary('physical', { optionGroups: [{ name: 'Size', values: ['S'] }], weight: 1 })).toBe(true);
+  });
+});
+
+describe('createsWithinPackBoundary (D2227)', () => {
+  it('lets a pack be created without options, weight or old price', () => {
+    expect(createsWithinPackBoundary({ type: 'pack', optionGroups: [] })).toBe(true);
+    expect(createsWithinPackBoundary({ type: 'pack', optionGroups: [], weight: null, oldPrice: null })).toBe(true);
+  });
+
+  it('refuses a pack created with options, a weight or an old price: catalog-packs computes them', () => {
+    const size = [{ name: 'Size', values: ['S', 'M', 'L'] }];
+    expect(createsWithinPackBoundary({ type: 'pack', optionGroups: size })).toBe(false);
+    expect(createsWithinPackBoundary({ type: 'pack', optionGroups: [], weight: 500 })).toBe(false);
+    expect(createsWithinPackBoundary({ type: 'pack', optionGroups: [], oldPrice: 3000 })).toBe(false);
+  });
+
+  it('lets a physical product be created with options, a weight and an old price', () => {
+    const size = [{ name: 'Size', values: ['S'] }];
+    expect(createsWithinPackBoundary({ type: 'physical', optionGroups: size, weight: 1, oldPrice: 3000 })).toBe(true);
+  });
+});
+
+describe('CreateProductService and packs (D2227)', () => {
+  it('refuses a pack created with a variant matrix and saves nothing', async () => {
+    // Arrange
+    const world = new ProductWorld();
+    const create = new CreateProductService(world.ports);
+    const input = { status: 'active', price: 2500, title: 'Duo', type: 'pack' } as const;
+
+    // Act
+    const created = create.create(
+      world.ctxOf(scopeA),
+      scopeA,
+      productInputSchema.parse({ ...input, optionGroups: [{ name: 'Size', values: ['S', 'M', 'L'] }] }),
+    );
+
+    // Assert
+    await expect(created).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    expect(world.products.stored).toEqual([]);
   });
 });
 
