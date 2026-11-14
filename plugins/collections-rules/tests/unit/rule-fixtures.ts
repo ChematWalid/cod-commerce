@@ -1,4 +1,5 @@
 import { type CollectionRule, type RuleCondition, toSnowflake } from '@cod/shared';
+import { type ConditionOf } from '../../domain/condition-matchers';
 import { type ProductSnapshot, productFactsOf, type ProductFacts } from '../../domain/product-facts';
 
 /** Our tag ids of the fixtures: snowflakes, as the rule schema requires. */
@@ -31,13 +32,13 @@ export const ruleOf = (match: CollectionRule['match'], ...conditions: RuleCondit
   conditions,
 });
 
-export const tagIs = (operator: 'is_any_of' | 'is_not', ...values: string[]): RuleCondition => ({
+export const tagIs = (operator: ConditionOf<'tag'>['operator'], ...values: string[]): RuleCondition => ({
   field: 'tag',
   operator,
   values: values.map(toSnowflake),
 });
 
-export const brandIs = (operator: 'is_any_of' | 'is_not', ...values: string[]): RuleCondition => ({
+export const brandIs = (operator: ConditionOf<'brand'>['operator'], ...values: string[]): RuleCondition => ({
   field: 'brand',
   operator,
   values: values.map(toSnowflake),
@@ -52,13 +53,17 @@ export const priceBetween = (min: number | null, max: number | null): RuleCondit
 
 export const onSaleIs = (value: boolean): RuleCondition => ({ field: 'on_sale', operator: 'is', value });
 
-export const titleIs = (operator: 'contains' | 'not_contains', ...values: string[]): RuleCondition => ({
+export const titleIs = (operator: ConditionOf<'title'>['operator'], ...values: string[]): RuleCondition => ({
   field: 'title',
   operator,
   values,
 });
 
-export const optionIs = (option: string, operator: 'is_any_of' | 'is_not', ...values: string[]): RuleCondition => ({
+export const optionIs = (
+  option: string,
+  operator: ConditionOf<'option'>['operator'],
+  ...values: string[]
+): RuleCondition => ({
   field: 'option',
   option,
   operator,
