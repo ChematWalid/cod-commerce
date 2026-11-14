@@ -1,8 +1,8 @@
 import { useLingui } from '@lingui/react';
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@vendure/dashboard';
 import { type ReactNode, type SyntheticEvent, useState } from 'react';
-import { CREATE_STORE_DIALOG_TEST_ID, DEFAULT_STORE_LANGUAGE } from '../constants';
-import { useCreateStore } from '../hooks/use-create-store';
+import { CREATE_STORE_DIALOG_TEST_ID, CREATE_STORE_RECHECK_TEST_ID, DEFAULT_STORE_LANGUAGE } from '../constants';
+import { type CreateStore, useCreateStore } from '../hooks/use-create-store';
 import { type SubdomainCheck, useSubdomainAvailability } from '../hooks/use-subdomain-availability';
 import { StoreLanguageSelect } from './store-language-select';
 import { SubdomainField } from './subdomain-field';
@@ -63,19 +63,21 @@ function CreateStoreFields({
   );
 }
 
-/** The error line, when there is one, and the two buttons. */
+/**
+ * The error line, when there is one, and the buttons. After a timeout the store may already exist, so "check again"
+ * takes the place of a second submit (SHELL-8).
+ */
 function CreateStoreFooter({
-  errorId,
-  busy,
+  create,
   canSubmit,
   onCancel,
 }: {
-  readonly errorId: string | undefined;
-  readonly busy: boolean;
+  readonly create: CreateStore;
   readonly canSubmit: boolean;
   readonly onCancel: () => void;
 }): ReactNode {
   const { i18n } = useLingui();
+  const { errorId, submitting: busy, recheck: onRecheck } = create;
   return (
     <>
       {errorId !== undefined && (
@@ -87,9 +89,15 @@ function CreateStoreFooter({
         <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
           {i18n._('shell.store.create.cancel')}
         </Button>
-        <Button type="submit" disabled={!canSubmit}>
-          {i18n._('shell.store.create.submit')}
-        </Button>
+        {onRecheck === undefined ? (
+          <Button type="submit" disabled={!canSubmit}>
+            {i18n._('shell.store.create.submit')}
+          </Button>
+        ) : (
+          <Button type="button" data-testid={CREATE_STORE_RECHECK_TEST_ID} onClick={onRecheck}>
+            {i18n._('shell.store.create.recheck')}
+          </Button>
+        )}
       </DialogFooter>
     </>
   );
@@ -102,11 +110,11 @@ export function CreateStoreDialog({ open, platformDomain, switchTo, onOpenChange
   const check = useSubdomainAvailability(form.subdomain);
   const close = (): void => {
     setForm(EMPTY_FORM);
-    create.reset();
+    create.close();
     onOpenChange(false);
   };
   const create = useCreateStore(switchTo, close);
-  const canSubmit = form.name.trim() !== '' && check.state === 'available' && !create.submitting;
+  const canSubmit = form.name.trim() !== '' && check.state === 'available' && create.canSubmit;
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
     if (canSubmit) create.submit({ ...form, name: form.name.trim() });
@@ -127,7 +135,7 @@ export function CreateStoreDialog({ open, platformDomain, switchTo, onOpenChange
             suffix={platformDomain === undefined ? undefined : `.${platformDomain}`}
             onChange={setForm}
           />
-          <CreateStoreFooter errorId={create.errorId} busy={create.submitting} canSubmit={canSubmit} onCancel={close} />
+          <CreateStoreFooter create={create} canSubmit={canSubmit} onCancel={close} />
         </form>
       </DialogContent>
     </Dialog>

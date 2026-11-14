@@ -1,17 +1,12 @@
 import { join } from 'node:path';
 import { DASHBOARD_BASE_PATH } from '../../src/config/dashboard-route';
 import { DEV_API_PORT } from '../../src/config/ports';
-import {
-  BUSINESS_CARD_TEST_ID,
-  SETTINGS_PATH,
-  SHELL_PLACEHOLDER_PATH,
-  SHELL_PLACEHOLDER_TEST_ID,
-} from '@cod/plugin-merchant-shell';
-import { TEMPLATE_NOTES_PATH, TEMPLATE_NOTES_TEST_ID } from '@cod/plugin-template';
+import { PRODUCT_EDITOR_TEST_ID, PRODUCT_LIST_TEST_ID } from '@cod/plugin-catalog';
+import { BUSINESS_CARD_TEST_ID, SETTINGS_PATH } from '@cod/plugin-merchant-shell';
 
 /** A dashboard page the RTL browser test opens in Arabic and in English. */
 export interface DashboardPageUnderTest {
-  /** The route below the dashboard base, e.g. `/merchant-shell`. */
+  /** The route below the dashboard base, e.g. `/settings`. */
   readonly path: string;
   /** The `data-testid` that marks the page as rendered. */
   readonly readyTestId: string;
@@ -21,8 +16,8 @@ export interface DashboardPageUnderTest {
 
 /** Every page the RTL check covers (ADR 0010: RTL is verified on every page we expose). New pages append here. */
 export const DASHBOARD_PAGES_UNDER_TEST: readonly DashboardPageUnderTest[] = [
-  { path: SHELL_PLACEHOLDER_PATH, readyTestId: SHELL_PLACEHOLDER_TEST_ID, slug: 'merchant-shell' },
-  { path: TEMPLATE_NOTES_PATH, readyTestId: TEMPLATE_NOTES_TEST_ID, slug: 'template-notes' },
+  { path: '/stores/active/products', readyTestId: PRODUCT_LIST_TEST_ID, slug: 'products' },
+  { path: '/stores/active/products/new', readyTestId: PRODUCT_EDITOR_TEST_ID, slug: 'product-editor' },
   { path: SETTINGS_PATH, readyTestId: BUSINESS_CARD_TEST_ID, slug: 'settings' },
 ];
 

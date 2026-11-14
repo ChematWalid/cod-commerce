@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# The screenshots are historical: scripts/evidence/template-screens.mjs drove the template's dashboard route that P2.S1
+# removed (D2111), so a re-run skips that step and keeps the committed shots. The API transcripts still re-run; they need
+# APP_ENV development or test (the .env.example default), where the template plugin is registered.
 # Proof-of-working evidence for P0.S2b-6 (CLAUDE.md §3a.14): runs the real compose stack under its own project
 # (cod-evidence, every *_HOST_PORT shifted by 20000), records live Admin API transcripts of the plugin template
 # (create/read, typed error, FORBIDDEN, two-business isolation, input shape) and screenshots its dashboard page
@@ -350,11 +353,8 @@ assert_js "input shape" 'JSON.stringify(b.data.__type.inputFields.map(f=>f.name)
 emit "$out/api/input-shape.md" "Introspect CreateTemplateNoteInput" "$Q_INPUT" '{}' "$super" -
 
 # --- screenshots -------------------------------------------------------------------------
-started=$SECONDS
-CHANNEL_CODE_A=$CODE_A CHANNEL_TOKEN_A=$TOKEN_A CHANNEL_CODE_B=$CODE_B CHANNEL_TOKEN_B=$TOKEN_B \
-  NOTE_TITLES="$TITLE_A1|$TITLE_A2" OTHER_BUSINESS_TITLE="$TITLE_B1" \
-  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/template-screens.mjs "$api/dashboard" "$out/screens" "$work/screens-table.md"
-echo "screenshots taken in $((SECONDS - started))s"
+# The dashboard route these drove was removed in P2.S1 (D2111): skipped, the committed shots stay.
+echo "evidence: skipping the screenshots (template route removed in P2.S1, D2111); the committed ones stay" >&2
 
 # --- README ------------------------------------------------------------------------------
 cat >"$out/README.md" <<README
@@ -386,21 +386,20 @@ and runs every other assertion on the real values; only then it replaces ids by 
 timestamps by \`<TIMESTAMP>\` in the transcripts. Per-run session tokens, cookies and the passwords are redacted
 (\`[REDACTED]\`); the \`vendure-token\` channel tokens are synthetic and shown. The same input regenerates the same files.
 
-## Screenshots
+## Screenshots (historical)
 
+Taken before P2.S1 removed the template's dashboard route (D2111); a re-run keeps these files and does not retake them.
 The template's dashboard page \`/dashboard/template-notes\` (test id \`template-notes-page\`), signed in as the superadmin with
 business A selected as the dashboard's channel, listing A's two notes. Viewport screenshots (not full page),
 \`reducedMotion: reduce\`, taken after \`networkidle\` and \`document.fonts.ready\`. Sign-in and language switch use the Task 14
 helpers (\`apps/server/tests/browser/dashboard-session.ts\`) in a desktop-sized context whose storage state opens the phone context.
 
-| File | URL | Viewport | Language | \`dir\` / \`lang\` asserted |
-| --- | --- | --- | --- | --- |
-$(command cat "$work/screens-table.md")
+Files: \`screens/template-notes-{ar,en}-{desktop,mobile}.png\`.
 
 ## Checks (the script fails otherwise)
 
 - Every transcript's status and body as listed above, asserted on the real values before normalisation.
-- Each page: \`dir\`/\`lang\` match the language, the \`template-notes-page\` marker is visible with both note titles and no alert;
+- Each page (when the shots were taken): \`dir\`/\`lang\` match the language, the \`template-notes-page\` marker is visible with both note titles and no alert;
   Arabic pages: the IBM Plex Sans Arabic face is loaded and in the body font.
 - Exactly 4 PNGs, each at most 300 KB.
 - No value of a password, secret, token or key from \`.env\`, and no session token or cookie value of the runs, appears in this folder.

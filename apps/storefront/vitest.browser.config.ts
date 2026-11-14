@@ -14,5 +14,7 @@ export default defineConfig({
     testTimeout: BROWSER_TEST_TIMEOUT_MS,
     hookTimeout: BROWSER_TEST_TIMEOUT_MS,
     fileParallelism: false,
+    // Off until this suite is checked in CI (D2118): it cannot run locally (D218); unit suites keep the preset's guard.
+    expect: { ...unitPreset.test?.expect, requireAssertions: false },
   },
 });

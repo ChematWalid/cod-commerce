@@ -27,28 +27,51 @@ export const TENANT_TABLE_COUNTS = {
   commission_config: BY_BUSINESS('commission_config'),
 } as const;
 
-export type TenantTable = keyof typeof TENANT_TABLE_COUNTS;
+/**
+ * The catalog tables (P2.S1, D2100): the P2 world seeds a row of each business in every one. Vendure's own product,
+ * variant and asset tables carry no business column; their rows are reached through the catalog cases instead.
+ */
+export const CATALOG_TABLE_COUNTS = {
+  catalog_brand: BY_BUSINESS('catalog_brand'),
+  catalog_tag: BY_BUSINESS('catalog_tag'),
+  catalog_product_tag: BY_BUSINESS('catalog_product_tag'),
+  catalog_highlight: BY_BUSINESS('catalog_highlight'),
+  catalog_product_highlight: BY_BUSINESS('catalog_product_highlight'),
+  catalog_product_settings: BY_BUSINESS('catalog_product_settings'),
+  catalog_product_collection: BY_BUSINESS('catalog_product_collection'),
+  catalog_media: BY_BUSINESS('catalog_media'),
+} as const;
 
+/** Every counted table, P1's and the catalog's. */
+const ALL_TABLE_COUNTS = { ...TENANT_TABLE_COUNTS, ...CATALOG_TABLE_COUNTS };
+
+export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
+
+/** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
+
+/** The P1 tables and the catalog's: the P2 world fills each. */
+export const P2_TENANT_TABLES = Object.keys(ALL_TABLE_COUNTS) as TenantTable[];
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */
 export interface SqlRunner {
   query(sql: string, parameters: unknown[]): Promise<{ n: number }[]>;
 }
 
-/** A's and B's row counts in every tenant table. */
+/** A's and B's row counts in every table of `tables` (the P1 tenant tables unless named). */
 export async function tenantRowCounts(
   sql: SqlRunner | { rawConnection: SqlRunner },
   [a, b]: readonly [string, string],
-): Promise<Record<TenantTable, { a: number; b: number }>> {
+  tables: readonly TenantTable[] = TENANT_TABLES,
+): Promise<Partial<Record<TenantTable, { a: number; b: number }>>> {
   const runner = 'rawConnection' in sql ? sql.rawConnection : sql;
   const count = async (statement: string, businessId: string): Promise<number> =>
     (await runner.query(statement, [businessId]))[0]?.n ?? 0;
   const entries = await Promise.all(
-    TENANT_TABLES.map(async (table) => {
-      const statement = TENANT_TABLE_COUNTS[table];
+    tables.map(async (table) => {
+      const statement = ALL_TABLE_COUNTS[table];
       return [table, { a: await count(statement, a), b: await count(statement, b) }] as const;
     }),
   );
-  return Object.fromEntries(entries) as Record<TenantTable, { a: number; b: number }>;
+  return Object.fromEntries(entries);
 }

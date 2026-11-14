@@ -1,0 +1,24 @@
+{
+  "error": {
+    "catalog-product-not-found": "Product not found.",
+    "catalog-invalid-input": "Some of the details are not valid.",
+    "catalog-too-many-highlights": "A product can show at most six highlights.",
+    "catalog-matrix-too-large": "Too many options or values: at most 3 options, 20 values each and 100 variants.",
+    "catalog-duplicate-option-value": "An option has the same value twice.",
+    "catalog-duplicate-option-name": "Two options have the same name.",
+    "catalog-brand-not-found": "Brand not found.",
+    "catalog-tag-not-found": "Tag not found.",
+    "catalog-highlight-not-found": "Highlight not found.",
+    "catalog-media-not-found": "Image not found.",
+    "catalog-collection-not-found": "Collection not found.",
+    "catalog-media-too-large": "The image is larger than 5 MB.",
+    "catalog-media-type": "Only PNG, JPEG, GIF and WebP images can be uploaded.",
+    "catalog-media-in-use": "This image is used by a product.",
+    "catalog-order-manager-unknown": "An order manager is not a member of this store.",
+    "catalog-order-managers-unavailable": "Order managers cannot be set yet.",
+    "catalog-name-taken": "This name is already used in this store.",
+    "catalog-concurrent-update": "This product was changed at the same time. Try again.",
+    "catalog-taxonomy-limit": "This store has reached the most brands, tags or highlights it can keep (500 of each).",
+    "catalog-internal": "The request could not be completed."
+  }
+}

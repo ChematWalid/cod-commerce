@@ -1,6 +1,6 @@
-import type { BusinessId, TenantScope } from '@cod/shared';
+import { type BusinessId, hasControlCharacter, type TenantScope } from '@cod/shared';
 import { MAX_NOTE_ID, NOTE_BODY_MAX_LENGTH, NOTE_ID_FORMAT } from './constants';
-import { InvalidNoteIdError, NoteBodyTooLongError } from './errors';
+import { InvalidNoteBodyError, InvalidNoteIdError, NoteBodyTooLongError } from './errors';
 import { NoteTitle } from './note-title';
 
 /** A note id, as a decimal string (ADR 0003: ids are strings outside the database). */
@@ -48,13 +48,18 @@ export function toNoteId(value: string): NoteId {
 /**
  * Builds a valid note owned by the business of `scope`.
  *
- * @throws {InvalidNoteTitleError} for a blank or too long title.
+ * @throws {InvalidNoteTitleError} for a blank or too long title, or one holding a control character, a line break or a
+ *   bidi embedding, override or isolate control.
  * @throws {NoteBodyTooLongError} for a body over {@link NOTE_BODY_MAX_LENGTH} characters.
+ * @throws {InvalidNoteBodyError} for a body holding a control character other than a tab or a line break.
  */
 export function createNote(input: NewNoteInput): Note {
   const title = NoteTitle.create(input.title);
   if (input.body.length > NOTE_BODY_MAX_LENGTH) {
     throw new NoteBodyTooLongError();
+  }
+  if (hasControlCharacter(input.body, { allowLineBreaks: true })) {
+    throw new InvalidNoteBodyError();
   }
   return { id: input.id, businessId: input.scope.businessId, title, body: input.body, createdAt: input.now };
 }

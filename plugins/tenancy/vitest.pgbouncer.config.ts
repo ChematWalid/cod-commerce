@@ -9,5 +9,7 @@ export default defineConfig({
     include: ['tests/pgbouncer/**/*.pgbouncer.test.ts'],
     exclude: ['**/node_modules/**'],
     setupFiles: ['tests/setup-env.ts'],
+    // Off until this suite is checked in CI (D2118): it cannot run locally (D218); unit suites keep the preset's guard.
+    expect: { ...vendurePreset.test?.expect, requireAssertions: false },
   },
 });

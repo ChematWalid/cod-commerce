@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
+import { CatalogPlugin } from '@cod/plugin-catalog';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
@@ -145,9 +146,21 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
     ...oauthOptions(env),
   });
 
-/** RBAC, auth and Team, in this order: Team builds on the services of the other two (D206). */
+/**
+ * RBAC, auth, catalog and Team, in this order: Team builds on the services of the others (D206) and registers its
+ * order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137).
+ */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
-  return [RbacPlugin, authPlugin(env), TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL })];
+  return [RbacPlugin, authPlugin(env), CatalogPlugin, TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL })];
+}
+
+/**
+ * Plugins that exist to show and test the platform's own patterns: the reference plugin. Staging has the
+ * production shape, so only development and test register them (D2111, #170); their committed migrations still
+ * create their tables everywhere.
+ */
+function developmentOnlyPlugins(env: AppEnv): VendurePluginEntry[] {
+  return env.APP_ENV === 'development' || env.APP_ENV === 'test' ? [TemplatePlugin] : [];
 }
 
 /**
@@ -169,7 +182,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     }),
     DefaultSchedulerPlugin.init(),
     ...requestPathPlugins(env, role),
-    TemplatePlugin,
+    ...developmentOnlyPlugins(env),
     // Tenancy, RBAC and auth use the rate limiter but never configure it: the host does, here.
     RateLimitPlugin.init({ redisUrl: env.REDIS_URL, clientIpHeader: env.CLIENT_IP_HEADER }),
     TenancyPlugin.init({

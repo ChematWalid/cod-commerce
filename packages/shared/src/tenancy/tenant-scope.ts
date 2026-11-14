@@ -1,4 +1,5 @@
 import { DomainError } from '../errors/domain-error';
+import { previewValue } from '../errors/value-preview';
 
 /** A business (tenant) id: a positive 63-bit integer in decimal form (ADR 0003). */
 export type BusinessId = string & { readonly __brand: 'BusinessId' };
@@ -18,7 +19,7 @@ export class InvalidBusinessIdError extends DomainError {
   readonly code = 'tenancy.invalid-business-id';
 
   constructor(value: string) {
-    super(`Invalid business id: "${value}"`);
+    super(`Invalid business id: ${previewValue(value)}`);
   }
 }
 

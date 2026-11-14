@@ -118,6 +118,23 @@ describe('TemplateNote Admin API', () => {
     expect(failure).toEqual({ codes: ['TEMPLATE_NOTE_INVALID_TITLE'], data: null });
   });
 
+  // #171: a control character never reaches Postgres or the logs, and the caller gets the mapped code, not driver text.
+  it.each([
+    { field: 'title', input: { title: 'Nul\u0000title', body: '' }, code: 'TEMPLATE_NOTE_INVALID_TITLE' },
+    { field: 'body', input: { title: 'Bell body', body: 'a\u0007b' }, code: 'TEMPLATE_NOTE_INVALID_BODY' },
+  ])('rejects a control character in the $field with $code and writes no row', async ({ input, code }) => {
+    // Arrange
+    await asOwner();
+
+    // Act
+    const failure = await failureOf(adminClient.query(CREATE_NOTE, { input }));
+    const { templateNotes: newest } = await adminClient.query<{ templateNotes: NoteResult[] }>(NOTES, { take: 5 });
+
+    // Assert
+    expect(failure).toEqual({ codes: [code], data: null });
+    expect(newest.map((note) => note.title)).not.toContainEqual(expect.stringMatching(/^(Nul|Bell body)/));
+  });
+
   it('lets a member whose built-in role holds the catalogue permission read notes', async () => {
     // Arrange
     await asOwner();

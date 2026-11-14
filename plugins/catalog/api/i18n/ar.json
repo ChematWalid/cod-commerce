@@ -1,0 +1,24 @@
+{
+  "error": {
+    "catalog-product-not-found": "المنتج غير موجود.",
+    "catalog-invalid-input": "بعض البيانات غير صالحة.",
+    "catalog-too-many-highlights": "يمكن للمنتج أن يعرض ست مزايا على الأكثر.",
+    "catalog-matrix-too-large": "خيارات أو قيم كثيرة جدًا: 3 خيارات على الأكثر، و20 قيمة لكل خيار، و100 متغير.",
+    "catalog-duplicate-option-value": "يحتوي أحد الخيارات على القيمة نفسها مرتين.",
+    "catalog-duplicate-option-name": "يوجد خياران بالاسم نفسه.",
+    "catalog-brand-not-found": "العلامة التجارية غير موجودة.",
+    "catalog-tag-not-found": "الوسم غير موجود.",
+    "catalog-highlight-not-found": "الميزة غير موجودة.",
+    "catalog-media-not-found": "الصورة غير موجودة.",
+    "catalog-collection-not-found": "المجموعة غير موجودة.",
+    "catalog-media-too-large": "حجم الصورة أكبر من 5 ميغابايت.",
+    "catalog-media-type": "يمكن رفع صور PNG وJPEG وGIF وWebP فقط.",
+    "catalog-media-in-use": "هذه الصورة مستخدمة في منتج.",
+    "catalog-order-manager-unknown": "أحد مسؤولي الطلبات ليس عضوًا في هذا المتجر.",
+    "catalog-order-managers-unavailable": "لا يمكن تعيين مسؤولي الطلبات بعد.",
+    "catalog-name-taken": "هذا الاسم مستخدم في هذا المتجر.",
+    "catalog-concurrent-update": "تم تعديل هذا المنتج في الوقت نفسه. حاول مرة أخرى.",
+    "catalog-taxonomy-limit": "بلغ هذا المتجر الحد الأقصى من العلامات التجارية أو الوسوم أو المزايا (500 من كل نوع).",
+    "catalog-internal": "تعذر إكمال الطلب."
+  }
+}

@@ -58,6 +58,37 @@ describe('architecture rules', () => {
     });
   });
 
+  it('lets the server app import the catalog entry', async () => {
+    // Arrange: the server app registers the plugin and calls its exported services (D2104, D2129)
+    const roots = ['apps/server'];
+
+    // Act
+    const good = await checkArchitecture({ baseDir: fixturesArch, roots });
+
+    // Assert
+    expect(good.cruisedModules).toEqual(
+      expect.arrayContaining(['apps/server/uses-catalog-package.ts', 'plugins/catalog/index.ts']),
+    );
+    expect(good.violations).toEqual([]);
+  });
+
+  it('refuses the catalog entry in a frontend app', async () => {
+    // Arrange: frontends are API clients and never bundle server services (ADR 0017)
+    const roots = ['apps/storefront'];
+
+    // Act
+    const bad = await checkArchitecture({ baseDir: fixturesArch, roots });
+
+    // Assert
+    expect(bad.violations).toEqual([
+      {
+        rule: 'catalog-entry-infra-only',
+        from: 'apps/storefront/uses-catalog-package.ts',
+        to: 'plugins/catalog/index.ts',
+      },
+    ]);
+  });
+
   it('accepts a plugin that follows the dependency direction', async () => {
     const good = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins/good'] });
 
@@ -81,12 +112,16 @@ describe('architecture rules', () => {
         'plugins/auth/invitations.ts',
         'plugins/good/api/uses-rbac-guard-package.ts',
         'plugins/good/dashboard/uses-shell-api-package.ts',
+        'plugins/catalog/index.ts',
+        'plugins/good/catalog-wiring.plugin.ts',
         'plugins/good/infrastructure/uses-auth-invitations-package.ts',
+        'plugins/good/infrastructure/uses-catalog-package.ts',
         'plugins/good/infrastructure/uses-platform-package.ts',
         'plugins/good/infrastructure/uses-rbac-member-access-package.ts',
         'plugins/good/infrastructure/uses-tenancy-package.ts',
         'plugins/good/invitations-wiring.plugin.ts',
         'plugins/good/member-access-wiring.plugin.ts',
+        'plugins/good/tests/unit/uses-catalog-package.ts',
         'plugins/platform-jobs/index.ts',
         'plugins/merchant-shell/dashboard/shell-api.ts',
         'plugins/rbac/guard.ts',

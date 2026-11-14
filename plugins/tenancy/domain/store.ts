@@ -1,4 +1,4 @@
-import type { BusinessId, Snowflake, StoreId } from '@cod/shared';
+import type { BusinessId, Snowflake, SoldOutBehavior, StoreId } from '@cod/shared';
 
 /** The statuses a store can have. */
 export const STORE_STATUSES = ['active', 'archived'] as const;
@@ -6,11 +6,7 @@ export const STORE_STATUSES = ['active', 'archived'] as const;
 /** One of the {@link STORE_STATUSES}. */
 export type StoreStatus = (typeof STORE_STATUSES)[number];
 
-/** What the storefront does with a sold-out product. */
-export const SOLD_OUT_BEHAVIORS = ['keep', 'hide'] as const;
-
-/** One of the {@link SOLD_OUT_BEHAVIORS}. */
-export type SoldOutBehavior = (typeof SOLD_OUT_BEHAVIORS)[number];
+export { SOLD_OUT_BEHAVIORS, type SoldOutBehavior } from '@cod/shared';
 
 /** A shop of a business, mapped one to one onto a Vendure channel. */
 export interface Store {

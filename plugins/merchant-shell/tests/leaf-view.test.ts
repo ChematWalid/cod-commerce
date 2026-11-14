@@ -1,6 +1,6 @@
 import { vendurePermissionName } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
-import { decideLeafView, type LeafViewInput } from '../dashboard/model/leaf-view';
+import { decideLeafView, type LeafViewInput, storeScopedLeaf } from '../dashboard/model/leaf-view';
 import { SHELL_LEAVES, type ShellLeaf } from '../dashboard/model/tree';
 import type { SwitchableStoreView } from '../dashboard/model/types';
 
@@ -91,6 +91,24 @@ describe('decideLeafView', () => {
   it('is forbidden when the active channel is not in the session', () => {
     expect(decideLeafView(input({ leaf: leafOf('orders.all'), storeParam: undefined, channels: [] }))).toEqual({
       kind: 'forbidden',
+    });
+  });
+
+  describe('a store-scoped page outside the tree (StoreScopedPage, D2110)', () => {
+    const editor = storeScopedLeaf('catalog.products.edit');
+
+    it('resolves the store before the permission, like a leaf', () => {
+      expect(decideLeafView(input({ leaf: editor, storeParam: A2.id }))).toEqual({
+        kind: 'switch',
+        channelId: A2.channelId,
+      });
+      expect(decideLeafView(input({ leaf: editor, storeParam: '999' }))).toEqual({ kind: 'not-found' });
+    });
+
+    it('checks its own permission on the store the URL resolved to', () => {
+      const channels = [{ id: '1', permissions: [vendurePermissionName('catalog.products.edit')] }, A2_CHANNEL];
+      expect(decideLeafView(input({ leaf: editor, channels }))).toEqual({ kind: 'page', store: A1 });
+      expect(decideLeafView(input({ leaf: editor }))).toEqual({ kind: 'forbidden' });
     });
   });
 });

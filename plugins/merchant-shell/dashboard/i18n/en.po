@@ -4,10 +4,6 @@ msgstr ""
 "Language: en\n"
 
 #. js-lingui-explicit-id
-msgid "Merchant shell"
-msgstr "Merchant shell"
-
-#. js-lingui-explicit-id
 msgid "Welcome to {name}"
 msgstr "Welcome to {name}"
 
@@ -277,7 +273,7 @@ msgstr "The store could not be created. Please try again."
 
 #. js-lingui-explicit-id
 msgid "shell.store.create.switch-timeout"
-msgstr "Your store was created, but it could not be opened yet. Reload the page to see it."
+msgstr "Your store was created, but it could not be opened yet. Check again in a moment."
 
 #. js-lingui-explicit-id
 msgid "shell.topbar.credits"
@@ -394,3 +390,63 @@ msgstr "This store was archived, so it can no longer be changed."
 #. js-lingui-explicit-id
 msgid "tenancy.business-not-found"
 msgstr "This business could not be found."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.business.logo"
+msgstr "Business logo"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.logo"
+msgstr "Store logo"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-none"
+msgstr "No logo"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-upload"
+msgstr "Upload logo"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-uploading"
+msgstr "Uploading…"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-too-large"
+msgstr "The image must be 5 MB or smaller."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-type"
+msgstr "Use a PNG, JPEG, GIF or WebP image."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.logo-failed"
+msgstr "The logo could not be uploaded. Try again."
+
+#. js-lingui-explicit-id
+msgid "tenancy.asset-not-available"
+msgstr "This image cannot be used here. Upload it again."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.show-address"
+msgstr "Show the address field"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.show-address-hint"
+msgstr "Ask buyers for their address when they order."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.sold-out"
+msgstr "Sold-out products"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.sold-out-keep"
+msgstr "Keep showing them, marked as sold out"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.sold-out-hide"
+msgstr "Hide them from lists and product pages"
+
+#. js-lingui-explicit-id
+msgid "shell.store.create.recheck"
+msgstr "Check again"

@@ -1,16 +1,7 @@
 import type { PermissionKey, PlatformLanguageCode, SubdomainReasonCode } from '@cod/shared';
 
-/** The route of the shell placeholder page, below the dashboard base (`/dashboard`). */
-export const SHELL_PLACEHOLDER_PATH = '/merchant-shell';
-
 /** The self-hosted Arabic UI font (ADR 0010); `styles/rtl.css` names the same family. */
 export const ARABIC_FONT_FAMILY = 'IBM Plex Sans Arabic';
-
-/** Marks the shell placeholder page as rendered. */
-export const SHELL_PLACEHOLDER_TEST_ID = 'merchant-shell-placeholder';
-
-/** Holds the platform language codes read from `@cod/shared`. */
-export const PLATFORM_LANGUAGES_TEST_ID = 'platform-languages';
 
 /** The id of the provider that keeps `html[lang]` in step with the display language. */
 export const DOCUMENT_LANG_PROVIDER_ID = 'merchant-shell-document-lang';
@@ -175,3 +166,19 @@ export const STORE_DESCRIPTION_TEST_ID = 'store-description';
 export const STORE_SAVE_TEST_ID = 'store-save';
 export const SETTINGS_ERROR_TEST_ID = 'settings-error';
 export const SETTINGS_LOAD_ERROR_TEST_ID = 'settings-load-error';
+
+/** Markers of the logo fields: the image shown, and the file input behind each card's upload button (D2120). */
+export const BUSINESS_LOGO_TEST_ID = 'business-logo';
+export const BUSINESS_LOGO_INPUT_TEST_ID = 'business-logo-input';
+export const STORE_LOGO_TEST_ID = 'store-logo';
+export const STORE_LOGO_INPUT_TEST_ID = 'store-logo-input';
+/** Markers of the store's operations fields: the address toggle and the sold-out choice (`store-sold-out-hide`). */
+export const STORE_SHOW_ADDRESS_TEST_ID = 'store-show-address';
+export const STORE_SOLD_OUT_TEST_ID = 'store-sold-out';
+export const soldOutOptionTestId = (behavior: string): string => `${STORE_SOLD_OUT_TEST_ID}-${behavior}`;
+
+/** The image types a logo upload offers; the server sniffs the content again (D34). */
+export const LOGO_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp';
+
+/** The Create Store dialog's "check again" button, offered after a timeout instead of a second submit (SHELL-8). */
+export const CREATE_STORE_RECHECK_TEST_ID = 'merchant-create-store-recheck';

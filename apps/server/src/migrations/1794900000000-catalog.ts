@@ -1,0 +1,113 @@
+import type { MigrationInterface, QueryRunner } from "typeorm";
+
+export class Catalog1794900000000 implements MigrationInterface {
+
+   public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE TABLE "catalog_brand" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "name" character varying(100) NOT NULL, "nameKey" character varying(400) NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_0741c02e568d8a41ca20bd54ce8" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_f8b0f80e8cbffdd3a89aecc9f9" ON "catalog_brand" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_cdaa1c9b3e6738e9daadaf48a0" ON "catalog_brand" ("businessId", "storeId", "createdAt", "id") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_4076134158ef8062799fd06884" ON "catalog_brand" ("businessId", "storeId", "nameKey") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_highlight" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "text" character varying(120) NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_23a1e8d0cdd1d0b414ff86e9c09" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_2d503b9d8322b37c16fe5f357e" ON "catalog_highlight" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_9658e3b6cfbf989db3dab3d493" ON "catalog_highlight" ("businessId", "storeId", "createdAt", "id") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_media" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "assetId" integer NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_d58f1e85b021a0c0671c1914ecb" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_91cc0b51dd5e48d31637b809d2" ON "catalog_media" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_1e3b7017c02fb8c3934ef0ae98" ON "catalog_media" ("businessId", "storeId", "createdAt", "id") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_4f55589ec805c7accacd44fbb9" ON "catalog_media" ("businessId", "assetId") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_product_highlight" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "productId" integer NOT NULL, "highlightId" bigint NOT NULL, "position" integer NOT NULL, CONSTRAINT "PK_d2d661fb0f7db17e0b324942400" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_109d8bc9438fb7c540c4512f50" ON "catalog_product_highlight" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_e35023dea13e4b43c6334f2b2c" ON "catalog_product_highlight" ("businessId", "storeId", "highlightId") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_423592b9c76d722775d18dc7ab" ON "catalog_product_highlight" ("businessId", "productId", "highlightId") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_product_settings" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "productId" integer NOT NULL, "nameInDelivery" character varying(100), "isFragile" boolean NOT NULL, "allowParcelOpening" boolean NOT NULL, "allowOutOfStockOrders" boolean NOT NULL, "soldOut" boolean NOT NULL, "quantityRulesEnabled" boolean NOT NULL, "quantityMin" integer NOT NULL, "quantityStep" integer NOT NULL, "orderManagerIds" bigint array NOT NULL, "customAttributes" jsonb NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_0be58bb8a16ccfe40e083e2eca3" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_03b51e1a1c5ea754eebe2e7e76" ON "catalog_product_settings" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_55038a56dd99ade541d24b9031" ON "catalog_product_settings" ("businessId", "storeId", "productId") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_product_tag" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "productId" integer NOT NULL, "tagId" bigint NOT NULL, CONSTRAINT "PK_03ec9a6659be2e25f3cb3bf06c6" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_fe967f00bea9de5a2757e7dcba" ON "catalog_product_tag" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_e4318d225566fd6ff57365c29a" ON "catalog_product_tag" ("businessId", "storeId", "tagId") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_b767810264361e6990e022c356" ON "catalog_product_tag" ("businessId", "productId", "tagId") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_product_collection" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "productId" integer NOT NULL, "collectionId" integer NOT NULL, CONSTRAINT "PK_608b308cb209acd4c6fe2faf2f1" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_6b8b83ccdb3940ba5ab4364492" ON "catalog_product_collection" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_ef4f5a403a39ee499ef0006049" ON "catalog_product_collection" ("businessId", "storeId", "collectionId") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_4a8342bb3234be00f009d9e940" ON "catalog_product_collection" ("businessId", "productId", "collectionId") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_tag" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "name" character varying(50) NOT NULL, "nameKey" character varying(200) NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_0f4b53b5f9f7db013e8ff5d1b43" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_347740e2d521823f3a65a5eef4" ON "catalog_tag" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_c3e14c05079ad2a7ebf236ffeb" ON "catalog_tag" ("businessId", "storeId", "createdAt", "id") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_889e567c5519b9e59e16e6339c" ON "catalog_tag" ("businessId", "storeId", "nameKey") `, undefined);
+        await queryRunner.query(`ALTER TABLE "product_option" ADD "customFieldsPosition" integer NOT NULL DEFAULT '0'`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_option_group" ADD "customFieldsPosition" integer NOT NULL DEFAULT '0'`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsStatus" character varying(16) NOT NULL DEFAULT 'draft'`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsType" character varying(16) NOT NULL DEFAULT 'physical'`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsOldprice" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsDefaultprice" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsDefaultsku" character varying(64)`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsBrandid" character varying(20)`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsWeight" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsWidth" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsHeight" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsLength" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsLabel" character varying(40)`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsCardcaption" character varying(80)`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsMetatitle" character varying(70)`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsMetadescription" character varying(160)`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" ADD "customFieldsOldprice" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" ADD "customFieldsIshidden" boolean NOT NULL DEFAULT false`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" ADD "customFieldsBarcode" character varying(64)`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_8b15840ff6089eeb0ba7eac730" ON "product" ("customFieldsBrandid") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_e847d8dce76f3de2d62eeea261" ON "product_variant" ("customFieldsBarcode") `, undefined);
+   }
+
+   public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP INDEX "public"."IDX_e847d8dce76f3de2d62eeea261"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_8b15840ff6089eeb0ba7eac730"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "customFieldsBarcode"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "customFieldsIshidden"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "customFieldsOldprice"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsMetadescription"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsMetatitle"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsCardcaption"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsLabel"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsLength"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsHeight"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsWidth"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsWeight"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsBrandid"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsDefaultsku"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsDefaultprice"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsOldprice"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsType"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsStatus"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_option_group" DROP COLUMN "customFieldsPosition"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_option" DROP COLUMN "customFieldsPosition"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_889e567c5519b9e59e16e6339c"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_c3e14c05079ad2a7ebf236ffeb"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_347740e2d521823f3a65a5eef4"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_tag"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_b767810264361e6990e022c356"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_e4318d225566fd6ff57365c29a"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_fe967f00bea9de5a2757e7dcba"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4a8342bb3234be00f009d9e940"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_ef4f5a403a39ee499ef0006049"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_6b8b83ccdb3940ba5ab4364492"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_product_collection"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_product_tag"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_55038a56dd99ade541d24b9031"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_03b51e1a1c5ea754eebe2e7e76"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_product_settings"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_423592b9c76d722775d18dc7ab"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_e35023dea13e4b43c6334f2b2c"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_109d8bc9438fb7c540c4512f50"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_product_highlight"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4f55589ec805c7accacd44fbb9"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_1e3b7017c02fb8c3934ef0ae98"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_91cc0b51dd5e48d31637b809d2"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_media"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_9658e3b6cfbf989db3dab3d493"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_2d503b9d8322b37c16fe5f357e"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_highlight"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4076134158ef8062799fd06884"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_cdaa1c9b3e6738e9daadaf48a0"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_f8b0f80e8cbffdd3a89aecc9f9"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_brand"`, undefined);
+   }
+
+}

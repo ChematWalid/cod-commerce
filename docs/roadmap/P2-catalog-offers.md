@@ -36,6 +36,7 @@ Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUT
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S1-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S5.md`, ADR 0002 (tenant scoping), ADR 0003 (ids).
 - D500 in `docs/roadmap/P1-decisions.md` (#229): Vendure's `slugForEntity` is platform-staff only, so product and collection slug checks need a business-scoped endpoint of `plugins/catalog` (the stock dashboard slug field calls the refused query).
 - `docs/research/data-model.md` "Product" (Product, ProductOption, ProductVariant field lists, image CDN note).

@@ -1,4 +1,5 @@
 import { DomainError } from '../errors/domain-error';
+import { previewValue } from '../errors/value-preview';
 
 /** An id of one of our entities: a positive 63-bit integer in decimal form, always a string outside the DB (ADR 0003). */
 export type Snowflake = string & { readonly __brand: 'Snowflake' };
@@ -33,7 +34,7 @@ export class InvalidSnowflakeError extends DomainError {
   readonly code = 'ids.invalid-snowflake';
 
   constructor(value: string) {
-    super(`Invalid snowflake id: "${value}"`);
+    super(`Invalid snowflake id: ${previewValue(value)}`);
   }
 }
 

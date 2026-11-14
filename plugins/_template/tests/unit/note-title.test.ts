@@ -1,7 +1,7 @@
 import { type TenantScope, toBusinessId } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { NOTE_BODY_MAX_LENGTH, NOTE_TITLE_MAX_LENGTH } from '../../domain/constants';
-import { InvalidNoteTitleError, NoteBodyTooLongError } from '../../domain/errors';
+import { InvalidNoteBodyError, InvalidNoteTitleError, NoteBodyTooLongError } from '../../domain/errors';
 import { createNote, restoreNote, toNoteId } from '../../domain/note';
 import { NoteTitle } from '../../domain/note-title';
 
@@ -38,6 +38,38 @@ describe('NoteTitle', () => {
     expect(accepted.value).toHaveLength(120);
     expect(tooLong).toThrow(InvalidNoteTitleError);
   });
+
+  it('refuses a NUL character in a title', () => {
+    // Act
+    const create = (): NoteTitle => NoteTitle.create('a\u0000b');
+
+    // Assert
+    expect(create).toThrow(InvalidNoteTitleError);
+  });
+
+  it('refuses a line break in a title', () => {
+    // Act
+    const create = (): NoteTitle => NoteTitle.create('first\nsecond');
+
+    // Assert
+    expect(create).toThrow(InvalidNoteTitleError);
+  });
+
+  it('refuses a bidi override in a title', () => {
+    // Act
+    const create = (): NoteTitle => NoteTitle.create('Invoice\u202Efdp.exe');
+
+    // Assert
+    expect(create).toThrow(InvalidNoteTitleError);
+  });
+
+  it('keeps an Arabic title with its direction marks', () => {
+    // Act
+    const title = NoteTitle.create('\u200Fاتصل بالمورد');
+
+    // Assert
+    expect(title.value).toBe('\u200Fاتصل بالمورد');
+  });
 });
 
 describe('restoreNote', () => {
@@ -65,6 +97,23 @@ describe('createNote', () => {
     // Assert
     expect(body).toHaveLength(2001);
     expect(create).toThrow(NoteBodyTooLongError);
+  });
+
+  it('refuses a control character in a body', () => {
+    // Act
+    const create = (): unknown =>
+      createNote({ id: toNoteId('1'), scope, title: 'Call supplier', body: 'a\u0007b', now: NOW });
+
+    // Assert
+    expect(create).toThrow(InvalidNoteBodyError);
+  });
+
+  it('accepts tabs and line breaks in a body', () => {
+    // Act
+    const note = createNote({ id: toNoteId('1'), scope, title: 'Call supplier', body: 'one\n\ttwo\r\n', now: NOW });
+
+    // Assert
+    expect(note.body).toBe('one\n\ttwo\r\n');
   });
 
   it("builds a note under the scope's business", () => {

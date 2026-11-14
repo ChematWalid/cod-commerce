@@ -138,6 +138,7 @@ describe('plugin layer boundaries', () => {
         'bad/dashboard/uses-shell-internals.ts',
         'bad/dashboard/uses-tenancy-entry.ts',
         'bad/domain/uses-application.ts',
+        'bad/infrastructure/uses-catalog-internals.ts',
         'bad/infrastructure/uses-provisioning-entry.ts',
         'bad/infrastructure/uses-tests.ts',
         'bad/tests-leak.plugin.ts',

@@ -32,7 +32,7 @@ function useCardAccess(): Readonly<Record<'viewBusiness' | 'editBusiness' | 'vie
   };
 }
 
-/** General settings: the business's and the active store's profile. Minimal: the other fields come with their data. */
+/** General settings: the business's and the active store's profile (CO-6); fee group and carrier come with their data. */
 export function GeneralSettingsPage(): ReactNode {
   const { i18n } = useLingui();
   const access = useCardAccess();
@@ -52,7 +52,7 @@ export function GeneralSettingsPage(): ReactNode {
         )}
         {store.data !== undefined && store.data !== null && (
           <PageBlock column="main" blockId={STORE_BLOCK_ID} title={i18n._('shell.settings.store.title')}>
-            <StoreProfileCard store={store.data} canEdit={access.editStore} />
+            <StoreProfileCard store={store.data} canEdit={access.editStore} canUploadLogo={access.editBusiness} />
           </PageBlock>
         )}
         {loadFailed && (

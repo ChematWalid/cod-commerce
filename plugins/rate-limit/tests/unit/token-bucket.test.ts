@@ -25,6 +25,8 @@ describe('RATE_LIMIT_POLICIES', () => {
       'team-invite-business': [100, 3600],
       'team-invite-actor': [30, 3600],
       'team-resend-actor': [30, 3600],
+      'catalog-media-business': [1000, 3600],
+      'catalog-media-actor': [120, 3600],
     });
   });
 

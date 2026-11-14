@@ -1,3 +1,5 @@
+import { TenantGuard } from '@cod/plugin-tenancy';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { describe, expect, it } from 'vitest';
 import { requirePermission } from '../../api/require-permission.decorator';
 
@@ -46,5 +48,41 @@ describe('requirePermission on a class', () => {
     expect(() => {
       requirePermission('orders.view')(Child);
     }).not.toThrow();
+  });
+});
+
+/** ADR 0002 addendum (TEN-3): the status checks run only where `TenantGuard` runs, so the decorator must add it. */
+describe('requirePermission tenant scope', () => {
+  const guardsOf = (target: object): unknown => Reflect.getMetadata(GUARDS_METADATA, target);
+
+  it('adds the tenant guard to a decorated method', () => {
+    // Arrange
+    class Handlers {
+      list(): boolean {
+        return true;
+      }
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(Handlers.prototype, 'list') as PropertyDescriptor;
+
+    // Act
+    requirePermission('orders.view')(Handlers.prototype, 'list', descriptor);
+
+    // Assert
+    expect(guardsOf(descriptor.value as object)).toEqual([TenantGuard]);
+  });
+
+  it('adds the tenant guard to a decorated class', () => {
+    // Arrange
+    class Handlers {
+      list(): boolean {
+        return true;
+      }
+    }
+
+    // Act
+    requirePermission('orders.view')(Handlers);
+
+    // Assert
+    expect(guardsOf(Handlers)).toEqual([TenantGuard]);
   });
 });

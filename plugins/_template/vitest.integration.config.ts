@@ -9,5 +9,8 @@ export default defineConfig({
     include: ['tests/**/*.int.test.ts'],
     exclude: ['**/node_modules/**'],
     setupFiles: ['tests/setup-env.ts'],
+    // On explicitly, not by inheritance (D2118, TEN-10): an isolation test that asserts nothing must fail, whatever
+    // the preset later turns off.
+    expect: { ...vendurePreset.test?.expect, requireAssertions: true },
   },
 });

@@ -32,8 +32,13 @@ type NoteIdsOf = (value: unknown) => readonly string[];
 /** What A's call must come to; it is never B's data. */
 type NoteOutcome = { readonly kind: 'null' } | { readonly kind: 'callerOwned'; readonly noteIdsOf: NoteIdsOf };
 
-/** Proves an attack aimed at something real, so `null` cannot come from a wrong id. */
-type NoteControl = { readonly kind: 'readAsB'; readonly noteIdsOf: NoteIdsOf } | { readonly kind: 'noForeignTarget' };
+/**
+ * Proves an attack aimed at something real, so `null` cannot come from a wrong id: B reads its own note, or B runs
+ * the same write and finds what it created in its own list.
+ */
+type NoteControl =
+  | { readonly kind: 'readAsB'; readonly noteIdsOf: NoteIdsOf }
+  | { readonly kind: 'createdByB'; readonly noteIdsOf: NoteIdsOf };
 
 /** One Admin API operation, its call from A against B, and the result it must have. */
 interface NoteEntry {
@@ -83,7 +88,7 @@ describe('TemplateNote isolation between two businesses', () => {
       document: CREATE_NOTE,
       variables: () => ({ input: { title: "A's own", body: '' } }),
       outcome: { kind: 'callerOwned', noteIdsOf: idOfNote },
-      control: { kind: 'noForeignTarget' },
+      control: { kind: 'createdByB', noteIdsOf: idOfNote },
     },
   ];
 
@@ -194,13 +199,19 @@ describe('TemplateNote isolation between two businesses', () => {
   });
 
   // The attack above must aim at a real note: without this, a wrong id would also come back null.
-  it.each(REGISTRY)("$operation run by B returns B's note", async (entry) => {
+  it.each(REGISTRY)("$operation run by B reaches B's own notes", async (entry) => {
     // Arrange
     await asOwner(fixtures.b);
 
-    // Act and Assert
+    // Act
+    const ids = entry.control.noteIdsOf(await callOperation(entry));
+
+    // Assert
     if (entry.control.kind === 'readAsB') {
-      expect(entry.control.noteIdsOf(await callOperation(entry))).toEqual([noteOfB.id]);
+      expect(ids).toEqual([noteOfB.id]);
+    } else {
+      expect(ids).toHaveLength(1);
+      expect(await noteIds()).toContain(ids[0]);
     }
   });
 

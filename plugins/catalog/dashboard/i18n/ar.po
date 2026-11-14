@@ -1,0 +1,612 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "catalog.products-title"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog.create-product"
+msgstr "إنشاء منتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-all"
+msgstr "الكل"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-draft"
+msgstr "مسودة"
+
+#. js-lingui-explicit-id
+msgid "catalog.search"
+msgstr "ابحث بالاسم أو رمز SKU أو الباركود"
+
+#. js-lingui-explicit-id
+msgid "catalog.filter-collection"
+msgstr "كل المجموعات"
+
+#. js-lingui-explicit-id
+msgid "catalog.filter-brand"
+msgstr "كل العلامات التجارية"
+
+#. js-lingui-explicit-id
+msgid "catalog.filter-tag"
+msgstr "كل الوسوم"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-product"
+msgstr "المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-status"
+msgstr "الحالة"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-price"
+msgstr "السعر"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-collections"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-created"
+msgstr "تاريخ الإنشاء"
+
+#. js-lingui-explicit-id
+msgid "catalog.row-actions"
+msgstr "إجراءات المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.status-active"
+msgstr "نشط"
+
+#. js-lingui-explicit-id
+msgid "catalog.status-hidden"
+msgstr "مخفي"
+
+#. js-lingui-explicit-id
+msgid "catalog.status-draft"
+msgstr "مسودة"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-edit"
+msgstr "تعديل"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-set-draft"
+msgstr "تحويل إلى مسودة"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-preview"
+msgstr "معاينة"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-delete"
+msgstr "حذف"
+
+#. js-lingui-explicit-id
+msgid "catalog.preview-hint"
+msgstr "تتوفر المعاينة عند إطلاق واجهة المتجر."
+
+#. js-lingui-explicit-id
+msgid "catalog.currency"
+msgstr "د.ج"
+
+#. js-lingui-explicit-id
+msgid "catalog.delete-title"
+msgstr "حذف هذا المنتج؟"
+
+#. js-lingui-explicit-id
+msgid "catalog.delete-body"
+msgstr "سيتم حذف «{name}» وكل متغيراته."
+
+#. js-lingui-explicit-id
+msgid "catalog.delete-done"
+msgstr "تم حذف المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.set-draft-done"
+msgstr "تم تحويل المنتج إلى مسودة"
+
+#. js-lingui-explicit-id
+msgid "catalog.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "catalog.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "catalog.empty"
+msgstr "لا توجد منتجات بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog.no-match"
+msgstr "لا يوجد منتج يطابق هذا البحث أو التصفية."
+
+#. js-lingui-explicit-id
+msgid "catalog.page-previous"
+msgstr "السابق"
+
+#. js-lingui-explicit-id
+msgid "catalog.page-next"
+msgstr "التالي"
+
+#. js-lingui-explicit-id
+msgid "catalog.error-generic"
+msgstr "تعذر إكمال الطلب."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-forbidden"
+msgstr "ليست لديك صلاحية للقيام بذلك."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-option-values-required"
+msgstr "أضف قيمة واحدة على الأقل لكل خيار، أو احذفه."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-store-switched"
+msgstr "تغيّر المتجر في علامة تبويب أخرى. أعد تحميل هذه الصفحة لمتابعة العمل في المتجر الذي تعرضه."
+
+#. js-lingui-explicit-id
+msgid "catalog.product-not-found"
+msgstr "المنتج غير موجود."
+
+#. js-lingui-explicit-id
+msgid "catalog.invalid-input"
+msgstr "بعض البيانات غير صالحة."
+
+#. js-lingui-explicit-id
+msgid "catalog.too-many-highlights"
+msgstr "يمكن للمنتج أن يعرض ست مزايا على الأكثر."
+
+#. js-lingui-explicit-id
+msgid "catalog.matrix-too-large"
+msgstr "خيارات أو قيم كثيرة جدًا: 3 خيارات على الأكثر، و20 قيمة لكل خيار، و100 متغير."
+
+#. js-lingui-explicit-id
+msgid "catalog.duplicate-option-value"
+msgstr "يحتوي أحد الخيارات على القيمة نفسها مرتين."
+
+#. js-lingui-explicit-id
+msgid "catalog.duplicate-option-name"
+msgstr "يوجد خياران بالاسم نفسه."
+
+#. js-lingui-explicit-id
+msgid "catalog.brand-not-found"
+msgstr "العلامة التجارية غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "catalog.tag-not-found"
+msgstr "الوسم غير موجود."
+
+#. js-lingui-explicit-id
+msgid "catalog.highlight-not-found"
+msgstr "الميزة غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-not-found"
+msgstr "الصورة غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "catalog.collection-not-found"
+msgstr "المجموعة غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-too-large"
+msgstr "حجم الصورة أكبر من 5 ميغابايت."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-type"
+msgstr "يمكن رفع صور PNG وJPEG وGIF وWebP فقط."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-in-use"
+msgstr "هذه الصورة مستخدمة في منتج."
+
+#. js-lingui-explicit-id
+msgid "catalog.order-manager-unknown"
+msgstr "أحد مسؤولي الطلبات ليس عضوًا في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "catalog.order-managers-unavailable"
+msgstr "لا يمكن تعيين مسؤولي الطلبات بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog.name-taken"
+msgstr "هذا الاسم مستخدم في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "catalog.concurrent-update"
+msgstr "تم تعديل هذا المنتج في الوقت نفسه. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "catalog.taxonomy-limit"
+msgstr "بلغ هذا المتجر الحد الأقصى من العلامات التجارية أو الوسوم أو المزايا (500 من كل نوع)."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-new-heading"
+msgstr "منتج جديد"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-created"
+msgstr "تم إنشاء المنتج."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-saved"
+msgstr "تم حفظ المنتج."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-fix-errors"
+msgstr "راجع الحقول المشار إليها قبل الحفظ."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-no-changes"
+msgstr "لا توجد تغييرات للحفظ."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-title-required"
+msgstr "أدخل اسم المنتج."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-whole-number"
+msgstr "أدخل عددًا صحيحًا دون فواصل عشرية."
+
+#. js-lingui-explicit-id
+msgid "catalog.old-price-below-price"
+msgstr "السعر القديم أقل من السعر: تم حفظ المنتج، لكن لن يظهر أي تخفيض."
+
+#. js-lingui-explicit-id
+msgid "catalog.block-details"
+msgstr "التفاصيل"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-media"
+msgstr "الصور"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-pricing"
+msgstr "التسعير"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-options"
+msgstr "الخيارات"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-variants"
+msgstr "المتغيرات"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-organisation"
+msgstr "الحالة والتنظيم"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-highlights"
+msgstr "المزايا"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-settings"
+msgstr "الإعدادات"
+
+#. js-lingui-explicit-id
+msgid "catalog.block-seo"
+msgstr "محركات البحث"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-title"
+msgstr "اسم المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-slug"
+msgstr "الرابط المختصر"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-slug-hint"
+msgstr "جزء من عنوان صفحة المنتج. إذا تُرك فارغًا يُنشأ من الاسم."
+
+#. js-lingui-explicit-id
+msgid "catalog.slug-available"
+msgstr "هذا الرابط المختصر متاح."
+
+#. js-lingui-explicit-id
+msgid "catalog.slug-taken"
+msgstr "منتج آخر في هذا المتجر يستخدم هذا الرابط المختصر."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-description"
+msgstr "الوصف"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-label"
+msgstr "الشارة"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-label-hint"
+msgstr "كلمة قصيرة تظهر على بطاقة المنتج، مثل: جديد."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-card-caption"
+msgstr "نص البطاقة"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-price"
+msgstr "السعر"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-old-price"
+msgstr "السعر القديم"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-sku"
+msgstr "رمز SKU"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-barcode"
+msgstr "الباركود"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-price-hint"
+msgstr "مع الخيارات، تُستعمل هذه القيم للمتغيرات الجديدة."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-none"
+msgstr "لا توجد صور بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-choose"
+msgstr "اختر من المكتبة"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-upload"
+msgstr "رفع صورة"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-uploading"
+msgstr "جارٍ الرفع…"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-featured"
+msgstr "الصورة الرئيسية"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-make-featured"
+msgstr "اجعلها رئيسية"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-library"
+msgstr "مكتبة الوسائط"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-library-empty"
+msgstr "لا توجد صور في المكتبة بعد. ارفع صورة أولًا."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-pick"
+msgstr "اختر هذه الصورة"
+
+#. js-lingui-explicit-id
+msgid "catalog.media-use"
+msgstr "استخدم الصور المختارة"
+
+#. js-lingui-explicit-id
+msgid "catalog.remove"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "catalog.move-earlier"
+msgstr "نقل إلى الأمام"
+
+#. js-lingui-explicit-id
+msgid "catalog.move-later"
+msgstr "نقل إلى الخلف"
+
+#. js-lingui-explicit-id
+msgid "catalog.options-empty"
+msgstr "لا توجد خيارات: يُباع المنتج كقطعة واحدة. أضف اللون أو المقاس… لإنشاء متغيرات."
+
+#. js-lingui-explicit-id
+msgid "catalog.option-name"
+msgstr "اسم الخيار"
+
+#. js-lingui-explicit-id
+msgid "catalog.option-name-placeholder"
+msgstr "اللون، المقاس…"
+
+#. js-lingui-explicit-id
+msgid "catalog.option-add"
+msgstr "إضافة خيار"
+
+#. js-lingui-explicit-id
+msgid "catalog.option-add-value"
+msgstr "إضافة قيمة إلى {name}"
+
+#. js-lingui-explicit-id
+msgid "catalog.option-value-placeholder"
+msgstr "اكتب قيمة ثم اضغط Enter"
+
+#. js-lingui-explicit-id
+msgid "catalog.variants-rebuilt"
+msgstr "عند الحفظ تُعاد بناء المتغيرات من الخيارات."
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-image"
+msgstr "الصورة"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-no-image"
+msgstr "صورة المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-options"
+msgstr "المتغير"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-custom-price"
+msgstr "سعر خاص"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-hidden-column"
+msgstr "مخفي"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-sku"
+msgstr "رمز SKU لـ {name}"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-price"
+msgstr "سعر {name}"
+
+#. js-lingui-explicit-id
+msgid "catalog.variant-hidden"
+msgstr "إخفاء {name}"
+
+#. js-lingui-explicit-id
+msgid "catalog.reset-heading"
+msgstr "إعادة بناء كل المتغيرات؟"
+
+#. js-lingui-explicit-id
+msgid "catalog.reset-body"
+msgstr "إضافة خيار أو حذفه أو تغيير ترتيبه يستبدل كل المتغيرات: تعود أسعارها ورموزها وحالة إخفائها إلى قيم المنتج."
+
+#. js-lingui-explicit-id
+msgid "catalog.reset-confirm"
+msgstr "حفظ وإعادة البناء"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-brand"
+msgstr "العلامة التجارية"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-no-brand"
+msgstr "بدون علامة تجارية"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-collections"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-collections-later"
+msgstr "يمكن اختيار المجموعات عندما يضيفها المتجر."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-tags"
+msgstr "الوسوم"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-no-tags"
+msgstr "لا توجد وسوم في المتجر بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-no-highlights"
+msgstr "لا توجد مزايا في المتجر بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-name-in-delivery"
+msgstr "الاسم في وصل التوصيل"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-fragile"
+msgstr "قابل للكسر"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-parcel-opening"
+msgstr "يمكن للمشتري فتح الطرد"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-sold-out"
+msgstr "تعيين كنفد من المخزون"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-out-of-stock-orders"
+msgstr "قبول الطلبات عند النفاد"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-quantity-rules"
+msgstr "قواعد الكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-quantity-min"
+msgstr "الحد الأدنى للكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-quantity-step"
+msgstr "خطوة الكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-weight"
+msgstr "الوزن"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-width"
+msgstr "العرض"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-height"
+msgstr "الارتفاع"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-length"
+msgstr "الطول"
+
+#. js-lingui-explicit-id
+msgid "catalog.unit-grams"
+msgstr "غ"
+
+#. js-lingui-explicit-id
+msgid "catalog.unit-cm"
+msgstr "سم"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-order-managers"
+msgstr "مسيّرو الطلبات"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-order-managers-count"
+msgstr "عدد مسيّري الطلبات: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-meta-title"
+msgstr "عنوان الصفحة"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-meta-description"
+msgstr "وصف الصفحة"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-sold-out"
+msgstr "نفدت الكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.sold-out"
+msgstr "نفدت الكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-stopped"
+msgstr "الطلبات متوقفة"
+
+#. js-lingui-explicit-id
+msgid "catalog.stop-orders"
+msgstr "إيقاف الطلبات"
+
+#. js-lingui-explicit-id
+msgid "catalog.resume-orders"
+msgstr "استئناف الطلبات"
+
+#. js-lingui-explicit-id
+msgid "catalog.sold-out-orders-hint"
+msgstr "لكل المنتجات التي نفدت كميتها في هذا المتجر:"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-stopped-done"
+msgstr "تم إيقاف الطلبات على المنتجات التي نفدت كميتها"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-resumed-done"
+msgstr "تم استئناف الطلبات على المنتجات التي نفدت كميتها"
