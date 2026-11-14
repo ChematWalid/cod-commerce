@@ -2,6 +2,7 @@ import { type Caller, fieldOf, type IsolationHttp, type MatrixRequest } from './
 import { ownChannel } from './matrix';
 import {
   CATALOG_AREA_LEVELS,
+  CATALOG_SETTINGS,
   CREATE_CATALOG_BRAND,
   CREATE_CATALOG_HIGHLIGHT,
   CREATE_CATALOG_PRODUCT,
@@ -150,7 +151,7 @@ export async function seedCatalog(http: IsolationHttp, superadmin: Caller, busin
     featuredAssetId: media.assetId,
     assetIds: [media.assetId],
     optionGroups: [{ name: 'Size', values: SIZE_VALUES }],
-    settings: { orderManagerIds: [team.ownerMemberId] },
+    settings: { ...CATALOG_SETTINGS, orderManagerIds: [team.ownerMemberId] },
   };
   const saved = await as<{ product: { id: string; variants: readonly { id: string }[] } }>(
     CREATE_CATALOG_PRODUCT,

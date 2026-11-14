@@ -2,6 +2,7 @@ import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { catalogOf } from '../catalog-world';
 import type { MatrixRequest } from '../http';
 import { type IsolationCase, ownerGraphql, ownerRest } from '../matrix';
+import { CATALOG_SETTINGS } from '../seed-operations';
 import { TEAM_WORLDS } from '../team-world';
 import type { BusinessWorld } from '../world-types';
 
@@ -165,7 +166,7 @@ export const CATALOG_PRODUCT_CASES: readonly IsolationCase[] = [
   createNaming(
     'foreign-order-manager',
     'member as order manager',
-    (b) => ({ settings: { orderManagerIds: [ownerMemberOf(b)] } }),
+    (b) => ({ settings: { ...CATALOG_SETTINGS, orderManagerIds: [ownerMemberOf(b)] } }),
     C.ORDER_MANAGER_UNKNOWN,
   ),
   variantPatch(

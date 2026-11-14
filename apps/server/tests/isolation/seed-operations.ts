@@ -91,3 +91,12 @@ export const CREATE_CATALOG_PRODUCT = `mutation ($input: CreateCatalogProductInp
 
 /** The area level of the role that lets the world's member work on the catalog of its one store. */
 export const CATALOG_AREA_LEVELS = [{ area: 'catalog', level: 'full' }];
+
+/** The settings a create carries: a create takes every flag, only the lists may be left out (`productSettingsSchema`). */
+export const CATALOG_SETTINGS = {
+  isFragile: false,
+  allowParcelOpening: true,
+  allowOutOfStockOrders: true,
+  soldOut: false,
+  quantityRules: { enabled: false, min: 1, step: 1 },
+};
