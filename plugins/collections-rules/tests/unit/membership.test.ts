@@ -1,6 +1,10 @@
 import { COLLECTION_MAX_MANUAL_PRODUCTS } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
-import { TooManyManualProductsError } from '../../domain/errors';
+import {
+  CollectionProductNotFoundError,
+  InvalidCollectionInputError,
+  TooManyManualProductsError,
+} from '../../domain/errors';
 import { appendManual, manualMembers, membershipDiff, ruleMembers } from '../../domain/membership';
 
 describe('membership', () => {
@@ -107,5 +111,97 @@ describe('membership', () => {
       ],
       remove: ['5'],
     });
+  });
+
+  it('refuses a manual set that names a product twice', () => {
+    // Arrange: '05' and '5' are one product
+    const productIds = ['5', '7', '05'];
+
+    // Act
+    const act = () => manualMembers(productIds);
+
+    // Assert
+    expect(act).toThrow(InvalidCollectionInputError);
+  });
+
+  it('writes manual members with canonical ids', () => {
+    // Arrange
+    const productIds = ['007', '3'];
+
+    // Act
+    const members = manualMembers(productIds);
+
+    // Assert
+    expect(members).toEqual([
+      { productId: '7', position: 0 },
+      { productId: '3', position: 1 },
+    ]);
+  });
+
+  it('does not append again a member named with a non-canonical id', () => {
+    // Arrange
+    const current = manualMembers(['7', '3']);
+
+    // Act
+    const members = appendManual(current, '07');
+
+    // Assert
+    expect(members).toEqual(current);
+  });
+
+  it('a non-canonical id of a current member neither duplicates nor removes it', () => {
+    // Arrange
+    const current = [
+      { productId: '7', position: 0 },
+      { productId: '3', position: 1 },
+    ];
+    const next = [
+      { productId: '07', position: 0 },
+      { productId: '3', position: 1 },
+    ];
+
+    // Act
+    const diff = membershipDiff(current, next);
+
+    // Assert
+    expect(diff).toEqual({ insert: [], update: [], remove: [] });
+  });
+
+  it('refuses a next membership that holds a product twice', () => {
+    // Arrange
+    const next = [
+      { productId: '5', position: 0 },
+      { productId: '5', position: 1 },
+    ];
+
+    // Act
+    const act = () => membershipDiff([], next);
+
+    // Assert
+    expect(act).toThrow(InvalidCollectionInputError);
+  });
+
+  it('ruleMembers refuses a malformed product id with a typed error', () => {
+    // Arrange
+    const matched = ['3', 'x9', ''];
+
+    // Act
+    const act = () => ruleMembers(matched);
+
+    // Assert
+    expect(act).toThrow(CollectionProductNotFoundError);
+  });
+
+  it('refuses a malformed product id in a manual set or an append', () => {
+    // Arrange
+    const malformed = '-4';
+
+    // Act
+    const inSet = () => manualMembers(['3', malformed]);
+    const appended = () => appendManual([], malformed);
+
+    // Assert
+    expect(inSet).toThrow(CollectionProductNotFoundError);
+    expect(appended).toThrow(CollectionProductNotFoundError);
   });
 });
