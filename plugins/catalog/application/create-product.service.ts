@@ -23,7 +23,7 @@ export class CreateProductService {
     const references = { ...command, orderManagerIds: command.settings?.orderManagerIds };
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       // Checked under the shared taxonomy and media locks, so nothing it names is deleted before it commits.
-      await this.references.lockNamed(tx, references);
+      await this.references.lockNamed(tx, scope, references);
       const refs = await this.references.check(tx, scope, references);
       await this.references.shareImages(tx, references);
       const fields = fieldsOfCommand(command, refs, this.ports.sanitizer);

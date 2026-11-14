@@ -47,6 +47,8 @@ export class ProductWorld {
   transactions = 0;
   /** Taxonomy and media locks taken outside a transaction, where they would end at once. */
   locksOutsideTransaction = 0;
+  /** The business each taxonomy or media lock was keyed by, in call order. */
+  readonly lockBusinesses: string[] = [];
   private openTransactions = 0;
 
   readonly ports: ProductPorts = {
@@ -82,22 +84,22 @@ export class ProductWorld {
     clock: { now: () => T0 },
     taxonomyLock: {
       // Logged with the product calls, so a test sees which lock came first; an empty share takes nothing.
-      share: (_ctx, ids) => {
-        if (ids.length > 0) this.lockCall(`share:${[...ids].sort().join(',')}`);
+      share: (_ctx, scope, ids) => {
+        if (ids.length > 0) this.lockCall(scope, `share:${[...ids].sort().join(',')}`);
         return Promise.resolve();
       },
-      exclusive: (_ctx, id) => {
-        this.lockCall(`exclusive:${id}`);
+      exclusive: (_ctx, scope, id) => {
+        this.lockCall(scope, `exclusive:${id}`);
         return Promise.resolve();
       },
     },
     mediaLock: {
-      share: (_ctx, ids) => {
-        if (ids.length > 0) this.lockCall(`media-share:${[...new Set(ids)].sort().join(',')}`);
+      share: (_ctx, scope, ids) => {
+        if (ids.length > 0) this.lockCall(scope, `media-share:${[...new Set(ids)].sort().join(',')}`);
         return Promise.resolve();
       },
-      exclusive: (_ctx, id) => {
-        this.lockCall(`media-exclusive:${id}`);
+      exclusive: (_ctx, scope, id) => {
+        this.lockCall(scope, `media-exclusive:${id}`);
         return Promise.resolve();
       },
     },
@@ -113,8 +115,9 @@ export class ProductWorld {
     this.activeStores.set(scope.storeId, { scope, soldOutBehavior });
   }
 
-  private lockCall(call: string): void {
+  private lockCall(scope: TenantScope, call: string): void {
     if (this.openTransactions === 0) this.locksOutsideTransaction += 1;
+    this.lockBusinesses.push(scope.businessId);
     this.products.calls.push(call);
   }
 

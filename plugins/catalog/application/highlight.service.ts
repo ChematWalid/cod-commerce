@@ -46,7 +46,7 @@ export class HighlightService {
     const id = snowflakeIdOf(rawId, HighlightNotFoundError);
     await this.ports.transaction.run(ctx, scope, async (tx) => {
       // First, so a product save naming the highlight either commits its link before the delete or finds it gone.
-      await this.ports.taxonomyLock.exclusive(tx, id);
+      await this.ports.taxonomyLock.exclusive(tx, scope, id);
       if (!(await this.ports.highlights.delete(tx, scope, id))) throw new HighlightNotFoundError();
     });
   }

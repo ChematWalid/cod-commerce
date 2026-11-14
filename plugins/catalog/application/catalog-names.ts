@@ -93,7 +93,7 @@ export class CatalogNames {
   ): Promise<void> {
     const id = snowflakeIdOf(rawId, this.rules.notFound);
     await this.ports.transaction.run(ctx, scope, async (tx) => {
-      await this.ports.taxonomyLock.exclusive(tx, id);
+      await this.ports.taxonomyLock.exclusive(tx, scope, id);
       await this.found(tx, scope, id);
       await beforeDelete(tx, id);
       if (!(await this.repository.delete(tx, scope, id))) throw new this.rules.notFound();

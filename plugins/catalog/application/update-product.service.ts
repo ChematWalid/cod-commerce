@@ -98,7 +98,7 @@ export class UpdateProductService {
     if (id === undefined) throw new ProductNotFoundError();
     const references = referencesOf(patch);
     return this.ports.transaction.run(ctx, scope, async (tx) => {
-      await this.references.lockNamed(tx, references);
+      await this.references.lockNamed(tx, scope, references);
       if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();

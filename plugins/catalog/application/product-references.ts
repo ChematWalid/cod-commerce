@@ -102,11 +102,11 @@ export class ProductReferenceCheck {
    * media lock of every well-formed image id, so none of them is deleted before the save commits (D2128). Run it
    * inside the save's transaction, before its product lock and before {@link check}.
    */
-  async lockNamed(ctx: OperationContext, input: ReferenceInput): Promise<void> {
+  async lockNamed(ctx: OperationContext, scope: StoreScope, input: ReferenceInput): Promise<void> {
     const named = [...(input.brandId ? [input.brandId] : []), ...(input.tagIds ?? []), ...(input.highlightIds ?? [])];
-    await this.ports.taxonomyLock.share(ctx, named.filter(isSnowflake));
+    await this.ports.taxonomyLock.share(ctx, scope, named.filter(isSnowflake));
     const images = namedImageIds(input).filter(isCoreId);
-    if (images.length > 0) await this.ports.mediaLock.share(ctx, images);
+    if (images.length > 0) await this.ports.mediaLock.share(ctx, scope, images);
   }
 
   /**

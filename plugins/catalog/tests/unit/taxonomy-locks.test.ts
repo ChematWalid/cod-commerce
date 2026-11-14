@@ -5,9 +5,9 @@ import { CreateProductService } from '../../application/create-product.service';
 import { HighlightService } from '../../application/highlight.service';
 import { TagService } from '../../application/tag.service';
 import { UpdateProductService } from '../../application/update-product.service';
-import { BrandNotFoundError, TaxonomyLimitError } from '../../domain/errors';
+import { BrandNotFoundError, TagNotFoundError, TaxonomyLimitError } from '../../domain/errors';
 import { ProductWorld } from '../fakes/product-world';
-import { brandOf, highlightOf, scopeA, scopeA2, tagOf } from '../support/builders';
+import { brandOf, highlightOf, scopeA, scopeA2, scopeB, tagOf } from '../support/builders';
 
 describe('product saves and taxonomy deletes stay apart', () => {
   let world: ProductWorld;
@@ -92,6 +92,43 @@ describe('product saves and taxonomy deletes stay apart', () => {
     // Assert
     expect(world.products.calls[0]).toBe(`share:${brand.id}`);
     expect(world.locksOutsideTransaction).toBe(0);
+  });
+
+  it("keys every lock by the caller's business, so another business's id never holds that business's lock", async () => {
+    // Arrange
+    const brand = await brands.create(world.ctxOf(scopeA), scopeA, { name: 'Acme' });
+    const tag = await tags.create(world.ctxOf(scopeA), scopeA, { name: 'Summer' });
+    world.lockBusinesses.length = 0;
+
+    // Act
+    const deleting = await brands.delete(world.ctxOf(scopeB), scopeB, brand.id).catch((error: unknown) => error);
+    const saving = await new CreateProductService(world.ports)
+      .create(
+        world.ctxOf(scopeB),
+        scopeB,
+        productInputSchema.parse({ title: 'Shirt', status: 'active', price: 2500, tagIds: [tag.id] }),
+      )
+      .catch((error: unknown) => error);
+
+    // Assert
+    expect(deleting).toBeInstanceOf(BrandNotFoundError);
+    expect(saving).toBeInstanceOf(TagNotFoundError);
+    expect(world.lockBusinesses).toEqual([scopeB.businessId, scopeB.businessId]);
+  });
+
+  it("an owner's delete and save lock under the same business, so they still wait on each other", async () => {
+    // Arrange
+    const brand = await brands.create(world.ctxOf(scopeA), scopeA, { name: 'Acme' });
+    world.lockBusinesses.length = 0;
+
+    // Act
+    await create({ brandId: brand.id });
+    const fromOtherStore = await brands.delete(world.ctxOf(scopeA2), scopeA2, brand.id).catch((error: unknown) => error);
+    await brands.delete(world.ctxOf(scopeA), scopeA, brand.id);
+
+    // Assert
+    expect(fromOtherStore).toBeInstanceOf(BrandNotFoundError);
+    expect(world.lockBusinesses).toEqual([scopeA.businessId, scopeA2.businessId, scopeA.businessId]);
   });
 
   it('locks no malformed id and still answers not found for it', async () => {

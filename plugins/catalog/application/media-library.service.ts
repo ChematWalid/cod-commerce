@@ -91,7 +91,7 @@ export class MediaLibraryService {
       const item = await this.ports.media.findById(tx, scope, reach, rawId);
       if (item === undefined) throw new MediaNotFoundError();
       // Waits for every save that names the image and holds back later ones, so the in-use check sees them (D2128).
-      await this.ports.mediaLock.exclusive(tx, item.assetId);
+      await this.ports.mediaLock.exclusive(tx, scope, item.assetId);
       if ((await this.ports.storage.remove(tx, item.assetId)) === 'in-use') throw new MediaInUseError();
       await this.ports.media.delete(tx, scope, reach, item.id);
     });

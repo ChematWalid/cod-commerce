@@ -5,7 +5,7 @@ import { MediaLibraryService } from '../../application/media-library.service';
 import { UpdateProductService } from '../../application/update-product.service';
 import { MediaNotFoundError } from '../../domain/errors';
 import { ProductWorld } from '../fakes/product-world';
-import { scopeA } from '../support/builders';
+import { scopeA, scopeB } from '../support/builders';
 
 const PNG = Uint8Array.from({ length: 64 }, (_, i) => [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a][i] ?? 0);
 
@@ -72,6 +72,26 @@ describe('product saves and media deletes stay apart (D2128)', () => {
     // Assert
     expect(world.products.calls.slice(0, 2)).toEqual([`media-share:${image.assetId}`, `lock:${product.id}`]);
     expect(world.locksOutsideTransaction).toBe(0);
+  });
+
+  it("keys every lock by the caller's business, so another business's image never holds that business's lock", async () => {
+    // Arrange
+    const image = await upload();
+    world.lockBusinesses.length = 0;
+
+    // Act
+    const saving = await new CreateProductService(world.ports)
+      .create(
+        world.ctxOf(scopeB),
+        scopeB,
+        productInputSchema.parse({ title: 'Shirt', status: 'active', price: 2500, featuredAssetId: image.assetId }),
+      )
+      .catch((error: unknown) => error);
+    await media.delete(world.ctxOf(scopeA), scopeA, image.id);
+
+    // Assert
+    expect(saving).toBeInstanceOf(MediaNotFoundError);
+    expect(world.lockBusinesses).toEqual([scopeB.businessId, scopeA.businessId]);
   });
 
   it('locks no malformed image id and still answers not found for it', async () => {
