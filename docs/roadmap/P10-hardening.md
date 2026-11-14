@@ -258,6 +258,10 @@ link and stop without merging.
 
 **Out of scope:** feature work; upgrading unrelated dependencies; cherry-picking partial upstream changes; any upstream source mirror or `upstream` remote.
 
+**Audit issues to take** (from `docs/audits/P1-audit.md`, moved here by P2.S1, D2121: they are about drift in the stock dashboard's internals, which each upstream sync re-checks; the next M.S1 run fixes them, test first, or names a later owner in its handoff)
+- #173 SHELL-1 (low): test(merchant-shell): check stock selectors and route ids on PRs
+- #179 SHELL-10 (low): fix(merchant-shell): stop importing a stock dashboard internal
+
 **Kickoff prompt**
 ```
 You are running session M.S1 "Upstream Vendure sync" of the roadmap in docs/roadmap/.

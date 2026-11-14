@@ -115,7 +115,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Product list: All / Draft; filters collection, brand, tag; search name/SKU/barcode; preview, edit, customize page, set draft | C | `S:/products` |
 | [ ] | Product types: physical product and Pack (bundle) | C | |
 | [ ] | Product form: title, rich-text description, main + additional images, price, old price, SKU, weight, package size, variants (options × values), status Active / Hidden (landing-page only) / Draft, brand, collections, tags, custom fields, highlights (max 6), SEO listing | C | `S:/products/add`, `S:/products/:id/edit` |
-| [ ] | Product settings: name on delivery label, fragile, keep selling when out of stock, quantity rules, dedicated order managers | C | |
+| [x] | Product settings: name on delivery label, fragile, keep selling when out of stock, quantity rules, dedicated order managers | C | |
 | [ ] | Bulk edit, export | S | |
 | [ ] | Import products from a link (scrape + AI polish) or spreadsheet (analyze → preview → confirm) | S | `/scrape/*`, `/import-export/*` |
 | [ ] | Collections: image, title, description, manual products or automatic conditions, visibility, position | C | `S:/categories/new` |
