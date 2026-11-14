@@ -106,17 +106,14 @@ function ListBody(props: {
   );
 }
 
-function CreateAction({ held, storeAlias }: { readonly held: ReadonlySet<string>; readonly storeAlias: string }) {
+/** Create product, for holders of the create key; nothing for the others. */
+function CreateButton({ held, storeAlias }: { readonly held: ReadonlySet<string>; readonly storeAlias: string }) {
   const { i18n } = useLingui();
   if (!held.has(CREATE_PRODUCTS_KEY)) return null;
   return (
-    <PageActionBar>
-      <ActionBarItem itemId={CREATE_ACTION_ID}>
-        <Button data-testid={CREATE_PRODUCT_TEST_ID} render={<Link to={storePathFor(NEW_PRODUCT_PATH, storeAlias)} />}>
-          {i18n._('catalog.create-product')}
-        </Button>
-      </ActionBarItem>
-    </PageActionBar>
+    <Button data-testid={CREATE_PRODUCT_TEST_ID} render={<Link to={storePathFor(NEW_PRODUCT_PATH, storeAlias)} />}>
+      {i18n._('catalog.create-product')}
+    </Button>
   );
 }
 
@@ -207,7 +204,12 @@ export function ProductListPage({ store }: ShellPageProps): ReactNode {
   return (
     <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID}>
       <PageTitle>{i18n._('catalog.products-title')}</PageTitle>
-      <CreateAction held={held} storeAlias={storeAlias} />
+      {/* A direct child: the page puts only its own `PageActionBar` children in the title row. */}
+      <PageActionBar>
+        <ActionBarItem itemId={CREATE_ACTION_ID}>
+          <CreateButton held={held} storeAlias={storeAlias} />
+        </ActionBarItem>
+      </PageActionBar>
       <PageLayout>
         <FullWidthPageBlock blockId={LIST_BLOCK_ID}>
           <ProductList scope={scope} held={held} onCommand={rows.onCommand} />
