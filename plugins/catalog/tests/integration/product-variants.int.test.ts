@@ -153,6 +153,7 @@ describe('product variants (AC1)', () => {
         {
           input: {
             ...MATRIX,
+            status: 'active',
             optionGroups: [
               { name: 'A', values: values('a') },
               { name: 'B', values: values('b') },

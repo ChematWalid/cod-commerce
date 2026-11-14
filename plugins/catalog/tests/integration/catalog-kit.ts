@@ -148,6 +148,9 @@ export function createCatalogTestEnvironment(
 
 /** The server, its Admin API client and the arrangements the catalog tests share. */
 export class CatalogKit {
+  /** Role ids by business and grant set (`roleWith`). */
+  private readonly roles = new Map<string, string>();
+
   constructor(
     private readonly app: INestApplication,
     readonly client: SimpleGraphQLClient,
@@ -235,19 +238,32 @@ export class CatalogKit {
       member.email,
     ]);
     await this.asOwner(business);
-    const { createBusinessRole } = await this.client.query<{ createBusinessRole: { id: string } }>(CREATE_ROLE, {
-      input: { name: `Role ${code}`, grants },
-    });
+    const roleIds = grants.length === 0 ? [] : [await this.roleWith(business, grants)];
     await this.client.query(SET_ACCESS, {
       input: {
         administratorId: String(row?.id),
-        roleIds: [createBusinessRole.id],
+        roleIds,
         storeAccess: stores === undefined ? 'all' : 'selected',
         storeIds: stores?.map((store) => store.id) ?? [],
       },
     });
     await this.signIn(member, stores?.[0] ?? business.stores[0]);
     return member;
+  }
+
+  /**
+   * A business role holding exactly `grants`, made once per business and grant set: a business may hold only so many
+   * custom roles, and the permission suites sign in a member per handler. Runs as the owner.
+   */
+  private async roleWith(business: BusinessFixture, grants: readonly PermissionKey[]): Promise<string> {
+    const key = `${business.businessId}:${[...grants].sort().join(',')}`;
+    const cached = this.roles.get(key);
+    if (cached !== undefined) return cached;
+    const { createBusinessRole } = await this.client.query<{ createBusinessRole: { id: string } }>(CREATE_ROLE, {
+      input: { name: `Role ${randomBytes(4).toString('hex')}`, grants },
+    });
+    this.roles.set(key, createBusinessRole.id);
+    return createBusinessRole.id;
   }
 }
 
