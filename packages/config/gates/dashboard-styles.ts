@@ -1,6 +1,6 @@
 import type { SourceFile } from './branding';
-import { findPhysicalInlineStyles } from './inline-styles';
-import { findNamedCssColours } from './named-colours';
+import { inspectInlineStyles } from './inline-styles';
+import { findNamedCssColours, isNamedColour } from './named-colours';
 
 /** Dashboard sources of a plugin: `plugins/<name>/dashboard/**` TypeScript, TSX and CSS (ADR 0005, ADR 0010). */
 const DASHBOARD_SOURCE = /^plugins\/[^/]+\/dashboard\/.+\.(?:ts|tsx|css)$/;
@@ -54,21 +54,23 @@ const ALLOWED_PHYSICAL_PROPERTIES: readonly { readonly path: string; readonly de
 /** Tailwind's default palette: a class such as `bg-red-500` paints a fixed colour. */
 const PALETTE =
   'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|mauve|olive|mist|taupe';
-/** Utilities that take a colour. */
+/** Utilities that take a colour; the longer names come first so `text-shadow-red-500` reads as one utility. */
 const COLOUR_TAKER =
-  'bg|text|border(?:-[xytrblse])?|ring(?:-offset)?|fill|stroke|from|via|to|outline|decoration|shadow|inset-shadow|inset-ring|accent|caret|divide|placeholder';
+  'text-shadow|drop-shadow|bg|text|border(?:-[xytrblse])?|ring(?:-offset)?|fill|stroke|from|via|to|outline|decoration|shadow|inset-shadow|inset-ring|accent|caret|divide|placeholder';
 
-/** Utilities that paint a fixed colour instead of a theme token: `bg-white`, `text-black`, `bg-red-500`. */
-const COLOUR_UTILITY = new RegExp(
-  String.raw`^(?:(?:bg|text)-(?:white|black)|(?:${COLOUR_TAKER})-(?:${PALETTE})-\d{2,3})(?![\w-])`,
-);
+/** Utilities that paint a fixed colour instead of a theme token: `bg-white`, `border-black`, `bg-red-500`. */
+const COLOUR_UTILITY = new RegExp(String.raw`^(?:${COLOUR_TAKER})-(?:white|black|(?:${PALETTE})-\d{2,3})(?![\w-])`);
+
+/** A colour utility with an arbitrary word value: `bg-[red]`, `text-[color:navy]`. The word is checked by name. */
+const ARBITRARY_COLOUR_WORD = new RegExp(String.raw`(?<![\w-])(?:${COLOUR_TAKER})-\[(?:color:)?([a-zA-Z]+)\]`, 'g');
 
 /**
  * Colour functions and hex literals. A hex literal has 3, 4, 6 or 8 digits and stands alone; an in-page link
- * (`href="#add"`) is not one. `color-mix()` is flagged too: mixing belongs in the theme, not in a plugin.
+ * (`href="#add"`) is not one. `color-mix()` is flagged too: mixing belongs in the theme, not in a plugin. `color()`
+ * counts only with a colour space (`color(display-p3 …)`), so a call to a function named `color` is no literal.
  */
 const COLOUR_LITERAL =
-  /(?<![\w&])(?<!href=["'])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![\w$.-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color-mix|color)\(/g;
+  /(?<![\w&])(?<!href=["'])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![\w$.-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color-mix)\(|(?<![\w$.-])color\((?=\s*(?:from|srgb|srgb-linear|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz|xyz-d50|xyz-d65)\b)/g;
 
 const CSS_COMMENT = /\/\*[\s\S]*?\*\//g;
 
@@ -89,7 +91,7 @@ function physicalUses(path: string, content: string): string[] {
 }
 
 function physicalProperties(path: string, content: string): string[] {
-  if (!isCss(path)) return findPhysicalInlineStyles(content);
+  if (!isCss(path)) return [...inspectInlineStyles(content, path).physical];
   const allowed = new Set(ALLOWED_PHYSICAL_PROPERTIES.filter((entry) => entry.path === path).map((e) => e.declaration));
   return [...content.replace(CSS_COMMENT, '').matchAll(PHYSICAL_PROPERTY)]
     .map(([, declaration = '']) => declaration.trim().replace(/\s*:\s*/, ': '))
@@ -100,8 +102,14 @@ function colourUses(path: string, content: string): string[] {
   const utilities = classTokens(path, content)
     .filter(({ utility }) => COLOUR_UTILITY.test(utility))
     .map(({ variants, utility }) => `${variants}${utility}`);
-  const named = isCss(path) ? findNamedCssColours(content.replace(CSS_COMMENT, '')) : [];
-  return [...utilities, ...[...content.matchAll(COLOUR_LITERAL)].map(([literal]) => literal), ...named];
+  const arbitrary = [...content.matchAll(ARBITRARY_COLOUR_WORD)]
+    .filter(([, word = '']) => isNamedColour(word))
+    .map(([token]) => token);
+  const named = isCss(path)
+    ? findNamedCssColours(content.replace(CSS_COMMENT, ''))
+    : inspectInlineStyles(content, path).namedColours;
+  const literals = [...content.matchAll(COLOUR_LITERAL)].map(([literal]) => literal);
+  return [...utilities, ...arbitrary, ...literals, ...named];
 }
 
 /**

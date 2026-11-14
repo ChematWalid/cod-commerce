@@ -23,25 +23,67 @@ const NAMED_COLOURS: ReadonlySet<string> = new Set(
     .split(' '),
 );
 
-/** A CSS declaration (after `{` or `;`, so selectors do not count): its property and its value. */
-const DECLARATION = /(?:^|[{;])\s*([a-z-]+)\s*:([^;{}]*)/g;
+/**
+ * A CSS declaration: its property and its value. It starts after `{`, `;` or `}` (a declaration after a nested rule,
+ * `a { b { … } color: red; }`), so selectors do not count. Properties match in any case (`COLOR: red`).
+ */
+const DECLARATION = /(?:^|[{;}])\s*([a-zA-Z-]+)\s*:([^;{}]*)/g;
 
 /** Properties whose value may hold a colour: `color`, `background`, `border`, `border-top-color`, `box-shadow`… */
 const COLOUR_PROPERTY =
   /(?:^|-)(?:color|background|border|outline|fill|stroke|shadow|decoration|caret|accent|rule)(?:-|$)/;
 
-/** A bare word: not part of a custom property (`--red`), a longer name or a function call (`red(`). */
-const BARE_WORD = /(?<![\w-])[a-z]+(?![\w-(])/gi;
+/** A custom property (`--brand: red`) would define a fixed palette of its own beside the theme tokens. */
+const CUSTOM_PROPERTY = /^--/;
+
+/** A bare word: not part of a custom property (`--red`), a longer name, a file name or a function call (`red(`). */
+const BARE_WORD = /(?<![\w./-])[a-z]+(?![\w./(-])/gi;
+
+/** Parts of a value that name a file or hold text, not a colour: `url(red.png)`, `"white"`. */
+const URL_OR_STRING = /url\([^)]*\)|"[^"]*"|'[^']*'/gi;
 
 /**
- * Finds the named colours (`red`, `white`, `rebeccapurple`) set by the colour declarations of a CSS source.
+ * Tells whether a CSS property (kebab case) may take a colour: a colour property, or any custom property.
+ *
+ * @param property the property name
+ * @returns true when a named colour in its value paints a fixed colour
+ */
+export function isColourProperty(property: string): boolean {
+  const lower = property.toLowerCase();
+  return CUSTOM_PROPERTY.test(lower) || COLOUR_PROPERTY.test(lower);
+}
+
+/**
+ * Finds the named colours in one property value, leaving out `url(…)` arguments and quoted strings.
+ *
+ * @param value the value text, such as `1px solid red`
+ * @returns each named colour as written
+ */
+export function findNamedColourWords(value: string): string[] {
+  return [...value.replace(URL_OR_STRING, ' ').matchAll(BARE_WORD)]
+    .map(([word]) => word)
+    .filter((word) => NAMED_COLOURS.has(word.toLowerCase()));
+}
+
+/**
+ * Tells whether a word is a CSS named colour (`red`, `Navy`), in any case.
+ *
+ * @param word the word
+ * @returns true for a named colour other than `transparent` and `currentcolor`
+ */
+export function isNamedColour(word: string): boolean {
+  return NAMED_COLOURS.has(word.toLowerCase());
+}
+
+/**
+ * Finds the named colours (`red`, `white`, `rebeccapurple`) set by the colour and custom-property declarations of a
+ * CSS source.
  *
  * @param css the CSS text, comments already removed
  * @returns each named colour as written, once per use
  */
 export function findNamedCssColours(css: string): string[] {
   return [...css.matchAll(DECLARATION)]
-    .filter(([, property = '']) => COLOUR_PROPERTY.test(property))
-    .flatMap(([, , value = '']) => [...value.matchAll(BARE_WORD)].map(([word]) => word))
-    .filter((word) => NAMED_COLOURS.has(word.toLowerCase()));
+    .filter(([, property = '']) => isColourProperty(property))
+    .flatMap(([, , value = '']) => findNamedColourWords(value));
 }

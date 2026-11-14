@@ -231,12 +231,12 @@ describe('findDashboardStyleViolations closes the SHELL-4 bypasses (#125)', () =
   });
 
   it.each([
-    'style={{ marginLeft: 4 }}',
-    "style={{ textAlign: 'right' }}",
-    "style={{ paddingRight: '1rem' }}",
-    'style={{ left: 0 }}',
-    'style={{ borderLeftWidth: 1 }}',
-    "style={{ float: 'left' }}",
+    '<div style={{ marginLeft: 4 }} />',
+    "<div style={{ textAlign: 'right' }} />",
+    "<div style={{ paddingRight: '1rem' }} />",
+    '<div style={{ left: 0 }} />',
+    '<div style={{ borderLeftWidth: 1 }} />',
+    "<div style={{ float: 'left' }} />",
     'const BOX_STYLE = { gap: 4, right: 0 } as const;',
   ])('flags the physical inline style in %s', (source) => {
     const violations = violationsOf(source);
@@ -250,7 +250,7 @@ describe('findDashboardStyleViolations closes the SHELL-4 bypasses (#125)', () =
     '<bdi dir="ltr" style={{ direction: \'ltr\' }} />',
     "const JSON_STYLE = { direction: 'ltr', textAlign: 'left' } as const;",
     "const LTR_STYLE = { direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' } as const;",
-    "style={{ marginInlineStart: 4, textAlign: 'start', float: 'none' }}",
+    "<div style={{ marginInlineStart: 4, textAlign: 'start', float: 'none' }} />",
     'const sameSet = (left: readonly string[], right: readonly string[]): boolean => left.length === right.length;',
     'const side = isOpen ? left : right;',
     'function Pair(): null { const f = (left: number, right: number): number => left + right; return null; }',
