@@ -59,6 +59,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/catalog/infrastructure/pg-product-lock.ts',
   // Runs only the advisory locks that keep product saves and taxonomy deletes apart (P2.S1 Task 12 review).
   '**/plugins/catalog/infrastructure/pg-taxonomy-lock.ts',
+  // Runs only the advisory locks that keep product saves and media deletes apart (P2.S1 Task 13 review, D2128).
+  '**/plugins/catalog/infrastructure/pg-media-lock.ts',
   // Asset reads AssetService has only per channel: assets by id, their channels, and whether a live product, variant
   // or collection uses one (core reads only featured images). Every id was found in the business's `catalog_media`
   // first (P2.S1 Task 13, D2128, D2132).

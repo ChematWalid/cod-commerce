@@ -59,7 +59,10 @@ export class MediaLibraryService {
     });
   }
 
-  /** One page of the images of the stores the caller reaches, newest first. */
+  /**
+   * One page of the images of the stores the caller reaches, newest first. `totalItems` counts media rows, an image
+   * whose asset is gone included, though the page leaves that one out.
+   */
   async list(ctx: OperationContext, scope: StoreScope, page: MediaPage): Promise<MediaViewPage> {
     const reach = await mediaReachOf(this.ports.orderManagers, ctx, scope);
     const { items, totalItems } = await this.ports.media.list(ctx, scope, reach, page);
@@ -67,7 +70,8 @@ export class MediaLibraryService {
       ctx,
       items.map((item) => item.assetId),
     );
-    // An image whose asset is gone (removed outside the catalog) has nothing to show.
+    // An image whose asset is gone (removed outside the catalog, e.g. by a platform admin) has nothing to show; its row
+    // still counts in `totalItems`, so such a page holds fewer items than `take`. Paging by `skip` stays stable.
     const views = items.flatMap((item) => {
       const file = files.get(item.assetId);
       return file === undefined ? [] : [viewOf(item, file)];
@@ -77,7 +81,8 @@ export class MediaLibraryService {
 
   /**
    * @throws {MediaNotFoundError} for a malformed id, another business's, or one of a store the caller does not reach.
-   * @throws {MediaInUseError} while a product, variant or collection of any store uses the image (D2128).
+   * @throws {MediaInUseError} while a product, variant or collection of any store uses the image, featured or in its
+   *   gallery (D2128); a save naming the image in flight is waited for.
    */
   async delete(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<void> {
     if (!isSnowflake(rawId)) throw new MediaNotFoundError();
@@ -85,6 +90,8 @@ export class MediaLibraryService {
     await this.ports.transaction.run(ctx, scope, async (tx) => {
       const item = await this.ports.media.findById(tx, scope, reach, rawId);
       if (item === undefined) throw new MediaNotFoundError();
+      // Waits for every save that names the image and holds back later ones, so the in-use check sees them (D2128).
+      await this.ports.mediaLock.exclusive(tx, item.assetId);
       if ((await this.ports.storage.remove(tx, item.assetId)) === 'in-use') throw new MediaInUseError();
       await this.ports.media.delete(tx, scope, reach, item.id);
     });

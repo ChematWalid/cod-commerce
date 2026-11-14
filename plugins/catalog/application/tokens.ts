@@ -15,4 +15,5 @@ export const ID_GENERATOR = Symbol('CatalogIdGenerator');
 export const CLOCK = Symbol('CatalogClock');
 export const PRODUCT_PORTS = Symbol('CatalogProductPorts');
 export const TAXONOMY_LOCK = Symbol('CatalogTaxonomyLock');
+export const MEDIA_LOCK = Symbol('CatalogMediaLock');
 export const ORDER_MANAGER_CHECK_REGISTRAR = Symbol('CatalogOrderManagerCheckRegistrar');

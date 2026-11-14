@@ -38,7 +38,7 @@ export class ProductWorld {
   searchHits: CoreId[] = [];
   /** Transactions run, so a test can tell a write ran inside one. */
   transactions = 0;
-  /** Taxonomy locks taken outside a transaction, where they would end at once. */
+  /** Taxonomy and media locks taken outside a transaction, where they would end at once. */
   locksOutsideTransaction = 0;
   private openTransactions = 0;
 
@@ -81,6 +81,16 @@ export class ProductWorld {
       },
       exclusive: (_ctx, id) => {
         this.lockCall(`exclusive:${id}`);
+        return Promise.resolve();
+      },
+    },
+    mediaLock: {
+      share: (_ctx, ids) => {
+        if (ids.length > 0) this.lockCall(`media-share:${[...new Set(ids)].sort().join(',')}`);
+        return Promise.resolve();
+      },
+      exclusive: (_ctx, id) => {
+        this.lockCall(`media-exclusive:${id}`);
         return Promise.resolve();
       },
     },

@@ -40,6 +40,9 @@ export interface MediaStoragePort {
   /** Makes each image usable by products of the store channel of `ctx` (a media item of another store, D2132). */
   shareWithStore(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<void>;
 
-  /** Removes an image from every store channel and the storage, unless a live product, variant or collection uses it. */
+  /**
+   * Removes an image from every store channel and the storage, unless a live product or variant, or a collection,
+   * uses it as its featured image or in its gallery (D2128).
+   */
   remove(ctx: OperationContext, assetId: CoreId): Promise<MediaRemoval>;
 }

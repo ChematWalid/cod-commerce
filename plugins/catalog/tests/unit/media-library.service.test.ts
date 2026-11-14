@@ -89,6 +89,19 @@ describe('MediaLibraryService', () => {
     expect(world.media.rows).toEqual([]);
   });
 
+  it('leaves out an image whose asset is gone and still counts its row in totalItems', async () => {
+    // Arrange
+    const kept = await upload(scopeA);
+    const gone = await upload(scopeA);
+    world.storage.files.delete(gone.assetId);
+
+    // Act
+    const page = await service.list(world.ctxOf(scopeA), scopeA, PAGE);
+
+    // Assert
+    expect(page).toEqual({ items: [kept], totalItems: 2 });
+  });
+
   it("lists only the active store's media while no team check is registered", async () => {
     // Arrange
     const own = await upload(scopeA);

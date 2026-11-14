@@ -3,6 +3,7 @@ import type { ClockPort } from '../domain/ports/clock.port';
 import type { DescriptionSanitizerPort } from '../domain/ports/description-sanitizer.port';
 import type { HighlightRepositoryPort } from '../domain/ports/highlight-repository.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
+import type { MediaLockPort } from '../domain/ports/media-lock.port';
 import type { MediaRepositoryPort } from '../domain/ports/media-repository.port';
 import type { MediaStoragePort } from '../domain/ports/media-storage.port';
 import type { OrderManagerCheckSource } from '../domain/ports/order-manager-check.port';
@@ -37,6 +38,8 @@ export interface ProductPorts {
   readonly clock: ClockPort;
   /** Keeps product saves and taxonomy deletes apart. */
   readonly taxonomyLock: TaxonomyLockPort;
+  /** Keeps product saves and media deletes apart (D2128). */
+  readonly mediaLock: MediaLockPort;
   /** Team's order-manager check, once registered (D2114). */
   readonly orderManagers: OrderManagerCheckSource;
 }

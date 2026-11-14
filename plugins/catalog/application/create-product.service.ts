@@ -22,7 +22,7 @@ export class CreateProductService {
   async create(ctx: OperationContext, scope: StoreScope, command: ProductCommand): Promise<ProductSaveResult> {
     const references = { ...command, orderManagerIds: command.settings?.orderManagerIds };
     return this.ports.transaction.run(ctx, scope, async (tx) => {
-      // Checked under the shared taxonomy locks, so no brand, tag or highlight it names is deleted before it commits.
+      // Checked under the shared taxonomy and media locks, so nothing it names is deleted before it commits.
       await this.references.lockNamed(tx, references);
       const refs = await this.references.check(tx, scope, references);
       await this.references.shareImages(tx, references);

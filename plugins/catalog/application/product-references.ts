@@ -1,5 +1,5 @@
 import { isSnowflake, type Snowflake } from '@cod/shared';
-import { type CoreId, parseCoreId } from '../domain/core-id';
+import { type CoreId, isCoreId, parseCoreId } from '../domain/core-id';
 import {
   BrandNotFoundError,
   HighlightNotFoundError,
@@ -58,12 +58,15 @@ export function coreIdsOf(ids: readonly string[], notFound: NotFound): CoreId[] 
   });
 }
 
-/** Every image id a product body names: featured, gallery and variant images; a malformed one answers not found. */
-function imageIdsOf(input: ReferenceInput): CoreId[] {
+/** Every image id a product body names, as sent: featured, gallery and variant images. */
+function namedImageIds(input: ReferenceInput): string[] {
   const featured = input.featuredAssetId;
   const named = [...(featured === undefined || featured === null ? [] : [featured]), ...(input.assetIds ?? [])];
-  return coreIdsOf([...named, ...(input.variantAssetIds ?? [])], MediaNotFoundError);
+  return [...named, ...(input.variantAssetIds ?? [])];
 }
+
+/** Every image id a product body names, parsed; a malformed one answers not found. */
+const imageIdsOf = (input: ReferenceInput): CoreId[] => coreIdsOf(namedImageIds(input), MediaNotFoundError);
 
 /** True when every id of `wanted` is among `found`. */
 const allFound = (wanted: readonly string[], found: readonly string[]): boolean => {
@@ -82,12 +85,15 @@ export class ProductReferenceCheck {
   constructor(private readonly ports: ProductPorts) {}
 
   /**
-   * Takes the shared taxonomy lock of every well-formed brand, tag and highlight id `input` names, so none of them is
-   * deleted before the save commits. Run it inside the save's transaction, before its product lock.
+   * Takes the shared taxonomy lock of every well-formed brand, tag and highlight id `input` names, then the shared
+   * media lock of every well-formed image id, so none of them is deleted before the save commits (D2128). Run it
+   * inside the save's transaction, before its product lock and before {@link check}.
    */
-  lockNamed(ctx: OperationContext, input: ReferenceInput): Promise<void> {
+  async lockNamed(ctx: OperationContext, input: ReferenceInput): Promise<void> {
     const named = [...(input.brandId ? [input.brandId] : []), ...(input.tagIds ?? []), ...(input.highlightIds ?? [])];
-    return this.ports.taxonomyLock.share(ctx, named.filter(isSnowflake));
+    await this.ports.taxonomyLock.share(ctx, named.filter(isSnowflake));
+    const images = namedImageIds(input).filter(isCoreId);
+    if (images.length > 0) await this.ports.mediaLock.share(ctx, images);
   }
 
   async check(ctx: OperationContext, scope: StoreScope, input: ReferenceInput): Promise<CheckedReferences> {

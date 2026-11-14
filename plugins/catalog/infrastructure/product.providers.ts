@@ -18,6 +18,7 @@ import {
   DESCRIPTION_SANITIZER,
   HIGHLIGHT_REPOSITORY,
   ID_GENERATOR,
+  MEDIA_LOCK,
   MEDIA_REPOSITORY,
   MEDIA_STORAGE,
   ORDER_MANAGER_CHECK_REGISTRAR,
@@ -45,6 +46,7 @@ import { TypeOrmProductCollectionRepository } from './typeorm-product-collection
 import { TypeOrmProductSettingsRepository } from './typeorm-product-settings.repository';
 import { TypeOrmTagRepository } from './typeorm-tag.repository';
 import { PgProductLock } from './pg-product-lock';
+import { PgMediaLock } from './pg-media-lock';
 import { PgTaxonomyLock } from './pg-taxonomy-lock';
 import { VendureAssetReads } from './vendure-asset-reads';
 import { DefaultChannelExit } from './vendure-default-channel';
@@ -74,6 +76,7 @@ const PORT_TOKENS = [
   ID_GENERATOR,
   CLOCK,
   TAXONOMY_LOCK,
+  MEDIA_LOCK,
   ORDER_MANAGER_CHECK_REGISTRAR,
 ] as const;
 
@@ -93,6 +96,7 @@ const PORT_KEYS = [
   'ids',
   'clock',
   'taxonomyLock',
+  'mediaLock',
   'orderManagers',
 ] as const satisfies readonly (keyof ProductPorts)[];
 
@@ -122,6 +126,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   { provide: DESCRIPTION_SANITIZER, useClass: HtmlDescriptionSanitizer },
   { provide: CLOCK, useValue: SYSTEM_CLOCK },
   { provide: TAXONOMY_LOCK, useClass: PgTaxonomyLock },
+  { provide: MEDIA_LOCK, useClass: PgMediaLock },
   // One registry for the module: team registers its check on it, the use cases read it (D2114, D2137).
   { provide: ORDER_MANAGER_CHECK_REGISTRAR, useClass: OrderManagerCheckRegistry },
   {
