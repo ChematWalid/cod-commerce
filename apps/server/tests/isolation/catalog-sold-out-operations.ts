@@ -7,7 +7,7 @@ export const SOLD_OUT_OPERATIONS: readonly CatalogOperation[] = [
   {
     name: 'catalogSoldOutProducts',
     entity: 'product',
-    document: `query { catalogSoldOutProducts { ${SOLD_OUT_FIELDS} } }`,
+    document: `query { catalogSoldOutProducts { totalItems items { ${SOLD_OUT_FIELDS} } } }`,
     variables: () => ({}),
   },
   ...(['stopCatalogSoldOutOrders', 'resumeCatalogSoldOutOrders'] as const).map((name): CatalogOperation => ({
