@@ -9,17 +9,19 @@ import { type StoreSettings, StoreSettingsReader } from '../../domain/ports/stor
 
 const BUSINESS_A = toBusinessId('11');
 const STORE_A = toStoreId('22');
+const OTHER_STORE_OF_A = toStoreId('44');
 const FOREIGN_STORE = toStoreId('33');
+const STORES_OF_A: readonly StoreId[] = [STORE_A, OTHER_STORE_OF_A];
 
 const SETTINGS: StoreSettings = { soldOutBehavior: 'keep', language: 'ar', channelId: 7, status: 'active' };
 
-/** Answers only for business A's store, and records the business it was asked for. */
+/** Answers for every store of business A, granted to the caller or not, and records the business it was asked for. */
 class RecordingReader extends StoreSettingsReader {
   readonly businesses: BusinessId[] = [];
 
   settingsOf(_ctx: OperationContext, businessId: BusinessId, storeId: StoreId): Promise<StoreSettings | null> {
     this.businesses.push(businessId);
-    return Promise.resolve(businessId === BUSINESS_A && storeId === STORE_A ? SETTINGS : null);
+    return Promise.resolve(businessId === BUSINESS_A && STORES_OF_A.includes(storeId) ? SETTINGS : null);
   }
 }
 
@@ -43,7 +45,7 @@ describe('RequestStoreSettings', () => {
     expect(reader.businesses).toEqual([BUSINESS_A]);
   });
 
-  it("answers null for a store id outside the request's business", async () => {
+  it("answers null for a store id outside the request's business, without reading it", async () => {
     // Arrange
     const reader = new RecordingReader();
     const ctx = contextOf({ businessId: BUSINESS_A, storeIds: [STORE_A], activeStoreId: STORE_A });
@@ -53,7 +55,20 @@ describe('RequestStoreSettings', () => {
 
     // Assert
     expect(settings).toBeNull();
-    expect(reader.businesses).toEqual([BUSINESS_A]);
+    expect(reader.businesses).toEqual([]);
+  });
+
+  it("answers null for a store of the request's business the caller holds no role on", async () => {
+    // Arrange
+    const reader = new RecordingReader();
+    const ctx = contextOf({ businessId: BUSINESS_A, storeIds: [STORE_A], activeStoreId: STORE_A });
+
+    // Act
+    const settings = await new RequestStoreSettings(reader).settingsOf(ctx, OTHER_STORE_OF_A);
+
+    // Assert
+    expect(settings).toBeNull();
+    expect(reader.businesses).toEqual([]);
   });
 
   it('refuses a request that did not pass the tenant guard', async () => {
