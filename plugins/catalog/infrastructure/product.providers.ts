@@ -30,6 +30,7 @@ import {
   PRODUCT_SEARCH,
   PRODUCT_SETTINGS_REPOSITORY,
   SOLD_OUT_SOURCE,
+  SOLD_OUT_SOURCE_REGISTRAR,
   STORE_SETTINGS,
   TAG_REPOSITORY,
   TAXONOMY_LOCK,
@@ -37,6 +38,7 @@ import {
 } from '../application/tokens';
 import { CatalogReadService } from '../application/catalog-read.service';
 import { SoldOutService } from '../application/sold-out.service';
+import { SoldOutSourceRegistry } from '../application/sold-out-source.registry';
 import { UpdateProductService } from '../application/update-product.service';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
@@ -124,12 +126,14 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   { provide: MEDIA_LOCK, useClass: PgMediaLock },
   // One registry for the module: team registers its check on it, the use cases read it (D2114, D2137).
   { provide: ORDER_MANAGER_CHECK_REGISTRAR, useClass: OrderManagerCheckRegistry },
-  // The manual sold-out flag until stock exists; P6.S1 provides its stock source on this token instead (D2107).
+  // The manual sold-out flag until stock exists; P6.S1 registers its stock source on the registrar instead (D2107).
   {
     provide: SOLD_OUT_SOURCE,
-    useFactory: (settings: ProductSettingsRepositoryPort) => new SettingsFlagSoldOutSource(settings),
+    useFactory: (settings: ProductSettingsRepositoryPort) =>
+      new SoldOutSourceRegistry(new SettingsFlagSoldOutSource(settings)),
     inject: [PRODUCT_SETTINGS_REPOSITORY],
   },
+  { provide: SOLD_OUT_SOURCE_REGISTRAR, useExisting: SOLD_OUT_SOURCE },
   { provide: STORE_SETTINGS, useClass: TenancyStoreSettings },
   {
     provide: ID_GENERATOR,

@@ -14,8 +14,9 @@ export {
 } from './application/catalog-read.service';
 export { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
 export type { PublicListContext, PublicVisibilityContext } from './domain/visibility';
-export { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE } from './application/tokens';
-export type { SoldOutSource } from './domain/ports/sold-out-source.port';
+export { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE_REGISTRAR } from './application/tokens';
+export type { SoldOutSource, SoldOutSourceRegistrar } from './domain/ports/sold-out-source.port';
+export { type CoreId, parseCoreId, toCoreId } from './domain/core-id';
 export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/ports/order-manager-check.port';
 export {
   asOperationContext as asCatalogOperationContext,

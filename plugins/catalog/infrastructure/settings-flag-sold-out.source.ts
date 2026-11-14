@@ -6,7 +6,7 @@ import type { SoldOutSource } from '../domain/ports/sold-out-source.port';
 
 /**
  * The default {@link SoldOutSource} (D2107): a product is sold out while the merchant's "Mark as sold out" flag is on
- * in its `catalog_product_settings` row. P6.S1 replaces it with stock levels on the `SOLD_OUT_SOURCE` token.
+ * in its `catalog_product_settings` row. P6.S1 replaces it with stock levels on `SOLD_OUT_SOURCE_REGISTRAR`.
  */
 export class SettingsFlagSoldOutSource implements SoldOutSource {
   constructor(private readonly settings: ProductSettingsRepositoryPort) {}

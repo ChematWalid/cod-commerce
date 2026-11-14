@@ -18,4 +18,5 @@ export const TAXONOMY_LOCK = Symbol('CatalogTaxonomyLock');
 export const MEDIA_LOCK = Symbol('CatalogMediaLock');
 export const ORDER_MANAGER_CHECK_REGISTRAR = Symbol('CatalogOrderManagerCheckRegistrar');
 export const SOLD_OUT_SOURCE = Symbol('CatalogSoldOutSource');
+export const SOLD_OUT_SOURCE_REGISTRAR = Symbol('CatalogSoldOutSourceRegistrar');
 export const STORE_SETTINGS = Symbol('CatalogStoreSettings');
