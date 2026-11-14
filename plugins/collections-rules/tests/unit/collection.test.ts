@@ -25,8 +25,12 @@ const definition = (overrides: Partial<CollectionDefinition> = {}): CollectionDe
 
 describe('switchMode', () => {
   it('keeps the members and their order when an automatic collection turns manual (D2302)', () => {
-    // Arrange
-    const current = ruleMembers(['3', '12', '7']);
+    // Arrange: rows arrive from the store in no guaranteed order
+    const current = [
+      { productId: '3', position: 0 },
+      { productId: '12', position: 0 },
+      { productId: '7', position: 0 },
+    ];
 
     // Act
     const switched = switchMode(definition(), 'manual', null, current);
@@ -34,6 +38,21 @@ describe('switchMode', () => {
     // Assert
     expect(switched.definition).toEqual(definition({ mode: 'manual', rule: null }));
     expect(switched.members).toEqual(manualMembers(['12', '7', '3']));
+  });
+
+  it('orders the members by position first, then newest product first, when turning manual', () => {
+    // Arrange
+    const current = [
+      { productId: '9', position: 1 },
+      { productId: '4', position: 0 },
+      { productId: '2', position: 1 },
+    ];
+
+    // Act
+    const switched = switchMode(definition(), 'manual', null, current);
+
+    // Assert
+    expect(switched.members).toEqual(manualMembers(['4', '9', '2']));
   });
 
   it('asks for a recompute when a manual collection turns automatic', () => {
