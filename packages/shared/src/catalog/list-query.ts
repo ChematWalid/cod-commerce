@@ -1,7 +1,13 @@
 import { z } from 'zod';
-import { CATALOG_MAX_PAGE_SIZE, CATALOG_PAGE_SIZE, PRODUCT_LIST_TABS, PRODUCT_SEARCH_MAX } from './constants';
+import {
+  CATALOG_MAX_PAGE_SIZE,
+  CATALOG_PAGE_SIZE,
+  INT_COLUMN_MAX,
+  PRODUCT_LIST_TABS,
+  PRODUCT_SEARCH_MAX,
+} from './constants';
 import { hasBidiControl, hasControlCharacter } from '../text/control-characters';
-import { catalogRefIdListSchema, catalogRefIdSchema, invalidCatalogInput } from './fields';
+import { catalogObject, catalogRefIdListSchema, catalogRefIdSchema, invalidCatalogInput } from './fields';
 
 /** The query object without its null or empty fields; anything that is not an object is left for the schema to refuse. */
 function withoutUnsetFields(query: unknown): unknown {
@@ -9,7 +15,7 @@ function withoutUnsetFields(query: unknown): unknown {
   return Object.fromEntries(Object.entries(query).filter(([, value]) => value !== null && value !== ''));
 }
 
-const productListFieldsSchema = z.object({
+const productListFieldsSchema = catalogObject({
   tab: z.enum(PRODUCT_LIST_TABS, invalidCatalogInput).default('all'),
   // A NUL would reach the `contains` filter and fail in Postgres with a 500 (#171).
   q: z
@@ -21,7 +27,13 @@ const productListFieldsSchema = z.object({
   collectionId: catalogRefIdSchema.optional(),
   brandId: catalogRefIdSchema.optional(),
   tagId: catalogRefIdSchema.optional(),
-  skip: z.coerce.number(invalidCatalogInput).int(invalidCatalogInput).min(0, invalidCatalogInput).default(0),
+  // Capped like an int column: a larger offset is no page anyone reads, and Postgres refuses an OFFSET past bigint.
+  skip: z.coerce
+    .number(invalidCatalogInput)
+    .int(invalidCatalogInput)
+    .min(0, invalidCatalogInput)
+    .max(INT_COLUMN_MAX, invalidCatalogInput)
+    .default(0),
   take: z.coerce
     .number(invalidCatalogInput)
     .int(invalidCatalogInput)
@@ -43,7 +55,7 @@ export type ProductListQueryInput = z.input<typeof productListFieldsSchema>;
 export type ProductListQuery = z.output<typeof productListQuerySchema>;
 
 /** "Stop orders" / "Resume orders" of sold-out products (D2108); an empty list means every sold-out product. */
-export const soldOutOrdersInputSchema = z.object({
+export const soldOutOrdersInputSchema = catalogObject({
   productIds: catalogRefIdListSchema(CATALOG_MAX_PAGE_SIZE).default([]),
 });
 

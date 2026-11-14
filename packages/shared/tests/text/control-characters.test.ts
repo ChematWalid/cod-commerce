@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasBidiControl, hasControlCharacter } from '../../src/index';
+import { hasBidiControl, hasControlCharacter, hasLoneSurrogate } from '../../src/index';
 
 describe('hasControlCharacter', () => {
   it('finds a NUL', () => {
@@ -91,6 +91,27 @@ describe('hasBidiControl', () => {
   it('keeps the direction marks RLM, LRM and ALM that Arabic text needs', () => {
     // Act
     const found = hasBidiControl('\u200Fحذاء\u061C SKU-1\u200E');
+
+    // Assert
+    expect(found).toBe(false);
+  });
+});
+
+describe('hasLoneSurrogate', () => {
+  it.each([
+    ['a lone high surrogate', `a${String.fromCharCode(0xd800)}b`],
+    ['a lone low surrogate', `a${String.fromCharCode(0xdfff)}`],
+  ])('finds %s', (_name, value) => {
+    // Act
+    const found = hasLoneSurrogate(value);
+
+    // Assert
+    expect(found).toBe(true);
+  });
+
+  it('accepts a whole surrogate pair', () => {
+    // Act
+    const found = hasLoneSurrogate('Shoe 👟');
 
     // Assert
     expect(found).toBe(false);

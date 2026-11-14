@@ -1,3 +1,4 @@
-// The public entry of the catalog (D2104): other plugins import it from infrastructure/ and *.plugin.ts files only,
-// apps import it freely. Tasks 10-19 add the services later sessions consume; the handoff lists them.
+// The public entry of the catalog (D2104, rule `catalog-entry-infra-only`): another plugin imports it only from its
+// infrastructure/, its root *.plugin.ts file or its tests/; of the apps only apps/server does (frontends are API
+// clients, ADR 0017). api/, application/, domain/ and dashboard/ never do. The handoff lists what later sessions use.
 export { CatalogPlugin } from './catalog.plugin';

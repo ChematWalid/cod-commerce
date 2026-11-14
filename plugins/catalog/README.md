@@ -8,10 +8,12 @@ fields, brands, tags, highlights, product settings and a per-business media libr
 
 `index.ts` is the only file another workspace package may import, as `@cod/plugin-catalog`:
 
-- other plugins import it from `infrastructure/` and from their root `*.plugin.ts` module file only (rule
-  `catalog-entry-infra-only` in `packages/config/architecture/rules.ts`); their `api/`, `application/` and
-  `domain/` reach the catalog through their own ports;
-- apps import it freely (`apps/server` registers `CatalogPlugin`);
+- other plugins import it only from `infrastructure/`, from their root `*.plugin.ts` module file and from their
+  `tests/` (test kits list `CatalogPlugin`, D2137), per rule `catalog-entry-infra-only` in
+  `packages/config/architecture/rules.ts`; their `api/`, `application/`, `domain/` and `dashboard/` reach the
+  catalog through their own ports or the API;
+- of the apps only `apps/server` imports it (it registers `CatalogPlugin` and runs the demo seed); frontend apps such
+  as `apps/storefront` are API clients and are refused (ADR 0017);
 - shared contracts (types, event names, zod schemas, constants, page and block ids) live in
   `packages/shared/src/catalog/`, not here.
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isSnowflake } from '../ids/snowflake';
-import { hasBidiControl, hasControlCharacter } from '../text/control-characters';
+import { hasBidiControl, hasControlCharacter, hasLoneSurrogate } from '../text/control-characters';
 import { CATALOG_ID_MAX_LENGTH, INT_COLUMN_MAX } from './constants';
 import { CATALOG_ERROR_CODES } from './error-codes';
 
@@ -8,8 +8,23 @@ import { CATALOG_ERROR_CODES } from './error-codes';
 export const invalidCatalogInput = { message: CATALOG_ERROR_CODES.INVALID_INPUT };
 
 /**
+ * An object of a catalog body: a value that is no object (`null`, text, a number, a list) is refused with
+ * `catalog.invalid-input`, never with Zod's own English text, so every refusal a client sees is a catalog code.
+ */
+export function catalogObject<Shape extends z.core.$ZodLooseShape>(shape: Shape) {
+  return z.object(shape, invalidCatalogInput);
+}
+
+/**
+ * How two names of one product or store compare: without outer spaces, case and Unicode form (D2140), so "Café", an
+ * NFD "cafe\u0301" and " CAFÉ" are one name.
+ */
+export const catalogNameKey = (name: string): string => name.trim().normalize('NFC').toLowerCase();
+
+/**
  * A single-line catalog text (title, SKU, slug, name…): trimmed, non-empty, at most `max` characters, with no control
- * character and no bidi override or isolate (D2144). Arabic direction marks (LRM, RLM, ALM) are accepted.
+ * character, no bidi override or isolate (D2144) and no lone surrogate. Arabic direction marks (LRM, RLM, ALM) are
+ * accepted.
  */
 export function catalogTextSchema(max: number) {
   return z
@@ -17,7 +32,10 @@ export function catalogTextSchema(max: number) {
     .trim()
     .min(1, invalidCatalogInput)
     .max(max, invalidCatalogInput)
-    .refine((value) => !hasControlCharacter(value) && !hasBidiControl(value), invalidCatalogInput);
+    .refine(
+      (value) => !hasControlCharacter(value) && !hasBidiControl(value) && !hasLoneSurrogate(value),
+      invalidCatalogInput,
+    );
 }
 
 /**

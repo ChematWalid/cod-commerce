@@ -92,3 +92,14 @@ export function hasBidiControl(value: string): boolean {
   }
   return false;
 }
+
+const LONE_SURROGATE = /\p{Cs}/u;
+
+/**
+ * Tells whether `value` holds a lone UTF-16 surrogate (half of a pair). UTF-8 has no form for one, so Postgres, logs
+ * and object keys see U+FFFD instead and two different texts would compare equal; single-line fields refuse it. A
+ * whole pair, such as an emoji, is one character and is not counted.
+ */
+export function hasLoneSurrogate(value: string): boolean {
+  return LONE_SURROGATE.test(value);
+}

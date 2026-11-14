@@ -7,7 +7,7 @@ import {
 } from './errors';
 import { comparableText as comparable } from './comparable-text';
 import { singleLineText } from './single-line-text';
-import { skuSequence, variantName } from './sku';
+import { isSkuTaken, skuSequence, variantName } from './sku';
 
 /** One option of a product, e.g. Color with Red and Blue, values in display order. */
 export interface OptionGroupSpec {
@@ -111,13 +111,16 @@ function byCombination(existing: readonly ExistingVariant[]): ReadonlyMap<string
 /**
  * SKUs of the new variants: the product SKU itself for the default variant, else the next free `<sku>-n`. Every
  * live variant's SKU is taken, those removed in this save too: they stay live until the save commits, and an old
- * order or label naming one must never point at a different combination.
+ * order or label naming one must never point at a different combination. So a default variant whose product SKU a
+ * live variant holds gets the next free `<sku>-n` too.
  */
 function newSkus(input: MatrixInput, groupCount: number, count: number): readonly string[] {
-  if (groupCount === 0) {
-    return Array.from({ length: count }, () => input.baseSku ?? '');
+  const taken = new Set(input.existing.map((variant) => variant.sku));
+  const { baseSku } = input;
+  if (groupCount === 0 && (baseSku === null || !isSkuTaken(baseSku, taken))) {
+    return Array.from({ length: count }, () => baseSku ?? '');
   }
-  return skuSequence(input.baseSku, new Set(input.existing.map((variant) => variant.sku)), count);
+  return skuSequence(baseSku, taken, count);
 }
 
 /**

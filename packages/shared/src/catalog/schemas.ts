@@ -35,6 +35,8 @@ import { CATALOG_ERROR_CODES } from './error-codes';
 import {
   catalogRefIdListSchema,
   catalogRefIdSchema,
+  catalogNameKey,
+  catalogObject,
   catalogTextSchema,
   hasNoRepeatedId,
   intColumnSchema,
@@ -59,23 +61,26 @@ const quantityRuleSchema = z
   .max(QUANTITY_RULE_MAX, invalidCatalogInput);
 
 /** Quantities a buyer may order: `min`, `min + step`, `min + 2·step`… when enabled. */
-export const quantityRulesSchema = z.object({
+export const quantityRulesSchema = catalogObject({
   enabled: z.boolean(invalidCatalogInput),
   min: quantityRuleSchema,
   step: quantityRuleSchema,
 });
 
-const customAttributeSchema = z.object({
+const customAttributeSchema = catalogObject({
   name: catalogTextSchema(CUSTOM_ATTRIBUTE_NAME_MAX),
   value: catalogTextSchema(CUSTOM_ATTRIBUTE_VALUE_MAX),
 });
 
-/** Custom attribute names are unique in a product whatever their case, like brand and tag names (D2140). */
+/**
+ * Custom attribute names are unique in a product whatever their case or Unicode form, with the key rule of brand and
+ * tag names (D2140): an NFC and an NFD "Café" are one name.
+ */
 const customAttributeListSchema = z
   .array(customAttributeSchema, invalidCatalogInput)
   .max(MAX_CUSTOM_ATTRIBUTES, invalidCatalogInput)
   .refine(
-    (attributes) => new Set(attributes.map(({ name }) => name.toLowerCase())).size === attributes.length,
+    (attributes) => new Set(attributes.map(({ name }) => catalogNameKey(name))).size === attributes.length,
     invalidCatalogInput,
   );
 
@@ -91,7 +96,7 @@ const productSettingsFields = {
 };
 
 /** The merchant-only settings of a product in its store (AC5); order managers are team-member ids (D2114). */
-export const productSettingsSchema = z.object({
+export const productSettingsSchema = catalogObject({
   ...productSettingsFields,
   orderManagerIds: productSettingsFields.orderManagerIds.default([]),
   customAttributes: productSettingsFields.customAttributes.default([]),
@@ -102,16 +107,17 @@ export const productSettingsSchema = z.object({
  * and nothing is defaulted, so a patch of one boolean never clears the order managers or custom attributes. A list
  * that is sent replaces the stored one (`[]` clears it).
  */
-export const productSettingsPatchSchema = z
-  .object({ ...productSettingsFields, quantityRules: quantityRulesSchema.partial() })
-  .partial();
+export const productSettingsPatchSchema = catalogObject({
+  ...productSettingsFields,
+  quantityRules: quantityRulesSchema.partial(),
+}).partial();
 
 export type ProductSettingsPatchCommand = z.output<typeof productSettingsPatchSchema>;
 export type ProductSettingsInput = z.input<typeof productSettingsSchema>;
 export type ProductSettingsCommand = z.output<typeof productSettingsSchema>;
 
 /** One option of the variant matrix, such as Color (Red, Blue). Duplicates are the domain's to refuse (Task 9). */
-export const optionGroupInputSchema = z.object({
+export const optionGroupInputSchema = catalogObject({
   name: catalogTextSchema(OPTION_NAME_MAX),
   values: z
     .array(catalogTextSchema(OPTION_VALUE_MAX), invalidCatalogInput)
@@ -119,7 +125,7 @@ export const optionGroupInputSchema = z.object({
     .max(MAX_OPTION_VALUES, matrixTooLarge),
 });
 
-const seoSchema = z.object({
+const seoSchema = catalogObject({
   metaTitle: catalogTextSchema(META_TITLE_MAX).nullish(),
   metaDescription: catalogTextSchema(META_DESCRIPTION_MAX).nullish(),
 });
@@ -156,7 +162,7 @@ const productFields = {
  * "Create a product". Without options the price, old price, SKU and barcode are the default variant's; with options
  * they are the defaults of new variants (D2124). Strings are written in the store's language (D2112).
  */
-export const productInputSchema = z.object({
+export const productInputSchema = catalogObject({
   ...productFields,
   type: productFields.type.default('physical'),
   assetIds: productFields.assetIds.default([]),
@@ -172,7 +178,7 @@ export type ProductInput = z.input<typeof productInputSchema>;
 export type ProductCommand = z.output<typeof productInputSchema>;
 
 /** A change to one existing variant of the product; `null` clears an optional field. */
-export const variantPatchSchema = z.object({
+export const variantPatchSchema = catalogObject({
   id: catalogRefIdSchema,
   price: moneySchema.optional(),
   oldPrice: moneySchema.nullish(),
@@ -186,8 +192,7 @@ export const variantPatchSchema = z.object({
  * "Edit a product": any field of {@link productInputSchema}, plus edits to existing variants (each at most once);
  * an absent field stays unchanged, `null` clears, and `settings` follows {@link productSettingsPatchSchema}.
  */
-export const productPatchSchema = z
-  .object(productFields)
+export const productPatchSchema = catalogObject(productFields)
   .partial()
   .extend({
     settings: productSettingsPatchSchema.optional(),
@@ -203,11 +208,11 @@ export type ProductPatchCommand = z.output<typeof productPatchSchema>;
 export type VariantPatchCommand = z.output<typeof variantPatchSchema>;
 
 /** "Add a brand" or "rename a brand"; the name is unique in its store whatever its case (D2140). */
-export const brandInputSchema = z.object({ name: catalogTextSchema(BRAND_NAME_MAX) });
+export const brandInputSchema = catalogObject({ name: catalogTextSchema(BRAND_NAME_MAX) });
 /** "Add a tag" or "rename a tag"; the name is unique in its store whatever its case (D2140). */
-export const tagInputSchema = z.object({ name: catalogTextSchema(TAG_NAME_MAX) });
+export const tagInputSchema = catalogObject({ name: catalogTextSchema(TAG_NAME_MAX) });
 /** "Add a highlight": a short selling point a product can show, at most six per product. */
-export const highlightInputSchema = z.object({ text: catalogTextSchema(HIGHLIGHT_TEXT_MAX) });
+export const highlightInputSchema = catalogObject({ text: catalogTextSchema(HIGHLIGHT_TEXT_MAX) });
 
 export type BrandCommand = z.output<typeof brandInputSchema>;
 export type TagCommand = z.output<typeof tagInputSchema>;

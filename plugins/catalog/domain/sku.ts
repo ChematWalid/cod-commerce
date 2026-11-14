@@ -1,4 +1,5 @@
 import { OPTION_VALUE_SEPARATOR, SKU_MAX, SKU_SUFFIX_SEPARATOR, VARIANT_NAME_SEPARATOR } from '@cod/shared';
+import { comparableText } from './comparable-text';
 import { FIRST_SKU_NUMBER } from './constants';
 import { InvalidCatalogInputError } from './errors';
 
@@ -12,7 +13,8 @@ export function variantName(productName: string, optionValues: readonly string[]
 
 /**
  * The next `count` variant SKUs `<baseSku>-n`, counting from 1 and skipping every SKU in `taken` (those of live
- * variants), so a new variant never shares a SKU with a live one. A product without SKU gives empty SKUs.
+ * variants), so a new variant never shares a SKU with a live one. SKUs compare like option values (without case and
+ * Unicode form), so `ts-1` holds `TS-1`. A product without SKU gives empty SKUs.
  *
  * @throws {InvalidCatalogInputError} when a generated SKU would be longer than `SKU_MAX`, so the domain never
  * writes a SKU the API would refuse as input.
@@ -21,15 +23,22 @@ export function skuSequence(baseSku: string | null, taken: ReadonlySet<string>, 
   if (baseSku === null) {
     return Array.from({ length: count }, () => '');
   }
+  const held = new Set([...taken].map(comparableText));
   const skus: string[] = [];
   for (let number = FIRST_SKU_NUMBER; skus.length < count; number += 1) {
     const sku = `${baseSku}${SKU_SUFFIX_SEPARATOR}${String(number)}`;
     if (sku.length > SKU_MAX) {
       throw new InvalidCatalogInputError();
     }
-    if (!taken.has(sku)) {
+    if (!held.has(comparableText(sku))) {
       skus.push(sku);
     }
   }
   return skus;
+}
+
+/** Whether `sku` is among `taken`, compared like {@link skuSequence} does. */
+export function isSkuTaken(sku: string, taken: Iterable<string>): boolean {
+  const key = comparableText(sku);
+  return [...taken].some((held) => comparableText(held) === key);
 }
