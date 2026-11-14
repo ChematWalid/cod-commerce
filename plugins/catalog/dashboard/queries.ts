@@ -1,4 +1,4 @@
-import { CATALOG_MAX_PAGE_SIZE, type ProductStatus } from '@cod/shared';
+import { CATALOG_MAX_PAGE_SIZE } from '@cod/shared';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { api, LS_KEY_SELECTED_CHANNEL_TOKEN } from '@vendure/dashboard';
 import {
@@ -40,10 +40,6 @@ const TAGS_QUERY = 'query CatalogTagOptions { catalogTags { id name } }';
 const MEDIA_PREVIEWS_QUERY = `query CatalogMediaPreviews($options: CatalogMediaListInput) {
   catalogMedia(options: $options) { items { assetId previewUrl } } }`;
 const EFFECTIVE_PERMISSIONS_QUERY = 'query CatalogEffectivePermissions { effectivePermissions { permissions } }';
-
-const SET_STATUS_MUTATION = `mutation CatalogSetStatus($id: ID!, $status: CatalogProductStatus!) {
-  setCatalogProductStatus(id: $id, status: $status) { id status } }`;
-const DELETE_MUTATION = 'mutation CatalogDeleteProduct($id: ID!) { deleteCatalogProduct(id: $id) }';
 
 /**
  * The store a query answers for: its id goes in the key, its channel token is what the answer must be fetched with.
@@ -146,7 +142,3 @@ export function useHeldPermissions(scope: StoreScope | null): ReadonlySet<string
   );
   return new Set(isSuccess && !isPlaceholderData ? data.effectivePermissions.permissions : []);
 }
-
-export const setProductStatus = (id: string, status: ProductStatus): Promise<unknown> =>
-  api.mutate(SET_STATUS_MUTATION, { id, status });
-export const deleteProduct = (id: string): Promise<unknown> => api.mutate(DELETE_MUTATION, { id });

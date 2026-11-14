@@ -63,10 +63,10 @@ function useListState() {
 }
 
 /** Runs a row action: Edit opens the editor, Set draft runs at once, Delete asks first. */
-function useRowCommands(storeAlias: string) {
+function useRowCommands(storeAlias: string, scope: StoreScope | null) {
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState<CatalogProductRowDto | null>(null);
-  const command = useProductCommand(() => {
+  const command = useProductCommand(scope, () => {
     setDeleting(null);
   });
   const onCommand = (action: RowCommand, product: CatalogProductRowDto): void => {
@@ -199,7 +199,7 @@ export function ProductListPage({ store }: ShellPageProps): ReactNode {
   const storeAlias = store?.id ?? ACTIVE_STORE_ALIAS;
   const scope = useStoreScope(store);
   const held = useHeldPermissions(scope);
-  const rows = useRowCommands(storeAlias);
+  const rows = useRowCommands(storeAlias, scope);
   return (
     <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID}>
       <PageTitle>{i18n._('catalog.products-title')}</PageTitle>
