@@ -6,7 +6,8 @@ test kind. It is a development aid: `buildPlugins` registers it on every role on
 or `test`, never on staging or production (D2111, #170). There its `templateNotes` query is live, so it stays
 honest: the full gate runs it. Its dashboard page has no route and no nav item: merchants never see a stock
 section (#122). A merchant page is registered in the shell with `registerShellPage` from
-`@cod/plugin-merchant-shell/shell-api`; the live example is `plugins/catalog/dashboard/index.tsx`.
+`@cod/plugin-merchant-shell/shell-api`; the live example is
+`plugins/merchant-shell/dashboard/index.tsx` (`registerShellPage('settings.general', ...)`).
 
 ## Layout and layer rules
 
@@ -61,9 +62,10 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
    `APP_ENV`). Add a line for it to `apps/server/tests/unit/plugins-registered.test.ts`.
    - The **dashboard** extension needs no registration: `build:dashboard` picks up the `dashboard` entry of every
      plugin that `buildPlugins` returns for the api role. A merchant page fills a shell leaf with
-     `registerShellPage` (see `plugins/catalog/dashboard/index.tsx`); never add a `navMenuItem` in a stock merchant
-     section (`catalog`, `sales`, `customers`, `marketing`): `packages/config/tests/dashboard-nav-items.test.ts`
-     fails. Re-run `pnpm --filter @cod/server build:dashboard` to see a change on the api's `/dashboard`.
+     `registerShellPage` (see `plugins/merchant-shell/dashboard/index.tsx`); never add a `navMenuItem` or a `navSections`
+     entry in a stock section (`BUILT_IN_NAV_SECTION_IDS`: `insights`, `catalog`, `sales`, `customers`, `marketing`,
+     `system`, `settings`), and name a section with a literal or a `const` of your own plugin:
+     `packages/config/tests/dashboard-nav-items.test.ts` fails otherwise. Re-run `pnpm --filter @cod/server build:dashboard` to see a change on the api's `/dashboard`.
    - **Permissions**: pick the catalogue keys of your area, or add them in
      `packages/shared/src/permissions/catalog/` (its tests pin the counts, D61), and name them in
      `api/permissions.ts`. Guard every handler with `requirePermission(key)` from `@cod/plugin-rbac/guard`.

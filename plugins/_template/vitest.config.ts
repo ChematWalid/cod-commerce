@@ -7,7 +7,5 @@ export default defineConfig({
   test: {
     ...vendurePreset.test,
     setupFiles: ['tests/setup-env.ts'],
-    // A test that asserts nothing fails instead of passing blind (#172, D2118).
-    expect: { ...vendurePreset.test?.expect, requireAssertions: true },
   },
 });

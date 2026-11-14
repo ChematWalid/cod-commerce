@@ -65,7 +65,7 @@ function NotesList({ state }: { readonly state: NotesState }): ReactNode {
 /**
  * The template's notes page: the newest notes of the business of the selected channel. Reference code only: no route
  * mounts it (D2111). A merchant page is registered in the shell with `registerShellPage`, as in
- * `plugins/catalog/dashboard/index.tsx`.
+ * `plugins/merchant-shell/dashboard/index.tsx`.
  */
 export function NotesPage(): ReactNode {
   const state = useTemplateNotes();

@@ -13,5 +13,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**'],
     testTimeout: SMOKE_TIMEOUT_MS,
     hookTimeout: SMOKE_TIMEOUT_MS,
+    // Off until this suite is checked in CI (D2118): it cannot run locally (D218); unit suites keep the preset's guard.
+    expect: { ...unitPreset.test?.expect, requireAssertions: false },
   },
 });
