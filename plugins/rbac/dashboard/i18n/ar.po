@@ -172,6 +172,14 @@ msgid "rbac.target-commission"
 msgstr "هيكل العمولة"
 
 #. js-lingui-explicit-id
+msgid "rbac.target-product"
+msgstr "المنتج"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-catalog-job"
+msgstr "استيراد أو تصدير"
+
+#. js-lingui-explicit-id
 msgid "rbac.actor-system"
 msgstr "النظام"
 
@@ -254,6 +262,22 @@ msgstr "تعديل عمولة"
 #. js-lingui-explicit-id
 msgid "team.commission.deleted"
 msgstr "حذف عمولة"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.bulk-edit"
+msgstr "تعديل جماعي للمنتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.import"
+msgstr "استيراد منتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.link-import"
+msgstr "استيراد منتج من رابط"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.export"
+msgstr "تصدير منتجات"
 
 #. js-lingui-explicit-id
 msgid "rbac.role-not-found"

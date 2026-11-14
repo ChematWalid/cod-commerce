@@ -20,9 +20,13 @@ import {
 } from '../../src/index';
 
 describe('catalog constants', () => {
-  it('knows the three product statuses and the physical type', () => {
+  it('knows the three product statuses', () => {
     expect(PRODUCT_STATUSES).toEqual(['active', 'hidden', 'draft']);
-    expect(PRODUCT_TYPES).toEqual(['physical']);
+  });
+
+  it('lists physical then pack', () => {
+    // Append-only (D2126): P2.S2 appends `pack`.
+    expect(PRODUCT_TYPES).toEqual(['physical', 'pack']);
   });
 
   it('caps highlights at six and the matrix at three options of twenty values and 100 variants', () => {
