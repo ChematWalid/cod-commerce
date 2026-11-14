@@ -12,6 +12,7 @@ export {
   type VisibleProduct,
   type VisibleProductPage,
 } from './application/catalog-read.service';
+export { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
 export type { PublicListContext, PublicVisibilityContext } from './domain/visibility';
 export { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE } from './application/tokens';
 export type { SoldOutSource } from './domain/ports/sold-out-source.port';

@@ -11,6 +11,7 @@ import type { INestApplicationContext } from '@nestjs/common';
 import { Administrator, type RequestContext, TransactionalConnection } from '@vendure/core';
 import type { AppEnv } from '../config/env';
 import { seedDemoMembers } from './seed-demo-members';
+import { demoProductSeedPorts, seedDemoProducts } from './seed-demo-products';
 import { superadminContext } from './seed-platform-defaults';
 
 /** The demo seed was asked to run where it must not. */
@@ -51,7 +52,7 @@ const DEMO_BUSINESSES: readonly DemoBusiness[] = [
   },
 ];
 
-/** What a run created, by subdomain. Empty on a second run. */
+/** What a run created: store subdomains, member addresses and product SKUs. Empty on a second run. */
 export interface DemoSeedReport {
   readonly created: readonly string[];
 }
@@ -107,8 +108,9 @@ async function ensureBusiness(
 }
 
 /**
- * Creates the two synthetic businesses local stacks and browser tests run on. Safe to run again: what exists
- * is left alone, and a run interrupted between stores finishes the job.
+ * Creates the two synthetic businesses local stacks and browser tests run on, their members and the demo products of
+ * their first stores. Safe to run again: what exists is left alone, and a run interrupted between stores finishes the
+ * job.
  *
  * @throws {@link DemoSeedRefusedError} when `APP_ENV` is production or `DEMO_OWNER_PASSWORD` is missing.
  */
@@ -122,5 +124,12 @@ export async function seedDemoBusinesses(app: INestApplicationContext, env: AppE
   created.push(...(await seedDemoMembers(app, ctx, DEMO_OWNER_EMAIL, password)));
   // The seed runs after `migrate`, so its members are made team members here rather than on the next deploy (D215).
   await app.get(TeamConvergeService).convergeMembers(asTeamContext(ctx));
+  const products = demoProductSeedPorts(app, ctx, (email) => existingBusinessId(app, email));
+  created.push(
+    ...(await seedDemoProducts(
+      products,
+      DEMO_BUSINESSES.map((demo) => demo.ownerEmail),
+    )),
+  );
   return { created };
 }

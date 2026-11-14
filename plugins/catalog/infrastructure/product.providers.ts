@@ -3,6 +3,7 @@ import type { Provider } from '@nestjs/common';
 import type { ProductPorts } from '../application/catalog-ports';
 import { BrandService } from '../application/brand.service';
 import { CreateProductService } from '../application/create-product.service';
+import { DemoCatalogSeedService } from '../application/demo-catalog-seed.service';
 import { DeleteProductService } from '../application/delete-product.service';
 import { GetProductService } from '../application/get-product.service';
 import { HighlightService } from '../application/highlight.service';
@@ -188,4 +189,5 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(MediaLibraryService),
   useCase(SoldOutService),
   useCase(CatalogReadService),
+  useCase(DemoCatalogSeedService),
 ];
