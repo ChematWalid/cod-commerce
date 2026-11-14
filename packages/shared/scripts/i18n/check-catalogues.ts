@@ -24,14 +24,17 @@ export interface PluginCatalogueInput {
   readonly catalogues: Readonly<Partial<Record<CatalogueLocale, string>>>;
   /** Ids built at run time, such as server error codes (`dashboard/i18n/dynamic-ids.ts`). */
   readonly dynamicIds?: readonly string[];
-  /** Dotted literals of the dashboard that are not catalogue ids, such as nav leaf ids and server codes. */
+  /**
+   * Dotted literals of the dashboard that are not catalogue ids, such as nav leaf ids and server codes. A dotted
+   * template that is no id either (`` `logo.${ext}` ``) is declared by its text, or skipped when one entry has its shape.
+   */
   readonly nonMessageLiterals?: readonly string[];
 }
 
 /**
  * A gap: an id with no translation in a required catalogue (`missing`, or `empty` when blank), an Arabic plural
  * lacking a form or category (`plural`), an unreviewed `#, fuzzy` entry (`fuzzy`), a translation whose placeholders
- * differ from the English text (`placeholder`), a template-literal id that no registered dynamic id matches
+ * differ from the English text (`placeholder`), a template-literal or `+`-built id that no registered dynamic id matches
  * (`dynamic`, reported against `en`, the source catalogue), or a declared non-message literal (`literal`) that the
  * plugin's own catalogue holds as a message id, which the scan would then skip.
  */

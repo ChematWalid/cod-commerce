@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { isPermissionKey } from '../../src/permissions';
+import { PERMISSION_CATALOG, isPermissionKey } from '../../src/permissions';
 
 /** A dashboard source file, by its path (for the parser's dialect) and its text. */
 export interface DashboardSource {
@@ -87,9 +87,14 @@ function isGenericMessage(text: string, nonMessageLiterals: ReadonlySet<string>)
   return !isPermissionKey(text) && !nonMessageLiterals.has(text);
 }
 
-/** A message id built at run time from a template literal, such as `` `orders.status.${status}` ``. */
+/**
+ * A message id built at run time from a template literal, such as `` `orders.status.${status}` ``, or by `+`, such as
+ * `'orders.status.' + status`. The check proves only that one registered dynamic id has its shape, not that every
+ * value of a substitution is registered: build the id from the same `as const` tuple the plugin's `dynamic-ids.ts`
+ * registers (as team's `CONFIRMED_COMMANDS` does), so a new value cannot reach the screen untranslated.
+ */
 export interface TemplateMessageId {
-  /** The template as written in the source, without its backticks. */
+  /** The id as a template, without backticks: fixed parts as written, each substitution as `${expression}`. */
   readonly text: string;
   /**
    * Matches every id the template can produce: its fixed parts, with anything between them. `null` when the fixed
@@ -109,28 +114,99 @@ const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/
 /** The fixed head of a template that builds a catalogue id wherever it is written: `` `orders.status.${s}` ``. */
 const DOTTED_TEMPLATE_HEAD = /^[a-z][a-z0-9-]*\./;
 
-/**
- * Whether a template literal builds a catalogue id: any template given to a message call, and anywhere else (a
- * variable, a builder's return, a JSX `id`, a `title` value) one whose fixed head starts like a dotted id. Display
- * text such as `` title: `${name} – Settings` `` is therefore not taken for an id.
- */
-function isTemplateMessageId(node: ts.TemplateExpression): boolean {
-  return DOTTED_TEMPLATE_HEAD.test(node.head.text) || isMessageCallArgument(messageSlot(node));
+/** JSX attributes whose value is a catalogue id; any other (`data-testid`, `className`) holds no message. */
+const MESSAGE_ATTRIBUTES: ReadonlySet<string> = new Set(['id', 'message']);
+
+const PERMISSION_KEYS: readonly string[] = PERMISSION_CATALOG.map((entry) => entry.key);
+
+/** One piece of an id built at run time: text written in the source, or an expression filled in at run time. */
+type Segment = { readonly fixed: string } | { readonly hole: string };
+
+function templateSegments(node: ts.TemplateExpression, file: ts.SourceFile): Segment[] {
+  const spans = node.templateSpans.flatMap((span) => [
+    { hole: span.expression.getText(file) },
+    { fixed: span.literal.text },
+  ]);
+  return [{ fixed: node.head.text }, ...spans];
 }
 
-function templateMessageId(node: ts.TemplateExpression, file: ts.SourceFile): TemplateMessageId {
-  const fixed = [node.head.text, ...node.templateSpans.map((span) => span.literal.text)];
-  const text = node.getText(file).slice(1, -1);
-  if (!fixed.some((part) => part.includes('.'))) return { text, pattern: null };
-  return { text, pattern: new RegExp(`^${fixed.map(escapeRegExp).join('.+')}$`) };
+const isPlus = (node: ts.Node): node is ts.BinaryExpression =>
+  ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken;
+
+function concatSegments(node: ts.Expression, file: ts.SourceFile): Segment[] {
+  if (isPlus(node)) return [...concatSegments(node.left, file), ...concatSegments(node.right, file)];
+  if (ts.isParenthesizedExpression(node)) return concatSegments(node.expression, file);
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [{ fixed: node.text }];
+  if (ts.isTemplateExpression(node)) return templateSegments(node, file);
+  return [{ hole: node.getText(file) }];
+}
+
+function messageIdOf(segments: readonly Segment[]): TemplateMessageId {
+  const text = segments.map((part) => ('fixed' in part ? part.fixed : `\${${part.hole}}`)).join('');
+  if (!segments.some((part) => 'fixed' in part && part.fixed.includes('.'))) return { text, pattern: null };
+  const source = segments.map((part) => ('fixed' in part ? escapeRegExp(part.fixed) : '.+')).join('');
+  return { text, pattern: new RegExp(`^${source}$`) };
+}
+
+/** Whether the template sits in a JSX attribute that holds no message, such as `data-testid={`row.${id}`}`. */
+function isInNonMessageAttribute(node: ts.Node): boolean {
+  const { parent } = messageSlot(node);
+  if (!ts.isJsxExpression(parent) || !ts.isJsxAttribute(parent.parent)) return false;
+  return !MESSAGE_ATTRIBUTES.has(parent.parent.name.getText());
+}
+
+/**
+ * Whether a dotted template outside a message slot is something else, as dotted literals are skipped: a file name
+ * (its last fixed part), a permission key or a declared non-message literal (its shape matches one, or the registry
+ * declares its text), or the value of a JSX attribute that holds no message.
+ */
+function isNonMessageTemplate(
+  node: ts.TemplateExpression,
+  id: TemplateMessageId,
+  nonMessage: ReadonlySet<string>,
+): boolean {
+  const tail = node.templateSpans.at(-1)?.literal.text ?? '';
+  if (FILE_LIKE.test(tail) || nonMessage.has(id.text) || isInNonMessageAttribute(node)) return true;
+  const { pattern } = id;
+  if (pattern === null) return false;
+  return PERMISSION_KEYS.some((key) => pattern.test(key)) || [...nonMessage].some((literal) => pattern.test(literal));
+}
+
+/**
+ * The template id a template literal builds, or `null`. Any template given to a message call counts; a template in a
+ * `title` value or a message constant counts with a dotted head (so `` title: `${name} – Settings` `` does not);
+ * anywhere else (a variable, a builder's return, a JSX `id`) a dotted head counts unless `isNonMessageTemplate`.
+ */
+function templateMessageId(
+  node: ts.TemplateExpression,
+  file: ts.SourceFile,
+  nonMessage: ReadonlySet<string>,
+): TemplateMessageId | null {
+  const id = messageIdOf(templateSegments(node, file));
+  if (isMessageCallArgument(messageSlot(node))) return id;
+  if (!DOTTED_TEMPLATE_HEAD.test(node.head.text)) return null;
+  if (isExplicitMessage(node)) return id;
+  return isNonMessageTemplate(node, id, nonMessage) ? null : id;
+}
+
+/** Whether `node` is the whole of a `+` chain that sits in a message slot, such as `i18n._('orders.' + s)`. */
+const isConcatenatedMessage = (node: ts.Node): node is ts.BinaryExpression =>
+  isPlus(node) && !isPlus(node.parent) && isExplicitMessage(node);
+
+/** The operands of a `+` chain that are expressions rather than text, which may hold message calls of their own. */
+function concatHoles(node: ts.Expression): ts.Expression[] {
+  if (isPlus(node)) return [...concatHoles(node.left), ...concatHoles(node.right)];
+  if (ts.isParenthesizedExpression(node)) return concatHoles(node.expression);
+  const isText = ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateExpression(node);
+  return isText ? [] : [node];
 }
 
 /**
  * Scans a dashboard file. A literal counts when it is (or may be, through `?:`, `??`, `||`, the right side of `&&`,
  * parentheses, `as`, `satisfies` or `!`) the argument of a message call, a `title`/`titleId` value or a
  * `*_MESSAGE_ID`/`*_TITLE` constant, or when it is any dotted literal other than a module specifier, a file name, a
- * permission key or one of `nonMessageLiterals`. A template literal with substitutions is a template id when a message
- * call receives it or its fixed head starts like a dotted id (see `isTemplateMessageId`). Comments are not code.
+ * permission key or one of `nonMessageLiterals`. A template literal with substitutions is a template id as
+ * `templateMessageId` decides; a `+` chain in one of those message slots is one too. Comments are not code.
  */
 export function scanDashboardSource(source: DashboardSource, nonMessageLiterals: ReadonlySet<string>): ScannedMessages {
   const kind = source.path.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
@@ -138,7 +214,13 @@ export function scanDashboardSource(source: DashboardSource, nonMessageLiterals:
   const ids: string[] = [];
   const templates: TemplateMessageId[] = [];
   const visit = (node: ts.Node): void => {
-    if (ts.isTemplateExpression(node) && isTemplateMessageId(node)) templates.push(templateMessageId(node, file));
+    if (isConcatenatedMessage(node)) {
+      templates.push(messageIdOf(concatSegments(node, file)));
+      concatHoles(node).forEach(visit);
+      return;
+    }
+    const template = ts.isTemplateExpression(node) ? templateMessageId(node, file, nonMessageLiterals) : null;
+    if (template !== null) templates.push(template);
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       if (isModuleSpecifier(node)) return;
       if (isExplicitMessage(node) || isGenericMessage(node.text, nonMessageLiterals)) ids.push(node.text);
