@@ -106,10 +106,9 @@ function ListBody(props: {
   );
 }
 
-/** Create product, for holders of the create key; nothing for the others. */
-function CreateButton({ held, storeAlias }: { readonly held: ReadonlySet<string>; readonly storeAlias: string }) {
+/** Create product; the page shows it to holders of the create key only. */
+function CreateButton({ storeAlias }: { readonly storeAlias: string }) {
   const { i18n } = useLingui();
-  if (!held.has(CREATE_PRODUCTS_KEY)) return null;
   return (
     <Button data-testid={CREATE_PRODUCT_TEST_ID} render={<Link to={storePathFor(NEW_PRODUCT_PATH, storeAlias)} />}>
       {i18n._('catalog.create-product')}
@@ -204,12 +203,15 @@ export function ProductListPage({ store }: ShellPageProps): ReactNode {
   return (
     <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID}>
       <PageTitle>{i18n._('catalog.products-title')}</PageTitle>
-      {/* A direct child: the page puts only its own `PageActionBar` children in the title row. */}
-      <PageActionBar>
-        <ActionBarItem itemId={CREATE_ACTION_ID}>
-          <CreateButton held={held} storeAlias={storeAlias} />
-        </ActionBarItem>
-      </PageActionBar>
+      {/* A direct child: the page puts only its own `PageActionBar` children in the title row. Without the create
+          key there is no bar at all, so the title row keeps no empty action slot. */}
+      {held.has(CREATE_PRODUCTS_KEY) && (
+        <PageActionBar>
+          <ActionBarItem itemId={CREATE_ACTION_ID}>
+            <CreateButton storeAlias={storeAlias} />
+          </ActionBarItem>
+        </PageActionBar>
+      )}
       <PageLayout>
         <FullWidthPageBlock blockId={LIST_BLOCK_ID}>
           <ProductList scope={scope} held={held} onCommand={rows.onCommand} />

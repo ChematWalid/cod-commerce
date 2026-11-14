@@ -69,8 +69,52 @@ describe('VendureProductSearch', () => {
 
     // Assert
     expect(ids).toEqual(['1', '2', '3', '4', '5', '6']);
-    const takes = [...productFindAll.mock.calls, ...variantFindAll.mock.calls].map(([, options]) => options.take);
-    expect(Math.max(...takes)).toBeLessThanOrEqual(2);
+    const calls = [...productFindAll.mock.calls, ...variantFindAll.mock.calls].map(([, options]) => options);
+    expect(Math.max(...calls.map((options) => options.take))).toBeLessThanOrEqual(2);
+    // Without an order, Postgres may hand back consecutive pages that overlap or skip rows.
+    for (const options of calls) expect(options).toEqual(expect.objectContaining({ sort: { id: 'ASC' } }));
+  });
+
+  it('stops at the match limit when a term matches more, trimming the last page and logging the cut', async () => {
+    // Arrange: a 300-row page reads 300, 300, 300, then only the 100 rows left under the limit.
+    const warned = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+    const rows = Array.from({ length: SEARCH_MATCH_LIMIT + 1 }, (_, index) => ({ id: index + 1 }));
+    const productFindAll = vi.fn(pagedOver(rows));
+    const wideConfig = {
+      apiOptions: { adminListQueryLimit: 1000, shopListQueryLimit: 300 },
+    } as unknown as ConfigService;
+    const search = new VendureProductSearch(
+      { findAll: productFindAll } as unknown as ProductService,
+      { findAll: vi.fn(pagedOver([])) } as unknown as ProductVariantService,
+      wideConfig,
+    );
+
+    // Act
+    const ids = await search.matchingProductIds(asOperationContext({ apiType: 'shop' }), 'SHOE');
+
+    // Assert
+    expect(ids).toHaveLength(SEARCH_MATCH_LIMIT);
+    expect(productFindAll.mock.calls.map(([, options]) => options.take)).toEqual([300, 300, 300, 100]);
+    expect(warned).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops paging at a short page, even when the total promises more', async () => {
+    // Arrange: the total counts 5 rows, but the second page comes back short (rows gone between the two reads).
+    const productFindAll = vi.fn((_ctx: unknown, options: { skip: number; take: number }) =>
+      page([{ id: 1 }, { id: 2 }, { id: 3 }].slice(options.skip, options.skip + options.take), 5),
+    );
+    const search = new VendureProductSearch(
+      { findAll: productFindAll } as unknown as ProductService,
+      { findAll: vi.fn(pagedOver([])) } as unknown as ProductVariantService,
+      config,
+    );
+
+    // Act
+    const ids = await search.matchingProductIds(asOperationContext({ apiType: 'shop' }), 'SHOE');
+
+    // Assert
+    expect(ids).toEqual(['1', '2', '3']);
+    expect(productFindAll).toHaveBeenCalledTimes(2);
   });
 
   it('logs a warning, without the text, when a pre-query is cut at the limit', async () => {

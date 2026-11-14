@@ -11,6 +11,9 @@ interface ListAnswer {
   readonly catalogProducts: { totalItems: number; items: { id: string; title: string; status: string }[] };
 }
 
+/** The REST list's body, as far as these tests read it. */
+type RestAnswerOf = ListAnswer['catalogProducts'];
+
 describe('product list and search (AC4, D2123)', () => {
   let byName: ProductResult;
   let bySku: ProductResult;
@@ -102,6 +105,26 @@ describe('product list and search (AC4, D2123)', () => {
     // Act / Assert
     expect(await titles({ tab: 'draft' })).toEqual(['Zebra draft']);
     expect(await titles({ tab: 'draft', q: 'zebra' })).toEqual(['Zebra draft']);
+  });
+
+  it('searches through REST, where Vendure sees the shop API and its smaller list cap, in the calling store only', async () => {
+    // Arrange: B holds a product the term matches too; it must never reach A's answer.
+    const { a, b } = suite.fixtures;
+    await suite.kit.asOwner(b);
+    await suite.kit.createProduct({ title: 'Zebra of B', sku: 'B-ZEBRA-1' });
+    await suite.kit.asOwner(a);
+    const restTitles = (answer: RestAnswerOf) => answer.items.map((item) => item.title).sort();
+
+    // Act
+    const all = await suite.kit.rest('GET', '/catalog/products?q=zebra');
+    const drafts = await suite.kit.rest('GET', '/catalog/products?tab=draft&q=zebra');
+
+    // Assert
+    expect([all.status, drafts.status]).toEqual([200, 200]);
+    expect(restTitles(all.body as RestAnswerOf)).toEqual(
+      [byName, bySku, byVariantSku, byBarcode, draft].map((product) => product.title).sort(),
+    );
+    expect(restTitles(drafts.body as RestAnswerOf)).toEqual([draft.title]);
   });
 
   it('combines the brand, tag and collection filters', async () => {

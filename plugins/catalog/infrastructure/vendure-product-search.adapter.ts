@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LogicalOperator } from '@vendure/common/lib/generated-types';
+import { LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
 import {
   ConfigService,
   type ListQueryOptions,
@@ -27,6 +27,8 @@ interface ListPage<T> {
  */
 export const SEARCH_MATCH_LIMIT = 1000;
 const LOG_CONTEXT = 'CatalogSearch';
+/** A unique order: Vendure adds none of its own, and unordered pages may overlap or skip rows in Postgres. */
+const BY_ID = { id: SortOrder.ASC };
 
 /**
  * {@link ProductSearchPort} on Vendure's services (D2123), gate-safe: products whose name holds the text through
@@ -35,7 +37,7 @@ const LOG_CONTEXT = 'CatalogSearch';
  * `sku` filter joins every variant, soft-deleted ones included, so SKUs are never searched through it.
  *
  * A REST call reaches Vendure as the shop API, whose list cap (100) is below {@link SEARCH_MATCH_LIMIT}: asking past
- * it fails the whole call, so the pre-queries are read in pages no larger than the cap of the call's API.
+ * it fails the whole call, so the pre-queries are read, ordered by id, in pages no larger than the cap of the call's API.
  */
 @Injectable()
 export class VendureProductSearch implements ProductSearchPort {
@@ -48,10 +50,11 @@ export class VendureProductSearch implements ProductSearchPort {
   async matchingProductIds(ctx: OperationContext, text: string): Promise<readonly CoreId[]> {
     const request = toRequestContext(ctx);
     const pageSize = this.pageSizeFor(request.apiType);
-    const byName = { filter: { name: { contains: text } } } as ListQueryOptions<Product>;
+    const byName = { filter: { name: { contains: text } }, sort: BY_ID } as ListQueryOptions<Product>;
     const byCode = {
       filter: { sku: { contains: text }, barcode: { contains: text } },
       filterOperator: LogicalOperator.OR,
+      sort: BY_ID,
     } as ListQueryOptions<ProductVariant>;
     const [products, variants] = await Promise.all([
       readPaged(pageSize, (page) => this.products.findAll(request, { ...byName, ...page }, [])),
