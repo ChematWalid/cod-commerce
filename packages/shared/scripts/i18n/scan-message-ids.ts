@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { PERMISSION_CATALOG, isPermissionKey } from '../../src/permissions';
+import { isPermissionKey } from '../../src/permissions';
 
 /** A dashboard source file, by its path (for the parser's dialect) and its text. */
 export interface DashboardSource {
@@ -21,6 +21,15 @@ const MESSAGE_PROPERTIES: ReadonlySet<string> = new Set(['title', 'titleId']);
 
 /** Constants whose literal value is a catalogue id, whatever its shape. */
 const MESSAGE_CONSTANT = /_(?:MESSAGE_ID|TITLE)$/;
+
+/** JSX attributes whose value is a catalogue id; any other (`data-testid`, `className`) holds no message. */
+const MESSAGE_ATTRIBUTES: ReadonlySet<string> = new Set(['id', 'message']);
+
+/** Lingui's element, whose `id`/`message` is a catalogue id; on any other element `id` is a DOM id. */
+const MESSAGE_ELEMENT = 'Trans';
+
+/** Calls whose argument is a permission key, never a message: `hasPermission(key)`, `user.can(key)`. */
+const PERMISSION_CALLS: ReadonlySet<string> = new Set(['hasPermission', 'can']);
 
 type Literal = ts.StringLiteral | ts.NoSubstitutionTemplateLiteral;
 
@@ -68,11 +77,38 @@ function isMessageCallArgument(slot: ts.Node): boolean {
   return ts.isPropertyAccessExpression(callee) && MESSAGE_CALLS.has(callee.name.text);
 }
 
-/** Whether the value sits where only a catalogue id belongs: a message call, a title property, a message constant. */
+/** Whether `slot` is an argument of a permission call, such as `hasPermission(`orders.${verb}`)`. */
+function isPermissionCallArgument(slot: ts.Node): boolean {
+  const { parent } = slot;
+  if (!ts.isCallExpression(parent) || !parent.arguments.some((argument) => argument === slot)) return false;
+  const callee = parent.expression;
+  const name = ts.isPropertyAccessExpression(callee) ? callee.name.text : callee.getText();
+  return PERMISSION_CALLS.has(name);
+}
+
+/** The JSX attribute that holds `slot`, written `id="…"` or `id={…}`, or `null`. */
+function enclosingAttribute(slot: ts.Node): ts.JsxAttribute | null {
+  const { parent } = slot;
+  if (ts.isJsxAttribute(parent)) return parent;
+  return ts.isJsxExpression(parent) && ts.isJsxAttribute(parent.parent) ? parent.parent : null;
+}
+
+/** Whether the attribute is the `id` or `message` of a `<Trans>` element. */
+function isTransMessageAttribute(attribute: ts.JsxAttribute): boolean {
+  if (!MESSAGE_ATTRIBUTES.has(attribute.name.getText())) return false;
+  return attribute.parent.parent.tagName.getText() === MESSAGE_ELEMENT;
+}
+
+/**
+ * Whether the value sits where only a catalogue id belongs: a message call, a title property, a message constant, the
+ * `id` or `message` of a `<Trans>` element.
+ */
 function isExplicitMessage(node: ts.Node): boolean {
   const slot = messageSlot(node);
   const { parent } = slot;
   if (isMessageCallArgument(slot)) return true;
+  const attribute = enclosingAttribute(slot);
+  if (attribute !== null) return isTransMessageAttribute(attribute);
   if (ts.isPropertyAssignment(parent) && parent.initializer === slot) {
     return ts.isIdentifier(parent.name) && MESSAGE_PROPERTIES.has(parent.name.text);
   }
@@ -114,11 +150,6 @@ const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/
 /** The fixed head of a template that builds a catalogue id wherever it is written: `` `orders.status.${s}` ``. */
 const DOTTED_TEMPLATE_HEAD = /^[a-z][a-z0-9-]*\./;
 
-/** JSX attributes whose value is a catalogue id; any other (`data-testid`, `className`) holds no message. */
-const MESSAGE_ATTRIBUTES: ReadonlySet<string> = new Set(['id', 'message']);
-
-const PERMISSION_KEYS: readonly string[] = PERMISSION_CATALOG.map((entry) => entry.key);
-
 /** One piece of an id built at run time: text written in the source, or an expression filled in at run time. */
 type Segment = { readonly fixed: string } | { readonly hole: string };
 
@@ -133,12 +164,21 @@ function templateSegments(node: ts.TemplateExpression, file: ts.SourceFile): Seg
 const isPlus = (node: ts.Node): node is ts.BinaryExpression =>
   ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken;
 
-function concatSegments(node: ts.Expression, file: ts.SourceFile): Segment[] {
-  if (isPlus(node)) return [...concatSegments(node.left, file), ...concatSegments(node.right, file)];
-  if (ts.isParenthesizedExpression(node)) return concatSegments(node.expression, file);
+function rawConcatSegments(node: ts.Expression, file: ts.SourceFile): Segment[] {
+  if (isPlus(node)) return [...rawConcatSegments(node.left, file), ...rawConcatSegments(node.right, file)];
+  if (ts.isParenthesizedExpression(node)) return rawConcatSegments(node.expression, file);
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [{ fixed: node.text }];
   if (ts.isTemplateExpression(node)) return templateSegments(node, file);
   return [{ hole: node.getText(file) }];
+}
+
+/** The pieces of a `+` chain, with adjacent fixed text joined: `'demo' + '.x.' + s` starts with `demo.x.`. */
+function concatSegments(node: ts.Expression, file: ts.SourceFile): Segment[] {
+  return rawConcatSegments(node, file).reduce<Segment[]>((joined, part) => {
+    const last = joined.at(-1);
+    if (last === undefined || !('fixed' in last) || !('fixed' in part)) return [...joined, part];
+    return [...joined.slice(0, -1), { fixed: last.fixed + part.fixed }];
+  }, []);
 }
 
 function messageIdOf(segments: readonly Segment[]): TemplateMessageId {
@@ -148,50 +188,62 @@ function messageIdOf(segments: readonly Segment[]): TemplateMessageId {
   return { text, pattern: new RegExp(`^${source}$`) };
 }
 
-/** Whether the template sits in a JSX attribute that holds no message, such as `data-testid={`row.${id}`}`. */
+/** Whether the value sits in a JSX attribute that holds no message, such as `data-testid={`row.${id}`}`. */
 function isInNonMessageAttribute(node: ts.Node): boolean {
-  const { parent } = messageSlot(node);
-  if (!ts.isJsxExpression(parent) || !ts.isJsxAttribute(parent.parent)) return false;
-  return !MESSAGE_ATTRIBUTES.has(parent.parent.name.getText());
+  const attribute = enclosingAttribute(messageSlot(node));
+  return attribute !== null && !MESSAGE_ATTRIBUTES.has(attribute.name.getText());
 }
 
 /**
- * Whether a dotted template outside a message slot is something else, as dotted literals are skipped: a file name
- * (its last fixed part), a permission key or a declared non-message literal (its shape matches one, or the registry
- * declares its text), or the value of a JSX attribute that holds no message.
+ * Whether a dotted id built outside a message slot is something else, as dotted literals are skipped: a file name (its
+ * last fixed part), a template whose text the registry declares as a non-message literal, the value of a JSX attribute
+ * that holds no message, or an argument of a permission call. Its shape alone never skips it: a namespace holding one
+ * permission key or nav leaf id would hide every message template in it.
  */
-function isNonMessageTemplate(
-  node: ts.TemplateExpression,
+function isNonMessageId(
+  node: ts.Node,
+  segments: readonly Segment[],
   id: TemplateMessageId,
   nonMessage: ReadonlySet<string>,
 ): boolean {
-  const tail = node.templateSpans.at(-1)?.literal.text ?? '';
-  if (FILE_LIKE.test(tail) || nonMessage.has(id.text) || isInNonMessageAttribute(node)) return true;
-  const { pattern } = id;
-  if (pattern === null) return false;
-  return PERMISSION_KEYS.some((key) => pattern.test(key)) || [...nonMessage].some((literal) => pattern.test(literal));
+  const last = segments.at(-1);
+  const tail = last !== undefined && 'fixed' in last ? last.fixed : '';
+  if (FILE_LIKE.test(tail) || nonMessage.has(id.text)) return true;
+  return isInNonMessageAttribute(node) || isPermissionCallArgument(messageSlot(node));
 }
+
+const startsWithDottedHead = (segments: readonly Segment[]): boolean => {
+  const [first] = segments;
+  return first !== undefined && 'fixed' in first && DOTTED_TEMPLATE_HEAD.test(first.fixed);
+};
 
 /**
- * The template id a template literal builds, or `null`. Any template given to a message call counts; a template in a
- * `title` value or a message constant counts with a dotted head (so `` title: `${name} – Settings` `` does not);
- * anywhere else (a variable, a builder's return, a JSX `id`) a dotted head counts unless `isNonMessageTemplate`.
+ * The id a template literal or a `+` chain builds at run time, or `null`. One given to a message call always counts;
+ * anywhere else (a `title` value, a message constant, a variable, a builder's return, a `<Trans>` attribute) it counts
+ * only when it starts with fixed dotted text (so `` title: `${name} – Settings` `` and `title: name + ' – Settings'`
+ * do not), and outside those message slots only unless `isNonMessageId`.
  */
-function templateMessageId(
-  node: ts.TemplateExpression,
-  file: ts.SourceFile,
+function dynamicMessageId(
+  node: ts.Node,
+  segments: readonly Segment[],
   nonMessage: ReadonlySet<string>,
 ): TemplateMessageId | null {
-  const id = messageIdOf(templateSegments(node, file));
+  const id = messageIdOf(segments);
   if (isMessageCallArgument(messageSlot(node))) return id;
-  if (!DOTTED_TEMPLATE_HEAD.test(node.head.text)) return null;
+  if (!startsWithDottedHead(segments)) return null;
   if (isExplicitMessage(node)) return id;
-  return isNonMessageTemplate(node, id, nonMessage) ? null : id;
+  return isNonMessageId(node, segments, id, nonMessage) ? null : id;
 }
 
-/** Whether `node` is the whole of a `+` chain that sits in a message slot, such as `i18n._('orders.' + s)`. */
-const isConcatenatedMessage = (node: ts.Node): node is ts.BinaryExpression =>
-  isPlus(node) && !isPlus(node.parent) && isExplicitMessage(node);
+/** Whether `node` is the whole of a `+` chain, not one of its operands. */
+const isWholeConcatenation = (node: ts.Node): node is ts.BinaryExpression => isPlus(node) && !isPlus(node.parent);
+
+/** The id a whole `+` chain or a template literal builds at run time, or `null` (see `dynamicMessageId`). */
+function builtMessageId(node: ts.Node, file: ts.SourceFile, nonMessage: ReadonlySet<string>): TemplateMessageId | null {
+  if (isWholeConcatenation(node)) return dynamicMessageId(node, concatSegments(node, file), nonMessage);
+  if (ts.isTemplateExpression(node)) return dynamicMessageId(node, templateSegments(node, file), nonMessage);
+  return null;
+}
 
 /** The operands of a `+` chain that are expressions rather than text, which may hold message calls of their own. */
 function concatHoles(node: ts.Expression): ts.Expression[] {
@@ -205,8 +257,8 @@ function concatHoles(node: ts.Expression): ts.Expression[] {
  * Scans a dashboard file. A literal counts when it is (or may be, through `?:`, `??`, `||`, the right side of `&&`,
  * parentheses, `as`, `satisfies` or `!`) the argument of a message call, a `title`/`titleId` value or a
  * `*_MESSAGE_ID`/`*_TITLE` constant, or when it is any dotted literal other than a module specifier, a file name, a
- * permission key or one of `nonMessageLiterals`. A template literal with substitutions is a template id as
- * `templateMessageId` decides; a `+` chain in one of those message slots is one too. Comments are not code.
+ * permission key or one of `nonMessageLiterals`. A template literal with substitutions or a `+` chain is a template id
+ * as `dynamicMessageId` decides. Comments are not code.
  */
 export function scanDashboardSource(source: DashboardSource, nonMessageLiterals: ReadonlySet<string>): ScannedMessages {
   const kind = source.path.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
@@ -214,13 +266,12 @@ export function scanDashboardSource(source: DashboardSource, nonMessageLiterals:
   const ids: string[] = [];
   const templates: TemplateMessageId[] = [];
   const visit = (node: ts.Node): void => {
-    if (isConcatenatedMessage(node)) {
-      templates.push(messageIdOf(concatSegments(node, file)));
+    const built = builtMessageId(node, file, nonMessageLiterals);
+    if (built !== null) templates.push(built);
+    if (built !== null && isWholeConcatenation(node)) {
       concatHoles(node).forEach(visit);
       return;
     }
-    const template = ts.isTemplateExpression(node) ? templateMessageId(node, file, nonMessageLiterals) : null;
-    if (template !== null) templates.push(template);
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       if (isModuleSpecifier(node)) return;
       if (isExplicitMessage(node) || isGenericMessage(node.text, nonMessageLiterals)) ids.push(node.text);
