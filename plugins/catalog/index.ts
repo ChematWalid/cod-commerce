@@ -3,6 +3,21 @@
 // clients, ADR 0017). api/, application/, domain/ and dashboard/ never do. The handoff lists what later sessions use.
 export { CatalogPlugin } from './catalog.plugin';
 export { CatalogProductQueries } from './infrastructure/catalog-product-queries';
+export {
+  CATALOG_FACTS_MAX_IDS,
+  type CatalogFactsIdPage,
+  type CatalogFactsPage,
+  CatalogProductFactsReader,
+} from './infrastructure/catalog-product-facts';
+export {
+  type CatalogProductFacts,
+  type CatalogRuleName,
+  type CatalogRuleOption,
+  type CatalogRuleOptions,
+  CatalogStoreChannelMismatchError,
+  type CatalogVariantOption,
+} from './application/product-facts';
+export type { StoreScope as CatalogStoreScope } from './domain/store-scope';
 export type { ProductView } from './application/product-view';
 export type { ProductViewPage } from './application/list-products.service';
 export {

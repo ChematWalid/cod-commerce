@@ -23,6 +23,16 @@ export interface TagRepositoryPort extends CatalogNameRepositoryPort {
   /** The tag ids linked to `productId` in the scope's store, in the order they were given. */
   tagIdsOf(ctx: OperationContext, scope: StoreScope, productId: CoreId): Promise<readonly Snowflake[]>;
 
+  /**
+   * The tag ids of each of `productIds` in the scope's store, in one read (D2308): each product's ids in the order
+   * they were given; a product without a tag in the store has no entry.
+   */
+  tagIdsOfProducts(
+    ctx: OperationContext,
+    scope: StoreScope,
+    productIds: readonly CoreId[],
+  ): Promise<ReadonlyMap<CoreId, readonly Snowflake[]>>;
+
   /** The products of the scope's store that carry `tagId`, for the list's tag filter. */
   productIdsWithTag(ctx: OperationContext, scope: StoreScope, tagId: Snowflake): Promise<readonly CoreId[]>;
 }

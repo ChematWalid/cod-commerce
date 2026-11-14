@@ -26,10 +26,12 @@ import { TaxonomyResolver } from './api/taxonomy.resolver';
 import { CatalogReadService } from './application/catalog-read.service';
 import { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
 import { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE_REGISTRAR } from './application/tokens';
+import { CatalogProductFactsReader } from './infrastructure/catalog-product-facts';
 import { CatalogProductQueries } from './infrastructure/catalog-product-queries';
 import { CATALOG_ENTITIES } from './infrastructure/catalog-entities';
 import { configureCatalogCustomFields } from './infrastructure/custom-fields';
 import { PRODUCT_PROVIDERS } from './infrastructure/product.providers';
+import { VendureProductFactsQuery } from './infrastructure/vendure-product-facts.query';
 
 /** Every REST controller; the product read controller first, its `slug-availability` route before `:id` (D2103). */
 export const CATALOG_REST_CONTROLLERS = [
@@ -64,12 +66,16 @@ export const CATALOG_REST_CONTROLLERS = [
     MediaThrottle,
     CatalogTranslations,
     CatalogProductQueries,
+    VendureProductFactsQuery,
+    CatalogProductFactsReader,
   ],
   // The read facades of later sessions (D2104, D2109), the registrar team's order-manager check joins (D2114) and the
-  // registrar P6.S1's sold-out source joins (D2107); other plugins inject them from their infrastructure. The demo seed of the
+  // registrar P6.S1's sold-out source joins (D2107); collection rules read product facts through the batched reader
+  // (P2.S3, D2308); other plugins inject them from their infrastructure. The demo seed of the
   // server app gets its products through `DemoCatalogSeedService` (D2129).
   exports: [
     CatalogProductQueries,
+    CatalogProductFactsReader,
     CatalogReadService,
     DemoCatalogSeedService,
     ORDER_MANAGER_CHECK_REGISTRAR,
