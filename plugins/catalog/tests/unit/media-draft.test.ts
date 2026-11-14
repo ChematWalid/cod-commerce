@@ -1,6 +1,6 @@
 import { MAX_PRODUCT_ASSETS } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
-import { withImages, withoutImage } from '../../dashboard/model/media-draft';
+import { imagesFull, withImages, withoutImage } from '../../dashboard/model/media-draft';
 
 const none = { assetIds: [] as readonly string[], featuredAssetId: null };
 
@@ -34,5 +34,18 @@ describe('media draft', () => {
 
     // Assert
     expect(capped.assetIds).toHaveLength(MAX_PRODUCT_ASSETS);
+  });
+
+  it('is full at twenty images, so an upload would not be attached', () => {
+    // Arrange
+    const ids = (count: number): readonly string[] => Array.from({ length: count }, (_, index) => String(index + 1));
+
+    // Act
+    const belowCap = imagesFull({ assetIds: ids(MAX_PRODUCT_ASSETS - 1), featuredAssetId: '1' });
+    const atCap = imagesFull({ assetIds: ids(MAX_PRODUCT_ASSETS), featuredAssetId: '1' });
+
+    // Assert
+    expect(belowCap).toBe(false);
+    expect(atCap).toBe(true);
   });
 });

@@ -1,8 +1,9 @@
+import { MAX_PRODUCT_ASSETS } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Badge, Button } from '@vendure/dashboard';
 import { type ReactNode, useState } from 'react';
 import { useMediaLibrary } from '../editor-queries';
-import { withImages, withoutImage } from '../model/media-draft';
+import { imagesFull, withImages, withoutImage } from '../model/media-draft';
 import { MediaPickerDialog } from './media-picker-dialog';
 import { MediaUploadButton } from './media-upload-button';
 import type { ScopedSectionProps } from './section-props';
@@ -58,17 +59,42 @@ function ImageTile(props: TileProps): ReactNode {
   );
 }
 
+/**
+ * Upload a new image into the library and add it. At twenty images Upload is off and says why: an upload would reach
+ * the library but not the product.
+ */
+function UploadAction({ form, scope, disabled, onChange }: MediaSectionProps): ReactNode {
+  const { i18n } = useLingui();
+  const full = imagesFull(form);
+  return (
+    <>
+      <MediaUploadButton
+        scope={scope}
+        disabled={disabled || full}
+        onUploaded={(media) => {
+          onChange(withImages(form, [...form.assetIds, media.assetId]));
+        }}
+      />
+      {full && (
+        <p role="status" className="text-muted-foreground text-xs">
+          {i18n._('catalog.media-full', { max: MAX_PRODUCT_ASSETS })}
+        </p>
+      )}
+    </>
+  );
+}
+
 /** Choose from the library (in a dialog) or upload a new image into it. */
 function MediaActions(props: MediaSectionProps): ReactNode {
   const { i18n } = useLingui();
   const [picking, setPicking] = useState(false);
   const library = useMediaLibrary(props.scope).data ?? [];
-  const { form, scope, disabled, onChange } = props;
+  const { form, disabled, onChange } = props;
   const close = (): void => {
     setPicking(false);
   };
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         type="button"
         variant="outline"
@@ -79,12 +105,7 @@ function MediaActions(props: MediaSectionProps): ReactNode {
       >
         {i18n._('catalog.media-choose')}
       </Button>
-      <MediaUploadButton
-        {...{ scope, disabled }}
-        onUploaded={(media) => {
-          onChange(withImages(form, [...form.assetIds, media.assetId]));
-        }}
-      />
+      <UploadAction {...props} />
       {picking && (
         <MediaPickerDialog
           library={library}

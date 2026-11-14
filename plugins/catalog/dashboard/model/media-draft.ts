@@ -22,3 +22,6 @@ export const withoutImage = (draft: ImagesDraft, assetId: string): ImagesDraft =
     draft,
     draft.assetIds.filter((id) => id !== assetId),
   );
+
+/** Whether the product holds its twenty images already: one more would be dropped by {@link withImages}. */
+export const imagesFull = (draft: ImagesDraft): boolean => draft.assetIds.length >= MAX_PRODUCT_ASSETS;

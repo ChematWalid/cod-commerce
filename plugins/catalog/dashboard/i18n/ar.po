@@ -372,6 +372,10 @@ msgid "catalog.media-uploading"
 msgstr "جارٍ الرفع…"
 
 #. js-lingui-explicit-id
+msgid "catalog.media-full"
+msgstr "للمنتج {max} صورة على الأكثر. احذف صورة لإضافة أخرى."
+
+#. js-lingui-explicit-id
 msgid "catalog.media-featured"
 msgstr "الصورة الرئيسية"
 
