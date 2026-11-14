@@ -26,7 +26,7 @@ const CREATE_PRODUCT = gql`
 `;
 
 const PRODUCT_MANAGERS = gql`
-  query ($id: String!) {
+  query ($id: ID!) {
     catalogProduct(id: $id) {
       settings {
         orderManagerIds
