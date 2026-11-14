@@ -32,3 +32,4 @@ export * from './tenancy/tenant-key';
 export * from './tenancy/sold-out-behavior';
 export * from './text/control-characters';
 export * from './catalog';
+export * from './collections';

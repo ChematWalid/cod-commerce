@@ -58,6 +58,8 @@ export const QUEUES = {
   'asset-derivatives': exponential('bulk', 1, 3, 10_000),
   documents: exponential('bulk', 1, 3, 10_000),
   'platform-maintenance': exponential('bulk', 1, 3, 10_000),
+  // Collection membership recompute and store reconcile (D2312): an import of thousands of products stays off critical.
+  'catalog-effects': exponential('bulk', 3, 8, 1_000),
 } as const satisfies Record<string, QueueSpec>;
 
 export type QueueName = keyof typeof QUEUES;

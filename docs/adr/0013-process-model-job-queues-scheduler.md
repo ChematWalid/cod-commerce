@@ -205,3 +205,19 @@ This settles the three items of the activeQueues addendum.
 3. **Boot assertion.** `buildVendureConfig` throws when `activeQueues` is non-empty and the job queue strategy is not `PooledJobQueueStrategy`. The `it.fails` test of `active-queues.e2e.test.ts` keeps running on the stock strategy as the upstream signal.
 
 Cost: deep imports into `@vendure/job-queue-plugin` (`bullmq-job-queue-strategy`, `constants`, `job-list-index.service`), which a plugin upgrade must re-check; M.S1 re-runs the pool e2e. Fallback: every worker `all`.
+
+## Amendment (2026-11-14): catalog effects queue and collections reconcile (P2.S3)
+
+**Status**: Proposed (2026-11-14), listed under "ADRs to accept" in the P2.S3 handoff. Decisions D2312 and D2336 of `docs/roadmap/P2-decisions.md`.
+
+Rows added to the queue taxonomy and the scheduled tasks above:
+
+| Queue | Producers | Concurrency / worker | Retries / backoff | Pool |
+|---|---|---|---|---|
+| `catalog-effects` | outbox relay (`product.changed` → consumer `collections-membership`), collection rule saves over 2 000 products, the `collections-reconcile` sweep (job `collections.recompute-store`) | 3 | 8, exp 1 s | bulk |
+
+| Task id | Schedule | Action |
+|---|---|---|
+| `collections-reconcile` | nightly | enqueue `collections.recompute-store` on `catalog-effects` for every store with automatic collections, so membership heals from a lost delivery, a writer that published no `product.changed`, or a `NORMAL_FORM_VERSION` change |
+
+Why bulk: a catalog import of thousands of products fans out one membership recompute per product, which must not compete with `order-effects` or `dispatch`. `storefront-revalidate` is not reused (another consumer, other retry needs).

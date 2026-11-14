@@ -54,6 +54,16 @@ describe('queue registry', () => {
     expect(QUEUES['auth-email']).toMatchObject({ pool: 'critical', attempts: 5 });
   });
 
+  it('puts catalog-effects in the bulk pool with 8 attempts (D2312)', () => {
+    expect(QUEUES['catalog-effects']).toEqual({
+      pool: 'bulk',
+      concurrency: 3,
+      attempts: 8,
+      backoff: { type: 'exponential', delayMs: 1_000 },
+    });
+    expect(activeQueuesFor('bulk')).toContain('catalog-effects');
+  });
+
   it('rejects names outside the registry', () => {
     expect(isQueueName('nope')).toBe(false);
     expect(isQueueName('toString')).toBe(false);
