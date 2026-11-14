@@ -1,0 +1,50 @@
+{
+  "name": "@cod/plugin-catalog",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Products, variants, brands, tags, highlights, product settings and the media library of a store (P2.S1).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && cod-typecheck-own dashboard/tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/plugin-auth": "workspace:*",
+    "@cod/plugin-merchant-shell": "workspace:*",
+    "@cod/plugin-platform-outbox": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/plugin-rbac": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
+    "@cod/shared": "workspace:*",
+    "@lingui/react": "5.9.5",
+    "@nestjs/common": "12.4.0",
+    "@nestjs/graphql": "14.0.3",
+    "@tanstack/react-query": "5.107.1",
+    "@tanstack/react-router": "1.170.46",
+    "@vendure/core": "3.8.1",
+    "@vendure/dashboard": "3.8.1",
+    "graphql-tag": "2.12.7",
+    "react": "19.3.0",
+    "typeorm": "0.3.31",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/plugin-platform-jobs": "workspace:*",
+    "@cod/plugin-platform-partitions": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@vendure/testing": "3.8.1",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

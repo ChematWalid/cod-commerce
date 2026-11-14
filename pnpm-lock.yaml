@@ -80,6 +80,9 @@ importers:
       '@cod/plugin-auth':
         specifier: workspace:*
         version: link:../../plugins/auth
+      '@cod/plugin-catalog':
+        specifier: workspace:*
+        version: link:../../plugins/catalog
       '@cod/plugin-merchant-shell':
         specifier: workspace:*
         version: link:../../plugins/merchant-shell
@@ -136,7 +139,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       '@vendure/harden-plugin':
         specifier: 3.8.1
         version: 3.8.1(@apollo/server@5.5.1(graphql@16.15.0))(graphql@16.15.0)
@@ -359,7 +362,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       graphql-tag:
         specifier: 2.12.7
         version: 2.12.7(graphql@16.15.0)
@@ -432,7 +435,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       graphql-tag:
         specifier: 2.12.7
         version: 2.12.7(graphql@16.15.0)
@@ -474,6 +477,94 @@ importers:
         specifier: 5.1.0
         version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
+  plugins/catalog:
+    dependencies:
+      '@cod/plugin-auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@cod/plugin-merchant-shell':
+        specifier: workspace:*
+        version: link:../merchant-shell
+      '@cod/plugin-platform-outbox':
+        specifier: workspace:*
+        version: link:../platform-outbox
+      '@cod/plugin-rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
+      '@cod/plugin-rbac':
+        specifier: workspace:*
+        version: link:../rbac
+      '@cod/plugin-tenancy':
+        specifier: workspace:*
+        version: link:../tenancy
+      '@cod/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@lingui/react':
+        specifier: 5.9.5
+        version: 5.9.5(@lingui/babel-plugin-lingui-macro@5.9.5(typescript@5.9.3))(react@19.3.0)
+      '@nestjs/common':
+        specifier: 12.4.0
+        version: 12.4.0(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/graphql':
+        specifier: 14.0.3
+        version: 14.0.3(@nestjs/common@12.4.0(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.4.0)(graphql@16.15.0)(reflect-metadata@0.2.2)(typescript@5.9.3)
+      '@tanstack/react-query':
+        specifier: 5.107.1
+        version: 5.107.1(@types/react@19.3.0)(react@19.3.0)
+      '@tanstack/react-router':
+        specifier: 1.170.46
+        version: 1.170.46(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@vendure/core':
+        specifier: 3.8.1
+        version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
+      '@vendure/dashboard':
+        specifier: 3.8.1
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+      graphql-tag:
+        specifier: 2.12.7
+        version: 2.12.7(graphql@16.15.0)
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      typeorm:
+        specifier: 0.3.31
+        version: 0.3.31(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@cod/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@cod/plugin-platform-jobs':
+        specifier: workspace:*
+        version: link:../platform-jobs
+      '@cod/plugin-platform-partitions':
+        specifier: workspace:*
+        version: link:../platform-partitions
+      '@cod/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@vendure/testing':
+        specifier: 3.8.1
+        version: 3.8.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: 7.3.7
+        version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+
   plugins/merchant-shell:
     dependencies:
       '@cod/shared':
@@ -496,7 +587,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@19.3.0)
@@ -554,7 +645,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       graphql-tag:
         specifier: 2.12.7
         version: 2.12.7(graphql@16.15.0)
@@ -973,7 +1064,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -1055,7 +1146,7 @@ importers:
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
       '@vendure/dashboard':
         specifier: 3.8.1
-        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
+        version: 3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)
       graphql-tag:
         specifier: 2.12.7
         version: 2.12.7(graphql@16.15.0)
@@ -10076,7 +10167,7 @@ snapshots:
       tailwindcss: 4.3.5
       tw-animate-css: 1.4.0
 
-  '@vendure-io/ui@2.2.0(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vendure-io/design-tokens@2.0.0)(next-themes@0.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@vendure-io/ui@2.2.0(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vendure-io/design-tokens@2.0.0)(next-themes@0.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@shikijs/langs': 3.23.0
@@ -10202,7 +10293,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@vendure/dashboard@3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)':
+  '@vendure/dashboard@3.8.1(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(@tanstack/router-core@1.171.39)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/extensions@3.33.0(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0))(@types/node@24.19.2)(csstype@3.2.3)(esbuild@0.28.2)(eslint@9.39.5(jiti@2.7.0))(express@5.3.0)(jiti@2.7.0)(lightningcss@1.33.0)(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(rollup@4.68.0)(typescript@5.9.3)(yaml@2.9.1)':
     dependencies:
       '@babel/core': 7.29.13
       '@babel/preset-react': 7.29.7(@babel/core@7.29.13)
@@ -10237,7 +10328,7 @@ snapshots:
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
       '@uidotdev/usehooks': 2.4.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@vendure-io/design-tokens': 2.0.0
-      '@vendure-io/ui': 2.2.0(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vendure-io/design-tokens@2.0.0)(next-themes@0.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(next@16.4.5(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@vendure-io/ui': 2.2.0(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vendure-io/design-tokens@2.0.0)(next-themes@0.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(next@16.4.5(@babel/core@7.29.13)(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@vitejs/plugin-react': 5.2.0(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
       acorn: 8.19.0
       acorn-walk: 8.3.5
