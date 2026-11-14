@@ -37,6 +37,17 @@ const LONE_SURROGATE = /\p{Cs}/u;
 /** Path segments that would climb out of, or stay at, the tenant prefix on path-normalising stores. */
 const DOT_SEGMENTS: ReadonlySet<string> = new Set(['.', '..']);
 
+/**
+ * `%` is refused in object parts: a store or proxy that percent-decodes before normalising the path
+ * would read `%2e%2e` as `..` and `%2F` as `/`, climbing into another tenant's prefix.
+ */
+const PERCENT_ENCODING = /%/u;
+
+/** Longest object key S3 and R2 accept, counted in UTF-8 bytes. */
+export const MAX_OBJECT_KEY_BYTES = 1024;
+
+const utf8 = new TextEncoder();
+
 /** The tenant a key or object belongs to: a business, optionally narrowed to one of its stores. */
 export interface TenantKeyScope {
   readonly businessId: BusinessId;
@@ -52,6 +63,15 @@ export class InvalidTenantKeyPartError extends DomainError {
 
   constructor(part: unknown) {
     super(`Invalid tenant key part: ${previewValue(part)}`);
+  }
+}
+
+/** Thrown when a tenant object key is longer than {@link MAX_OBJECT_KEY_BYTES} once UTF-8 encoded. */
+export class ObjectKeyTooLongError extends DomainError {
+  readonly code = 'tenancy.object-key-too-long';
+
+  constructor(byteLength: number) {
+    super(`Tenant object key is ${String(byteLength)} bytes, over the ${String(MAX_OBJECT_KEY_BYTES)}-byte limit`);
   }
 }
 
@@ -83,7 +103,7 @@ function checkedPart(part: unknown): string {
 }
 
 function checkedObjectPart(part: unknown): string {
-  if (typeof part === 'string' && DOT_SEGMENTS.has(part)) {
+  if (typeof part === 'string' && (DOT_SEGMENTS.has(part) || PERCENT_ENCODING.test(part))) {
     throw new InvalidTenantKeyPartError(part);
   }
   return checkedPart(part);
@@ -114,11 +134,19 @@ export function tenantObjectPrefix(scope: TenantKeyScope): string {
 /**
  * Builds a full tenant object key: `b/{businessId}[/s/{storeId}]/{parts joined by '/'}` (ADR 0002 §5).
  * Prefer it to appending to {@link tenantObjectPrefix}: each part is checked, so a business object
- * can never start with a store segment nor climb out of its prefix.
+ * can never start with a store segment nor climb out of its prefix through a literal or
+ * percent-encoded dot segment or separator.
  *
  * @throws {@link InvalidBusinessIdError} or `InvalidSnowflakeError` (`ids.invalid-snowflake`) when an id of `scope` is invalid
- * @throws {@link InvalidTenantKeyPartError} on the {@link tenantKey} part rules, and for a `.` or `..` part
+ * @throws {@link InvalidTenantKeyPartError} on the {@link tenantKey} part rules, for a `.` or `..` part,
+ *   and for a part holding `%`
+ * @throws {@link ObjectKeyTooLongError} when the key is longer than {@link MAX_OBJECT_KEY_BYTES} in UTF-8
  */
 export function tenantObjectKey(scope: TenantKeyScope, first: string, ...rest: readonly string[]): string {
-  return `${tenantObjectPrefix(scope)}${[first, ...rest].map(checkedObjectPart).join(OBJECT_SEPARATOR)}`;
+  const key = `${tenantObjectPrefix(scope)}${[first, ...rest].map(checkedObjectPart).join(OBJECT_SEPARATOR)}`;
+  const byteLength = utf8.encode(key).length;
+  if (byteLength > MAX_OBJECT_KEY_BYTES) {
+    throw new ObjectKeyTooLongError(byteLength);
+  }
+  return key;
 }

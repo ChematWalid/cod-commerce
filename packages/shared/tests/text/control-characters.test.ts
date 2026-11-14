@@ -29,6 +29,15 @@ describe('hasControlCharacter', () => {
     expect(hasControlCharacter('حذاء رياضي أحمر 👟')).toBe(false);
   });
 
+  it('keeps Arabic text with bidi marks and isolates', () => {
+    // Arrange: RLM, LRM, an RLE...PDF embedding and an RLI...PDI isolate around a Latin SKU
+    const value = '\u200Fحذاء \u2067SKU-1\u2069 \u202Bمقاس\u202C\u200E';
+
+    // Act + Assert
+    expect(hasControlCharacter(value)).toBe(false);
+    expect(hasControlCharacter(value, { allowLineBreaks: true })).toBe(false);
+  });
+
   it('finds a C1 control', () => {
     expect(hasControlCharacter('a\u0085b')).toBe(true);
     expect(hasControlCharacter('a\u009Bb', { allowLineBreaks: true })).toBe(true);

@@ -72,6 +72,8 @@ const RUNTIME_EXPORTS = [
   'tenantObjectPrefix',
   'tenantObjectKey',
   'InvalidTenantKeyPartError',
+  'MAX_OBJECT_KEY_BYTES',
+  'ObjectKeyTooLongError',
 ] as const;
 
 describe('@cod/shared entry point', () => {

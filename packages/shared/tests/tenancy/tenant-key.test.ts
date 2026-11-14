@@ -4,6 +4,8 @@ import {
   InvalidBusinessIdError,
   InvalidSnowflakeError,
   InvalidTenantKeyPartError,
+  MAX_OBJECT_KEY_BYTES,
+  ObjectKeyTooLongError,
   type StoreId,
   tenantKey,
   tenantObjectKey,
@@ -208,5 +210,35 @@ describe('tenantObjectKey', () => {
     const noParts = tenantObjectKey as unknown as (scope: { businessId: BusinessId }) => string;
 
     expect(() => noParts({ businessId: BUSINESS_A })).toThrow(InvalidTenantKeyPartError);
+  });
+
+  it('refuses percent-encoded dot segments and separators', () => {
+    // A store that decodes before normalising would read `%2e%2e` as `..` and `%2F` as `/`.
+    for (const part of ['%2e%2e', '%2E', '..%2F..%2Fb%2F7%2Fx.png', 'a%5Cb', '100%']) {
+      expect(() => tenantObjectKey({ businessId: BUSINESS_A }, 'source', part)).toThrow(InvalidTenantKeyPartError);
+    }
+  });
+
+  it('accepts a key of exactly the store limit in UTF-8 bytes', () => {
+    // Arrange: 'b/1/' is 4 bytes, each Arabic letter 2 bytes
+    const part = 'ح'.repeat((MAX_OBJECT_KEY_BYTES - 4) / 2);
+
+    // Act
+    const key = tenantObjectKey({ businessId: BUSINESS_A }, part);
+
+    // Assert
+    expect(new TextEncoder().encode(key).length).toBe(MAX_OBJECT_KEY_BYTES);
+  });
+
+  it('refuses a key longer than the store limit in UTF-8 bytes', () => {
+    // Arrange: fewer than 1024 UTF-16 units, but more than 1024 UTF-8 bytes
+    const part = 'ح'.repeat((MAX_OBJECT_KEY_BYTES - 4) / 2 + 1);
+
+    // Act + Assert
+    expect(part.length).toBeLessThan(MAX_OBJECT_KEY_BYTES);
+    expect(() => tenantObjectKey({ businessId: BUSINESS_A }, part)).toThrow(ObjectKeyTooLongError);
+    expect(() => tenantObjectKey({ businessId: BUSINESS_A }, 'x'.repeat(5000))).toThrow(
+      expect.objectContaining({ code: 'tenancy.object-key-too-long' }),
+    );
   });
 });
