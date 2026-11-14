@@ -261,11 +261,18 @@ describe('findDashboardStyleViolations closes the SHELL-4 bypasses (#125)', () =
   });
 });
 
-describe('plugin dashboards', () => {
-  it('hold no physical utility and no colour literal', () => {
-    const pluginsDir = join(repoRoot, 'plugins');
-    const files = existsSync(pluginsDir) ? collect(pluginsDir) : [];
+/** The whole-repo scan parses every dashboard file; dashboards grow and CI runners are loaded. */
+const REPO_SCAN_TIMEOUT_MS = 30_000;
 
-    expect(findDashboardStyleViolations(files)).toEqual([]);
-  });
+describe('plugin dashboards', () => {
+  it(
+    'hold no physical utility and no colour literal',
+    () => {
+      const pluginsDir = join(repoRoot, 'plugins');
+      const files = existsSync(pluginsDir) ? collect(pluginsDir) : [];
+
+      expect(findDashboardStyleViolations(files)).toEqual([]);
+    },
+    REPO_SCAN_TIMEOUT_MS,
+  );
 });

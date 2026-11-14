@@ -1,13 +1,20 @@
 import type { SourceFile } from './branding';
-import { inspectInlineStyles } from './inline-styles';
+import { type InlineStyleFindings, inspectInlineStyles } from './inline-styles';
 import { findNamedColourWords, findNamedCssColours, isColourProperty, isNamedColour } from './named-colours';
 import { isPhysicalDeclaration } from './physical-declarations';
 
 /** Dashboard sources of a plugin: `plugins/<name>/dashboard/**` TypeScript, TSX and CSS (ADR 0005, ADR 0010). */
 const DASHBOARD_SOURCE = /^plugins\/[^/]+\/dashboard\/.+\.(?:ts|tsx|css)$/;
 
+/**
+ * The inside of an arbitrary `[…]` part. It never holds `[`, a quote or a space and stays short, so a long unbroken
+ * line (`[a[a[a…`) cannot make the scan backtrack quadratically.
+ */
+const BRACKET_BODY = String.raw`[^\]\s\["'\x60]{0,200}`;
+const BRACKET_PART = String.raw`\[${BRACKET_BODY}\]`;
+
 /** A variant prefix: a plain one (`md:`, `group-data-open:`) or one holding an arbitrary `[…]` part (`has-[.open]:`). */
-const VARIANTS = String.raw`((?:(?:[\w&>*=-]|\[[^\]\s]*\])+:)*)`;
+const VARIANTS = String.raw`((?:(?:[\w&>*=-]|${BRACKET_PART})+:)*)`;
 /** An optional negative sign and the utility itself. */
 const UTILITY = String.raw`(-?[a-z][\w-]*)`;
 
@@ -29,7 +36,10 @@ const PHYSICAL_UTILITY =
   /^-?(?:ml-|mr-|pl-|pr-|scroll-[mp][lr]-|left-(?!to-right)|right-(?!to-left)|text-left$|text-right$|(?:float|clear)-(?:left|right)$|rounded-(?:[lr]|[tb][lr])(?:-|$)|border-[lr](?:-|$)|bg-(?:linear|gradient)-to-[tb]?[lr]$|(?:origin|object|bg|mask)-(?:(?:top|bottom)-)?(?:left|right)(?:-(?:top|bottom))?$|mask-[lr]-(?:from|to)-)/;
 
 /** A Tailwind arbitrary property (`[margin-left:4px]`, `md:[color:red]`); `_` stands for a space in its value. */
-const ARBITRARY_PROPERTY = new RegExp(String.raw`(?<![\w:./-])${VARIANTS}\[([a-zA-Z-]+):([^\]\s]+)\]`, 'g');
+const ARBITRARY_PROPERTY = new RegExp(
+  String.raw`(?<![\w:./-])${VARIANTS}\[([a-zA-Z-]{1,60}):([^\]\s\["'\x60]{1,200})\]`,
+  'g',
+);
 
 /**
  * A CSS declaration: its property and its value. It starts after `{`, `;` or `}` and ends at `;` or `}`, so a
@@ -72,9 +82,10 @@ const ARBITRARY_COLOUR_WORD = new RegExp(String.raw`(?<![\w-])(?:${COLOUR_TAKER}
  * Colour functions and hex literals. A hex literal has 3, 4, 6 or 8 digits and stands alone; an in-page link
  * (`href="#add"`) is not one. `color-mix()` is flagged too: mixing belongs in the theme, not in a plugin. `color()`
  * counts only with a colour space (`color(display-p3 …)`), so a call to a function named `color` is no literal.
+ * CSS function names match in any case (`RGB(`, `OKLCH(`).
  */
 const COLOUR_LITERAL =
-  /(?<![\w&])(?<!href=["'])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![\w$.-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color-mix)\(|(?<![\w$.-])color\((?=\s*(?:from|srgb|srgb-linear|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz|xyz-d50|xyz-d65)\b)/g;
+  /(?<![\w&])(?<!href=["'])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![\w$.-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color-mix)\(|(?<![\w$.-])color\((?=\s*(?:from|srgb|srgb-linear|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz|xyz-d50|xyz-d65)\b)/gi;
 
 const CSS_COMMENT = /\/\*[\s\S]*?\*\//g;
 
@@ -122,20 +133,18 @@ function physicalCssDeclarations(path: string, content: string): string[] {
     .filter((declaration) => !allowed.has(declaration.toLowerCase()));
 }
 
-function physicalProperties(path: string, content: string): string[] {
-  return isCss(path) ? physicalCssDeclarations(path, content) : [...inspectInlineStyles(content, path).physical];
+function physicalProperties(path: string, content: string, inline: InlineStyleFindings | undefined): string[] {
+  return inline === undefined ? physicalCssDeclarations(path, content) : [...inline.physical];
 }
 
-function colourUses(path: string, content: string): string[] {
+function colourUses(path: string, content: string, inline: InlineStyleFindings | undefined): string[] {
   const utilities = classTokens(path, content)
     .filter(({ utility }) => COLOUR_UTILITY.test(utility))
     .map(({ variants, utility }) => `${variants}${utility}`);
   const arbitrary = [...content.matchAll(ARBITRARY_COLOUR_WORD)]
     .filter(([, word = '']) => isNamedColour(word))
     .map(([token]) => token);
-  const named = isCss(path)
-    ? findNamedCssColours(content.replace(CSS_COMMENT, ''))
-    : inspectInlineStyles(content, path).namedColours;
+  const named = inline === undefined ? findNamedCssColours(content.replace(CSS_COMMENT, '')) : inline.namedColours;
   const literals = [...content.matchAll(COLOUR_LITERAL)].map(([literal]) => literal);
   const arbitraryProperty = arbitraryProperties(content)
     .filter(({ property, value }) => isColourProperty(property) && findNamedColourWords(value).length > 0)
@@ -155,11 +164,17 @@ function colourUses(path: string, content: string): string[] {
 export function findDashboardStyleViolations(files: readonly SourceFile[]): string[] {
   return files
     .filter(({ path }) => DASHBOARD_SOURCE.test(path))
-    .flatMap(({ path, content }) => [
-      ...physicalUses(path, content).map((use) => `${path} uses the physical utility "${use}" (use the logical one)`),
-      ...physicalProperties(path, content).map(
-        (declaration) => `${path} uses the physical property "${declaration}" (use the logical one)`,
-      ),
-      ...colourUses(path, content).map((use) => `${path} uses the colour literal "${use}" (use a theme token)`),
-    ]);
+    .flatMap(({ path, content }) => violationsOfFile(path, content));
+}
+
+function violationsOfFile(path: string, content: string): string[] {
+  // One TypeScript parse per file feeds both the physical and the colour check.
+  const inline = isCss(path) ? undefined : inspectInlineStyles(content, path);
+  return [
+    ...physicalUses(path, content).map((use) => `${path} uses the physical utility "${use}" (use the logical one)`),
+    ...physicalProperties(path, content, inline).map(
+      (declaration) => `${path} uses the physical property "${declaration}" (use the logical one)`,
+    ),
+    ...colourUses(path, content, inline).map((use) => `${path} uses the colour literal "${use}" (use a theme token)`),
+  ];
 }

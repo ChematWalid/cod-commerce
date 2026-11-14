@@ -95,8 +95,14 @@ function entriesOf(object: ts.ObjectLiteralExpression, source: ts.SourceFile): S
   return object.properties.flatMap((property) => entryOf(property, source) ?? []);
 }
 
+/**
+ * A key written as a CSS name (`'margin-left'`, `'border-top-left-radius'`) naming a side is physical whatever the
+ * value: React sets hyphenated keys as they are. A camelCase prop such as `leftIcon` is no CSS name.
+ */
+const isPhysicalCssKey = (property: string): boolean => property.includes('-') && isPhysicalDeclaration(property, '');
+
 function isPhysical({ property, literals }: StyleEntry, ownAlignment: string | undefined): boolean {
-  if (PHYSICAL_KEY.test(property)) return true;
+  if (PHYSICAL_KEY.test(property) || isPhysicalCssKey(property)) return true;
   const kebab = camelToKebab(property);
   return literals
     .filter((literal) => !(property === 'textAlign' && literal === ownAlignment))
@@ -120,22 +126,73 @@ function inspectObject(object: ts.ObjectLiteralExpression, source: ts.SourceFile
   return { physical, namedColours };
 }
 
-/** The left side of `({ left } = rect)` is a destructuring target, not an object. */
-function isAssignmentTarget(node: ts.ObjectLiteralExpression): boolean {
+/** The outermost node of the pattern holding `node`: up through property values, arrays, spreads and objects. */
+function patternRootOf(node: ts.Node): ts.Node {
   const { parent } = node;
-  return (
-    ts.isBinaryExpression(parent) && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && parent.left === node
-  );
+  const isPatternPart =
+    (ts.isPropertyAssignment(parent) && parent.initializer === node) ||
+    ts.isArrayLiteralExpression(parent) ||
+    ts.isSpreadElement(parent) ||
+    ts.isSpreadAssignment(parent) ||
+    ts.isObjectLiteralExpression(parent) ||
+    ts.isParenthesizedExpression(parent);
+  return isPatternPart ? patternRootOf(parent) : node;
 }
 
-function objectLiterals(source: ts.SourceFile): ts.ObjectLiteralExpression[] {
-  const found: ts.ObjectLiteralExpression[] = [];
+/**
+ * A destructuring target is not an object: the left side of `({ left } = rect)`, `({ a: { left } } = r)` or
+ * `[{ left }] = arr`, and the head of `for ({ left } of rects)`.
+ */
+function isAssignmentTarget(node: ts.ObjectLiteralExpression): boolean {
+  const root = patternRootOf(node);
+  const { parent } = root;
+  if (ts.isBinaryExpression(parent)) {
+    return parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && parent.left === root;
+  }
+  return (ts.isForOfStatement(parent) || ts.isForInStatement(parent)) && parent.initializer === root;
+}
+
+/** SVG and HTML attributes that paint a colour: `<path fill="red" />`, `<stop stopColor={'navy'} />`. */
+const COLOUR_ATTRIBUTE: ReadonlySet<string> = new Set([
+  'fill',
+  'stroke',
+  'color',
+  'stopColor',
+  'floodColor',
+  'lightingColor',
+]);
+
+/** The plain strings a JSX attribute may take: `fill="red"`, `fill={'red'}`, `fill={dark ? 'black' : x}`. */
+function attributeLiterals({ initializer }: ts.JsxAttribute): string[] {
+  if (initializer === undefined) return [];
+  if (ts.isStringLiteral(initializer)) return [initializer.text];
+  if (ts.isJsxExpression(initializer) && initializer.expression !== undefined) {
+    return literalsOf(initializer.expression);
+  }
+  return [];
+}
+
+function colourAttributeWords(attribute: ts.JsxAttribute): string[] {
+  const name = ts.isIdentifier(attribute.name) ? attribute.name.text : undefined;
+  if (name === undefined || !COLOUR_ATTRIBUTE.has(name)) return [];
+  return attributeLiterals(attribute).flatMap(findNamedColourWords);
+}
+
+interface StyleSites {
+  readonly objects: ts.ObjectLiteralExpression[];
+  readonly colourAttributeWords: string[];
+}
+
+/** One walk over the tree: every object literal that is no destructuring target, and every colour attribute. */
+function styleSitesOf(source: ts.SourceFile): StyleSites {
+  const sites: StyleSites = { objects: [], colourAttributeWords: [] };
   const visit = (node: ts.Node): void => {
-    if (ts.isObjectLiteralExpression(node) && !isAssignmentTarget(node)) found.push(node);
+    if (ts.isObjectLiteralExpression(node) && !isAssignmentTarget(node)) sites.objects.push(node);
+    if (ts.isJsxAttribute(node)) sites.colourAttributeWords.push(...colourAttributeWords(node));
     ts.forEachChild(node, visit);
   };
   visit(source);
-  return found;
+  return sites;
 }
 
 /**
@@ -148,7 +205,8 @@ function objectLiterals(source: ts.SourceFile): ts.ObjectLiteralExpression[] {
  * Physical: `marginLeft`, `paddingRight`, `left`, `borderLeftWidth`, and every value {@link isPhysicalDeclaration}
  * rejects (`textAlign: 'right'`, `margin: '0 1px 0 2px'`, `transformOrigin: 'left'`; `textAlign` matching the
  * object's own `direction`, an LTR run, is allowed). Named colours: a plain string value of a colour key
- * (`color: 'red'`, `border: '1px solid white'`).
+ * (`color: 'red'`, `border: '1px solid white'`) or of a colour attribute (`<path fill="red" />`). A destructuring
+ * target, however deeply nested (`({ a: { left } } = r)`, `[{ left }] = arr`), is no style.
  *
  * @param source the TypeScript or TSX text
  * @param fileName the file name; a `.ts` file is parsed without JSX so `<T>value` casts still parse
@@ -157,9 +215,10 @@ function objectLiterals(source: ts.SourceFile): ts.ObjectLiteralExpression[] {
 export function inspectInlineStyles(source: string, fileName = 'source.tsx'): InlineStyleFindings {
   const kind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, kind);
-  const findings = objectLiterals(file).map((object) => inspectObject(object, file));
+  const sites = styleSitesOf(file);
+  const findings = sites.objects.map((object) => inspectObject(object, file));
   return {
     physical: findings.flatMap(({ physical }) => physical),
-    namedColours: findings.flatMap(({ namedColours }) => namedColours),
+    namedColours: [...findings.flatMap(({ namedColours }) => namedColours), ...sites.colourAttributeWords],
   };
 }
