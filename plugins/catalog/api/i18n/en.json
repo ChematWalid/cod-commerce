@@ -10,6 +10,7 @@
     "catalog-tag-not-found": "Tag not found.",
     "catalog-highlight-not-found": "Highlight not found.",
     "catalog-media-not-found": "Image not found.",
+    "catalog-collection-not-found": "Collection not found.",
     "catalog-media-too-large": "The image is larger than 5 MB.",
     "catalog-media-type": "Only PNG, JPEG, GIF and WebP images can be uploaded.",
     "catalog-media-in-use": "This image is used by a product.",

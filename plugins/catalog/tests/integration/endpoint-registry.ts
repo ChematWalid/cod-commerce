@@ -2,6 +2,7 @@
  * The registry of every catalog handler: its operation or route, permission, a call aimed at a target's ids, and what
  * another business gets back. The coverage test and the isolation sweep both read it.
  */
+import { CATALOG_ERROR_CODES } from '@cod/shared';
 import type { OperationEntry, TargetIds } from './registry-calls';
 import { MEDIA_OPERATIONS } from './media-registry';
 import { TAXONOMY_OPERATIONS } from './taxonomy-registry';
@@ -57,6 +58,7 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     access: 'catalog.products.create',
     foreign: 'not-found',
     byId: false,
+    notFound: CATALOG_ERROR_CODES.COLLECTION_NOT_FOUND,
     document:
       'mutation ($input: CreateCatalogProductInput!) { createCatalogProduct(input: $input) { product { id } } }',
     variables: (ids) => ({ input: productNaming(ids) }),

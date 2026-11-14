@@ -7,12 +7,13 @@ import {
   AssetService,
   ChannelService,
   ConfigService,
+  EntityNotFoundError,
   idsAreEqual,
   isGraphQlErrorResult,
   type RequestContext,
 } from '@vendure/core';
 import type { CoreId } from '../domain/core-id';
-import { MediaTypeError } from '../domain/errors';
+import { MediaNotFoundError, MediaTypeError } from '../domain/errors';
 import type { ImageUpload, MediaRemoval, MediaStoragePort, StoredMedia } from '../domain/ports/media-storage.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { toRequestContext } from './request-scope';
@@ -66,7 +67,17 @@ export class VendureMediaStorage implements MediaStoragePort {
 
   async shareWithStore(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<void> {
     const request = toRequestContext(ctx);
-    for (const id of assetIds) await this.channels.assignToChannels(request, Asset, id, [request.channelId]);
+    for (const id of assetIds) await this.joinStore(request, id);
+  }
+
+  /** A media row can outlive its asset when a platform admin deleted it outside the catalog: that image is gone. */
+  private async joinStore(request: RequestContext, assetId: CoreId): Promise<void> {
+    try {
+      await this.channels.assignToChannels(request, Asset, assetId, [request.channelId]);
+    } catch (error: unknown) {
+      if (error instanceof EntityNotFoundError) throw new MediaNotFoundError();
+      throw error;
+    }
   }
 
   /**

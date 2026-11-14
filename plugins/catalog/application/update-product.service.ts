@@ -4,23 +4,38 @@ import { ProductNotFoundError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { optionSpecsOf, type ProductRecord, type ProductUpdate, type VariantChange } from '../domain/product';
 import type { StoreScope } from '../domain/store-scope';
-import { planVariantMatrix } from '../domain/variant-matrix';
+import { type MatrixPlan, planVariantMatrix } from '../domain/variant-matrix';
 import type { ProductPorts } from './catalog-ports';
 import { fieldsAfterPatch, slugOf } from './product-fields';
-import { type CheckedReferences, coreIdsOf, ProductReferenceCheck, type ReferenceInput } from './product-references';
+import {
+  type CheckedReferences,
+  coreIdsOf,
+  heldImagesOf,
+  ProductReferenceCheck,
+  type ReferenceInput,
+} from './product-references';
 import { type ProductSaveResult, saveLinks, viewOf, warningsOf } from './product-view';
 
-/** The variant edits of a patch, each naming a live variant of `record`; any other id answers not found (D2135). */
-function variantChangesOf(record: ProductRecord, patches: readonly VariantPatchCommand[]): VariantChange[] {
+/**
+ * The variant edits of a patch, each naming a live variant of `record`; any other id answers not found (D2135). An
+ * edit of a variant whose combination the same save removes is dropped: the variant is gone once the save applies.
+ */
+function variantChangesOf(
+  record: ProductRecord,
+  plan: MatrixPlan,
+  patches: readonly VariantPatchCommand[],
+): VariantChange[] {
   const live = new Set<string>(record.variants.map((variant) => variant.id));
-  return patches.map(({ id, featuredAssetId, ...change }) => {
+  const removed = new Set<string>(plan.remove);
+  return patches.flatMap(({ id, featuredAssetId, ...change }) => {
     const variantId = parseCoreId(id);
     if (variantId === undefined || !live.has(variantId)) throw new ProductNotFoundError();
+    if (removed.has(variantId)) return [];
     const asset =
       featuredAssetId === undefined || featuredAssetId === null
         ? featuredAssetId
         : coreIdsOf([featuredAssetId], ProductNotFoundError)[0];
-    return { ...change, id: variantId, ...(asset === undefined ? {} : { featuredAssetId: asset }) };
+    return [{ ...change, id: variantId, ...(asset === undefined ? {} : { featuredAssetId: asset }) }];
   });
 }
 
@@ -57,7 +72,7 @@ function updateOf(
     fields,
     slug: slugOf(patch.slug),
     matrix: { groups, plan },
-    variants: variantChangesOf(record, patch.variants ?? []),
+    variants: variantChangesOf(record, plan, patch.variants ?? []),
   };
 }
 
@@ -87,7 +102,7 @@ export class UpdateProductService {
       if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();
-      const refs = await this.references.check(tx, scope, references);
+      const refs = await this.references.check(tx, scope, references, heldImagesOf(record));
       await this.references.shareImages(tx, references);
       const saved = await this.save(tx, id, updateOf(record, patch, refs, this.ports));
       await saveLinks(this.ports, tx, { scope, productId: id }, { refs, settings: patch.settings });

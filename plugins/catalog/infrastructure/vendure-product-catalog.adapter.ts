@@ -164,15 +164,16 @@ export class VendureProductCatalog implements ProductCatalogPort {
 
   async clearBrand(ctx: OperationContext, brandId: Snowflake): Promise<readonly CoreId[]> {
     const request = toRequestContext(ctx);
+    const seen = new Set<CoreId>();
     const cleared: CoreId[] = [];
-    // In id order, under each product's lock, so a save of the product in flight finishes first and cannot write the
-    // brand back from what it read before; a product that left the brand meanwhile keeps its new one.
-    for (const id of await this.idsWithBrand(request, brandId)) {
-      await this.structure.lock.acquire(request, id);
-      const product = await this.products.findOne(request, id, []);
-      if (product === undefined || brandIdOf(product) !== brandId) continue;
-      await this.products.update(request, { id: engineIdOf(id), customFields: { brandId: null } });
-      cleared.push(id);
+    // Page after page from the start, leaving out the products already seen: a product that leaves the brand while
+    // this runs cannot shift a later page past one that still names it (offset paging would skip that one).
+    for (let page = await this.brandPage(request, brandId, seen); page.length > 0;) {
+      for (const id of page) {
+        seen.add(id);
+        if (await this.clearIfBranded(request, id, brandId)) cleared.push(id);
+      }
+      page = await this.brandPage(request, brandId, seen);
     }
     return cleared;
   }
@@ -182,17 +183,22 @@ export class VendureProductCatalog implements ProductCatalogPort {
     return found.map((collection) => coreIdOf(collection.id));
   }
 
-  /** Every live product of the store naming `brandId`, read page by page before any of them changes. */
-  private async idsWithBrand(ctx: RequestContext, brandId: Snowflake): Promise<CoreId[]> {
-    const ids: CoreId[] = [];
-    let totalItems = Number.POSITIVE_INFINITY;
-    while (ids.length < totalItems) {
-      const page = await this.products.findAll(ctx, brandPageOf(brandId, ids.length), []);
-      if (page.items.length === 0) break;
-      ids.push(...page.items.map((product) => coreIdOf(product.id)));
-      totalItems = page.totalItems;
-    }
-    return ids;
+  /** The next page of live products of the store naming `brandId`, in id order, without those in `seen`. */
+  private async brandPage(ctx: RequestContext, brandId: Snowflake, seen: ReadonlySet<CoreId>): Promise<CoreId[]> {
+    const page = await this.products.findAll(ctx, brandPageOf(brandId, seen), []);
+    return page.items.map((product) => coreIdOf(product.id));
+  }
+
+  /**
+   * Clears the brand of product `id` under its lock, so a save of the product in flight finishes first and cannot
+   * write the brand back from what it read before; a product that left the brand meanwhile keeps its new one.
+   */
+  private async clearIfBranded(ctx: RequestContext, id: CoreId, brandId: Snowflake): Promise<boolean> {
+    await this.structure.lock.acquire(ctx, id);
+    const product = await this.products.findOne(ctx, id, []);
+    if (product === undefined || brandIdOf(product) !== brandId) return false;
+    await this.products.update(ctx, { id: engineIdOf(id), customFields: { brandId: null } });
+    return true;
   }
 
   private targetOf(ctx: RequestContext, productId: CoreId): OptionTarget {
@@ -222,10 +228,10 @@ export class VendureProductCatalog implements ProductCatalogPort {
   }
 }
 
-/** One page of the products naming `brandId`, in id order so pages neither overlap nor skip a row. */
-function brandPageOf(brandId: Snowflake, skip: number): ListQueryOptions<Product> {
-  const filter = { brandId: { eq: brandId } };
-  return { skip, take: CATALOG_MAX_PAGE_SIZE, sort: { id: SortOrder.ASC }, filter } as ListQueryOptions<Product>;
+/** The first page of the products naming `brandId` among those not in `seen`, in id order. */
+function brandPageOf(brandId: Snowflake, seen: ReadonlySet<CoreId>): ListQueryOptions<Product> {
+  const filter = { brandId: { eq: brandId }, ...(seen.size === 0 ? {} : { id: { notIn: [...seen] } }) };
+  return { skip: 0, take: CATALOG_MAX_PAGE_SIZE, sort: { id: SortOrder.ASC }, filter };
 }
 
 /** The Vendure list options of a page: newest first; our custom fields filter by name (D2123). */

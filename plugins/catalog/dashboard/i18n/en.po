@@ -192,6 +192,10 @@ msgid "catalog.media-not-found"
 msgstr "Image not found."
 
 #. js-lingui-explicit-id
+msgid "catalog.collection-not-found"
+msgstr "Collection not found."
+
+#. js-lingui-explicit-id
 msgid "catalog.media-too-large"
 msgstr "The image is larger than 5 MB."
 

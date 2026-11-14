@@ -27,7 +27,7 @@ import { configureCatalogCustomFields } from './infrastructure/custom-fields';
 import { PRODUCT_PROVIDERS } from './infrastructure/product.providers';
 
 /** Every REST controller; the product read controller first, its `slug-availability` route before `:id` (D2103). */
-const CONTROLLERS = [
+export const CATALOG_REST_CONTROLLERS = [
   ProductReadController,
   ProductsController,
   BrandsController,
@@ -65,13 +65,13 @@ const CONTROLLERS = [
     schema: catalogAdminApiSchema,
     resolvers: [ProductsResolver, TaxonomyResolver, MediaResolver],
   },
-  controllers: CONTROLLERS,
+  controllers: CATALOG_REST_CONTROLLERS,
   dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 export class CatalogPlugin implements NestModule {
   /** REST refusals are translated, like GraphQL ones. */
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RestI18nMiddleware).forRoutes(...CONTROLLERS);
+    consumer.apply(RestI18nMiddleware).forRoutes(...CATALOG_REST_CONTROLLERS);
   }
 }

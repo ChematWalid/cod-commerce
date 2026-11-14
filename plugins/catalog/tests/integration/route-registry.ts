@@ -1,3 +1,4 @@
+import { CATALOG_ERROR_CODES } from '@cod/shared';
 import type { RouteEntry } from './registry-calls';
 import { MEDIA_ROUTES } from './media-registry';
 import { TAXONOMY_ROUTES } from './taxonomy-registry';
@@ -35,6 +36,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     route: '/catalog/products',
     access: 'catalog.products.create',
     foreign: 'not-found',
+    notFound: CATALOG_ERROR_CODES.COLLECTION_NOT_FOUND,
     url: () => '/catalog/products',
     body: (ids) => ({ title: 'Synthetic product', status: 'active', price: 100, collectionIds: [ids.collectionId] }),
   },

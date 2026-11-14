@@ -192,6 +192,10 @@ msgid "catalog.media-not-found"
 msgstr "الصورة غير موجودة."
 
 #. js-lingui-explicit-id
+msgid "catalog.collection-not-found"
+msgstr "المجموعة غير موجودة."
+
+#. js-lingui-explicit-id
 msgid "catalog.media-too-large"
 msgstr "حجم الصورة أكبر من 5 ميغابايت."
 

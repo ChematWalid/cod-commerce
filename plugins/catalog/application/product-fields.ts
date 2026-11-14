@@ -88,8 +88,9 @@ export function fieldsAfterPatch(
     featuredAssetId: sentOr(refs.featuredAssetId, record.featuredAssetId),
     assetIds: sentOr(refs.assetIds, record.assetIds),
     brandId: sentOr(refs.brandId, record.brandId),
-    metaTitle: patch.seo === undefined ? record.metaTitle : (patch.seo.metaTitle ?? null),
-    metaDescription: patch.seo === undefined ? record.metaDescription : (patch.seo.metaDescription ?? null),
+    // Each SEO field follows the patch rule on its own: absent keeps, null clears.
+    metaTitle: sentOr(patch.seo?.metaTitle, record.metaTitle),
+    metaDescription: sentOr(patch.seo?.metaDescription, record.metaDescription),
   };
 }
 

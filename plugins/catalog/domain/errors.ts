@@ -80,6 +80,14 @@ export class MediaNotFoundError extends DomainError {
   }
 }
 
+/** No collection with that id in the active store channel (D2134). */
+export class CollectionNotFoundError extends DomainError {
+  readonly code = CATALOG_ERROR_CODES.COLLECTION_NOT_FOUND;
+  constructor() {
+    super('No such collection');
+  }
+}
+
 /** An upload larger than `MEDIA_MAX_BYTES` (D2113). */
 export class MediaTooLargeError extends DomainError {
   readonly code = CATALOG_ERROR_CODES.MEDIA_TOO_LARGE;
@@ -156,6 +164,7 @@ export const CATALOG_ERROR_CLASSES = [
   TagNotFoundError,
   HighlightNotFoundError,
   MediaNotFoundError,
+  CollectionNotFoundError,
   MediaTooLargeError,
   MediaTypeError,
   MediaInUseError,

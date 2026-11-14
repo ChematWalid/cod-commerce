@@ -134,7 +134,7 @@ describe('product create, read, update and delete', () => {
     expect(await enabled()).toBe(true);
   });
 
-  it("answers not found for B's collection id (D2134)", async () => {
+  it("answers collection not found for B's collection id (D2134)", async () => {
     // Arrange
     const collectionOfB = await suite.kit.createCollection(suite.fixtures.b.stores[0]);
     await suite.kit.asOwner(suite.fixtures.a);
@@ -145,7 +145,7 @@ describe('product create, read, update and delete', () => {
     );
 
     // Assert
-    expect(failure.codes).toEqual([CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND]);
+    expect(failure.codes).toEqual([CATALOG_ERROR_CODES.COLLECTION_NOT_FOUND]);
   });
 
   it("answers not found for a brand, tag or highlight of the business's other store, on create and update", async () => {

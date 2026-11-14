@@ -10,6 +10,7 @@ export const CATALOG_ERROR_CODES = {
   TAG_NOT_FOUND: 'catalog.tag-not-found',
   HIGHLIGHT_NOT_FOUND: 'catalog.highlight-not-found',
   MEDIA_NOT_FOUND: 'catalog.media-not-found',
+  COLLECTION_NOT_FOUND: 'catalog.collection-not-found',
   MEDIA_TOO_LARGE: 'catalog.media-too-large',
   MEDIA_TYPE: 'catalog.media-type',
   MEDIA_IN_USE: 'catalog.media-in-use',

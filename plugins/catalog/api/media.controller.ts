@@ -1,7 +1,7 @@
 import { requirePermission } from '@cod/plugin-rbac/guard';
 import { Controller, Delete, Get, Param, Query, UseFilters } from '@nestjs/common';
 import { Ctx, type RequestContext } from '@vendure/core';
-import { CatalogRestErrorFilter, restCall } from './error-mapping';
+import { CATALOG_REST_FILTERS, restCall } from './error-mapping';
 import { type CatalogMediaListDto, MediaActions } from './media-actions';
 import { PRODUCT_PERMISSIONS } from './permissions';
 
@@ -12,7 +12,7 @@ interface SuccessResult {
 
 /** The media library for clients that do not speak GraphQL (ADR 0017, D2102); uploads stay on GraphQL. */
 @Controller('catalog/media')
-@UseFilters(CatalogRestErrorFilter)
+@UseFilters(...CATALOG_REST_FILTERS)
 export class MediaController {
   constructor(private readonly actions: MediaActions) {}
 

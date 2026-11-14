@@ -1,9 +1,10 @@
-import { RateLimitedError } from '@cod/plugin-rate-limit';
+import { RateLimitedError, RateLimitedFilter } from '@cod/plugin-rate-limit';
 import { CATALOG_ERROR_CODES, DomainError } from '@cod/shared';
 import {
   type ArgumentsHost,
   Catch,
   type ExceptionFilter,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   InternalServerErrorException,
@@ -33,6 +34,7 @@ const STATUS_OF_CODE: ReadonlyMap<string, HttpStatus> = new Map([
   [C.TAG_NOT_FOUND, HttpStatus.NOT_FOUND],
   [C.HIGHLIGHT_NOT_FOUND, HttpStatus.NOT_FOUND],
   [C.MEDIA_NOT_FOUND, HttpStatus.NOT_FOUND],
+  [C.COLLECTION_NOT_FOUND, HttpStatus.NOT_FOUND],
   [C.INVALID_INPUT, HttpStatus.BAD_REQUEST],
   [C.TOO_MANY_HIGHLIGHTS, HttpStatus.BAD_REQUEST],
   [C.MATRIX_TOO_LARGE, HttpStatus.BAD_REQUEST],
@@ -107,8 +109,10 @@ export async function withCatalogErrors<T>(work: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Runs a REST handler body with the same mapping: a domain error reaches {@link CatalogRestErrorFilter}, a fault
- * becomes a bare 500 whose message is {@link INTERNAL_MESSAGE}.
+ * Runs a REST handler body with the same mapping: a domain error reaches {@link CatalogRestErrorFilter}, an over-limit
+ * refusal reaches {@link RateLimitedFilter} (429), a Vendure permission refusal becomes 403, and a fault becomes a bare
+ * 500 whose message is {@link INTERNAL_MESSAGE}. Vendure's own errors are GraphQL errors, not Nest HTTP exceptions:
+ * left alone they would reach the client as a 500.
  */
 export async function restCall<T>(work: () => Promise<T>): Promise<T> {
   try {
@@ -117,6 +121,7 @@ export async function restCall<T>(work: () => Promise<T>): Promise<T> {
     if (thrown instanceof HttpException) throw thrown;
     const error = catalogErrorOf(thrown);
     if (error === undefined) throw new InternalServerErrorException(INTERNAL_MESSAGE);
+    if (error instanceof ForbiddenError) throw new ForbiddenException();
     throw error;
   }
 }
@@ -142,3 +147,6 @@ export class CatalogRestErrorFilter implements ExceptionFilter<DomainError> {
     });
   }
 }
+
+/** The filters of every catalog REST controller: domain refusals, then over-limit refusals (D2138). */
+export const CATALOG_REST_FILTERS = [CatalogRestErrorFilter, RateLimitedFilter] as const;

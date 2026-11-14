@@ -1,7 +1,7 @@
 import { requirePermission } from '@cod/plugin-rbac/guard';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseFilters } from '@nestjs/common';
 import { Ctx, type RequestContext } from '@vendure/core';
-import { CatalogRestErrorFilter, restCall } from './error-mapping';
+import { CATALOG_REST_FILTERS, restCall } from './error-mapping';
 import { PRODUCT_PERMISSIONS } from './permissions';
 import { TaxonomyActions } from './taxonomy-actions';
 import type { CatalogNameDto } from './taxonomy-dto';
@@ -13,7 +13,7 @@ interface SuccessResult {
 
 /** The active store's brands for clients that do not speak GraphQL (ADR 0017, D2102). */
 @Controller('catalog/brands')
-@UseFilters(CatalogRestErrorFilter)
+@UseFilters(...CATALOG_REST_FILTERS)
 export class BrandsController {
   constructor(private readonly actions: TaxonomyActions) {}
 

@@ -68,6 +68,7 @@ describe('catalog constants', () => {
         'catalog.tag-not-found',
         'catalog.highlight-not-found',
         'catalog.media-not-found',
+        'catalog.collection-not-found',
         'catalog.media-too-large',
         'catalog.media-type',
         'catalog.media-in-use',

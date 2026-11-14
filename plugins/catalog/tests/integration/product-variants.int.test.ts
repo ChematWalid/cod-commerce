@@ -3,7 +3,7 @@ import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { failureOf } from '@cod/testing';
 import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
-import { catalogSuite, type ProductResult, UPDATE_PRODUCT } from './catalog-kit';
+import { catalogSuite, PRODUCT, type ProductResult, UPDATE_PRODUCT } from './catalog-kit';
 
 const suite = catalogSuite(1021, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const NOT_FOUND = CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND;
@@ -165,5 +165,40 @@ describe('product variants (AC1)', () => {
 
     // Assert
     expect(failure.codes).toEqual([CATALOG_ERROR_CODES.MATRIX_TOO_LARGE]);
+  });
+
+  it('runs two parallel option edits of one product one after the other, leaving no duplicate variant', async () => {
+    // Arrange
+    const product = await createMatrix({ sku: 'PL' });
+    const withColor = [
+      { name: 'Color', values: ['Red', 'Blue', 'Green'] },
+      { name: 'Size', values: ['S', 'M'] },
+    ];
+    const withSize = [
+      { name: 'Color', values: ['Red', 'Blue'] },
+      { name: 'Size', values: ['S', 'M', 'L'] },
+    ];
+
+    // Act: a save that loses answers its refusal's codes, a save that wins answers none
+    const codesOf = (saving: Promise<unknown>): Promise<readonly string[]> =>
+      saving.then(
+        () => [],
+        async () => (await failureOf(saving)).codes,
+      );
+    const outcomes = await Promise.all([
+      codesOf(update(product.id, { optionGroups: withColor })),
+      codesOf(update(product.id, { optionGroups: withSize })),
+    ]);
+
+    // Assert: each save won or lost the race cleanly, and the stored matrix is whole and free of repeats
+    const refusals = outcomes.filter((codes) => codes.length > 0);
+    for (const codes of refusals) expect(codes).toEqual([CATALOG_ERROR_CODES.CONCURRENT_UPDATE]);
+    expect(refusals.length).toBeLessThan(2);
+    const { catalogProduct } = await suite.kit.gql<{ catalogProduct: ProductResult }>(PRODUCT, { id: product.id });
+    const combinations = catalogProduct.variants.map((variant) => variant.optionValues.join('/'));
+    const expected = catalogProduct.optionGroups.reduce((count, group) => count * group.values.length, 1);
+    expect(combinations).toHaveLength(expected);
+    expect(new Set(combinations).size).toBe(combinations.length);
+    expect(new Set(catalogProduct.variants.map((variant) => variant.sku)).size).toBe(combinations.length);
   });
 });

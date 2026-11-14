@@ -2,14 +2,15 @@ import { isSnowflake, type Snowflake } from '@cod/shared';
 import { type CoreId, isCoreId, parseCoreId } from '../domain/core-id';
 import {
   BrandNotFoundError,
+  CollectionNotFoundError,
   HighlightNotFoundError,
   MediaNotFoundError,
   OrderManagerUnknownError,
-  ProductNotFoundError,
   TagNotFoundError,
 } from '../domain/errors';
 import { assertHighlightCount } from '../domain/highlights';
 import type { OperationContext } from '../domain/ports/operation-context';
+import type { ProductRecord } from '../domain/product';
 import type { StoreScope } from '../domain/store-scope';
 import type { ProductPorts } from './catalog-ports';
 import { mediaReachOf } from './media-reach';
@@ -68,6 +69,18 @@ function namedImageIds(input: ReferenceInput): string[] {
 /** Every image id a product body names, parsed; a malformed one answers not found. */
 const imageIdsOf = (input: ReferenceInput): CoreId[] => coreIdsOf(namedImageIds(input), MediaNotFoundError);
 
+/** No image is held yet: what a new product starts from. */
+const NO_HELD_IMAGES: ReadonlySet<string> = new Set();
+
+/** The images `record` already shows: featured, gallery and variant images. */
+export function heldImagesOf(record: ProductRecord): ReadonlySet<string> {
+  const variantImages = record.variants.flatMap((variant) =>
+    variant.featuredAssetId === null ? [] : [variant.featuredAssetId],
+  );
+  const featured = record.featuredAssetId === null ? [] : [record.featuredAssetId];
+  return new Set<string>([...featured, ...record.assetIds, ...variantImages]);
+}
+
 /** True when every id of `wanted` is among `found`. */
 const allFound = (wanted: readonly string[], found: readonly string[]): boolean => {
   const present = new Set(found);
@@ -96,13 +109,23 @@ export class ProductReferenceCheck {
     if (images.length > 0) await this.ports.mediaLock.share(ctx, images);
   }
 
-  async check(ctx: OperationContext, scope: StoreScope, input: ReferenceInput): Promise<CheckedReferences> {
+  /**
+   * `held` are the images the product already shows (an update's {@link heldImagesOf}): they were checked when they
+   * were attached, so a member whose reach is narrower than the one who attached them may still send them back; only
+   * newly named images are checked against the caller's reach (D2132).
+   */
+  async check(
+    ctx: OperationContext,
+    scope: StoreScope,
+    input: ReferenceInput,
+    held: ReadonlySet<string> = NO_HELD_IMAGES,
+  ): Promise<CheckedReferences> {
     const [brandId, tagIds, highlightIds, collectionIds, assets] = await Promise.all([
       this.brand(ctx, scope, input.brandId),
       this.tags(ctx, scope, input.tagIds),
       this.highlights(ctx, scope, input.highlightIds),
       this.collections(ctx, input.collectionIds),
-      this.assets(ctx, scope, input),
+      this.assets(ctx, scope, input, held),
       checkOrderManagers(this.ports, ctx, scope, snowflakesOf(input.orderManagerIds ?? [], OrderManagerUnknownError)),
     ]);
     return { brandId, tagIds, highlightIds, collectionIds, ...assets };
@@ -148,9 +171,9 @@ export class ProductReferenceCheck {
 
   private async collections(ctx: OperationContext, ids: readonly string[] | undefined) {
     if (ids === undefined) return undefined;
-    const collectionIds = coreIdsOf(ids, ProductNotFoundError);
+    const collectionIds = coreIdsOf(ids, CollectionNotFoundError);
     const found = collectionIds.length === 0 ? [] : await this.ports.products.existingCollections(ctx, collectionIds);
-    if (!allFound(collectionIds, found)) throw new ProductNotFoundError();
+    if (!allFound(collectionIds, found)) throw new CollectionNotFoundError();
     return collectionIds;
   }
 
@@ -167,9 +190,10 @@ export class ProductReferenceCheck {
     ctx: OperationContext,
     scope: StoreScope,
     input: ReferenceInput,
+    held: ReadonlySet<string>,
   ): Promise<Pick<CheckedReferences, 'featuredAssetId' | 'assetIds'>> {
     const featured = input.featuredAssetId;
-    const ids = imageIdsOf(input);
+    const ids = imageIdsOf(input).filter((id) => !held.has(id));
     if (ids.length > 0) {
       const reach = await mediaReachOf(this.ports.orderManagers, ctx, scope);
       const items = await this.ports.media.findByAssetIds(ctx, scope, reach, ids);

@@ -2,7 +2,7 @@ import { requirePermission } from '@cod/plugin-rbac/guard';
 import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Patch, Post, UseFilters } from '@nestjs/common';
 import { Ctx, type RequestContext } from '@vendure/core';
 import type { CatalogProductDto, CatalogProductSaveResultDto } from './dto';
-import { CatalogRestErrorFilter, restCall } from './error-mapping';
+import { CATALOG_REST_FILTERS, restCall } from './error-mapping';
 import { PRODUCT_PERMISSIONS } from './permissions';
 import { ProductActions } from './product-actions';
 import { fieldOf } from './request-body';
@@ -14,7 +14,7 @@ interface SuccessResult {
 
 /** The writes of the store's products for clients that do not speak GraphQL (ADR 0017, D2102). */
 @Controller('catalog/products')
-@UseFilters(CatalogRestErrorFilter)
+@UseFilters(...CATALOG_REST_FILTERS)
 export class ProductsController {
   constructor(private readonly actions: ProductActions) {}
 

@@ -6,7 +6,6 @@ import {
   HighlightNotFoundError,
   MediaNotFoundError,
   OrderManagersUnavailableError,
-  ProductNotFoundError,
   TagNotFoundError,
   TooManyHighlightsError,
 } from '../../domain/errors';
@@ -129,15 +128,6 @@ describe('CreateProductService', () => {
     await expect(create({ tagIds: [tag.id] })).rejects.toBeInstanceOf(TagNotFoundError);
     await expect(create({ highlightIds: [highlight.id] })).rejects.toBeInstanceOf(HighlightNotFoundError);
     expect(world.products.stored).toEqual([]);
-  });
-
-  it("refuses a collection of another store's channel and a malformed id as not found", async () => {
-    // Arrange
-    const foreign = world.products.addCollection(scopeB.storeId);
-
-    // Act / Assert
-    await expect(create({ collectionIds: [foreign] })).rejects.toBeInstanceOf(ProductNotFoundError);
-    await expect(create({ collectionIds: ['abc'] })).rejects.toBeInstanceOf(ProductNotFoundError);
   });
 
   it("refuses an image of another business's or another store's media as not found", async () => {

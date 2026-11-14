@@ -121,6 +121,9 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
     const optionGroups = matrix === null || sameGroups ? row.record.optionGroups : this.groupsOf(matrix.groups);
     const synced =
       matrix !== null && createsDefaultVariant(matrix.plan) ? variants : syncDefault(variants, optionGroups, fields);
+    // Like Vendure, which reads an edited variant with getEntityOrThrow: a variant the plan removed is gone.
+    const live = new Set<string>(synced.map((variant) => variant.id));
+    if (update.variants.some((change) => !live.has(change.id))) throw new Error('No live variant with that id');
     row.record = {
       ...row.record,
       ...fields,

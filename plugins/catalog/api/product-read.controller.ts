@@ -2,14 +2,14 @@ import { requirePermission } from '@cod/plugin-rbac/guard';
 import { Controller, Get, Param, Query, UseFilters } from '@nestjs/common';
 import { Ctx, type RequestContext } from '@vendure/core';
 import type { CatalogProductDto, CatalogProductListDto, CatalogSlugAvailabilityDto } from './dto';
-import { CatalogRestErrorFilter, restCall } from './error-mapping';
+import { CATALOG_REST_FILTERS, restCall } from './error-mapping';
 import { ProductNotFoundError } from '../domain/errors';
 import { PRODUCT_PERMISSIONS } from './permissions';
 import { ProductActions } from './product-actions';
 
 /** The reads of the store's products for clients that do not speak GraphQL (ADR 0017). */
 @Controller('catalog/products')
-@UseFilters(CatalogRestErrorFilter)
+@UseFilters(...CATALOG_REST_FILTERS)
 export class ProductReadController {
   constructor(private readonly actions: ProductActions) {}
 

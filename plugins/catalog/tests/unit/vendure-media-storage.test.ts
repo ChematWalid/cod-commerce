@@ -1,9 +1,9 @@
 import { Readable } from 'node:stream';
 import { AUTH_ERROR_CODES } from '@cod/shared';
-import type { AssetService, ChannelService, ConfigService } from '@vendure/core';
+import { type AssetService, type ChannelService, type ConfigService, EntityNotFoundError } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { toCoreId } from '../../domain/core-id';
-import { MediaTypeError } from '../../domain/errors';
+import { MediaNotFoundError, MediaTypeError } from '../../domain/errors';
 import { IMAGE_FORMATS } from '../../domain/image-format';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type { VendureAssetReads } from '../../infrastructure/vendure-asset-reads';
@@ -23,7 +23,15 @@ interface Upload {
 }
 
 /** Vendure's services as the adapter uses them, recording every call. */
-function world(options: { create?: () => Promise<unknown>; inUse?: boolean; channels?: readonly number[] } = {}) {
+interface WorldOptions {
+  readonly create?: () => Promise<unknown>;
+  readonly inUse?: boolean;
+  readonly channels?: readonly number[];
+  /** Asset ids whose row is gone: core's channel assignment throws "entity not found" for them. */
+  readonly gone?: readonly string[];
+}
+
+function world(options: WorldOptions = {}) {
   const calls: string[] = [];
   const uploads: Upload[] = [];
   const assets = {
@@ -43,6 +51,7 @@ function world(options: { create?: () => Promise<unknown>; inUse?: boolean; chan
       return Promise.resolve();
     },
     assignToChannels: (_ctx: unknown, _type: unknown, id: unknown, ids: readonly unknown[]) => {
+      if (options.gone?.includes(String(id))) return Promise.reject(new EntityNotFoundError('Asset', String(id)));
       calls.push(`join ${String(id)} ${ids.join(',')}`);
       return Promise.resolve();
     },
@@ -126,6 +135,17 @@ describe('VendureMediaStorage', () => {
 
     // Assert
     expect(calls).toEqual([`join 55 ${String(STORE_CHANNEL)}`, `join 56 ${String(STORE_CHANNEL)}`]);
+  });
+
+  it('answers media not found for an image whose asset was deleted outside the catalog, not a 500', async () => {
+    // Arrange
+    const { storage } = world({ gone: ['56'] });
+
+    // Act
+    const sharing = storage.shareWithStore(ctx, [toCoreId('55'), toCoreId('56')]);
+
+    // Assert
+    await expect(sharing).rejects.toBeInstanceOf(MediaNotFoundError);
   });
 
   it('answers in-use for an asset a live product or variant uses, and deletes nothing (D2128)', async () => {

@@ -3,7 +3,7 @@ import { CATALOG_ERROR_CODES, type StoreId } from '@cod/shared';
 import { failureOf } from '@cod/testing';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { OrderManagerCheck } from '../../index';
-import { catalogSuite, PRODUCTS, rawId } from './catalog-kit';
+import { catalogSuite, PRODUCTS, rawId, UPDATE_PRODUCT } from './catalog-kit';
 import { createMedia, DELETE_MEDIA, MEDIA, type MediaResult, png, uploadAs } from './media-kit';
 
 const suite = catalogSuite(1023, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
@@ -18,6 +18,18 @@ const teamCheck: OrderManagerCheck = {
   unknownIds: () => Promise.resolve([]),
   accessibleStoreIds: () => Promise.resolve(reach),
 };
+
+/** The store channels' tokens holding the asset `assetId`. */
+const channelTokensOf = async (assetId: string): Promise<string[]> =>
+  (
+    await suite.kit.query<{ token: string }>(
+      `SELECT c."token" FROM "asset_channels_channel" ac JOIN "channel" c ON c."id" = ac."channelId"
+       WHERE ac."assetId" = $1`,
+      [Number(rawId(assetId))],
+    )
+  )
+    .map((row) => row.token)
+    .sort();
 
 const listedIds = async (): Promise<string[]> =>
   (await suite.kit.gql<{ catalogMedia: { items: MediaResult[] } }>(MEDIA, {})).catalogMedia.items.map((m) => m.id);
@@ -55,6 +67,7 @@ describe('the media library across stores and businesses (AC7, D2132)', () => {
 
     // Assert
     expect(graphql).not.toContain(inFirst.id);
+    expect(graphql).not.toContain(inSecond.id);
     expect(rest.text).not.toContain(inFirst.id);
     expect(rest.text).not.toContain(inSecond.id);
   });
@@ -85,6 +98,41 @@ describe('the media library across stores and businesses (AC7, D2132)', () => {
     expect(failure.codes).toEqual([C.MEDIA_NOT_FOUND]);
   });
 
+  it.each([
+    ['as its featured image', (assetId: string) => ({ featuredAssetId: assetId })],
+    ['in its gallery', (assetId: string) => ({ assetIds: [assetId] })],
+  ])(
+    "refuses B naming A's media %s on an update of B's own product, and leaves A's asset alone",
+    async (_how, input) => {
+      // Arrange
+      reach = 'all';
+      await suite.kit.asOwner(suite.fixtures.b);
+      const own = await suite.kit.createProduct({ title: 'B own' });
+      const before = await channelTokensOf(inFirst.assetId);
+
+      // Act
+      const failure = await failureOf(suite.kit.gql(UPDATE_PRODUCT, { id: own.id, input: input(inFirst.assetId) }));
+
+      // Assert
+      expect(failure.codes).toEqual([C.MEDIA_NOT_FOUND]);
+      expect(await channelTokensOf(inFirst.assetId)).toEqual(before);
+    },
+  );
+
+  it("refuses B naming A's media as a variant image of B's own product", async () => {
+    // Arrange
+    reach = 'all';
+    await suite.kit.asOwner(suite.fixtures.b);
+    const own = await suite.kit.createProduct({ title: 'B sizes', optionGroups: [{ name: 'Size', values: ['S'] }] });
+    const variants = [{ id: own.variants[0]?.id ?? '', featuredAssetId: inFirst.assetId }];
+
+    // Act
+    const failure = await failureOf(suite.kit.gql(UPDATE_PRODUCT, { id: own.id, input: { variants } }));
+
+    // Assert
+    expect(failure.codes).toEqual([C.MEDIA_NOT_FOUND]);
+  });
+
   it("attaching media of the other store to a product assigns it to the product's store", async () => {
     // Arrange
     reach = 'all';
@@ -95,22 +143,23 @@ describe('the media library across stores and businesses (AC7, D2132)', () => {
     await suite.kit.createProduct({ title: 'Shows the other store image', featuredAssetId: inSecond.assetId });
 
     // Assert
-    const rows = await suite.kit.query<{ token: string }>(
-      `SELECT c."token" FROM "asset_channels_channel" ac JOIN "channel" c ON c."id" = ac."channelId"
-       WHERE ac."assetId" = $1`,
-      [Number(rawId(inSecond.assetId))],
+    expect(await channelTokensOf(inSecond.assetId)).toEqual(
+      [a.stores[0].channelToken, a.stores[1].channelToken].sort(),
     );
-    expect(rows.map((row) => row.token).sort()).toEqual([a.stores[0].channelToken, a.stores[1].channelToken].sort());
   });
 
   it('refuses deleting media used by a product of the other store (D2128)', async () => {
-    // Arrange: the previous test made a product of the first store show the second store's image
+    // Arrange: its own image of the second store, shown by a product of the first store
     reach = 'all';
     const { a } = suite.fixtures;
     await suite.kit.asOwner(a, a.stores[1]);
+    const used = await createMedia(suite.kit);
+    await suite.kit.asOwner(a);
+    await suite.kit.createProduct({ title: 'Shows a second store image', featuredAssetId: used.assetId });
+    await suite.kit.asOwner(a, a.stores[1]);
 
     // Act
-    const answer = await suite.kit.rest('DELETE', `/catalog/media/${inSecond.id}`);
+    const answer = await suite.kit.rest('DELETE', `/catalog/media/${used.id}`);
 
     // Assert
     expect((answer.body as { code?: string }).code).toBe(C.MEDIA_IN_USE);

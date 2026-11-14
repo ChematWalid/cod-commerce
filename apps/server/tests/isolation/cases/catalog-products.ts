@@ -161,7 +161,7 @@ export const CATALOG_PRODUCT_CASES: readonly IsolationCase[] = [
     'foreign-collection',
     'collection',
     (b) => ({ collectionIds: [catalogOf(b).collection.id] }),
-    C.PRODUCT_NOT_FOUND,
+    C.COLLECTION_NOT_FOUND,
   ),
   createNaming(
     'foreign-order-manager',

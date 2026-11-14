@@ -37,7 +37,11 @@ export interface MediaStoragePort {
   /** The stored images among `assetIds`, whichever store channel holds them; a missing one is left out. */
   urlsOf(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<ReadonlyMap<CoreId, StoredMedia>>;
 
-  /** Makes each image usable by products of the store channel of `ctx` (a media item of another store, D2132). */
+  /**
+   * Makes each image usable by products of the store channel of `ctx` (a media item of another store, D2132).
+   *
+   * @throws {MediaNotFoundError} when an image's asset is gone although its media row remains.
+   */
   shareWithStore(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<void>;
 
   /**

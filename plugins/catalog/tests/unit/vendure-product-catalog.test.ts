@@ -97,23 +97,35 @@ describe('VendureProductCatalog.clearBrand', () => {
   const brandId = toSnowflake('1200000000000000777');
   const otherBrandId = toSnowflake('1200000000000000778');
 
-  /** A store whose products `ids` named the brand when listed; `brandNow` is what each names once locked. */
-  function storeWith(ids: readonly number[], brandNow: (id: number) => string | null) {
+  interface ListOptions {
+    readonly skip: number;
+    readonly take: number;
+    readonly filter: { readonly brandId: { readonly eq: string }; readonly id?: { readonly notIn: readonly string[] } };
+  }
+
+  /**
+   * A store whose products `ids` name the brand; `brandOf` holds what each names now, and the list answers from it as
+   * Postgres would, so a change between two page reads shows in the next one. `afterList` runs after each list read.
+   */
+  function storeWith(ids: readonly number[], afterList: (brandOf: Map<number, string | null>) => void = () => {}) {
     const log: string[] = [];
-    const findAll = vi.fn((_ctx: unknown, options: { skip: number; take: number }) =>
-      Promise.resolve({
-        items: ids.slice(options.skip, options.skip + options.take).map((id) => ({ id })),
-        totalItems: ids.length,
-      }),
-    );
+    const brandOf = new Map<number, string | null>(ids.map((id) => [id, brandId]));
+    const findAll = vi.fn((_ctx: unknown, options: ListOptions) => {
+      const excluded = new Set(options.filter.id?.notIn ?? []);
+      const matching = ids.filter((id) => brandOf.get(id) === options.filter.brandId.eq && !excluded.has(String(id)));
+      const items = matching.slice(options.skip, options.skip + options.take).map((id) => ({ id }));
+      afterList(brandOf);
+      return Promise.resolve({ items, totalItems: matching.length });
+    });
     const products = {
       findAll,
       findOne: vi.fn((_ctx: unknown, id: string) => {
         log.push(`read:${id}`);
-        return Promise.resolve({ id: Number(id), customFields: { brandId: brandNow(Number(id)) } });
+        return Promise.resolve({ id: Number(id), customFields: { brandId: brandOf.get(Number(id)) ?? null } });
       }),
-      update: vi.fn((_ctx: unknown, input: { id: string }) => {
-        log.push(`update:${input.id}`);
+      update: vi.fn((_ctx: unknown, input: { id: number }) => {
+        log.push(`update:${String(input.id)}`);
+        brandOf.set(input.id, null);
         return Promise.resolve({});
       }),
     } as unknown as ProductService;
@@ -131,23 +143,41 @@ describe('VendureProductCatalog.clearBrand', () => {
     return { catalog, log, findAll };
   }
 
-  it("reads every page of the brand's products, then locks, re-reads and clears each one", async () => {
+  it('clears every product of the brand past one page, locking and re-reading each one first', async () => {
     // Arrange
     const ids = Array.from({ length: CATALOG_MAX_PAGE_SIZE + 1 }, (_, index) => index + 1);
-    const { catalog, log, findAll } = storeWith(ids, () => brandId);
+    const { catalog, log } = storeWith(ids);
 
     // Act
     const cleared = await catalog.clearBrand(ctx, brandId);
 
     // Assert
     expect(cleared).toHaveLength(CATALOG_MAX_PAGE_SIZE + 1);
-    expect(findAll.mock.calls.map(([, options]) => options.skip)).toEqual([0, CATALOG_MAX_PAGE_SIZE]);
     expect(log.slice(0, 3)).toEqual(['lock:1', 'read:1', 'update:1']);
+  });
+
+  it('skips no product when one leaves the brand between two page reads', async () => {
+    // Arrange: after the first page is read, another save moves product 1 to another brand
+    const ids = Array.from({ length: CATALOG_MAX_PAGE_SIZE + 1 }, (_, index) => index + 1);
+    let lists = 0;
+    const { catalog } = storeWith(ids, (brandOf) => {
+      lists += 1;
+      if (lists === 1) brandOf.set(1, otherBrandId);
+    });
+
+    // Act
+    const cleared = await catalog.clearBrand(ctx, brandId);
+
+    // Assert
+    expect(cleared).toContain(toCoreId(String(CATALOG_MAX_PAGE_SIZE + 1)));
+    expect(cleared).toHaveLength(CATALOG_MAX_PAGE_SIZE);
   });
 
   it('leaves a product whose brand changed before its lock was taken', async () => {
     // Arrange
-    const { catalog, log } = storeWith([1, 2], (id) => (id === 2 ? otherBrandId : brandId));
+    const { catalog, log } = storeWith([1, 2], (brandOf) => {
+      brandOf.set(2, otherBrandId);
+    });
 
     // Act
     const cleared = await catalog.clearBrand(ctx, brandId);
