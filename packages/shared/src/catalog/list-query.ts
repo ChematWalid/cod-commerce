@@ -1,0 +1,43 @@
+import { z } from 'zod';
+import { CATALOG_MAX_PAGE_SIZE, CATALOG_PAGE_SIZE, PRODUCT_LIST_TABS, PRODUCT_SEARCH_MAX } from './constants';
+import { catalogRefIdListSchema, catalogRefIdSchema, invalidCatalogInput } from './fields';
+
+/** The query object without its null or empty fields; anything that is not an object is left for the schema to refuse. */
+function withoutUnsetFields(query: unknown): unknown {
+  if (typeof query !== 'object' || query === null || Array.isArray(query)) return query;
+  return Object.fromEntries(Object.entries(query).filter(([, value]) => value !== null && value !== ''));
+}
+
+const productListFieldsSchema = z.object({
+  tab: z.enum(PRODUCT_LIST_TABS, invalidCatalogInput).default('all'),
+  q: z.string(invalidCatalogInput).trim().max(PRODUCT_SEARCH_MAX, invalidCatalogInput).optional(),
+  collectionId: catalogRefIdSchema.optional(),
+  brandId: catalogRefIdSchema.optional(),
+  tagId: catalogRefIdSchema.optional(),
+  skip: z.coerce.number(invalidCatalogInput).int(invalidCatalogInput).min(0, invalidCatalogInput).default(0),
+  take: z.coerce
+    .number(invalidCatalogInput)
+    .int(invalidCatalogInput)
+    .min(1, invalidCatalogInput)
+    .max(CATALOG_MAX_PAGE_SIZE, invalidCatalogInput)
+    .default(CATALOG_PAGE_SIZE),
+});
+
+/**
+ * A page of the admin product list (AC4). It may come as a REST query string; a null field (an unset GraphQL
+ * variable) or an empty one means "not asked", and a blank search is no search. The search, the tab and the filters
+ * combine with AND (D2123).
+ */
+export const productListQuerySchema = z
+  .preprocess(withoutUnsetFields, productListFieldsSchema)
+  .transform(({ q, ...query }) => (q === undefined || q === '' ? query : { ...query, q }));
+
+export type ProductListQueryInput = z.input<typeof productListFieldsSchema>;
+export type ProductListQuery = z.output<typeof productListQuerySchema>;
+
+/** "Stop orders" / "Resume orders" of sold-out products (D2108); an empty list means every sold-out product. */
+export const soldOutOrdersInputSchema = z.object({
+  productIds: catalogRefIdListSchema(CATALOG_MAX_PAGE_SIZE).default([]),
+});
+
+export type SoldOutOrdersCommand = z.output<typeof soldOutOrdersInputSchema>;

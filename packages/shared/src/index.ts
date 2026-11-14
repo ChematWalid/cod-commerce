@@ -30,3 +30,4 @@ export * from './flags';
 export * from './team';
 export * from './tenancy/tenant-key';
 export * from './text/control-characters';
+export * from './catalog';
