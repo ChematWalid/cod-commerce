@@ -65,3 +65,29 @@ export const ONE_PIXEL_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64',
 );
+
+/** The catalog documents (P2.S1) the world's catalog is seeded with. */
+export const STOCK_CREATE_COLLECTION = `mutation ($input: CreateCollectionInput!) {
+  createCollection(input: $input) { id }
+}`;
+
+export const CREATE_CATALOG_BRAND = `mutation ($input: CatalogBrandInput!) {
+  createCatalogBrand(input: $input) { id name }
+}`;
+
+export const CREATE_CATALOG_TAG = `mutation ($input: CatalogTagInput!) {
+  createCatalogTag(input: $input) { id name }
+}`;
+
+export const CREATE_CATALOG_HIGHLIGHT = `mutation ($input: CatalogHighlightInput!) {
+  createCatalogHighlight(input: $input) { id text }
+}`;
+
+export const UPLOAD_CATALOG_MEDIA = 'mutation ($file: Upload!) { uploadCatalogMedia(file: $file) { id assetId } }';
+
+export const CREATE_CATALOG_PRODUCT = `mutation ($input: CreateCatalogProductInput!) {
+  createCatalogProduct(input: $input) { product { id variants { id } } }
+}`;
+
+/** The area level of the role that lets the world's member work on the catalog of its one store. */
+export const CATALOG_AREA_LEVELS = [{ area: 'catalog', level: 'full' }];

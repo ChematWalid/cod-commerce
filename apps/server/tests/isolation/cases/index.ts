@@ -1,4 +1,8 @@
 import type { IsolationCase } from '../matrix';
+import { CATALOG_MEDIA_CASES } from './catalog-media';
+import { CATALOG_PRODUCT_CASES } from './catalog-products';
+import { CATALOG_SWEEP_CASES } from './catalog-sweep';
+import { CATALOG_TAXONOMY_CASES } from './catalog-taxonomy';
 import { TEAM_CASES } from './team';
 import { ACCOUNT_CASES } from './account';
 import { PLATFORM_CASES } from './platform';
@@ -20,4 +24,15 @@ export const ISOLATION_CASES: readonly IsolationCase[] = [
   ...STOCK_READ_CASES,
   ...STOCK_WRITE_CASES,
   ...TEAM_CASES,
+];
+
+/**
+ * Every cell of the P2 isolation matrix (P2.S1 catalog, D2115). Kept apart from {@link ISOLATION_CASES}, which the P1
+ * suite runs unchanged (its `stock.products` cell stays FORBIDDEN, D2101).
+ */
+export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
+  ...CATALOG_PRODUCT_CASES,
+  ...CATALOG_TAXONOMY_CASES,
+  ...CATALOG_MEDIA_CASES,
+  ...CATALOG_SWEEP_CASES,
 ];

@@ -1,7 +1,7 @@
 import type { MatrixRequest } from './http';
 import type { BusinessWorld, World } from './world-types';
 
-/** The P1 tenant data the matrix covers; each is a row of the evidence matrix. */
+/** The tenant data the matrices cover (P1, then the P2 catalog); each is a row of the evidence matrix. */
 export type IsolationEntity =
   | 'business'
   | 'store'
@@ -19,7 +19,12 @@ export type IsolationEntity =
   | 'invitation'
   | 'commission'
   | 'salary payment'
-  | 'stock Vendure data';
+  | 'stock Vendure data'
+  | 'product'
+  | 'brand'
+  | 'product tag'
+  | 'highlight'
+  | 'media';
 
 /** How the attacker reaches for the victim's data; each is a column of the evidence matrix. */
 export type IsolationAccess =
@@ -44,9 +49,13 @@ export type Expectation =
   | { readonly kind: 'status'; readonly status: number; readonly code?: string }
   /**
    * A success that holds the attacker's own data (`mustInclude`, a positive control) and, like every answer, none
-   * of the victim's.
+   * of the victim's; nor `mustExclude`, the attacker's own data that the caller may still not see (another store's).
    */
-  | { readonly kind: 'own'; readonly mustInclude: (attacker: BusinessWorld) => readonly string[] };
+  | {
+      readonly kind: 'own';
+      readonly mustInclude: (attacker: BusinessWorld) => readonly string[];
+      readonly mustExclude?: (attacker: BusinessWorld) => readonly string[];
+    };
 
 /** One cell of the matrix: an endpoint, an entity, how the attacker reaches, and what must come back. */
 export interface IsolationCase {

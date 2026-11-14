@@ -127,7 +127,10 @@ async function buildBusiness(options: WorldOptions, superadmin: Caller, label: '
   const secret = await as<{ id: string }>(SET_SECRET, { input: { ...DEMO_SECRET, value } }, 'setTenantSecret');
   const noteInput = { title: `Note ${label} ${suffix}`, body: 'private' };
   const note = await as<{ id: string; title: string }>(CREATE_NOTE, { input: noteInput }, 'createTemplateNote');
-  const logo = fieldOf(await http.upload(base.session, UPLOAD_LOGO, ONE_PIXEL_PNG, own), 'uploadBusinessLogo') as {
+  const logo = fieldOf(
+    await http.upload(base.session, UPLOAD_LOGO, { bytes: ONE_PIXEL_PNG, name: 'logo.png' }, own),
+    'uploadBusinessLogo',
+  ) as {
     assetId: string;
   };
   const scope = { key: OVERRIDDEN_FLAG, scope: 'BUSINESS', scopeId: base.business.id, enabled: true };
