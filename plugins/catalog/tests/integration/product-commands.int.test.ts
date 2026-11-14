@@ -3,7 +3,7 @@ import { CATALOG_ERROR_CODES, productInputSchema, type ProductInput, toBusinessI
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type StoreFixture, type TwoBusinesses } from '@cod/testing';
 import { RequestContextService, type RequestContext } from '@vendure/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CatalogProductCommands, type CatalogStoreScope } from '../../index';
+import { CatalogProductCommands, type CatalogStoreScope, type SkuMatch } from '../../index';
 import { CatalogKit, createCatalogTestEnvironment } from './catalog-kit';
 
 const { server, adminClient } = createCatalogTestEnvironment(1021, {
@@ -50,6 +50,11 @@ const errorCodeOf = async (attempt: Promise<unknown>): Promise<string | undefine
   );
   return (error as { code?: string } | undefined)?.code;
 };
+
+const writeAndContextCodes = async (ctx: RequestContext, scope: CatalogStoreScope) => [
+  await errorCodeOf(commands.create(ctx, scope, command())),
+  await errorCodeOf(commands.storeContext(scope)),
+];
 
 describe('CatalogProductCommands (D2201)', () => {
   it('creates through the facade and publishes product.changed', async () => {
@@ -123,19 +128,31 @@ describe('CatalogProductCommands (D2201)', () => {
 
   it('refuses an archived store', async () => {
     // Arrange
-    const store = fixtures.b.stores[1];
-    const scope = scopeOf(fixtures.b, store);
-    const ctx = await channelContext(store);
-    await kit.query(`UPDATE store SET status = 'archived' WHERE id = $1`, [store.id]);
+    const scope = scopeOf(fixtures.b, fixtures.b.stores[1]);
+    const ctx = await channelContext(fixtures.b.stores[1]);
+    await kit.query(`UPDATE store SET status = 'archived' WHERE id = $1`, [scope.storeId]);
 
     // Act
-    const writeCode = await errorCodeOf(commands.create(ctx, scope, command()));
-    const contextCode = await errorCodeOf(commands.storeContext(scope));
+    const codes = await writeAndContextCodes(ctx, scope).finally(() =>
+      kit.query(`UPDATE store SET status = 'active' WHERE id = $1`, [scope.storeId]),
+    );
 
     // Assert
-    expect(writeCode).toBe(CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND);
-    expect(contextCode).toBe(CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND);
-    await kit.query(`UPDATE store SET status = 'active' WHERE id = $1`, [store.id]);
+    expect(codes).toEqual([CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND, CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND]);
+  });
+
+  it('refuses a scope whose business is suspended (D2235)', async () => {
+    // Arrange
+    const ctx = await commands.storeContext(scopeB());
+    await kit.query(`UPDATE business SET status = 'suspended' WHERE id = $1`, [fixtures.b.businessId]);
+
+    // Act
+    const codes = await writeAndContextCodes(ctx, scopeB()).finally(() =>
+      kit.query(`UPDATE business SET status = 'active' WHERE id = $1`, [fixtures.b.businessId]),
+    );
+
+    // Assert
+    expect(codes).toEqual([CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND, CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND]);
   });
 
   it("refuses a context on another store's channel", async () => {
@@ -172,6 +189,24 @@ describe('CatalogProductCommands (D2201)', () => {
 
     // Assert
     expect(matches.get(lookedUp)).toEqual({ kind: 'one', productId: product.id, variantId: product.variants[0]?.id });
+  });
+
+  it('finds a SKU holding a backslash, a percent sign or an underscore exactly (D2234)', async () => {
+    // Arrange
+    const ctx = await commands.storeContext(scopeA());
+    const expected = new Map<string, SkuMatch>();
+    for (const sku of ['AB\\C', 'TRAIL\\', 'PCT%1', 'UND_1']) {
+      const { product } = await commands.create(ctx, scopeA(), command({ sku }));
+      expected.set(sku, { kind: 'one', productId: product.id, variantId: product.variants[0]?.id ?? null });
+    }
+    for (const sku of ['ABC', 'UNDX1']) await commands.create(ctx, scopeA(), command({ sku }));
+    expected.set('AB\\', { kind: 'none' });
+
+    // Act
+    const matches = await commands.findBySkus(ctx, scopeA(), [...expected.keys()]);
+
+    // Assert
+    expect(new Map([...expected.keys()].map((sku) => [sku, matches.get(sku)]))).toEqual(expected);
   });
 
   it('answers ambiguous for a SKU on two products', async () => {
@@ -238,7 +273,7 @@ describe('CatalogProductCommands (D2201)', () => {
     expect(all.at(-1)).toBe(late.id);
   });
 
-  it('storeContext builds a store-channel ctx and refuses an archived store', async () => {
+  it('storeContext builds a store-channel admin ctx without a user', async () => {
     // Act
     const ctx = await commands.storeContext(scopeA());
 

@@ -13,6 +13,7 @@ import {
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { ProductCriteria } from '../domain/ports/product-catalog.port';
 import type { ProductIdPage, ProductLookupPort, SkuCandidate } from '../domain/ports/product-lookup.port';
+import { likeLiteralOf } from './like-literal';
 import { toRequestContext } from './request-scope';
 import { listOptionsOf } from './vendure-product-list-options';
 import { coreIdOf, type ProductCustomFields } from './vendure-product-mapper';
@@ -44,8 +45,9 @@ function chunksOf(values: readonly string[]): string[][] {
   return chunks;
 }
 
+/** One `contains` clause per SKU, each escaped so it matches only itself as a substring (D2234). */
 const containsAny = (field: string, skus: readonly string[]) => ({
-  _or: skus.map((sku) => ({ [field]: { contains: sku } })),
+  _or: skus.map((sku) => ({ [field]: { contains: likeLiteralOf(sku) } })),
 });
 
 const productSkuOf = (product: Product): string | null =>

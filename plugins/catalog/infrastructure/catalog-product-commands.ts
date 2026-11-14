@@ -21,8 +21,10 @@ export interface ProductStatusChange {
  * The explicit-scope write and lookup facade later sessions use (catalog-packs, catalog-import; D2201): every call
  * names its business and store, so it also works in a job or an outbox consumer where no tenant guard ran, and runs
  * catalog's own use cases, so validation, locks and `product.changed` stay in catalog. Each call first checks that
- * `scope` is a live store of its business and that `ctx` runs in that store's channel, never Vendure's default one;
- * otherwise it answers `catalog.product-not-found`. It takes no actor: the callers write their own audit rows.
+ * `scope` is a live store of its active business and that `ctx` runs in that store's channel, never Vendure's default
+ * one; otherwise it answers `catalog.product-not-found`. It takes no actor: the callers write their own audit rows.
+ * It does not check that a request's user may act for the business: a request caller takes `scope` from the tenant
+ * guard's `TenantContext`, never from the ctx channel (a channel token is not a secret) (D2236).
  */
 @Injectable()
 export class CatalogProductCommands {

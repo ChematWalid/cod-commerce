@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react';
 import { PageBlock, PageLayout } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import { hasOptionVariants } from '../model/editor-form';
+import { packFieldReadOnly } from '../model/editor-pack';
 import type { OptionsDraft } from '../model/options-draft';
 import { DetailsSection } from './details-section';
 import { HighlightsField } from './highlights-field';
@@ -45,7 +46,7 @@ function mainBlocks(props: EditorBlocksProps, t: Translate): ReactNode[] {
       <OptionsEditor
         options={props.form.options}
         error={props.errors.options}
-        disabled={props.disabled}
+        disabled={packFieldReadOnly(props.form, 'options', props.disabled)}
         onChange={(options: OptionsDraft) => {
           props.onChange({ options });
         }}

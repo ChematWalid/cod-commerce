@@ -18,6 +18,7 @@ import {
 import type { ReactNode } from 'react';
 import { VARIANT_PRICE_TEST_ID, VARIANT_ROW_TEST_ID, VARIANT_SKU_TEST_ID } from '../constants';
 import type { VariantDraft } from '../model/editor-form';
+import { packFieldReadOnly } from '../model/editor-pack';
 import type { SectionProps } from './section-props';
 
 /** The select value for "the product's image": an option needs a non-empty value. */
@@ -82,7 +83,7 @@ function RowInput(props: RowProps & { readonly field: 'sku' | 'price'; readonly 
         : { maxLength: SKU_MAX, 'data-testid': VARIANT_SKU_TEST_ID })}
       aria-label={i18n._(props.labelId, { name })}
       value={row[field]}
-      disabled={table.disabled}
+      disabled={field === 'price' ? packFieldReadOnly(table.form, 'variants', table.disabled) : table.disabled}
       onChange={(event) => {
         onRow({ [field]: event.target.value });
       }}

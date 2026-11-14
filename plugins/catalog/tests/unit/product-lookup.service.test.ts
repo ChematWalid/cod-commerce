@@ -111,6 +111,22 @@ describe('ProductLookupService', () => {
     expect(page.nextSkip).toBeNull();
   });
 
+  it('reads a non-finite skip or take as the first full page', async () => {
+    // Arrange
+    await create({ title: 'Only' });
+
+    // Act
+    const page = await lookup.listIdsPage(world.ctxOf(scopeA), scopeA, {
+      filter: { tab: 'all' },
+      skip: Number.NaN,
+      take: Number.POSITIVE_INFINITY,
+    });
+
+    // Assert
+    expect(world.products.calls).toContain('listIds:0:100');
+    expect(page.nextSkip).toBeNull();
+  });
+
   it('answers an empty last page for a malformed tag filter', async () => {
     // Arrange
     await create({ title: 'Only' });

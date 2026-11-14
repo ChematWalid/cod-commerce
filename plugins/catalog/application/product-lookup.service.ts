@@ -70,13 +70,16 @@ export class ProductLookupService {
 
   /**
    * One page of the ids the list's filter holds, ascending, each once (D2218). A product created meanwhile has the
-   * largest id and comes last; one deleted meanwhile may shift a later page by one.
+   * largest id and comes last; one deleted meanwhile may shift a later page by one. A skip or take that is not a
+   * finite number reads as the first page or the full page size.
    */
   async listIdsPage(ctx: OperationContext, scope: StoreScope, page: ProductIdsPageRequest): Promise<ProductIdsPage> {
     const criteria = await criteriaOfFilter(this.ports, ctx, scope, page.filter);
     if (criteria === null) return LAST_PAGE;
-    const skip = Math.max(0, Math.trunc(page.skip));
-    const take = Math.min(Math.max(1, Math.trunc(page.take)), CATALOG_MAX_PAGE_SIZE);
+    const skip = Number.isFinite(page.skip) ? Math.max(0, Math.trunc(page.skip)) : 0;
+    const take = Number.isFinite(page.take)
+      ? Math.min(Math.max(1, Math.trunc(page.take)), CATALOG_MAX_PAGE_SIZE)
+      : CATALOG_MAX_PAGE_SIZE;
     const found = await this.ports.lookup.listIds(ctx, { ...criteria, sort: 'id-asc', skip, take });
     const nextSkip = skip + take < found.totalItems ? skip + take : null;
     return { ids: [...new Set(found.ids)], nextSkip };

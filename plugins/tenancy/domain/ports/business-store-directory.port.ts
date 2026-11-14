@@ -20,6 +20,9 @@ export abstract class BusinessStoreDirectory {
   /** Every store of the business, archived ones too: the caller decides what counts. */
   abstract storesOf(ctx: OperationContext, businessId: BusinessId): Promise<readonly StoreAccess[]>;
 
+  /** Whether the business exists and is active, as the tenant guard requires (not suspended). */
+  abstract isActiveBusiness(ctx: OperationContext, businessId: BusinessId): Promise<boolean>;
+
   /** The administrator the business was provisioned for, or `null` when it has none or does not exist. */
   abstract ownerAdministratorOf(ctx: OperationContext, businessId: BusinessId): Promise<number | null>;
 

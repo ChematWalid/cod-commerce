@@ -95,6 +95,11 @@ export class PlatformStoreLookup extends BusinessStoreDirectory implements Platf
     return this.findStoreAccess(ctx, businessId);
   }
 
+  async isActiveBusiness(ctx: OperationContext, businessId: BusinessId): Promise<boolean> {
+    const business = await this.findBusiness(ctx, toSnowflake(businessId));
+    return business?.status === 'active';
+  }
+
   async ownerAdministratorOf(ctx: OperationContext, businessId: BusinessId): Promise<number | null> {
     const business = await this.findBusiness(ctx, toSnowflake(businessId));
     return business?.ownerAdministratorId ?? null;

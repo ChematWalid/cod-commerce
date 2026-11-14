@@ -2,7 +2,7 @@ import { BARCODE_MAX, SKU_MAX } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import type { ReactNode } from 'react';
 import { EDITOR_PRICE_TEST_ID, EDITOR_SKU_TEST_ID } from '../constants';
-import { isPackForm, pricingReadOnly } from '../model/editor-pack';
+import { isPackForm, packFieldReadOnly } from '../model/editor-pack';
 import { FormTextField } from './form-text-field';
 import type { SectionProps } from './section-props';
 
@@ -33,17 +33,18 @@ function PricingNotes({ form, warnings }: PricingSectionProps): ReactNode {
 
 /**
  * Price, old price, SKU and barcode. Without options they are the product's one variant; with options they are what
- * new variants start from (D2124). Read-only for a pack, whose prices catalog-packs computes (D2201 c).
+ * new variants start from (D2124). A pack's price and old price are read-only: catalog-packs computes them (D2201 c);
+ * its SKU and barcode stay editable (D2232).
  */
 export function PricingSection(props: PricingSectionProps): ReactNode {
   const { i18n } = useLingui();
   const currency = i18n._('catalog.currency');
-  const section = { ...props, disabled: pricingReadOnly(props.form, props.disabled) };
+  const priced = { ...props, disabled: packFieldReadOnly(props.form, 'price', props.disabled) };
   return (
     <div className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <FormTextField
-          section={section}
+          section={priced}
           field="price"
           labelId="catalog.editor-price"
           data-testid={EDITOR_PRICE_TEST_ID}
@@ -51,22 +52,22 @@ export function PricingSection(props: PricingSectionProps): ReactNode {
           suffix={currency}
         />
         <FormTextField
-          section={section}
+          section={priced}
           field="oldPrice"
           labelId="catalog.editor-old-price"
           inputMode="numeric"
           suffix={currency}
         />
         <FormTextField
-          section={section}
+          section={props}
           field="sku"
           labelId="catalog.editor-sku"
           data-testid={EDITOR_SKU_TEST_ID}
           maxLength={SKU_MAX}
         />
-        <FormTextField section={section} field="barcode" labelId="catalog.editor-barcode" maxLength={BARCODE_MAX} />
+        <FormTextField section={props} field="barcode" labelId="catalog.editor-barcode" maxLength={BARCODE_MAX} />
       </div>
-      <PricingNotes {...section} />
+      <PricingNotes {...props} />
     </div>
   );
 }

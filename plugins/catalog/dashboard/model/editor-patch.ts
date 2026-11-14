@@ -121,11 +121,12 @@ const settingsOf = (settings: SettingsDraft): SettingsInput => ({
 
 /**
  * "Create a product" from the form: every field, its type, the options and the full settings. A pack is created bare,
- * without options, weight or old price (D2227): catalog-packs computes them once it is composed.
+ * without options, weight or old price and at a placeholder price of 0 (D2227, D2233): catalog-packs computes them once
+ * it is composed.
  */
 export function createInputOf(form: EditorForm): CreateProductInput {
   const fields = fieldsOf(form);
-  const packed = isPackForm(form) ? { ...fields, optionGroups: [], weight: null, oldPrice: null } : fields;
+  const packed = isPackForm(form) ? { ...fields, price: 0, optionGroups: [], weight: null, oldPrice: null } : fields;
   return { ...packed, type: form.type, settings: settingsOf(form.settings) };
 }
 

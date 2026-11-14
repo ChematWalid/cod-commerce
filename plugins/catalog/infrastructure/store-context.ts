@@ -11,7 +11,7 @@ interface StoreChannel {
 
 /**
  * The store-channel contexts of the explicit-scope facade (D2201): a check that a context and a scope name one live
- * store of one business, and the context a worker or an outbox consumer runs in, built from the scope alone. A
+ * store of one active business (D2235), and the context a worker or an outbox consumer runs in, built from the scope alone. A
  * refusal answers like a missing product, so a guessed scope learns nothing (D2136).
  */
 @Injectable()
@@ -26,7 +26,7 @@ export class CatalogStoreContexts {
    * A context in the store channel of `scope`, admin API, no user: what a job or an outbox consumer writes with,
    * where no request and no tenant guard exist.
    *
-   * @throws {ProductNotFoundError} when the store is not a live store of the business.
+   * @throws {ProductNotFoundError} when the store is not a live store of the business, or the business is suspended.
    */
   async storeContext(scope: StoreScope): Promise<RequestContext> {
     const base = await this.contexts.create({ apiType: 'admin' });
@@ -52,8 +52,11 @@ export class CatalogStoreContexts {
     if (!idsAreEqual(store.channelId, ctx.channelId)) throw new ProductNotFoundError();
   }
 
+  /** The scope's store when it and its business are live: a suspended business writes nothing, as with the guard. */
   private async liveStore(ctx: RequestContext, scope: StoreScope): Promise<StoreChannel> {
-    const stores = await this.directory.storesOf(asTenancyContext(ctx), scope.businessId);
+    const tenancyCtx = asTenancyContext(ctx);
+    if (!(await this.directory.isActiveBusiness(tenancyCtx, scope.businessId))) throw new ProductNotFoundError();
+    const stores = await this.directory.storesOf(tenancyCtx, scope.businessId);
     const store = stores.find((held) => held.id === scope.storeId);
     if (store?.status !== 'active') throw new ProductNotFoundError();
     return store;
