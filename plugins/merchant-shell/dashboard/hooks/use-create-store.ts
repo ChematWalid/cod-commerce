@@ -1,12 +1,11 @@
 import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
 import { api, useChannel } from '@vendure/dashboard';
-import { useCallback, useEffect, useState } from 'react';
+import { type Dispatch, useCallback, useEffect, useReducer } from 'react';
 import {
   CREATE_STORE_FAILED_MESSAGE_ID,
   STORE_CHANNEL_POLL_MS,
   STORE_NAME_INVALID_ERROR_CODE,
   STORE_NAME_INVALID_MESSAGE_ID,
-  STORE_SWITCH_TIMEOUT_MESSAGE_ID,
   STORE_SWITCH_TIMEOUT_MS,
   SUBDOMAIN_INVALID_ERROR_CODE,
   SUBDOMAIN_REASON_MESSAGE_IDS,
@@ -14,6 +13,17 @@ import {
   SWITCHABLE_STORES_QUERY_KEY,
 } from '../constants';
 import { errorCodeOf } from '../model/api-error';
+import {
+  awaitedTokenOf,
+  canRecheck,
+  canSubmitStore,
+  type CreateStoreEvent,
+  type CreateStoreState,
+  createStoreErrorIdOf,
+  INITIAL_CREATE_STORE_STATE,
+  isCreatingStore,
+  nextCreateStoreState,
+} from '../model/create-store-state';
 import { backoffRefreshTimes } from '../model/refresh-schedule';
 
 const CREATE_STORE_MUTATION = /* GraphQL */ `
@@ -49,6 +59,10 @@ export interface CreateStore {
   readonly submit: (input: CreateStoreInput) => void;
   /** True while the store is being created and until its channel has reached the session. */
   readonly submitting: boolean;
+  /** False while a store is on its way, and after a timeout, when the store may already exist (SHELL-8). */
+  readonly canSubmit: boolean;
+  /** Set after a timeout: waits for the same store again instead of creating another one. */
+  readonly recheck: (() => void) | undefined;
   readonly errorId: string | undefined;
   readonly reset: () => void;
 }
@@ -102,14 +116,48 @@ function useCreateStoreMutation(
   });
 }
 
-/** Creates a store, refreshes the session and switches to the new channel once it appears (D87). */
+/** What the dialog sees of a Create Store in `state`; `send` starts the mutation, `refresh` reloads the session. */
+function createStoreView(
+  state: CreateStoreState,
+  dispatch: Dispatch<CreateStoreEvent>,
+  send: (input: CreateStoreInput) => void,
+  refresh: () => void,
+): CreateStore {
+  const recheck = (): void => {
+    refresh();
+    dispatch({ type: 'recheck' });
+  };
+  return {
+    submit: (input) => {
+      if (!canSubmitStore(state)) return;
+      dispatch({ type: 'submitted' });
+      send(input);
+    },
+    submitting: isCreatingStore(state),
+    canSubmit: canSubmitStore(state),
+    recheck: canRecheck(state) ? recheck : undefined,
+    errorId: createStoreErrorIdOf(state),
+    reset: () => {
+      dispatch({ type: 'reset' });
+    },
+  };
+}
+
+/** Creates a store, refreshes the session and switches to the new channel once it appears (D87, SHELL-8). */
 export function useCreateStore(switchTo: (channelId: string) => Promise<void>, onDone: () => void): CreateStore {
-  const [awaitedToken, setAwaitedToken] = useState<string | null>(null);
-  const [errorId, setErrorId] = useState<string | undefined>(undefined);
-  const mutation = useCreateStoreMutation(setAwaitedToken, setErrorId);
+  const [state, dispatch] = useReducer(nextCreateStoreState, INITIAL_CREATE_STORE_STATE);
+  const { refreshChannels } = useChannel();
+  const mutation = useCreateStoreMutation(
+    (token) => {
+      dispatch({ type: 'created', token });
+    },
+    (messageId) => {
+      dispatch({ type: 'failed', messageId });
+    },
+  );
   const onFound = useCallback(
     (channelId: string) => {
-      setAwaitedToken(null);
+      dispatch({ type: 'found' });
       switchTo(channelId).catch((error: unknown) => {
         console.error('Could not switch to the new store', error);
       });
@@ -118,20 +166,8 @@ export function useCreateStore(switchTo: (channelId: string) => Promise<void>, o
     [switchTo, onDone],
   );
   const onTimeout = useCallback(() => {
-    setAwaitedToken(null);
-    setErrorId(STORE_SWITCH_TIMEOUT_MESSAGE_ID);
+    dispatch({ type: 'timed-out' });
   }, []);
-  useAwaitedChannel(awaitedToken, onFound, onTimeout);
-  return {
-    submit: (input) => {
-      setErrorId(undefined);
-      mutation.mutate(input);
-    },
-    submitting: mutation.isPending || awaitedToken !== null,
-    errorId,
-    reset: () => {
-      setAwaitedToken(null);
-      setErrorId(undefined);
-    },
-  };
+  useAwaitedChannel(awaitedTokenOf(state), onFound, onTimeout);
+  return createStoreView(state, dispatch, mutation.mutate, refreshChannels);
 }

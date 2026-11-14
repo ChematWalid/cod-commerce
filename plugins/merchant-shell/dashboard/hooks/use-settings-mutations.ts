@@ -1,7 +1,7 @@
 import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
 import { api } from '@vendure/dashboard';
 import { ACTIVE_BUSINESS_QUERY_KEY, STORE_RECORD_QUERY_KEY, SWITCHABLE_STORES_QUERY_KEY } from '../constants';
-import type { StorePatch } from '../model/settings-form';
+import type { BusinessPatch, StorePatch } from '../model/settings-form';
 import type { BusinessRecord, StoreRecord } from '../model/types';
 
 const UPDATE_BUSINESS_MUTATION = /* GraphQL */ `
@@ -9,6 +9,8 @@ const UPDATE_BUSINESS_MUTATION = /* GraphQL */ `
     updateBusiness(input: $input) {
       id
       name
+      logoAssetId
+      logoUrl
     }
   }
 `;
@@ -20,12 +22,24 @@ const UPDATE_STORE_MUTATION = /* GraphQL */ `
       name
       description
       language
+      logoAssetId
+      logoUrl
+      showAddressField
+      soldOutBehavior
     }
   }
 `;
 
-/** Renames the business. The server checks `settings.business.edit` and the name. */
-export function useUpdateBusiness(): UseMutationResult<BusinessRecord, unknown, { readonly name: string }> {
+const UPLOAD_LOGO_MUTATION = /* GraphQL */ `
+  mutation ShellUploadLogo($file: Upload!) {
+    uploadBusinessLogo(file: $file) {
+      assetId
+    }
+  }
+`;
+
+/** Changes the business's name or logo. The server checks `settings.business.edit`, the name and the logo's owner. */
+export function useUpdateBusiness(): UseMutationResult<BusinessRecord, unknown, BusinessPatch> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input) =>
@@ -53,5 +67,20 @@ export function useUpdateStore(storeId: string): UseMutationResult<StoreRecord, 
         queryClient.invalidateQueries({ queryKey: STORE_RECORD_QUERY_KEY }),
       ]);
     },
+  });
+}
+
+/**
+ * Uploads a logo image on the active store's channel and answers with its asset id, which a Save then sets. The server
+ * checks `settings.business.edit`, the size and the content (D34, D2120).
+ */
+export function useUploadLogo(): UseMutationResult<string, unknown, File> {
+  return useMutation({
+    mutationFn: async (file) =>
+      (
+        (await api.mutate(UPLOAD_LOGO_MUTATION, { file })) as {
+          readonly uploadBusinessLogo: { readonly assetId: string };
+        }
+      ).uploadBusinessLogo.assetId,
   });
 }

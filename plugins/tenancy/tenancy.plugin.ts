@@ -5,6 +5,7 @@ import { platformStaffPermission, tenantBusinessPermission, tenantStorePermissio
 import { TenantGuard } from './api/tenant.guard';
 import { RequestStoreSettings } from './api/request-store-settings';
 import { BusinessResolver } from './api/business.resolver';
+import { BusinessLogoUrlResolver, StoreLogoUrlResolver } from './api/logo-url.resolver';
 import { SlugForEntityResolver } from './api/slug-for-entity.resolver';
 import { adminApiSchema } from './api/schema';
 import { StoreFieldsResolver, StoreMutationResolver, StoreQueryResolver } from './api/store.resolver';
@@ -23,6 +24,7 @@ import type { StoreAdminPorts } from './application/store-admin-ports';
 import type { TenancyPorts } from './application/tenancy-ports';
 import { type TenantLifecycleRegistrar, TenantLifecycleRegistry } from './application/tenant-lifecycle.registry';
 import { UpdateBusinessService } from './application/update-business.service';
+import { LogoUrlService } from './application/logo-url.service';
 import { UpdateStoreService } from './application/update-store.service';
 import {
   ASSET_ACCESS,
@@ -126,6 +128,7 @@ function configure(config: RuntimeVendureConfig): RuntimeVendureConfig {
 const STORE_USE_CASES = [
   GetBusinessService,
   UpdateBusinessService,
+  LogoUrlService,
   GetStoresService,
   UpdateStoreService,
   ArchiveStoreService,
@@ -245,6 +248,8 @@ const STORE_USE_CASES = [
       StoreQueryResolver,
       StoreMutationResolver,
       StoreFieldsResolver,
+      BusinessLogoUrlResolver,
+      StoreLogoUrlResolver,
       SlugForEntityResolver,
     ],
   },

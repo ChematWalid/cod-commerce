@@ -134,6 +134,7 @@ export class InMemoryPlatformStore implements PlatformStorePort {
 /** Every asset is available: logo ownership is covered by the integration tests. */
 export const openAssets: AssetAccessPort = {
   isAssetInChannels: () => Promise.resolve(true),
+  previewUrlInChannels: (_ctx, assetId) => Promise.resolve(`https://assets.test/preview/${String(assetId)}.png`),
 };
 
 /** Runs the work in place: unit tests have no database. */
