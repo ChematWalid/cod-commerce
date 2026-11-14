@@ -22,18 +22,42 @@ export function catalogTextSchema(max: number) {
 
 /**
  * An id the body refers to (a Vendure product, variant, asset or collection, or our brand, tag or highlight),
- * as a string. GraphQL `ID` arguments may arrive decoded as numbers. Only the length is bounded here: the API boundary
- * parses the id and answers "not found" for a malformed one, as for a foreign one (D2136).
+ * as a string. GraphQL `ID` arguments may arrive decoded as numbers; a number that is not a safe integer has already
+ * lost digits and could name another row, so it is refused. Otherwise only the length is bounded here: the API
+ * boundary parses the id and answers "not found" for a malformed one (`""`, `"abc"`, `"-1"`), as for a foreign one
+ * (D2136).
  */
 export const catalogRefIdSchema = z
-  .union([z.string().max(CATALOG_ID_MAX_LENGTH, invalidCatalogInput), z.number()], invalidCatalogInput)
+  .union(
+    [
+      z.string().max(CATALOG_ID_MAX_LENGTH, invalidCatalogInput),
+      z.number().refine(Number.isSafeInteger, invalidCatalogInput),
+    ],
+    invalidCatalogInput,
+  )
   .transform((id) => String(id));
 
-const hasNoRepeat = (ids: readonly string[]): boolean => new Set(ids).size === ids.length;
+const hasNoRepeat = (keys: readonly string[]): boolean => new Set(keys).size === keys.length;
 
-/** At most `max` referenced ids, never the same one twice (a link table would refuse the repeat with a 500). */
+/** The row a referenced id names once the boundary parses it: a decimal id loses its leading zeros. */
+function idKey(id: string): string {
+  return /^\d+$/.test(id) ? BigInt(id).toString() : id;
+}
+
+/** True when no two ids name the same row (`"01"` and `"1"` are the same id). */
+export function hasNoRepeatedId(ids: readonly string[]): boolean {
+  return hasNoRepeat(ids.map(idKey));
+}
+
+/**
+ * At most `max` referenced ids, never the same one twice, so a link table never sees a repeat (a 500). The boundary
+ * parser must accept only decimal digits, which this check compares by value; any other form answers not found.
+ */
 export function catalogRefIdListSchema(max: number, tooMany: { message: string } = invalidCatalogInput) {
-  return z.array(catalogRefIdSchema, invalidCatalogInput).max(max, tooMany).refine(hasNoRepeat, invalidCatalogInput);
+  return z
+    .array(catalogRefIdSchema, invalidCatalogInput)
+    .max(max, tooMany)
+    .refine(hasNoRepeatedId, invalidCatalogInput);
 }
 
 /** At most `max` snowflake ids of ours, never the same one twice. */

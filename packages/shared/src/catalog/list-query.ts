@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CATALOG_MAX_PAGE_SIZE, CATALOG_PAGE_SIZE, PRODUCT_LIST_TABS, PRODUCT_SEARCH_MAX } from './constants';
+import { hasBidiControl, hasControlCharacter } from '../text/control-characters';
 import { catalogRefIdListSchema, catalogRefIdSchema, invalidCatalogInput } from './fields';
 
 /** The query object without its null or empty fields; anything that is not an object is left for the schema to refuse. */
@@ -10,7 +11,13 @@ function withoutUnsetFields(query: unknown): unknown {
 
 const productListFieldsSchema = z.object({
   tab: z.enum(PRODUCT_LIST_TABS, invalidCatalogInput).default('all'),
-  q: z.string(invalidCatalogInput).trim().max(PRODUCT_SEARCH_MAX, invalidCatalogInput).optional(),
+  // A NUL would reach the `contains` filter and fail in Postgres with a 500 (#171).
+  q: z
+    .string(invalidCatalogInput)
+    .trim()
+    .max(PRODUCT_SEARCH_MAX, invalidCatalogInput)
+    .refine((value) => !hasControlCharacter(value) && !hasBidiControl(value), invalidCatalogInput)
+    .optional(),
   collectionId: catalogRefIdSchema.optional(),
   brandId: catalogRefIdSchema.optional(),
   tagId: catalogRefIdSchema.optional(),

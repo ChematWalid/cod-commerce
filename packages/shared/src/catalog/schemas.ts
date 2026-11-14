@@ -36,6 +36,7 @@ import {
   catalogRefIdListSchema,
   catalogRefIdSchema,
   catalogTextSchema,
+  hasNoRepeatedId,
   intColumnSchema,
   invalidCatalogInput,
   snowflakeListSchema,
@@ -69,21 +70,43 @@ const customAttributeSchema = z.object({
   value: catalogTextSchema(CUSTOM_ATTRIBUTE_VALUE_MAX),
 });
 
-/** The merchant-only settings of a product in its store (AC5); order managers are team-member ids (D2114). */
-export const productSettingsSchema = z.object({
+/** Custom attribute names are unique in a product whatever their case, like brand and tag names (D2140). */
+const customAttributeListSchema = z
+  .array(customAttributeSchema, invalidCatalogInput)
+  .max(MAX_CUSTOM_ATTRIBUTES, invalidCatalogInput)
+  .refine(
+    (attributes) => new Set(attributes.map(({ name }) => name.toLowerCase())).size === attributes.length,
+    invalidCatalogInput,
+  );
+
+const productSettingsFields = {
   nameInDelivery: catalogTextSchema(NAME_IN_DELIVERY_MAX).nullish(),
   isFragile: z.boolean(invalidCatalogInput),
   allowParcelOpening: z.boolean(invalidCatalogInput),
   allowOutOfStockOrders: z.boolean(invalidCatalogInput),
   soldOut: z.boolean(invalidCatalogInput),
   quantityRules: quantityRulesSchema,
-  orderManagerIds: snowflakeListSchema(MAX_ORDER_MANAGERS).default([]),
-  customAttributes: z
-    .array(customAttributeSchema, invalidCatalogInput)
-    .max(MAX_CUSTOM_ATTRIBUTES, invalidCatalogInput)
-    .default([]),
+  orderManagerIds: snowflakeListSchema(MAX_ORDER_MANAGERS),
+  customAttributes: customAttributeListSchema,
+};
+
+/** The merchant-only settings of a product in its store (AC5); order managers are team-member ids (D2114). */
+export const productSettingsSchema = z.object({
+  ...productSettingsFields,
+  orderManagerIds: productSettingsFields.orderManagerIds.default([]),
+  customAttributes: productSettingsFields.customAttributes.default([]),
 });
 
+/**
+ * A change to the settings of an existing product: an absent key, including one of `quantityRules`, stays unchanged
+ * and nothing is defaulted, so a patch of one boolean never clears the order managers or custom attributes. A list
+ * that is sent replaces the stored one (`[]` clears it).
+ */
+export const productSettingsPatchSchema = z
+  .object({ ...productSettingsFields, quantityRules: quantityRulesSchema.partial() })
+  .partial();
+
+export type ProductSettingsPatchCommand = z.output<typeof productSettingsPatchSchema>;
 export type ProductSettingsInput = z.input<typeof productSettingsSchema>;
 export type ProductSettingsCommand = z.output<typeof productSettingsSchema>;
 
@@ -159,12 +182,20 @@ export const variantPatchSchema = z.object({
   featuredAssetId: catalogRefIdSchema.nullish(),
 });
 
-/** "Edit a product": any field of {@link productInputSchema}, plus edits to existing variants; `null` clears. */
+/**
+ * "Edit a product": any field of {@link productInputSchema}, plus edits to existing variants (each at most once);
+ * an absent field stays unchanged, `null` clears, and `settings` follows {@link productSettingsPatchSchema}.
+ */
 export const productPatchSchema = z
   .object(productFields)
   .partial()
   .extend({
-    variants: z.array(variantPatchSchema, invalidCatalogInput).max(MAX_VARIANTS, invalidCatalogInput).optional(),
+    settings: productSettingsPatchSchema.optional(),
+    variants: z
+      .array(variantPatchSchema, invalidCatalogInput)
+      .max(MAX_VARIANTS, invalidCatalogInput)
+      .refine((variants) => hasNoRepeatedId(variants.map(({ id }) => id)), invalidCatalogInput)
+      .optional(),
   });
 
 export type ProductPatchInput = z.input<typeof productPatchSchema>;

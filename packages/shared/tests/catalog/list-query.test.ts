@@ -25,6 +25,13 @@ describe('productListQuerySchema', () => {
     expect(productListQuerySchema.safeParse({ tab: 'hidden' }).success).toBe(false);
   });
 
+  it.each([
+    ['a NUL', String.fromCodePoint(0)],
+    ['a bidi override', String.fromCodePoint(0x202e)],
+  ])('refuses %s in the product search', (_name, character) => {
+    expect(productListQuerySchema.safeParse({ q: `a${character}b` }).success).toBe(false);
+  });
+
   it('takes a null field from an unset GraphQL variable as not asked', () => {
     expect(productListQuerySchema.parse({ q: null, take: null })).toEqual({ tab: 'all', skip: 0, take: 20 });
   });
