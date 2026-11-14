@@ -6,7 +6,11 @@ import { catalogSuite, PRODUCT, PRODUCTS, type ProductResult, rawId, UPDATE_PROD
 
 const suite = catalogSuite(1022, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FIELDS = 'productId title allowOutOfStockOrders';
-const SOLD_OUT = `query { catalogSoldOutProducts { ${FIELDS} } }`;
+const SOLD_OUT = `query ($options: CatalogSoldOutListInput) {
+  catalogSoldOutProducts(options: $options) { totalItems items { ${FIELDS} } }
+}`;
+const ALL = { options: { take: CATALOG_MAX_PAGE_SIZE } };
+const SOLD_OUT_REST = `/catalog/sold-out-products?take=${String(CATALOG_MAX_PAGE_SIZE)}`;
 const STOP = `mutation ($input: CatalogSoldOutOrdersInput!) { stopCatalogSoldOutOrders(input: $input) { ${FIELDS} } }`;
 const RESUME = `mutation ($input: CatalogSoldOutOrdersInput!) { resumeCatalogSoldOutOrders(input: $input) { ${FIELDS} } }`;
 
@@ -14,6 +18,9 @@ interface SoldOutRow {
   readonly productId: string;
   readonly title: string;
   readonly allowOutOfStockOrders: boolean;
+}
+interface SoldOutAnswer {
+  readonly catalogSoldOutProducts: { readonly items: SoldOutRow[]; readonly totalItems: number };
 }
 
 /** A product of the signed-in caller's active store, marked sold out unless `soldOut` is false. */
@@ -35,18 +42,18 @@ describe('sold-out products and stop / resume orders (AC6, D2108)', () => {
     const chair = await productOf('Chair in stock', false);
 
     // Act
-    const { catalogSoldOutProducts } = await suite.kit.gql<{ catalogSoldOutProducts: SoldOutRow[] }>(SOLD_OUT);
-    const rest = await suite.kit.rest('GET', '/catalog/sold-out-products');
+    const { items } = (await suite.kit.gql<SoldOutAnswer>(SOLD_OUT, ALL)).catalogSoldOutProducts;
+    const rest = await suite.kit.rest('GET', SOLD_OUT_REST);
 
     // Assert
-    expect(catalogSoldOutProducts).toContainEqual({
+    expect(items).toContainEqual({
       productId: lamp.id,
       title: 'Sold-out lamp',
       allowOutOfStockOrders: true,
     });
-    expect(catalogSoldOutProducts.map((row) => row.productId)).not.toContain(chair.id);
+    expect(items.map((row) => row.productId)).not.toContain(chair.id);
     expect(rest.status).toBe(200);
-    expect(rest.body).toContainEqual({
+    expect((rest.body as { items: unknown[] }).items).toContainEqual({
       productId: rawId(lamp.id),
       title: 'Sold-out lamp',
       allowOutOfStockOrders: true,
@@ -105,7 +112,7 @@ describe('sold-out products and stop / resume orders (AC6, D2108)', () => {
     await suite.kit.asOwner(suite.fixtures.a);
 
     // Act
-    const listed = await suite.kit.gql<{ catalogSoldOutProducts: SoldOutRow[] }>(SOLD_OUT);
+    const listed = await suite.kit.gql<SoldOutAnswer>(SOLD_OUT, ALL);
     const stopped = await suite.kit.gql<{ stopCatalogSoldOutOrders: SoldOutRow[] }>(STOP, {
       input: { productIds: [foreign.id] },
     });
@@ -114,7 +121,7 @@ describe('sold-out products and stop / resume orders (AC6, D2108)', () => {
     });
 
     // Assert
-    expect(listed.catalogSoldOutProducts.map((row) => row.productId)).not.toContain(foreign.id);
+    expect(listed.catalogSoldOutProducts.items.map((row) => row.productId)).not.toContain(foreign.id);
     expect(stopped.stopCatalogSoldOutOrders).toEqual([]);
     expect(restStopped.body).toEqual([]);
     await suite.kit.asOwner(suite.fixtures.b);
@@ -136,6 +143,39 @@ describe('sold-out products and stop / resume orders (AC6, D2108)', () => {
     const ids = catalogProducts.items.map((item) => item.id);
     expect(ids).toContain(lamp.id);
     expect(ids).not.toContain(chair.id);
+  });
+
+  it('pages the sold-out products and counts them all, over GraphQL and REST', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    await productOf('Paged lamp one');
+    await productOf('Paged lamp two');
+    const all = (await suite.kit.gql<SoldOutAnswer>(SOLD_OUT, ALL)).catalogSoldOutProducts;
+
+    // Act
+    const page = (await suite.kit.gql<SoldOutAnswer>(SOLD_OUT, { options: { skip: 1, take: 1 } }))
+      .catalogSoldOutProducts;
+    const rest = await suite.kit.rest('GET', '/catalog/sold-out-products?skip=1&take=1');
+
+    // Assert
+    expect(page.totalItems).toBe(all.totalItems);
+    expect(page.items.map((row) => row.productId)).toEqual([all.items[1]?.productId]);
+    expect(rest.status).toBe(200);
+    expect((rest.body as { items: unknown[]; totalItems: number }).totalItems).toBe(all.totalItems);
+    expect((rest.body as { items: unknown[] }).items).toHaveLength(1);
+  });
+
+  it('refuses a sold-out page of more than 100 products', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const failure = await failureOf(suite.kit.gql(SOLD_OUT, { options: { take: CATALOG_MAX_PAGE_SIZE + 1 } }));
+    const rest = await suite.kit.rest('GET', `/catalog/sold-out-products?take=${String(CATALOG_MAX_PAGE_SIZE + 1)}`);
+
+    // Assert
+    expect(failure.codes).toEqual([CATALOG_ERROR_CODES.INVALID_INPUT]);
+    expect(rest.status).toBe(400);
   });
 
   it('refuses stop orders with more than 100 ids (D2141)', async () => {

@@ -119,7 +119,7 @@ function fromSecondStore(id: string, endpoint: string, request: (a: BusinessWorl
 
 const PRODUCT_SEARCH = `query ($q: String!) { catalogProducts(options: { q: $q }) { totalItems items { id title slug sku } } }`;
 const SOLD_OUT_TAB = `query { catalogProducts(options: { tab: "sold-out" }) { totalItems items { id title slug sku } } }`;
-const SOLD_OUT_LIST = 'query { catalogSoldOutProducts { productId title } }';
+const SOLD_OUT_LIST = 'query { catalogSoldOutProducts { totalItems items { productId title } } }';
 
 /** Lists, search, sold-out views and the slug check of A's second store (store isolation inside one business). */
 const SECOND_STORE_CASES: readonly IsolationCase[] = [

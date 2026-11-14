@@ -4,9 +4,10 @@ import {
   type ProductInput,
   productListQuerySchema,
   productPatchSchema,
+  soldOutListQuerySchema,
   soldOutOrdersInputSchema,
 } from '@cod/shared';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreateProductService } from '../../application/create-product.service';
 import { ListProductsService } from '../../application/list-products.service';
 import { SoldOutService } from '../../application/sold-out.service';
@@ -65,10 +66,38 @@ describe('SoldOutService', () => {
     await productIn(scopeA2, 'Other store lamp');
 
     // Act
-    const listed = await service.list(world.ctxOf(scopeA), scopeA);
+    const listed = await service.list(world.ctxOf(scopeA), scopeA, soldOutListQuerySchema.parse({}));
 
     // Assert
-    expect(listed).toEqual([{ productId: lamp, title: 'Lamp', allowOutOfStockOrders: true }]);
+    expect(listed).toEqual({ items: [{ productId: lamp, title: 'Lamp', allowOutOfStockOrders: true }], totalItems: 1 });
+  });
+
+  it('lists one page of the sold-out products in id order and counts them all', async () => {
+    // Arrange
+    const ids: CoreId[] = [];
+    for (const title of ['A', 'B', 'C', 'D']) ids.push(await productIn(scopeA, title));
+    const inIdOrder = [...ids].sort((left, right) => Number(BigInt(left) - BigInt(right)));
+
+    // Act
+    const page = await service.list(world.ctxOf(scopeA), scopeA, soldOutListQuerySchema.parse({ skip: 1, take: 2 }));
+
+    // Assert
+    expect(page.totalItems).toBe(4);
+    expect(page.items.map((row) => row.productId)).toEqual(inIdOrder.slice(1, 3));
+  });
+
+  it('reads products and settings of the page only, never of the whole sold-out set', async () => {
+    // Arrange
+    for (let index = 0; index < CATALOG_MAX_PAGE_SIZE + 5; index += 1) await productIn(scopeA, `P${String(index)}`);
+    const reads = vi.spyOn(world.products, 'findOne');
+
+    // Act
+    const page = await service.list(world.ctxOf(scopeA), scopeA, soldOutListQuerySchema.parse({ take: 3 }));
+
+    // Assert
+    expect(page.items).toHaveLength(3);
+    expect(page.totalItems).toBe(CATALOG_MAX_PAGE_SIZE + 5);
+    expect(reads).toHaveBeenCalledTimes(3);
   });
 
   it('stop orders makes a sold-out product not orderable', async () => {

@@ -5,6 +5,7 @@ import {
   INT_COLUMN_MAX,
   mediaListQuerySchema,
   productListQuerySchema,
+  soldOutListQuerySchema,
 } from '../../src/index';
 
 describe('productListQuerySchema', () => {
@@ -62,5 +63,16 @@ describe('mediaListQuerySchema', () => {
     expect(mediaListQuerySchema.safeParse({ take: CATALOG_MAX_PAGE_SIZE + 1 }).success).toBe(false);
     expect(mediaListQuerySchema.safeParse({ skip: -1 }).success).toBe(false);
     expect(mediaListQuerySchema.safeParse({ skip: INT_COLUMN_MAX + 1 }).success).toBe(false);
+  });
+});
+
+describe('soldOutListQuerySchema', () => {
+  it('defaults to the first page and reads a REST query string', () => {
+    expect(soldOutListQuerySchema.parse(undefined)).toEqual({ skip: 0, take: CATALOG_PAGE_SIZE });
+    expect(soldOutListQuerySchema.parse({ skip: '20', take: '50' })).toEqual({ skip: 20, take: 50 });
+  });
+
+  it('refuses a page past the cap', () => {
+    expect(soldOutListQuerySchema.safeParse({ take: CATALOG_MAX_PAGE_SIZE + 1 }).success).toBe(false);
   });
 });

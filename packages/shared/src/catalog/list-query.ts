@@ -70,15 +70,20 @@ export const soldOutOrdersInputSchema = catalogObject({
 
 export type SoldOutOrdersCommand = z.output<typeof soldOutOrdersInputSchema>;
 
-const mediaListFieldsSchema = catalogObject({ skip: pageSkipSchema, take: pageTakeSchema });
+const pageFieldsSchema = catalogObject({ skip: pageSkipSchema, take: pageTakeSchema });
+
+/** A page of a list that has no filters; a null field (an unset GraphQL variable) or no options mean the first page. */
+const pageQuerySchema = z.preprocess((query: unknown) => withoutUnsetFields(query ?? {}), pageFieldsSchema);
 
 /**
  * A page of the business's media library, newest first (D2113). Like the product list it may come as a REST query
  * string, and a null field (an unset GraphQL variable) or no options at all mean the first page.
  */
-export const mediaListQuerySchema = z.preprocess(
-  (query: unknown) => withoutUnsetFields(query ?? {}),
-  mediaListFieldsSchema,
-);
+export const mediaListQuerySchema = pageQuerySchema;
 
 export type MediaListQuery = z.output<typeof mediaListQuerySchema>;
+
+/** A page of the store's sold-out products (D2108), read like {@link mediaListQuerySchema}. */
+export const soldOutListQuerySchema = pageQuerySchema;
+
+export type SoldOutListQuery = z.output<typeof soldOutListQuerySchema>;

@@ -1,3 +1,4 @@
+import { CATALOG_MAX_PAGE_SIZE } from '@cod/shared';
 import { catalogOf } from '../catalog-world';
 import { type IsolationCase, ownerGraphql, ownerRest } from '../matrix';
 import { restTargetOf } from '../catalog-operations';
@@ -9,7 +10,7 @@ import { restTargetOf } from '../catalog-operations';
  */
 
 const FIELDS = 'productId title allowOutOfStockOrders';
-const LIST = `query { catalogSoldOutProducts { ${FIELDS} } }`;
+const LIST = `query { catalogSoldOutProducts(options: { take: ${String(CATALOG_MAX_PAGE_SIZE)} }) { totalItems items { ${FIELDS} } } }`;
 const ordersMutation = (name: string): string =>
   `mutation ($input: CatalogSoldOutOrdersInput!) { ${name}(input: $input) { ${FIELDS} } }`;
 
@@ -56,7 +57,7 @@ export const CATALOG_SOLD_OUT_CASES: readonly IsolationCase[] = [
     endpoint: 'GET /catalog/sold-out-products',
     access: 'list',
     title: "A's owner lists A's sold-out products over REST: A's own only",
-    request: (a) => ownerRest(a, 'GET', '/catalog/sold-out-products'),
+    request: (a) => ownerRest(a, 'GET', `/catalog/sold-out-products?take=${String(CATALOG_MAX_PAGE_SIZE)}`),
     expect: { kind: 'own', mustInclude: (a) => [catalogOf(a).product.restId] },
     reverse: true,
   },

@@ -6,7 +6,8 @@ import { catalogSuite, PRODUCTS, type ProductResult, SLUG, UPDATE_PRODUCT } from
 const suite = catalogSuite(1023, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const TITLE = 'Lantern of the first store';
 const SKU = 'FIRST-STORE-LANTERN-1';
-const SOLD_OUT = 'query { catalogSoldOutProducts { productId } }';
+const SOLD_OUT =
+  'query ($options: CatalogSoldOutListInput) { catalogSoldOutProducts(options: $options) { items { productId } } }';
 
 interface ListAnswer {
   readonly catalogProducts: { readonly items: readonly { readonly id: string }[] };
@@ -22,18 +23,19 @@ const listedIds = async (options: Record<string, unknown>): Promise<string[]> =>
   ).catalogProducts.items.map((item) => item.id);
 
 const soldOutIds = async (): Promise<string[]> =>
-  (await suite.kit.gql<{ catalogSoldOutProducts: { productId: string }[] }>(SOLD_OUT)).catalogSoldOutProducts.map(
-    (row) => row.productId,
-  );
+  (
+    await suite.kit.gql<{ catalogSoldOutProducts: { items: { productId: string }[] } }>(SOLD_OUT, {
+      options: { take: CATALOG_MAX_PAGE_SIZE },
+    })
+  ).catalogSoldOutProducts.items.map((row) => row.productId);
 
 const slugFree = async (slug: string): Promise<boolean> =>
   (await suite.kit.gql<{ catalogSlugAvailability: { available: boolean } }>(SLUG, { slug })).catalogSlugAvailability
     .available;
 
-/** The titles of a REST list answer: a page (`items`) or a plain array of sold-out rows; both carry the title. */
+/** The titles of a REST list answer: a page (`items`); its rows carry the title. */
 function restTitles(body: unknown): string[] {
-  const rows = (Array.isArray(body) ? body : (body as { items: RestRow[] }).items) as RestRow[];
-  return rows.map((row) => row.title);
+  return (body as { items: RestRow[] }).items.map((row) => row.title);
 }
 
 /**

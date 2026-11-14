@@ -1,4 +1,4 @@
-import { CATALOG_MAX_PAGE_SIZE, type SoldOutOrdersCommand } from '@cod/shared';
+import { CATALOG_MAX_PAGE_SIZE, type SoldOutListQuery, type SoldOutOrdersCommand } from '@cod/shared';
 import { type CoreId, parseCoreId } from '../domain/core-id';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { DEFAULT_PRODUCT_SETTINGS } from '../domain/product-settings';
@@ -12,6 +12,12 @@ export interface SoldOutProduct {
   readonly productId: CoreId;
   readonly title: string;
   readonly allowOutOfStockOrders: boolean;
+}
+
+/** One page of the store's sold-out products and how many there are in all. */
+export interface SoldOutPage {
+  readonly items: readonly SoldOutProduct[];
+  readonly totalItems: number;
 }
 
 /** The ids a command names, parsed; a malformed one names no product of the store, so it is left out (D2136). */
@@ -50,9 +56,14 @@ function batchesOf(ids: readonly CoreId[]): CoreId[][] {
 export class SoldOutService {
   constructor(private readonly ports: ProductPorts) {}
 
-  async list(ctx: OperationContext, scope: StoreScope): Promise<readonly SoldOutProduct[]> {
+  /**
+   * One page of the store's sold-out products, in id order. Only the page is described, so one call reads at most
+   * `CATALOG_MAX_PAGE_SIZE` products whatever the store holds.
+   */
+  async list(ctx: OperationContext, scope: StoreScope, page: SoldOutListQuery): Promise<SoldOutPage> {
     const ids = await this.ports.soldOut.allSoldOutIds(ctx, scope, scope.storeId);
-    return this.describe(ctx, scope, ids);
+    const items = await this.describe(ctx, scope, ids.slice(page.skip, page.skip + page.take));
+    return { items, totalItems: ids.length };
   }
 
   stopOrders(ctx: OperationContext, scope: StoreScope, command: SoldOutOrdersCommand) {

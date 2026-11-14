@@ -1,9 +1,9 @@
 import { requirePermission } from '@cod/plugin-rbac/guard';
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseFilters } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, UseFilters } from '@nestjs/common';
 import { Ctx, type RequestContext } from '@vendure/core';
 import { CATALOG_REST_FILTERS, restCall } from './error-mapping';
 import { PRODUCT_PERMISSIONS } from './permissions';
-import { type CatalogSoldOutProductDto, SoldOutActions } from './sold-out-actions';
+import { type CatalogSoldOutProductDto, type CatalogSoldOutProductListDto, SoldOutActions } from './sold-out-actions';
 
 /**
  * The sold-out products and their order gating for clients that do not speak GraphQL (ADR 0017, D2102); the body of
@@ -14,11 +14,11 @@ import { type CatalogSoldOutProductDto, SoldOutActions } from './sold-out-action
 export class SoldOutController {
   constructor(private readonly actions: SoldOutActions) {}
 
-  /** Every sold-out product of the active store (catalog.products.view). */
+  /** One page of the active store's sold-out products (catalog.products.view); `?skip=&take=`. */
   @Get()
   @requirePermission(PRODUCT_PERMISSIONS.view)
-  list(@Ctx() ctx: RequestContext): Promise<readonly CatalogSoldOutProductDto[]> {
-    return restCall(() => this.actions.list(ctx));
+  list(@Ctx() ctx: RequestContext, @Query() query: unknown): Promise<CatalogSoldOutProductListDto> {
+    return restCall(() => this.actions.list(ctx, query));
   }
 
   /** Stops orders of sold-out products (catalog.products.edit); answers the products it changed. */

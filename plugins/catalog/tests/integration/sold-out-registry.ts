@@ -12,7 +12,7 @@ export const SOLD_OUT_OPERATIONS: readonly OperationEntry[] = [
     access: VIEW,
     foreign: 'own-only',
     byId: false,
-    document: `query { catalogSoldOutProducts { ${SOLD_OUT_FIELDS} } }`,
+    document: `query { catalogSoldOutProducts { totalItems items { ${SOLD_OUT_FIELDS} } } }`,
     variables: () => ({}),
   },
   ...(['stopCatalogSoldOutOrders', 'resumeCatalogSoldOutOrders'] as const).map((operation): OperationEntry => ({

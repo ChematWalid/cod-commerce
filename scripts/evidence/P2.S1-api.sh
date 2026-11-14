@@ -243,11 +243,11 @@ input=$(vars "{id:'$hidden_id',input:{settings:{soldOut:true}}}")
 gql "$Q_UPDATE_PRODUCT" "$input" "$owner" "$demo"; expect_ok "mark sold out"
 assert_js "marked" "b.data.updateCatalogProduct.product.settings.soldOut===true" "$work/b"
 emit "$f" "updateCatalogProduct: mark the seed's hidden product sold out" "$Q_UPDATE_PRODUCT" "$input" "$owner" "$demo"
-Q_SOLD_OUT='query { catalogSoldOutProducts { productId title allowOutOfStockOrders } }'
+Q_SOLD_OUT='query { catalogSoldOutProducts { totalItems items { productId title allowOutOfStockOrders } } }'
 Q_STOP='mutation ($input: CatalogSoldOutOrdersInput!) { stopCatalogSoldOutOrders(input: $input) { productId title allowOutOfStockOrders } }'
 Q_RESUME='mutation ($input: CatalogSoldOutOrdersInput!) { resumeCatalogSoldOutOrders(input: $input) { productId title allowOutOfStockOrders } }'
 gql "$Q_SOLD_OUT" '{}' "$owner" "$demo"; expect_ok "sold out"
-assert_js "sold out" "b.data.catalogSoldOutProducts.map((p)=>p.productId).join()==='$hidden_id'" "$work/b"
+assert_js "sold out" "b.data.catalogSoldOutProducts.items.map((p)=>p.productId).join()==='$hidden_id'&&b.data.catalogSoldOutProducts.totalItems===1" "$work/b"
 emit "$f" "catalogSoldOutProducts" "$Q_SOLD_OUT" '{}' "$owner" "$demo"
 list_sold() { gql "$Q_PRODUCTS" '{"options":{"tab":"sold-out"}}' "$owner" "$demo"; expect_ok "sold-out tab"; }
 list_sold
