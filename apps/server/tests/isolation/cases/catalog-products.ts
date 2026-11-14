@@ -1,7 +1,7 @@
 import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { catalogOf } from '../catalog-world';
 import type { MatrixRequest } from '../http';
-import { type IsolationCase, ownerGraphql, ownerRest } from '../matrix';
+import { type IsolationCase, onChannel, ownerGraphql, ownerRest } from '../matrix';
 import { CATALOG_SETTINGS } from '../seed-operations';
 import { TEAM_WORLDS } from '../team-world';
 import type { BusinessWorld } from '../world-types';
@@ -9,7 +9,8 @@ import type { BusinessWorld } from '../world-types';
 /**
  * The product cells of the P2 matrix (P2.S1) beyond the generated sweep: A's own lists, the slug check across
  * businesses (D2103), a create naming one of B's rows (D2134, D2114), variant patches naming B's rows (D2135), and
- * the default channel holding no business's catalog (D2133).
+ * the default channel holding no business's catalog (D2133), and the store-level reads of A's second store holding
+ * none of its first store's product.
  */
 
 const C = CATALOG_ERROR_CODES;
@@ -90,6 +91,68 @@ function onDefaultChannel(id: string, endpoint: string, query: string): Isolatio
     reverse: true,
   };
 }
+
+/** A's second store: its owner reaches both stores, so only the channel keeps the first store's rows out. */
+const secondStore = (business: BusinessWorld): NonNullable<MatrixRequest['channel']> => ({
+  label: business.stores[1].label,
+  token: business.stores[1].channelToken,
+});
+
+/** What A's first-store product shows in a list row: none of it may come back from the second store. */
+const firstStoreProduct = (a: BusinessWorld): readonly string[] => [
+  catalogOf(a).product.title,
+  catalogOf(a).product.sku,
+];
+
+/** A store-level read as A's owner on A's second store: a success holding none of the first store's product. */
+function fromSecondStore(id: string, endpoint: string, request: (a: BusinessWorld) => MatrixRequest): IsolationCase {
+  return {
+    id: `catalog.second-store.${id}`,
+    entity: 'product',
+    endpoint,
+    access: 'list',
+    title: `A's owner calls ${endpoint} on A's second store: none of the first store's product`,
+    request,
+    expect: { kind: 'own', mustInclude: () => [], mustExclude: firstStoreProduct },
+  };
+}
+
+const PRODUCT_SEARCH = `query ($q: String!) { catalogProducts(options: { q: $q }) { totalItems items { id title slug sku } } }`;
+const SOLD_OUT_TAB = `query { catalogProducts(options: { tab: "sold-out" }) { totalItems items { id title slug sku } } }`;
+const SOLD_OUT_LIST = 'query { catalogSoldOutProducts { productId title } }';
+
+/** Lists, search, sold-out views and the slug check of A's second store (store isolation inside one business). */
+const SECOND_STORE_CASES: readonly IsolationCase[] = [
+  fromSecondStore('list', 'catalogProducts', (a) => ownerGraphql(a, PRODUCTS, {}, secondStore(a))),
+  fromSecondStore('search-title', 'catalogProducts(q: title)', (a) =>
+    ownerGraphql(a, PRODUCT_SEARCH, { q: catalogOf(a).product.title }, secondStore(a)),
+  ),
+  fromSecondStore('search-sku', 'catalogProducts(q: sku)', (a) =>
+    ownerGraphql(a, PRODUCT_SEARCH, { q: catalogOf(a).product.sku }, secondStore(a)),
+  ),
+  fromSecondStore('sold-out-tab', 'catalogProducts(tab: sold-out)', (a) =>
+    ownerGraphql(a, SOLD_OUT_TAB, {}, secondStore(a)),
+  ),
+  fromSecondStore('sold-out-list', 'catalogSoldOutProducts', (a) => ownerGraphql(a, SOLD_OUT_LIST, {}, secondStore(a))),
+  fromSecondStore('rest-search', 'GET /catalog/products?q=', (a) =>
+    onChannel(
+      ownerRest(a, 'GET', `/catalog/products?q=${encodeURIComponent(catalogOf(a).product.sku)}`),
+      secondStore(a),
+    ),
+  ),
+  fromSecondStore('rest-sold-out-list', 'GET /catalog/sold-out-products', (a) =>
+    onChannel(ownerRest(a, 'GET', '/catalog/sold-out-products'), secondStore(a)),
+  ),
+  {
+    id: 'catalog.second-store.slug',
+    entity: 'product',
+    endpoint: 'catalogSlugAvailability',
+    access: 'read by id',
+    title: "A's owner checks A's first-store product slug on A's second store: available (slugs are per store)",
+    request: (a) => ownerGraphql(a, SLUG, { slug: catalogOf(a).product.slug }, secondStore(a)),
+    expect: { kind: 'own', mustInclude: () => [AVAILABLE] },
+  },
+];
 
 export const CATALOG_PRODUCT_CASES: readonly IsolationCase[] = [
   {
@@ -183,4 +246,5 @@ export const CATALOG_PRODUCT_CASES: readonly IsolationCase[] = [
   ),
   onDefaultChannel('products', 'products', STOCK_PRODUCTS),
   onDefaultChannel('assets', 'assets', STOCK_ASSETS),
+  ...SECOND_STORE_CASES,
 ];
