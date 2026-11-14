@@ -28,6 +28,7 @@ const CHANNELS_OF_ASSET: ReadonlyMap<number, readonly number[]> = new Map([
 
 const assets: AssetAccessPort = {
   isAssetInChannels: () => Promise.reject(new Error('not used')),
+  shareWithChannel: () => Promise.reject(new Error('not used')),
   previewUrlInChannels: (_ctx, assetId, channelIds) =>
     Promise.resolve(
       (CHANNELS_OF_ASSET.get(assetId) ?? []).some((channelId) => channelIds.includes(channelId))

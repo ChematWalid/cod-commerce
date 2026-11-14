@@ -14,4 +14,10 @@ export interface AssetAccessPort {
     assetId: number,
     channelIds: readonly number[],
   ): Promise<string | undefined>;
+
+  /**
+   * Adds the asset to the channel, keeping its other channels. The caller has checked the asset belongs to the same
+   * business: this grants nothing on its own.
+   */
+  shareWithChannel(ctx: OperationContext, assetId: number, channelId: number): Promise<void>;
 }

@@ -2,7 +2,7 @@ import { Asset, type AssetStorageStrategy, ConfigService, TransactionalConnectio
 import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
 import { BusinessEntity } from '../../infrastructure/business.entity';
-import { UPDATE_BUSINESS, UPDATE_STORE } from './admin-api-operations';
+import { CREATE_STORE, type StoreView, UPDATE_BUSINESS, UPDATE_STORE } from './admin-api-operations';
 import { seedAsset } from './admin-api-session';
 import { useStoreApi } from './store-api-harness';
 
@@ -67,6 +67,21 @@ describe('logoUrl is resolved only for an asset of the business', () => {
     // Assert
     expect(activeBusiness.logoUrl).toBe(await absolutePreviewUrl(engineId(logoAssetId)));
     expect(store.logoUrl).toBe(activeBusiness.logoUrl);
+  });
+
+  it("returns a url for a store opened with a logo from a sibling store's channel", async () => {
+    // Arrange
+    const logoAssetId = await seedAsset(server.app, api.alpha.store.channelId);
+    await asAlpha();
+    const { createStore } = await adminClient.query<{ createStore: StoreView }>(CREATE_STORE, {
+      input: { name: 'logo at create', language: 'ar', subdomain: 'logo-at-create', logoAssetId },
+    });
+
+    // Act
+    const { store } = await adminClient.query<{ store: LogoView }>(STORE_LOGO, { id: createStore.id });
+
+    // Assert
+    expect(store.logoUrl).toBe(await absolutePreviewUrl(engineId(logoAssetId)));
   });
 
   it('returns null for an asset of business B', async () => {

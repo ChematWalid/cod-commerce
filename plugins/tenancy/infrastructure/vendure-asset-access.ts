@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
-  type Asset,
+  Asset,
   AssetService,
   ChannelService,
   ConfigService,
@@ -34,6 +34,10 @@ export class VendureAssetAccess implements AssetAccessPort {
     const caller = toRequestContext(ctx);
     const asset = await this.findInChannels(caller, assetId, channelIds);
     return asset === undefined ? undefined : this.absoluteUrl(caller, asset.preview);
+  }
+
+  async shareWithChannel(ctx: OperationContext, assetId: number, channelId: number): Promise<void> {
+    await this.channels.assignToChannels(toRequestContext(ctx), Asset, assetId, [channelId]);
   }
 
   private async findInChannels(
