@@ -152,6 +152,19 @@ describe('product variants (AC1)', () => {
     expect(saved.variants.filter((variant) => before.includes(variant.id))).toEqual([]);
   });
 
+  it("keeps the old price set on a product without options' variant through a later product save", async () => {
+    // Arrange
+    const product = await createMatrix({ sku: 'OP', optionGroups: [] });
+    await update(product.id, { variants: [{ id: product.variants[0]?.id, oldPrice: 5000 }] });
+
+    // Act
+    const saved = (await update(product.id, { title: 'Shirt 2' })).updateCatalogProduct.product;
+
+    // Assert
+    expect(saved.oldPrice).toBe(5000);
+    expect(saved.variants[0]?.oldPrice).toBe(5000);
+  });
+
   it('keeps the planned sku of the new default variant when a removed variant held the product sku', async () => {
     // Arrange: one variant is renamed to the product sku, then every option is removed
     const product = await createMatrix({ sku: 'TD' });

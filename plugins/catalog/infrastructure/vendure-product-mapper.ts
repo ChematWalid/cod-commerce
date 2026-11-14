@@ -125,7 +125,11 @@ export function variantOf(
   };
 }
 
-/** The product-level price, SKU and barcode: the default variant's without options, the stored defaults with (D2124). */
+/**
+ * The product-level price, old price, SKU and barcode: the default variant's without options, the stored defaults with
+ * (D2124). Without options the variant is the truth, so an edit made through a variant patch is what the next product
+ * save writes back to it, not the product's own copy.
+ */
 function defaultsOf(
   custom: Partial<ProductCustomFields>,
   groups: readonly OptionGroupRecord[],
@@ -133,9 +137,19 @@ function defaultsOf(
 ) {
   const [only] = variants;
   if (groups.length === 0 && only !== undefined && variants.length === 1) {
-    return { price: only.price, sku: only.sku === '' ? null : only.sku, barcode: only.barcode };
+    return {
+      price: only.price,
+      oldPrice: only.oldPrice,
+      sku: only.sku === '' ? null : only.sku,
+      barcode: only.barcode,
+    };
   }
-  return { price: custom.defaultPrice ?? 0, sku: custom.defaultSku ?? null, barcode: null };
+  return {
+    price: custom.defaultPrice ?? 0,
+    oldPrice: custom.oldPrice ?? null,
+    sku: custom.defaultSku ?? null,
+    barcode: null,
+  };
 }
 
 /** Our product custom fields that may be empty, each read as `null` when unset. */

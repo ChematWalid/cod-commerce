@@ -85,6 +85,7 @@ export interface ProductResult {
   readonly description: string | null;
   readonly status: string;
   readonly price: number;
+  readonly oldPrice: number | null;
   readonly sku: string | null;
   readonly brandId: string | null;
   readonly tagIds: string[];
@@ -96,6 +97,7 @@ export interface ProductResult {
     name: string;
     sku: string;
     price: number;
+    oldPrice: number | null;
     isHidden: boolean;
     optionValues: string[];
   }[];
