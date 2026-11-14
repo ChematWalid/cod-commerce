@@ -55,7 +55,8 @@ const SIDEBAR_ENTRIES = '[data-sidebar="content"] [data-sidebar="menu-button"]';
 const SUB_ENTRIES = '[data-sidebar="menu-sub-button"]';
 const SIDEBAR_LEAF = '/finance/costs';
 const SKELETON_LEAF = '/cod-orders/spam';
-const STORE_LEAF = '/stores/active/products';
+// A store leaf still on its skeleton: the product list became a real page in P2.S1.
+const STORE_LEAF = '/stores/active/collections';
 const TAKEN_SUBDOMAIN = 'demo';
 
 /** @returns {never} */

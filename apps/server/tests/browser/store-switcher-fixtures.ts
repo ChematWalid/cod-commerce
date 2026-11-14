@@ -1,8 +1,12 @@
 import { STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
-import type { Page } from 'playwright-core';
+import type { Browser, Page } from 'playwright-core';
 import { expect } from 'vitest';
+import { DASHBOARD_URL } from './dashboard-pages';
+import { loginAsOwner } from './dashboard-session';
 
 const SELECTED_CHANNEL_KEY = 'vendure-selected-channel-token';
+/** The owner of the seed's second business, whose stores are foreign to every demo member. */
+const SECOND_BUSINESS_OWNER_EMAIL = 'owner@second.example.test';
 
 /** The local channel token of the page. */
 export const selectedToken = (page: Page): Promise<string | null> =>
@@ -44,6 +48,20 @@ export async function switchableStores(page: Page): Promise<readonly StoreRow[]>
     'query { switchableStores { stores { id channelId name subdomain language } } }',
   );
   return [...answer.stores].sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+}
+
+/** A real store of another business, read through that business's owner in a context of its own (#176). */
+export async function foreignStore(browser: Browser): Promise<StoreRow> {
+  const other = await browser.newContext();
+  try {
+    const otherPage = await other.newPage();
+    await loginAsOwner(otherPage, DASHBOARD_URL, SECOND_BUSINESS_OWNER_EMAIL);
+    const [foreign] = await switchableStores(otherPage);
+    if (foreign === undefined) throw new Error('the second business has a store');
+    return foreign;
+  } finally {
+    await other.close();
+  }
 }
 
 /** A disposable store of the signed-in owner's business, named with the run id. */

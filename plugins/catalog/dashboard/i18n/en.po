@@ -1,0 +1,212 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "catalog.products-title"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "catalog.create-product"
+msgstr "Create product"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-all"
+msgstr "All"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-draft"
+msgstr "Draft"
+
+#. js-lingui-explicit-id
+msgid "catalog.search"
+msgstr "Search by name, SKU or barcode"
+
+#. js-lingui-explicit-id
+msgid "catalog.filter-collection"
+msgstr "All collections"
+
+#. js-lingui-explicit-id
+msgid "catalog.filter-brand"
+msgstr "All brands"
+
+#. js-lingui-explicit-id
+msgid "catalog.filter-tag"
+msgstr "All tags"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-product"
+msgstr "Product"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-status"
+msgstr "Status"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-price"
+msgstr "Price"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-collections"
+msgstr "Collections"
+
+#. js-lingui-explicit-id
+msgid "catalog.column-created"
+msgstr "Created"
+
+#. js-lingui-explicit-id
+msgid "catalog.row-actions"
+msgstr "Product actions"
+
+#. js-lingui-explicit-id
+msgid "catalog.status-active"
+msgstr "Active"
+
+#. js-lingui-explicit-id
+msgid "catalog.status-hidden"
+msgstr "Hidden"
+
+#. js-lingui-explicit-id
+msgid "catalog.status-draft"
+msgstr "Draft"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-edit"
+msgstr "Edit"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-set-draft"
+msgstr "Set as draft"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-preview"
+msgstr "Preview"
+
+#. js-lingui-explicit-id
+msgid "catalog.action-delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+msgid "catalog.preview-hint"
+msgstr "Preview opens once the storefront is available."
+
+#. js-lingui-explicit-id
+msgid "catalog.currency"
+msgstr "DZD"
+
+#. js-lingui-explicit-id
+msgid "catalog.delete-title"
+msgstr "Delete this product?"
+
+#. js-lingui-explicit-id
+msgid "catalog.delete-body"
+msgstr "\"{name}\" and all its variants will be deleted."
+
+#. js-lingui-explicit-id
+msgid "catalog.delete-done"
+msgstr "Product deleted"
+
+#. js-lingui-explicit-id
+msgid "catalog.set-draft-done"
+msgstr "Product set as draft"
+
+#. js-lingui-explicit-id
+msgid "catalog.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "catalog.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "catalog.empty"
+msgstr "No products yet."
+
+#. js-lingui-explicit-id
+msgid "catalog.page-previous"
+msgstr "Previous"
+
+#. js-lingui-explicit-id
+msgid "catalog.page-next"
+msgstr "Next"
+
+#. js-lingui-explicit-id
+msgid "catalog.error-generic"
+msgstr "The request could not be completed."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-forbidden"
+msgstr "You do not have permission to do this."
+
+#. js-lingui-explicit-id
+msgid "catalog.product-not-found"
+msgstr "Product not found."
+
+#. js-lingui-explicit-id
+msgid "catalog.invalid-input"
+msgstr "Some of the details are not valid."
+
+#. js-lingui-explicit-id
+msgid "catalog.too-many-highlights"
+msgstr "A product can show at most six highlights."
+
+#. js-lingui-explicit-id
+msgid "catalog.matrix-too-large"
+msgstr "Too many options or values: at most 3 options, 20 values each and 100 variants."
+
+#. js-lingui-explicit-id
+msgid "catalog.duplicate-option-value"
+msgstr "An option has the same value twice."
+
+#. js-lingui-explicit-id
+msgid "catalog.duplicate-option-name"
+msgstr "Two options have the same name."
+
+#. js-lingui-explicit-id
+msgid "catalog.brand-not-found"
+msgstr "Brand not found."
+
+#. js-lingui-explicit-id
+msgid "catalog.tag-not-found"
+msgstr "Tag not found."
+
+#. js-lingui-explicit-id
+msgid "catalog.highlight-not-found"
+msgstr "Highlight not found."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-not-found"
+msgstr "Image not found."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-too-large"
+msgstr "The image is larger than 5 MB."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-type"
+msgstr "Only PNG, JPEG, GIF and WebP images can be uploaded."
+
+#. js-lingui-explicit-id
+msgid "catalog.media-in-use"
+msgstr "This image is used by a product."
+
+#. js-lingui-explicit-id
+msgid "catalog.order-manager-unknown"
+msgstr "An order manager is not a member of this store."
+
+#. js-lingui-explicit-id
+msgid "catalog.order-managers-unavailable"
+msgstr "Order managers cannot be set yet."
+
+#. js-lingui-explicit-id
+msgid "catalog.name-taken"
+msgstr "This name is already used in this store."
+
+#. js-lingui-explicit-id
+msgid "catalog.concurrent-update"
+msgstr "This product was changed at the same time. Try again."
+
+#. js-lingui-explicit-id
+msgid "catalog.taxonomy-limit"
+msgstr "This store has reached the most brands, tags or highlights it can keep (500 of each)."

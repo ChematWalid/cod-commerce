@@ -1,0 +1,9 @@
+/* Layout of the catalog's own surfaces. Unlayered, so these win over Tailwind's utilities. Logical properties only. */
+
+/* The list's thumbnail: a fixed square, an empty one when the product has no image. */
+.cod-catalog-thumb {
+  flex: none;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: 0.375rem;
+}

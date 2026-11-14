@@ -1,3 +1,4 @@
+import { PRODUCT_LIST_TEST_ID } from '@cod/plugin-catalog';
 import { MERCHANT_NOT_FOUND_TEST_ID, STORE_SWITCHER_TEST_ID } from '@cod/plugin-merchant-shell';
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -9,6 +10,7 @@ import {
   chooseStore,
   createDisposableStore,
   expectSwitcherOn,
+  foreignStore,
   memberAccess,
   ownAdministratorId,
   selectedToken,
@@ -19,7 +21,6 @@ import {
   tokenChangesFrom,
 } from './store-switcher-fixtures';
 
-const SECOND_BUSINESS_OWNER_EMAIL = 'owner@second.example.test';
 const LIMITED_MEMBER_EMAIL = 'limited@demo.example.test';
 const ME_OPERATION = 'CurrentUserInformation';
 const ACTIVE_CHANNEL_SELECTION = 'activeChannel {';
@@ -64,17 +65,6 @@ describe('store switcher', () => {
     await context.close();
   });
 
-  /** A store of another business, read through that business's owner. */
-  async function foreignStore(): Promise<StoreRow> {
-    const other = await browser.newContext();
-    const otherPage = await other.newPage();
-    await loginAsOwner(otherPage, DASHBOARD_URL, SECOND_BUSINESS_OWNER_EMAIL);
-    const [foreign] = await switchableStores(otherPage);
-    await other.close();
-    if (foreign === undefined) throw new Error('the second business has a store');
-    return foreign;
-  }
-
   async function ownStores(): Promise<readonly [StoreRow, StoreRow]> {
     const [first, second] = await switchableStores(page);
     if (first === undefined || second === undefined) throw new Error('the demo owner has two stores');
@@ -82,7 +72,7 @@ describe('store switcher', () => {
   }
 
   it('lists the stores of the business and no store of another business', async () => {
-    const foreign = await foreignStore();
+    const foreign = await foreignStore(browser);
     await loginAsDemoOwner(page, DASHBOARD_URL);
     const [first, second] = await ownStores();
 
@@ -125,10 +115,11 @@ describe('store switcher', () => {
     await assertNoPageError(page);
     expect(pathOf(page)).toBe(dashboardPath('/stores/active/products'));
     await expectSwitcherOn(page, second.subdomain);
+    await byTestId(page, PRODUCT_LIST_TEST_ID).waitFor();
   });
 
   it('a store of another business is not found and an own store switches', async () => {
-    const foreign = await foreignStore();
+    const foreign = await foreignStore(browser);
     await loginAsDemoOwner(page, DASHBOARD_URL);
     const [first, second] = await ownStores();
 

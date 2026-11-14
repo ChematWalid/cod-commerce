@@ -1,4 +1,4 @@
-import { vendurePermissionName } from '@cod/shared';
+import { type PermissionKey, vendurePermissionName } from '@cod/shared';
 import { resolveStoreParam } from './store-path';
 import type { ShellLeaf } from './tree';
 import type { SwitchableStoreView } from './types';
@@ -76,4 +76,24 @@ export function decideLeafView({ leaf, storeParam, activeChannelId, stores, chan
     channels.find((channel) => channel.id === activeChannelId),
   );
   return allowed ? { kind: 'page', store } : { kind: 'forbidden' };
+}
+
+/** The id of a {@link storeScopedLeaf}: it names no sidebar entry and is never registered. */
+const STORE_SCOPED_PAGE_ID = 'store-scoped-page';
+/** Such a page shows no sidebar title or crumb of the shell: the page titles itself. */
+const UNTITLED_PAGE = '';
+
+/**
+ * A store-scoped page outside the sidebar tree, such as a product editor below `/stores/$storeId/products/` (D2110),
+ * decided like a store leaf: its store first, then `permission` on that store.
+ */
+export function storeScopedLeaf(permission: PermissionKey): ShellLeaf {
+  return {
+    id: STORE_SCOPED_PAGE_ID,
+    titleId: UNTITLED_PAGE,
+    path: '',
+    permissions: [permission],
+    storeScoped: true,
+    ownerSession: null,
+  };
 }

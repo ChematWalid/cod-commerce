@@ -1,3 +1,4 @@
+import { PRODUCT_LIST_TEST_ID } from '@cod/plugin-catalog';
 import {
   MERCHANT_NOT_FOUND_TEST_ID,
   SHELL_FORBIDDEN_TEST_ID,
@@ -14,7 +15,8 @@ import {
   loginAsSuperadmin,
   setDisplayLanguage,
 } from './dashboard-session';
-import { MERCHANT_SECTIONS, SKELETON_LEAVES } from './shell-nav-fixtures';
+import { everSeen, MERCHANT_SECTIONS, SKELETON_LEAVES, textOutside, watchFor } from './shell-nav-fixtures';
+import { foreignStore } from './store-switcher-fixtures';
 
 const NO_VIEW_MEMBER_EMAIL = 'noview@demo.example.test';
 const PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
@@ -73,35 +75,6 @@ const activeChannelId = (page: Page): Promise<string> =>
   }, SELECTED_CHANNEL_KEY);
 
 const expectActive = (page: Page, channelId: string) => expect.poll(() => activeChannelId(page)).toBe(channelId);
-
-/** Records, from before the page's own scripts run, whether `testId` is ever in the DOM. */
-const watchFor = (page: Page, testId: string): Promise<unknown> =>
-  page.addInitScript((id: string) => {
-    const seen = (): void => {
-      if (document.querySelector(`[data-testid="${id}"]`)) {
-        (window as unknown as { __seen?: boolean }).__seen = true;
-      }
-    };
-    new MutationObserver(seen).observe(document, { childList: true, subtree: true });
-  }, testId);
-
-/** The page's rendered text (`innerText`, so hidden parts are left out), without the elements matching `excluded`. */
-const textOutside = (page: Page, excluded: string): Promise<string> =>
-  page.evaluate((selector: string) => {
-    const elements = [...document.querySelectorAll<HTMLElement>(selector)];
-    const displays = elements.map((element) => element.style.display);
-    elements.forEach((element) => {
-      element.style.display = 'none';
-    });
-    const text = document.body.innerText;
-    elements.forEach((element, index) => {
-      element.style.display = displays[index] ?? '';
-    });
-    return text;
-  }, excluded);
-
-const everSeen = (page: Page): Promise<boolean> =>
-  page.evaluate(() => (window as unknown as { __seen?: boolean }).__seen === true);
 
 describe('merchant shell navigation', () => {
   let browser: Browser;
@@ -176,6 +149,13 @@ describe('merchant shell navigation', () => {
       await assertNoPageError(page);
     });
 
+    it('/merchant-shell is not found for a merchant', async () => {
+      await open(page, '/merchant-shell');
+
+      await byTestId(page, MERCHANT_NOT_FOUND_TEST_ID).waitFor();
+      expect(pathOf(page)).toBe(dashboardPath('/merchant-shell'));
+    });
+
     it('shows not found on an unknown URL and stays there', async () => {
       await open(page, '/nonexistent');
       await byTestId(page, MERCHANT_NOT_FOUND_TEST_ID).waitFor();
@@ -243,7 +223,7 @@ describe('merchant shell navigation', () => {
       await loginAsOwner(page, DASHBOARD_URL, PER_STORE_MEMBER_EMAIL);
       const [first, second] = await ownStores(page);
       await open(page, `/stores/${first.id}/products`);
-      await byTestId(page, SHELL_SKELETON_TEST_ID).waitFor();
+      await byTestId(page, PRODUCT_LIST_TEST_ID).waitFor();
       await expectActive(page, first.channelId);
 
       await open(page, `/stores/${second.id}/products`);
@@ -262,15 +242,19 @@ describe('merchant shell navigation', () => {
 
       await open(page, `/stores/${first.id}/products`);
 
-      await byTestId(page, SHELL_SKELETON_TEST_ID).waitFor();
+      await byTestId(page, PRODUCT_LIST_TEST_ID).waitFor();
       await expectActive(page, first.channelId);
       await expect(everSeen(page)).resolves.toBe(false);
     });
 
-    it('shows not found for a store outside the switchable list', async () => {
+    it('shows not found for a real store of another business', async () => {
+      const foreign = await foreignStore(browser);
       await loginAsOwner(page, DASHBOARD_URL, PER_STORE_MEMBER_EMAIL);
-      await open(page, '/stores/999999/products');
+
+      await open(page, `/stores/${foreign.id}/products`);
+
       await byTestId(page, MERCHANT_NOT_FOUND_TEST_ID).waitFor();
+      await expect(byTestId(page, PRODUCT_LIST_TEST_ID).count()).resolves.toBe(0);
     });
   });
 

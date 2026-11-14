@@ -8,3 +8,11 @@ export type { ProductViewPage } from './application/list-products.service';
 export { ORDER_MANAGER_CHECK_REGISTRAR } from './application/tokens';
 export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/ports/order-manager-check.port';
 export type { OperationContext as CatalogOperationContext } from './domain/ports/operation-context';
+export {
+  CREATE_PRODUCT_TEST_ID,
+  PRODUCT_LIST_TEST_ID,
+  PRODUCT_ROW_TEST_ID,
+  PRODUCT_SEARCH_TEST_ID,
+  PRODUCT_TABS_TEST_ID,
+  PRODUCTS_EMPTY_TEST_ID,
+} from './dashboard/constants';
