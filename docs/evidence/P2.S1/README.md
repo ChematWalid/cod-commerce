@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P2.S1.sh`. Data is synthetic
 (the demo seed's five products per demo store, plus what the script creates). Image built from a tree with no uncommitted
-change outside the evidence folders and browser tests, last image-relevant commit `36fed83de15fc5d99d0456a0f9e67c9032f1b920`. Compose project
+change outside the evidence folders and browser tests, last image-relevant commit `2607eeb625ee563d485253b8ae52ba2272cb78cd`. Compose project
 `cod-evidence`.
 
 ## API transcripts

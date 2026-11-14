@@ -24,8 +24,8 @@ content-type: application/json; charset=utf-8
     "uploadCatalogMedia": {
       "id": "<MEDIA_RED>",
       "assetId": "1",
-      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/eb/ebde13a519e911354940acc07593eb57.png",
-      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/eb/ebde13a519e911354940acc07593eb57__preview.png",
+      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/5c/5c5cdf22f08b382c1ceb58f479ca3e58.png",
+      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/5c/5c5cdf22f08b382c1ceb58f479ca3e58__preview.png",
       "mimeType": "image/png",
       "width": 96,
       "height": 96,
@@ -64,8 +64,8 @@ content-type: application/json; charset=utf-8
         {
           "id": "<MEDIA_GREY>",
           "assetId": "4",
-          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/dd/dd39a146d8a299f608fb91ffe1ce104e.png",
-          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/dd/dd39a146d8a299f608fb91ffe1ce104e__preview.png",
+          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/a1/a1aea0fc407e00d7b222f414c005e10e.png",
+          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/a1/a1aea0fc407e00d7b222f414c005e10e__preview.png",
           "mimeType": "image/png",
           "width": 96,
           "height": 96,
@@ -74,8 +74,8 @@ content-type: application/json; charset=utf-8
         {
           "id": "<MEDIA_GREEN>",
           "assetId": "3",
-          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/cb/cbe1aaa17d381d4daf41036f1fb5f63a.png",
-          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/cb/cbe1aaa17d381d4daf41036f1fb5f63a__preview.png",
+          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/4a/4a68a3193a9d9fed38666d78d8268997.png",
+          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/4a/4a68a3193a9d9fed38666d78d8268997__preview.png",
           "mimeType": "image/png",
           "width": 96,
           "height": 96,
@@ -84,8 +84,8 @@ content-type: application/json; charset=utf-8
         {
           "id": "<MEDIA_BLUE>",
           "assetId": "2",
-          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/7e/7e411e8b809ae99965552346480a14c1.png",
-          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/7e/7e411e8b809ae99965552346480a14c1__preview.png",
+          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/69/695756aa686ddc0e9b0ca78ec6b268c9.png",
+          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/69/695756aa686ddc0e9b0ca78ec6b268c9__preview.png",
           "mimeType": "image/png",
           "width": 96,
           "height": 96,
@@ -94,8 +94,8 @@ content-type: application/json; charset=utf-8
         {
           "id": "<MEDIA_RED>",
           "assetId": "1",
-          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/eb/ebde13a519e911354940acc07593eb57.png",
-          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/eb/ebde13a519e911354940acc07593eb57__preview.png",
+          "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/5c/5c5cdf22f08b382c1ceb58f479ca3e58.png",
+          "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/5c/5c5cdf22f08b382c1ceb58f479ca3e58__preview.png",
           "mimeType": "image/png",
           "width": 96,
           "height": 96,
@@ -200,46 +200,46 @@ content-type: application/json; charset=utf-8
     {
       "id": "<MEDIA_GREY>",
       "assetId": "4",
-      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/dd/dd39a146d8a299f608fb91ffe1ce104e.png",
-      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/dd/dd39a146d8a299f608fb91ffe1ce104e__preview.png",
+      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/a1/a1aea0fc407e00d7b222f414c005e10e.png",
+      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/a1/a1aea0fc407e00d7b222f414c005e10e__preview.png",
       "mimeType": "image/png",
       "width": 96,
       "height": 96,
       "fileSize": 266,
-      "createdAt": "2026-11-14T14:52:16.977Z"
+      "createdAt": "2026-11-14T16:31:40.081Z"
     },
     {
       "id": "<MEDIA_GREEN>",
       "assetId": "3",
-      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/cb/cbe1aaa17d381d4daf41036f1fb5f63a.png",
-      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/cb/cbe1aaa17d381d4daf41036f1fb5f63a__preview.png",
+      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/4a/4a68a3193a9d9fed38666d78d8268997.png",
+      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/4a/4a68a3193a9d9fed38666d78d8268997__preview.png",
       "mimeType": "image/png",
       "width": 96,
       "height": 96,
       "fileSize": 221,
-      "createdAt": "2026-11-14T14:52:16.683Z"
+      "createdAt": "2026-11-14T16:31:39.797Z"
     },
     {
       "id": "<MEDIA_BLUE>",
       "assetId": "2",
-      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/7e/7e411e8b809ae99965552346480a14c1.png",
-      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/7e/7e411e8b809ae99965552346480a14c1__preview.png",
+      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/69/695756aa686ddc0e9b0ca78ec6b268c9.png",
+      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/69/695756aa686ddc0e9b0ca78ec6b268c9__preview.png",
       "mimeType": "image/png",
       "width": 96,
       "height": 96,
       "fileSize": 221,
-      "createdAt": "2026-11-14T14:52:16.335Z"
+      "createdAt": "2026-11-14T16:31:39.517Z"
     },
     {
       "id": "<MEDIA_RED>",
       "assetId": "1",
-      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/eb/ebde13a519e911354940acc07593eb57.png",
-      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/eb/ebde13a519e911354940acc07593eb57__preview.png",
+      "url": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/source/5c/5c5cdf22f08b382c1ceb58f479ca3e58.png",
+      "previewUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/5c/5c5cdf22f08b382c1ceb58f479ca3e58__preview.png",
       "mimeType": "image/png",
       "width": 96,
       "height": 96,
       "fileSize": 220,
-      "createdAt": "2026-11-14T14:52:15.874Z"
+      "createdAt": "2026-11-14T16:31:39.123Z"
     }
   ],
   "totalItems": 4

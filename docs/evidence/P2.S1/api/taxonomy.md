@@ -23,7 +23,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "catalogBrands": [
       {
-        "id": "247372924476989440",
+        "id": "247397940216209408",
         "name": "علامة تجريبية"
       }
     ]
@@ -134,14 +134,14 @@ content-type: application/json; charset=utf-8
   {
     "id": "<BRAND_KEPT>",
     "name": "علامة الأدلة الجديدة",
-    "createdAt": "2026-11-14T14:51:57.695Z",
-    "updatedAt": "2026-11-14T14:51:58.077Z"
+    "createdAt": "2026-11-14T16:31:23.854Z",
+    "updatedAt": "2026-11-14T16:31:24.176Z"
   },
   {
-    "id": "247372924476989440",
+    "id": "247397940216209408",
     "name": "علامة تجريبية",
-    "createdAt": "2026-11-14T14:51:41.162Z",
-    "updatedAt": "2026-11-14T14:51:41.162Z"
+    "createdAt": "2026-11-14T16:31:05.379Z",
+    "updatedAt": "2026-11-14T16:31:05.379Z"
   }
 ]
 ```
@@ -164,8 +164,8 @@ content-type: application/json; charset=utf-8
 {
   "id": "<BRAND_REST>",
   "name": "Evidence brand",
-  "createdAt": "2026-11-14T14:51:59.084Z",
-  "updatedAt": "2026-11-14T14:51:59.084Z"
+  "createdAt": "2026-11-14T16:31:25.190Z",
+  "updatedAt": "2026-11-14T16:31:25.190Z"
 }
 ```
 
@@ -187,8 +187,8 @@ content-type: application/json; charset=utf-8
 {
   "id": "<BRAND_REST>",
   "name": "Evidence brand 2",
-  "createdAt": "2026-11-14T14:51:59.084Z",
-  "updatedAt": "2026-11-14T14:51:59.856Z"
+  "createdAt": "2026-11-14T16:31:25.190Z",
+  "updatedAt": "2026-11-14T16:31:25.321Z"
 }
 ```
 
@@ -228,7 +228,7 @@ content-type: application/json; charset=utf-8
   "data": {
     "catalogTags": [
       {
-        "id": "247372924586041344",
+        "id": "247397940363010048",
         "name": "جديد"
       }
     ]
@@ -339,14 +339,14 @@ content-type: application/json; charset=utf-8
   {
     "id": "<TAG_KEPT>",
     "name": "صيف",
-    "createdAt": "2026-11-14T14:52:00.340Z",
-    "updatedAt": "2026-11-14T14:52:00.723Z"
+    "createdAt": "2026-11-14T16:31:25.752Z",
+    "updatedAt": "2026-11-14T16:31:26.024Z"
   },
   {
-    "id": "247372924586041344",
+    "id": "247397940363010048",
     "name": "جديد",
-    "createdAt": "2026-11-14T14:51:41.188Z",
-    "updatedAt": "2026-11-14T14:51:41.188Z"
+    "createdAt": "2026-11-14T16:31:05.414Z",
+    "updatedAt": "2026-11-14T16:31:05.414Z"
   }
 ]
 ```
@@ -369,8 +369,8 @@ content-type: application/json; charset=utf-8
 {
   "id": "<TAG_REST>",
   "name": "Evidence tag",
-  "createdAt": "2026-11-14T14:52:01.786Z",
-  "updatedAt": "2026-11-14T14:52:01.786Z"
+  "createdAt": "2026-11-14T16:31:26.943Z",
+  "updatedAt": "2026-11-14T16:31:26.943Z"
 }
 ```
 
@@ -392,8 +392,8 @@ content-type: application/json; charset=utf-8
 {
   "id": "<TAG_REST>",
   "name": "Evidence tag 2",
-  "createdAt": "2026-11-14T14:52:01.786Z",
-  "updatedAt": "2026-11-14T14:52:01.961Z"
+  "createdAt": "2026-11-14T16:31:26.943Z",
+  "updatedAt": "2026-11-14T16:31:27.088Z"
 }
 ```
 
@@ -552,26 +552,26 @@ content-type: application/json; charset=utf-8
   {
     "id": "<HIGHLIGHT>",
     "text": "قماش قطني متين",
-    "createdAt": "2026-11-14T14:52:02.461Z",
-    "updatedAt": "2026-11-14T14:52:02.829Z"
+    "createdAt": "2026-11-14T16:31:27.497Z",
+    "updatedAt": "2026-11-14T16:31:27.806Z"
   },
   {
     "id": "<HIGHLIGHT>",
     "text": "جودة مضمونة",
-    "createdAt": "2026-11-14T14:51:41.262Z",
-    "updatedAt": "2026-11-14T14:51:41.262Z"
+    "createdAt": "2026-11-14T16:31:05.480Z",
+    "updatedAt": "2026-11-14T16:31:05.480Z"
   },
   {
     "id": "<HIGHLIGHT>",
     "text": "الدفع عند الاستلام",
-    "createdAt": "2026-11-14T14:51:41.246Z",
-    "updatedAt": "2026-11-14T14:51:41.246Z"
+    "createdAt": "2026-11-14T16:31:05.456Z",
+    "updatedAt": "2026-11-14T16:31:05.456Z"
   },
   {
     "id": "<HIGHLIGHT>",
     "text": "توصيل سريع",
-    "createdAt": "2026-11-14T14:51:41.222Z",
-    "updatedAt": "2026-11-14T14:51:41.222Z"
+    "createdAt": "2026-11-14T16:31:05.432Z",
+    "updatedAt": "2026-11-14T16:31:05.432Z"
   }
 ]
 ```
@@ -594,8 +594,8 @@ content-type: application/json; charset=utf-8
 {
   "id": "<HIGHLIGHT_REST>",
   "text": "Evidence highlight",
-  "createdAt": "2026-11-14T14:52:03.868Z",
-  "updatedAt": "2026-11-14T14:52:03.868Z"
+  "createdAt": "2026-11-14T16:31:28.645Z",
+  "updatedAt": "2026-11-14T16:31:28.645Z"
 }
 ```
 
@@ -617,8 +617,8 @@ content-type: application/json; charset=utf-8
 {
   "id": "<HIGHLIGHT_REST>",
   "text": "Evidence highlight 2",
-  "createdAt": "2026-11-14T14:52:03.868Z",
-  "updatedAt": "2026-11-14T14:52:04.050Z"
+  "createdAt": "2026-11-14T16:31:28.645Z",
+  "updatedAt": "2026-11-14T16:31:28.796Z"
 }
 ```
 
@@ -672,7 +672,7 @@ content-type: application/json; charset=utf-8
 {
   "errors": [
     {
-      "message": "A product can show at most six highlights.",
+      "message": "A product can show at most 6 highlights.",
       "locations": [
         {
           "line": 1,

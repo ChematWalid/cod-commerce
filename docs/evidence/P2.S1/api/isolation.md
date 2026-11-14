@@ -263,7 +263,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-14T14:52:26.521Z",
+  "timestamp": "2026-11-14T16:31:48.589Z",
   "path": "/catalog/products"
 }
 ```

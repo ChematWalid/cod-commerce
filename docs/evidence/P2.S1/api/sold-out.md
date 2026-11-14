@@ -76,7 +76,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "query": "query { catalogSoldOutProducts { productId title allowOutOfStockOrders } }",
+  "query": "query { catalogSoldOutProducts { totalItems items { productId title allowOutOfStockOrders } } }",
   "variables": {}
 }
 
@@ -86,13 +86,16 @@ content-type: application/json; charset=utf-8
 
 {
   "data": {
-    "catalogSoldOutProducts": [
-      {
-        "productId": "3",
-        "title": "قبعة تجريبية",
-        "allowOutOfStockOrders": true
-      }
-    ]
+    "catalogSoldOutProducts": {
+      "totalItems": 1,
+      "items": [
+        {
+          "productId": "3",
+          "title": "قبعة تجريبية",
+          "allowOutOfStockOrders": true
+        }
+      ]
+    }
   }
 }
 ```
@@ -247,13 +250,16 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
 
-[
-  {
-    "productId": "3",
-    "title": "قبعة تجريبية",
-    "allowOutOfStockOrders": true
-  }
-]
+{
+  "items": [
+    {
+      "productId": "3",
+      "title": "قبعة تجريبية",
+      "allowOutOfStockOrders": true
+    }
+  ],
+  "totalItems": 1
+}
 ```
 
 ### POST /catalog/sold-out-products/stop-orders

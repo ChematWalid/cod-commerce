@@ -54,7 +54,7 @@ content-type: application/json; charset=utf-8
     "updateBusiness": {
       "id": "<BUSINESS_DEMO>",
       "logoAssetId": "5",
-      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/e9/e9fb9e4e54712dba91b8ce7878bfeb95__preview.png"
+      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/b2/b2ed6ad27d763faf44c799bc23b60a48__preview.png"
     }
   }
 }
@@ -87,7 +87,7 @@ content-type: application/json; charset=utf-8
     "updateStore": {
       "id": "<STORE_DEMO>",
       "logoAssetId": "5",
-      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/e9/e9fb9e4e54712dba91b8ce7878bfeb95__preview.png",
+      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/b2/b2ed6ad27d763faf44c799bc23b60a48__preview.png",
       "showAddressField": true,
       "soldOutBehavior": "keep"
     }
@@ -118,7 +118,7 @@ content-type: application/json; charset=utf-8
       "id": "<BUSINESS_DEMO>",
       "name": "Demo",
       "logoAssetId": "5",
-      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/e9/e9fb9e4e54712dba91b8ce7878bfeb95__preview.png"
+      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/b2/b2ed6ad27d763faf44c799bc23b60a48__preview.png"
     }
   }
 }
@@ -149,7 +149,7 @@ content-type: application/json; charset=utf-8
       "id": "<STORE_DEMO>",
       "name": "Demo Store",
       "logoAssetId": "5",
-      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/e9/e9fb9e4e54712dba91b8ce7878bfeb95__preview.png"
+      "logoUrl": "http://127.0.0.1:23100/assets/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/preview/b2/b2ed6ad27d763faf44c799bc23b60a48__preview.png"
     }
   }
 }
