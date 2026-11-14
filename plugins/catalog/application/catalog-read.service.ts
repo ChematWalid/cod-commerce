@@ -14,14 +14,10 @@ import {
   statusesShownIn,
 } from '../domain/visibility';
 import type { ProductPorts } from './catalog-ports';
-import { type ProductView, viewOf } from './product-view';
+import { viewOf } from './product-view';
+import { type VisibleProduct, visibleProductOf } from './visible-product';
 
-/** A product as a public context shows it: whether it is sold out, and whether a buyer may still order it. */
-export interface VisibleProduct extends ProductView {
-  readonly soldOut: boolean;
-  /** Not sold out, or its orders stay open while sold out (D2108). */
-  readonly orderable: boolean;
-}
+export type { VisibleProduct, VisibleProductSettings, VisibleVariant } from './visible-product';
 
 /** One page of the products a public context shows, and how many it shows in all. */
 export interface VisibleProductPage {
@@ -51,7 +47,7 @@ const isPage = ({ skip, take }: CatalogReadOptions): boolean =>
  * for P3.S2/P3.S3/P3.S4; no public endpoint serves it in P2.S1. The store is the active store of the context, never an
  * argument (D2142): a draft is never returned, a hidden product only by its slug on a landing page, and a store that
  * hides sold-out products keeps them out of lists and product pages. Every item says whether it is sold out and
- * orderable. Only public contexts are accepted, checked at run time too, so a context forwarded from a request can
+ * orderable, and carries only what a buyer may see: no hidden variant, barcode or merchant-only setting. Only public contexts are accepted, checked at run time too, so a context forwarded from a request can
  * never widen the read to the merchant's view or list the hidden products.
  */
 export class CatalogReadService {
@@ -132,7 +128,7 @@ export class CatalogReadService {
       records.map(async (record) => {
         const view = await viewOf(this.ports, ctx, scope, record);
         const state = { soldOut: soldOut.has(record.id), allowOutOfStockOrders: view.settings.allowOutOfStockOrders };
-        return { ...view, soldOut: state.soldOut, orderable: isOrderable(state) };
+        return visibleProductOf(view, { soldOut: state.soldOut, orderable: isOrderable(state) });
       }),
     );
   }

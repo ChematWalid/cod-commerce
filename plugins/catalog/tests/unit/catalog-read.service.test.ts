@@ -1,6 +1,7 @@
 import { productInputSchema, type ProductInput, productPatchSchema, type SoldOutBehavior } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CatalogReadService, NoActiveStoreError } from '../../application/catalog-read.service';
+import { toCoreId } from '../../domain/core-id';
 import { InvalidCatalogInputError } from '../../domain/errors';
 import type { PublicListContext, PublicVisibilityContext } from '../../domain/visibility';
 import { CreateProductService } from '../../application/create-product.service';
@@ -180,5 +181,47 @@ describe('CatalogReadService (AC2, AC6, D2109)', () => {
     // Assert
     await expect(listing).rejects.toBeInstanceOf(NoActiveStoreError);
     await expect(finding).rejects.toBeInstanceOf(NoActiveStoreError);
+  });
+
+  it('a hidden variant is not returned in a public context', async () => {
+    // Arrange
+    open('keep');
+    const id = await product({
+      title: 'Shirt',
+      slug: 'shirt',
+      sku: 'SH',
+      optionGroups: [{ name: 'Size', values: ['S', 'M'] }],
+    });
+    const created = await world.ports.products.findOne(ctx(), toCoreId(id));
+    const hiddenId = created?.variants[1]?.id;
+    await new UpdateProductService(world.ports).update(
+      ctx(),
+      scopeA,
+      id,
+      productPatchSchema.parse({ variants: [{ id: hiddenId, isHidden: true }] }),
+    );
+
+    // Act
+    const found = await reads.findBySlug(ctx(), 'shirt', 'productPage');
+    const [listed] = (await reads.listVisible(ctx(), 'listing', PAGE)).items;
+
+    // Assert
+    expect(found?.variants.map((variant) => variant.optionValues)).toEqual([['S']]);
+    expect(listed?.variants.map((variant) => variant.id)).not.toContain(hiddenId);
+  });
+
+  it('order managers and other merchant-only settings are not in a public read', async () => {
+    // Arrange
+    open('keep');
+    await product({ title: 'Lamp', slug: 'lamp', barcode: '123' }, { nameInDelivery: 'Lamp 2', isFragile: true });
+
+    // Act
+    const found = await reads.findBySlug(ctx(), 'lamp', 'productPage');
+
+    // Assert
+    expect(Object.keys(found?.settings ?? {}).sort()).toEqual(['customAttributes', 'quantityRules']);
+    expect(found).not.toHaveProperty('barcode');
+    expect(found?.variants[0]).not.toHaveProperty('barcode');
+    expect(found?.variants[0]).not.toHaveProperty('isHidden');
   });
 });
