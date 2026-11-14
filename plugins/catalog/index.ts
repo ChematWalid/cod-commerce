@@ -5,9 +5,21 @@ export { CatalogPlugin } from './catalog.plugin';
 export { CatalogProductQueries } from './infrastructure/catalog-product-queries';
 export type { ProductView } from './application/product-view';
 export type { ProductViewPage } from './application/list-products.service';
-export { ORDER_MANAGER_CHECK_REGISTRAR } from './application/tokens';
+export {
+  type CatalogReadOptions,
+  CatalogReadService,
+  NoActiveStoreError,
+  type VisibleProduct,
+  type VisibleProductPage,
+} from './application/catalog-read.service';
+export type { VisibilityContext } from './domain/visibility';
+export { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE } from './application/tokens';
+export type { SoldOutSource } from './domain/ports/sold-out-source.port';
 export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/ports/order-manager-check.port';
-export type { OperationContext as CatalogOperationContext } from './domain/ports/operation-context';
+export {
+  asOperationContext as asCatalogOperationContext,
+  type OperationContext as CatalogOperationContext,
+} from './domain/ports/operation-context';
 export {
   CREATE_PRODUCT_TEST_ID,
   EDITOR_PRICE_TEST_ID,

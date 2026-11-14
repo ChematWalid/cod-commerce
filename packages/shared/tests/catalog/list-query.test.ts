@@ -24,6 +24,10 @@ describe('productListQuerySchema', () => {
     expect(parsed).toMatchObject({ q: 'shoe', collectionId: '3', brandId: '1', tagId: '2' });
   });
 
+  it('takes the sold-out tab, which lists the sold-out products of the store (D2108)', () => {
+    expect(productListQuerySchema.parse({ tab: 'sold-out' })).toMatchObject({ tab: 'sold-out' });
+  });
+
   it('refuses a page larger than the cap, a negative skip and an unknown tab', () => {
     expect(productListQuerySchema.safeParse({ take: CATALOG_MAX_PAGE_SIZE }).success).toBe(true);
     expect(productListQuerySchema.safeParse({ take: CATALOG_MAX_PAGE_SIZE + 1 }).success).toBe(false);

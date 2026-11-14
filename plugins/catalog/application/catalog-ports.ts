@@ -12,6 +12,8 @@ import type { ProductCollectionRepositoryPort } from '../domain/ports/product-co
 import type { ProductEventsPort } from '../domain/ports/product-events.port';
 import type { ProductSearchPort } from '../domain/ports/product-search.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
+import type { SoldOutSource } from '../domain/ports/sold-out-source.port';
+import type { StoreSettingsPort } from '../domain/ports/store-settings.port';
 import type { TagRepositoryPort } from '../domain/ports/tag-repository.port';
 import type { TaxonomyLockPort } from '../domain/ports/taxonomy-lock.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
@@ -42,4 +44,8 @@ export interface ProductPorts {
   readonly mediaLock: MediaLockPort;
   /** Team's order-manager check, once registered (D2114). */
   readonly orderManagers: OrderManagerCheckSource;
+  /** Which products are sold out: the manual flag until stock exists (D2107). */
+  readonly soldOut: SoldOutSource;
+  /** The caller's store and its sold-out behaviour, from tenancy (D2106, D2142). */
+  readonly stores: StoreSettingsPort;
 }

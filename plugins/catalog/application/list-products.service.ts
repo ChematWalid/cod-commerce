@@ -22,8 +22,8 @@ function intersect(left: readonly CoreId[] | undefined, right: readonly CoreId[]
 }
 
 /**
- * The admin product list of the caller's active store (AC4, D2123): the search, the tag and the collection each give
- * a set of product ids, and the list holds the products in all of them that also match the tab and the brand. A
+ * The admin product list of the caller's active store (AC4, D2123): the search, the sold-out tab, the tag and the
+ * collection each give a set of product ids, and the list holds the products in all of them that also match the tab and the brand. A
  * filter id of another store or business, or a malformed one, matches nothing: the list is empty, never widened.
  */
 export class ListProductsService {
@@ -54,6 +54,9 @@ export class ListProductsService {
   ): Promise<readonly CoreId[] | undefined | null> {
     let ids: readonly CoreId[] | undefined;
     if ('q' in query) ids = intersect(ids, await this.ports.search.matchingProductIds(ctx, query.q));
+    if (query.tab === 'sold-out') {
+      ids = intersect(ids, await this.ports.soldOut.allSoldOutIds(ctx, scope, scope.storeId));
+    }
     if (query.tagId !== undefined) {
       if (!isSnowflake(query.tagId)) return null;
       ids = intersect(ids, await this.ports.tags.productIdsWithTag(ctx, scope, query.tagId));

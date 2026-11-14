@@ -1,5 +1,6 @@
 import gql from 'graphql-tag';
 import { mediaAdminApiSchema } from './media-schema';
+import { soldOutAdminApiSchema } from './sold-out-schema';
 import { taxonomyAdminApiSchema } from './taxonomy-schema';
 
 /**
@@ -231,9 +232,13 @@ const productAdminApiSchema = gql`
   }
 `;
 
-/** Every operation of the catalog's Admin API: products, brands, tags and highlights, then the media library. */
+/**
+ * Every operation of the catalog's Admin API: products, brands, tags and highlights, the media library, then the
+ * sold-out products.
+ */
 export const catalogAdminApiSchema = gql`
   ${productAdminApiSchema}
   ${taxonomyAdminApiSchema}
   ${mediaAdminApiSchema}
+  ${soldOutAdminApiSchema}
 `;

@@ -50,6 +50,32 @@ describe('VendureProductCatalog.findBySlug', () => {
   });
 });
 
+describe('VendureProductCatalog.list', () => {
+  it('asks for the statuses of a public context and leaves out the excluded products (D2109)', async () => {
+    // Arrange
+    const findAll = vi.fn().mockResolvedValue({ items: [], totalItems: 0 });
+    const catalog = catalogOver(findAll);
+
+    // Act
+    await catalog.list(ctx, {
+      skip: 0,
+      take: 20,
+      productIds: [toCoreId('1'), toCoreId('2')],
+      excludedProductIds: [toCoreId('2')],
+      statuses: ['active', 'hidden'],
+    });
+
+    // Assert
+    expect(findAll).toHaveBeenCalledWith(
+      ctx,
+      expect.objectContaining({
+        filter: { id: { in: ['1', '2'], notIn: ['2'] }, status: { in: ['active', 'hidden'] } },
+      }),
+      [],
+    );
+  });
+});
+
 describe('VendureProductCatalog.lockForUpdate', () => {
   const productId = toCoreId('41');
 

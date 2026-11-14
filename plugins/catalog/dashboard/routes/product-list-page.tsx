@@ -16,6 +16,7 @@ import { DeleteDialog } from '../components/delete-dialog';
 import { ListFilters } from '../components/list-filters';
 import { ListPager } from '../components/list-pager';
 import { ProductTable } from '../components/product-table';
+import { SoldOutBar } from '../components/sold-out-bar';
 import type { RowCommand } from '../components/row-actions';
 import { StatusTabs } from '../components/status-tabs';
 import {
@@ -40,6 +41,7 @@ import {
   withPage,
 } from '../model/list-search';
 import { listErrorMessageId } from '../model/list-view';
+import { soldOutOrdersOffered } from '../model/sold-out-view';
 import { isStoreSwitched } from '../model/store-bound-fetch';
 import {
   type StoreScope,
@@ -135,8 +137,14 @@ function useLastPageClamp(list: ListState, totalItems: number | undefined): bool
   return pastLastPage;
 }
 
-/** The tabs, the search and the filters; each change starts again at page 1. */
-function ListToolbar({ list, scope }: { readonly list: ListState; readonly scope: StoreScope | null }): ReactNode {
+interface ListToolbarProps {
+  readonly list: ListState;
+  readonly scope: StoreScope | null;
+  readonly held: ReadonlySet<string>;
+}
+
+/** The tabs, the search and the filters; each change starts again at page 1. The sold-out tab adds its actions. */
+function ListToolbar({ list, scope, held }: ListToolbarProps): ReactNode {
   const brands = useCatalogBrands(scope);
   const tags = useCatalogTags(scope);
   const change = (next: ProductListFilterChange): void => {
@@ -151,6 +159,7 @@ function ListToolbar({ list, scope }: { readonly list: ListState; readonly scope
         }}
       />
       <ListFilters state={list.state} brands={brands.data ?? []} tags={tags.data ?? []} onChange={change} />
+      {soldOutOrdersOffered(list.state.tab, held) ? <SoldOutBar scope={scope} /> : null}
     </div>
   );
 }
@@ -168,7 +177,7 @@ function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
   const pastLastPage = useLastPageClamp(list, products.data?.totalItems);
   return (
     <div className="grid gap-4" data-testid={PRODUCT_LIST_TEST_ID} data-store-id={scope?.storeId}>
-      <ListToolbar list={list} scope={scope} />
+      <ListToolbar list={list} scope={scope} held={held} />
       <ListBody
         scope={scope}
         products={products}

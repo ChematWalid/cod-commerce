@@ -1,8 +1,10 @@
-import type { ProductChangeKind, TenantScope } from '@cod/shared';
+import type { ProductChangeKind, SoldOutBehavior, TenantScope } from '@cod/shared';
 import type { ProductPorts } from '../../application/catalog-ports';
 import { OrderManagerCheckRegistry } from '../../application/order-manager-check.registry';
 import type { CoreId } from '../../domain/core-id';
 import type { OperationContext } from '../../domain/ports/operation-context';
+import type { ActiveStore } from '../../domain/ports/store-settings.port';
+import { SettingsFlagSoldOutSource } from '../../infrastructure/settings-flag-sold-out.source';
 import type { StoreScope } from '../../domain/store-scope';
 import { newId, T0 } from '../support/builders';
 import { InMemoryBrandRepository } from './in-memory-brand-repository';
@@ -10,6 +12,9 @@ import { InMemoryHighlightRepository } from './in-memory-highlight-repository';
 import { InMemoryMediaRepository } from './in-memory-media-repository';
 import { InMemoryMediaStorage } from './in-memory-media-storage';
 import { InMemoryProductCatalog, storeContext } from './in-memory-product-catalog';
+
+/** The store a fake context stands for (see `storeContext`). */
+const storeOf = (ctx: OperationContext): string => (ctx as unknown as { storeId: string }).storeId;
 import { InMemoryProductCollectionRepository } from './in-memory-product-collection-repository';
 import { InMemoryProductSettingsRepository } from './in-memory-product-settings-repository';
 import { InMemoryTagRepository } from './in-memory-tag-repository';
@@ -34,6 +39,8 @@ export class ProductWorld {
   /** Where a test registers a fake team check (D2114); empty by default, like a server without team. */
   readonly orderManagerChecks = new OrderManagerCheckRegistry();
   readonly events: PublishedEvent[] = [];
+  /** The store each store context resolves to for public reads (D2142); none until {@link openStore}. */
+  private readonly activeStores = new Map<string, ActiveStore>();
   /** Product ids the fake search answers with, whatever the text. */
   searchHits: CoreId[] = [];
   /** Transactions run, so a test can tell a write ran inside one. */
@@ -95,7 +102,16 @@ export class ProductWorld {
       },
     },
     orderManagers: this.orderManagerChecks,
+    soldOut: new SettingsFlagSoldOutSource(this.settings),
+    stores: {
+      activeStoreOf: (ctx) => Promise.resolve(this.activeStores.get(storeOf(ctx))),
+    },
   };
+
+  /** Makes `scope`'s store the active store of its contexts, with `soldOutBehavior`, as tenancy would. */
+  openStore(scope: StoreScope, soldOutBehavior: SoldOutBehavior): void {
+    this.activeStores.set(scope.storeId, { scope, soldOutBehavior });
+  }
 
   private lockCall(call: string): void {
     if (this.openTransactions === 0) this.locksOutsideTransaction += 1;

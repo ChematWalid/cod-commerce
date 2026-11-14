@@ -17,6 +17,15 @@ const STATUSES_SHOWN: Readonly<Record<Exclude<VisibilityContext, 'admin'>, reado
   landingPage: ['active', 'hidden'],
 };
 
+/** The statuses shown in `context`; `undefined` for the admin, who sees every status. */
+export function statusesShownIn(context: VisibilityContext): readonly ProductStatus[] | undefined {
+  return context === 'admin' ? undefined : STATUSES_SHOWN[context];
+}
+
+/** Whether a sold-out product leaves `context` in a store whose sold-out behaviour is `soldOutBehavior`. */
+export const hidesSoldOutIn = (context: VisibilityContext, soldOutBehavior: SoldOutBehavior): boolean =>
+  soldOutBehavior === 'hide' && context !== 'landingPage' && context !== 'admin';
+
 /**
  * Whether `product` shows in `context` (D2109): a draft is never public; a hidden product shows only on a landing
  * page; when the store hides sold-out products, a sold-out one leaves lists and its product page but stays on its
@@ -27,11 +36,9 @@ export function isVisibleIn(
   context: VisibilityContext,
   soldOutBehavior: SoldOutBehavior,
 ): boolean {
-  if (context === 'admin') {
-    return true;
-  }
-  if (!STATUSES_SHOWN[context].includes(product.status)) {
+  const statuses = statusesShownIn(context);
+  if (statuses !== undefined && !statuses.includes(product.status)) {
     return false;
   }
-  return context === 'landingPage' || !(product.soldOut && soldOutBehavior === 'hide');
+  return !(product.soldOut && hidesSoldOutIn(context, soldOutBehavior));
 }

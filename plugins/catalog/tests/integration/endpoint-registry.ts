@@ -5,6 +5,7 @@
 import { CATALOG_ERROR_CODES } from '@cod/shared';
 import type { OperationEntry, TargetIds } from './registry-calls';
 import { MEDIA_OPERATIONS } from './media-registry';
+import { SOLD_OUT_OPERATIONS } from './sold-out-registry';
 import { TAXONOMY_OPERATIONS } from './taxonomy-registry';
 
 export { ROUTE_REGISTRY } from './route-registry';
@@ -90,4 +91,5 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   },
   ...TAXONOMY_OPERATIONS,
   ...MEDIA_OPERATIONS,
+  ...SOLD_OUT_OPERATIONS,
 ];

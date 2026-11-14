@@ -8,7 +8,11 @@ import type { OperationContext } from './operation-context';
 export interface ProductCriteria {
   /** Only these products, when given (search, tag and collection pre-queries); an empty list matches nothing. */
   readonly productIds?: readonly CoreId[];
+  /** Never these products (sold-out ones a store hides, D2109). */
+  readonly excludedProductIds?: readonly CoreId[];
   readonly status?: ProductStatus;
+  /** Only products in one of these statuses (a public context, D2109); `status` narrows further. */
+  readonly statuses?: readonly ProductStatus[];
   readonly brandId?: Snowflake;
   readonly skip: number;
   readonly take: number;

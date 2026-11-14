@@ -1,6 +1,7 @@
 import { type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { toBusinessId, toSnowflake, toStoreId } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
 import { type CoreId, toCoreId } from '../domain/core-id';
 import { ConcurrentUpdateError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -79,6 +80,20 @@ export class TypeOrmProductSettingsRepository implements ProductSettingsReposito
     const { id, productId, createdAt } = settings;
     const row = { id, productId, createdAt, ...inStore(scope), ...changedFields(settings) };
     await onUniqueViolation(this.rows.insert(tenant, row), () => new ConcurrentUpdateError());
+  }
+
+  async soldOutProductIds(
+    ctx: OperationContext,
+    scope: StoreScope,
+    productIds?: readonly CoreId[],
+  ): Promise<readonly CoreId[]> {
+    if (productIds?.length === 0) return [];
+    const among = productIds === undefined ? {} : { productId: In([...productIds]) };
+    const rows = await this.rows.find(requestScope(ctx, scope), {
+      where: { ...inStore(scope), soldOut: true, ...among },
+      order: { productId: 'ASC' },
+    });
+    return rows.map((row) => toCoreId(row.productId));
   }
 
   async delete(ctx: OperationContext, scope: StoreScope, productId: CoreId): Promise<boolean> {

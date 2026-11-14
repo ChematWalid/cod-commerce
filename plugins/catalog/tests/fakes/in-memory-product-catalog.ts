@@ -146,11 +146,13 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
 
   list(ctx: OperationContext, criteria: ProductCriteria): Promise<ProductPage> {
     const allowed = criteria.productIds === undefined ? undefined : new Set<string>(criteria.productIds);
+    const excluded = new Set<string>(criteria.excludedProductIds ?? []);
     const matching = this.stored
       .filter((row) => row.storeId === storeOf(ctx) && !row.deleted)
       .map((row) => row.record)
-      .filter((record) => allowed === undefined || allowed.has(record.id))
+      .filter((record) => (allowed === undefined || allowed.has(record.id)) && !excluded.has(record.id))
       .filter((record) => criteria.status === undefined || record.status === criteria.status)
+      .filter((record) => criteria.statuses === undefined || criteria.statuses.includes(record.status))
       .filter((record) => criteria.brandId === undefined || record.brandId === criteria.brandId)
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
     const items = matching.slice(criteria.skip, criteria.skip + criteria.take);

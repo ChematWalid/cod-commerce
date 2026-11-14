@@ -578,3 +578,35 @@ msgstr "Page title"
 #. js-lingui-explicit-id
 msgid "catalog.editor-meta-description"
 msgstr "Page description"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-sold-out"
+msgstr "Sold out"
+
+#. js-lingui-explicit-id
+msgid "catalog.sold-out"
+msgstr "Sold out"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-stopped"
+msgstr "Orders stopped"
+
+#. js-lingui-explicit-id
+msgid "catalog.stop-orders"
+msgstr "Stop orders"
+
+#. js-lingui-explicit-id
+msgid "catalog.resume-orders"
+msgstr "Resume orders"
+
+#. js-lingui-explicit-id
+msgid "catalog.sold-out-orders-hint"
+msgstr "For every sold-out product of this store:"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-stopped-done"
+msgstr "Orders stopped for the sold-out products"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-resumed-done"
+msgstr "Orders resumed for the sold-out products"

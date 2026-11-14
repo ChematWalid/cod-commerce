@@ -1,4 +1,6 @@
 import { CATALOG_ERROR_CODES } from '@cod/shared';
+import type { ById, CatalogOperation, CatalogRoute, CatalogTarget, TargetField } from './catalog-operation-types';
+import { SOLD_OUT_OPERATIONS, SOLD_OUT_ROUTES } from './catalog-sold-out-operations';
 import { catalogOf } from './catalog-world';
 import type { IsolationEntity } from './matrix';
 import type { BusinessWorld } from './world-types';
@@ -9,22 +11,7 @@ import type { BusinessWorld } from './world-types';
  * their cells from these lists, so a new endpoint is one entry here.
  */
 
-/** The rows of a business a call may name; for REST the product id is the REST form (`restIdOf`). */
-export interface CatalogTarget {
-  readonly productId: string;
-  readonly variantId: string;
-  readonly brandId: string;
-  readonly tagId: string;
-  readonly highlightId: string;
-  readonly mediaId: string;
-  readonly assetId: string;
-  readonly collectionId: string;
-  readonly slug: string;
-}
-
-/** The field of {@link CatalogTarget} a by-id endpoint names. */
-export type TargetField = 'productId' | 'brandId' | 'tagId' | 'highlightId' | 'mediaId';
-
+export type { ById, CatalogOperation, CatalogRoute, CatalogTarget, TargetField } from './catalog-operation-types';
 /** The rows of `business` as GraphQL names them. */
 export function targetOf(business: BusinessWorld): CatalogTarget {
   const catalog = catalogOf(business);
@@ -46,35 +33,6 @@ export const restTargetOf = (business: BusinessWorld): CatalogTarget => ({
   ...targetOf(business),
   productId: catalogOf(business).product.restId,
 });
-
-/** What a by-id endpoint answers for an id that is not a row of the caller's store. */
-export interface ById {
-  readonly field: TargetField;
-  /** The error code; `null` for a read whose answer is a null field instead. */
-  readonly notFound: string | null;
-}
-
-/** One Admin API operation. */
-export interface CatalogOperation {
-  readonly name: string;
-  readonly entity: IsolationEntity;
-  readonly document: string;
-  readonly variables: (target: CatalogTarget) => Record<string, unknown>;
-  readonly byId?: ById;
-  /** Sent as a multipart upload of a one-pixel PNG at `$file`. */
-  readonly upload?: true;
-}
-
-/** One REST route. */
-export interface CatalogRoute {
-  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-  /** The route as the controller declares it, e.g. `/catalog/products/:id`. */
-  readonly route: string;
-  readonly entity: IsolationEntity;
-  readonly path: (target: CatalogTarget) => string;
-  readonly body?: () => Record<string, unknown>;
-  readonly byId?: ById & { readonly notFound: string };
-}
 
 const C = CATALOG_ERROR_CODES;
 const SYNTHETIC_PRODUCT = { title: 'Synthetic product', status: 'active', price: 100 };
@@ -211,6 +169,7 @@ export const CATALOG_OPERATIONS: readonly CatalogOperation[] = [
   ...PRODUCT_OPERATIONS,
   ...TAXONOMY_KINDS.flatMap(taxonomyOperations),
   ...MEDIA_OPERATIONS,
+  ...SOLD_OUT_OPERATIONS,
 ];
 
 const PRODUCT_BY_ID = { field: 'productId', notFound: C.PRODUCT_NOT_FOUND } as const;
@@ -283,4 +242,5 @@ export const CATALOG_ROUTES: readonly CatalogRoute[] = [
   ...PRODUCT_ROUTES,
   ...TAXONOMY_KINDS.flatMap(taxonomyRoutes),
   ...MEDIA_ROUTES,
+  ...SOLD_OUT_ROUTES,
 ];

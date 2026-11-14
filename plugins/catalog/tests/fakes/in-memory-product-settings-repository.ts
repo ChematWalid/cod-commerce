@@ -29,6 +29,19 @@ export class InMemoryProductSettingsRepository implements ProductSettingsReposit
     return Promise.resolve();
   }
 
+  soldOutProductIds(
+    _ctx: OperationContext,
+    scope: StoreScope,
+    productIds?: readonly CoreId[],
+  ): Promise<readonly CoreId[]> {
+    const among = productIds === undefined ? undefined : new Set<string>(productIds);
+    const ids = this.rows
+      .filter((row) => inStore(scope, row) && row.soldOut && (among === undefined || among.has(row.productId)))
+      .map((row) => row.productId)
+      .sort((left, right) => Number(BigInt(left) - BigInt(right)));
+    return Promise.resolve(ids);
+  }
+
   delete(_ctx: OperationContext, scope: StoreScope, productId: CoreId): Promise<boolean> {
     const index = this.indexOf(scope, productId);
     if (index < 0) return Promise.resolve(false);

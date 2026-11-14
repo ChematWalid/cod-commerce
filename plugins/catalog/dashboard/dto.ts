@@ -12,6 +12,8 @@ export interface CatalogProductRowDto {
   readonly featuredAsset: { readonly id: string } | null;
   readonly collectionIds: readonly string[];
   readonly createdAt: string;
+  /** Whether it is sold out and still takes orders, for the row's marks (D2108). */
+  readonly settings: { readonly soldOut: boolean; readonly allowOutOfStockOrders: boolean };
 }
 
 export interface CatalogProductPageDto {

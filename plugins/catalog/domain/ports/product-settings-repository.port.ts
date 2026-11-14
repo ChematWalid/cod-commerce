@@ -15,6 +15,16 @@ export interface ProductSettingsRepositoryPort {
    */
   upsert(ctx: OperationContext, scope: StoreScope, settings: ProductSettings): Promise<void>;
 
+  /**
+   * The products of the scope's store whose manual sold-out flag is on (D2107), in id order; only those among
+   * `productIds` when given.
+   */
+  soldOutProductIds(
+    ctx: OperationContext,
+    scope: StoreScope,
+    productIds?: readonly CoreId[],
+  ): Promise<readonly CoreId[]>;
+
   /** Deletes the settings of `productId` in the scope's store; `false` when there were none. */
   delete(ctx: OperationContext, scope: StoreScope, productId: CoreId): Promise<boolean>;
 }

@@ -3,7 +3,7 @@ import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { catalogSuite, PRODUCT, type ProductResult, rawId } from './catalog-kit';
+import { catalogSuite, PRODUCT, type ProductResult, rawId, UPDATE_PRODUCT } from './catalog-kit';
 import {
   type OperationEntry,
   OPERATION_REGISTRY,
@@ -100,6 +100,8 @@ describe('catalog isolation sweep (two businesses)', () => {
       collectionIds: [`T_${collectionId}`],
       optionGroups: [{ name: 'Size', values: ['S'] }],
     });
+    // Sold out, so the sold-out list and Stop/Resume orders would have something of B's to leak or change.
+    await suite.kit.gql(UPDATE_PRODUCT, { id: product.id, input: { settings: { soldOut: true } } });
     const taxonomy = await createTaxonomy(suite.kit);
     const { id: mediaId } = await createMedia(suite.kit);
     const variantId = product.variants[0]?.id ?? '';

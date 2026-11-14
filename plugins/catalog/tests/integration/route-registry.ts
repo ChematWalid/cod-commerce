@@ -1,6 +1,7 @@
 import { CATALOG_ERROR_CODES } from '@cod/shared';
 import type { RouteEntry } from './registry-calls';
 import { MEDIA_ROUTES } from './media-registry';
+import { SOLD_OUT_ROUTES } from './sold-out-registry';
 import { TAXONOMY_ROUTES } from './taxonomy-registry';
 
 const productUrl =
@@ -65,4 +66,5 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
   },
   ...TAXONOMY_ROUTES,
   ...MEDIA_ROUTES,
+  ...SOLD_OUT_ROUTES,
 ];

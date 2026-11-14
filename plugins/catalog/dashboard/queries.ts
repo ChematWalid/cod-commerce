@@ -25,6 +25,10 @@ const PRODUCTS_QUERY = /* GraphQL */ `
         }
         collectionIds
         createdAt
+        settings {
+          soldOut
+          allowOutOfStockOrders
+        }
       }
       totalItems
     }

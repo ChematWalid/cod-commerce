@@ -64,6 +64,27 @@ export function describeProductSettingsRepositoryContract(
       await expect(repo.findByProduct(ctx, scopeA, productId)).resolves.toEqual(ofA);
     });
 
+    it('names the sold-out products of its store only, in id order, among the ids asked (D2107)', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [first, second, inStock] = [newCoreId(), newCoreId(), newCoreId()];
+      await repo.upsert(ctx, scopeA, settingsOf(scopeA, second, { soldOut: true }));
+      await repo.upsert(ctx, scopeA, settingsOf(scopeA, first, { soldOut: true }));
+      await repo.upsert(ctx, scopeA, settingsOf(scopeA, inStock));
+      await repo.upsert(ctx, scopeA2, settingsOf(scopeA2, newCoreId(), { soldOut: true }));
+      await repo.upsert(ctx, scopeB, settingsOf(scopeB, first, { id: newId(), soldOut: true }));
+
+      // Act
+      const all = await repo.soldOutProductIds(ctx, scopeA);
+      const among = await repo.soldOutProductIds(ctx, scopeA, [second, inStock]);
+      const none = await repo.soldOutProductIds(ctx, scopeA, []);
+
+      // Assert
+      expect(all).toEqual([first, second]);
+      expect(among).toEqual([second]);
+      expect(none).toEqual([]);
+    });
+
     it('deletes the settings of a product of its store only', async () => {
       // Arrange
       const { repo, ctx } = await make();

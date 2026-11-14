@@ -14,13 +14,17 @@ import { ProductReadController } from './api/product-read.controller';
 import { ProductsController } from './api/products.controller';
 import { ProductsResolver } from './api/products.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
+import { SoldOutActions } from './api/sold-out-actions';
+import { SoldOutController } from './api/sold-out.controller';
+import { SoldOutResolver } from './api/sold-out.resolver';
 import { catalogAdminApiSchema } from './api/schema';
 import { BrandsController } from './api/brands.controller';
 import { HighlightsController } from './api/highlights.controller';
 import { TagsController } from './api/tags.controller';
 import { TaxonomyActions } from './api/taxonomy-actions';
 import { TaxonomyResolver } from './api/taxonomy.resolver';
-import { ORDER_MANAGER_CHECK_REGISTRAR } from './application/tokens';
+import { CatalogReadService } from './application/catalog-read.service';
+import { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE } from './application/tokens';
 import { CatalogProductQueries } from './infrastructure/catalog-product-queries';
 import { CATALOG_ENTITIES } from './infrastructure/catalog-entities';
 import { configureCatalogCustomFields } from './infrastructure/custom-fields';
@@ -34,6 +38,7 @@ export const CATALOG_REST_CONTROLLERS = [
   TagsController,
   HighlightsController,
   MediaController,
+  SoldOutController,
 ];
 
 /**
@@ -54,16 +59,17 @@ export const CATALOG_REST_CONTROLLERS = [
     ProductActions,
     TaxonomyActions,
     MediaActions,
+    SoldOutActions,
     MediaThrottle,
     CatalogTranslations,
     CatalogProductQueries,
   ],
-  // The read facade of later sessions (D2104) and the registrar team's order-manager check joins (D2114); other
-  // plugins inject them from their infrastructure.
-  exports: [CatalogProductQueries, ORDER_MANAGER_CHECK_REGISTRAR],
+  // The read facades of later sessions (D2104, D2109), the registrar team's order-manager check joins (D2114) and the
+  // sold-out source P6.S1 replaces (D2107); other plugins inject them from their infrastructure.
+  exports: [CatalogProductQueries, CatalogReadService, ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE],
   adminApiExtensions: {
     schema: catalogAdminApiSchema,
-    resolvers: [ProductsResolver, TaxonomyResolver, MediaResolver],
+    resolvers: [ProductsResolver, TaxonomyResolver, MediaResolver, SoldOutResolver],
   },
   controllers: CATALOG_REST_CONTROLLERS,
   dashboard: './dashboard/index.tsx',

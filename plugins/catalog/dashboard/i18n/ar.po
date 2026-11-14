@@ -578,3 +578,35 @@ msgstr "عنوان الصفحة"
 #. js-lingui-explicit-id
 msgid "catalog.editor-meta-description"
 msgstr "وصف الصفحة"
+
+#. js-lingui-explicit-id
+msgid "catalog.tab-sold-out"
+msgstr "نفدت الكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.sold-out"
+msgstr "نفدت الكمية"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-stopped"
+msgstr "الطلبات متوقفة"
+
+#. js-lingui-explicit-id
+msgid "catalog.stop-orders"
+msgstr "إيقاف الطلبات"
+
+#. js-lingui-explicit-id
+msgid "catalog.resume-orders"
+msgstr "استئناف الطلبات"
+
+#. js-lingui-explicit-id
+msgid "catalog.sold-out-orders-hint"
+msgstr "لكل المنتجات التي نفدت كميتها في هذا المتجر:"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-stopped-done"
+msgstr "تم إيقاف الطلبات على المنتجات التي نفدت كميتها"
+
+#. js-lingui-explicit-id
+msgid "catalog.orders-resumed-done"
+msgstr "تم استئناف الطلبات على المنتجات التي نفدت كميتها"

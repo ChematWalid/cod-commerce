@@ -234,11 +234,28 @@ function brandPageOf(brandId: Snowflake, seen: ReadonlySet<CoreId>): ListQueryOp
   return { skip: 0, take: CATALOG_MAX_PAGE_SIZE, sort: { id: SortOrder.ASC }, filter };
 }
 
+/** The product ids a page is limited to and those it leaves out; an empty exclusion is no filter (`NOT IN ()`). */
+function idFilterOf({ productIds, excludedProductIds }: ProductCriteria) {
+  const excluded = excludedProductIds ?? [];
+  if (productIds === undefined && excluded.length === 0) return undefined;
+  return {
+    ...(productIds === undefined ? {} : { in: [...productIds] }),
+    ...(excluded.length === 0 ? {} : { notIn: [...excluded] }),
+  };
+}
+
+/** One status, or one of a public context's statuses (D2109). */
+function statusFilterOf({ status, statuses }: ProductCriteria) {
+  if (status !== undefined) return { status: { eq: status } };
+  return statuses === undefined ? {} : { status: { in: [...statuses] } };
+}
+
 /** The Vendure list options of a page: newest first; our custom fields filter by name (D2123). */
 function listOptionsOf(criteria: ProductCriteria): ListQueryOptions<Product> {
+  const id = idFilterOf(criteria);
   const filter = {
-    ...(criteria.productIds === undefined ? {} : { id: { in: [...criteria.productIds] } }),
-    ...(criteria.status === undefined ? {} : { status: { eq: criteria.status } }),
+    ...(id === undefined ? {} : { id }),
+    ...statusFilterOf(criteria),
     ...(criteria.brandId === undefined ? {} : { brandId: { eq: criteria.brandId } }),
   };
   return {

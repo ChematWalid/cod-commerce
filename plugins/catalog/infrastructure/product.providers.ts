@@ -28,16 +28,23 @@ import {
   PRODUCT_PORTS,
   PRODUCT_SEARCH,
   PRODUCT_SETTINGS_REPOSITORY,
+  SOLD_OUT_SOURCE,
+  STORE_SETTINGS,
   TAG_REPOSITORY,
   TAXONOMY_LOCK,
   TRANSACTION,
 } from '../application/tokens';
+import { CatalogReadService } from '../application/catalog-read.service';
+import { SoldOutService } from '../application/sold-out.service';
 import { UpdateProductService } from '../application/update-product.service';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
+import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
 import { OutboxProductEvents } from './product-changed.outbox';
+import { SettingsFlagSoldOutSource } from './settings-flag-sold-out.source';
 import { SnowflakeCatalogIdGenerator } from './snowflake-id.generator';
+import { TenancyStoreSettings } from './tenancy-store-settings.adapter';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmBrandRepository } from './typeorm-brand.repository';
 import { TypeOrmHighlightRepository } from './typeorm-highlight.repository';
@@ -78,6 +85,8 @@ const PORT_TOKENS = [
   TAXONOMY_LOCK,
   MEDIA_LOCK,
   ORDER_MANAGER_CHECK_REGISTRAR,
+  SOLD_OUT_SOURCE,
+  STORE_SETTINGS,
 ] as const;
 
 const PORT_KEYS = [
@@ -98,6 +107,8 @@ const PORT_KEYS = [
   'taxonomyLock',
   'mediaLock',
   'orderManagers',
+  'soldOut',
+  'stores',
 ] as const satisfies readonly (keyof ProductPorts)[];
 
 /** A use case built from the port bundle. */
@@ -129,6 +140,13 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   { provide: MEDIA_LOCK, useClass: PgMediaLock },
   // One registry for the module: team registers its check on it, the use cases read it (D2114, D2137).
   { provide: ORDER_MANAGER_CHECK_REGISTRAR, useClass: OrderManagerCheckRegistry },
+  // The manual sold-out flag until stock exists; P6.S1 provides its stock source on this token instead (D2107).
+  {
+    provide: SOLD_OUT_SOURCE,
+    useFactory: (settings: ProductSettingsRepositoryPort) => new SettingsFlagSoldOutSource(settings),
+    inject: [PRODUCT_SETTINGS_REPOSITORY],
+  },
+  { provide: STORE_SETTINGS, useClass: TenancyStoreSettings },
   {
     provide: ID_GENERATOR,
     useFactory: (ids: SnowflakeIdGeneratorPort) => new SnowflakeCatalogIdGenerator(ids),
@@ -168,4 +186,6 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(TagService),
   useCase(HighlightService),
   useCase(MediaLibraryService),
+  useCase(SoldOutService),
+  useCase(CatalogReadService),
 ];

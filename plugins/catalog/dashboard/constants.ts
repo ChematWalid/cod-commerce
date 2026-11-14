@@ -43,6 +43,8 @@ export const VARIANT_ROW_TEST_ID = 'catalog-variant-row';
 export const VARIANT_PRICE_TEST_ID = 'catalog-variant-price';
 export const VARIANT_SKU_TEST_ID = 'catalog-variant-sku';
 export const RESET_CONFIRM_TEST_ID = 'catalog-reset-confirm';
+export const SOLD_OUT_ORDERS_TEST_ID = 'catalog-sold-out-orders';
+export const SOLD_OUT_BADGE_TEST_ID = 'catalog-sold-out-badge';
 
 /** How long the slug field waits after the last key before it asks whether the slug is free. */
 export const SLUG_CHECK_DELAY_MS = 500;

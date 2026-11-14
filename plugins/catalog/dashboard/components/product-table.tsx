@@ -11,9 +11,10 @@ import {
 } from '@vendure/dashboard';
 import type { ProductStatus } from '@cod/shared';
 import type { ReactNode } from 'react';
-import { EMPTY_VALUE, PRODUCT_ROW_TEST_ID } from '../constants';
+import { EMPTY_VALUE, PRODUCT_ROW_TEST_ID, SOLD_OUT_BADGE_TEST_ID } from '../constants';
 import type { CatalogProductRowDto } from '../dto';
 import { formatDzd, STATUS_LABEL_IDS } from '../model/list-view';
+import { soldOutBadgesOf } from '../model/sold-out-view';
 import { LtrRun } from './ltr-run';
 import { RowActions, type RowCommand } from './row-actions';
 
@@ -50,6 +51,21 @@ function ProductCell({
   );
 }
 
+/** The status, then "Sold out" and "Orders stopped" when they apply (D2108). */
+function StatusCell({ product }: { readonly product: CatalogProductRowDto }): ReactNode {
+  const { i18n } = useLingui();
+  return (
+    <span className="flex flex-wrap gap-1">
+      <Badge variant={BADGE_OF_STATUS[product.status]}>{i18n._(STATUS_LABEL_IDS[product.status])}</Badge>
+      {soldOutBadgesOf(product.settings).map((labelId) => (
+        <Badge key={labelId} variant="destructive" data-testid={SOLD_OUT_BADGE_TEST_ID}>
+          {i18n._(labelId)}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
 function PriceCell({ price }: { readonly price: number }): ReactNode {
   const { i18n } = useLingui();
   const language = i18n.locale.split(/[-_]/)[0] ?? i18n.locale;
@@ -76,7 +92,6 @@ function ProductRow({
   product,
   ...props
 }: Omit<ProductTableProps, 'products'> & { readonly product: CatalogProductRowDto }) {
-  const { i18n } = useLingui();
   const { formatDate } = useLocalFormat();
   const collections = product.collectionIds.length;
   return (
@@ -85,7 +100,7 @@ function ProductRow({
         <ProductCell product={product} previews={props.previews} />
       </TableCell>
       <TableCell>
-        <Badge variant={BADGE_OF_STATUS[product.status]}>{i18n._(STATUS_LABEL_IDS[product.status])}</Badge>
+        <StatusCell product={product} />
       </TableCell>
       <TableCell className={WIDE_ONLY}>
         <PriceCell price={product.price} />

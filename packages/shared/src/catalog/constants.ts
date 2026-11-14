@@ -4,8 +4,8 @@ import { LOGO_MAX_BYTES } from '../auth/constants';
 export const PRODUCT_STATUSES = ['active', 'hidden', 'draft'] as const;
 /** Kinds of product; append-only (P2.S2 appends `pack`, D2126). */
 export const PRODUCT_TYPES = ['physical'] as const;
-/** Tabs of the admin product list; `draft` lists drafts only. */
-export const PRODUCT_LIST_TABS = ['all', 'draft'] as const;
+/** Tabs of the admin product list; `draft` lists drafts only, `sold-out` the sold-out products (D2108). */
+export const PRODUCT_LIST_TABS = ['all', 'draft', 'sold-out'] as const;
 
 /** Most highlights one product shows (brief AC3). */
 export const MAX_PRODUCT_HIGHLIGHTS = 6;

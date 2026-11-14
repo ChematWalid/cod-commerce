@@ -12,6 +12,7 @@ export const STATUS_LABEL_IDS: Readonly<Record<ProductStatus, string>> = {
 export const TAB_LABEL_IDS: Readonly<Record<ProductListTab, string>> = {
   all: 'catalog.tab-all',
   draft: 'catalog.tab-draft',
+  'sold-out': 'catalog.tab-sold-out',
 };
 
 /** A row's actions, in menu order. Preview stays disabled until the storefront exists (P3.S2). */

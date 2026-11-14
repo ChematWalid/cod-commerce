@@ -152,7 +152,8 @@ export async function seedCatalog(http: IsolationHttp, superadmin: Caller, busin
     featuredAssetId: media.assetId,
     assetIds: [media.assetId],
     optionGroups: [{ name: 'Size', values: SIZE_VALUES }],
-    settings: { ...CATALOG_SETTINGS, orderManagerIds: [team.ownerMemberId] },
+    // Sold out, so the sold-out list and Stop/Resume orders have a row of each business to keep apart (D2108).
+    settings: { ...CATALOG_SETTINGS, soldOut: true, orderManagerIds: [team.ownerMemberId] },
   };
   const saved = await as<{ product: { id: string; variants: readonly { id: string }[] } }>(
     CREATE_CATALOG_PRODUCT,
