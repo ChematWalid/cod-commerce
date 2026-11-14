@@ -87,6 +87,19 @@ describe('createStoreCollectionInputSchema', () => {
     expect(parsed.slug).toBeUndefined();
   });
 
+  it('reads rule: null as no rule for a manual collection', () => {
+    const parsed = createStoreCollectionInputSchema.parse({ ...MANUAL, rule: null });
+
+    expect(parsed.rule).toBeUndefined();
+    expect(refusalOf(createStoreCollectionInputSchema.safeParse({ ...AUTOMATIC, rule: null }))).toEqual([
+      COLLECTIONS_ERROR_CODES.RULE_INVALID,
+    ]);
+  });
+
+  it('derives the slug when slug is null', () => {
+    expect(createStoreCollectionInputSchema.parse({ ...MANUAL, slug: null }).slug).toBeUndefined();
+  });
+
   it('refuses an object that is no object and an unknown mode', () => {
     expect(refusalOf(createStoreCollectionInputSchema.safeParse(null))).toEqual([
       COLLECTIONS_ERROR_CODES.INVALID_INPUT,
@@ -108,6 +121,13 @@ describe('updateStoreCollectionInputSchema', () => {
     expect(updateStoreCollectionInputSchema.safeParse({ mode: 'manual', rule: RULE }).success).toBe(false);
     expect(updateStoreCollectionInputSchema.safeParse({ mode: 'automatic', rule: RULE }).success).toBe(true);
     expect(updateStoreCollectionInputSchema.safeParse({ mode: 'manual' }).success).toBe(true);
+  });
+
+  it('reads rule: null as no rule when switching to manual', () => {
+    const parsed = updateStoreCollectionInputSchema.parse({ mode: 'manual', rule: null });
+
+    expect(parsed).toEqual({ mode: 'manual' });
+    expect(parsed.rule).toBeUndefined();
   });
 });
 
@@ -162,6 +182,14 @@ describe('previewStoreCollectionInputSchema', () => {
     ).toEqual([COLLECTIONS_ERROR_CODES.INVALID_INPUT]);
   });
 
+  it('refuses a page number that is not a number', () => {
+    for (const page of [{ take: true }, { skip: null }, { take: '5' }, { take: ['5'] }, { skip: [5] }]) {
+      expect(refusalOf(previewStoreCollectionInputSchema.safeParse({ rule: RULE, ...page }))).toEqual([
+        COLLECTIONS_ERROR_CODES.INVALID_INPUT,
+      ]);
+    }
+  });
+
   it('defaults the page and keeps the rule', () => {
     expect(previewStoreCollectionInputSchema.parse({ rule: RULE })).toEqual({
       rule: RULE,
@@ -189,6 +217,16 @@ describe('storeCollectionListQuerySchema', () => {
     expect(storeCollectionListQuerySchema.safeParse({ take: 101 }).success).toBe(false);
     expect(storeCollectionListQuerySchema.safeParse({ search: `a${String.fromCodePoint(0)}` }).success).toBe(false);
   });
+
+  it('refuses a search with a lone surrogate', () => {
+    expect(storeCollectionListQuerySchema.safeParse({ search: 'a\uD800' }).success).toBe(false);
+  });
+
+  it('reads only decimal page numbers from the query string', () => {
+    for (const take of ['0x10', '1e1', '-1', true, ['5']]) {
+      expect(storeCollectionListQuerySchema.safeParse({ take }).success).toBe(false);
+    }
+  });
 });
 
 describe('collectionChangedPayloadSchema', () => {
@@ -208,5 +246,17 @@ describe('collectionChangedPayloadSchema', () => {
     expect(
       collectionChangedPayloadSchema.safeParse({ collectionId: '1', storeId: STORE_ID, change: 'moved' }).success,
     ).toBe(false);
+  });
+
+  it('refuses a collection id past the int column range', () => {
+    for (const collectionId of ['2147483648', '9999999999999999999', '07']) {
+      expect(
+        collectionChangedPayloadSchema.safeParse({ collectionId, storeId: STORE_ID, change: 'created' }).success,
+      ).toBe(false);
+    }
+    expect(
+      collectionChangedPayloadSchema.safeParse({ collectionId: '2147483647', storeId: STORE_ID, change: 'created' })
+        .success,
+    ).toBe(true);
   });
 });

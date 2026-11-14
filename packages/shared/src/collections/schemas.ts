@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { INT_COLUMN_MAX, SLUG_MAX } from '../catalog/constants';
-import { hasBidiControl, hasControlCharacter } from '../text/control-characters';
+import { hasControlCharacter } from '../text/control-characters';
 import {
   COLLECTION_DESCRIPTION_MAX,
   COLLECTION_LIST_MAX_TAKE,
@@ -22,7 +22,10 @@ import {
 } from './fields';
 import { collectionRuleSchema } from './rule';
 
-const tooManyProducts = { message: COLLECTIONS_ERROR_CODES.TOO_MANY_PRODUCTS };
+const tooManyProducts = COLLECTIONS_ERROR_CODES.TOO_MANY_PRODUCTS;
+
+/** A page number as a REST query string writes it: decimal digits only, no sign, hex or exponent. */
+const DECIMAL_DIGITS = /^\d+$/;
 
 /** A collection description as HTML, multi-line; sanitised server-side like a product's (D2322). */
 const descriptionSchema = z
@@ -38,24 +41,34 @@ const slugSchema = z
   .refine(isCleanLine, issue)
   .transform((slug) => (slug === '' ? undefined : slug));
 
-const pageNumberSchema = (max: number) => z.coerce.number(issue).int(issue).min(0, issue).max(max, issue);
+/** A page number in a JSON or GraphQL body: a whole number, never coerced from another type. */
+const pageNumberSchema = (min: number, max: number) => z.number(issue).int(issue).min(min, issue).max(max, issue);
+
+/** A page number of a REST query string: a number, or a decimal string read as one. */
+const queryPageNumberSchema = (min: number, max: number) =>
+  z
+    .union([z.number(issue), z.string(issue).regex(DECIMAL_DIGITS, issue).transform(Number)], issue)
+    .pipe(pageNumberSchema(min, max));
+
+/** Reads an explicit `null`, which a nullable GraphQL input field may carry, as an absent field. */
+const absentWhenNull = <T>(value: T | null | undefined): T | undefined => value ?? undefined;
 
 const collectionFields = {
   title: collectionTextSchema(COLLECTION_TITLE_MAX, issue),
-  slug: slugSchema.optional(),
+  slug: slugSchema.nullish().transform(absentWhenNull),
   description: descriptionSchema.nullish(),
   featuredAssetId: collectionRefIdSchema.nullish(),
   visible: z.boolean(issue),
   position: z.number(issue).int(issue).min(0, issue).max(COLLECTION_POSITION_MAX, issue),
   mode: z.enum(COLLECTION_MODES, issue),
-  rule: collectionRuleSchema.optional(),
+  rule: collectionRuleSchema.nullish().transform(absentWhenNull),
 };
 
 type ModeAndRule = { readonly mode?: string; readonly rule?: unknown };
 
 /**
- * An automatic collection needs a rule; a manual one takes none (D2302). Checked only when the mode is sent. The codes
- * are spelled out: Zod rewrites the shared issue objects it is given as schema parameters.
+ * An automatic collection needs a rule; a manual one takes none (D2302). Checked only when the mode is sent; a `null`
+ * rule has already been read as no rule.
  */
 function refuseRuleMismatch({ mode, rule }: ModeAndRule, context: z.RefinementCtx): void {
   if (mode === 'automatic' && rule === undefined) {
@@ -91,8 +104,8 @@ export const setStoreProductCollectionsInputSchema = z.object(
 export const previewStoreCollectionInputSchema = z.object(
   {
     rule: collectionRuleSchema,
-    skip: pageNumberSchema(INT_COLUMN_MAX).default(0),
-    take: pageNumberSchema(COLLECTION_PREVIEW_MAX_TAKE).min(1, issue).default(COLLECTION_PREVIEW_MAX_TAKE),
+    skip: pageNumberSchema(0, INT_COLUMN_MAX).default(0),
+    take: pageNumberSchema(1, COLLECTION_PREVIEW_MAX_TAKE).default(COLLECTION_PREVIEW_MAX_TAKE),
   },
   issue,
 );
@@ -105,14 +118,9 @@ function withoutUnsetFields(query: unknown): unknown {
 
 const listQueryFieldsSchema = z.object(
   {
-    skip: pageNumberSchema(COLLECTIONS_PER_STORE_MAX).default(0),
-    take: pageNumberSchema(COLLECTION_LIST_MAX_TAKE).min(1, issue).default(COLLECTION_LIST_PAGE_SIZE),
-    search: z
-      .string(issue)
-      .trim()
-      .max(COLLECTION_TITLE_MAX, issue)
-      .refine((value) => !hasControlCharacter(value) && !hasBidiControl(value), issue)
-      .optional(),
+    skip: queryPageNumberSchema(0, COLLECTIONS_PER_STORE_MAX).default(0),
+    take: queryPageNumberSchema(1, COLLECTION_LIST_MAX_TAKE).default(COLLECTION_LIST_PAGE_SIZE),
+    search: z.string(issue).trim().max(COLLECTION_TITLE_MAX, issue).refine(isCleanLine, issue).optional(),
   },
   issue,
 );

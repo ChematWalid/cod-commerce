@@ -1,14 +1,12 @@
 import { z } from 'zod';
-import { isSnowflake } from '../ids/snowflake';
-import { invalidCollectionInput as issue } from './fields';
+import { isSnowflake, type Snowflake } from '../ids/snowflake';
+import { invalidCollectionInput as issue, vendureIdStringSchema } from './fields';
 
 /** What happened to a collection in a `collection.changed` outbox event (D2335). */
 export const COLLECTION_CHANGE_KINDS = ['created', 'updated', 'membership', 'deleted'] as const;
 
 /** One of the {@link COLLECTION_CHANGE_KINDS}. */
 export type CollectionChangeKind = (typeof COLLECTION_CHANGE_KINDS)[number];
-
-const VENDURE_ID = /^[1-9]\d{0,18}$/;
 
 /**
  * The payload of a `collection.changed` outbox event (D2335): ids and the kind of change, nothing else. Consumers
@@ -17,8 +15,8 @@ const VENDURE_ID = /^[1-9]\d{0,18}$/;
 export const collectionChangedPayloadSchema = z.object(
   {
     /** The Vendure collection id, as a decimal string. */
-    collectionId: z.string(issue).regex(VENDURE_ID, issue),
-    storeId: z.string(issue).refine(isSnowflake, issue),
+    collectionId: vendureIdStringSchema,
+    storeId: z.custom<Snowflake>((value) => typeof value === 'string' && isSnowflake(value), issue),
     change: z.enum(COLLECTION_CHANGE_KINDS, issue),
   },
   issue,

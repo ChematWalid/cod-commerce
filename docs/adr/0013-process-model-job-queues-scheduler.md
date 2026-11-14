@@ -221,3 +221,8 @@ Rows added to the queue taxonomy and the scheduled tasks above:
 | `collections-reconcile` | nightly | enqueue `collections.recompute-store` on `catalog-effects` for every store with automatic collections, so membership heals from a lost delivery, a writer that published no `product.changed`, or a `NORMAL_FORM_VERSION` change |
 
 Why bulk: a catalog import of thousands of products fans out one membership recompute per product, which must not compete with `order-effects` or `dispatch`. `storefront-revalidate` is not reused (another consumer, other retry needs).
+
+Tenant contract of the job `collections.recompute-store`:
+- **Payload (rule d):** ids only, `{ businessId, storeId }`. The processor rebuilds the context and resolves the store through `StoreSettingsReader.settingsOf(ctx, businessId, storeId)`; a store that does not belong to that business, or no longer exists, is acknowledged and logged, never recomputed.
+- **Fairness (rule a):** a whole-store scan takes the per-business semaphore `sem:catalog-effects:{businessId}` (max 1), so one business with many stores cannot starve the bulk pool; when it is not acquired, the job is re-delayed with jitter.
+- **Durability:** the job has no durable Postgres row. Losing Valkey loses a queued recompute; that is an accepted loss, healed by the next nightly `collections-reconcile` run. The `product.changed` deliveries that feed the same queue keep their `outbox_delivery` rows (ADR 0016).

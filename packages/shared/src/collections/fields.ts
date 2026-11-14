@@ -1,17 +1,23 @@
 import { z } from 'zod';
-import { CATALOG_ID_MAX_LENGTH } from '../catalog/constants';
+import { CATALOG_ID_MAX_LENGTH, INT_COLUMN_MAX } from '../catalog/constants';
 import { hasNoRepeatedId } from '../catalog/fields';
 import { hasBidiControl, hasControlCharacter, hasLoneSurrogate } from '../text/control-characters';
 import { COLLECTIONS_ERROR_CODES } from './error-codes';
 
-/** The issue of every shape refusal of a collections body. */
-export const invalidCollectionInput = { message: COLLECTIONS_ERROR_CODES.INVALID_INPUT };
+/**
+ * The issue of every shape refusal of a collections body. Issues are code strings, not `{ message }` objects: Zod
+ * rewrites a params object in place (it moves `message` to `error`), so a shared object would lose its `message`.
+ */
+export const invalidCollectionInput: CollectionIssue = COLLECTIONS_ERROR_CODES.INVALID_INPUT;
 
 /** The issue of every refusal of a rule, wherever the rule is nested. */
-export const invalidCollectionRule = { message: COLLECTIONS_ERROR_CODES.RULE_INVALID };
+export const invalidCollectionRule: CollectionIssue = COLLECTIONS_ERROR_CODES.RULE_INVALID;
 
-/** An issue to refuse with: `{ message: <collections code> }`. */
-export type CollectionIssue = { readonly message: string };
+/** An issue to refuse with: a collections error code, which Zod reports as the issue message. */
+export type CollectionIssue = string;
+
+/** A Vendure id as a canonical decimal string: no sign, no leading zero. */
+const DECIMAL_ID = /^[1-9]\d*$/;
 
 /** True when `value` holds no control character, bidi override or lone surrogate (D2144). */
 export const isCleanLine = (value: string): boolean =>
@@ -44,3 +50,12 @@ export function collectionRefIdListSchema(max: number, tooMany: CollectionIssue 
     .max(max, tooMany)
     .refine(hasNoRepeatedId, invalidCollectionInput);
 }
+
+/**
+ * A Vendure id as Vendure itself writes it (event payloads, stored references): a canonical decimal string within the
+ * int column range, so a parsed id never reaches Postgres out of range.
+ */
+export const vendureIdStringSchema = z
+  .string(invalidCollectionInput)
+  .regex(DECIMAL_ID, invalidCollectionInput)
+  .refine((id) => Number(id) <= INT_COLUMN_MAX, invalidCollectionInput);

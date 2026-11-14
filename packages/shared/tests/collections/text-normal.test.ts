@@ -45,8 +45,36 @@ describe('normalForMatch', () => {
     expect(normalForMatch('َِ ـ ')).toBe('');
   });
 
+  it('ignores zero-width joiners, non-joiners and other invisible format characters', () => {
+    expect(containsForMatch('حذ\u200Dاء رياضي', 'حذاء')).toBe(true);
+    expect(containsForMatch('a\u200Cb\u200Bc\u2060d\uFEFFe\u00ADf', 'abcdef')).toBe(true);
+    expect(normalForMatch('\u200C')).toBe('');
+  });
+
+  it('reads Arabic presentation forms and alef wasla as plain letters', () => {
+    expect(normalForMatch('\uFEA3\uFEAC\uFE8D\uFE80')).toBe(normalForMatch('حذاء'));
+    expect(normalForMatch('\uFEFB')).toBe('لا');
+    expect(normalForMatch('ٱلكتاب')).toBe(normalForMatch('الكتاب'));
+  });
+
+  it('folds the Turkish dotted I and the German sharp s', () => {
+    expect(normalForMatch('İstanbul')).toBe('istanbul');
+    expect(normalForMatch('STRASSE')).toBe(normalForMatch('straße'));
+  });
+
   it('is idempotent', () => {
-    for (const text of ['حِذاءٌ رياضي', 'حـــذاء', 'أإآى ة', 'CAFÉ  Noir', 'İstanbul', 'Straße', '  x  ']) {
+    const samples = [
+      'حِذاءٌ رياضي',
+      'حـــذاء',
+      'أإآى ة',
+      'CAFÉ  Noir',
+      'İstanbul',
+      'Straße',
+      '  x  ',
+      'ﻻ ٱ',
+      'a\u200Db',
+    ];
+    for (const text of samples) {
       const once = normalForMatch(text);
 
       expect(normalForMatch(once)).toBe(once);

@@ -21,6 +21,16 @@ const AC1_RULE = {
   ],
 };
 
+/** A valid condition of each field, without its operator. */
+const MINIMAL_CONDITIONS: Record<(typeof RULE_FIELDS)[number], Record<string, unknown>> = {
+  tag: { field: 'tag', values: [TAG_ID] },
+  brand: { field: 'brand', values: [TAG_ID] },
+  price: { field: 'price', min: 1 },
+  on_sale: { field: 'on_sale', value: true },
+  title: { field: 'title', values: ['shoe'] },
+  option: { field: 'option', option: 'Color', values: ['Red'] },
+};
+
 /** A rule of one condition, matched with "all". */
 function ruleOf(condition: unknown): unknown {
   return { version: 1, match: 'all', conditions: [condition] };
@@ -144,6 +154,16 @@ describe('collection rule schema', () => {
     expectRuleRefused(ruleOf({ field: 'title', operator: 'contains', values: ['   '] }));
   });
 
+  it('refuses a value made only of zero-width characters', () => {
+    expectRuleRefused(ruleOf({ field: 'title', operator: 'contains', values: ['\u200C'] }));
+    expectRuleRefused(ruleOf({ field: 'option', option: '\u200D', operator: 'is_any_of', values: ['Red'] }));
+  });
+
+  it('refuses two option or title values that read the same once folded', () => {
+    expectRuleRefused(ruleOf({ field: 'option', option: 'Color', operator: 'is_any_of', values: ['Red', 'red'] }));
+    expectRuleRefused(ruleOf({ field: 'title', operator: 'contains', values: ['حذاء', 'حِذاء'] }));
+  });
+
   it('refuses a malformed tag id (abc, -1, 1.5)', () => {
     for (const id of ['abc', '-1', '1.5', '', '01', '99999999999999999999']) {
       expectRuleRefused(ruleOf({ field: 'tag', operator: 'is_any_of', values: [id] }));
@@ -185,5 +205,25 @@ describe('collection rule schema', () => {
     expect(Object.keys(RULE_OPERATORS_BY_FIELD).sort()).toEqual([...RULE_FIELDS].sort());
     expect(RULE_OPERATORS_BY_FIELD.price).toEqual(['between']);
     expect(RULE_OPERATORS_BY_FIELD.title).toEqual(['contains', 'not_contains']);
+  });
+
+  it('accepts exactly the operators the rule builder lists for each field', () => {
+    // Arrange
+    const allOperators = new Set(Object.values(RULE_OPERATORS_BY_FIELD).flat());
+
+    for (const field of RULE_FIELDS) {
+      const listed: readonly string[] = RULE_OPERATORS_BY_FIELD[field];
+      for (const operator of allOperators) {
+        // Act
+        const result = collectionRuleSchema.safeParse(ruleOf({ ...MINIMAL_CONDITIONS[field], operator }));
+
+        // Assert
+        expect({ field, operator, accepted: result.success }).toEqual({
+          field,
+          operator,
+          accepted: listed.includes(operator),
+        });
+      }
+    }
   });
 });
