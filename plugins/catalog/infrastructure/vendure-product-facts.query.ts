@@ -30,16 +30,21 @@ JOIN "product_channels_channel" pc ON pc."productId" = p."id" AND pc."channelId"
 WHERE p."id" = ANY($3::int[]) AND p."deletedAt" IS NULL
 ORDER BY p."id" DESC`;
 
-/** The live options of the variant `v` whose option and option group are live and the product's own, in order. */
+/**
+ * The live options of the variant `v` whose option and option group are live and the product's own, in order. An
+ * option or group without any translation is left out, as `OPTIONS_SQL` leaves it out of the picker: no rule names it.
+ */
 const VARIANT_OPTIONS_SQL = `
-COALESCE((SELECT json_agg(json_build_object('name', ${nameOf('product_option_group_translation', 'g."id"')},
-    'value', ${nameOf('product_option_translation', 'o."id"')}) ORDER BY g."customFieldsPosition", g."id")
+COALESCE((SELECT json_agg(json_build_object('name', n."name", 'value', n."value")
+    ORDER BY g."customFieldsPosition", g."id")
   FROM "product_variant_options_product_option" vo
   JOIN "product_option" o ON o."id" = vo."productOptionId" AND o."deletedAt" IS NULL
   JOIN "product_option_group" g ON g."id" = o."groupId" AND g."deletedAt" IS NULL
   JOIN "product_option_groups_product_option_group" pg
     ON pg."productOptionGroupId" = g."id" AND pg."productId" = v."productId"
-  WHERE vo."productVariantId" = v."id"), '[]'::json)`;
+  CROSS JOIN LATERAL (SELECT ${nameOf('product_option_group_translation', 'g."id"')} AS "name",
+    ${nameOf('product_option_translation', 'o."id"')} AS "value") n
+  WHERE vo."productVariantId" = v."id" AND n."name" IS NOT NULL AND n."value" IS NOT NULL), '[]'::json)`;
 
 /** The live variants, hidden ones included, of the products `$3`, with their price in channel `$1`, currency `$4`. */
 const VARIANTS_SQL = `

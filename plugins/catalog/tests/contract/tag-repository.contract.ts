@@ -140,5 +140,28 @@ export function describeTagRepositoryContract(name: string, make: MakeHarness<Ta
       expect([...read.entries()]).toEqual([[tagged, [second.id, first.id]]]);
       await expect(repo.tagIdsOfProducts(ctx, scopeA, [])).resolves.toEqual(new Map());
     });
+
+    it("never reads another business's tag links of many products", async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [own, foreignTag] = [tagOf(scopeA), tagOf(scopeB)];
+      await repo.insert(ctx, scopeA, own);
+      await repo.insert(ctx, scopeB, foreignTag);
+      const [shared, foreignProduct] = [newCoreId(), newCoreId()];
+      await repo.replaceProductTags(ctx, scopeA, shared, [own.id]);
+      await repo.replaceProductTags(ctx, scopeB, shared, [foreignTag.id]);
+      await repo.replaceProductTags(ctx, scopeB, foreignProduct, [foreignTag.id]);
+
+      // Act
+      const fromA = await repo.tagIdsOfProducts(ctx, scopeA, [shared, foreignProduct]);
+      const fromB = await repo.tagIdsOfProducts(ctx, scopeB, [shared, foreignProduct]);
+
+      // Assert
+      expect([...fromA.entries()]).toEqual([[shared, [own.id]]]);
+      expect([...fromB.entries()]).toEqual([
+        [shared, [foreignTag.id]],
+        [foreignProduct, [foreignTag.id]],
+      ]);
+    });
   });
 }

@@ -2,11 +2,12 @@ import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { describe, expect, it } from 'vitest';
 import { CatalogStoreChannelMismatchError, type CoreId, toCoreId } from '../../index';
 import { rawId, UPDATE_PRODUCT } from './catalog-kit';
-import { contextOn, defaultContext, factsSuite, productQueriesOf, rawIds, scopeOf } from './facts-kit';
+import { contextOn, defaultContext, factsSuite, queriesOf, rawIds, scopeOf } from './facts-kit';
 import { createTaxonomy } from './taxonomy-kit';
 
 const suite = factsSuite(1020, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FACTS_BATCH = 100;
+const FEW_IDS = 10;
 /** Products are created this many at a time: one GraphQL call each, a few in flight. */
 const CREATE_WAVE = 10;
 
@@ -68,25 +69,54 @@ describe('CatalogProductFactsReader (D2308)', () => {
     ]);
   });
 
-  it('reads 100 products in at most 3 queries', async () => {
+  it('leaves an option without any translation out of the variant options, as the picker does', async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    const store = a.stores[0];
+    await suite.kit.asOwner(a);
+    const product = await suite.kit.createProduct({
+      title: 'Facts fit',
+      sku: 'FF',
+      optionGroups: [{ name: 'Fit', values: ['Slim', 'Untranslated fit'] }],
+    });
+    await suite.kit.query(
+      `DELETE FROM "product_option_translation" t USING "product_option" o, "product_option_groups_product_option_group" pg
+       WHERE t."baseId" = o."id" AND pg."productOptionGroupId" = o."groupId" AND pg."productId" = $1
+         AND t."name" = 'Untranslated fit'`,
+      [Number(rawId(product.id))],
+    );
+    const ctx = await contextOn(suite, store.channelToken);
+
+    // Act
+    const [facts] = await suite.reader.factsOf(ctx, scopeOf(a, store), [rawId(product.id)]);
+
+    // Assert
+    expect(facts?.variantOptions).toEqual([[{ name: 'Fit', value: 'Slim' }], []]);
+  });
+
+  it('reads 100 products in at most 3 product queries, and in as many statements as 10 products', async () => {
     // Arrange
     const { a } = suite.fixtures;
     const store = a.stores[0];
     await suite.kit.asOwner(a);
     const ids = await createMany(FACTS_BATCH, 'Batch');
     const ctx = await contextOn(suite, store.channelToken);
+    const scope = scopeOf(a, store);
     let read = 0;
 
     // Act
-    const queries = await productQueriesOf(suite, async () => {
-      read = (await suite.reader.factsOf(ctx, scopeOf(a, store), ids)).length;
+    const few = await queriesOf(suite, () => suite.reader.factsOf(ctx, scope, ids.slice(0, FEW_IDS)));
+    const many = await queriesOf(suite, async () => {
+      read = (await suite.reader.factsOf(ctx, scope, ids)).length;
     });
 
     // Assert
     expect(read).toBe(FACTS_BATCH);
     // At least one: the counter sees the reads at all.
-    expect(queries).toBeGreaterThanOrEqual(1);
-    expect(queries).toBeLessThanOrEqual(3);
+    expect(many.product).toBeGreaterThanOrEqual(1);
+    expect(many.product).toBeLessThanOrEqual(3);
+    // No statement anywhere in the call (channel check, tenant session) grows with the ids.
+    expect(many.all).toBe(few.all);
   });
 
   it('refuses a default-channel context, and a context of the business’s other store', async () => {
@@ -117,17 +147,19 @@ describe('CatalogProductFactsReader (D2308)', () => {
     for (const refusal of refusals) expect(refusal).toBeInstanceOf(CatalogStoreChannelMismatchError);
   });
 
-  it("leaves out B's product ids, A's other-store ids and malformed ids", async () => {
+  it("leaves out B's product ids, A's other-store and deleted ids and malformed ids", async () => {
     // Arrange
     const { a, b } = suite.fixtures;
     await suite.kit.asOwner(a);
     const own = await suite.kit.createProduct({ title: 'Facts own' });
+    const deleted = await suite.kit.createProduct({ title: 'Facts deleted' });
+    await suite.kit.gql(DELETE_PRODUCT, { id: deleted.id });
     await suite.kit.asOwner(a, a.stores[1]);
     const otherStore = await suite.kit.createProduct({ title: 'Facts other store' });
     await suite.kit.asOwner(b);
     const foreign = await suite.kit.createProduct({ title: 'Facts foreign' });
     const ctx = await contextOn(suite, a.stores[0].channelToken);
-    const asked = [...rawIds([own, otherStore, foreign]), 'abc', '-1', '1.5', '', '99999999999999999999'];
+    const asked = [...rawIds([own, deleted, otherStore, foreign]), 'abc', '-1', '1.5', '', '99999999999999999999'];
 
     // Act
     const facts = await suite.reader.factsOf(ctx, scopeOf(a, a.stores[0]), asked);

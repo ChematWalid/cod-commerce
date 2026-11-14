@@ -1,4 +1,4 @@
-import { CATALOG_MAX_PAGE_SIZE } from '@cod/shared';
+import { CATALOG_MAX_PAGE_SIZE, PRODUCT_SEARCH_MAX } from '@cod/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import type { RequestContext } from '@vendure/core';
 import {
@@ -11,7 +11,7 @@ import {
   ruleOptionsFrom,
 } from '../application/product-facts';
 import { BRAND_REPOSITORY, STORE_SETTINGS, TAG_REPOSITORY } from '../application/tokens';
-import { type CoreId, parseCoreId } from '../domain/core-id';
+import { type CoreId, isCoreId, parseCoreId } from '../domain/core-id';
 import { InvalidCatalogInputError } from '../domain/errors';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { BrandRepositoryPort } from '../domain/ports/brand-repository.port';
@@ -29,7 +29,7 @@ export interface CatalogFactsPage {
   readonly after: CoreId | null;
   /** 1 to {@link CATALOG_FACTS_MAX_IDS}. */
   readonly take: number;
-  /** Narrows to the products whose title holds this text, case ignored. */
+  /** Narrows to the products whose title holds this text, case ignored; at most `PRODUCT_SEARCH_MAX` once trimmed. */
   readonly search?: string;
 }
 
@@ -40,6 +40,9 @@ export interface CatalogFactsIdPage {
 }
 
 const isTake = (take: number): boolean => Number.isSafeInteger(take) && take >= 1 && take <= CATALOG_FACTS_MAX_IDS;
+
+/** `CoreId` is a compile-time brand only: a cursor cast from a request or job payload is checked again here. */
+const isCursor = (after: CoreId | null): boolean => after === null || isCoreId(after);
 
 /** The parsed, distinct ids among `ids`: a malformed one never reaches Postgres and is simply left out. */
 const parsedIds = (ids: readonly string[]): CoreId[] => [
@@ -53,6 +56,9 @@ const ruleNameOf = ({ id, name }: CatalogNameEntry): CatalogRuleName => ({ id, n
  * entry. Unlike the request facades it takes the store as an argument, so an outbox consumer or a job can call it with
  * a context it built on the store's channel (D2313); every method refuses a context on another channel, so a scope
  * can never be paired with another store's products. Every status is read (D2306); deleted products never are.
+ *
+ * The store's own status (active, archived) is the caller's to check, as the outbox consumer does (D2313): the reader
+ * answers for any store of the business whose channel the context is on.
  */
 @Injectable()
 export class CatalogProductFactsReader {
@@ -92,12 +98,15 @@ export class CatalogProductFactsReader {
    * that lived through the walk exactly once, whatever is deleted or added meanwhile.
    *
    * @throws {CatalogStoreChannelMismatchError} when `ctx` is not on the store's channel.
-   * @throws {InvalidCatalogInputError} for a `take` outside 1 to {@link CATALOG_FACTS_MAX_IDS}.
+   * @throws {InvalidCatalogInputError} for a `take` outside 1 to {@link CATALOG_FACTS_MAX_IDS}, a malformed `after`
+   * or a `search` longer than `PRODUCT_SEARCH_MAX`.
    */
   async pageIds(ctx: RequestContext, scope: StoreScope, page: CatalogFactsPage): Promise<CatalogFactsIdPage> {
     await this.assertStoreChannel(ctx, scope);
-    if (!isTake(page.take)) throw new InvalidCatalogInputError();
     const search = page.search?.trim() ?? '';
+    if (!isTake(page.take) || !isCursor(page.after) || search.length > PRODUCT_SEARCH_MAX) {
+      throw new InvalidCatalogInputError();
+    }
     const ids = await this.query.pageIds(ctx, {
       after: page.after,
       limit: page.take + 1,

@@ -28,10 +28,11 @@ registration throws. Later tasks add more services; the session handoff lists wh
 `CatalogProductFactsReader` (with `CatalogProductFacts`, `CatalogRuleOptions`, `CatalogStoreScope`,
 `CatalogStoreChannelMismatchError` and `CATALOG_FACTS_MAX_IDS`) serves collection rules. It takes the store as an
 argument, so an outbox consumer or a job can call it with a context it built on the store's channel; every method
-refuses a context on another channel. `factsOf(ctx, scope, ids)` (at most 100 ids; unknown, deleted, other-store and
+refuses a context on another channel. It does not check the store's status (active, archived): the caller does. `factsOf(ctx, scope, ids)` (at most 100 ids; unknown, deleted, other-store and
 malformed ids left out) reads in three statements: products, variants with their channel price and options, and tag
 links. Price, on sale and variant options come from non-hidden variants only (D2304). `pageIds(ctx, scope,
-{ after, take, search? })` is a keyset page (`id < after`, newest first). `ruleOptionsOf(ctx, scope)` lists the
+{ after, take, search? })` is a keyset page (`id < after`, newest first); a malformed `after`, a `take` outside 1-100
+or a search over 100 characters is refused with `InvalidCatalogInputError`. `ruleOptionsOf(ctx, scope)` lists the
 store's brands, tags and option names with their values, merged by the shared `normalForMatch`. The Vendure-table
 reads live in `infrastructure/vendure-product-facts.query.ts`, a reviewed raw-data entry; tag links go through
 `TagRepositoryPort.tagIdsOfProducts`.

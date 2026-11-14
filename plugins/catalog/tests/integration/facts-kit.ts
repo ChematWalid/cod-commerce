@@ -60,13 +60,22 @@ export function contextOn(suite: FactsSuite, channelToken: string): Promise<Requ
 export const defaultContext = (suite: FactsSuite): Promise<RequestContext> =>
   contextOn(suite, PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN);
 
-/** Runs `work` and counts the SQL statements it sent that read a product table. */
-export async function productQueriesOf(suite: FactsSuite, work: () => Promise<unknown>): Promise<number> {
+/** The SQL statements a call sent: those reading a product table, and every one but transaction control. */
+export interface QueryCount {
+  readonly product: number;
+  readonly all: number;
+}
+
+const TRANSACTION_CONTROL = /^\s*(BEGIN|START TRANSACTION|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|SET)\b/i;
+
+/** Runs `work` and counts the SQL statements it sent. */
+export async function queriesOf(suite: FactsSuite, work: () => Promise<unknown>): Promise<QueryCount> {
   const { logger } = suite.app.get(TransactionalConnection).rawConnection;
   const original = logger.logQuery.bind(logger);
-  let count = 0;
+  let [product, all] = [0, 0];
   logger.logQuery = (query, parameters, runner) => {
-    if (/product/i.test(query)) count += 1;
+    if (/product/i.test(query)) product += 1;
+    if (!TRANSACTION_CONTROL.test(query)) all += 1;
     original(query, parameters, runner);
   };
   try {
@@ -74,7 +83,7 @@ export async function productQueriesOf(suite: FactsSuite, work: () => Promise<un
   } finally {
     logger.logQuery = original;
   }
-  return count;
+  return { product, all };
 }
 
 /** The database ids of products as the API answered them. */
