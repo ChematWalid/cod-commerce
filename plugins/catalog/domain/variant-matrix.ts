@@ -5,6 +5,7 @@ import {
   InvalidCatalogInputError,
   MatrixTooLargeError,
 } from './errors';
+import { comparableText as comparable } from './comparable-text';
 import { singleLineText } from './single-line-text';
 import { skuSequence, variantName } from './sku';
 
@@ -52,9 +53,6 @@ export interface MatrixPlan {
   /** Ids of live variants whose combination is gone; they are soft-deleted (D2124). */
   readonly remove: readonly string[];
 }
-
-/** How two names or values compare: without outer spaces, case and Unicode form, so "Red ", "red" and NFD are one. */
-const comparable = (text: string): string => text.trim().normalize('NFC').toLowerCase();
 
 const combinationKey = (optionValues: readonly string[]): string => JSON.stringify(optionValues.map(comparable));
 
