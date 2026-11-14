@@ -7,30 +7,64 @@ export type ConditionOf<F extends RuleField> = Extract<RuleCondition, { field: F
 /** Tests one condition of field `F` against a product's facts. */
 export type ConditionMatcher<F extends RuleField> = (condition: ConditionOf<F>, facts: ProductFacts) => boolean;
 
+/** The operators of the set fields (tag, brand, option), as the shared contract lists them. */
+type SetOperator = ConditionOf<'tag'>['operator'];
+
 /** `is_any_of` holds when some value is present, `is_not` when none is (D2303: `is_not [a, b]` = neither). */
-const holdsSet = (operator: 'is_any_of' | 'is_not', present: (value: string) => boolean, values: readonly string[]) =>
+const holdsSet = (operator: SetOperator, present: (value: string) => boolean, values: readonly string[]) =>
   operator === 'is_any_of' ? values.some(present) : !values.some(present);
+
+/**
+ * Caches a derived value per object. A recompute reads one rule against up to thousands of products under the store
+ * lock (D2312), so each rule text and each product text is put in normal form once, not once per pair.
+ */
+function memoised<K extends object, V>(derive: (key: K) => V): (key: K) => V {
+  const cache = new WeakMap<K, V>();
+  return (key) => {
+    const cached = cache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const derived = derive(key);
+    cache.set(key, derived);
+    return derived;
+  };
+}
+
+/** The normal forms of a condition's values (D2305). */
+const normalValuesOf = memoised((condition: ConditionOf<'title'> | ConditionOf<'option'>): readonly string[] =>
+  condition.values.map(normalForMatch),
+);
+
+/** The normal form of an option condition's option name. */
+const normalOptionOf = memoised((condition: ConditionOf<'option'>): string => normalForMatch(condition.option));
+
+/** The normal form of a product's title. */
+const normalTitleOf = memoised((facts: ProductFacts): string => normalForMatch(facts.title));
+
+/** For each option name in normal form, the normal forms of the values the visible variants carry (D2304, D2305). */
+const normalOptionsOf = memoised((facts: ProductFacts): ReadonlyMap<string, ReadonlySet<string>> => {
+  const carried = new Map<string, Set<string>>();
+  for (const option of facts.variantOptions.flat()) {
+    const name = normalForMatch(option.name);
+    const values = carried.get(name) ?? new Set<string>();
+    values.add(normalForMatch(option.value));
+    carried.set(name, values);
+  }
+  return carried;
+});
 
 /** `contains` holds when some value is in the title, `not_contains` when none is, both in normal form (D2305). */
 const matchTitle: ConditionMatcher<'title'> = (condition, facts) => {
-  const title = normalForMatch(facts.title);
-  const inTitle = (value: string) => title.includes(normalForMatch(value));
-  return condition.operator === 'contains' ? condition.values.some(inTitle) : !condition.values.some(inTitle);
-};
-
-/** The normal forms of the values the visible variants carry for option `name` (D2304, D2305). */
-const optionValuesOf = (facts: ProductFacts, name: string): ReadonlySet<string> => {
-  const wanted = normalForMatch(name);
-  return new Set(
-    facts.variantOptions.flatMap((options) =>
-      options.filter((option) => normalForMatch(option.name) === wanted).map((option) => normalForMatch(option.value)),
-    ),
-  );
+  const title = normalTitleOf(facts);
+  const inTitle = (value: string) => title.includes(value);
+  const values = normalValuesOf(condition);
+  return condition.operator === 'contains' ? values.some(inTitle) : !values.some(inTitle);
 };
 
 const matchOption: ConditionMatcher<'option'> = (condition, facts) => {
-  const carried = optionValuesOf(facts, condition.option);
-  return holdsSet(condition.operator, (value) => carried.has(normalForMatch(value)), condition.values);
+  const carried = normalOptionsOf(facts).get(normalOptionOf(condition));
+  return holdsSet(condition.operator, (value) => carried?.has(value) ?? false, normalValuesOf(condition));
 };
 
 /**
