@@ -68,7 +68,10 @@ class CatalogReadProbeController {
  * Registers the probe beside the catalog in the catalog-read integration test only. It imports `TenancyPlugin` itself,
  * because `@TenantScoped` puts `TenantGuard` on its own controller and the guard's resolver must be visible here.
  */
-@VendurePlugin({ imports: [PluginCommonModule, TenancyPlugin, CatalogPlugin], controllers: [CatalogReadProbeController] })
+@VendurePlugin({
+  imports: [PluginCommonModule, TenancyPlugin, CatalogPlugin],
+  controllers: [CatalogReadProbeController],
+})
 // A Vendure plugin is a decorated module class with no members of its own.
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class CatalogReadProbePlugin {}
