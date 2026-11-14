@@ -1,7 +1,14 @@
 import { TenantScoped } from '@cod/plugin-tenancy';
-import { Controller, Get, Query } from '@nestjs/common';
+import { ConflictException, Controller, Get, Query } from '@nestjs/common';
 import { Allow, Ctx, Permission, PluginCommonModule, type RequestContext, VendurePlugin } from '@vendure/core';
-import { asCatalogOperationContext, CatalogPlugin, CatalogReadService, type VisibilityContext } from '../../index';
+import {
+  asCatalogOperationContext,
+  CatalogPlugin,
+  CatalogReadService,
+  NoActiveStoreError,
+  type PublicListContext,
+  type PublicVisibilityContext,
+} from '../../index';
 
 /** What the probe answers for one product a public context shows. */
 export interface ProbedProduct {
@@ -11,6 +18,9 @@ export interface ProbedProduct {
 }
 
 const PAGE = { skip: 0, take: 100 };
+
+/** What the untenanted route answers when the read refused for want of an active store, and only then. */
+export const NO_ACTIVE_STORE_REFUSAL = 'no-active-store';
 const probed = ({ title, soldOut, orderable }: ProbedProduct): ProbedProduct => ({ title, soldOut, orderable });
 
 /**
@@ -24,7 +34,7 @@ class CatalogReadProbeController {
   @Get('list')
   @Allow(Permission.Authenticated)
   @TenantScoped()
-  async list(@Ctx() ctx: RequestContext, @Query('context') context: VisibilityContext): Promise<ProbedProduct[]> {
+  async list(@Ctx() ctx: RequestContext, @Query('context') context: PublicListContext): Promise<ProbedProduct[]> {
     const page = await this.reads.listVisible(asCatalogOperationContext(ctx), context, PAGE);
     return page.items.map(probed);
   }
@@ -35,17 +45,22 @@ class CatalogReadProbeController {
   async slug(
     @Ctx() ctx: RequestContext,
     @Query('slug') slug: string,
-    @Query('context') context: VisibilityContext,
+    @Query('context') context: PublicVisibilityContext,
   ): Promise<ProbedProduct | null> {
     const found = await this.reads.findBySlug(asCatalogOperationContext(ctx), slug, context);
     return found === undefined ? null : probed(found);
   }
 
-  /** No tenant guard: the read must refuse a context without an active store. */
+  /** No tenant guard: the read must refuse a context without an active store; that refusal alone answers 409. */
   @Get('untenanted')
   @Allow(Permission.Public)
   async untenanted(@Ctx() ctx: RequestContext): Promise<number> {
-    return (await this.reads.listVisible(asCatalogOperationContext(ctx), 'listing', PAGE)).totalItems;
+    try {
+      return (await this.reads.listVisible(asCatalogOperationContext(ctx), 'listing', PAGE)).totalItems;
+    } catch (error: unknown) {
+      if (error instanceof NoActiveStoreError) throw new ConflictException(NO_ACTIVE_STORE_REFUSAL);
+      throw error;
+    }
   }
 }
 

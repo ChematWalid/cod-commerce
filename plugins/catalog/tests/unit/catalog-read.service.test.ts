@@ -1,6 +1,8 @@
 import { productInputSchema, type ProductInput, productPatchSchema, type SoldOutBehavior } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CatalogReadService, NoActiveStoreError } from '../../application/catalog-read.service';
+import { InvalidCatalogInputError } from '../../domain/errors';
+import type { PublicListContext, PublicVisibilityContext } from '../../domain/visibility';
 import { CreateProductService } from '../../application/create-product.service';
 import { UpdateProductService } from '../../application/update-product.service';
 import { ProductWorld } from '../fakes/product-world';
@@ -120,6 +122,52 @@ describe('CatalogReadService (AC2, AC6, D2109)', () => {
 
     // Act / Assert
     expect(await listedTitles()).toEqual([]);
+  });
+
+  it.each(['admin', 'landingPage', 'draft'])(
+    'refuses to list for the %s context, so a forwarded value cannot widen the read',
+    async (context) => {
+      // Arrange
+      open('keep');
+      await product({ title: 'Draft', status: 'draft' });
+      await product({ title: 'Hidden', status: 'hidden' });
+
+      // Act
+      const listing = reads.listVisible(ctx(), context as PublicListContext, PAGE);
+
+      // Assert
+      await expect(listing).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    },
+  );
+
+  it.each(['admin', 'storefront'])('refuses to find by slug for the %s context', async (context) => {
+    // Arrange
+    open('keep');
+    await product({ title: 'Draft', slug: 'draft-lamp', status: 'draft' });
+
+    // Act
+    const finding = reads.findBySlug(ctx(), 'draft-lamp', context as PublicVisibilityContext);
+
+    // Assert
+    await expect(finding).rejects.toBeInstanceOf(InvalidCatalogInputError);
+  });
+
+  it('lists neither a draft nor a hidden product for any accepted list context', async () => {
+    // Arrange
+    open('keep');
+    await product({ title: 'Active' });
+    await product({ title: 'Hidden', status: 'hidden' });
+    await product({ title: 'Draft', status: 'draft' });
+
+    // Act
+    const titles = await Promise.all(
+      (['listing', 'productPage'] as const).map(async (context) =>
+        (await reads.listVisible(ctx(), context, PAGE)).items.map((item) => item.title),
+      ),
+    );
+
+    // Assert
+    expect(titles).toEqual([['Active'], ['Active']]);
   });
 
   it('refuses a context without an active store (D2142)', async () => {

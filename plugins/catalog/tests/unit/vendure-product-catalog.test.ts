@@ -74,6 +74,21 @@ describe('VendureProductCatalog.list', () => {
       [],
     );
   });
+  it("applies both a status and a public context's statuses, so a status cannot widen the context", async () => {
+    // Arrange
+    const findAll = vi.fn().mockResolvedValue({ items: [], totalItems: 0 });
+    const catalog = catalogOver(findAll);
+
+    // Act
+    await catalog.list(ctx, { skip: 0, take: 20, status: 'draft', statuses: ['active'] });
+
+    // Assert
+    expect(findAll).toHaveBeenCalledWith(
+      ctx,
+      expect.objectContaining({ filter: { status: { eq: 'draft', in: ['active'] } } }),
+      [],
+    );
+  });
 });
 
 describe('VendureProductCatalog.lockForUpdate', () => {
@@ -131,12 +146,18 @@ describe('VendureProductCatalog.clearBrand', () => {
 
   /**
    * A store whose products `ids` name the brand; `brandOf` holds what each names now, and the list answers from it as
-   * Postgres would, so a change between two page reads shows in the next one. `afterList` runs after each list read.
+   * Postgres would, so a change between two page reads shows in the next one. `afterList` runs after each list read,
+   * `beforeList` before it.
    */
-  function storeWith(ids: readonly number[], afterList: (brandOf: Map<number, string | null>) => void = () => {}) {
+  function storeWith(
+    ids: readonly number[],
+    afterList: (brandOf: Map<number, string | null>) => void = () => {},
+    beforeList: (brandOf: Map<number, string | null>) => void = () => {},
+  ) {
     const log: string[] = [];
     const brandOf = new Map<number, string | null>(ids.map((id) => [id, brandId]));
     const findAll = vi.fn((_ctx: unknown, options: ListOptions) => {
+      beforeList(brandOf);
       const excluded = new Set(options.filter.id?.notIn ?? []);
       const matching = ids.filter((id) => brandOf.get(id) === options.filter.brandId.eq && !excluded.has(String(id)));
       const items = matching.slice(options.skip, options.skip + options.take).map((id) => ({ id }));
@@ -197,6 +218,38 @@ describe('VendureProductCatalog.clearBrand', () => {
     // Assert
     expect(cleared).toContain(toCoreId(String(CATALOG_MAX_PAGE_SIZE + 1)));
     expect(cleared).toHaveLength(CATALOG_MAX_PAGE_SIZE);
+  });
+
+  it('keeps the page filter constant: products it handled leave the brand, so none is listed as excluded', async () => {
+    // Arrange
+    const ids = Array.from({ length: 2 * CATALOG_MAX_PAGE_SIZE + 1 }, (_, index) => index + 1);
+    const { catalog, findAll } = storeWith(ids);
+
+    // Act
+    const cleared = await catalog.clearBrand(ctx, brandId);
+
+    // Assert
+    expect(cleared).toHaveLength(ids.length);
+    const excluded = findAll.mock.calls.map(([, options]) => options.filter.id?.notIn.length ?? 0);
+    expect(excluded.every((count) => count === 0)).toBe(true);
+  });
+
+  it('ends, excluding only that product, when a handled product names the brand again', async () => {
+    // Arrange: another save writes the brand back to product 1 before each page read
+    const { catalog, findAll } = storeWith(
+      [1, 2],
+      () => {},
+      (brandOf) => {
+        brandOf.set(1, brandId);
+      },
+    );
+
+    // Act
+    const cleared = await catalog.clearBrand(ctx, brandId);
+
+    // Assert
+    expect(cleared).toEqual([toCoreId('1'), toCoreId('2')]);
+    expect(findAll.mock.calls.at(-1)?.[1].filter.id?.notIn).toEqual(['1']);
   });
 
   it('leaves a product whose brand changed before its lock was taken', async () => {

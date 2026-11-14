@@ -147,6 +147,22 @@ describe('SoldOutService', () => {
     expect(world.events).toEqual([{ scope: scopeA, productId: lamp, change: 'updated' }]);
   });
 
+  it('stop with no ids works through every sold-out product in transactions of at most 100 products', async () => {
+    // Arrange
+    for (let index = 0; index <= CATALOG_MAX_PAGE_SIZE; index += 1) await productIn(scopeA, `Lamp ${String(index)}`);
+    world.events.length = 0;
+    const before = world.transactions;
+
+    // Act
+    const stopped = await stop([]);
+
+    // Assert
+    expect(world.transactions).toBe(before + 2);
+    expect(stopped).toHaveLength(CATALOG_MAX_PAGE_SIZE + 1);
+    expect(world.events).toHaveLength(CATALOG_MAX_PAGE_SIZE + 1);
+    expect(stopped.every((product) => !product.allowOutOfStockOrders)).toBe(true);
+  });
+
   it('refuses stop orders with more than 100 ids at the boundary (D2141)', () => {
     // Arrange
     const ids = Array.from({ length: CATALOG_MAX_PAGE_SIZE + 1 }, (_, index) => String(index + 1));

@@ -164,16 +164,23 @@ export class VendureProductCatalog implements ProductCatalogPort {
 
   async clearBrand(ctx: OperationContext, brandId: Snowflake): Promise<readonly CoreId[]> {
     const request = toRequestContext(ctx);
-    const seen = new Set<CoreId>();
+    const handled = new Set<CoreId>();
+    const stuck = new Set<CoreId>();
     const cleared: CoreId[] = [];
-    // Page after page from the start, leaving out the products already seen: a product that leaves the brand while
-    // this runs cannot shift a later page past one that still names it (offset paging would skip that one).
-    for (let page = await this.brandPage(request, brandId, seen); page.length > 0;) {
+    // Page after page from the start: a product handled here leaves the brand (cleared, or moved by another save), so
+    // the next first page holds only products not handled yet, and a product that leaves the brand meanwhile cannot
+    // shift a page past one that still names it (offset paging would skip that one). Only a handled product that names
+    // the brand again is left out by id, so the filter stays constant in practice (Vendure ID filters have no `gt`).
+    for (let page = await this.brandPage(request, brandId, stuck); page.length > 0;) {
       for (const id of page) {
-        seen.add(id);
+        if (handled.has(id)) {
+          stuck.add(id);
+          continue;
+        }
+        handled.add(id);
         if (await this.clearIfBranded(request, id, brandId)) cleared.push(id);
       }
-      page = await this.brandPage(request, brandId, seen);
+      page = await this.brandPage(request, brandId, stuck);
     }
     return cleared;
   }
@@ -183,9 +190,9 @@ export class VendureProductCatalog implements ProductCatalogPort {
     return found.map((collection) => coreIdOf(collection.id));
   }
 
-  /** The next page of live products of the store naming `brandId`, in id order, without those in `seen`. */
-  private async brandPage(ctx: RequestContext, brandId: Snowflake, seen: ReadonlySet<CoreId>): Promise<CoreId[]> {
-    const page = await this.products.findAll(ctx, brandPageOf(brandId, seen), []);
+  /** The first page of live products of the store naming `brandId`, in id order, without those in `excluded`. */
+  private async brandPage(ctx: RequestContext, brandId: Snowflake, excluded: ReadonlySet<CoreId>): Promise<CoreId[]> {
+    const page = await this.products.findAll(ctx, brandPageOf(brandId, excluded), []);
     return page.items.map((product) => coreIdOf(product.id));
   }
 
@@ -228,9 +235,9 @@ export class VendureProductCatalog implements ProductCatalogPort {
   }
 }
 
-/** The first page of the products naming `brandId` among those not in `seen`, in id order. */
-function brandPageOf(brandId: Snowflake, seen: ReadonlySet<CoreId>): ListQueryOptions<Product> {
-  const filter = { brandId: { eq: brandId }, ...(seen.size === 0 ? {} : { id: { notIn: [...seen] } }) };
+/** The first page of the products naming `brandId` among those not in `excluded`, in id order. */
+function brandPageOf(brandId: Snowflake, excluded: ReadonlySet<CoreId>): ListQueryOptions<Product> {
+  const filter = { brandId: { eq: brandId }, ...(excluded.size === 0 ? {} : { id: { notIn: [...excluded] } }) };
   return { skip: 0, take: CATALOG_MAX_PAGE_SIZE, sort: { id: SortOrder.ASC }, filter };
 }
 
@@ -244,10 +251,15 @@ function idFilterOf({ productIds, excludedProductIds }: ProductCriteria) {
   };
 }
 
-/** One status, or one of a public context's statuses (D2109). */
+/** One status and one of a public context's statuses, both when both are given (AND, D2109). */
 function statusFilterOf({ status, statuses }: ProductCriteria) {
-  if (status !== undefined) return { status: { eq: status } };
-  return statuses === undefined ? {} : { status: { in: [...statuses] } };
+  if (status === undefined && statuses === undefined) return {};
+  return {
+    status: {
+      ...(status === undefined ? {} : { eq: status }),
+      ...(statuses === undefined ? {} : { in: [...statuses] }),
+    },
+  };
 }
 
 /** The Vendure list options of a page: newest first; our custom fields filter by name (D2123). */

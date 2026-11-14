@@ -4,7 +4,15 @@ import type { OperationContext } from '../domain/ports/operation-context';
 import type { ActiveStore } from '../domain/ports/store-settings.port';
 import type { ProductRecord } from '../domain/product';
 import { isOrderable } from '../domain/sold-out';
-import { hidesSoldOutIn, isVisibleIn, statusesShownIn, type VisibilityContext } from '../domain/visibility';
+import {
+  hidesSoldOutIn,
+  isPublicListContext,
+  isPublicVisibilityContext,
+  isVisibleIn,
+  type PublicListContext,
+  type PublicVisibilityContext,
+  statusesShownIn,
+} from '../domain/visibility';
 import type { ProductPorts } from './catalog-ports';
 import { type ProductView, viewOf } from './product-view';
 
@@ -43,7 +51,8 @@ const isPage = ({ skip, take }: CatalogReadOptions): boolean =>
  * for P3.S2/P3.S3/P3.S4; no public endpoint serves it in P2.S1. The store is the active store of the context, never an
  * argument (D2142): a draft is never returned, a hidden product only by its slug on a landing page, and a store that
  * hides sold-out products keeps them out of lists and product pages. Every item says whether it is sold out and
- * orderable.
+ * orderable. Only public contexts are accepted, checked at run time too, so a context forwarded from a request can
+ * never widen the read to the merchant's view or list the hidden products.
  */
 export class CatalogReadService {
   constructor(private readonly ports: ProductPorts) {}
@@ -52,14 +61,14 @@ export class CatalogReadService {
    * One page of the products `context` lists, newest first.
    *
    * @throws {NoActiveStoreError} for a context without an active store.
-   * @throws {InvalidCatalogInputError} for a page outside the bounds.
+   * @throws {InvalidCatalogInputError} for a page outside the bounds or a context that lists nothing publicly.
    */
   async listVisible(
     ctx: OperationContext,
-    context: VisibilityContext,
+    context: PublicListContext,
     options: CatalogReadOptions,
   ): Promise<VisibleProductPage> {
-    if (!isPage(options)) throw new InvalidCatalogInputError();
+    if (!isPublicListContext(context) || !isPage(options)) throw new InvalidCatalogInputError();
     const store = await this.activeStore(ctx);
     const { scope } = store;
     const hidden = hidesSoldOutIn(context, store.soldOutBehavior)
@@ -78,12 +87,14 @@ export class CatalogReadService {
    * The product whose slug is `slug`, if `context` shows it.
    *
    * @throws {NoActiveStoreError} for a context without an active store.
+   * @throws {InvalidCatalogInputError} for a context that is not public.
    */
   async findBySlug(
     ctx: OperationContext,
     slug: string,
-    context: VisibilityContext,
+    context: PublicVisibilityContext,
   ): Promise<VisibleProduct | undefined> {
+    if (!isPublicVisibilityContext(context)) throw new InvalidCatalogInputError();
     const store = await this.activeStore(ctx);
     const record = await this.recordBySlug(ctx, slug);
     if (record === undefined) return undefined;

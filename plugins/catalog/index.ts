@@ -12,7 +12,7 @@ export {
   type VisibleProduct,
   type VisibleProductPage,
 } from './application/catalog-read.service';
-export type { VisibilityContext } from './domain/visibility';
+export type { PublicListContext, PublicVisibilityContext } from './domain/visibility';
 export { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE } from './application/tokens';
 export type { SoldOutSource } from './domain/ports/sold-out-source.port';
 export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/ports/order-manager-check.port';

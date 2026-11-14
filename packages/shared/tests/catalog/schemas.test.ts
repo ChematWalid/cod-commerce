@@ -207,8 +207,9 @@ describe('taxonomy and sold-out inputs', () => {
     expect(highlightInputSchema.safeParse({ text: 'Free delivery' }).success).toBe(true);
   });
 
-  it('refuses more than the cap of sold-out product ids and takes an empty list as all', () => {
+  it('refuses more than the cap of sold-out product ids and takes an empty, absent or null list as all', () => {
     expect(soldOutOrdersInputSchema.parse({})).toEqual({ productIds: [] });
+    expect(soldOutOrdersInputSchema.parse({ productIds: null })).toEqual({ productIds: [] });
     expect(soldOutOrdersInputSchema.safeParse({ productIds: idsOf(CATALOG_MAX_PAGE_SIZE) }).success).toBe(true);
     expect(soldOutOrdersInputSchema.safeParse({ productIds: idsOf(CATALOG_MAX_PAGE_SIZE + 1) }).success).toBe(false);
   });

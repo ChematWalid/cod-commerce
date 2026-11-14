@@ -2,7 +2,7 @@ import gql from 'graphql-tag';
 
 /**
  * The sold-out products of the active store and "Stop orders" / "Resume orders" (AC6, D2108). Product ids are
- * Vendure's (`ID`); an empty or absent list acts on every sold-out product of the store. Reads need
+ * Vendure's (`ID`); an empty, absent or null list acts on every sold-out product of the store. Reads need
  * `catalog.products.view`, the two writes `.edit`.
  */
 export const soldOutAdminApiSchema = gql`

@@ -6,6 +6,12 @@ import { BRAND_NAME_MAX, type ProductStatus, type ProductType, TAG_NAME_MAX } fr
  */
 export const VISIBILITY_CONTEXTS = ['listing', 'productPage', 'landingPage', 'admin'] as const;
 
+/** The contexts a buyer-facing read may name: never the merchant's dashboard (D2109). */
+export const PUBLIC_VISIBILITY_CONTEXTS = ['listing', 'productPage', 'landingPage'] as const;
+
+/** The public contexts that list products: a hidden product is reached only by its slug on a landing page (AC2). */
+export const PUBLIC_LIST_CONTEXTS = ['listing', 'productPage'] as const;
+
 /** The number of the first variant SKU: `<sku>-1`. */
 export const FIRST_SKU_NUMBER = 1;
 

@@ -1,4 +1,4 @@
-import type { SoldOutOrdersCommand } from '@cod/shared';
+import { CATALOG_MAX_PAGE_SIZE, type SoldOutOrdersCommand } from '@cod/shared';
 import { type CoreId, parseCoreId } from '../domain/core-id';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { DEFAULT_PRODUCT_SETTINGS } from '../domain/product-settings';
@@ -31,10 +31,21 @@ function byValue(left: CoreId, right: CoreId): number {
 /** Ids in ascending numeric order, the order product locks are taken in, so two bulk writes never deadlock. */
 const inLockOrder = (ids: readonly CoreId[]): CoreId[] => [...ids].sort(byValue);
 
+/** `ids` cut into runs of at most `CATALOG_MAX_PAGE_SIZE`, in order: one transaction each. */
+function batchesOf(ids: readonly CoreId[]): CoreId[][] {
+  const batches: CoreId[][] = [];
+  for (let start = 0; start < ids.length; start += CATALOG_MAX_PAGE_SIZE) {
+    batches.push(ids.slice(start, start + CATALOG_MAX_PAGE_SIZE));
+  }
+  return batches;
+}
+
 /**
  * The sold-out products of the caller's active store and "Stop orders" / "Resume orders" (AC6, D2108): either turns
  * `allowOutOfStockOrders` off or on for the products it names that are sold out now, or for every sold-out product of
  * the store when it names none. Another store's, another business's, a not-sold-out or a malformed id changes nothing.
+ * Every product is changed under its lock; one transaction holds at most `CATALOG_MAX_PAGE_SIZE` locks, so "every
+ * sold-out product" runs batch after batch and a fault leaves the batches before it applied (the flag is idempotent).
  */
 export class SoldOutService {
   constructor(private readonly ports: ProductPorts) {}
@@ -58,8 +69,25 @@ export class SoldOutService {
     command: SoldOutOrdersCommand,
     action: SoldOutOrdersAction,
   ): Promise<readonly SoldOutProduct[]> {
+    const named = command.productIds;
+    if (named.length > 0) return this.applyToBatch(ctx, scope, action, (tx) => this.namedCandidates(tx, scope, named));
+    const all = inLockOrder(await this.ports.soldOut.allSoldOutIds(ctx, scope, scope.storeId));
+    const changed: SoldOutProduct[] = [];
+    for (const batch of batchesOf(all)) {
+      changed.push(...(await this.applyToBatch(ctx, scope, action, () => Promise.resolve(batch))));
+    }
+    return changed;
+  }
+
+  /** Applies `action` in one transaction to the products `candidatesOf` names that are sold out under their locks. */
+  private async applyToBatch(
+    ctx: OperationContext,
+    scope: StoreScope,
+    action: SoldOutOrdersAction,
+    candidatesOf: (tx: OperationContext) => Promise<readonly CoreId[]>,
+  ): Promise<readonly SoldOutProduct[]> {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
-      const locked = await this.lockAll(tx, await this.candidates(tx, scope, command.productIds));
+      const locked = await this.lockAll(tx, await candidatesOf(tx));
       // Read again under the locks: a save in flight may have changed the flag since the candidates were read.
       const soldOut = await this.ports.soldOut.soldOutIds(tx, scope, scope.storeId, locked);
       const targets = locked.filter((id) => soldOut.has(id));
@@ -72,9 +100,8 @@ export class SoldOutService {
     });
   }
 
-  /** The sold-out products among the ids named, or every sold-out product of the store when none is named. */
-  private async candidates(ctx: OperationContext, scope: StoreScope, named: readonly string[]): Promise<CoreId[]> {
-    if (named.length === 0) return [...(await this.ports.soldOut.allSoldOutIds(ctx, scope, scope.storeId))];
+  /** The sold-out products among the ids named. */
+  private async namedCandidates(ctx: OperationContext, scope: StoreScope, named: readonly string[]): Promise<CoreId[]> {
     const ids = parsedIds(named);
     const soldOut = await this.ports.soldOut.soldOutIds(ctx, scope, scope.storeId, ids);
     return ids.filter((id) => soldOut.has(id));

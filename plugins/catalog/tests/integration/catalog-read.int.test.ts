@@ -1,7 +1,7 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { describe, expect, it } from 'vitest';
 import { catalogSuite, UPDATE_PRODUCT } from './catalog-kit';
-import { CatalogReadProbePlugin, type ProbedProduct } from './catalog-read-probe';
+import { CatalogReadProbePlugin, NO_ACTIVE_STORE_REFUSAL, type ProbedProduct } from './catalog-read-probe';
 
 const suite = catalogSuite(1023, {
   plugins: [RbacPlugin, CatalogReadProbePlugin],
@@ -77,11 +77,27 @@ describe('CatalogReadService on a live server (AC2, AC6, D2109, D2142)', () => {
     expect(await bySlug('read-foreign', 'landingPage')).toBeNull();
   });
 
+  it('refuses a context that is not public, such as the admin one', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    await suite.kit.createProduct({ title: 'Read admin draft', slug: 'read-admin-draft', status: 'draft' });
+
+    // Act
+    const listing = await suite.kit.rest('GET', '/test/catalog-read/list?context=admin');
+    const finding = await suite.kit.rest('GET', '/test/catalog-read/slug?slug=read-admin-draft&context=admin');
+
+    // Assert
+    expect(JSON.stringify(listing.body)).not.toContain('Read admin draft');
+    expect(listing.status).not.toBe(200);
+    expect(finding.status).not.toBe(200);
+  });
+
   it('refuses a context without an active store (D2142)', async () => {
     // Act
     const answer = await suite.kit.rest('GET', '/test/catalog-read/untenanted');
 
-    // Assert
-    expect(answer.status).toBe(500);
+    // Assert: 409 only when NoActiveStoreError refused the read; any other fault stays a 500
+    expect(answer.status).toBe(409);
+    expect(answer.body).toMatchObject({ message: NO_ACTIVE_STORE_REFUSAL });
   });
 });

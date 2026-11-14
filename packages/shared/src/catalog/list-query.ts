@@ -58,9 +58,14 @@ export const productListQuerySchema = z
 export type ProductListQueryInput = z.input<typeof productListFieldsSchema>;
 export type ProductListQuery = z.output<typeof productListQuerySchema>;
 
-/** "Stop orders" / "Resume orders" of sold-out products (D2108); an empty list means every sold-out product. */
+/**
+ * "Stop orders" / "Resume orders" of sold-out products (D2108); an empty, absent or null list (an unset GraphQL
+ * variable) means every sold-out product.
+ */
 export const soldOutOrdersInputSchema = catalogObject({
-  productIds: catalogRefIdListSchema(CATALOG_MAX_PAGE_SIZE).default([]),
+  productIds: catalogRefIdListSchema(CATALOG_MAX_PAGE_SIZE)
+    .nullish()
+    .transform((ids) => ids ?? []),
 });
 
 export type SoldOutOrdersCommand = z.output<typeof soldOutOrdersInputSchema>;
