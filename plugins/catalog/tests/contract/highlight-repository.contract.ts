@@ -77,12 +77,43 @@ export function describeHighlightRepositoryContract(name: string, make: MakeHarn
       await repo.replaceProductHighlights(ctx, scopeA, productId, [removed.id, kept.id]);
 
       // Act
+      const fromB = await repo.delete(ctx, scopeB, removed.id);
       const fromOtherStore = await repo.delete(ctx, scopeA2, removed.id);
       const fromOwnStore = await repo.delete(ctx, scopeA, removed.id);
 
       // Assert
-      expect([fromOtherStore, fromOwnStore]).toEqual([false, true]);
+      expect([fromB, fromOtherStore, fromOwnStore]).toEqual([false, false, true]);
       await expect(repo.highlightIdsOf(ctx, scopeA, productId)).resolves.toEqual([kept.id]);
+    });
+
+    it("never replaces another store's or business's links", async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [first, second] = [highlightOf(scopeA), highlightOf(scopeA)];
+      for (const highlight of [first, second]) await repo.insert(ctx, scopeA, highlight);
+      const productId = newCoreId();
+      await repo.replaceProductHighlights(ctx, scopeA, productId, [second.id, first.id]);
+
+      // Act
+      await repo.replaceProductHighlights(ctx, scopeA2, productId, []);
+      await repo.replaceProductHighlights(ctx, scopeB, productId, []);
+
+      // Assert
+      await expect(repo.highlightIdsOf(ctx, scopeA, productId)).resolves.toEqual([second.id, first.id]);
+    });
+
+    it('links a repeated highlight once, at its first place', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [first, second] = [highlightOf(scopeA), highlightOf(scopeA)];
+      for (const highlight of [first, second]) await repo.insert(ctx, scopeA, highlight);
+      const productId = newCoreId();
+
+      // Act
+      await repo.replaceProductHighlights(ctx, scopeA, productId, [second.id, first.id, second.id]);
+
+      // Assert
+      await expect(repo.highlightIdsOf(ctx, scopeA, productId)).resolves.toEqual([second.id, first.id]);
     });
   });
 }

@@ -2,7 +2,8 @@ import { type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tena
 import { type Snowflake, type StoreId, type TenantScope, toBusinessId, toSnowflake, toStoreId } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
-import type { CoreId } from '../domain/core-id';
+import { type CoreId, toCoreId } from '../domain/core-id';
+import { InvalidCatalogInputError } from '../domain/errors';
 import type { MediaItem } from '../domain/media-item';
 import type { MediaList, MediaPage, MediaRepositoryPort } from '../domain/ports/media-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -16,17 +17,17 @@ function toItem(row: MediaEntity): MediaItem {
     id: toSnowflake(row.id),
     businessId: toBusinessId(row.businessId),
     storeId: toStoreId(row.storeId ?? ''),
-    assetId: row.assetId,
+    assetId: toCoreId(row.assetId),
     createdAt: row.createdAt,
   };
 }
 
-/** The store filter of a read; never called with an empty list, which callers answer themselves. */
+/** The store filter of a read or delete; never called with an empty list, which callers answer themselves. */
 const ofStores = (storeIds: readonly StoreId[]) => ({ storeId: In([...storeIds]) });
 
 /**
  * The Postgres adapter of {@link MediaRepositoryPort}: `catalog_media` through `TenantRepository` (ADR 0002). Every
- * read is narrowed to the stores it is given (D2132).
+ * read and the delete are narrowed to the stores they are given (D2132).
  */
 @Injectable()
 export class TypeOrmMediaRepository implements MediaRepositoryPort {
@@ -37,6 +38,7 @@ export class TypeOrmMediaRepository implements MediaRepositoryPort {
   }
 
   async insert(ctx: OperationContext, scope: TenantScope, item: MediaItem): Promise<void> {
+    if (item.businessId !== scope.businessId) throw new InvalidCatalogInputError();
     const { id, storeId, assetId, createdAt } = item;
     await this.rows.insert(requestScope(ctx, scope), { id, storeId, assetId, createdAt });
   }
@@ -77,7 +79,13 @@ export class TypeOrmMediaRepository implements MediaRepositoryPort {
     return { items: rows.map(toItem), totalItems: await this.rows.count(tenant, where) };
   }
 
-  async delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<boolean> {
-    return (await this.rows.delete(requestScope(ctx, scope), { id })) > 0;
+  async delete(
+    ctx: OperationContext,
+    scope: TenantScope,
+    storeIds: readonly StoreId[],
+    id: Snowflake,
+  ): Promise<boolean> {
+    if (storeIds.length === 0) return false;
+    return (await this.rows.delete(requestScope(ctx, scope), { ...ofStores(storeIds), id })) > 0;
   }
 }

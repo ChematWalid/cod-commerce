@@ -20,7 +20,11 @@ export interface MediaList {
  * (D2132): an item uploaded by another store is found only when that store is in the list.
  */
 export interface MediaRepositoryPort {
-  /** Stores a new item under the scope's business, in the store `item.storeId` names. */
+  /**
+   * Stores a new item under the scope's business, in the store `item.storeId` names; the caller passes a store of that
+   * business (the active one), which the repository cannot check. Rejects with `InvalidCatalogInputError` when
+   * `item.businessId` is another business, and refuses a second item for the same asset (one row per asset).
+   */
   insert(ctx: OperationContext, scope: TenantScope, item: MediaItem): Promise<void>;
 
   /** The item `id` when it belongs to the scope's business and one of `storeIds`, else `undefined`. */
@@ -42,6 +46,9 @@ export interface MediaRepositoryPort {
   /** One page of the items of the scope's business and `storeIds`, newest first, then by id descending. */
   list(ctx: OperationContext, scope: TenantScope, storeIds: readonly StoreId[], page: MediaPage): Promise<MediaList>;
 
-  /** Deletes the item `id` of the scope's business; `false` when it has no such item. */
-  delete(ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<boolean>;
+  /**
+   * Deletes the item `id` when it belongs to the scope's business and one of `storeIds` (D2132: a member limited to
+   * some stores never deletes another store's media); `false` otherwise, and always for an empty list.
+   */
+  delete(ctx: OperationContext, scope: TenantScope, storeIds: readonly StoreId[], id: Snowflake): Promise<boolean>;
 }

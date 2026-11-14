@@ -10,7 +10,8 @@ export interface ProductSettingsRepositoryPort {
 
   /**
    * Saves `settings` for `settings.productId` in the scope's store: inserts the row, or replaces every field of the
-   * existing one except its id and creation date.
+   * existing one except its id and creation date. When a parallel first save of the same product inserts its row
+   * first, the call rejects with `ConcurrentUpdateError` (the caller may retry) and changes nothing.
    */
   upsert(ctx: OperationContext, scope: StoreScope, settings: ProductSettings): Promise<void>;
 

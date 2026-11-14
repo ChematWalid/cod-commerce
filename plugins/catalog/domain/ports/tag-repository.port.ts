@@ -6,7 +6,11 @@ import type { OperationContext } from './operation-context';
 
 /** Where a store's tags and the product links to them are kept (`catalog_product_tag`, D2100). */
 export interface TagRepositoryPort extends CatalogNameRepositoryPort {
-  /** Replaces every tag link of `productId` in the scope's store with `tagIds`, kept in that order. */
+  /**
+   * Replaces every tag link of `productId` in the scope's store with `tagIds`, kept in that order; a repeated id is
+   * linked once, at its first place. The ids must already be tags of the scope's store (the use case checks them with
+   * `findByIds`, D2135): the repository stores the links as given.
+   */
   replaceProductTags(
     ctx: OperationContext,
     scope: StoreScope,

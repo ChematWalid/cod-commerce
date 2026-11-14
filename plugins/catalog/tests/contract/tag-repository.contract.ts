@@ -66,6 +66,7 @@ export function describeTagRepositoryContract(name: string, make: MakeHarness<Ta
       // Act
       const fromOtherStore = await repo.tagIdsOf(ctx, scopeA2, productId);
       const fromB = await repo.productIdsWithTag(ctx, scopeB, tag.id);
+      await repo.replaceProductTags(ctx, scopeA2, productId, []);
       await repo.replaceProductTags(ctx, scopeB, productId, []);
 
       // Assert
@@ -90,6 +91,20 @@ export function describeTagRepositoryContract(name: string, make: MakeHarness<Ta
       // Assert
       expect([fromB, fromOwnStore]).toEqual([false, true]);
       await expect(repo.tagIdsOf(ctx, scopeA, productId)).resolves.toEqual([kept.id]);
+    });
+
+    it('links a repeated tag once, at its first place', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [first, second] = [tagOf(scopeA), tagOf(scopeA)];
+      for (const tag of [first, second]) await repo.insert(ctx, scopeA, tag);
+      const productId = newCoreId();
+
+      // Act
+      await repo.replaceProductTags(ctx, scopeA, productId, [second.id, first.id, second.id]);
+
+      // Assert
+      await expect(repo.tagIdsOf(ctx, scopeA, productId)).resolves.toEqual([second.id, first.id]);
     });
   });
 }

@@ -1,6 +1,7 @@
 import type { TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { type Snowflake, toSnowflake } from '@cod/shared';
-import type { CoreId } from '../domain/core-id';
+import { type CoreId, toCoreId } from '../domain/core-id';
+import { distinctLinkIds } from '../domain/link-ids';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { TagRepositoryPort } from '../domain/ports/tag-repository.port';
@@ -40,7 +41,7 @@ export class TypeOrmTagRepository extends TypeOrmCatalogNameRepository implement
   ): Promise<void> {
     const tenant = requestScope(ctx, scope);
     await this.links.delete(tenant, { ...inStore(scope), productId });
-    for (const tagId of tagIds) {
+    for (const tagId of distinctLinkIds(tagIds)) {
       await this.links.insert(tenant, { id: this.ids.next(), ...inStore(scope), productId, tagId });
     }
   }
@@ -58,6 +59,6 @@ export class TypeOrmTagRepository extends TypeOrmCatalogNameRepository implement
       where: { ...inStore(scope), tagId },
       order: { id: 'ASC' },
     });
-    return rows.map((row) => row.productId);
+    return rows.map((row) => toCoreId(row.productId));
   }
 }

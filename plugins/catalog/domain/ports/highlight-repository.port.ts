@@ -24,7 +24,11 @@ export interface HighlightRepositoryPort {
   /** Deletes the highlight `id` and its product links; `false` when the store has no such highlight. */
   delete(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<boolean>;
 
-  /** Replaces every highlight link of `productId` in the scope's store; the list order is the display order. */
+  /**
+   * Replaces every highlight link of `productId` in the scope's store; the list order is the display order, and a
+   * repeated id is linked once, at its first place. The ids must already be highlights of the scope's store (the use
+   * case checks them with `findByIds`, D2135): the repository stores the links as given.
+   */
   replaceProductHighlights(
     ctx: OperationContext,
     scope: StoreScope,

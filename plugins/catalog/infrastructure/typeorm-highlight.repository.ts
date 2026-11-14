@@ -3,6 +3,7 @@ import { type Snowflake, toBusinessId, toSnowflake, toStoreId } from '@cod/share
 import { In } from 'typeorm';
 import type { CoreId } from '../domain/core-id';
 import type { Highlight } from '../domain/highlight';
+import { distinctLinkIds } from '../domain/link-ids';
 import type { HighlightRepositoryPort } from '../domain/ports/highlight-repository.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -84,7 +85,7 @@ export class TypeOrmHighlightRepository implements HighlightRepositoryPort {
   ): Promise<void> {
     const tenant = requestScope(ctx, scope);
     await this.links.delete(tenant, { ...inStore(scope), productId });
-    for (const [position, highlightId] of highlightIds.entries()) {
+    for (const [position, highlightId] of distinctLinkIds(highlightIds).entries()) {
       await this.links.insert(tenant, { id: this.ids.next(), ...inStore(scope), productId, highlightId, position });
     }
   }

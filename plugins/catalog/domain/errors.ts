@@ -128,6 +128,14 @@ export class NameTakenError extends DomainError {
   }
 }
 
+/** Another save of the same row won a race the caller may retry, e.g. two first saves of one product's settings. */
+export class ConcurrentUpdateError extends DomainError {
+  readonly code = CATALOG_ERROR_CODES.CONCURRENT_UPDATE;
+  constructor() {
+    super('This item was changed at the same time; try again');
+  }
+}
+
 /** Every catalog error, one per code of `CATALOG_ERROR_CODES`; the API's error mapping covers each. */
 export const CATALOG_ERROR_CLASSES = [
   ProductNotFoundError,
@@ -146,4 +154,5 @@ export const CATALOG_ERROR_CLASSES = [
   OrderManagerUnknownError,
   OrderManagersUnavailableError,
   NameTakenError,
+  ConcurrentUpdateError,
 ] as const;

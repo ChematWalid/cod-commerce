@@ -1,5 +1,6 @@
 import type { Snowflake, StoreId, TenantScope } from '@cod/shared';
 import type { CoreId } from '../../domain/core-id';
+import { InvalidCatalogInputError } from '../../domain/errors';
 import type { MediaItem } from '../../domain/media-item';
 import type { MediaList, MediaPage, MediaRepositoryPort } from '../../domain/ports/media-repository.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
@@ -14,7 +15,11 @@ export class InMemoryMediaRepository implements MediaRepositoryPort {
   }
 
   insert(_ctx: OperationContext, scope: TenantScope, item: MediaItem): Promise<void> {
-    this.rows.push({ ...item, businessId: scope.businessId });
+    if (item.businessId !== scope.businessId) return Promise.reject(new InvalidCatalogInputError());
+    const sameAsset = (row: MediaItem) => row.businessId === scope.businessId && row.assetId === item.assetId;
+    // Postgres' unique (businessId, assetId) index refuses the row the same way.
+    if (this.rows.some(sameAsset)) return Promise.reject(new Error('Duplicate media item for one asset'));
+    this.rows.push(item);
     return Promise.resolve();
   }
 
@@ -41,10 +46,10 @@ export class InMemoryMediaRepository implements MediaRepositoryPort {
     return Promise.resolve({ items: matches.slice(page.skip, page.skip + page.take), totalItems: matches.length });
   }
 
-  delete(_ctx: OperationContext, scope: TenantScope, id: Snowflake): Promise<boolean> {
-    const index = this.rows.findIndex((row) => row.businessId === scope.businessId && row.id === id);
-    if (index < 0) return Promise.resolve(false);
-    this.rows.splice(index, 1);
+  delete(_ctx: OperationContext, scope: TenantScope, storeIds: readonly StoreId[], id: Snowflake): Promise<boolean> {
+    const item = this.reachable(scope, storeIds).find((row) => row.id === id);
+    if (item === undefined) return Promise.resolve(false);
+    this.rows.splice(this.rows.indexOf(item), 1);
     return Promise.resolve(true);
   }
 }

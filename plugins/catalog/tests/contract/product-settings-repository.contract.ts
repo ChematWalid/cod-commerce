@@ -71,11 +71,12 @@ export function describeProductSettingsRepositoryContract(
       await repo.upsert(ctx, scopeA, settingsOf(scopeA, productId));
 
       // Act
+      const fromB = await repo.delete(ctx, scopeB, productId);
       const fromOtherStore = await repo.delete(ctx, scopeA2, productId);
       const fromOwnStore = await repo.delete(ctx, scopeA, productId);
 
       // Assert
-      expect([fromOtherStore, fromOwnStore]).toEqual([false, true]);
+      expect([fromB, fromOtherStore, fromOwnStore]).toEqual([false, false, true]);
       await expect(repo.findByProduct(ctx, scopeA, productId)).resolves.toBeUndefined();
     });
   });

@@ -1,4 +1,5 @@
 import { type Snowflake, toBusinessId, toSnowflake, toStoreId } from '@cod/shared';
+import { type CoreId, toCoreId } from '../../domain/core-id';
 import type { Highlight } from '../../domain/highlight';
 import type { MediaItem } from '../../domain/media-item';
 import type { ProductSettings } from '../../domain/product-settings';
@@ -30,9 +31,9 @@ export function newId(): Snowflake {
 let nextCoreId = 500_001;
 
 /** A fresh Vendure core id (product or asset), as the decimal string the catalog carries. */
-export function newCoreId(): string {
+export function newCoreId(): CoreId {
   nextCoreId += 1;
-  return String(nextCoreId);
+  return toCoreId(String(nextCoreId));
 }
 
 /** A brand of `scope` named `name`, made at `now`. */
@@ -53,7 +54,7 @@ export function highlightOf(scope: StoreScope, text = `Fast delivery ${newId()}`
 /** The settings of `productId` in `scope`, with any field overridden. */
 export function settingsOf(
   scope: StoreScope,
-  productId: string,
+  productId: CoreId,
   overrides: Partial<ProductSettings> = {},
 ): ProductSettings {
   return {

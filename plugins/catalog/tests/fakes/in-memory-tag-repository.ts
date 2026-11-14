@@ -1,5 +1,6 @@
 import type { Snowflake } from '@cod/shared';
 import type { CoreId } from '../../domain/core-id';
+import { distinctLinkIds } from '../../domain/link-ids';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { TagRepositoryPort } from '../../domain/ports/tag-repository.port';
 import type { StoreScope } from '../../domain/store-scope';
@@ -34,7 +35,7 @@ export class InMemoryTagRepository extends InMemoryCatalogNameRepository impleme
   ): Promise<void> {
     this.removeLinks((link) => !(inStore(scope, link) && link.productId === productId));
     const { businessId, storeId } = scope;
-    this.links.push(...tagIds.map((tagId) => ({ businessId, storeId, productId, tagId })));
+    this.links.push(...distinctLinkIds(tagIds).map((tagId) => ({ businessId, storeId, productId, tagId })));
     return Promise.resolve();
   }
 

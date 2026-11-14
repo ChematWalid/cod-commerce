@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { InvalidCatalogInputError } from '../../domain/errors';
 import type { MediaRepositoryPort } from '../../domain/ports/media-repository.port';
 import { at, mediaOf, scopeA, scopeA2, scopeB } from '../support/builders';
 import type { MakeHarness } from './repository-harness';
 
 const ALL_ON_ONE_PAGE = { skip: 0, take: 50 };
+const EMPTY = { items: [], totalItems: 0 };
 
 /**
  * The behaviour every {@link MediaRepositoryPort} adapter must have. The library is business-wide, and a caller reads
@@ -71,19 +73,50 @@ export function describeMediaRepositoryContract(name: string, make: MakeHarness<
       await expect(repo.findByAssetIds(ctx, scopeA, [scopeA.storeId], [item.assetId])).resolves.toEqual([]);
     });
 
-    it('deletes an item of its business only', async () => {
+    it('deletes an item of its business and the given stores only', async () => {
       // Arrange
       const { repo, ctx } = await make();
-      const item = mediaOf(scopeA);
+      const [item, ofOtherStore] = [mediaOf(scopeA), mediaOf(scopeA2)];
       await repo.insert(ctx, scopeA, item);
+      await repo.insert(ctx, scopeA, ofOtherStore);
 
       // Act
-      const fromB = await repo.delete(ctx, scopeB, item.id);
-      const fromA = await repo.delete(ctx, scopeA, item.id);
+      const fromB = await repo.delete(ctx, scopeB, [scopeA.storeId], item.id);
+      const outsideStores = await repo.delete(ctx, scopeA, [scopeA.storeId], ofOtherStore.id);
+      const noStores = await repo.delete(ctx, scopeA, [], item.id);
+      const fromA = await repo.delete(ctx, scopeA, [scopeA.storeId], item.id);
 
       // Assert
-      expect([fromB, fromA]).toEqual([false, true]);
-      await expect(repo.findById(ctx, scopeA, [scopeA.storeId], item.id)).resolves.toBeUndefined();
+      expect([fromB, outsideStores, noStores, fromA]).toEqual([false, false, false, true]);
+      const left = await repo.list(ctx, scopeA, [scopeA.storeId, scopeA2.storeId], ALL_ON_ONE_PAGE);
+      expect(left).toEqual({ items: [ofOtherStore], totalItems: 1 });
+    });
+
+    it('refuses an item of another business', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+
+      // Act
+      const insert = repo.insert(ctx, scopeB, mediaOf(scopeA));
+
+      // Assert
+      await expect(insert).rejects.toBeInstanceOf(InvalidCatalogInputError);
+      await expect(repo.list(ctx, scopeB, [scopeA.storeId], ALL_ON_ONE_PAGE)).resolves.toEqual(EMPTY);
+    });
+
+    it('refuses a second item for the same asset', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const first = mediaOf(scopeA);
+      await repo.insert(ctx, scopeA, first);
+
+      // Act
+      const second = repo.insert(ctx, scopeA, { ...mediaOf(scopeA2), assetId: first.assetId });
+
+      // Assert
+      await expect(second).rejects.toThrow();
+      const listed = await repo.list(ctx, scopeA, [scopeA.storeId, scopeA2.storeId], ALL_ON_ONE_PAGE);
+      expect(listed).toEqual({ items: [first], totalItems: 1 });
     });
   });
 }

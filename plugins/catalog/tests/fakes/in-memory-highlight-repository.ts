@@ -1,6 +1,7 @@
 import type { Snowflake } from '@cod/shared';
 import type { CoreId } from '../../domain/core-id';
 import type { Highlight } from '../../domain/highlight';
+import { distinctLinkIds } from '../../domain/link-ids';
 import type { HighlightRepositoryPort } from '../../domain/ports/highlight-repository.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { StoreScope } from '../../domain/store-scope';
@@ -66,7 +67,9 @@ export class InMemoryHighlightRepository implements HighlightRepositoryPort {
   ): Promise<void> {
     this.removeLinks((link) => !(inStore(scope, link) && link.productId === productId));
     const { businessId, storeId } = scope;
-    this.links.push(...highlightIds.map((highlightId) => ({ businessId, storeId, productId, highlightId })));
+    this.links.push(
+      ...distinctLinkIds(highlightIds).map((highlightId) => ({ businessId, storeId, productId, highlightId })),
+    );
     return Promise.resolve();
   }
 
