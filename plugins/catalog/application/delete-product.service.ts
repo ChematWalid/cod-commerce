@@ -15,6 +15,7 @@ export class DeleteProductService {
     const id = parseCoreId(rawId);
     if (id === undefined) throw new ProductNotFoundError();
     await this.ports.transaction.run(ctx, scope, async (tx) => {
+      if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       if (!(await this.ports.products.softDelete(tx, id))) throw new ProductNotFoundError();
       await this.ports.tags.replaceProductTags(tx, scope, id, []);
       await this.ports.highlights.replaceProductHighlights(tx, scope, id, []);

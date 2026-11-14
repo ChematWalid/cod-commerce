@@ -270,7 +270,8 @@ export function catalogSuite(snowflakeWorkerId: number, foreign: CatalogForeignM
 export const rawId = (id: string): string => id.replace(/^T_/, '');
 
 /** A synthetic snowflake for rows the tests insert directly. */
-const syntheticId = (): string => String(1_300_000_000_000_000_000n + BigInt(Math.floor(Math.random() * 1e9)));
+/** A snowflake-sized id no generator hands out, for rows a test inserts by SQL. */
+export const syntheticId = (): string => String(1_300_000_000_000_000_000n + BigInt(Math.floor(Math.random() * 1e9)));
 
 /**
  * A brand or tag row of `store` inserted directly (their API arrives in Task 12); returns its id. Test-only access.

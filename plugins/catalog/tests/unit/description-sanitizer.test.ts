@@ -23,6 +23,9 @@ describe('HtmlDescriptionSanitizer (D2122)', () => {
   it.each([
     ['javascript', '<a href="javascript:alert(1)">x</a>'],
     ['data', '<a href="data:text/html,x">x</a>'],
+    ['root-relative', '<a href="/admin">x</a>'],
+    ['relative', '<a href="evil">x</a>'],
+    ['protocol-relative', '<a href="//evil.test/x">x</a>'],
   ])('drops the href of a %s link', (_scheme, html) => {
     // Act
     const clean = sanitizer.sanitize(html);

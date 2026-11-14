@@ -1,5 +1,11 @@
 import { tenantOf } from '@cod/plugin-tenancy';
-import { PRODUCT_STATUSES, productInputSchema, productListQuerySchema, productPatchSchema } from '@cod/shared';
+import {
+  PRODUCT_STATUSES,
+  productInputSchema,
+  productListQuerySchema,
+  productPatchSchema,
+  SLUG_QUERY_MAX,
+} from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { RequestContext } from '@vendure/core';
 import { z } from 'zod';
@@ -18,7 +24,7 @@ import { ProductReadUseCases, ProductWriteUseCases } from './product-use-cases';
 import { idArgOf, parseInput } from './request-body';
 
 const statusSchema = z.enum(PRODUCT_STATUSES);
-const slugSchema = z.string().max(1000);
+const slugSchema = z.string().max(SLUG_QUERY_MAX);
 
 /** The caller's business and active store, as the tenant guard resolved them. */
 function scopeOf(ctx: RequestContext): StoreScope {

@@ -36,6 +36,7 @@ import { TypeOrmMediaRepository } from './typeorm-media.repository';
 import { TypeOrmProductCollectionRepository } from './typeorm-product-collection.repository';
 import { TypeOrmProductSettingsRepository } from './typeorm-product-settings.repository';
 import { TypeOrmTagRepository } from './typeorm-tag.repository';
+import { PgProductLock } from './pg-product-lock';
 import { DefaultChannelExit } from './vendure-default-channel';
 import { VendureOptionSync } from './vendure-option-sync';
 import { VendureProductCatalog } from './vendure-product-catalog.adapter';
@@ -90,6 +91,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   VendureOptionSync,
   VendureVariantSync,
   DefaultChannelExit,
+  PgProductLock,
   VendureProductStructure,
   { provide: PRODUCT_CATALOG, useClass: VendureProductCatalog },
   { provide: PRODUCT_SEARCH, useClass: VendureProductSearch },

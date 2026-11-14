@@ -3,8 +3,8 @@ import { SortOrder } from '@vendure/common/lib/generated-types';
 import {
   CollectionService,
   type ListQueryOptions,
-  type Product,
   ProductService,
+  type Product,
   ProductVariantService,
   type RequestContext,
 } from '@vendure/core';
@@ -17,9 +17,9 @@ import type {
   SlugLookup,
 } from '../domain/ports/product-catalog.port';
 import type { ProductDraft, ProductFields, ProductRecord, ProductUpdate } from '../domain/product';
-import type { MatrixPlan } from '../domain/variant-matrix';
+import { createsDefaultVariant, type MatrixPlan } from '../domain/variant-matrix';
 import { toRequestContext } from './request-scope';
-import { derivedSlug, merchantSlug, normalisedSlug } from './stored-slug';
+import { derivedSlug, merchantSlug } from './stored-slug';
 import type { OptionTarget } from './vendure-option-sync';
 import { clearableId, coreIdOf, type ProductCustomFields, productRecordOf } from './vendure-product-mapper';
 import { VendureProductStructure } from './vendure-product-structure';
@@ -112,9 +112,19 @@ export class VendureProductCatalog implements ProductCatalogPort {
       });
       await this.structure.options.removeStale(target, synced);
     }
-    await this.syncDefaultVariant(request, target, update.fields);
+    // A default variant created by this save already holds the planned SKU and the product's defaults.
+    if (update.matrix === null || !createsDefaultVariant(update.matrix.plan)) {
+      await this.syncDefaultVariant(request, target, update.fields);
+    }
     await this.structure.variants.applyChanges(target, update.variants);
     return this.readAndLeaveDefault(request, id);
+  }
+
+  async lockForUpdate(ctx: OperationContext, id: CoreId): Promise<boolean> {
+    const request = toRequestContext(ctx);
+    if ((await this.products.findOne(request, id, [])) === undefined) return false;
+    await this.structure.lock.acquire(request, id);
+    return true;
   }
 
   findOne(ctx: OperationContext, id: CoreId): Promise<ProductRecord | undefined> {
@@ -137,7 +147,7 @@ export class VendureProductCatalog implements ProductCatalogPort {
   }
 
   async findBySlug(ctx: OperationContext, slug: string): Promise<SlugLookup> {
-    const normal = normalisedSlug(slug);
+    const normal = merchantSlug(slug);
     const options = { take: 1, filter: { slug: { eq: normal } } } as ListQueryOptions<Product>;
     const { items } = await this.products.findAll(toRequestContext(ctx), options, []);
     const [holder] = items;

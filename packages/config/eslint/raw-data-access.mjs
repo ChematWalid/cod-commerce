@@ -55,6 +55,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/team/infrastructure/invitation-token-lookup.ts',
   // Runs only the advisory lock (D213).
   '**/plugins/team/infrastructure/pg-business-lock.adapter.ts',
+  // Runs only the advisory lock that serialises saves of one product (P2.S1 Task 11 review).
+  '**/plugins/catalog/infrastructure/pg-product-lock.ts',
   // `platform_task_heartbeat` is a platform table, one row per scheduled task (D108, D120).
   '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
   // DDL and catalog reads of partition maintenance (`SET LOCAL`, `pg_advisory_xact_lock`); no tenant row (D106).

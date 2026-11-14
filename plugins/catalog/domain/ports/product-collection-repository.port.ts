@@ -10,6 +10,8 @@ export interface ProductCollectionRepositoryPort {
   /**
    * Replaces every collection link of `productId` in the scope's store, kept in the given order; a repeated id is
    * linked once. The ids must already be collections of the store channel (the use case checks them, D2134).
+   *
+   * @throws {ConcurrentUpdateError} when a parallel save of the same product wrote its links first.
    */
   replaceProductCollections(
     ctx: OperationContext,

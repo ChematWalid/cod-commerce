@@ -75,6 +75,7 @@ export class UpdateProductService {
     const id = parseCoreId(rawId);
     if (id === undefined) throw new ProductNotFoundError();
     return this.ports.transaction.run(ctx, scope, async (tx) => {
+      if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();
       const refs = await this.references.check(tx, scope, { ...patch, variantAssetIds: variantAssetIdsOf(patch) });

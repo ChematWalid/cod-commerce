@@ -1,6 +1,7 @@
 import type { TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { type Snowflake, toSnowflake } from '@cod/shared';
 import { type CoreId, toCoreId } from '../domain/core-id';
+import { ConcurrentUpdateError } from '../domain/errors';
 import { distinctLinkIds } from '../domain/link-ids';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -11,6 +12,7 @@ import { requestScope } from './request-scope';
 import { inStore } from './store-where';
 import { TagEntity } from './tag.entity';
 import { TypeOrmCatalogNameRepository } from './typeorm-catalog-name.repository';
+import { onUniqueViolation } from './unique-violation';
 
 /**
  * The Postgres adapter of {@link TagRepositoryPort}: `catalog_tag` and `catalog_product_tag` through `TenantRepository`
@@ -42,7 +44,8 @@ export class TypeOrmTagRepository extends TypeOrmCatalogNameRepository implement
     const tenant = requestScope(ctx, scope);
     await this.links.delete(tenant, { ...inStore(scope), productId });
     for (const tagId of distinctLinkIds(tagIds)) {
-      await this.links.insert(tenant, { id: this.ids.next(), ...inStore(scope), productId, tagId });
+      const link = { id: this.ids.next(), ...inStore(scope), productId, tagId };
+      await onUniqueViolation(this.links.insert(tenant, link), () => new ConcurrentUpdateError());
     }
   }
 

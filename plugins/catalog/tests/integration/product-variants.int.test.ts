@@ -127,6 +127,20 @@ describe('product variants (AC1)', () => {
     ]);
   });
 
+  it('keeps the planned sku of the new default variant when a removed variant held the product sku', async () => {
+    // Arrange: one variant is renamed to the product sku, then every option is removed
+    const product = await createMatrix({ sku: 'TD' });
+    await update(product.id, { variants: [{ id: product.variants[0]?.id, sku: 'TD' }] });
+
+    // Act
+    const saved = (await update(product.id, { optionGroups: [] })).updateCatalogProduct.product;
+
+    // Assert
+    expect(saved.variants).toHaveLength(1);
+    expect(saved.variants[0]?.sku).not.toBe('TD');
+    expect(saved.variants[0]?.sku).toMatch(/^TD-\d+$/);
+  });
+
   it('refuses more than a hundred variants', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);

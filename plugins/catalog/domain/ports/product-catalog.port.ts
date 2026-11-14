@@ -37,6 +37,12 @@ export interface ProductCatalogPort {
   /** Applies `update` to the product `id` of the store and returns it as read back; `undefined` when none. */
   update(ctx: OperationContext, id: CoreId, update: ProductUpdate): Promise<ProductRecord | undefined>;
 
+  /**
+   * Locks the live product `id` of the store until the transaction of `ctx` ends, so two writes to one product run one
+   * after the other instead of both planning from the same record; `false` when the store has no such product.
+   */
+  lockForUpdate(ctx: OperationContext, id: CoreId): Promise<boolean>;
+
   /** The live product `id` of the store, or `undefined`. */
   findOne(ctx: OperationContext, id: CoreId): Promise<ProductRecord | undefined>;
 
@@ -46,7 +52,12 @@ export interface ProductCatalogPort {
   /** Soft-deletes the product `id` of the store and its variants; `false` when none. */
   softDelete(ctx: OperationContext, id: CoreId): Promise<boolean>;
 
-  /** Normalises `slug` as the store stores slugs and names the live product of the store holding it. */
+  /**
+   * Normalises `slug` as the store stores slugs and names the live product of the store holding it. The stored form
+   * follows the same rule as a save, so a check and a save of one slug always agree.
+   *
+   * @throws {InvalidCatalogInputError} when the stored form is empty or longer than `SLUG_MAX`.
+   */
   findBySlug(ctx: OperationContext, slug: string): Promise<SlugLookup>;
 
   /** The collections of the store among `ids`; others, of another channel or none at all, are left out (D2134). */

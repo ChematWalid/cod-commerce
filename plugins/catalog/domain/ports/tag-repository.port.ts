@@ -10,6 +10,8 @@ export interface TagRepositoryPort extends CatalogNameRepositoryPort {
    * Replaces every tag link of `productId` in the scope's store with `tagIds`, kept in that order; a repeated id is
    * linked once, at its first place. The ids must already be tags of the scope's store (the use case checks them with
    * `findByIds`, D2135): the repository stores the links as given.
+   *
+   * @throws {ConcurrentUpdateError} when a parallel save of the same product wrote its links first.
    */
   replaceProductTags(
     ctx: OperationContext,

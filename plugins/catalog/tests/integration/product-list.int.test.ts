@@ -72,6 +72,28 @@ describe('product list and search (AC4, D2123)', () => {
     expect(found).toEqual([byName, bySku, byVariantSku, byBarcode, draft].map((product) => product.title).sort());
   });
 
+  it('no longer finds a product by the sku of a variant removed from its options', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const shoe = await suite.kit.createProduct({
+      title: 'Removal check',
+      sku: 'QRM',
+      optionGroups: [{ name: 'Size', values: ['S', 'M', 'L'] }],
+    });
+    await suite.kit.gql(UPDATE_PRODUCT, {
+      id: shoe.id,
+      input: { optionGroups: [{ name: 'Size', values: ['S', 'M'] }] },
+    });
+
+    // Act
+    const removed = await titles({ q: 'QRM-3' });
+    const kept = await titles({ q: 'QRM-1' });
+
+    // Assert
+    expect(removed).toEqual([]);
+    expect(kept).toEqual(['Removal check']);
+  });
+
   it('lists only drafts on the draft tab, with or without a search term', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);

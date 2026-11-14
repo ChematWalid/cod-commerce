@@ -15,7 +15,13 @@ import type {
   VariantChange,
   VariantRecord,
 } from '../../domain/product';
-import type { MatrixPlan, NewVariant, OptionGroupSpec } from '../../domain/variant-matrix';
+import {
+  createsDefaultVariant,
+  type MatrixPlan,
+  type NewVariant,
+  type OptionGroupSpec,
+} from '../../domain/variant-matrix';
+import { merchantSlug, normalisedSlug } from '../../infrastructure/stored-slug';
 import { T0 } from '../support/builders';
 
 /** The store a fake context stands for: tests build contexts with {@link storeContext}. */
@@ -27,9 +33,6 @@ interface StoreContext {
 export const storeContext = (storeId: string): OperationContext => ({ storeId }) as unknown as OperationContext;
 
 const storeOf = (ctx: OperationContext): string => (ctx as unknown as StoreContext).storeId;
-
-/** Lower case and NFD, as Vendure keeps slugs. */
-const normalisedSlug = (text: string): string => text.normalize('NFD').toLowerCase().trim().replace(/\s+/g, '-');
 
 interface StoredProduct {
   readonly storeId: string;
@@ -45,6 +48,8 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
   readonly stored: StoredProduct[] = [];
   /** Collections per store channel: `storeId → ids`. */
   readonly collections = new Map<string, Set<string>>();
+  /** Lock, read and write calls in order (`lock:<id>`, `findOne:<id>`, …), so a test sees what came first. */
+  readonly calls: string[] = [];
   private nextId = 900_001;
 
   private newId(): CoreId {
@@ -107,23 +112,32 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
   }
 
   update(ctx: OperationContext, id: CoreId, update: ProductUpdate): Promise<ProductRecord | undefined> {
+    this.calls.push(`update:${id}`);
     const row = this.live(ctx, id);
     if (row === undefined) return Promise.resolve(undefined);
     const { fields, matrix } = update;
     const sameGroups = JSON.stringify(matrix?.groups) === JSON.stringify(optionSpecs(row.record));
     const variants = matrix === null ? row.record.variants : this.variantsAfter(row.record, matrix.plan, fields);
     const optionGroups = matrix === null || sameGroups ? row.record.optionGroups : this.groupsOf(matrix.groups);
+    const synced =
+      matrix !== null && createsDefaultVariant(matrix.plan) ? variants : syncDefault(variants, optionGroups, fields);
     row.record = {
       ...row.record,
       ...fields,
       slug: update.slug === null ? row.record.slug : normalisedSlug(update.slug),
       optionGroups,
-      variants: syncDefault(variants, optionGroups, fields).map((variant) => applyChange(variant, update.variants)),
+      variants: synced.map((variant) => applyChange(variant, update.variants)),
     };
     return Promise.resolve(row.record);
   }
 
+  lockForUpdate(ctx: OperationContext, id: CoreId): Promise<boolean> {
+    this.calls.push(`lock:${id}`);
+    return Promise.resolve(this.live(ctx, id) !== undefined);
+  }
+
   findOne(ctx: OperationContext, id: CoreId): Promise<ProductRecord | undefined> {
+    this.calls.push(`findOne:${id}`);
     return Promise.resolve(this.live(ctx, id)?.record);
   }
 
@@ -141,13 +155,14 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
   }
 
   softDelete(ctx: OperationContext, id: CoreId): Promise<boolean> {
+    this.calls.push(`softDelete:${id}`);
     const row = this.live(ctx, id);
     if (row !== undefined) row.deleted = true;
     return Promise.resolve(row !== undefined);
   }
 
   findBySlug(ctx: OperationContext, slug: string): Promise<SlugLookup> {
-    const normal = normalisedSlug(slug);
+    const normal = merchantSlug(slug);
     const holder = this.stored.find(
       (row) => row.storeId === storeOf(ctx) && !row.deleted && row.record.slug === normal,
     );

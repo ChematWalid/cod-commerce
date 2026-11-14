@@ -3,7 +3,7 @@ import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { catalogSuite, rawId } from './catalog-kit';
+import { catalogSuite, PRODUCT, type ProductResult, rawId } from './catalog-kit';
 import {
   type OperationEntry,
   OPERATION_REGISTRY,
@@ -163,17 +163,57 @@ describe('catalog isolation sweep (two businesses)', () => {
     expect(outcome.data).toMatchObject({ id: idsOfB.productId });
   });
 
-  it("lists only A's products in its other store (store isolation inside one business)", async () => {
-    // Arrange
-    const { a } = suite.fixtures;
-    await suite.kit.asOwner(a);
-    const inFirst = await suite.kit.createProduct({ title: 'First store only' });
-    await suite.kit.asOwner(a, a.stores[1]);
+  describe("A's other store (store isolation inside one business)", () => {
+    let inFirst: ProductResult;
 
-    // Act
-    const outcome = await callOperation(OPERATION_REGISTRY[1] as OperationEntry, { ...idsOfB, productId: inFirst.id });
+    beforeAll(async () => {
+      await suite.kit.asOwner(suite.fixtures.a);
+      inFirst = await suite.kit.createProduct({ title: 'First store only', label: 'Original' });
+    });
 
-    // Assert
-    expect(outcome).toMatchObject({ code: undefined, data: null });
+    it.each(OPERATION_REGISTRY.filter((entry) => entry.byId))(
+      "$operation from A's second store against its first store's product answers $foreign",
+      async (entry) => {
+        // Arrange
+        const { a } = suite.fixtures;
+        await suite.kit.asOwner(a, a.stores[1]);
+
+        // Act
+        const outcome = await callOperation(entry, { ...idsOfB, productId: inFirst.id });
+
+        // Assert
+        expectForeign(entry, outcome, { ...idsOfB, productId: inFirst.id });
+      },
+    );
+
+    it.each(ROUTE_REGISTRY.filter((entry) => entry.route.includes(':id')))(
+      "$method $route from A's second store against its first store's product answers 404",
+      async (entry: RouteEntry) => {
+        // Arrange
+        const { a } = suite.fixtures;
+        await suite.kit.asOwner(a, a.stores[1]);
+        const ids = { ...restIdsOfB, productId: rawId(inFirst.id) };
+
+        // Act
+        const answer = await suite.kit.rest(entry.method, entry.url(ids), entry.body?.(ids));
+
+        // Assert
+        expect(answer.status).toBe(404);
+        expect((answer.body as { code?: string } | null)?.code).toBe(NOT_FOUND);
+      },
+    );
+
+    it("leaves the first store's product unchanged after those calls", async () => {
+      // Arrange
+      await suite.kit.asOwner(suite.fixtures.a);
+
+      // Act
+      const { catalogProduct } = await suite.kit.gql<{ catalogProduct: ProductResult | null }>(PRODUCT, {
+        id: inFirst.id,
+      });
+
+      // Assert
+      expect(catalogProduct).toMatchObject({ id: inFirst.id, status: 'active', label: 'Original' });
+    });
   });
 });

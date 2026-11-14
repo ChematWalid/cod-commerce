@@ -39,6 +39,11 @@ export const PRODUCT_TITLE_MAX = 255;
 export const SKU_MAX = 64;
 export const BARCODE_MAX = 64;
 export const SLUG_MAX = 255;
+/**
+ * Longest text the slug availability check reads. It only keeps the query small: the slug rule (trimmed, at most
+ * `SLUG_MAX` typed and stored) then decides, so surrounding spaces may push the raw text past `SLUG_MAX`.
+ */
+export const SLUG_QUERY_MAX = 4 * SLUG_MAX;
 export const NAME_IN_DELIVERY_MAX = 100;
 export const META_TITLE_MAX = 70;
 export const META_DESCRIPTION_MAX = 160;

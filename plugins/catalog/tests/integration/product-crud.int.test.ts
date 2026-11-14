@@ -1,12 +1,30 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { CATALOG_ERROR_CODES } from '@cod/shared';
-import { failureOf } from '@cod/testing';
+import { type BusinessFixture, failureOf, type StoreFixture } from '@cod/testing';
 import gql from 'graphql-tag';
 import { describe, expect, it } from 'vitest';
-import { catalogSuite, insertNameRow, PRODUCT, type ProductResult, rawId, UPDATE_PRODUCT } from './catalog-kit';
+import {
+  catalogSuite,
+  insertNameRow,
+  PRODUCT,
+  type ProductResult,
+  rawId,
+  syntheticId,
+  UPDATE_PRODUCT,
+} from './catalog-kit';
 
 const suite = catalogSuite(1022, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const DEFAULT_CHANNEL_ID = 1;
+
+/** A highlight of `store`, inserted by SQL until Task 12 adds the highlight API. */
+async function insertHighlightRow(business: BusinessFixture, store: StoreFixture): Promise<string> {
+  const id = syntheticId();
+  await suite.kit.query(
+    'INSERT INTO "catalog_highlight" ("businessId", "storeId", "id", "text", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, now(), now())',
+    [business.businessId, store.id, id, `Highlight ${id}`],
+  );
+  return id;
+}
 
 describe('product create, read, update and delete', () => {
   it('round-trips a product and gives it default settings', async () => {
@@ -84,10 +102,24 @@ describe('product create, read, update and delete', () => {
       [rawId(product.variants[0]?.id ?? '')],
     );
 
+    const [group] = product.optionGroups;
+    const groupChannels = await suite.kit.query<{ channelId: number }>(
+      'SELECT "channelId" FROM product_option_group_channels_channel WHERE "productOptionGroupId" = $1',
+      [rawId(group?.id ?? '')],
+    );
+    const optionChannels = await suite.kit.query<{ channelId: number }>(
+      'SELECT "channelId" FROM product_option_channels_channel WHERE "productOptionId" = $1',
+      [rawId(group?.values[0]?.id ?? '')],
+    );
+
     // Assert
     expect(productChannels.map((row) => row.channelId)).not.toContain(DEFAULT_CHANNEL_ID);
     expect(productChannels).toHaveLength(1);
     expect(variantChannels.map((row) => row.channelId)).not.toContain(DEFAULT_CHANNEL_ID);
+    expect(groupChannels).toHaveLength(1);
+    expect(groupChannels.map((row) => row.channelId)).not.toContain(DEFAULT_CHANNEL_ID);
+    expect(optionChannels).toHaveLength(1);
+    expect(optionChannels.map((row) => row.channelId)).not.toContain(DEFAULT_CHANNEL_ID);
   });
 
   it('stores a draft with Vendure enabled off (D2109) and turns it on when active', async () => {
@@ -123,26 +155,35 @@ describe('product create, read, update and delete', () => {
     expect(failure.codes).toEqual([CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND]);
   });
 
-  it("answers not found for a brand or tag of the business's other store, on create and update", async () => {
+  it("answers not found for a brand, tag or highlight of the business's other store, on create and update", async () => {
     // Arrange
     const { a } = suite.fixtures;
     const brand = await insertNameRow(suite.kit, 'catalog_brand', a, a.stores[1]);
     const tag = await insertNameRow(suite.kit, 'catalog_tag', a, a.stores[1]);
+    const highlight = await insertHighlightRow(a, a.stores[1]);
     await suite.kit.asOwner(a);
     const product = await suite.kit.createProduct({ title: 'Other store links' });
+    const updating = (input: Record<string, unknown>) =>
+      failureOf(suite.kit.gql(UPDATE_PRODUCT, { id: product.id, input }));
 
     // Act
     const failures = await Promise.all([
       failureOf(suite.kit.createProduct({ title: 'x', brandId: brand })),
       failureOf(suite.kit.createProduct({ title: 'x', tagIds: [tag] })),
-      failureOf(suite.kit.gql(UPDATE_PRODUCT, { id: product.id, input: { brandId: brand } })),
+      failureOf(suite.kit.createProduct({ title: 'x', highlightIds: [highlight] })),
+      updating({ brandId: brand }),
+      updating({ tagIds: [tag] }),
+      updating({ highlightIds: [highlight] }),
     ]);
 
     // Assert
     expect(failures.map((failure) => failure.codes)).toEqual([
       [CATALOG_ERROR_CODES.BRAND_NOT_FOUND],
       [CATALOG_ERROR_CODES.TAG_NOT_FOUND],
+      [CATALOG_ERROR_CODES.HIGHLIGHT_NOT_FOUND],
       [CATALOG_ERROR_CODES.BRAND_NOT_FOUND],
+      [CATALOG_ERROR_CODES.TAG_NOT_FOUND],
+      [CATALOG_ERROR_CODES.HIGHLIGHT_NOT_FOUND],
     ]);
   });
 

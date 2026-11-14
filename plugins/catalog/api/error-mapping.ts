@@ -62,10 +62,20 @@ export class CatalogApiError extends I18nError {
   }
 }
 
-/** Logs a fault with its type and stack only: a database message may quote the caller's data. */
+/** A stack line naming a call site; the lines before them repeat the message. */
+const STACK_FRAME = /^\s+at /;
+
+/** The call sites of a stack, without its `<name>: <message>` head, which may span several lines. */
+const framesOf = (stack: string | undefined): string =>
+  (stack ?? '')
+    .split('\n')
+    .filter((line) => STACK_FRAME.test(line))
+    .join('\n');
+
+/** Logs a fault with its type and stack frames only: a database message may quote the caller's data. */
 function logFault(error: unknown): void {
   const fault = error instanceof Error ? error : new Error(`Non-error thrown: ${typeof error}`);
-  Logger.error(`Catalog fault: ${fault.name}`, LOG_CONTEXT, fault.stack);
+  Logger.error(`Catalog fault: ${fault.name}`, LOG_CONTEXT, framesOf(fault.stack));
 }
 
 /**

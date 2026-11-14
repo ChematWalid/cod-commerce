@@ -1,8 +1,9 @@
-import { productInputSchema, productListQuerySchema, type ProductListQueryInput } from '@cod/shared';
+import { productInputSchema, productListQuerySchema, type ProductListQueryInput, SLUG_MAX } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CreateProductService } from '../../application/create-product.service';
 import { ListProductsService } from '../../application/list-products.service';
 import { SlugAvailabilityService } from '../../application/slug-availability.service';
+import { InvalidCatalogInputError } from '../../domain/errors';
 import { ProductWorld } from '../fakes/product-world';
 import { brandOf, scopeA, scopeA2, scopeB, tagOf } from '../support/builders';
 
@@ -102,5 +103,20 @@ describe('SlugAvailabilityService', () => {
     expect(taken.available).toBe(false);
     expect(elsewhere.available).toBe(true);
     expect(own.available).toBe(true);
+  });
+
+  it.each([
+    ['punctuation only, empty once stored', '???'],
+    ['longer than the column once stored as NFD', 'أ'.repeat(SLUG_MAX)],
+  ])('refuses a slug a save would refuse: %s', async (_case, slug) => {
+    // Arrange
+    const world = new ProductWorld();
+    const service = new SlugAvailabilityService(world.ports);
+
+    // Act
+    const checking = service.check(world.ctxOf(scopeA), slug, null);
+
+    // Assert
+    await expect(checking).rejects.toBeInstanceOf(InvalidCatalogInputError);
   });
 });

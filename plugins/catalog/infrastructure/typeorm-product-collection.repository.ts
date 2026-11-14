@@ -1,5 +1,6 @@
 import type { TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { type CoreId, toCoreId } from '../domain/core-id';
+import { ConcurrentUpdateError } from '../domain/errors';
 import { distinctLinkIds } from '../domain/link-ids';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -8,6 +9,7 @@ import type { StoreScope } from '../domain/store-scope';
 import { ProductCollectionEntity } from './product-collection.entity';
 import { requestScope } from './request-scope';
 import { inStore } from './store-where';
+import { onUniqueViolation } from './unique-violation';
 
 /** The Postgres adapter of {@link ProductCollectionRepositoryPort} through `TenantRepository` (ADR 0002). */
 export class TypeOrmProductCollectionRepository implements ProductCollectionRepositoryPort {
@@ -29,7 +31,8 @@ export class TypeOrmProductCollectionRepository implements ProductCollectionRepo
     const tenant = requestScope(ctx, scope);
     await this.links.delete(tenant, { ...inStore(scope), productId });
     for (const collectionId of distinctLinkIds(collectionIds)) {
-      await this.links.insert(tenant, { id: this.ids.next(), ...inStore(scope), productId, collectionId });
+      const link = { id: this.ids.next(), ...inStore(scope), productId, collectionId };
+      await onUniqueViolation(this.links.insert(tenant, link), () => new ConcurrentUpdateError());
     }
   }
 

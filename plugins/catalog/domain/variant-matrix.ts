@@ -54,6 +54,14 @@ export interface MatrixPlan {
   readonly remove: readonly string[];
 }
 
+/**
+ * Whether `plan` creates the one variant of a product without options. That variant takes the SKU the plan chose (the
+ * next free `<sku>-n` when a variant removed in the same save holds the product SKU), so the save must not overwrite
+ * it with the product's SKU afterwards.
+ */
+export const createsDefaultVariant = (plan: MatrixPlan): boolean =>
+  plan.create.some((created) => created.optionValues.length === 0);
+
 const combinationKey = (optionValues: readonly string[]): string => JSON.stringify(optionValues.map(comparable));
 
 function hasRepeat(texts: readonly string[]): boolean {

@@ -100,6 +100,20 @@ describe('UpdateProductService', () => {
     await expect(update({ title: 'x' }, '-1')).rejects.toBeInstanceOf(ProductNotFoundError);
   });
 
+  it('keeps the planned sku of a new default variant when a removed variant held the product sku', async () => {
+    // Arrange: a variant was renamed to the product sku, then every option is removed
+    const [first] = product.variants;
+    await update({ variants: [{ id: first?.id ?? '', sku: 'TS' }] });
+
+    // Act
+    const { product: saved } = await update({ optionGroups: [] });
+
+    // Assert
+    expect(saved.variants).toHaveLength(1);
+    expect(saved.variants[0]?.sku).not.toBe('TS');
+    expect(saved.variants[0]?.sku).toMatch(/^TS-\d+$/);
+  });
+
   it('renames the variants when the title changes, keeping their skus', async () => {
     // Act
     const { product: saved } = await update({ title: 'Tee' });
@@ -179,5 +193,43 @@ describe('status, read and delete', () => {
     // Assert
     expect(read).toBeUndefined();
     await expect(deleting).rejects.toBeInstanceOf(ProductNotFoundError);
+  });
+
+  it.each([
+    [
+      'update',
+      (world: ProductWorld, id: string) =>
+        new UpdateProductService(world.ports).update(
+          world.ctxOf(scopeA),
+          scopeA,
+          id,
+          productPatchSchema.parse({ label: 'x' }),
+        ),
+    ],
+    [
+      'set status',
+      (world: ProductWorld, id: string) =>
+        new SetProductStatusService(world.ports).set(world.ctxOf(scopeA), scopeA, id, 'hidden'),
+    ],
+    [
+      'delete',
+      (world: ProductWorld, id: string) =>
+        new DeleteProductService(world.ports).delete(world.ctxOf(scopeA), scopeA, id),
+    ],
+  ] as const)('locks the product before it reads or writes it on %s', async (_name, write) => {
+    // Arrange
+    const world = new ProductWorld();
+    const { product } = await new CreateProductService(world.ports).create(
+      world.ctxOf(scopeA),
+      scopeA,
+      productInputSchema.parse(MATRIX),
+    );
+    world.products.calls.length = 0;
+
+    // Act
+    await write(world, product.id);
+
+    // Assert
+    expect(world.products.calls[0]).toBe(`lock:${product.id}`);
   });
 });

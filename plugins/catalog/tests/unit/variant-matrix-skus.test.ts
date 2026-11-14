@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InvalidCatalogInputError } from '../../domain/errors';
 import { singleLineText } from '../../domain/single-line-text';
 import { skuSequence } from '../../domain/sku';
-import { type MatrixInput, planVariantMatrix } from '../../domain/variant-matrix';
+import { createsDefaultVariant, type MatrixInput, planVariantMatrix } from '../../domain/variant-matrix';
 
 const LONE_HIGH_SURROGATE = String.fromCharCode(0xd800);
 const LONE_LOW_SURROGATE = String.fromCharCode(0xdc00);
@@ -78,5 +78,25 @@ describe('singleLineText surrogates', () => {
 
     // Assert
     expect(value).toBe('Shoe 👟');
+  });
+});
+
+describe('createsDefaultVariant', () => {
+  it('is true when the plan creates the variant of a product without options', () => {
+    // Arrange
+    const plan = planVariantMatrix(input({ existing: [{ id: '11', optionValues: ['Red'], sku: 'TS' }] }));
+
+    // Act / Assert
+    expect(createsDefaultVariant(plan)).toBe(true);
+  });
+
+  it('is false when the plan only keeps the default variant or creates option variants', () => {
+    // Arrange
+    const keepsDefault = planVariantMatrix(input({ existing: [{ id: '11', optionValues: [], sku: 'TS' }] }));
+    const createsOptions = planVariantMatrix(input({ groups: [{ name: 'Size', values: ['S'] }] }));
+
+    // Act / Assert
+    expect(createsDefaultVariant(keepsDefault)).toBe(false);
+    expect(createsDefaultVariant(createsOptions)).toBe(false);
   });
 });
