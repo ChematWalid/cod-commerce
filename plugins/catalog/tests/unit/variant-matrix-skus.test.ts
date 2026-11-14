@@ -8,7 +8,15 @@ const LONE_HIGH_SURROGATE = String.fromCharCode(0xd800);
 const LONE_LOW_SURROGATE = String.fromCharCode(0xdc00);
 
 function input(overrides: Partial<MatrixInput> = {}): MatrixInput {
-  return { productName: 'Product', baseSku: 'TS', basePrice: 2500, groups: [], existing: [], ...overrides };
+  return {
+    productName: 'Product',
+    baseSku: 'TS',
+    basePrice: 2500,
+    groups: [],
+    existingGroups: ['Color'],
+    existing: [],
+    ...overrides,
+  };
 }
 
 describe('default variant sku', () => {
@@ -92,7 +100,9 @@ describe('createsDefaultVariant', () => {
 
   it('is false when the plan only keeps the default variant or creates option variants', () => {
     // Arrange
-    const keepsDefault = planVariantMatrix(input({ existing: [{ id: '11', optionValues: [], sku: 'TS' }] }));
+    const keepsDefault = planVariantMatrix(
+      input({ existingGroups: [], existing: [{ id: '11', optionValues: [], sku: 'TS' }] }),
+    );
     const createsOptions = planVariantMatrix(input({ groups: [{ name: 'Size', values: ['S'] }] }));
 
     // Act / Assert

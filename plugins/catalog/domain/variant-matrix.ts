@@ -28,6 +28,8 @@ export interface MatrixInput {
   readonly baseSku: string | null;
   readonly basePrice: number;
   readonly groups: readonly OptionGroupSpec[];
+  /** The names of the groups the live variants were made under, in order; their option values follow this order. */
+  readonly existingGroups: readonly string[];
   readonly existing: readonly ExistingVariant[];
 }
 
@@ -62,7 +64,12 @@ export interface MatrixPlan {
 export const createsDefaultVariant = (plan: MatrixPlan): boolean =>
   plan.create.some((created) => created.optionValues.length === 0);
 
-const combinationKey = (optionValues: readonly string[]): string => JSON.stringify(optionValues.map(comparable));
+/**
+ * A combination keyed by its ordered (group, value) pairs: option groups are matched by name, so a renamed group is
+ * a new group with new options, and a variant must not survive it pointing at the options of the group it replaced.
+ */
+const combinationKey = (groupNames: readonly string[], optionValues: readonly string[]): string =>
+  JSON.stringify(optionValues.map((value, index) => [comparable(groupNames[index] ?? ''), comparable(value)]));
 
 function hasRepeat(texts: readonly string[]): boolean {
   return new Set(texts.map(comparable)).size !== texts.length;
@@ -105,10 +112,10 @@ function combinationsOf(groups: readonly OptionGroupSpec[]): readonly (readonly 
 }
 
 /** Live variants by combination; a second variant with the same combination is left out, so it is removed. */
-function byCombination(existing: readonly ExistingVariant[]): ReadonlyMap<string, ExistingVariant> {
+function byCombination(input: MatrixInput): ReadonlyMap<string, ExistingVariant> {
   const variants = new Map<string, ExistingVariant>();
-  for (const variant of existing) {
-    const key = combinationKey(variant.optionValues);
+  for (const variant of input.existing) {
+    const key = combinationKey(input.existingGroups, variant.optionValues);
     if (!variants.has(key)) {
       variants.set(key, variant);
     }
@@ -138,8 +145,9 @@ function newSkus(input: MatrixInput, groupCount: number, count: number): readonl
  * and the next free SKUs (never one a live variant holds, removed ones included); variants of removed combinations
  * are removed. Without options there is one default variant carrying the product SKU. Names and values are trimmed.
  *
- * A variant is matched by its whole ordered combination, so adding or removing an option group replaces every
- * variant: none keeps its price, SKU or flags (Task 9 deviation, D2124). The editor warns before such a save.
+ * A variant is matched by its whole ordered combination of group names and values, so adding, removing, renaming or
+ * reordering an option group replaces every variant: none keeps its price, SKU or flags (Task 9 deviation, D2124).
+ * The editor warns before such a save.
  *
  * @throws {MatrixTooLargeError} over 3 groups, 20 values per group or 100 variants.
  * @throws {DuplicateOptionNameError} / {DuplicateOptionValueError} on a repeat, ignoring case and Unicode form.
@@ -149,12 +157,13 @@ function newSkus(input: MatrixInput, groupCount: number, count: number): readonl
 export function planVariantMatrix(input: MatrixInput): MatrixPlan {
   const groups = trimmedGroups(input.groups);
   assertValidGroups(groups);
-  const live = byCombination(input.existing);
+  const live = byCombination(input);
+  const groupNames = groups.map((group) => group.name);
   const kept: ExistingVariant[] = [];
   const keep: KeptVariant[] = [];
   const missing: (readonly string[])[] = [];
   for (const optionValues of combinationsOf(groups)) {
-    const variant = live.get(combinationKey(optionValues));
+    const variant = live.get(combinationKey(groupNames, optionValues));
     if (variant === undefined) {
       missing.push(optionValues);
       continue;

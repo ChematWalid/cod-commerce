@@ -5,7 +5,15 @@ const COLOR = { name: 'Color', values: ['Red', 'Blue'] };
 const SIZE = { name: 'Size', values: ['S', 'M'] };
 
 function input(overrides: Partial<MatrixInput> = {}): MatrixInput {
-  return { productName: 'Product', baseSku: 'TS', basePrice: 2500, groups: [COLOR, SIZE], existing: [], ...overrides };
+  return {
+    productName: 'Product',
+    baseSku: 'TS',
+    basePrice: 2500,
+    groups: [COLOR, SIZE],
+    existingGroups: ['Color', 'Size'],
+    existing: [],
+    ...overrides,
+  };
 }
 
 /** The four variants of Color(Red, Blue) × Size(S, M) as they were first created. */
@@ -118,6 +126,7 @@ describe('planVariantMatrix', () => {
       input({
         productName: 'Shirt',
         groups: [{ name: 'Color', values: ['red'] }],
+        existingGroups: ['Color'],
         existing: [{ id: '11', optionValues: ['Red'], sku: 'TS-1' }],
       }),
     );
@@ -136,7 +145,9 @@ describe('planVariantMatrix', () => {
 
   it('keeps the default variant while the product has no options', () => {
     // Act
-    const plan = planVariantMatrix(input({ groups: [], existing: [{ id: '9', optionValues: [], sku: 'TS' }] }));
+    const plan = planVariantMatrix(
+      input({ groups: [], existingGroups: [], existing: [{ id: '9', optionValues: [], sku: 'TS' }] }),
+    );
 
     // Assert
     expect(plan.keep).toEqual([{ id: '9', name: 'Product', optionValues: [] }]);
@@ -145,7 +156,9 @@ describe('planVariantMatrix', () => {
 
   it('replaces the default variant when the first option is added', () => {
     // Act
-    const plan = planVariantMatrix(input({ groups: [COLOR], existing: [{ id: '9', optionValues: [], sku: 'TS' }] }));
+    const plan = planVariantMatrix(
+      input({ groups: [COLOR], existingGroups: [], existing: [{ id: '9', optionValues: [], sku: 'TS' }] }),
+    );
 
     // Assert
     expect(plan.remove).toEqual(['9']);
@@ -174,7 +187,7 @@ describe('planVariantMatrix', () => {
     ];
 
     // Act
-    const plan = planVariantMatrix(input({ groups: [COLOR], existing: live }));
+    const plan = planVariantMatrix(input({ groups: [COLOR], existingGroups: ['Color'], existing: live }));
 
     // Assert
     expect(plan.remove).toEqual(['12']);
@@ -189,7 +202,9 @@ describe('planVariantMatrix', () => {
     ];
 
     // Act
-    const plan = planVariantMatrix(input({ groups: [COLOR, { name: 'Size', values: ['S'] }], existing: live }));
+    const plan = planVariantMatrix(
+      input({ groups: [COLOR, { name: 'Size', values: ['S'] }], existingGroups: ['Color'], existing: live }),
+    );
 
     // Assert
     expect(plan.keep).toEqual([]);
@@ -208,5 +223,58 @@ describe('planVariantMatrix', () => {
     expect(plan.keep).toEqual([]);
     expect(plan.remove).toEqual(['11', '12', '13', '14']);
     expect(plan.create.map((variant) => variant.sku)).toEqual(['TS-5', 'TS-6']);
+  });
+
+  it('renaming an option group replaces every variant, even when its values stay', () => {
+    // Arrange: Size becomes Taille with the same values; the old group's options go with it.
+    const groups = [COLOR, { name: 'Taille', values: ['S', 'M'] }];
+
+    // Act
+    const plan = planVariantMatrix(input({ groups, existing: FIRST_FOUR }));
+
+    // Assert
+    expect(plan.keep).toEqual([]);
+    expect(plan.remove).toEqual(['11', '12', '13', '14']);
+    expect(plan.create.map((variant) => variant.optionValues)).toEqual([
+      ['Red', 'S'],
+      ['Red', 'M'],
+      ['Blue', 'S'],
+      ['Blue', 'M'],
+    ]);
+  });
+
+  it('renaming an option group and adding a value replaces every variant', () => {
+    // Act
+    const plan = planVariantMatrix(
+      input({ groups: [COLOR, { name: 'Taille', values: ['S', 'M', 'L'] }], existing: FIRST_FOUR }),
+    );
+
+    // Assert
+    expect(plan.keep).toEqual([]);
+    expect(plan.remove).toEqual(['11', '12', '13', '14']);
+    expect(plan.create).toHaveLength(6);
+  });
+
+  it('keeps every variant when a group is only respelled in another case', () => {
+    // Act
+    const plan = planVariantMatrix(
+      input({ groups: [COLOR, { name: 'SIZE', values: ['S', 'M'] }], existing: FIRST_FOUR }),
+    );
+
+    // Assert
+    expect(plan.keep.map((variant) => variant.id)).toEqual(['11', '12', '13', '14']);
+    expect(plan.remove).toEqual([]);
+  });
+
+  it('replaces a live variant that lost the option of one of its groups', () => {
+    // Arrange: a variant whose Size option is no longer read reads only its Color.
+    const live: ExistingVariant[] = [{ id: '11', optionValues: ['Red'], sku: 'TS-1' }, ...FIRST_FOUR.slice(1)];
+
+    // Act
+    const plan = planVariantMatrix(input({ existing: live }));
+
+    // Assert
+    expect(plan.remove).toEqual(['11']);
+    expect(plan.create.map((variant) => variant.optionValues)).toEqual([['Red', 'S']]);
   });
 });

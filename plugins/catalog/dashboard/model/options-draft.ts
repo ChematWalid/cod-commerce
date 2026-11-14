@@ -76,8 +76,9 @@ export const moveGroup = (draft: OptionsDraft, groupIndex: number, delta: number
 const groupKeys = (draft: OptionsDraft): string => JSON.stringify(draft.map((group) => catalogNameKey(group.name)));
 
 /**
- * Whether saving `draft` over `saved` replaces every variant: variants are matched by their values in option order,
- * so adding, removing or reordering an option keeps none of them (D2124) and the editor asks first.
+ * Whether saving `draft` over `saved` replaces every variant: variants are matched by their option names and values
+ * in option order, so adding, removing, renaming or reordering an option keeps none of them (D2124) and the editor
+ * asks first.
  */
 export const resetsVariants = (saved: OptionsDraft, draft: OptionsDraft): boolean =>
   groupKeys(saved) !== groupKeys(draft);

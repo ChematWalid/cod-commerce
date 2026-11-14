@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { type DeletionResponse, DeletionResult } from '@vendure/common/lib/generated-types';
 import {
   type ID,
   type LanguageCode,
@@ -30,6 +31,16 @@ export interface OptionTarget {
 
 /** A code no other group or option holds: codes are internal, the names are what merchants see. */
 const freshCode = (prefix: string): string => `${prefix}-${randomUUID()}`;
+
+/**
+ * Core answers NOT_DELETED, without throwing, for an option an active variant still uses, after a forced group delete
+ * has already detached the group. Going on would commit variants pointing at options of a group the product no longer
+ * has, so the save fails and its transaction rolls back.
+ */
+function assertDeleted(response: DeletionResponse, what: string): void {
+  if (response.result === DeletionResult.DELETED) return;
+  throw new Error(`Core kept stale ${what} while removing a product's options: ${response.message ?? 'no reason'}`);
+}
 
 const findByName = <T extends { readonly name: string }>(items: readonly T[], name: string): T | undefined =>
   items.find((item) => comparableText(item.name) === comparableText(name));
@@ -139,10 +150,12 @@ export class VendureOptionSync {
 
   /** Deletes options and groups no variant uses any more; Vendure soft-deletes those removed variants still name. */
   async removeStale(target: OptionTarget, result: OptionSyncResult): Promise<void> {
-    for (const optionId of result.staleOptionIds) await this.optionService.delete(target.ctx, optionId);
+    for (const optionId of result.staleOptionIds) {
+      assertDeleted(await this.optionService.delete(target.ctx, optionId), `option ${optionId}`);
+    }
     for (const groupId of result.staleGroupIds) {
       // Groups are made per product (D2135), so forcing only detaches it from this product.
-      await this.groupService.delete(target.ctx, groupId, true);
+      assertDeleted(await this.groupService.delete(target.ctx, groupId, true), `option group ${groupId}`);
     }
   }
 }

@@ -32,6 +32,7 @@ export class CreateProductService {
         baseSku: fields.sku,
         basePrice: fields.price,
         groups: command.optionGroups,
+        existingGroups: [],
         existing: [],
       });
       const draft = { ...fields, slug: slugOf(command.slug), optionGroups: command.optionGroups };

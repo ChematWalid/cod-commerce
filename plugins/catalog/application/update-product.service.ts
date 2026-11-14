@@ -66,6 +66,7 @@ function updateOf(
     baseSku: fields.sku,
     basePrice: fields.price,
     groups,
+    existingGroups: record.optionGroups.map((group) => group.name),
     existing: record.variants,
   });
   return {

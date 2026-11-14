@@ -11,7 +11,15 @@ import { type MatrixInput, planVariantMatrix } from '../../domain/variant-matrix
 const COLOR = { name: 'Color', values: ['Red', 'Blue'] };
 
 function input(overrides: Partial<MatrixInput> = {}): MatrixInput {
-  return { productName: 'Product', baseSku: 'TS', basePrice: 2500, groups: [COLOR], existing: [], ...overrides };
+  return {
+    productName: 'Product',
+    baseSku: 'TS',
+    basePrice: 2500,
+    groups: [COLOR],
+    existingGroups: ['Color'],
+    existing: [],
+    ...overrides,
+  };
 }
 
 describe('planVariantMatrix option checks', () => {

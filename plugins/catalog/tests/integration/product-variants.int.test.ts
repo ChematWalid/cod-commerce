@@ -127,6 +127,31 @@ describe('product variants (AC1)', () => {
     ]);
   });
 
+  it('replaces every variant when an option group is renamed, each reading its values under the new group', async () => {
+    // Arrange
+    const product = await createMatrix({ sku: 'RN' });
+    const before = product.variants.map((variant) => variant.id);
+
+    // Act
+    const saved = (
+      await update(product.id, {
+        optionGroups: [MATRIX.optionGroups[0], { name: 'Taille', values: ['S', 'M', 'L'] }],
+      })
+    ).updateCatalogProduct.product;
+
+    // Assert
+    expect(saved.optionGroups.map((group) => group.name)).toEqual(['Color', 'Taille']);
+    expect(saved.variants.map((variant) => variant.optionValues)).toEqual([
+      ['Red', 'S'],
+      ['Red', 'M'],
+      ['Red', 'L'],
+      ['Blue', 'S'],
+      ['Blue', 'M'],
+      ['Blue', 'L'],
+    ]);
+    expect(saved.variants.filter((variant) => before.includes(variant.id))).toEqual([]);
+  });
+
   it('keeps the planned sku of the new default variant when a removed variant held the product sku', async () => {
     // Arrange: one variant is renamed to the product sku, then every option is removed
     const product = await createMatrix({ sku: 'TD' });
