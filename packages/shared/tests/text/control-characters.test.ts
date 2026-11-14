@@ -28,4 +28,15 @@ describe('hasControlCharacter', () => {
   it('passes Arabic and emoji text', () => {
     expect(hasControlCharacter('حذاء رياضي أحمر 👟')).toBe(false);
   });
+
+  it('finds a C1 control', () => {
+    expect(hasControlCharacter('a\u0085b')).toBe(true);
+    expect(hasControlCharacter('a\u009Bb', { allowLineBreaks: true })).toBe(true);
+  });
+
+  it('counts the Unicode line and paragraph separators as line breaks', () => {
+    expect(hasControlCharacter('a\u2028b')).toBe(true);
+    expect(hasControlCharacter('a\u2029b')).toBe(true);
+    expect(hasControlCharacter('a\u2028b\u2029c', { allowLineBreaks: true })).toBe(false);
+  });
 });
