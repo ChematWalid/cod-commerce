@@ -9,6 +9,7 @@ import {
   TAGS_QUERY_KEY,
 } from './constants';
 import { fetchForStore } from './model/store-bound-fetch';
+import { placeholderWithinStore } from './model/store-placeholder';
 import type { CatalogMediaPreviewDto, CatalogNamedDto, CatalogProductListInput, CatalogProductPageDto } from './dto';
 
 const PRODUCTS_QUERY = /* GraphQL */ `
@@ -60,11 +61,15 @@ function readRequestToken(): string | null {
   }
 }
 
-/** A query of `scope`'s store, keyed by it and waiting while the store is unknown. */
+/**
+ * A query of `scope`'s store, keyed by it and waiting while the store is unknown. While a new key loads it shows the
+ * previous answer only if that answer is of the same store ({@link placeholderWithinStore}).
+ */
 function storeQuery<T>(prefix: readonly string[], scope: StoreScope | null, fetchAnswer: () => Promise<T>, extra = {}) {
   return {
     queryKey: [...prefix, scope?.storeId ?? null, extra],
     queryFn: scope === null ? skipToken : () => fetchForStore(scope.channelToken, readRequestToken, fetchAnswer),
+    placeholderData: placeholderWithinStore(prefix.length, scope?.storeId ?? null)<T>,
     retry: false,
   } as const;
 }
@@ -118,16 +123,19 @@ export function useMediaPreviews(scope: StoreScope | null) {
   );
 }
 
-/** What the server says the caller holds on the active store; empty until it answers, so nothing shows on a guess. */
+/**
+ * What the server says the caller holds on the active store; empty until it answers for this store, so nothing shows
+ * on a guess, not even a kept answer of an earlier key.
+ */
 export function useHeldPermissions(scope: StoreScope | null): ReadonlySet<string> {
-  const { data, isSuccess } = useQuery(
+  const { data, isSuccess, isPlaceholderData } = useQuery(
     storeQuery(EFFECTIVE_PERMISSIONS_QUERY_KEY, scope, () =>
       api.query<{ readonly effectivePermissions: { readonly permissions: readonly string[] } }>(
         EFFECTIVE_PERMISSIONS_QUERY,
       ),
     ),
   );
-  return new Set(isSuccess ? data.effectivePermissions.permissions : []);
+  return new Set(isSuccess && !isPlaceholderData ? data.effectivePermissions.permissions : []);
 }
 
 export const setProductStatus = (id: string, status: ProductStatus): Promise<unknown> =>
