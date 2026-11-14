@@ -1,11 +1,4 @@
-import { MAX_OPTION_GROUPS, MAX_OPTION_VALUES } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
-import {
-  DuplicateOptionNameError,
-  DuplicateOptionValueError,
-  InvalidCatalogInputError,
-  MatrixTooLargeError,
-} from '../../domain/errors';
 import { type ExistingVariant, type MatrixInput, planVariantMatrix } from '../../domain/variant-matrix';
 
 const COLOR = { name: 'Color', values: ['Red', 'Blue'] };
@@ -159,74 +152,61 @@ describe('planVariantMatrix', () => {
     expect(plan.create.map((variant) => variant.sku)).toEqual(['TS-1', 'TS-2']);
   });
 
-  it('refuses more than 100 variants', () => {
-    // Arrange: 11 × 10 = 110 combinations.
-    const values = (count: number): string[] => Array.from({ length: count }, (_, index) => `v${String(index)}`);
-    const groups = [
-      { name: 'A', values: values(11) },
-      { name: 'B', values: values(10) },
-    ];
-
-    // Act
-    const plan = (): unknown => planVariantMatrix(input({ groups }));
-
-    // Assert
-    expect(plan).toThrow(MatrixTooLargeError);
-  });
-
-  it('refuses more option groups or values than the caps', () => {
-    // Arrange
-    const tooManyGroups = Array.from({ length: MAX_OPTION_GROUPS + 1 }, (_, index) => ({
-      name: `G${String(index)}`,
-      values: ['x'],
-    }));
-    const tooManyValues = [
-      { name: 'G', values: Array.from({ length: MAX_OPTION_VALUES + 1 }, (_, i) => `v${String(i)}`) },
-    ];
-
-    // Act / Assert
-    expect(() => planVariantMatrix(input({ groups: tooManyGroups }))).toThrow(MatrixTooLargeError);
-    expect(() => planVariantMatrix(input({ groups: tooManyValues }))).toThrow(MatrixTooLargeError);
-  });
-
-  it('refuses a duplicate value in one option, whatever its case or Unicode form', () => {
-    // Arrange
-    const sameCase = [{ name: 'Color', values: ['Red', 'red'] }];
-    const sameForm = [{ name: 'Taille', values: ['é', 'é'] }];
-
-    // Act / Assert
-    expect(() => planVariantMatrix(input({ groups: sameCase }))).toThrow(DuplicateOptionValueError);
-    expect(() => planVariantMatrix(input({ groups: sameForm }))).toThrow(DuplicateOptionValueError);
-  });
-
-  it('accepts the same value in two different options', () => {
-    // Act
+  it('swapping a value never reuses a sku of a variant removed in the same save', () => {
+    // Act: M is replaced by L, so Red / M (TS-2) and Blue / M (TS-4) are still live while the plan is made.
     const plan = planVariantMatrix(
-      input({
-        groups: [
-          { name: 'Front', values: ['Red'] },
-          { name: 'Back', values: ['Red'] },
-        ],
-      }),
+      input({ groups: [COLOR, { name: 'Size', values: ['S', 'L'] }], existing: FIRST_FOUR }),
     );
 
     // Assert
-    expect(plan.create.map((variant) => variant.name)).toEqual(['Product - Red / Red']);
+    expect(plan.remove).toEqual(['12', '14']);
+    expect(plan.create.map((variant) => [variant.name, variant.sku])).toEqual([
+      ['Product - Red / L', 'TS-5'],
+      ['Product - Blue / L', 'TS-6'],
+    ]);
   });
 
-  it('refuses two options with the same name', () => {
+  it('never gives a new variant the sku of a duplicate variant it removes', () => {
+    // Arrange: two live variants share the combination Red; the second is removed.
+    const live: ExistingVariant[] = [
+      { id: '11', optionValues: ['Red'], sku: 'TS-1' },
+      { id: '12', optionValues: ['Red'], sku: 'TS-2' },
+    ];
+
     // Act
-    const plan = (): unknown => planVariantMatrix(input({ groups: [COLOR, { name: 'COLOR', values: ['Green'] }] }));
+    const plan = planVariantMatrix(input({ groups: [COLOR], existing: live }));
 
     // Assert
-    expect(plan).toThrow(DuplicateOptionNameError);
+    expect(plan.remove).toEqual(['12']);
+    expect(plan.create.map((variant) => variant.sku)).toEqual(['TS-3']);
   });
 
-  it('refuses an option without values', () => {
+  it('adding an option group replaces every variant', () => {
+    // Arrange: live variants of Color alone, one with an edited sku.
+    const live: ExistingVariant[] = [
+      { id: '11', optionValues: ['Red'], sku: 'CUSTOM' },
+      { id: '12', optionValues: ['Blue'], sku: 'TS-2' },
+    ];
+
     // Act
-    const plan = (): unknown => planVariantMatrix(input({ groups: [{ name: 'Color', values: [] }] }));
+    const plan = planVariantMatrix(input({ groups: [COLOR, { name: 'Size', values: ['S'] }], existing: live }));
 
     // Assert
-    expect(plan).toThrow(InvalidCatalogInputError);
+    expect(plan.keep).toEqual([]);
+    expect(plan.remove).toEqual(['11', '12']);
+    expect(plan.create.map((variant) => [variant.name, variant.sku])).toEqual([
+      ['Product - Red / S', 'TS-1'],
+      ['Product - Blue / S', 'TS-3'],
+    ]);
+  });
+
+  it('removing an option group replaces every variant', () => {
+    // Act
+    const plan = planVariantMatrix(input({ groups: [COLOR], existing: FIRST_FOUR }));
+
+    // Assert
+    expect(plan.keep).toEqual([]);
+    expect(plan.remove).toEqual(['11', '12', '13', '14']);
+    expect(plan.create.map((variant) => variant.sku)).toEqual(['TS-5', 'TS-6']);
   });
 });

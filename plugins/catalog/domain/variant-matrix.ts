@@ -1,10 +1,11 @@
-import { MAX_OPTION_GROUPS, MAX_OPTION_VALUES, MAX_VARIANTS } from '@cod/shared';
+import { MAX_OPTION_GROUPS, MAX_OPTION_VALUES, MAX_VARIANTS, OPTION_NAME_MAX, OPTION_VALUE_MAX } from '@cod/shared';
 import {
   DuplicateOptionNameError,
   DuplicateOptionValueError,
   InvalidCatalogInputError,
   MatrixTooLargeError,
 } from './errors';
+import { singleLineText } from './single-line-text';
 import { skuSequence, variantName } from './sku';
 
 /** One option of a product, e.g. Color with Red and Blue, values in display order. */
@@ -52,13 +53,21 @@ export interface MatrixPlan {
   readonly remove: readonly string[];
 }
 
-/** How two names or values compare: without case and Unicode form, so "Red", "red" and NFD forms are one. */
-const comparable = (text: string): string => text.normalize('NFC').toLowerCase();
+/** How two names or values compare: without outer spaces, case and Unicode form, so "Red ", "red" and NFD are one. */
+const comparable = (text: string): string => text.trim().normalize('NFC').toLowerCase();
 
 const combinationKey = (optionValues: readonly string[]): string => JSON.stringify(optionValues.map(comparable));
 
 function hasRepeat(texts: readonly string[]): boolean {
   return new Set(texts.map(comparable)).size !== texts.length;
+}
+
+/** The options trimmed; a blank, over-long or multi-line name or value is refused. */
+function trimmedGroups(groups: readonly OptionGroupSpec[]): readonly OptionGroupSpec[] {
+  return groups.map((group) => ({
+    name: singleLineText(group.name, OPTION_NAME_MAX),
+    values: group.values.map((value) => singleLineText(value, OPTION_VALUE_MAX)),
+  }));
 }
 
 /** Refuses options over the caps of D2124, without values, or with a repeated name or value. */
@@ -101,32 +110,41 @@ function byCombination(existing: readonly ExistingVariant[]): ReadonlyMap<string
   return variants;
 }
 
-/** SKUs of the new variants: the product SKU itself for the default variant, else the next free `<sku>-n`. */
-function newSkus(input: MatrixInput, kept: readonly ExistingVariant[], count: number): readonly string[] {
-  if (input.groups.length === 0) {
+/**
+ * SKUs of the new variants: the product SKU itself for the default variant, else the next free `<sku>-n`. Every
+ * live variant's SKU is taken, those removed in this save too: they stay live until the save commits, and an old
+ * order or label naming one must never point at a different combination.
+ */
+function newSkus(input: MatrixInput, groupCount: number, count: number): readonly string[] {
+  if (groupCount === 0) {
     return Array.from({ length: count }, () => input.baseSku ?? '');
   }
-  return skuSequence(input.baseSku, new Set(kept.map((variant) => variant.sku)), count);
+  return skuSequence(input.baseSku, new Set(input.existing.map((variant) => variant.sku)), count);
 }
 
 /**
  * Plans the variants of a product from its options (brief AC1, D2124): one variant per combination in matrix order
  * (groups, then values), named `"<Product> - <v1> / <v2>"`. A live variant whose combination remains is kept with
  * its price, SKU and flags, so editing options never resets merchant edits; new combinations get the product price
- * and the next free SKUs; variants of removed combinations are removed. Without options there is one default
- * variant carrying the product SKU.
+ * and the next free SKUs (never one a live variant holds, removed ones included); variants of removed combinations
+ * are removed. Without options there is one default variant carrying the product SKU. Names and values are trimmed.
+ *
+ * A variant is matched by its whole ordered combination, so adding or removing an option group replaces every
+ * variant: none keeps its price, SKU or flags (Task 9 deviation, D2124). The editor warns before such a save.
  *
  * @throws {MatrixTooLargeError} over 3 groups, 20 values per group or 100 variants.
  * @throws {DuplicateOptionNameError} / {DuplicateOptionValueError} on a repeat, ignoring case and Unicode form.
- * @throws {InvalidCatalogInputError} for an option without values.
+ * @throws {InvalidCatalogInputError} for an option without values, a blank or over-long name or value, or a
+ * generated SKU longer than `SKU_MAX`.
  */
 export function planVariantMatrix(input: MatrixInput): MatrixPlan {
-  assertValidGroups(input.groups);
+  const groups = trimmedGroups(input.groups);
+  assertValidGroups(groups);
   const live = byCombination(input.existing);
   const kept: ExistingVariant[] = [];
   const keep: KeptVariant[] = [];
   const missing: (readonly string[])[] = [];
-  for (const optionValues of combinationsOf(input.groups)) {
+  for (const optionValues of combinationsOf(groups)) {
     const variant = live.get(combinationKey(optionValues));
     if (variant === undefined) {
       missing.push(optionValues);
@@ -135,7 +153,7 @@ export function planVariantMatrix(input: MatrixInput): MatrixPlan {
     kept.push(variant);
     keep.push({ id: variant.id, name: variantName(input.productName, optionValues), optionValues });
   }
-  const skus = newSkus(input, kept, missing.length);
+  const skus = newSkus(input, groups.length, missing.length);
   const create = missing.map((optionValues, index) => ({
     name: variantName(input.productName, optionValues),
     sku: skus[index] ?? '',

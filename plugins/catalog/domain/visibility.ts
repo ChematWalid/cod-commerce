@@ -1,10 +1,8 @@
-import type { ProductStatus } from '@cod/shared';
-import type { SOLD_OUT_BEHAVIORS, VISIBILITY_CONTEXTS } from './constants';
+import type { ProductStatus, SoldOutBehavior } from '@cod/shared';
+import type { VISIBILITY_CONTEXTS } from './constants';
 
 /** One of the {@link VISIBILITY_CONTEXTS}. */
 export type VisibilityContext = (typeof VISIBILITY_CONTEXTS)[number];
-/** One of the {@link SOLD_OUT_BEHAVIORS}. */
-export type SoldOutBehavior = (typeof SOLD_OUT_BEHAVIORS)[number];
 
 /** What visibility needs to know about a product. */
 export interface VisibilitySubject {

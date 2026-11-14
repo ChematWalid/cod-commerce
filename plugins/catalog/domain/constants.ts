@@ -4,13 +4,6 @@
  */
 export const VISIBILITY_CONTEXTS = ['listing', 'productPage', 'landingPage', 'admin'] as const;
 
-/**
- * What a store does with sold-out products: keep showing them flagged, or hide them from lists and product pages.
- * Mirrors tenancy's `SOLD_OUT_BEHAVIORS`, which the catalog domain may not import (§3a.2); the adapter reading the
- * store maps one onto the other.
- */
-export const SOLD_OUT_BEHAVIORS = ['keep', 'hide'] as const;
-
 /** The number of the first variant SKU: `<sku>-1`. */
 export const FIRST_SKU_NUMBER = 1;
 

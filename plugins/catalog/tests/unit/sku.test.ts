@@ -1,4 +1,6 @@
+import { SKU_MAX } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
+import { InvalidCatalogInputError } from '../../domain/errors';
 import { skuSequence, variantName } from '../../domain/sku';
 
 describe('skuSequence', () => {
@@ -24,6 +26,28 @@ describe('skuSequence', () => {
 
     // Assert
     expect(skus).toEqual(['', '']);
+  });
+
+  it('accepts a sku of exactly SKU_MAX characters', () => {
+    // Arrange
+    const baseSku = 'S'.repeat(SKU_MAX - 2);
+
+    // Act
+    const skus = skuSequence(baseSku, new Set(), 1);
+
+    // Assert
+    expect(skus).toEqual([`${baseSku}-1`]);
+  });
+
+  it('refuses when a generated sku would be longer than SKU_MAX', () => {
+    // Arrange: `-10` makes the tenth sku one character too long.
+    const baseSku = 'S'.repeat(SKU_MAX - 2);
+
+    // Act
+    const skus = (): unknown => skuSequence(baseSku, new Set(), 10);
+
+    // Assert
+    expect(skus).toThrow(InvalidCatalogInputError);
   });
 
   it('gives nothing for a count of zero', () => {
