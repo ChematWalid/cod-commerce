@@ -26,7 +26,7 @@ export interface PluginCatalogueInput {
   readonly dynamicIds?: readonly string[];
   /**
    * Dotted literals of the dashboard that are not catalogue ids, such as nav leaf ids and server codes. A dotted
-   * template that is no id either (`` `logo.${ext}` ``) is declared by its text, or skipped when one entry has its shape.
+   * template that is no id either (`` `logo.${ext}` ``) is declared by its exact text; an entry's shape never skips one.
    */
   readonly nonMessageLiterals?: readonly string[];
 }
