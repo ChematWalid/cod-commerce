@@ -158,7 +158,7 @@ describe('catalog product editor', () => {
     await expect(page.getByRole('alert').filter({ hasText: 'Product not found.' }).waitFor()).resolves.toBeUndefined();
     await expect(byTestId(page, EDITOR_SAVE_TEST_ID).count()).resolves.toBe(0);
     await expect(byTestId(page, EDITOR_TITLE_TEST_ID).count()).resolves.toBe(0);
-    await assertNoPageError(page);
+    await assertNoPageError(page, 'Product not found.');
   });
 
   it('the editor renders right-to-left in Arabic', async () => {
