@@ -15,7 +15,7 @@ const namesOf = (fields: readonly CustomFieldConfig[]): string[] => fields.map((
 const fieldOf = (fields: readonly CustomFieldConfig[], name: string) => fields.find((field) => field.name === name);
 
 describe('configureCatalogCustomFields', () => {
-  it('adds the product, variant and option fields of D2100', () => {
+  it('adds the product, variant and option fields of D2100 and the variant defaults of Task 11', () => {
     // Act
     const fields = configured();
 
@@ -24,6 +24,8 @@ describe('configureCatalogCustomFields', () => {
       'status',
       'type',
       'oldPrice',
+      'defaultPrice',
+      'defaultSku',
       'brandId',
       'weight',
       'width',
@@ -80,7 +82,9 @@ describe('configureCatalogCustomFields', () => {
     // Arrange
     const { Product, ProductVariant } = configured();
     const merchantOnly = [
-      ...['status', 'type', 'brandId', 'weight', 'width', 'height', 'length'].map((name) => fieldOf(Product, name)),
+      ...['status', 'type', 'defaultPrice', 'defaultSku', 'brandId', 'weight', 'width', 'height', 'length'].map(
+        (name) => fieldOf(Product, name),
+      ),
       ...['isHidden', 'barcode'].map((name) => fieldOf(ProductVariant, name)),
     ];
 

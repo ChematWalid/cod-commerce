@@ -23,11 +23,13 @@ import { SnowflakeCatalogIdGenerator } from '../../infrastructure/snowflake-id.g
 import { TypeOrmBrandRepository } from '../../infrastructure/typeorm-brand.repository';
 import { TypeOrmHighlightRepository } from '../../infrastructure/typeorm-highlight.repository';
 import { TypeOrmMediaRepository } from '../../infrastructure/typeorm-media.repository';
+import { TypeOrmProductCollectionRepository } from '../../infrastructure/typeorm-product-collection.repository';
 import { TypeOrmProductSettingsRepository } from '../../infrastructure/typeorm-product-settings.repository';
 import { TypeOrmTagRepository } from '../../infrastructure/typeorm-tag.repository';
 import { describeBrandRepositoryContract } from '../contract/brand-repository.contract';
 import { describeHighlightRepositoryContract } from '../contract/highlight-repository.contract';
 import { describeMediaRepositoryContract } from '../contract/media-repository.contract';
+import { describeProductCollectionRepositoryContract } from '../contract/product-collection-repository.contract';
 import { describeProductSettingsRepositoryContract } from '../contract/product-settings-repository.contract';
 import type { MakeHarness } from '../contract/repository-harness';
 import { describeTagRepositoryContract } from '../contract/tag-repository.contract';
@@ -73,6 +75,10 @@ const ids = () => new SnowflakeCatalogIdGenerator(server.app.get<SnowflakeIdGene
 describeBrandRepositoryContract(
   'TypeOrmBrandRepository',
   harness((factory) => new TypeOrmBrandRepository(factory)),
+);
+describeProductCollectionRepositoryContract(
+  'TypeOrmProductCollectionRepository',
+  harness((factory) => new TypeOrmProductCollectionRepository(factory, ids())),
 );
 describeTagRepositoryContract(
   'TypeOrmTagRepository',

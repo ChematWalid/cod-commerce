@@ -1,0 +1,152 @@
+import { isSnowflake, type Snowflake } from '@cod/shared';
+import { type CoreId, parseCoreId } from '../domain/core-id';
+import {
+  BrandNotFoundError,
+  HighlightNotFoundError,
+  MediaNotFoundError,
+  ProductNotFoundError,
+  TagNotFoundError,
+} from '../domain/errors';
+import { assertHighlightCount } from '../domain/highlights';
+import type { OperationContext } from '../domain/ports/operation-context';
+import type { StoreScope } from '../domain/store-scope';
+import type { ProductPorts } from './catalog-ports';
+
+/** The ids a product body names, as sent; `undefined` means "not sent", `null` clears a single id. */
+export interface ReferenceInput {
+  readonly brandId?: string | null;
+  readonly tagIds?: readonly string[];
+  readonly highlightIds?: readonly string[];
+  readonly collectionIds?: readonly string[];
+  readonly featuredAssetId?: string | null;
+  readonly assetIds?: readonly string[];
+  /** Featured images of edited variants; checked like product images. */
+  readonly variantAssetIds?: readonly string[];
+}
+
+/** The same ids once each is known to belong to the caller's store (D2134, D2135); `undefined` stays "not sent". */
+export interface CheckedReferences {
+  readonly brandId?: Snowflake | null;
+  readonly tagIds?: readonly Snowflake[];
+  readonly highlightIds?: readonly Snowflake[];
+  readonly collectionIds?: readonly CoreId[];
+  readonly featuredAssetId?: CoreId | null;
+  readonly assetIds?: readonly CoreId[];
+}
+
+type NotFound = new () => Error;
+
+/** Parses snowflake ids; a malformed one answers not found, like a foreign one (D2136). */
+function snowflakesOf(ids: readonly string[], notFound: NotFound): Snowflake[] {
+  return ids.map((id) => {
+    if (!isSnowflake(id)) throw new notFound();
+    return id;
+  });
+}
+
+/** Parses Vendure ids; a malformed one answers not found (D2136). */
+export function coreIdsOf(ids: readonly string[], notFound: NotFound): CoreId[] {
+  return ids.map((id) => {
+    const parsed = parseCoreId(id);
+    if (parsed === undefined) throw new notFound();
+    return parsed;
+  });
+}
+
+/** True when every id of `wanted` is among `found`. */
+const allFound = (wanted: readonly string[], found: readonly string[]): boolean => {
+  const present = new Set(found);
+  return wanted.every((id) => present.has(id));
+};
+
+/**
+ * Checks that every id a product body names is the caller's: brands, tags and highlights of the active store,
+ * collections of its channel, images of the media the caller may use (the active store's until the team check of
+ * D2132 is registered). Another business's id, the business's other store's id and a malformed id all answer "not
+ * found" with the entity's code; nothing is written before every id passed.
+ */
+export class ProductReferenceCheck {
+  constructor(private readonly ports: ProductPorts) {}
+
+  async check(ctx: OperationContext, scope: StoreScope, input: ReferenceInput): Promise<CheckedReferences> {
+    const [brandId, tagIds, highlightIds, collectionIds, assets] = await Promise.all([
+      this.brand(ctx, scope, input.brandId),
+      this.tags(ctx, scope, input.tagIds),
+      this.highlights(ctx, scope, input.highlightIds),
+      this.collections(ctx, input.collectionIds),
+      this.assets(ctx, scope, input),
+    ]);
+    return { brandId, tagIds, highlightIds, collectionIds, ...assets };
+  }
+
+  private async brand(ctx: OperationContext, scope: StoreScope, id: string | null | undefined) {
+    if (id === undefined || id === null) return id;
+    const [brandId] = snowflakesOf([id], BrandNotFoundError);
+    if (brandId === undefined || (await this.ports.brands.findById(ctx, scope, brandId)) === undefined) {
+      throw new BrandNotFoundError();
+    }
+    return brandId;
+  }
+
+  private async tags(ctx: OperationContext, scope: StoreScope, ids: readonly string[] | undefined) {
+    if (ids === undefined) return undefined;
+    const tagIds = snowflakesOf(ids, TagNotFoundError);
+    const found = tagIds.length === 0 ? [] : await this.ports.tags.findByIds(ctx, scope, tagIds);
+    if (
+      !allFound(
+        tagIds,
+        found.map((tag) => tag.id),
+      )
+    )
+      throw new TagNotFoundError();
+    return tagIds;
+  }
+
+  private async highlights(ctx: OperationContext, scope: StoreScope, ids: readonly string[] | undefined) {
+    if (ids === undefined) return undefined;
+    assertHighlightCount(ids);
+    const highlightIds = snowflakesOf(ids, HighlightNotFoundError);
+    const found = highlightIds.length === 0 ? [] : await this.ports.highlights.findByIds(ctx, scope, highlightIds);
+    if (
+      !allFound(
+        highlightIds,
+        found.map((highlight) => highlight.id),
+      )
+    )
+      throw new HighlightNotFoundError();
+    return highlightIds;
+  }
+
+  private async collections(ctx: OperationContext, ids: readonly string[] | undefined) {
+    if (ids === undefined) return undefined;
+    const collectionIds = coreIdsOf(ids, ProductNotFoundError);
+    const found = collectionIds.length === 0 ? [] : await this.ports.products.existingCollections(ctx, collectionIds);
+    if (!allFound(collectionIds, found)) throw new ProductNotFoundError();
+    return collectionIds;
+  }
+
+  private async assets(
+    ctx: OperationContext,
+    scope: StoreScope,
+    input: ReferenceInput,
+  ): Promise<Pick<CheckedReferences, 'featuredAssetId' | 'assetIds'>> {
+    const featured = input.featuredAssetId;
+    const named = [...(featured === undefined || featured === null ? [] : [featured]), ...(input.assetIds ?? [])];
+    const ids = coreIdsOf([...named, ...(input.variantAssetIds ?? [])], MediaNotFoundError);
+    if (ids.length > 0) {
+      const items = await this.ports.media.findByAssetIds(ctx, scope, [scope.storeId], ids);
+      if (
+        !allFound(
+          ids,
+          items.map((item) => item.assetId),
+        )
+      )
+        throw new MediaNotFoundError();
+    }
+    return {
+      featuredAssetId:
+        featured === undefined || featured === null ? featured : coreIdsOf([featured], MediaNotFoundError)[0],
+      assetIds: input.assetIds === undefined ? undefined : coreIdsOf(input.assetIds, MediaNotFoundError),
+    };
+  }
+}

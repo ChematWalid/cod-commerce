@@ -25,6 +25,10 @@ export class Catalog1794900000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX "IDX_fe967f00bea9de5a2757e7dcba" ON "catalog_product_tag" ("businessId") `, undefined);
         await queryRunner.query(`CREATE INDEX "IDX_e4318d225566fd6ff57365c29a" ON "catalog_product_tag" ("businessId", "storeId", "tagId") `, undefined);
         await queryRunner.query(`CREATE UNIQUE INDEX "IDX_b767810264361e6990e022c356" ON "catalog_product_tag" ("businessId", "productId", "tagId") `, undefined);
+        await queryRunner.query(`CREATE TABLE "catalog_product_collection" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "productId" integer NOT NULL, "collectionId" integer NOT NULL, CONSTRAINT "PK_608b308cb209acd4c6fe2faf2f1" PRIMARY KEY ("id"))`, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_6b8b83ccdb3940ba5ab4364492" ON "catalog_product_collection" ("businessId") `, undefined);
+        await queryRunner.query(`CREATE INDEX "IDX_ef4f5a403a39ee499ef0006049" ON "catalog_product_collection" ("businessId", "storeId", "collectionId") `, undefined);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_4a8342bb3234be00f009d9e940" ON "catalog_product_collection" ("businessId", "productId", "collectionId") `, undefined);
         await queryRunner.query(`CREATE TABLE "catalog_tag" ("businessId" bigint NOT NULL, "storeId" bigint, "id" bigint NOT NULL, "name" character varying(50) NOT NULL, "nameKey" character varying(200) NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL, "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_0f4b53b5f9f7db013e8ff5d1b43" PRIMARY KEY ("id"))`, undefined);
         await queryRunner.query(`CREATE INDEX "IDX_347740e2d521823f3a65a5eef4" ON "catalog_tag" ("businessId") `, undefined);
         await queryRunner.query(`CREATE INDEX "IDX_c3e14c05079ad2a7ebf236ffeb" ON "catalog_tag" ("businessId", "storeId", "createdAt", "id") `, undefined);
@@ -34,6 +38,8 @@ export class Catalog1794900000000 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsStatus" character varying(16) NOT NULL DEFAULT 'draft'`, undefined);
         await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsType" character varying(16) NOT NULL DEFAULT 'physical'`, undefined);
         await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsOldprice" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsDefaultprice" integer`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsDefaultsku" character varying(64)`, undefined);
         await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsBrandid" character varying(20)`, undefined);
         await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsWeight" integer`, undefined);
         await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsWidth" integer`, undefined);
@@ -65,6 +71,8 @@ export class Catalog1794900000000 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsWidth"`, undefined);
         await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsWeight"`, undefined);
         await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsBrandid"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsDefaultsku"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsDefaultprice"`, undefined);
         await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsOldprice"`, undefined);
         await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsType"`, undefined);
         await queryRunner.query(`ALTER TABLE "product" DROP COLUMN "customFieldsStatus"`, undefined);
@@ -77,6 +85,10 @@ export class Catalog1794900000000 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_b767810264361e6990e022c356"`, undefined);
         await queryRunner.query(`DROP INDEX "public"."IDX_e4318d225566fd6ff57365c29a"`, undefined);
         await queryRunner.query(`DROP INDEX "public"."IDX_fe967f00bea9de5a2757e7dcba"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4a8342bb3234be00f009d9e940"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_ef4f5a403a39ee499ef0006049"`, undefined);
+        await queryRunner.query(`DROP INDEX "public"."IDX_6b8b83ccdb3940ba5ab4364492"`, undefined);
+        await queryRunner.query(`DROP TABLE "catalog_product_collection"`, undefined);
         await queryRunner.query(`DROP TABLE "catalog_product_tag"`, undefined);
         await queryRunner.query(`DROP INDEX "public"."IDX_55038a56dd99ade541d24b9031"`, undefined);
         await queryRunner.query(`DROP INDEX "public"."IDX_03b51e1a1c5ea754eebe2e7e76"`, undefined);

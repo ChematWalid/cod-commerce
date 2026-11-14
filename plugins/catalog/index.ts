@@ -2,3 +2,6 @@
 // infrastructure/, its root *.plugin.ts file or its tests/; of the apps only apps/server does (frontends are API
 // clients, ADR 0017). api/, application/, domain/ and dashboard/ never do. The handoff lists what later sessions use.
 export { CatalogPlugin } from './catalog.plugin';
+export { CatalogProductQueries } from './infrastructure/catalog-product-queries';
+export type { ProductView } from './application/product-view';
+export type { ProductViewPage } from './application/list-products.service';

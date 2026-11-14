@@ -6,6 +6,7 @@ import {
   META_TITLE_MAX,
   PRODUCT_STATUSES,
   PRODUCT_TYPES,
+  SKU_MAX,
 } from '@cod/shared';
 import { type CustomFieldConfig, LanguageCode, type RuntimeVendureConfig } from '@vendure/core';
 import {
@@ -77,6 +78,10 @@ function productFields(): CustomFieldConfig[] {
     kindField('status', DEFAULT_PRODUCT_STATUS, PRODUCT_STATUSES, label('Status', 'الحالة')),
     kindField('type', DEFAULT_PRODUCT_TYPE, PRODUCT_TYPES, label('Type', 'النوع')),
     optionalAmount('oldPrice', 'Old price', 'السعر القديم', true),
+    // The price and SKU new variants take when the product has options (D2124, Task 11); without options the
+    // default variant holds them.
+    optionalAmount('defaultPrice', 'Default variant price', 'السعر الافتراضي للمتغيرات', false),
+    { ...optionalText('defaultSku', SKU_MAX, 'Default SKU', 'رمز المنتج الافتراضي'), public: false },
     // A snowflake of `catalog_brand` as text: no custom field type holds a bigint (D2100, D2140).
     {
       name: 'brandId',

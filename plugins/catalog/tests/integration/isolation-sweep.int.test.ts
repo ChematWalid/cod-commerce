@@ -1,0 +1,179 @@
+import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
+import { CATALOG_ERROR_CODES } from '@cod/shared';
+import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
+import gql from 'graphql-tag';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { catalogSuite, rawId } from './catalog-kit';
+import {
+  type OperationEntry,
+  OPERATION_REGISTRY,
+  type RouteEntry,
+  ROUTE_REGISTRY,
+  type TargetIds,
+} from './endpoint-registry';
+
+const suite = catalogSuite(1028, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+const NOT_FOUND = CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND;
+const MALFORMED_IDS = ['abc', '-1', '1.5', '99999999999999999999', ''];
+/** Text no answer may carry: SQL, entity names, stacks (D2136). */
+const LEAKS = [/select /i, /QueryFailedError/, /ProductVariant\b/, /EntityNotFound/];
+const NO_CODE = 'NO_CODE';
+
+interface Outcome {
+  readonly code: string | undefined;
+  readonly data: unknown;
+  readonly text: string;
+}
+
+interface ClientErrorShape {
+  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
+}
+
+async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Outcome> {
+  try {
+    const data = await suite.kit.client.query<Record<string, unknown>>(gql(entry.document), entry.variables(ids));
+    return { code: undefined, data: data[entry.operation], text: JSON.stringify(data) };
+  } catch (error: unknown) {
+    const { response } = error as ClientErrorShape;
+    return {
+      code: response?.errors?.[0]?.extensions?.code ?? NO_CODE,
+      data: null,
+      text: JSON.stringify(response ?? null),
+    };
+  }
+}
+
+/** A's own outcome must not hold B's product: null, not found, or an answer about A's store only. */
+function expectForeign(
+  entry: { foreign: string },
+  outcome: { code: string | undefined; data: unknown; text: string },
+  ids: TargetIds,
+) {
+  if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
+  if (entry.foreign === 'not-found') expect(outcome.code).toBe(NOT_FOUND);
+  if (entry.foreign === 'own-only') expect(outcome.text).not.toContain(`"${ids.productId}"`);
+  for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
+}
+
+describe('catalog isolation sweep (two businesses)', () => {
+  let idsOfB: TargetIds;
+  let restIdsOfB: TargetIds;
+
+  beforeAll(async () => {
+    const { b } = suite.fixtures;
+    const collectionId = await suite.kit.createCollection(b.stores[0]);
+    await suite.kit.asOwner(b);
+    const product = await suite.kit.createProduct({
+      title: 'B only',
+      slug: 'synthetic-target-slug',
+      collectionIds: [`T_${collectionId}`],
+      optionGroups: [{ name: 'Size', values: ['S'] }],
+    });
+    idsOfB = { productId: product.id, variantId: product.variants[0]?.id ?? '', collectionId: `T_${collectionId}` };
+    restIdsOfB = { productId: rawId(product.id), variantId: rawId(idsOfB.variantId), collectionId };
+  });
+
+  it.each(OPERATION_REGISTRY)("$operation as A against B's ids answers $foreign", async (entry) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const outcome = await callOperation(entry, idsOfB);
+
+    // Assert
+    expectForeign(entry, outcome, idsOfB);
+  });
+
+  it.each(ROUTE_REGISTRY)("$method $route as A against B's ids answers $foreign", async (entry: RouteEntry) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const answer = await suite.kit.rest(entry.method, entry.url(restIdsOfB), entry.body?.(restIdsOfB));
+    const code = (answer.body as { code?: string } | null)?.code;
+
+    // Assert
+    expectForeign(
+      entry,
+      { code: answer.status < 400 ? undefined : code, data: answer.body, text: answer.text },
+      restIdsOfB,
+    );
+    if (entry.foreign === 'not-found') expect(answer.status).toBe(404);
+  });
+
+  it.each(
+    OPERATION_REGISTRY.filter((entry) => entry.byId).flatMap((entry) =>
+      MALFORMED_IDS.map((id) => [entry.operation, id, entry] as const),
+    ),
+  )('%s answers not found for the malformed id "%s"', async (_operation, id, entry) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const outcome = await callOperation(entry, { ...idsOfB, productId: id });
+
+    // Assert
+    expectForeign(entry, outcome, idsOfB);
+  });
+
+  it.each(
+    ROUTE_REGISTRY.filter((entry) => entry.route.includes(':id')).flatMap((entry) =>
+      MALFORMED_IDS.filter((id) => id !== '').map((id) => [entry.method, entry.route, id, entry] as const),
+    ),
+  )('%s %s answers 404 for the malformed id "%s"', async (_method, _route, id, entry) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const answer = await suite.kit.rest(
+      entry.method,
+      entry.url({ ...restIdsOfB, productId: encodeURIComponent(id) }),
+      entry.body?.(restIdsOfB),
+    );
+
+    // Assert
+    expect(answer.status).toBe(404);
+    for (const leak of LEAKS) expect(answer.text).not.toMatch(leak);
+  });
+
+  it.each([
+    ["B's channel", (): string => suite.fixtures.b.stores[0].channelToken, 'FORBIDDEN'],
+    ['the default channel', (): string => PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN, 'FORBIDDEN'],
+    ['an unknown token', (): string => 'synthetic-unknown-channel-token', 'CHANNEL_NOT_FOUND'],
+  ] as const)('refuses A on %s', async (_name, token, code) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    suite.kit.client.setChannelToken(token());
+
+    // Act
+    const outcome = await callOperation(OPERATION_REGISTRY[0] as OperationEntry, idsOfB);
+
+    // Assert
+    expect(outcome.code).toBe(code);
+  });
+
+  it('serves B its own product (positive control)', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.b);
+
+    // Act
+    const outcome = await callOperation(OPERATION_REGISTRY[1] as OperationEntry, idsOfB);
+
+    // Assert
+    expect(outcome.data).toMatchObject({ id: idsOfB.productId });
+  });
+
+  it("lists only A's products in its other store (store isolation inside one business)", async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    await suite.kit.asOwner(a);
+    const inFirst = await suite.kit.createProduct({ title: 'First store only' });
+    await suite.kit.asOwner(a, a.stores[1]);
+
+    // Act
+    const outcome = await callOperation(OPERATION_REGISTRY[1] as OperationEntry, { ...idsOfB, productId: inFirst.id });
+
+    // Assert
+    expect(outcome).toMatchObject({ code: undefined, data: null });
+  });
+});

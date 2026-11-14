@@ -17,8 +17,17 @@ fields, brands, tags, highlights, product settings and a per-business media libr
 - shared contracts (types, event names, zod schemas, constants, page and block ids) live in
   `packages/shared/src/catalog/`, not here.
 
-The entry exports only `CatalogPlugin` for now; later tasks add the services that P2.S2-S5 and P3 consume, and the
-session handoff lists them.
+The entry exports `CatalogPlugin` and the read facade `CatalogProductQueries` (with its `ProductView` and
+`ProductViewPage` types): the products of the request's active store, the store taken from the resolved tenant
+(D2142). Later tasks add more services; the session handoff lists what P2.S2-S5 and P3 may use.
+
+## API (Task 11)
+
+GraphQL `catalogProducts`, `catalogProduct`, `catalogSlugAvailability`, `createCatalogProduct`,
+`updateCatalogProduct`, `setCatalogProductStatus`, `deleteCatalogProduct`; REST `GET /catalog/products`,
+`GET /catalog/products/slug-availability`, `GET|PATCH|DELETE /catalog/products/:id`, `POST /catalog/products`,
+`POST /catalog/products/:id/status`. Both run the same `ProductActions`; the tenant comes from the session and
+the `vendure-token` channel, never from the path (D2102).
 
 ## Registration (D2137)
 

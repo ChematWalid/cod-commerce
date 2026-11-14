@@ -1,6 +1,7 @@
 import { BrandEntity } from './brand.entity';
 import { HighlightEntity } from './highlight.entity';
 import { MediaEntity } from './media.entity';
+import { ProductCollectionEntity } from './product-collection.entity';
 import { ProductHighlightEntity } from './product-highlight.entity';
 import { ProductSettingsEntity } from './product-settings.entity';
 import { ProductTagEntity } from './product-tag.entity';
@@ -11,6 +12,7 @@ export const CATALOG_ENTITIES = [
   BrandEntity,
   TagEntity,
   ProductTagEntity,
+  ProductCollectionEntity,
   HighlightEntity,
   ProductHighlightEntity,
   ProductSettingsEntity,
