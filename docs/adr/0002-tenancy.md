@@ -98,6 +98,15 @@ Accepted (2026-11-09, standing user authorization for P1). Sharpens the Decision
 - **Lifecycle hooks (D56).** Tenancy exposes `TenantLifecycleRegistry` (`businessProvisioned`, `storeCreated`), awaited inside the provisioning or store transaction, so the RBAC plugin seeds roles atomically without tenancy importing it.
 - **Existing businesses (D57).** No SQL data migration: `runMigrate` converges every business idempotently, adopting `ownerRoleId` as Owner's `all` binding with the same Vendure Role id, so sessions and user rows stay valid.
 
+## Addendum: tenant status on every handler (P2.S1, 2026-11-14)
+
+Accepted (2026-11-14, standing user authorization for P2). Sharpens Isolation mechanism §2; audit finding TEN-3 (#108); full reasoning: `docs/roadmap/P2-decisions.md` (D2117).
+
+- **Where status is checked today.** Store archive and business suspension are enforced by `TenantGuard` on every `@TenantScoped()` handler, not by a global guard. That covers every handler a merchant can reach, because no catalogue key carries a stock Vendure permission (`REVIEWED_STOCK_ENGINE_GRANTS` is empty) and plugin handlers are tenant-scoped.
+- **When the global guard becomes mandatory.** The session that adds the first reviewed stock grant also adds a global tenant status guard (option A, an `APP_GUARD` that runs after Vendure's `AuthGuard`) in the same PR, so a suspended business or archived store cannot reach a stock handler through that grant.
+- **Gate.** `apps/server/tests/unit/tenant-status-guard.test.ts` fails as soon as any catalogue key projects onto a stock `Permission`, and its message points here.
+- **Proof of the scoped path.** The catalog plugin's integration suite checks that its handlers refuse an archived store (`plugins/catalog/tests/integration/tenant-status.int.test.ts`).
+
 ## Consequences
 
 ### Positive

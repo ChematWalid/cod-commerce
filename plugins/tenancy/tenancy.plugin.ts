@@ -41,6 +41,7 @@ import {
 } from './application/tokens';
 import type { AssetAccessPort } from './domain/ports/asset-access.port';
 import { BusinessStoreDirectory } from './domain/ports/business-store-directory.port';
+import { StoreSettingsReader } from './domain/ports/store-settings-reader.port';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { MemberAccountPort } from './domain/ports/member-account.port';
@@ -55,6 +56,7 @@ import { CustomDomainEntity } from './infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
 import { hostResolutionProviders } from './infrastructure/host-resolution.providers';
 import { StoreEntity } from './infrastructure/store.entity';
+import { TenantStoreSettingsReader } from './infrastructure/store-settings-reader.adapter';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 import { OrderNumberService } from './infrastructure/order-number.service';
 import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
@@ -145,6 +147,7 @@ const STORE_USE_CASES = [
     PlatformStoreLookup,
     { provide: PLATFORM_STORE, useExisting: PlatformStoreLookup },
     { provide: BusinessStoreDirectory, useExisting: PlatformStoreLookup },
+    { provide: StoreSettingsReader, useClass: TenantStoreSettingsReader },
     SuperadminContextFactory,
     { provide: TENANT_LIFECYCLE, useClass: TenantLifecycleRegistry },
     {
@@ -221,6 +224,8 @@ const STORE_USE_CASES = [
     OrderNumberService,
     PlatformStoreLookup,
     ProvisionBusinessService,
+    // Catalog reads a store's sold-out behaviour and language (P2.S1, D2106).
+    StoreSettingsReader,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
     TenantContextResolver,
