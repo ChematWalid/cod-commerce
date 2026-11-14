@@ -67,6 +67,10 @@ const RUNTIME_EXPORTS = [
   'setReceivingSchema',
   'commissionConfigSchema',
   'listMembersQuerySchema',
+  'hasControlCharacter',
+  'tenantKey',
+  'tenantObjectPrefix',
+  'InvalidTenantKeyPartError',
 ] as const;
 
 describe('@cod/shared entry point', () => {
