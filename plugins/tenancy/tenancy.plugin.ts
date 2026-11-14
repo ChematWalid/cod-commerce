@@ -3,6 +3,7 @@ import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } 
 import { Redis } from 'ioredis';
 import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
+import { RequestStoreSettings } from './api/request-store-settings';
 import { BusinessResolver } from './api/business.resolver';
 import { SlugForEntityResolver } from './api/slug-for-entity.resolver';
 import { adminApiSchema } from './api/schema';
@@ -148,6 +149,7 @@ const STORE_USE_CASES = [
     { provide: PLATFORM_STORE, useExisting: PlatformStoreLookup },
     { provide: BusinessStoreDirectory, useExisting: PlatformStoreLookup },
     { provide: StoreSettingsReader, useClass: TenantStoreSettingsReader },
+    RequestStoreSettings,
     SuperadminContextFactory,
     { provide: TENANT_LIFECYCLE, useClass: TenantLifecycleRegistry },
     {
@@ -224,7 +226,9 @@ const STORE_USE_CASES = [
     OrderNumberService,
     PlatformStoreLookup,
     ProvisionBusinessService,
-    // Catalog reads a store's sold-out behaviour and language (P2.S1, D2106).
+    // Catalog reads a store's sold-out behaviour and language (P2.S1, D2106): handlers through the request's
+    // business, jobs through the business they were enqueued for.
+    RequestStoreSettings,
     StoreSettingsReader,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,

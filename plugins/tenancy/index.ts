@@ -1,5 +1,6 @@
 export { TenantContextMissingError } from './api/tenant-context-missing.error';
 export { findTenant, tenantOf } from './api/tenant-of';
+export { RequestStoreSettings } from './api/request-store-settings';
 export { platformStaffPermission, tenantBusinessPermission } from './api/permissions';
 export { TenantScoped } from './api/tenant-scoped.decorator';
 export { TenantGuard } from './api/tenant.guard';
