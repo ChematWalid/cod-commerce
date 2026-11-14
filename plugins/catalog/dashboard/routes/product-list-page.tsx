@@ -11,7 +11,7 @@ import {
   PageLayout,
   PageTitle,
 } from '@vendure/dashboard';
-import { type ReactNode, useDeferredValue, useState } from 'react';
+import { type ReactNode, useDeferredValue, useEffect, useState } from 'react';
 import { DeleteDialog } from '../components/delete-dialog';
 import { ListFilters } from '../components/list-filters';
 import { ListPager } from '../components/list-pager';
@@ -29,7 +29,9 @@ import {
 import type { CatalogProductRowDto } from '../dto';
 import { useProductCommand } from '../hooks/use-product-commands';
 import {
+  clampPage,
   INITIAL_LIST_STATE,
+  isNarrowed,
   listQueryOf,
   type ProductListFilterChange,
   type ProductListState,
@@ -37,7 +39,14 @@ import {
   withPage,
 } from '../model/list-search';
 import { listErrorMessageId } from '../model/list-view';
-import { useCatalogBrands, useCatalogProducts, useCatalogTags, useHeldPermissions, useMediaPreviews } from '../queries';
+import {
+  type StoreScope,
+  useCatalogBrands,
+  useCatalogProducts,
+  useCatalogTags,
+  useHeldPermissions,
+  useMediaPreviews,
+} from '../queries';
 
 const LIST_BLOCK_ID = 'catalog-product-list';
 const CREATE_ACTION_ID = 'catalog-create-product';
@@ -65,19 +74,23 @@ function useRowCommands(storeAlias: string) {
 }
 
 function ListBody(props: {
+  readonly scope: StoreScope;
   readonly products: ReturnType<typeof useCatalogProducts>;
+  readonly narrowed: boolean;
+  readonly pastLastPage: boolean;
   readonly held: ReadonlySet<string>;
   readonly onCommand: (action: RowCommand, product: CatalogProductRowDto) => void;
 }): ReactNode {
   const { i18n } = useLingui();
-  const previews = useMediaPreviews();
+  const previews = useMediaPreviews(props.scope);
   const { products } = props;
   if (products.isError) return <p role="alert">{i18n._(listErrorMessageId(products.error))}</p>;
-  if (!products.isSuccess) return <p>{i18n._('catalog.loading')}</p>;
+  // A page past the end is about to move back (`useLastPageClamp`): it says nothing about the store meanwhile.
+  if (!products.isSuccess || props.pastLastPage) return <p>{i18n._('catalog.loading')}</p>;
   if (products.data.items.length === 0) {
     return (
       <p data-testid={PRODUCTS_EMPTY_TEST_ID} className="text-muted-foreground py-8 text-center text-sm">
-        {i18n._('catalog.empty')}
+        {i18n._(props.narrowed ? 'catalog.no-match' : 'catalog.empty')}
       </p>
     );
   }
@@ -103,10 +116,25 @@ function CreateAction({ held, storeAlias }: { readonly held: ReadonlySet<string>
 
 type ListState = ReturnType<typeof useListState>;
 
+/**
+ * Moves the list back to its last page once the answer shows the page shown no longer exists (a delete emptied it, or
+ * another member changed the store). Returns whether the page shown is past the end.
+ */
+function useLastPageClamp(list: ListState, totalItems: number | undefined): boolean {
+  const { setState } = list;
+  const { page } = list.state;
+  const pastLastPage = totalItems !== undefined && clampPage(list.state, totalItems) !== list.state;
+  useEffect(() => {
+    if (totalItems === undefined) return;
+    setState((state) => clampPage(state, totalItems));
+  }, [totalItems, page, setState]);
+  return pastLastPage;
+}
+
 /** The tabs, the search and the filters; each change starts again at page 1. */
-function ListToolbar({ list }: { readonly list: ListState }): ReactNode {
-  const brands = useCatalogBrands();
-  const tags = useCatalogTags();
+function ListToolbar({ list, scope }: { readonly list: ListState; readonly scope: StoreScope }): ReactNode {
+  const brands = useCatalogBrands(scope);
+  const tags = useCatalogTags(scope);
   const change = (next: ProductListFilterChange): void => {
     list.setState((state) => withFilter(state, next));
   };
@@ -123,13 +151,45 @@ function ListToolbar({ list }: { readonly list: ListState }): ReactNode {
   );
 }
 
+interface ProductListProps {
+  readonly scope: StoreScope;
+  readonly held: ReadonlySet<string>;
+  readonly onCommand: (action: RowCommand, product: CatalogProductRowDto) => void;
+}
+
+/** The toolbar, the table of the page asked for and the pager. */
+function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
+  const list = useListState();
+  const products = useCatalogProducts(scope, list.query);
+  const pastLastPage = useLastPageClamp(list, products.data?.totalItems);
+  return (
+    <div className="grid gap-4" data-testid={PRODUCT_LIST_TEST_ID}>
+      <ListToolbar list={list} scope={scope} />
+      <ListBody
+        scope={scope}
+        products={products}
+        narrowed={isNarrowed(list.query)}
+        pastLastPage={pastLastPage}
+        held={held}
+        onCommand={onCommand}
+      />
+      <ListPager
+        page={list.state.page}
+        total={products.data?.totalItems ?? 0}
+        onPage={(page) => {
+          list.setState((state) => withPage(state, page));
+        }}
+      />
+    </div>
+  );
+}
+
 /** The store's products (the `products.all` leaf): tabs, search, filters, the table and its row actions (AC4). */
 export function ProductListPage({ store }: ShellPageProps): ReactNode {
   const { i18n } = useLingui();
   const storeAlias = store?.id ?? ACTIVE_STORE_ALIAS;
-  const held = useHeldPermissions();
-  const list = useListState();
-  const products = useCatalogProducts(list.query);
+  const scope: StoreScope = store?.id ?? null;
+  const held = useHeldPermissions(scope);
   const rows = useRowCommands(storeAlias);
   return (
     <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID}>
@@ -137,17 +197,7 @@ export function ProductListPage({ store }: ShellPageProps): ReactNode {
       <CreateAction held={held} storeAlias={storeAlias} />
       <PageLayout>
         <FullWidthPageBlock blockId={LIST_BLOCK_ID}>
-          <div className="grid gap-4" data-testid={PRODUCT_LIST_TEST_ID}>
-            <ListToolbar list={list} />
-            <ListBody products={products} held={held} onCommand={rows.onCommand} />
-            <ListPager
-              page={list.state.page}
-              total={products.data?.totalItems ?? 0}
-              onPage={(page) => {
-                list.setState((state) => withPage(state, page));
-              }}
-            />
-          </div>
+          <ProductList scope={scope} held={held} onCommand={rows.onCommand} />
         </FullWidthPageBlock>
       </PageLayout>
       <DeleteDialog

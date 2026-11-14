@@ -53,3 +53,27 @@ export function listQueryOf(state: ProductListState, pageSize: number = CATALOG_
 export function pageCountOf(total: number, pageSize: number = CATALOG_PAGE_SIZE): number {
   return Math.max(1, Math.ceil(total / pageSize));
 }
+
+/**
+ * `state` moved back to the last page `total` products fill, or `state` itself while its page still exists: a delete
+ * or another member's change can empty the page shown, and the pager hides once one page is left.
+ */
+export function clampPage(
+  state: ProductListState,
+  total: number,
+  pageSize: number = CATALOG_PAGE_SIZE,
+): ProductListState {
+  const lastPage = pageCountOf(total, pageSize);
+  return state.page > lastPage ? withPage(state, lastPage) : state;
+}
+
+/** Whether `query` asks for less than every product: an empty answer then means no match, not an empty store. */
+export function isNarrowed(query: ProductListQueryInput): boolean {
+  return (
+    query.tab === 'draft' ||
+    query.q !== undefined ||
+    query.collectionId !== undefined ||
+    query.brandId !== undefined ||
+    query.tagId !== undefined
+  );
+}

@@ -24,8 +24,10 @@ export function RowActions({ product, held, onCommand }: RowActionsProps): React
       <DropdownMenuContent align="end">
         {rowActionsOf(product, held).map((action) =>
           action === 'preview' ? (
-            <DropdownMenuItem key={action} disabled title={i18n._('catalog.preview-hint')}>
-              {i18n._(ROW_ACTION_LABEL_IDS[action])}
+            // A disabled item takes no pointer events, so a `title` would never show: the reason is written out.
+            <DropdownMenuItem key={action} disabled className="flex-col items-start gap-0.5">
+              <span>{i18n._(ROW_ACTION_LABEL_IDS[action])}</span>
+              <span className="text-muted-foreground text-xs">{i18n._('catalog.preview-hint')}</span>
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem

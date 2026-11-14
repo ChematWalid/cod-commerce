@@ -39,10 +39,16 @@ const SET_STATUS_MUTATION = `mutation CatalogSetStatus($id: ID!, $status: Catalo
   setCatalogProductStatus(id: $id, status: $status) { id status } }`;
 const DELETE_MUTATION = 'mutation CatalogDeleteProduct($id: ID!) { deleteCatalogProduct(id: $id) }';
 
+/**
+ * The store a query answers for, in its key: a store switch only marks the cache stale, so a key without it would show
+ * the last store's rows and permissions under the new store until the refetch answers.
+ */
+export type StoreScope = string | null;
+
 /** One page of the active store's products under the tab, search and filters of `options` (AC4). */
-export function useCatalogProducts(options: CatalogProductListInput) {
+export function useCatalogProducts(scope: StoreScope, options: CatalogProductListInput) {
   return useQuery({
-    queryKey: [...PRODUCTS_QUERY_KEY, options],
+    queryKey: [...PRODUCTS_QUERY_KEY, scope, options],
     queryFn: async () =>
       (await api.query<{ readonly catalogProducts: CatalogProductPageDto }>(PRODUCTS_QUERY, { options }))
         .catalogProducts,
@@ -50,18 +56,18 @@ export function useCatalogProducts(options: CatalogProductListInput) {
   });
 }
 
-export function useCatalogBrands() {
+export function useCatalogBrands(scope: StoreScope) {
   return useQuery({
-    queryKey: BRANDS_QUERY_KEY,
+    queryKey: [...BRANDS_QUERY_KEY, scope],
     queryFn: async () =>
       (await api.query<{ readonly catalogBrands: readonly CatalogNamedDto[] }>(BRANDS_QUERY)).catalogBrands,
     retry: false,
   });
 }
 
-export function useCatalogTags() {
+export function useCatalogTags(scope: StoreScope) {
   return useQuery({
-    queryKey: TAGS_QUERY_KEY,
+    queryKey: [...TAGS_QUERY_KEY, scope],
     queryFn: async () =>
       (await api.query<{ readonly catalogTags: readonly CatalogNamedDto[] }>(TAGS_QUERY)).catalogTags,
     retry: false,
@@ -72,9 +78,9 @@ export function useCatalogTags() {
  * The previews of the newest library images, by asset id, for the list's thumbnails. Products only name their image's
  * asset (`CatalogMediaRef`), so an image past the first library page shows the empty thumbnail.
  */
-export function useMediaPreviews() {
+export function useMediaPreviews(scope: StoreScope) {
   return useQuery({
-    queryKey: MEDIA_PREVIEWS_QUERY_KEY,
+    queryKey: [...MEDIA_PREVIEWS_QUERY_KEY, scope],
     queryFn: async () => {
       const answer = await api.query<{
         readonly catalogMedia: { readonly items: readonly CatalogMediaPreviewDto[] };
@@ -86,9 +92,9 @@ export function useMediaPreviews() {
 }
 
 /** What the server says the caller holds on the active store; empty until it answers, so nothing shows on a guess. */
-export function useHeldPermissions(): ReadonlySet<string> {
+export function useHeldPermissions(scope: StoreScope): ReadonlySet<string> {
   const { data } = useQuery({
-    queryKey: EFFECTIVE_PERMISSIONS_QUERY_KEY,
+    queryKey: [...EFFECTIVE_PERMISSIONS_QUERY_KEY, scope],
     queryFn: () =>
       api.query<{ readonly effectivePermissions: { readonly permissions: readonly string[] } }>(
         EFFECTIVE_PERMISSIONS_QUERY,

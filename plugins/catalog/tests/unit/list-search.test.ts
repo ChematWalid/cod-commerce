@@ -1,7 +1,9 @@
 import { CATALOG_PAGE_SIZE, productListQuerySchema } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  clampPage,
   INITIAL_LIST_STATE,
+  isNarrowed,
   listQueryOf,
   pageCountOf,
   type ProductListState,
@@ -77,5 +79,48 @@ describe('list search', () => {
 
     // Assert
     expect(count).toBe(pages);
+  });
+
+  it('moves back to the last page when the shown page no longer exists', () => {
+    // Arrange
+    const onSecondPage = withPage(filtered, 2);
+
+    // Act
+    const next = clampPage(onSecondPage, CATALOG_PAGE_SIZE);
+
+    // Assert
+    expect(next).toEqual({ ...filtered, page: 1 });
+  });
+
+  it.each([
+    [2, CATALOG_PAGE_SIZE + 1],
+    [1, 0],
+  ])('keeps page %i when %i products still reach it', (page, total) => {
+    // Arrange
+    const state = withPage(filtered, page);
+
+    // Act
+    const next = clampPage(state, total);
+
+    // Assert
+    expect(next).toBe(state);
+  });
+
+  it('tells a search, a filter or the Draft tab from the whole store', () => {
+    // Arrange
+    const narrowed = [
+      { ...INITIAL_LIST_STATE, search: 'shoe' },
+      { ...INITIAL_LIST_STATE, collectionId: '11' },
+      { ...INITIAL_LIST_STATE, brandId: '7000000000000000001' },
+      { ...INITIAL_LIST_STATE, tagId: '7000000000000000002' },
+      { ...INITIAL_LIST_STATE, tab: 'draft' as const },
+    ];
+
+    // Act
+    const answers = narrowed.map((state) => isNarrowed(listQueryOf(state)));
+
+    // Assert
+    expect(answers).toEqual([true, true, true, true, true]);
+    expect(isNarrowed(listQueryOf({ ...INITIAL_LIST_STATE, search: '  ', page: 3 }))).toBe(false);
   });
 });

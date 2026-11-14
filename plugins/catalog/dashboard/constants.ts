@@ -5,7 +5,7 @@ export const CREATE_PRODUCTS_KEY: PermissionKey = 'catalog.products.create';
 export const EDIT_PRODUCTS_KEY: PermissionKey = 'catalog.products.edit';
 export const DELETE_PRODUCTS_KEY: PermissionKey = 'catalog.products.delete';
 
-/** Query keys; a store switch invalidates every query, so each refetches with the new channel token. */
+/** Query key prefixes; each query adds the store it answers for (`StoreScope`), so no store sees another's cache. */
 export const PRODUCTS_QUERY_KEY = ['catalog', 'products'] as const;
 export const BRANDS_QUERY_KEY = ['catalog', 'brands'] as const;
 export const TAGS_QUERY_KEY = ['catalog', 'tags'] as const;

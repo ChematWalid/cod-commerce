@@ -124,6 +124,10 @@ msgid "catalog.empty"
 msgstr "لا توجد منتجات بعد."
 
 #. js-lingui-explicit-id
+msgid "catalog.no-match"
+msgstr "لا يوجد منتج يطابق هذا البحث أو التصفية."
+
+#. js-lingui-explicit-id
 msgid "catalog.page-previous"
 msgstr "السابق"
 

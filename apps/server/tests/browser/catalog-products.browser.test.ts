@@ -13,6 +13,12 @@ import { assertNoPageError, loginAsDemoOwner, loginAsOwner, setDisplayLanguage }
 import { adminApi, byTestId, switchableStores } from './store-switcher-fixtures';
 
 const PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
+const VIEW_PRODUCTS_KEY = 'catalog.products.view';
+const CREATE_PRODUCTS_KEY = 'catalog.products.create';
+
+interface PermissionsAnswer {
+  readonly data: { readonly effectivePermissions: { readonly permissions: readonly string[] } };
+}
 const PRODUCTS_PATH = '/stores/active/products';
 const runId = Date.now().toString(36);
 
@@ -77,10 +83,19 @@ describe('catalog product list', () => {
     it('lists only drafts on the Draft tab and narrows the list by search', async () => {
       const draftTitle = `Draft shoe ${runId}`;
       const activeTitle = `Active shoe ${runId}`;
-      created.push(await createProduct(page, draftTitle, 'draft'), await createProduct(page, activeTitle, 'active'));
+      created.push(
+        await createProduct(page, draftTitle, 'draft'),
+        await createProduct(page, activeTitle, 'active'),
+        // Outside the search, so the search has something to leave out.
+        await createProduct(page, 'Unrelated scarf', 'active'),
+      );
       await open(page, PRODUCTS_PATH);
+      await expect.poll(() => rows(page).count()).toBeGreaterThan(2);
       await byTestId(page, PRODUCT_SEARCH_TEST_ID).fill(runId);
       await expect.poll(() => rows(page).count()).toBe(2);
+      await expect(rows(page).allInnerTexts()).resolves.toEqual(
+        expect.arrayContaining([expect.stringContaining(activeTitle), expect.stringContaining(draftTitle)]),
+      );
 
       await byTestId(page, PRODUCT_TABS_TEST_ID).getByRole('tab', { name: 'Draft' }).click();
 
@@ -102,8 +117,15 @@ describe('catalog product list', () => {
     // The member holds the view key on the business's first store only (seed-demo-members.ts).
     const [first] = await switchableStores(page);
     if (first === undefined) throw new Error('the member reaches a store');
+    const permissionsAnswer = page.waitForResponse(
+      (response) => response.request().postData()?.includes('CatalogEffectivePermissions') ?? false,
+    );
     await open(page, `/stores/${first.id}/products`);
 
+    // The page shows Create only once this answer holds the key, so wait for it: an absent answer would also hide it.
+    const { data } = (await (await permissionsAnswer).json()) as PermissionsAnswer;
+    expect(data.effectivePermissions.permissions).toContain(VIEW_PRODUCTS_KEY);
+    expect(data.effectivePermissions.permissions).not.toContain(CREATE_PRODUCTS_KEY);
     await byTestId(page, PRODUCT_LIST_TEST_ID).waitFor();
     await page.waitForLoadState('networkidle');
     await expect(byTestId(page, CREATE_PRODUCT_TEST_ID).count()).resolves.toBe(0);
