@@ -13,7 +13,13 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
-import { CATALOG_SNAPSHOT_FIELDS, CATALOG_WORLDS, catalogOf, seedCatalog } from '../isolation/catalog-world';
+import {
+  CATALOG_SNAPSHOT_FIELDS,
+  CATALOG_WORLDS,
+  catalogOf,
+  otherStoreSnapshotOf,
+  seedCatalog,
+} from '../isolation/catalog-world';
 import { errorCodesOf, IsolationHttp } from '../isolation/http';
 import { ownChannel } from '../isolation/matrix';
 import { CORRUPT_PNG, OVERSIZED_PNG, sourceKeyOf, storedState } from '../isolation/media-guard';
@@ -74,7 +80,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   const sql = () => server.app.get(TransactionalConnection).rawConnection;
   let world: World;
   let outcomes: Map<string, Outcome>;
-  let before: { a: unknown; b: unknown };
+  let before: { a: unknown; b: unknown; aOtherStore: unknown; bOtherStore: unknown };
 
   beforeAll(async () => {
     await server.init({ initialData: E2E_INITIAL_DATA, customerCount: 0 });
@@ -99,6 +105,8 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     before = {
       a: await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS),
       b: await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS),
+      aOtherStore: await otherStoreSnapshotOf(http, world.a),
+      bOtherStore: await otherStoreSnapshotOf(http, world.b),
     };
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
     outcomes = new Map(
@@ -154,6 +162,11 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   it("leaves each business's data and catalog as its owner saw them before the attacks", async () => {
     expect(await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS)).toEqual(before.a);
     expect(await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS)).toEqual(before.b);
+  });
+
+  it("leaves each business's second store catalog as its owner saw it before the attacks", async () => {
+    expect(await otherStoreSnapshotOf(http, world.a)).toEqual(before.aOtherStore);
+    expect(await otherStoreSnapshotOf(http, world.b)).toEqual(before.bOtherStore);
   });
 
   it("stores A's media file under A's business and store prefix", async () => {

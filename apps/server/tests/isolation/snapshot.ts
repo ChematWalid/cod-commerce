@@ -1,4 +1,4 @@
-import { dataOf, type IsolationHttp } from './http';
+import { dataOf, type IsolationHttp, type MatrixRequest } from './http';
 import { ownChannel } from './matrix';
 import type { BusinessWorld } from './world-types';
 
@@ -23,8 +23,21 @@ const snapshotQuery = (extraFields: string): string => `query ($member: String!)
 export async function snapshotOf(http: IsolationHttp, business: BusinessWorld, extraFields = ''): Promise<unknown> {
   const variables = { member: business.member.administratorId };
   const data = dataOf(await http.graphql(business.owner, snapshotQuery(extraFields), variables, ownChannel(business)));
-  return JSON.parse(JSON.stringify(data, (_key, value: unknown) => (Array.isArray(value) ? sorted(value) : value)));
+  return sortedCopy(data);
 }
+
+/** What `business`'s owner reads with `fields` on `channel` (another store than its first), sorted like {@link snapshotOf}. */
+export async function storeSnapshotOf(
+  http: IsolationHttp,
+  business: BusinessWorld,
+  channel: NonNullable<MatrixRequest['channel']>,
+  fields: string,
+): Promise<unknown> {
+  return sortedCopy(dataOf(await http.graphql(business.owner, `query { ${fields} }`, {}, channel)));
+}
+
+const sortedCopy = (data: unknown): unknown =>
+  JSON.parse(JSON.stringify(data, (_key, value: unknown) => (Array.isArray(value) ? sorted(value) : value)));
 
 const sorted = (values: unknown[]): unknown[] =>
   [...values].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));

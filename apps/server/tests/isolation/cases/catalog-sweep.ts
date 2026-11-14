@@ -31,8 +31,9 @@ const FRACTIONAL_ID = '1.5';
 /**
  * Whether a malformed id reaches the catalog as written. A GraphQL `ID` argument is decoded by the entity id
  * strategy first: the e2e boot's testing strategy `parseInt`s it, so `"1.5"` names engine row 1 (the caller's own
- * product) before the catalog sees it. Production's strategy keeps `1.5`, which the catalog refuses; the REST cell and
- * the plugin's integration sweep cover that id.
+ * product) before the catalog sees it. The plugin's integration sweep boots the same testing strategy and skips it too.
+ * Production's `AutoIncrementIdStrategy` hands over the number 1.5, which the catalog refuses: only the catalog unit
+ * test `production-id-decoding.test.ts` runs that decoding; the REST cells send the text as written.
  */
 const reachesCatalogAsSent = (op: CatalogOperation, id: string): boolean =>
   !(id === FRACTIONAL_ID && op.byId?.field === 'productId');

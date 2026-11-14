@@ -18,6 +18,7 @@ import { createTaxonomy } from './taxonomy-kit';
 const suite = catalogSuite(1020, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const NOT_FOUND = CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND;
 const MALFORMED_IDS = ['abc', '-1', '1.5', '99999999999999999999', ''];
+const FRACTIONAL_ID = '1.5';
 /** Text no answer may carry: SQL, entity names, stacks (D2136). */
 const LEAKS = [/select /i, /QueryFailedError/, /ProductVariant\b/, /EntityNotFound/];
 const NO_CODE = 'NO_CODE';
@@ -61,6 +62,14 @@ interface SweptEntry {
 }
 
 const fieldOf = (entry: SweptEntry): TargetIdField => entry.idField ?? 'productId';
+
+/**
+ * Whether a malformed id reaches the catalog as written. A product id is a GraphQL `ID`, which this boot's testing
+ * strategy `parseInt`s, so `"1.5"` would name engine row 1, whoever owns it. Production's `AutoIncrementIdStrategy`
+ * hands over the number 1.5 instead; `tests/unit/production-id-decoding.test.ts` covers that, the REST cells the text.
+ */
+const reachesCatalogAsSent = (entry: SweptEntry, id: string): boolean =>
+  !(id === FRACTIONAL_ID && fieldOf(entry) === 'productId');
 
 /** A's own outcome must not hold B's row: null, not found, or an answer about A's store only. */
 function expectForeign(
@@ -128,7 +137,7 @@ describe('catalog isolation sweep (two businesses)', () => {
 
   it.each(
     OPERATION_REGISTRY.filter((entry) => entry.byId).flatMap((entry) =>
-      MALFORMED_IDS.map((id) => [entry.operation, id, entry] as const),
+      MALFORMED_IDS.filter((id) => reachesCatalogAsSent(entry, id)).map((id) => [entry.operation, id, entry] as const),
     ),
   )('%s answers not found for the malformed id "%s"', async (_operation, id, entry) => {
     // Arrange

@@ -37,8 +37,18 @@ function pngOf(width: number, height: number, data: Buffer): Buffer {
 /** A PNG signature and header with image data that does not inflate: only decoding finds it out. */
 export const CORRUPT_PNG = pngOf(1, 1, Buffer.from('not a deflate stream'));
 
-/** A PNG header of 8000 x 6000 pixels (48 megapixels, over the 40-megapixel limit) with one row of data. */
-export const OVERSIZED_PNG = pngOf(8000, 6000, deflateSync(Buffer.from([0, 0])));
+const OVERSIZED_WIDTH = 8000;
+const OVERSIZED_HEIGHT = 6000;
+
+/**
+ * A complete, valid PNG of 8000 x 6000 black pixels (48 megapixels, over the 40-megapixel limit), about 47 KB: every
+ * row is a filter byte and zeros, so it decodes in full and only the pixel limit can refuse it, not a corrupt body.
+ */
+export const OVERSIZED_PNG = pngOf(
+  OVERSIZED_WIDTH,
+  OVERSIZED_HEIGHT,
+  deflateSync(Buffer.alloc(OVERSIZED_HEIGHT * (OVERSIZED_WIDTH + 1))),
+);
 
 /** What an upload would add to: asset rows, media library rows and files of the asset storage. */
 export interface StoredState {

@@ -1,6 +1,7 @@
 import type { IsolationCase } from '../matrix';
 import { CATALOG_MEDIA_CASES } from './catalog-media';
 import { CATALOG_PRODUCT_CASES } from './catalog-products';
+import { CATALOG_STOCK_CASES } from './catalog-stock';
 import { CATALOG_SWEEP_CASES } from './catalog-sweep';
 import { CATALOG_TAXONOMY_CASES } from './catalog-taxonomy';
 import { TEAM_CASES } from './team';
@@ -35,4 +36,5 @@ export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...CATALOG_TAXONOMY_CASES,
   ...CATALOG_MEDIA_CASES,
   ...CATALOG_SWEEP_CASES,
+  ...CATALOG_STOCK_CASES,
 ];

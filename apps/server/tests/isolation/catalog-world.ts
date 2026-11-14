@@ -13,6 +13,7 @@ import {
   STOCK_CREATE_COLLECTION,
   UPLOAD_CATALOG_MEDIA,
 } from './seed-operations';
+import { storeSnapshotOf } from './snapshot';
 import { TEAM_WORLDS } from './team-world';
 import type { BusinessWorld, WorldStore } from './world-types';
 
@@ -205,8 +206,7 @@ export function catalogFingerprints(catalog: CatalogWorld): string[] {
   ];
 }
 
-/** What the owner's snapshot reads of the catalog of its first store (with `snapshotOf`'s fields). */
-export const CATALOG_SNAPSHOT_FIELDS = `
+const PRODUCT_SNAPSHOT_FIELDS = `
   catalogProducts {
     totalItems
     items {
@@ -216,8 +216,21 @@ export const CATALOG_SNAPSHOT_FIELDS = `
       settings { orderManagerIds soldOut allowOutOfStockOrders }
     }
   }
+`;
+const MEDIA_SNAPSHOT_FIELDS = 'catalogMedia { totalItems items { id assetId } }';
+
+/** What the owner's snapshot reads of the catalog of its first store (with `snapshotOf`'s fields). */
+export const CATALOG_SNAPSHOT_FIELDS = `
+  ${PRODUCT_SNAPSHOT_FIELDS}
   catalogBrands { id name updatedAt }
   catalogTags { id name updatedAt }
   catalogHighlights { id text updatedAt }
-  catalogMedia { totalItems items { id assetId } }
+  ${MEDIA_SNAPSHOT_FIELDS}
 `;
+
+/**
+ * The products and media library of `business`'s second store as its owner sees them: the member-other-store and
+ * victim-channel cells aim there, so a write that slipped through on it shows here too.
+ */
+export const otherStoreSnapshotOf = (http: IsolationHttp, business: BusinessWorld): Promise<unknown> =>
+  storeSnapshotOf(http, business, channelOf(business.stores[1]), `${PRODUCT_SNAPSHOT_FIELDS} ${MEDIA_SNAPSHOT_FIELDS}`);
