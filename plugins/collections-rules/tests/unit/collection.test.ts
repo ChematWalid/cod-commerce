@@ -79,6 +79,31 @@ describe('switchMode', () => {
     expect(switched.members).toBe('recompute');
   });
 
+  it('keeps the members of an automatic collection whose rule is unchanged', () => {
+    // Arrange: the same rule as stored, parsed again from input with its keys in another order
+    const reordered = Object.fromEntries(Object.entries(PROMO_RULE).reverse());
+    const sameRule = JSON.parse(JSON.stringify(reordered)) as typeof PROMO_RULE;
+    const current = ruleMembers(['8', '3']);
+
+    // Act
+    const switched = switchMode(definition(), 'automatic', sameRule, current);
+
+    // Assert
+    expect(switched.definition).toEqual(definition());
+    expect(switched.members).toEqual(current);
+  });
+
+  it('asks for a recompute when the rule is unchanged but the members were built with an older normal form', () => {
+    // Arrange
+    const stale = definition({ matchVersion: NORMAL_FORM_VERSION - 1 });
+
+    // Act
+    const switched = switchMode(stale, 'automatic', PROMO_RULE, ruleMembers(['8']));
+
+    // Assert
+    expect(switched.members).toBe('recompute');
+  });
+
   it('keeps the members of a manual collection that stays manual', () => {
     // Arrange
     const manual = definition({ mode: 'manual', rule: null });
