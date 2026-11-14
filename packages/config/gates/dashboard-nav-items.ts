@@ -61,9 +61,10 @@ function sectionProblem(value: ts.Expression, constants: Constants): string | un
   return STOCK_NAV_SECTION_IDS.includes(resolved) ? `puts a nav item in the stock section '${resolved}'` : undefined;
 }
 
-function stockLiteralOf(value: ts.Expression): string | undefined {
-  const inner = unwrapped(value);
-  return isPlainString(inner) && STOCK_NAV_SECTION_IDS.includes(inner.text) ? inner.text : undefined;
+/** The stock section a value names, as a literal or through a plugin const; `undefined` otherwise. */
+function stockValueOf(value: ts.Expression, constants: Constants): string | undefined {
+  const resolved = stringValueOf(value, constants);
+  return resolved !== undefined && STOCK_NAV_SECTION_IDS.includes(resolved) ? resolved : undefined;
 }
 
 /** An object property as a key (`undefined` when unreadable) and its value; the shorthand `{ sectionId }` included. */
@@ -139,7 +140,7 @@ function propertyProblems(node: ts.Node, file: ParsedFile, constants: Constants)
   if (entry.key === SECTION_ID_KEY) return [sectionProblem(entry.value, constants)].filter(isDefined);
   if (entry.key === NAV_SECTIONS_KEY) return navSectionsProblems(entry.value, file, constants);
   if (entry.key === NAV_MENU_ITEM_KEY) return navMenuItemProblems(entry.value, constants);
-  const section = entry.key === undefined ? stockLiteralOf(entry.value) : undefined;
+  const section = entry.key === undefined ? stockValueOf(entry.value, constants) : undefined;
   return section === undefined
     ? []
     : [`puts the stock section '${section}' behind the computed key '${quoted(entry.name)}'`];
@@ -165,6 +166,19 @@ function jsxProblems(node: ts.Node, constants: Constants): string[] {
   const value = ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer;
   if (value === undefined) return [];
   return [sectionProblem(value, constants)].filter(isDefined);
+}
+
+/**
+ * The `sectionId` key handed over as data, to a call (`Reflect.set(item, 'sectionId', …)`,
+ * `Object.defineProperty`) or in an array (`Object.fromEntries([['sectionId', …]])`): the gate cannot read the
+ * value set under it, so it reports the key.
+ */
+function keyAsDataProblems(node: ts.Node, constants: Constants): string[] {
+  const values = ts.isCallExpression(node) || ts.isNewExpression(node) ? (node.arguments ?? []) : [];
+  const elements = ts.isArrayLiteralExpression(node) ? node.elements : [];
+  return [...values, ...elements]
+    .filter((value) => stringValueOf(value, constants) === SECTION_ID_KEY)
+    .map((value) => `passes the key '${SECTION_ID_KEY}' as data in '${quoted(value)}', a nav item it cannot read`);
 }
 
 /** The local names of `import * as name from '@vendure/dashboard'`. */
@@ -226,6 +240,7 @@ function problemsOf(file: ParsedFile, constants: Constants): string[] {
       ...propertyProblems(node, file, constants),
       ...assignmentProblems(node, constants),
       ...jsxProblems(node, constants),
+      ...keyAsDataProblems(node, constants),
     );
   });
   return problems;
@@ -233,11 +248,16 @@ function problemsOf(file: ParsedFile, constants: Constants): string[] {
 
 /**
  * Finds plugin dashboard sources that put a nav item or section in a stock dashboard section. It reads the syntax
- * tree of each file and resolves string and object `const`s across the same plugin's dashboard. It reports:
+ * tree of each file and resolves string and object `const`s across the same plugin's dashboard; a name that anything
+ * else in that dashboard also binds (a parameter, a destructured name, a `let`, a `const` it cannot read, an import
+ * from elsewhere) stays unresolved, so the gate fails closed: a section it cannot prove own or staff is reported.
+ * It reports:
  * - a `sectionId` (property, shorthand, computed key, JSX attribute or assignment) or a `navSections` `id` that is
  *   a stock section, or that is neither a string literal (parentheses and casts aside) nor such a `const`;
  * - a `navMenuItem` that is not an object literal or object `const` with a readable `sectionId` (no spread, no key
  *   it cannot resolve), and a `navSections` entry without a readable `id`;
+ * - a stock section, literal or `const`, behind a computed key it cannot resolve;
+ * - the `sectionId` key passed as data to a call or held in an array (`Reflect.set`, `Object.fromEntries`);
  * - an element assignment through a key it cannot resolve;
  * - outside the merchant shell, the imperative nav API and `BUILT_IN_NAV_SECTION_IDS` by name or bracket access,
  *   any bracket access to a `@vendure/dashboard` namespace it cannot resolve, and a non-array `navSections`.

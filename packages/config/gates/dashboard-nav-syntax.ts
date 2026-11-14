@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import ts from 'typescript';
 import type { SourceFile } from './branding';
 
@@ -75,14 +76,61 @@ function remember<T>(map: Map<string, T | null>, name: string, value: T, same: (
   map.set(name, known === undefined || (known !== null && same(known, value)) ? value : null);
 }
 
-/** Records the `const NAME = 'value'` and `const NAME = { ... }` declarations of one file. */
+/** Declarations that bind a name in a scope; any of them may shadow a module `const` of the same name. */
+const BINDING_KINDS: ReadonlySet<ts.SyntaxKind> = new Set([
+  ts.SyntaxKind.Parameter,
+  ts.SyntaxKind.BindingElement,
+  ts.SyntaxKind.VariableDeclaration,
+  ts.SyntaxKind.FunctionDeclaration,
+  ts.SyntaxKind.FunctionExpression,
+  ts.SyntaxKind.ClassDeclaration,
+  ts.SyntaxKind.ClassExpression,
+  ts.SyntaxKind.EnumDeclaration,
+  ts.SyntaxKind.ImportSpecifier,
+  ts.SyntaxKind.NamespaceImport,
+  ts.SyntaxKind.ImportClause,
+  ts.SyntaxKind.ImportEqualsDeclaration,
+]);
+
+function boundName(node: ts.Node): string | undefined {
+  if (!BINDING_KINDS.has(node.kind)) return undefined;
+  const name = ts.getNameOfDeclaration(node as ts.Declaration);
+  return name !== undefined && ts.isIdentifier(name) ? name.text : undefined;
+}
+
+/** The plain string or object literal a `const` holds; `undefined` for any other binding. */
+function constValueOf(node: ts.Node): ts.Expression | undefined {
+  if (!ts.isVariableDeclaration(node) || node.initializer === undefined) return undefined;
+  if (!(ts.getCombinedNodeFlags(node) & ts.NodeFlags.Const)) return undefined;
+  const value = unwrapped(node.initializer);
+  return isPlainString(value) || ts.isObjectLiteralExpression(value) ? value : undefined;
+}
+
+/** `import { NAME } from './x'` (no alias) of a module inside the same plugin's dashboard: the name stays the const. */
+function isOwnDashboardImport(node: ts.Node, file: ParsedFile): boolean {
+  if (!ts.isImportSpecifier(node) || node.propertyName !== undefined) return false;
+  const specifier = node.parent.parent.parent.moduleSpecifier;
+  if (!isPlainString(specifier) || !specifier.text.startsWith('.')) return false;
+  const target = posix.normalize(posix.join(posix.dirname(file.path), specifier.text));
+  return target.startsWith(`plugins/${file.plugin}/dashboard/`);
+}
+
+/**
+ * Records the `const NAME = 'value'` and `const NAME = { ... }` declarations of one file. Any other binding of the
+ * same name (a parameter, a destructured name, a `let`, a `const` it cannot read, an import from elsewhere) marks the
+ * name unresolved, since the gate does not track scopes: it fails closed instead.
+ */
 export function collectConstants(file: ParsedFile, constants: PluginConstants): void {
   forEachNode(file.ast, (node) => {
-    if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || node.initializer === undefined) return;
-    if (!(ts.getCombinedNodeFlags(node) & ts.NodeFlags.Const)) return;
-    const value = unwrapped(node.initializer);
-    if (isPlainString(value)) remember(constants.strings, node.name.text, value.text, (a, b) => a === b);
-    if (ts.isObjectLiteralExpression(value)) remember(constants.objects, node.name.text, value, (a, b) => a === b);
+    const name = boundName(node);
+    if (name === undefined || isOwnDashboardImport(node, file)) return;
+    const value = constValueOf(node);
+    const isString = value !== undefined && isPlainString(value);
+    const isObject = value !== undefined && ts.isObjectLiteralExpression(value);
+    if (isString) remember(constants.strings, name, value.text, (a, b) => a === b);
+    else constants.strings.set(name, null);
+    if (isObject) remember(constants.objects, name, value, (a, b) => a === b);
+    else constants.objects.set(name, null);
   });
 }
 

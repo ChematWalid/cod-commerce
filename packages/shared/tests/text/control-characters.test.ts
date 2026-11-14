@@ -38,6 +38,29 @@ describe('hasControlCharacter', () => {
     expect(hasControlCharacter(value, { allowLineBreaks: true })).toBe(false);
   });
 
+  it.each([
+    ['LRM', '\u200E'],
+    ['RLM', '\u200F'],
+    ['LRE', '\u202A'],
+    ['RLE', '\u202B'],
+    ['PDF', '\u202C'],
+    ['LRO', '\u202D'],
+    ['RLO', '\u202E'],
+    ['LRI', '\u2066'],
+    ['RLI', '\u2067'],
+    ['FSI', '\u2068'],
+    ['PDI', '\u2069'],
+  ])('does not count the bidi formatting character %s (D2144)', (_name, character) => {
+    // Arrange
+    const value = `a${character}b`;
+
+    // Act
+    const counted = [hasControlCharacter(value), hasControlCharacter(value, { allowLineBreaks: true })];
+
+    // Assert
+    expect(counted).toEqual([false, false]);
+  });
+
   it('finds a C1 control', () => {
     expect(hasControlCharacter('a\u0085b')).toBe(true);
     expect(hasControlCharacter('a\u009Bb', { allowLineBreaks: true })).toBe(true);
