@@ -69,7 +69,8 @@ jobs:
         ports:
           - 1025:1025
           - 8025:8025
-    # Non-secret placeholders only; no PgBouncer and no Garage in CI (the api only reads the S3 settings).
+    # Non-secret placeholders only; no PgBouncer. Garage runs from docker-compose.yml (a step below): it needs its config
+    # file, which a service container cannot mount.
     env:
       DATABASE_URL: postgres://cod:change-me-pg@localhost:5432/cod
       DATABASE_URL_DIRECT: postgres://cod:change-me-pg@localhost:5432/cod
@@ -136,6 +137,10 @@ jobs:
         run: |
           ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-seed-demo.js | tee seed-demo-again.log
           grep -F '"event":"seed-demo.done","created":[]' seed-demo-again.log
+      # Logo and product image uploads write to object storage (P2.S1); without it every upload fails. The compose
+      # service creates the job's bucket with the job's placeholder keys, which .env.example holds too.
+      - name: Start the object storage
+        run: docker compose --env-file .env.example up -d --wait garage
       - name: Start the api
         run: |
           ROLE=api API_PORT=3100 setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-api.js > api.log 2>&1 &
