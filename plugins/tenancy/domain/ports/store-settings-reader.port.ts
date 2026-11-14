@@ -13,6 +13,9 @@ export interface StoreSettings {
 /**
  * A read-only view of one store's settings for other plugins (D2106). The caller names the business, and a store of
  * another business answers `null`, like a missing one. An abstract class: plugins inject it by type.
+ *
+ * The reader scopes to whatever business it is given, so a caller passes the business of the request it serves:
+ * `tenantOf(ctx).businessId` in a handler, or the business a job was enqueued for. Never a business id read from input.
  */
 export abstract class StoreSettingsReader {
   /** The settings of `storeId` in `businessId`, archived stores too, or `null` when the business has no such store. */

@@ -1,30 +1,25 @@
 import type { BusinessId, StoreId } from '@cod/shared';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { TENANT_STORES } from '../application/tokens';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { type StoreSettings, StoreSettingsReader } from '../domain/ports/store-settings-reader.port';
-import { toRequestContext } from './operation-context.adapter';
-import { RequestTenantScope } from './request-tenant-scope';
-import { StoreEntity } from './store.entity';
-import { type TenantRepository, TenantRepositoryFactory } from './tenant-repository';
+import type { TenantStoresPort } from '../domain/ports/tenant-stores.port';
 
-/** {@link StoreSettingsReader} on `TenantRepository`: the business filter is forced, so a foreign store reads `null`. */
+/** {@link StoreSettingsReader} over {@link TenantStoresPort}, the one place that reads a store by business and id. */
 @Injectable()
 export class TenantStoreSettingsReader extends StoreSettingsReader {
-  private readonly stores: TenantRepository<StoreEntity>;
-
-  constructor(repositories: TenantRepositoryFactory) {
+  constructor(@Inject(TENANT_STORES) private readonly stores: TenantStoresPort) {
     super();
-    this.stores = repositories.for(StoreEntity);
   }
 
   async settingsOf(ctx: OperationContext, businessId: BusinessId, storeId: StoreId): Promise<StoreSettings | null> {
-    const row = await this.stores.findOne(new RequestTenantScope(toRequestContext(ctx), businessId), { id: storeId });
-    if (row === null) return null;
+    const store = await this.stores.find(ctx, businessId, storeId);
+    if (store === undefined) return null;
     return {
-      soldOutBehavior: row.soldOutBehavior,
-      language: row.language,
-      channelId: row.channelId,
-      status: row.status,
+      soldOutBehavior: store.soldOutBehavior,
+      language: store.language,
+      channelId: store.channelId,
+      status: store.status,
     };
   }
 }
