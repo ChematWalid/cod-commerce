@@ -43,13 +43,13 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       eslint-config-next:
         specifier: 16.4.5
-        version: 16.4.5(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+        version: 16.4.5(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       eslint-config-prettier:
         specifier: 10.1.8
         version: 10.1.8(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-boundaries:
         specifier: 7.4.2
-        version: 7.4.2(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))
+        version: 7.4.2(eslint@9.39.5(jiti@2.7.0))
       prettier:
         specifier: 3.9.10
         version: 3.9.10
@@ -67,7 +67,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   apps/server:
     dependencies:
@@ -86,6 +86,9 @@ importers:
       '@cod/plugin-merchant-shell':
         specifier: workspace:*
         version: link:../../plugins/merchant-shell
+      '@cod/plugin-offers':
+        specifier: workspace:*
+        version: link:../../plugins/offers
       '@cod/plugin-platform-flags':
         specifier: workspace:*
         version: link:../../plugins/platform-flags
@@ -194,7 +197,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   apps/storefront:
     dependencies:
@@ -240,7 +243,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   packages/config:
     devDependencies:
@@ -279,7 +282,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
       yaml:
         specifier: 2.9.1
         version: 2.9.1
@@ -301,7 +304,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   packages/testing:
     dependencies:
@@ -332,7 +335,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/_template:
     dependencies:
@@ -399,7 +402,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/auth:
     dependencies:
@@ -475,7 +478,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/catalog:
     dependencies:
@@ -572,7 +575,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/merchant-shell:
     dependencies:
@@ -621,7 +624,71 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+
+  plugins/offers:
+    dependencies:
+      '@cod/plugin-catalog':
+        specifier: workspace:*
+        version: link:../catalog
+      '@cod/plugin-tenancy':
+        specifier: workspace:*
+        version: link:../tenancy
+      '@cod/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@nestjs/common':
+        specifier: 12.4.0
+        version: 12.4.0(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@vendure/common':
+        specifier: 3.8.1
+        version: 3.8.1
+      '@vendure/core':
+        specifier: 3.8.1
+        version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
+      typeorm:
+        specifier: 0.3.31
+        version: 0.3.31(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@cod/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@cod/plugin-platform-jobs':
+        specifier: workspace:*
+        version: link:../platform-jobs
+      '@cod/plugin-platform-outbox':
+        specifier: workspace:*
+        version: link:../platform-outbox
+      '@cod/plugin-platform-partitions':
+        specifier: workspace:*
+        version: link:../platform-partitions
+      '@cod/plugin-rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
+      '@cod/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      '@vendure/testing':
+        specifier: 3.8.1
+        version: 3.8.1
+      '@vitest/coverage-v8':
+        specifier: 5.1.0
+        version: 5.1.0(vitest@5.1.0)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: 7.3.7
+        version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-flags:
     dependencies:
@@ -697,7 +764,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-health:
     dependencies:
@@ -734,7 +801,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-jobs:
     dependencies:
@@ -780,7 +847,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-outbox:
     dependencies:
@@ -835,7 +902,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-partitions:
     dependencies:
@@ -875,7 +942,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-secrets:
     dependencies:
@@ -933,7 +1000,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/platform-webhooks:
     dependencies:
@@ -1000,7 +1067,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/rate-limit:
     dependencies:
@@ -1034,7 +1101,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/rbac:
     dependencies:
@@ -1110,7 +1177,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/team:
     dependencies:
@@ -1201,7 +1268,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
   plugins/tenancy:
     dependencies:
@@ -1250,7 +1317,7 @@ importers:
         version: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+        version: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
 
 packages:
 
@@ -1644,6 +1711,10 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@bcoe/v8-coverage@1.0.2':
+    resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
+    engines: {node: '>=18'}
 
   '@borewit/text-codec@0.2.3':
     resolution: {integrity: sha512-49CycTz1aAZmvFcwkeFyhud1HUmRIB5Tabf7ALV+VA4Iu85MTfz2cUwzPagMFAdVBvrWdkCxG67I30tUwwpKsw==}
@@ -4214,6 +4285,23 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
 
+  '@vitest/coverage-v8@5.1.0':
+    resolution: {integrity: sha512-OY9aShBQG5KOIw2zCo9fDoCHI9RHliNHJ//nM7m6jGg41Hyke9JOGWmeMlK74xYErsxMoK8mIB3gAeEyFVA7LA==}
+    peerDependencies:
+      '@vitest/browser': 5.1.0
+      vitest: 5.1.0
+    peerDependenciesMeta:
+      '@vitest/browser':
+        optional: true
+
+  '@vitest/istanbul-lib-coverage@2.1.0':
+    resolution: {integrity: sha512-WOjuS+xcjSIy7ruYBQ+9BUcV7XZQ0FyVcbWbWxW9TRx/kLGx5SQaeFRIFDJxjNplb6YsT7SpKo2zuXXUo91OIQ==}
+    engines: {node: '>=22'}
+
+  '@vitest/istanbul-lib-report@2.1.0':
+    resolution: {integrity: sha512-+ZFta25nWtGCOBG9/IET8w1RO5Oawsd6H8Uf6AJ9EA/StFuKVtKAEJEJ6uRt84OH+T4YkI0ASmIHAhRA+0KVxw==}
+    engines: {node: '>=22'}
+
   '@vitest/mocker@5.1.0':
     resolution: {integrity: sha512-5umB9/jlWcqVS6fsrFmv5Gdnpu6wAUio/lEOwAmvB7v+lFo/IW2B9FhAD0p19GCULTgMzLCdUmuCDCnAzWgppQ==}
     peerDependencies:
@@ -4343,6 +4431,9 @@ packages:
 
   ast-types-flow@0.0.8:
     resolution: {integrity: sha512-OH/2E5Fg20h2aPrbe+QL8JZQFko0YZaF+j4mnQ7BGhfavO7OpSLa8a0y9sBwomHdSbkhTS8TQNayBfnW5DwbvQ==}
+
+  ast-v8-to-istanbul@1.0.8:
+    resolution: {integrity: sha512-lPdpagk13ANXV+HClJEpCZM7kUsl5XcvgqKzZhaj6Ve1ZFICcY2sGhAN1n1vT0tML6EclT7bfVgTxqL57Gkpow==}
 
   async-function@1.0.0:
     resolution: {integrity: sha512-hsU18Ae8CDTR6Kgu9DYf0EbCr/a5iGL0rytQDobUcdpYOKokk8LEjVphnXkDkgpi0wYVsqrXuP0bZxJaTqdgoA==}
@@ -5716,6 +5807,9 @@ packages:
   js-sha256@0.10.1:
     resolution: {integrity: sha512-5obBtsz9301ULlsgggLg542s/jqtddfOpV5KJc4hajc9JV8GeY2gZHSVpYBn4nWqAUTJ9v+xwtbJ1mIBgIH5Vw==}
 
+  js-tokens@10.0.0:
+    resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -5939,6 +6033,9 @@ packages:
 
   magic-string@1.4.5:
     resolution: {integrity: sha512-oLLC2+YvQUfAa+vxoufE/yc1icb87M9iXIRqAoR/2EhE/8cb3SF/+Gi0c2By1B+5Vz2e2vQtUvHiu1+63Znh+w==}
+
+  magicast@0.5.5:
+    resolution: {integrity: sha512-UicdXN8zQ3JHlxVq+28afMXPr1z7WNY6+7EJnzTdQWkTAlMLF5fNCCKxJHBQwGaNGR11581EiQmQzx73+MvszA==}
 
   make-error@1.3.6:
     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}
@@ -7000,6 +7097,10 @@ packages:
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
+
+  tinyrainbow@3.2.0:
+    resolution: {integrity: sha512-LgO3D9yZJjApUiuUfl9iFAwrtaX4+lok3wJIqttGoKCHlWUqHqbQpnxCf82L8FjgKsh4iGo78hqJwgL8F6To2A==}
+    engines: {node: '>=14.0.0'}
 
   to-buffer@1.2.2:
     resolution: {integrity: sha512-db0E3UJjcFhpDhAF4tLo03oli3pwl3dbnzXOUIlRKrp+ldk/VUxzpWYZENsw2SZiuBjHAk7DfB0VU7NKdpb6sw==}
@@ -8088,6 +8189,8 @@ snapshots:
       use-sync-external-store: 1.7.0(react@19.3.0)
     optionalDependencies:
       '@types/react': 19.3.0
+
+  '@bcoe/v8-coverage@1.0.2': {}
 
   '@borewit/text-codec@0.2.3': {}
 
@@ -10510,6 +10613,24 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@vitest/coverage-v8@5.1.0(vitest@5.1.0)':
+    dependencies:
+      '@bcoe/v8-coverage': 1.0.2
+      '@vitest/istanbul-lib-coverage': 2.1.0
+      '@vitest/istanbul-lib-report': 2.1.0
+      ast-v8-to-istanbul: 1.0.8
+      magicast: 0.5.5
+      obug: 3.0.0
+      std-env: 4.3.0
+      tinyrainbow: 3.2.0
+      vitest: 5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
+
+  '@vitest/istanbul-lib-coverage@2.1.0': {}
+
+  '@vitest/istanbul-lib-report@2.1.0':
+    dependencies:
+      '@vitest/istanbul-lib-coverage': 2.1.0
+
   '@vitest/mocker@5.1.0(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
@@ -10655,6 +10776,12 @@ snapshots:
   assertion-error@2.0.1: {}
 
   ast-types-flow@0.0.8: {}
+
+  ast-v8-to-istanbul@1.0.8:
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      estree-walker: 3.0.3
+      js-tokens: 10.0.0
 
   async-function@1.0.0: {}
 
@@ -11347,13 +11474,13 @@ snapshots:
 
   escape-string-regexp@4.0.0: {}
 
-  eslint-config-next@16.4.5(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3):
+  eslint-config-next@16.4.5(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3):
     dependencies:
       '@next/eslint-plugin-next': 16.4.5(eslint@9.39.5(jiti@2.7.0))
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.7.0))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5(jiti@2.7.0))
@@ -11379,7 +11506,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.7.0)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -11390,18 +11517,27 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.13.0
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.14.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0)):
+  eslint-module-utils@2.14.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.7.0))
+    transitivePeerDependencies:
+      - supports-color
+
+  eslint-module-utils@2.14.0(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)):
+    dependencies:
+      debug: 3.2.7
+    optionalDependencies:
+      eslint: 9.39.5(jiti@2.7.0)
+      eslint-import-resolver-node: 0.3.9
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -11413,14 +11549,29 @@ snapshots:
       chalk: 4.1.2
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.14.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
+      eslint-module-utils: 2.14.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - '@typescript-eslint/parser'
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0)):
+  eslint-plugin-boundaries@7.4.2(eslint@9.39.5(jiti@2.7.0)):
+    dependencies:
+      '@boundaries/config': 1.0.1
+      '@boundaries/elements': 3.3.2
+      '@boundaries/policies': 1.0.1
+      chalk: 4.1.2
+      eslint: 9.39.5(jiti@2.7.0)
+      eslint-import-resolver-node: 0.3.9
+      eslint-module-utils: 2.14.0(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+    transitivePeerDependencies:
+      - '@typescript-eslint/parser'
+      - eslint-import-resolver-typescript
+      - eslint-import-resolver-webpack
+      - supports-color
+
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.2.0
@@ -11431,7 +11582,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.14.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
+      eslint-module-utils: 2.14.0(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
       hasown: 2.0.4
       is-core-module: 2.18.0
       is-glob: 4.0.3
@@ -11442,8 +11593,6 @@ snapshots:
       semver: 6.3.2
       string.prototype.trimend: 1.0.10
       tsconfig-paths: 3.15.0
-    optionalDependencies:
-      '@typescript-eslint/parser': 8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
     transitivePeerDependencies:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
@@ -12231,6 +12380,8 @@ snapshots:
 
   js-sha256@0.10.1: {}
 
+  js-tokens@10.0.0: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@4.3.2:
@@ -12404,6 +12555,12 @@ snapshots:
   magic-string@1.4.5:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  magicast@0.5.5:
+    dependencies:
+      '@babel/parser': 7.29.13
+      '@babel/types': 7.29.11
+      source-map-js: 1.2.2
 
   make-error@1.3.6: {}
 
@@ -13609,6 +13766,8 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
+  tinyrainbow@3.2.0: {}
+
   to-buffer@1.2.2:
     dependencies:
       isarray: 2.0.5
@@ -13958,7 +14117,7 @@ snapshots:
       lightningcss: 1.33.0
       yaml: 2.9.1
 
-  vitest@5.1.0(@types/node@24.19.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)):
+  vitest@5.1.0(@types/node@24.19.2)(@vitest/coverage-v8@5.1.0)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.1.0(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
@@ -13976,6 +14135,7 @@ snapshots:
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 24.19.2
+      '@vitest/coverage-v8': 5.1.0(vitest@5.1.0)
     transitivePeerDependencies:
       - msw
 
