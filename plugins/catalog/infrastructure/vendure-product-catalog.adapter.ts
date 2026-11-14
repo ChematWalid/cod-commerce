@@ -20,6 +20,7 @@ import type {
 import type { ProductDraft, ProductFields, ProductRecord, ProductUpdate } from '../domain/product';
 import { createsDefaultVariant, type MatrixPlan } from '../domain/variant-matrix';
 import { toRequestContext } from './request-scope';
+import { listOptionsOf } from './vendure-product-list-options';
 import { derivedSlug, merchantSlug } from './stored-slug';
 import type { OptionTarget } from './vendure-option-sync';
 import {
@@ -239,41 +240,4 @@ export class VendureProductCatalog implements ProductCatalogPort {
 function brandPageOf(brandId: Snowflake, excluded: ReadonlySet<CoreId>): ListQueryOptions<Product> {
   const filter = { brandId: { eq: brandId }, ...(excluded.size === 0 ? {} : { id: { notIn: [...excluded] } }) };
   return { skip: 0, take: CATALOG_MAX_PAGE_SIZE, sort: { id: SortOrder.ASC }, filter };
-}
-
-/** The product ids a page is limited to and those it leaves out; an empty exclusion is no filter (`NOT IN ()`). */
-function idFilterOf({ productIds, excludedProductIds }: ProductCriteria) {
-  const excluded = excludedProductIds ?? [];
-  if (productIds === undefined && excluded.length === 0) return undefined;
-  return {
-    ...(productIds === undefined ? {} : { in: [...productIds] }),
-    ...(excluded.length === 0 ? {} : { notIn: [...excluded] }),
-  };
-}
-
-/** One status and one of a public context's statuses, both when both are given (AND, D2109). */
-function statusFilterOf({ status, statuses }: ProductCriteria) {
-  if (status === undefined && statuses === undefined) return {};
-  return {
-    status: {
-      ...(status === undefined ? {} : { eq: status }),
-      ...(statuses === undefined ? {} : { in: [...statuses] }),
-    },
-  };
-}
-
-/** The Vendure list options of a page: newest first; our custom fields filter by name (D2123). */
-function listOptionsOf(criteria: ProductCriteria): ListQueryOptions<Product> {
-  const id = idFilterOf(criteria);
-  const filter = {
-    ...(id === undefined ? {} : { id }),
-    ...statusFilterOf(criteria),
-    ...(criteria.brandId === undefined ? {} : { brandId: { eq: criteria.brandId } }),
-  };
-  return {
-    skip: criteria.skip,
-    take: criteria.take,
-    sort: { createdAt: SortOrder.DESC },
-    filter,
-  };
 }

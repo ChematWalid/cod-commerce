@@ -1,4 +1,10 @@
-import { CATALOG_ERROR_CODES, INT_COLUMN_MAX, MAX_PRODUCT_HIGHLIGHTS, type ProductStatus } from '@cod/shared';
+import {
+  CATALOG_ERROR_CODES,
+  INT_COLUMN_MAX,
+  MAX_PRODUCT_HIGHLIGHTS,
+  type ProductStatus,
+  type ProductType,
+} from '@cod/shared';
 import type { CatalogProductDto, CatalogVariantDto } from '../dto';
 import type { OptionsDraft } from './options-draft';
 
@@ -31,6 +37,8 @@ export interface EditorForm {
   readonly slug: string;
   readonly description: string;
   readonly status: ProductStatus;
+  /** Chosen on a new product only; a saved product keeps its type (D2201 c, D2227). */
+  readonly type: ProductType;
   readonly price: string;
   readonly oldPrice: string;
   readonly sku: string;
@@ -99,6 +107,7 @@ export const emptyEditorForm = (): EditorForm => ({
   slug: '',
   description: '',
   status: 'active',
+  type: 'physical',
   price: '',
   oldPrice: '',
   sku: '',
@@ -149,6 +158,7 @@ export const editorFormOf = (product: CatalogProductDto): EditorForm => ({
   slug: product.slug,
   description: textOf(product.description),
   status: product.status,
+  type: product.type,
   price: textOf(product.price),
   oldPrice: textOf(product.oldPrice),
   sku: textOf(product.sku),
