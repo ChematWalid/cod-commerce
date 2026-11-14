@@ -10,14 +10,14 @@ import { appendManual, manualMembers, membershipDiff, ruleMembers } from '../../
 describe('membership', () => {
   it('orders rule members newest product first, by numeric id', () => {
     // Arrange: '10' sorts before '9' as text, after it as a number; a duplicate counts once
-    const matched = ['9', '10', '1200000000000000001', '2', '10'];
+    const matched = ['9', '10', '2147483647', '2', '10'];
 
     // Act
     const members = ruleMembers(matched);
 
     // Assert
     expect(members).toEqual([
-      { productId: '1200000000000000001', position: 0 },
+      { productId: '2147483647', position: 0 },
       { productId: '10', position: 0 },
       { productId: '9', position: 0 },
       { productId: '2', position: 0 },
@@ -203,5 +203,47 @@ describe('membership', () => {
     // Assert
     expect(inSet).toThrow(CollectionProductNotFoundError);
     expect(appended).toThrow(CollectionProductNotFoundError);
+  });
+
+  it('refuses a product id outside the int column range as no such product', () => {
+    // Arrange
+    const current = manualMembers(['7']);
+
+    // Act
+    const justAbove = () => appendManual(current, '2147483648');
+    const huge = () => manualMembers(['99999999999999999999999999999999']);
+    const zero = () => appendManual(current, '0');
+    const largest = appendManual(current, '2147483647');
+
+    // Assert
+    expect(justAbove).toThrow(CollectionProductNotFoundError);
+    expect(huge).toThrow(CollectionProductNotFoundError);
+    expect(zero).toThrow(CollectionProductNotFoundError);
+    expect(largest).toEqual([
+      { productId: '7', position: 0 },
+      { productId: '2147483647', position: 1 },
+    ]);
+  });
+
+  it('removes a stored non-canonical id by its stored key', () => {
+    // Arrange
+    const current = [{ productId: '07', position: 0 }];
+
+    // Act
+    const emptied = membershipDiff(current, []);
+
+    // Assert
+    expect(emptied).toEqual({ insert: [], update: [], remove: ['07'] });
+  });
+
+  it('sees a stored non-canonical id as the same product as its canonical form', () => {
+    // Arrange
+    const current = [{ productId: '07', position: 0 }];
+
+    // Act
+    const diff = membershipDiff(current, manualMembers(['7']));
+
+    // Assert
+    expect(diff).toEqual({ insert: [], update: [], remove: [] });
   });
 });

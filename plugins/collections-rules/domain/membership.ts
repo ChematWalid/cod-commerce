@@ -1,5 +1,5 @@
-import { COLLECTION_MAX_MANUAL_PRODUCTS } from '@cod/shared';
-import { AUTOMATIC_MEMBER_POSITION, FIRST_MANUAL_POSITION } from './constants';
+import { COLLECTION_MAX_MANUAL_PRODUCTS, INT_COLUMN_MAX } from '@cod/shared';
+import { AUTOMATIC_MEMBER_POSITION, FIRST_MANUAL_POSITION, MIN_PRODUCT_ID } from './constants';
 import { CollectionProductNotFoundError, InvalidCollectionInputError, TooManyManualProductsError } from './errors';
 
 /** One product of a collection and its place in it (D2318). */
@@ -20,13 +20,18 @@ const DECIMAL_DIGITS = /^\d+$/;
 
 /**
  * A product id in canonical decimal form (`'07'` → `'7'`), so one product always has one key in a membership.
- * A malformed id answers as a foreign one: no such product.
+ * A malformed id, or one outside the int column range, answers as a foreign one: no such product. The range check
+ * keeps such an id from reaching Postgres, which would fail with an out-of-range error instead.
  */
 export function canonicalProductId(productId: string): string {
   if (!DECIMAL_DIGITS.test(productId)) {
     throw new CollectionProductNotFoundError();
   }
-  return BigInt(productId).toString();
+  const id = BigInt(productId);
+  if (id < BigInt(MIN_PRODUCT_ID) || id > BigInt(INT_COLUMN_MAX)) {
+    throw new CollectionProductNotFoundError();
+  }
+  return id.toString();
 }
 
 /** Sort order newest product first: Vendure ids grow with time, compared as numbers (`'10'` after `'9'`). */
