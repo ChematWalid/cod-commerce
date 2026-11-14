@@ -76,6 +76,7 @@ function RowInput(props: RowProps & { readonly field: 'sku' | 'price'; readonly 
   return (
     <Input
       dir="ltr"
+      className="cod-catalog-cell-input"
       {...(field === 'price'
         ? { inputMode: 'numeric' as const, 'data-testid': VARIANT_PRICE_TEST_ID }
         : { maxLength: SKU_MAX, 'data-testid': VARIANT_SKU_TEST_ID })}

@@ -21,6 +21,11 @@ html[dir='rtl'] .cod-catalog-switch [data-slot='switch-thumb'][data-checked] {
   object-fit: cover;
 }
 
+/* A SKU or price field of the variants table: wide enough for its value on a phone, where the table scrolls instead. */
+.cod-catalog-cell-input {
+  min-inline-size: 7rem;
+}
+
 /* A value of an option while it is dragged to a new place. */
 .cod-catalog-dragging {
   opacity: 0.5;
