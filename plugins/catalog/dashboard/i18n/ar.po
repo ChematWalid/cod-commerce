@@ -161,7 +161,7 @@ msgstr "بعض البيانات غير صالحة."
 
 #. js-lingui-explicit-id
 msgid "catalog.too-many-highlights"
-msgstr "يمكن للمنتج أن يعرض ست مزايا على الأكثر."
+msgstr "يمكن للمنتج أن يعرض 6 مزايا على الأكثر."
 
 #. js-lingui-explicit-id
 msgid "catalog.matrix-too-large"

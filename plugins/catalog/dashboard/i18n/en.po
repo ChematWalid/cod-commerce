@@ -161,7 +161,7 @@ msgstr "Some of the details are not valid."
 
 #. js-lingui-explicit-id
 msgid "catalog.too-many-highlights"
-msgstr "A product can show at most six highlights."
+msgstr "A product can show at most 6 highlights."
 
 #. js-lingui-explicit-id
 msgid "catalog.matrix-too-large"

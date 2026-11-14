@@ -2,7 +2,7 @@
   "error": {
     "catalog-product-not-found": "المنتج غير موجود.",
     "catalog-invalid-input": "بعض البيانات غير صالحة.",
-    "catalog-too-many-highlights": "يمكن للمنتج أن يعرض ست مزايا على الأكثر.",
+    "catalog-too-many-highlights": "يمكن للمنتج أن يعرض 6 مزايا على الأكثر.",
     "catalog-matrix-too-large": "خيارات أو قيم كثيرة جدًا: 3 خيارات على الأكثر، و20 قيمة لكل خيار، و100 متغير.",
     "catalog-duplicate-option-value": "يحتوي أحد الخيارات على القيمة نفسها مرتين.",
     "catalog-duplicate-option-name": "يوجد خياران بالاسم نفسه.",
