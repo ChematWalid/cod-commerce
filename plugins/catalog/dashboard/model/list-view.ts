@@ -1,5 +1,6 @@
 import { CATALOG_ERROR_CODES, type ProductListTab, type ProductStatus } from '@cod/shared';
 import { DELETE_PRODUCTS_KEY, EDIT_PRODUCTS_KEY } from '../constants';
+import { isStoreSwitched } from './store-bound-fetch';
 
 /** The catalogue ids of the statuses and tabs; `dynamic-ids.ts` registers every one of them. */
 export const STATUS_LABEL_IDS: Readonly<Record<ProductStatus, string>> = {
@@ -42,6 +43,8 @@ export function rowActionsOf(
 
 export const GENERIC_ERROR_MESSAGE_ID = 'catalog.error-generic';
 export const FORBIDDEN_MESSAGE_ID = 'catalog.error-forbidden';
+/** A write refused because the page's store is no longer the one requests go to. */
+export const STORE_SWITCHED_MESSAGE_ID = 'catalog.error-store-switched';
 
 const FORBIDDEN_CODE = 'FORBIDDEN';
 const CATALOG_CODES: ReadonlySet<string> = new Set(Object.values(CATALOG_ERROR_CODES));
@@ -53,8 +56,9 @@ function graphQlCodeOf(error: unknown): string | undefined {
   return typeof extensions.code === 'string' ? extensions.code : undefined;
 }
 
-/** The catalogue id for an API error: the catalog code's own message, forbidden, or a generic one. */
+/** The catalogue id for an API error: the catalog code's own message, forbidden, a switched store, or a generic one. */
 export function listErrorMessageId(error: unknown): string {
+  if (isStoreSwitched(error)) return STORE_SWITCHED_MESSAGE_ID;
   const code = graphQlCodeOf(error);
   if (code === FORBIDDEN_CODE) return FORBIDDEN_MESSAGE_ID;
   return code !== undefined && CATALOG_CODES.has(code) ? code : GENERIC_ERROR_MESSAGE_ID;

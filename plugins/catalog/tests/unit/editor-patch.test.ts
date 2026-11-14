@@ -90,4 +90,30 @@ describe('editor patch', () => {
     expect(input).not.toHaveProperty('slug');
     expect(productInputSchema.safeParse(input).success).toBe(true);
   });
+
+  it.each(['<p></p>', '<p> </p>', '<p><br></p>', '<p>&nbsp;</p>'])(
+    'clears a description the rich-text editor left as empty markup %s',
+    (description) => {
+      // Arrange
+      const form = { ...saved, description };
+
+      // Act
+      const patch = patchOf(saved, form);
+
+      // Assert
+      expect(patch).toEqual({ description: null });
+      expect(createInputOf(form).description).toBeNull();
+    },
+  );
+
+  it('keeps a description that has text', () => {
+    // Arrange
+    const form = { ...saved, description: '<p><strong>Light</strong> and fast</p>' };
+
+    // Act
+    const patch = patchOf(saved, form);
+
+    // Assert
+    expect(patch).toEqual({ description: '<p><strong>Light</strong> and fast</p>' });
+  });
 });

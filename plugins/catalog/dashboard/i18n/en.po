@@ -144,6 +144,14 @@ msgid "catalog.error-forbidden"
 msgstr "You do not have permission to do this."
 
 #. js-lingui-explicit-id
+msgid "catalog.error-option-values-required"
+msgstr "Give every option at least one value, or remove it."
+
+#. js-lingui-explicit-id
+msgid "catalog.error-store-switched"
+msgstr "The store changed in another tab. Reload this page to keep working in the store it shows."
+
+#. js-lingui-explicit-id
 msgid "catalog.product-not-found"
 msgstr "Product not found."
 

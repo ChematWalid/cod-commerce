@@ -17,6 +17,8 @@ import {
 
 interface OptionsEditorProps {
   readonly options: OptionsDraft;
+  /** The catalogue id of what the form refuses in the options, such as an option without values. */
+  readonly error?: string | undefined;
   readonly disabled: boolean;
   readonly onChange: (options: OptionsDraft) => void;
 }
@@ -94,32 +96,46 @@ function MoveButtons(props: MoveButtonsProps): ReactNode {
   );
 }
 
-/** The values of one option as chips: drag one onto another, or use the earlier/later buttons, to reorder. */
-/** Drag and drop of the values of option `index`: the props each value's chip takes. */
-function useValueDrag({ index, editor }: Pick<GroupProps, 'index' | 'editor'>) {
+/**
+ * Drag and drop reordering of a list: the props each item takes. Dropping item `from` onto item `to` moves it by
+ * `to - from`, the same move as the earlier/later buttons. Events stop at the item, so dragging a value never drags
+ * or drops its option too.
+ */
+function useReorderDrag(disabled: boolean, onMove: (from: number, delta: number) => void) {
   const [dragged, setDragged] = useState<number | null>(null);
-  return (valueIndex: number) => ({
-    draggable: !editor.disabled,
-    className: dragged === valueIndex ? 'cod-catalog-dragging' : undefined,
-    onDragStart: () => {
-      setDragged(valueIndex);
+  return (position: number) => ({
+    draggable: !disabled,
+    className: dragged === position ? 'cod-catalog-dragging' : undefined,
+    onDragStart: (event: DragEvent) => {
+      event.stopPropagation();
+      setDragged(position);
     },
-    onDragEnd: () => {
+    onDragEnd: (event: DragEvent) => {
+      event.stopPropagation();
       setDragged(null);
     },
     onDragOver: (event: DragEvent) => {
+      if (dragged === null) return;
       event.preventDefault();
+      event.stopPropagation();
     },
-    onDrop: () => {
-      if (dragged !== null) editor.onChange(moveValue(editor.options, index, dragged, valueIndex - dragged));
+    onDrop: (event: DragEvent) => {
+      if (dragged === null) return;
+      event.stopPropagation();
+      onMove(dragged, position - dragged);
       setDragged(null);
     },
   });
 }
 
+type ReorderDragProps = ReturnType<ReturnType<typeof useReorderDrag>>;
+
+/** The values of one option as chips: drag one onto another, or use the earlier/later buttons, to reorder. */
 function ValueChips({ group, index, editor }: GroupProps): ReactNode {
-  const dragProps = useValueDrag({ index, editor });
   const { options, disabled, onChange } = editor;
+  const dragProps = useReorderDrag(disabled, (from, delta) => {
+    onChange(moveValue(options, index, from, delta));
+  });
   return (
     <ul className="flex flex-wrap gap-2">
       {group.values.map((value, valueIndex) => (
@@ -171,29 +187,32 @@ function ValueInput({ group, index, editor }: GroupProps): ReactNode {
   );
 }
 
-function OptionGroupCard(props: GroupProps): ReactNode {
+/** One option: its name, move and remove buttons, its values, and the field adding one. Drag it to reorder. */
+function OptionGroupCard(props: GroupProps & { readonly dragProps: ReorderDragProps }): ReactNode {
   const { group, index, editor } = props;
   const { options, disabled, onChange } = editor;
   return (
-    <div className="grid gap-2 rounded-md border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-medium [overflow-wrap:anywhere]">{group.name}</span>
-        <MoveButtons
-          position={index}
-          count={options.length}
-          disabled={disabled}
-          sideways={false}
-          onMove={(delta) => {
-            onChange(moveGroup(options, index, delta));
-          }}
-          onRemove={() => {
-            onChange(removeGroup(options, index));
-          }}
-        />
+    <li {...props.dragProps}>
+      <div className="grid gap-2 rounded-md border p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium [overflow-wrap:anywhere]">{group.name}</span>
+          <MoveButtons
+            position={index}
+            count={options.length}
+            disabled={disabled}
+            sideways={false}
+            onMove={(delta) => {
+              onChange(moveGroup(options, index, delta));
+            }}
+            onRemove={() => {
+              onChange(removeGroup(options, index));
+            }}
+          />
+        </div>
+        <ValueChips {...props} />
+        <ValueInput {...props} />
       </div>
-      <ValueChips {...props} />
-      <ValueInput {...props} />
-    </div>
+    </li>
   );
 }
 
@@ -234,12 +253,22 @@ function AddOption({ options, disabled, onChange }: OptionsEditorProps): ReactNo
 /** The options of the variant matrix (Color, Size…); the server builds the variants from them on save (ADR 0017). */
 export function OptionsEditor(props: OptionsEditorProps): ReactNode {
   const { i18n } = useLingui();
+  const dragProps = useReorderDrag(props.disabled, (from, delta) => {
+    props.onChange(moveGroup(props.options, from, delta));
+  });
   return (
     <div className="grid gap-3">
       {props.options.length === 0 && <p className="text-muted-foreground text-xs">{i18n._('catalog.options-empty')}</p>}
-      {props.options.map((group, index) => (
-        <OptionGroupCard key={group.name} group={group} index={index} editor={props} />
-      ))}
+      {props.error !== undefined && (
+        <p role="alert" className="text-destructive text-sm">
+          {i18n._(props.error)}
+        </p>
+      )}
+      <ul className="grid gap-3">
+        {props.options.map((group, index) => (
+          <OptionGroupCard key={group.name} group={group} index={index} editor={props} dragProps={dragProps(index)} />
+        ))}
+      </ul>
       <AddOption {...props} />
     </div>
   );

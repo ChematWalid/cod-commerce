@@ -2,6 +2,7 @@ import { CATALOG_EDITOR_BLOCK_IDS } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { PageBlock, PageLayout } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
+import { hasOptionVariants } from '../model/editor-form';
 import type { OptionsDraft } from '../model/options-draft';
 import { DetailsSection } from './details-section';
 import { HighlightsField } from './highlights-field';
@@ -43,13 +44,14 @@ function mainBlocks(props: EditorBlocksProps, t: Translate): ReactNode[] {
     <PageBlock key="options" column="main" blockId={ids.options} title={t('catalog.block-options')}>
       <OptionsEditor
         options={props.form.options}
+        error={props.errors.options}
         disabled={props.disabled}
         onChange={(options: OptionsDraft) => {
           props.onChange({ options });
         }}
       />
     </PageBlock>,
-    props.form.variants.length > 1 && (
+    hasOptionVariants(props.form) && (
       <PageBlock key="variants" column="main" blockId={ids.variants} title={t('catalog.block-variants')}>
         <VariantsTable {...props} />
       </PageBlock>

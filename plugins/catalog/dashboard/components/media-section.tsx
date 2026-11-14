@@ -63,7 +63,7 @@ function MediaActions(props: MediaSectionProps): ReactNode {
   const { i18n } = useLingui();
   const [picking, setPicking] = useState(false);
   const library = useMediaLibrary(props.scope).data ?? [];
-  const { form, disabled, onChange } = props;
+  const { form, scope, disabled, onChange } = props;
   const close = (): void => {
     setPicking(false);
   };
@@ -80,7 +80,7 @@ function MediaActions(props: MediaSectionProps): ReactNode {
         {i18n._('catalog.media-choose')}
       </Button>
       <MediaUploadButton
-        disabled={disabled}
+        {...{ scope, disabled }}
         onUploaded={(media) => {
           onChange(withImages(form, [...form.assetIds, media.assetId]));
         }}

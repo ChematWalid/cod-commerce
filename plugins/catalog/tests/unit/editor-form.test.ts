@@ -1,6 +1,14 @@
 import { CATALOG_ERROR_CODES, MAX_PRODUCT_HIGHLIGHTS } from '@cod/shared';
 import { describe, expect, it, vi } from 'vitest';
-import { editorFormErrors, editorFormOf, emptyEditorForm, submitEditor } from '../../dashboard/model/editor-form';
+import {
+  editorFormErrors,
+  editorFormOf,
+  emptyEditorForm,
+  hasOptionVariants,
+  OPTION_VALUES_REQUIRED_MESSAGE_ID,
+  submitEditor,
+} from '../../dashboard/model/editor-form';
+import { addGroup, removeValue } from '../../dashboard/model/options-draft';
 import { savedRunner } from './editor-fixtures';
 
 const highlightIds = (count: number): string[] =>
@@ -84,5 +92,63 @@ describe('editor form', () => {
       featuredAssetId: null,
     });
     expect(editorFormErrors(form)).toEqual({});
+  });
+
+  it('refuses an option without values before calling the server', () => {
+    // Arrange
+    const saved = editorFormOf(savedRunner);
+    const form = { ...saved, options: addGroup(saved.options, 'Material') };
+
+    // Act
+    const errors = editorFormErrors(form);
+
+    // Assert
+    expect(errors).toEqual({ options: OPTION_VALUES_REQUIRED_MESSAGE_ID });
+  });
+
+  it('refuses an option whose last value was removed', () => {
+    // Arrange
+    const saved = editorFormOf(savedRunner);
+    const oneSize = removeValue(saved.options, 1, 1);
+    const form = { ...saved, options: removeValue(oneSize, 1, 0) };
+
+    // Act
+    const errors = editorFormErrors(form);
+
+    // Assert
+    expect(errors.options).toBe(OPTION_VALUES_REQUIRED_MESSAGE_ID);
+  });
+});
+
+describe('variants table visibility', () => {
+  it('shows the variants of a product with options, even a single combination', () => {
+    // Arrange
+    const form = {
+      ...editorFormOf(savedRunner),
+      options: [{ name: 'Color', values: ['Red'] }],
+      variants: [
+        { id: '101', optionValues: ['Red'], sku: 'RUN-1', price: '2500', isHidden: false, featuredAssetId: null },
+      ],
+    };
+
+    // Act
+    const shown = hasOptionVariants(form);
+
+    // Assert
+    expect(shown).toBe(true);
+  });
+
+  it('hides the table for a product without options, whose one variant follows the product fields', () => {
+    // Arrange
+    const form = {
+      ...emptyEditorForm(),
+      variants: [{ id: '201', optionValues: [], sku: 'TEE', price: '900', isHidden: false, featuredAssetId: null }],
+    };
+
+    // Act
+    const shown = hasOptionVariants(form);
+
+    // Assert
+    expect(shown).toBe(false);
   });
 });

@@ -57,6 +57,14 @@ export type ProductPatchInput = Partial<ProductFieldsInput> & {
 
 /** Free text as the API takes it: an empty field is `null`. */
 const textOrNull = (text: string): string | null => (text.trim() === '' ? null : text);
+const MARKUP_TAG = /<[^>]*>/g;
+const NO_BREAK_SPACE_ENTITY = /&nbsp;/g;
+/**
+ * Rich text as the API takes it: the rich-text editor leaves `<p></p>` when every word is deleted, which is no
+ * description, so markup without text is `null` too.
+ */
+const richTextOrNull = (html: string): string | null =>
+  html.replace(MARKUP_TAG, '').replace(NO_BREAK_SPACE_ENTITY, ' ').trim() === '' ? null : html;
 /** A number field the form already checked (`editorFormErrors`). */
 const numberOrNull = (text: string): number | null => wholeNumberOf(text) ?? null;
 const RULE_FALLBACK = 1;
@@ -66,7 +74,7 @@ function fieldsOf(form: EditorForm): ProductFieldsInput {
   return {
     title: form.title.trim(),
     ...(slug === '' ? {} : { slug }),
-    description: textOrNull(form.description),
+    description: richTextOrNull(form.description),
     status: form.status,
     price: numberOrNull(form.price) ?? 0,
     oldPrice: numberOrNull(form.oldPrice),

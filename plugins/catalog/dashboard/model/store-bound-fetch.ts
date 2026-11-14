@@ -28,3 +28,18 @@ export async function fetchForStore<T>(
   if (readToken() !== expectedToken) throw new StoreSwitchedError();
   return answer;
 }
+
+/**
+ * Sends a write only while requests carry `expectedToken`, the channel token of the store the page is open for, so a
+ * store switched in another tab (the token is shared) never makes a create or an upload land in that other store.
+ * A `null` token (store not known yet) refuses too. Unlike a read, the answer is kept after a later switch: the write
+ * already happened in the expected store.
+ */
+export async function sendForStore<T>(
+  expectedToken: string | null,
+  readToken: () => string | null,
+  send: () => Promise<T>,
+): Promise<T> {
+  if (expectedToken === null || readToken() !== expectedToken) throw new StoreSwitchedError();
+  return send();
+}

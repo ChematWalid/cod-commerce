@@ -2,6 +2,7 @@ import { useLingui } from '@lingui/react';
 import type { ReactNode } from 'react';
 import { VIEW_MEMBERS_KEY } from '../constants';
 import { useOrderManagers } from '../editor-queries';
+import { orderManagerChoices } from '../model/order-manager-choices';
 import { CheckList } from './check-list';
 import type { ScopedSectionProps } from './section-props';
 
@@ -22,9 +23,12 @@ export function OrderManagersField({ form, disabled, onChange, scope, held }: Or
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-1 text-sm font-medium">{i18n._('catalog.editor-order-managers')}</legend>
-      {canList && managers.isSuccess ? (
+      {canList && managers.isSuccess && scope !== null ? (
         <CheckList
-          items={managers.data.map((member) => ({ id: member.id, label: member.name ?? member.id }))}
+          items={orderManagerChoices(managers.data, scope.storeId, selected).map((member) => ({
+            id: member.id,
+            label: member.name ?? member.id,
+          }))}
           selected={selected}
           disabled={disabled}
           onChange={(orderManagerIds) => {

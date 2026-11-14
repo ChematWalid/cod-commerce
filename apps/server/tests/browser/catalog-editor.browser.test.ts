@@ -8,6 +8,7 @@ import {
   PRODUCT_EDITOR_TEST_ID,
   VARIANT_PRICE_TEST_ID,
   VARIANT_ROW_TEST_ID,
+  VARIANT_SKU_TEST_ID,
 } from '@cod/plugin-catalog';
 import { type Browser, chromium, type Page } from 'playwright-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -89,8 +90,9 @@ describe('catalog product editor', () => {
     if (id === undefined) throw new Error('the editor opened the created product');
     created.push(id);
     await expect.poll(() => variantRows(page).count()).toBe(4);
-    const skus = await variantRows(page).evaluateAll((rows) =>
-      rows.map((row) => row.querySelector('input')?.value ?? ''),
+    // The image select of each row renders a hidden form input of its own, so the SKU is read by its test id.
+    const skus = await byTestId(page, VARIANT_SKU_TEST_ID).evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value),
     );
     expect(skus).toEqual([1, 2, 3, 4].map((n) => `${sku}-${String(n)}`));
     await assertNoPageError(page);
@@ -124,6 +126,39 @@ describe('catalog product editor', () => {
     await expect
       .poll(async () => (await variantsOf(page, id)).map((variant) => variant.price))
       .toEqual([2500, 3100, 2500, 2500]);
+  });
+
+  it('shows the variant of a product whose options give a single combination', async () => {
+    const { createCatalogProduct } = await adminApi<{ createCatalogProduct: { product: { id: string } } }>(
+      page,
+      'mutation ($input: CreateCatalogProductInput!) { createCatalogProduct(input: $input) { product { id } } }',
+      {
+        input: {
+          title: `Single runner ${runId}`,
+          status: 'active',
+          price: 2500,
+          sku: `SG${runId}`.toUpperCase(),
+          optionGroups: [{ name: 'Color', values: ['Red'] }],
+        },
+      },
+    );
+    const { id } = createCatalogProduct.product;
+    created.push(id);
+
+    await open(page, `/stores/active/products/${id}`);
+
+    await expect.poll(() => variantRows(page).count()).toBe(1);
+    await expect(byTestId(page, VARIANT_SKU_TEST_ID).inputValue()).resolves.toBe(`SG${runId}-1`.toUpperCase());
+    await assertNoPageError(page);
+  });
+
+  it.each(['999999999', 'abc'])('answers not found for the product id %s without an editable form', async (id) => {
+    await open(page, `/stores/active/products/${id}`);
+
+    await expect(page.getByRole('alert').filter({ hasText: 'Product not found.' }).waitFor()).resolves.toBeUndefined();
+    await expect(byTestId(page, EDITOR_SAVE_TEST_ID).count()).resolves.toBe(0);
+    await expect(byTestId(page, EDITOR_TITLE_TEST_ID).count()).resolves.toBe(0);
+    await assertNoPageError(page);
   });
 
   it('the editor renders right-to-left in Arabic', async () => {

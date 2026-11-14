@@ -7,7 +7,9 @@ import {
   formatDzd,
   listErrorMessageId,
   rowActionsOf,
+  STORE_SWITCHED_MESSAGE_ID,
 } from '../../dashboard/model/list-view';
+import { StoreSwitchedError } from '../../dashboard/model/store-bound-fetch';
 
 describe('product list rows', () => {
   it('offers only Edit and the disabled Preview to a viewer', () => {
@@ -40,6 +42,7 @@ describe('list error messages', () => {
     [graphQlError('FORBIDDEN'), FORBIDDEN_MESSAGE_ID],
     [graphQlError('SOMETHING_ELSE'), GENERIC_ERROR_MESSAGE_ID],
     [new Error('network'), GENERIC_ERROR_MESSAGE_ID],
+    [new StoreSwitchedError(), STORE_SWITCHED_MESSAGE_ID],
     [undefined, GENERIC_ERROR_MESSAGE_ID],
   ])('maps %o to %s', (error, id) => {
     // Act

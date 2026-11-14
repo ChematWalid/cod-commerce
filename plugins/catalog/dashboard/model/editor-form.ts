@@ -60,6 +60,7 @@ export type EditorFormErrors = Partial<Record<EditorField, string>>;
 
 export const TITLE_REQUIRED_MESSAGE_ID = 'catalog.error-title-required';
 export const WHOLE_NUMBER_MESSAGE_ID = 'catalog.error-whole-number';
+export const OPTION_VALUES_REQUIRED_MESSAGE_ID = 'catalog.error-option-values-required';
 
 const WHOLE_NUMBER = /^\d+$/;
 
@@ -184,7 +185,7 @@ function settingsAreValid({ settings }: EditorForm): boolean {
 
 /**
  * What the form refuses before the server is asked (the server checks again): a blank title, money or a size that is
- * not a whole number, more than six highlights (AC3), a bad variant price or quantity rule.
+ * not a whole number, an option without values, more than six highlights (AC3), a bad variant price or quantity rule.
  */
 export function editorFormErrors(form: EditorForm): EditorFormErrors {
   const checks: readonly [EditorField, boolean, string][] = [
@@ -195,12 +196,20 @@ export function editorFormErrors(form: EditorForm): EditorFormErrors {
       isWholeOrEmpty(form[key]),
       WHOLE_NUMBER_MESSAGE_ID,
     ]),
+    ['options', form.options.every((group) => group.values.length > 0), OPTION_VALUES_REQUIRED_MESSAGE_ID],
     ['highlightIds', form.highlightIds.length <= MAX_PRODUCT_HIGHLIGHTS, CATALOG_ERROR_CODES.TOO_MANY_HIGHLIGHTS],
     ['variants', form.variants.every((row) => isWhole(row.price)), WHOLE_NUMBER_MESSAGE_ID],
     ['settings', settingsAreValid(form), WHOLE_NUMBER_MESSAGE_ID],
   ];
   return Object.fromEntries(checks.filter(([, valid]) => !valid).map(([field, , messageId]) => [field, messageId]));
 }
+
+/**
+ * Whether the saved product has option variants, so the variants table is shown, even for a single combination such
+ * as Color: Red. A product without options has one default variant that follows the product's own fields.
+ */
+export const hasOptionVariants = (form: EditorForm): boolean =>
+  form.variants.some((row) => row.optionValues.length > 0);
 
 export type SubmitOutcome<T> =
   { readonly kind: 'invalid'; readonly errors: EditorFormErrors } | { readonly kind: 'sent'; readonly answer: T };

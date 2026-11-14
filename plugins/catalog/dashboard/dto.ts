@@ -1,4 +1,4 @@
-import type { ProductListQueryInput, ProductStatus } from '@cod/shared';
+import type { ProductListQueryInput, ProductStatus, StoreAccessKind } from '@cod/shared';
 
 /** The options `catalogProducts` takes: the shared list query (AC4, D2123). */
 export type CatalogProductListInput = ProductListQueryInput;
@@ -117,4 +117,7 @@ export interface CatalogMediaDto {
 export interface CatalogOrderManagerDto {
   readonly id: string;
   readonly name: string | null;
+  /** `all` reaches every store of the business; `selected` only `storeIds` (D2114). */
+  readonly storeAccess: StoreAccessKind;
+  readonly storeIds: readonly string[];
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fetchForStore, isStoreSwitched } from '../../dashboard/model/store-bound-fetch';
+import { fetchForStore, isStoreSwitched, sendForStore } from '../../dashboard/model/store-bound-fetch';
 
 const STORE_A_TOKEN = 'token-a';
 const STORE_B_TOKEN = 'token-b';
@@ -74,5 +74,62 @@ describe('store-bound fetch', () => {
 
     // Assert
     expect(apiError).toBe(false);
+  });
+
+  it('sends a write with the token of the store the editor is open for', async () => {
+    // Arrange
+    const tokens = tokenSource(STORE_A_TOKEN);
+
+    // Act
+    const answer = await sendForStore(STORE_A_TOKEN, tokens.read, () => Promise.resolve('created in A'));
+
+    // Assert
+    expect(answer).toBe('created in A');
+  });
+
+  it('refuses a write before sending it when requests go to another store', async () => {
+    // Arrange
+    const tokens = tokenSource(STORE_B_TOKEN);
+    let sent = false;
+
+    // Act
+    const attempt = sendForStore(STORE_A_TOKEN, tokens.read, () => {
+      sent = true;
+      return Promise.resolve('created in B');
+    });
+
+    // Assert
+    await expect(attempt).rejects.toSatisfy(isStoreSwitched);
+    expect(sent).toBe(false);
+  });
+
+  it('refuses a write while the store is still unknown', async () => {
+    // Arrange
+    const tokens = tokenSource(STORE_A_TOKEN);
+    let sent = false;
+
+    // Act
+    const attempt = sendForStore(null, tokens.read, () => {
+      sent = true;
+      return Promise.resolve('created');
+    });
+
+    // Assert
+    await expect(attempt).rejects.toSatisfy(isStoreSwitched);
+    expect(sent).toBe(false);
+  });
+
+  it('keeps the answer of a write sent before a switch, since the write already happened', async () => {
+    // Arrange
+    const tokens = tokenSource(STORE_A_TOKEN);
+
+    // Act
+    const answer = await sendForStore(STORE_A_TOKEN, tokens.read, () => {
+      tokens.switchTo(STORE_B_TOKEN);
+      return Promise.resolve('created in A');
+    });
+
+    // Assert
+    expect(answer).toBe('created in A');
   });
 });

@@ -41,6 +41,7 @@ export const OPTION_NAME_INPUT_TEST_ID = 'catalog-option-name';
 export const OPTION_VALUE_INPUT_TEST_ID = 'catalog-option-value';
 export const VARIANT_ROW_TEST_ID = 'catalog-variant-row';
 export const VARIANT_PRICE_TEST_ID = 'catalog-variant-price';
+export const VARIANT_SKU_TEST_ID = 'catalog-variant-sku';
 export const RESET_CONFIRM_TEST_ID = 'catalog-reset-confirm';
 
 /** How long the slug field waits after the last key before it asks whether the slug is free. */

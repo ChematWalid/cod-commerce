@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
-import { VARIANT_PRICE_TEST_ID, VARIANT_ROW_TEST_ID } from '../constants';
+import { VARIANT_PRICE_TEST_ID, VARIANT_ROW_TEST_ID, VARIANT_SKU_TEST_ID } from '../constants';
 import type { VariantDraft } from '../model/editor-form';
 import type { SectionProps } from './section-props';
 
@@ -78,7 +78,7 @@ function RowInput(props: RowProps & { readonly field: 'sku' | 'price'; readonly 
       dir="ltr"
       {...(field === 'price'
         ? { inputMode: 'numeric' as const, 'data-testid': VARIANT_PRICE_TEST_ID }
-        : { maxLength: SKU_MAX })}
+        : { maxLength: SKU_MAX, 'data-testid': VARIANT_SKU_TEST_ID })}
       aria-label={i18n._(props.labelId, { name })}
       value={row[field]}
       disabled={table.disabled}

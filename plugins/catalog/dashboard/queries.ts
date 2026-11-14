@@ -52,7 +52,7 @@ export interface StoreScope {
 }
 
 /** The channel token requests are sent with, or null when the browser's storage cannot be read or holds none. */
-function readRequestToken(): string | null {
+export function readRequestToken(): string | null {
   try {
     return localStorage.getItem(LS_KEY_SELECTED_CHANNEL_TOKEN);
   } catch (error: unknown) {

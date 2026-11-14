@@ -16,7 +16,8 @@ import type {
   CatalogProductSaveDto,
 } from './dto';
 import type { CreateProductInput, ProductPatchInput } from './model/editor-patch';
-import { type StoreScope, storeQuery } from './queries';
+import { sendForStore } from './model/store-bound-fetch';
+import { readRequestToken, type StoreScope, storeQuery } from './queries';
 
 /** Every field of a product the editor reads back after a load or a save. */
 const PRODUCT_FIELDS = `
@@ -42,11 +43,16 @@ const UPLOAD_MUTATION = `mutation CatalogUploadMedia($file: Upload!) {
   uploadCatalogMedia(file: $file) { id assetId previewUrl } }`;
 const SLUG_QUERY = `query CatalogSlugCheck($slug: String!, $productId: ID) {
   catalogSlugAvailability(slug: $slug, productId: $productId) { available slug } }`;
-const ORDER_MANAGERS_QUERY = 'query CatalogOrderManagerOptions { teamOrderManagers { id name } }';
+const ORDER_MANAGERS_QUERY = 'query CatalogOrderManagerOptions { teamOrderManagers { id name storeAccess storeIds } }';
 
-/** `api.mutate` with a string document answers `unknown`; the answer's shape is the document's (auth precedent). */
-async function mutate<T>(document: string, variables: object): Promise<T> {
-  return (await api.mutate(document, variables)) as T;
+/**
+ * A write sent only while requests go to `scope`'s store ({@link sendForStore}). `api.mutate` with a string document
+ * answers `unknown`; the answer's shape is the document's (auth precedent).
+ */
+async function mutate<T>(scope: StoreScope | null, document: string, variables: object): Promise<T> {
+  return (await sendForStore(scope?.channelToken ?? null, readRequestToken, () =>
+    api.mutate(document, variables),
+  )) as T;
 }
 
 /** The product the editor opens, `null` when the active store has no such product. */
@@ -64,12 +70,21 @@ export function useCatalogProduct(scope: StoreScope | null, productId: string | 
   });
 }
 
-export const createCatalogProduct = async (input: CreateProductInput): Promise<CatalogProductSaveDto> =>
-  (await mutate<{ readonly createCatalogProduct: CatalogProductSaveDto }>(CREATE_MUTATION, { input }))
+/** Creates a product in `scope`'s store; refused unsent when requests go to another store. */
+export const createCatalogProduct = async (
+  scope: StoreScope | null,
+  input: CreateProductInput,
+): Promise<CatalogProductSaveDto> =>
+  (await mutate<{ readonly createCatalogProduct: CatalogProductSaveDto }>(scope, CREATE_MUTATION, { input }))
     .createCatalogProduct;
 
-export const updateCatalogProduct = async (id: string, input: ProductPatchInput): Promise<CatalogProductSaveDto> =>
-  (await mutate<{ readonly updateCatalogProduct: CatalogProductSaveDto }>(UPDATE_MUTATION, { id, input }))
+/** Updates a product of `scope`'s store; refused unsent when requests go to another store. */
+export const updateCatalogProduct = async (
+  scope: StoreScope | null,
+  id: string,
+  input: ProductPatchInput,
+): Promise<CatalogProductSaveDto> =>
+  (await mutate<{ readonly updateCatalogProduct: CatalogProductSaveDto }>(scope, UPDATE_MUTATION, { id, input }))
     .updateCatalogProduct;
 
 export function useCatalogHighlights(scope: StoreScope | null) {
@@ -101,9 +116,12 @@ export function useMediaLibrary(scope: StoreScope | null) {
   );
 }
 
-/** Uploads one image to the library through GraphQL multipart (D2113); the server sniffs and bounds it. */
-export const uploadCatalogMedia = async (file: File): Promise<CatalogMediaDto> =>
-  (await mutate<{ readonly uploadCatalogMedia: CatalogMediaDto }>(UPLOAD_MUTATION, { file })).uploadCatalogMedia;
+/**
+ * Uploads one image to the library of `scope`'s store through GraphQL multipart (D2113); the server sniffs and bounds
+ * it. Refused unsent when requests go to another store.
+ */
+export const uploadCatalogMedia = async (scope: StoreScope | null, file: File): Promise<CatalogMediaDto> =>
+  (await mutate<{ readonly uploadCatalogMedia: CatalogMediaDto }>(scope, UPLOAD_MUTATION, { file })).uploadCatalogMedia;
 
 /** Whether `slug` is free in the active store for this product (D2103); waits while the slug is empty. */
 export function useSlugAvailability(scope: StoreScope | null, slug: string, productId: string | null) {

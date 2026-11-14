@@ -1,17 +1,31 @@
 import { CARD_CAPTION_MAX, LABEL_MAX, PRODUCT_TITLE_MAX } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Label, RichTextEditor } from '@vendure/dashboard';
-import type { ReactNode } from 'react';
+import type { ClipboardEvent, DragEvent, ReactNode } from 'react';
 import { EDITOR_TITLE_TEST_ID } from '../constants';
 import { FormTextField } from './form-text-field';
 import type { ScopedSectionProps } from './section-props';
 import { SlugField } from './slug-field';
 
+const holdsFiles = (data: DataTransfer | null): boolean => (data?.files.length ?? 0) > 0;
+
+/**
+ * Stops a pasted or dropped file before the rich-text editor sees it: the editor would upload it through Vendure's
+ * own asset mutation, outside the catalog's media library and its checks (D2113), and the server strips `<img>` from
+ * descriptions anyway (D2122), which would leave an orphan asset. Product images go through the media card.
+ */
+function blockFiles(event: ClipboardEvent | DragEvent): void {
+  const data = 'clipboardData' in event ? event.clipboardData : event.dataTransfer;
+  if (!holdsFiles(data)) return;
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 /** The rich-text description; the server keeps only the allowed tags (D2122). */
 function DescriptionField({ form, disabled, onChange }: ScopedSectionProps): ReactNode {
   const { i18n } = useLingui();
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-1.5" onPasteCapture={blockFiles} onDropCapture={blockFiles}>
       <Label>{i18n._('catalog.editor-description')}</Label>
       <RichTextEditor
         value={form.description}

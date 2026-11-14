@@ -72,6 +72,7 @@ function useEditorController(props: EditorProps) {
   const save = useEditorSave({
     productId: props.productId,
     storeAlias: props.store?.id ?? ACTIVE_STORE_ALIAS,
+    scope: props.scope,
     saved: state.saved,
     onInvalid: state.setErrors,
     onSaved: (answer) => {

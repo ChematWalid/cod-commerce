@@ -9,12 +9,15 @@ import { createCatalogProduct, updateCatalogProduct } from '../editor-queries';
 import { type EditorForm, type EditorFormErrors, submitEditor } from '../model/editor-form';
 import { createInputOf, isEmptyPatch, patchOf } from '../model/editor-patch';
 import { listErrorMessageId } from '../model/list-view';
+import type { StoreScope } from '../queries';
 
 export interface EditorSaveTarget {
   /** The product edited, or null for a new one. */
   readonly productId: string | null;
   /** The store segment of the editor's URL, so a new product opens in the same store. */
   readonly storeAlias: string;
+  /** The store the editor is open for: a save is refused unsent while requests go to another one. */
+  readonly scope: StoreScope | null;
   /** The form as last saved: an update sends only what differs from it. */
   readonly saved: EditorForm;
   readonly onInvalid: (errors: EditorFormErrors) => void;
@@ -24,9 +27,9 @@ export interface EditorSaveTarget {
 /** The server call of a save: a create, an update of what changed, or nothing when nothing changed. */
 function sendOf(target: EditorSaveTarget) {
   return async (form: EditorForm): Promise<CatalogProductSaveDto | null> => {
-    if (target.productId === null) return createCatalogProduct(createInputOf(form));
+    if (target.productId === null) return createCatalogProduct(target.scope, createInputOf(form));
     const patch = patchOf(target.saved, form);
-    return isEmptyPatch(patch) ? null : updateCatalogProduct(target.productId, patch);
+    return isEmptyPatch(patch) ? null : updateCatalogProduct(target.scope, target.productId, patch);
   };
 }
 

@@ -24,4 +24,5 @@ export {
   PRODUCTS_EMPTY_TEST_ID,
   VARIANT_PRICE_TEST_ID,
   VARIANT_ROW_TEST_ID,
+  VARIANT_SKU_TEST_ID,
 } from './dashboard/constants';
