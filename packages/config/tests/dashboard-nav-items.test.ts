@@ -53,7 +53,10 @@ describe('findStockNavSections', () => {
   it('flags a stock section named through a constant of another dashboard file', () => {
     // Arrange
     const constants = dashboardFile("export const SECTION: string = 'sales';");
-    const route = dashboardFile('navMenuItem: { sectionId: SECTION, id: "x" }', 'plugins/demo/dashboard/routes/x.tsx');
+    const route = dashboardFile(
+      'const ROUTE = { navMenuItem: { sectionId: SECTION, id: "x" } };',
+      'plugins/demo/dashboard/routes/x.tsx',
+    );
 
     // Act
     const violations = findStockNavSections([constants, route]);
@@ -66,7 +69,10 @@ describe('findStockNavSections', () => {
   it('accepts the staff platform section, through a constant', () => {
     // Arrange
     const constants = dashboardFile("export const PLATFORM_SECTION_ID = 'platform';");
-    const route = dashboardFile('navMenuItem: { sectionId: PLATFORM_SECTION_ID }', 'plugins/demo/dashboard/x.tsx');
+    const route = dashboardFile(
+      'const ROUTE = { navMenuItem: { sectionId: PLATFORM_SECTION_ID } };',
+      'plugins/demo/dashboard/x.tsx',
+    );
 
     // Act
     const violations = findStockNavSections([constants, route]);
@@ -78,9 +84,15 @@ describe('findStockNavSections', () => {
   it('resolves a constant in its own plugin when another plugin declares the same name', () => {
     // Arrange
     const stockConstant = dashboardFile("const SECTION = 'catalog';", 'plugins/x/dashboard/constants.ts');
-    const stockRoute = dashboardFile('navMenuItem: { sectionId: SECTION }', 'plugins/x/dashboard/route.tsx');
+    const stockRoute = dashboardFile(
+      'const ROUTE = { navMenuItem: { sectionId: SECTION } };',
+      'plugins/x/dashboard/route.tsx',
+    );
     const staffConstant = dashboardFile("const SECTION = 'platform';", 'plugins/y/dashboard/constants.ts');
-    const staffRoute = dashboardFile('navMenuItem: { sectionId: SECTION }', 'plugins/y/dashboard/route.tsx');
+    const staffRoute = dashboardFile(
+      'const ROUTE = { navMenuItem: { sectionId: SECTION } };',
+      'plugins/y/dashboard/route.tsx',
+    );
 
     // Act
     const violations = findStockNavSections([stockConstant, stockRoute, staffConstant, staffRoute]);

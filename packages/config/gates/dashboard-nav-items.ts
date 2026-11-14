@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import type { SourceFile } from './branding';
 
 /**
@@ -19,124 +20,199 @@ export const STOCK_NAV_SECTION_IDS: readonly string[] = [
 /** The plugin that owns the sidebar: its `navSections` function reshapes the stock sections for merchants (ADR 0010). */
 export const NAV_OWNER_PLUGIN = 'merchant-shell';
 
+/**
+ * Names only the nav owner may use: the stock section ids, and the `@vendure/dashboard` calls that edit the nav
+ * imperatively (`addNavMenuItem(item, 'catalog')` takes its section as a positional argument).
+ */
+const OWNER_ONLY_NAMES: ReadonlySet<string> = new Set([
+  'BUILT_IN_NAV_SECTION_IDS',
+  'addNavMenuItem',
+  'addNavMenuSection',
+  'setNavMenuConfig',
+]);
+
 /** Dashboard sources of a plugin, `plugins/<name>/dashboard/**`, in any JavaScript or TypeScript flavour. */
-const DASHBOARD_SOURCE = /^plugins\/([^/]+)\/dashboard\/.+\.[cm]?[jt]sx?$/;
-
-/** A quoted string, or a name or member chain such as `SECTION` or `IDS.catalog`. */
-const VALUE = String.raw`(?:(['"\x60])([^'"\x60\n]{0,80})\1|([A-Za-z_$][\w$.]{0,120}))`;
-/** `sectionId: <value>`; `sectionId?: string` is a type and does not match. */
-const SECTION_ID = new RegExp(String.raw`\bsectionId\s*:\s*${VALUE}`, 'g');
-/** The shorthand `{ sectionId }`. */
-const SECTION_ID_SHORTHAND = /[{,]\s*sectionId\s*(?=[,}])/g;
-/** `id: <value>`, an entry of a `navSections` array. */
-const ENTRY_ID = new RegExp(String.raw`\bid\s*:\s*${VALUE}`, 'g');
-/** `const NAME = 'value'` (with an optional type), the definition a named section refers to. */
-const STRING_CONSTANT = /\bconst\s+([A-Za-z_$][\w$]{0,80})\s*(?::[^=\n]{0,80})?=\s*(['"`])([^'"`\n]{0,80})\2/g;
-const NAV_SECTIONS = /\bnavSections\b/g;
-const NAV_SECTIONS_ARRAY = /^\s*:\s*\[/;
-const BUILT_IN_IDS_REFERENCE = /\bBUILT_IN_NAV_SECTION_IDS\b/;
-/** Type annotations that read like a value: `sectionId: string`. */
-const TYPE_NAMES: ReadonlySet<string> = new Set(['string']);
-
-/** A section reference as written: a literal, or a name the gate must resolve. */
-type SectionRef = { readonly literal: string } | { readonly name: string };
+const DASHBOARD_SOURCE = /^plugins\/([^/]+)\/dashboard\/.+\.([cm]?[jt]sx?)$/;
+const SECTION_ID_KEY = 'sectionId';
+const NAV_SECTIONS_KEY = 'navSections';
+const ENTRY_ID_KEY = 'id';
+/** How much of an unresolvable expression a message quotes. */
+const QUOTED_TEXT_MAX = 80;
 
 /** A plugin's string constants by name; `null` marks a name declared twice with different values. */
-type Constants = ReadonlyMap<string, string | null>;
+type Constants = Map<string, string | null>;
 
-/** The string constants of each plugin's dashboard sources, keyed by plugin name, so equal names never collide. */
-function constantsByPlugin(files: readonly SourceFile[]): ReadonlyMap<string, Constants> {
-  const byPlugin = new Map<string, Map<string, string | null>>();
-  for (const { path, content } of files) {
-    const plugin = pluginOf(path);
-    const constants = byPlugin.get(plugin) ?? new Map<string, string | null>();
-    byPlugin.set(plugin, constants);
-    for (const match of content.matchAll(STRING_CONSTANT)) {
-      const [name, value] = [match[1] ?? '', match[3] ?? ''];
-      const known = constants.get(name);
-      constants.set(name, known === undefined || known === value ? value : null);
-    }
+/** One parsed dashboard source. */
+interface ParsedFile {
+  readonly path: string;
+  readonly plugin: string;
+  readonly ast: ts.SourceFile;
+}
+
+function scriptKindOf(extension: string): ts.ScriptKind {
+  if (extension.endsWith('x')) return extension.includes('t') ? ts.ScriptKind.TSX : ts.ScriptKind.JSX;
+  return extension.includes('t') ? ts.ScriptKind.TS : ts.ScriptKind.JS;
+}
+
+function parse({ path, content }: SourceFile): ParsedFile | undefined {
+  const match = DASHBOARD_SOURCE.exec(path);
+  if (match === null) return undefined;
+  const kind = scriptKindOf(match[2] ?? 'ts');
+  return { path, plugin: match[1] ?? '', ast: ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true, kind) };
+}
+
+function forEachNode(node: ts.Node, visit: (node: ts.Node) => void): void {
+  visit(node);
+  ts.forEachChild(node, (child) => {
+    forEachNode(child, visit);
+  });
+}
+
+const isPlainString = (node: ts.Node): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+  ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+
+/** Drops the wrappers that leave a value unchanged: `('x')`, `'x' as const`, `<string>'x'`, `x satisfies T`, `x!`. */
+function unwrapped(value: ts.Expression): ts.Expression {
+  const isWrapper =
+    ts.isAsExpression(value) ||
+    ts.isSatisfiesExpression(value) ||
+    ts.isParenthesizedExpression(value) ||
+    ts.isTypeAssertionExpression(value) ||
+    ts.isNonNullExpression(value);
+  return isWrapper ? unwrapped(value.expression) : value;
+}
+
+/** The text of a key, or `undefined` for a computed key that is not a plain string (`[k]`). */
+function keyOf(name: ts.PropertyName): string | undefined {
+  if (ts.isIdentifier(name) || isPlainString(name)) return name.text;
+  if (ts.isComputedPropertyName(name)) {
+    const expression = unwrapped(name.expression);
+    return isPlainString(expression) ? expression.text : undefined;
   }
-  return byPlugin;
+  return undefined;
 }
 
-function pluginOf(path: string): string {
-  return DASHBOARD_SOURCE.exec(path)?.[1] ?? '';
+/** Records the `const NAME = 'value'` declarations of one file (a concatenation or call stays unresolved). */
+function collectConstants(file: ParsedFile, constants: Constants): void {
+  forEachNode(file.ast, (node) => {
+    if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || node.initializer === undefined) return;
+    if (!(ts.getCombinedNodeFlags(node) & ts.NodeFlags.Const)) return;
+    const value = unwrapped(node.initializer);
+    if (!isPlainString(value)) return;
+    const known = constants.get(node.name.text);
+    constants.set(node.name.text, known === undefined || known === value.text ? value.text : null);
+  });
 }
 
-function refOf(match: RegExpMatchArray): SectionRef {
-  return match[3] === undefined ? { literal: match[2] ?? '' } : { name: match[3] };
+function quoted(node: ts.Node): string {
+  return node.getText().slice(0, QUOTED_TEXT_MAX);
 }
 
-/** The section ids a file names in `sectionId`, as written; the shorthand names the local `sectionId`. */
-function sectionIdRefs(content: string): SectionRef[] {
-  const named = [...content.matchAll(SECTION_ID)].map(refOf);
-  const shorthand = [...content.matchAll(SECTION_ID_SHORTHAND)].map(() => ({ name: 'sectionId' }));
-  return [...named, ...shorthand].filter((ref) => !('name' in ref && TYPE_NAMES.has(ref.name)));
-}
-
-/** The text of the array that opens at `start` (a `[`), brackets balanced. */
-function arrayAt(content: string, start: number): string {
-  let depth = 0;
-  for (let index = start; index < content.length; index += 1) {
-    depth += content[index] === '[' ? 1 : content[index] === ']' ? -1 : 0;
-    if (depth === 0) return content.slice(start, index + 1);
+/** Why a section value is refused, or `undefined` when it names an own or staff section. */
+function sectionProblem(value: ts.Expression, constants: Constants | undefined): string | undefined {
+  const inner = unwrapped(value);
+  const resolved = isPlainString(inner) ? inner.text : ts.isIdentifier(inner) ? constants?.get(inner.text) : undefined;
+  if (resolved === undefined || resolved === null) {
+    return `names a nav section through '${quoted(value)}', not a string literal or a const of this plugin's dashboard`;
   }
-  return content.slice(start);
+  return STOCK_NAV_SECTION_IDS.includes(resolved) ? `puts a nav item in the stock section '${resolved}'` : undefined;
 }
 
-/** Problems with `navSections`: a function form outside the owner, and every entry id of an array form. */
-function navSectionsFindings(content: string, plugin: string): { refs: SectionRef[]; problems: string[] } {
-  const refs: SectionRef[] = [];
-  const problems: string[] = [];
-  for (const match of content.matchAll(NAV_SECTIONS)) {
-    const after = content.slice(match.index + match[0].length);
-    const array = NAV_SECTIONS_ARRAY.exec(after);
-    if (array === null) {
-      if (plugin !== NAV_OWNER_PLUGIN) problems.push(`reshapes the nav with a non-array navSections (ADR 0010)`);
-      continue;
-    }
-    refs.push(...[...arrayAt(after, array[0].length - 1).matchAll(ENTRY_ID)].map(refOf));
+function stockLiteralOf(value: ts.Expression): string | undefined {
+  const inner = unwrapped(value);
+  return isPlainString(inner) && STOCK_NAV_SECTION_IDS.includes(inner.text) ? inner.text : undefined;
+}
+
+/** The ids of a `navSections` array; any other form reshapes the nav and is refused outside the owner. */
+function navSectionsProblems(value: ts.Expression, file: ParsedFile, constants: Constants | undefined): string[] {
+  const inner = unwrapped(value);
+  if (!ts.isArrayLiteralExpression(inner)) {
+    return file.plugin === NAV_OWNER_PLUGIN ? [] : ['reshapes the nav with a non-array navSections (ADR 0010)'];
   }
-  return { refs, problems };
-}
-
-/** Why a section reference is refused, or `undefined` when it names an own or staff section. */
-function problemOf(ref: SectionRef, constants: Constants | undefined): string | undefined {
-  const value = 'literal' in ref ? ref.literal : constants?.get(ref.name);
-  if ('literal' in ref && ref.literal.includes('${')) return `names a nav section with a template literal`;
-  if (value === undefined || value === null) {
-    const name = 'name' in ref ? ref.name : '';
-    return `names a nav section through '${name}', not a string literal or a const of this plugin's dashboard`;
-  }
-  return STOCK_NAV_SECTION_IDS.includes(value) ? `puts a nav item in the stock section '${value}'` : undefined;
-}
-
-function problemsOf(file: SourceFile, constants: Constants | undefined): string[] {
-  const plugin = pluginOf(file.path);
-  const navSections = navSectionsFindings(file.content, plugin);
-  const refProblems = [...sectionIdRefs(file.content), ...navSections.refs].flatMap((ref) => {
-    const problem = problemOf(ref, constants);
+  return inner.elements.flatMap((entry) => {
+    const objectEntry = unwrapped(entry);
+    if (!ts.isObjectLiteralExpression(objectEntry))
+      return [`has a navSections entry '${quoted(entry)}' it cannot read`];
+    const id = objectEntry.properties.find(
+      (property): property is ts.PropertyAssignment =>
+        ts.isPropertyAssignment(property) && keyOf(property.name) === ENTRY_ID_KEY,
+    );
+    const problem = id === undefined ? undefined : sectionProblem(id.initializer, constants);
     return problem === undefined ? [] : [problem];
   });
-  const builtIn =
-    plugin !== NAV_OWNER_PLUGIN && BUILT_IN_IDS_REFERENCE.test(file.content)
-      ? ['refers to BUILT_IN_NAV_SECTION_IDS, the stock sections']
-      : [];
-  return [...builtIn, ...navSections.problems, ...refProblems];
+}
+
+/** An object property as a key (`undefined` when computed) and its value; the shorthand `{ sectionId }` included. */
+function propertyEntry(node: ts.Node): { key: string | undefined; value: ts.Expression; name: ts.Node } | undefined {
+  if (ts.isShorthandPropertyAssignment(node)) return { key: node.name.text, value: node.name, name: node.name };
+  if (ts.isPropertyAssignment(node)) return { key: keyOf(node.name), value: node.initializer, name: node.name };
+  return undefined;
+}
+
+/** The problems of one object property: a section id, a `navSections` value, or a stock id behind a computed key. */
+function propertyProblems(node: ts.Node, file: ParsedFile, constants: Constants | undefined): string[] {
+  if (ts.isMethodDeclaration(node) && keyOf(node.name) === NAV_SECTIONS_KEY && file.plugin !== NAV_OWNER_PLUGIN) {
+    return ['reshapes the nav with a non-array navSections (ADR 0010)'];
+  }
+  const entry = propertyEntry(node);
+  if (entry === undefined) return [];
+  if (entry.key === SECTION_ID_KEY) return [sectionProblem(entry.value, constants)].filter(isDefined);
+  if (entry.key === NAV_SECTIONS_KEY) return navSectionsProblems(entry.value, file, constants);
+  const section = entry.key === undefined ? stockLiteralOf(entry.value) : undefined;
+  return section === undefined
+    ? []
+    : [`puts the stock section '${section}' behind the computed key '${quoted(entry.name)}'`];
+}
+
+/** A `sectionId` JSX attribute: `<NavItem sectionId="catalog" />`. */
+function jsxProblems(node: ts.Node, constants: Constants | undefined): string[] {
+  if (!ts.isJsxAttribute(node) || node.name.getText() !== SECTION_ID_KEY || node.initializer === undefined) return [];
+  const value = ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer;
+  if (value === undefined) return [];
+  return [sectionProblem(value, constants)].filter(isDefined);
+}
+
+const isDefined = <T>(value: T | undefined): value is T => value !== undefined;
+
+/** The owner-only names a file uses, each once, outside the nav owner. */
+function ownerOnlyProblems(file: ParsedFile): string[] {
+  if (file.plugin === NAV_OWNER_PLUGIN) return [];
+  const used = new Set<string>();
+  forEachNode(file.ast, (node) => {
+    if (ts.isIdentifier(node) && OWNER_ONLY_NAMES.has(node.text)) used.add(node.text);
+  });
+  return [...used].map((name) =>
+    name === 'BUILT_IN_NAV_SECTION_IDS'
+      ? 'refers to BUILT_IN_NAV_SECTION_IDS, the stock sections'
+      : `uses '${name}', which edits the stock nav outside the merchant shell (ADR 0010)`,
+  );
+}
+
+function problemsOf(file: ParsedFile, constants: Constants | undefined): string[] {
+  const problems = ownerOnlyProblems(file);
+  forEachNode(file.ast, (node) => {
+    problems.push(...propertyProblems(node, file, constants), ...jsxProblems(node, constants));
+  });
+  return problems;
 }
 
 /**
- * Finds plugin dashboard sources that put a nav item or section in a stock dashboard section. It fails closed: a
- * section named through anything but a string literal or a `const` of the same plugin's dashboard is reported too.
+ * Finds plugin dashboard sources that put a nav item or section in a stock dashboard section. It reads the syntax
+ * tree and fails closed: a section named by anything but a string literal (parentheses and casts aside) or a `const`
+ * of the same plugin's dashboard is reported, and so is any use of the imperative nav API outside the merchant shell.
  *
  * @param files the repository files to scan; only plugin dashboard sources are read
  * @returns one message per problem; empty when every nav entry is in an own or staff section
  */
 export function findStockNavSections(files: readonly SourceFile[]): string[] {
-  const dashboardFiles = files.filter(({ path }) => DASHBOARD_SOURCE.test(path));
-  const constants = constantsByPlugin(dashboardFiles);
-  return dashboardFiles.flatMap((file) =>
-    problemsOf(file, constants.get(pluginOf(file.path))).map((problem) => `${file.path} ${problem} (#122, D2111)`),
+  const parsed = files.map(parse).filter(isDefined);
+  const constantsByPlugin = new Map<string, Constants>();
+  for (const file of parsed) {
+    const constants = constantsByPlugin.get(file.plugin) ?? new Map<string, string | null>();
+    constantsByPlugin.set(file.plugin, constants);
+    collectConstants(file, constants);
+  }
+  return parsed.flatMap((file) =>
+    problemsOf(file, constantsByPlugin.get(file.plugin)).map((problem) => `${file.path} ${problem} (#122, D2111)`),
   );
 }

@@ -64,7 +64,8 @@ are never imported: share through `@cod/shared` contracts or domain events. Tena
      plugin that `buildPlugins` returns for the api role. A merchant page fills a shell leaf with
      `registerShellPage` (see `plugins/merchant-shell/dashboard/index.tsx`); never add a `navMenuItem` or a `navSections`
      entry in a stock section (`BUILT_IN_NAV_SECTION_IDS`: `insights`, `catalog`, `sales`, `customers`, `marketing`,
-     `system`, `settings`), and name a section with a literal or a `const` of your own plugin:
+     `system`, `settings`), never call `addNavMenuItem`, `addNavMenuSection` or `setNavMenuConfig`, and name a section
+     with a literal or a `const` of your own plugin:
      `packages/config/tests/dashboard-nav-items.test.ts` fails otherwise. Re-run `pnpm --filter @cod/server build:dashboard` to see a change on the api's `/dashboard`.
    - **Permissions**: pick the catalogue keys of your area, or add them in
      `packages/shared/src/permissions/catalog/` (its tests pin the counts, D61), and name them in
