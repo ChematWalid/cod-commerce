@@ -312,6 +312,10 @@ msgid "catalog.editor-slug-hint"
 msgstr "جزء من عنوان صفحة المنتج. إذا تُرك فارغًا يُنشأ من الاسم."
 
 #. js-lingui-explicit-id
+msgid "catalog.editor-slug-hint-edit"
+msgstr "جزء من عنوان صفحة المنتج. إذا تُرك فارغًا يبقى العنوان الحالي."
+
+#. js-lingui-explicit-id
 msgid "catalog.slug-available"
 msgstr "هذا الرابط المختصر متاح."
 

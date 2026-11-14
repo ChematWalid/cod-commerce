@@ -312,6 +312,10 @@ msgid "catalog.editor-slug-hint"
 msgstr "Part of the product's web address. Left empty, it is made from the name."
 
 #. js-lingui-explicit-id
+msgid "catalog.editor-slug-hint-edit"
+msgstr "Part of the product's web address. Left empty, the current one is kept."
+
+#. js-lingui-explicit-id
 msgid "catalog.slug-available"
 msgstr "This slug is free."
 

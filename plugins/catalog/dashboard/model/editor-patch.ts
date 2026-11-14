@@ -69,6 +69,13 @@ const richTextOrNull = (html: string): string | null =>
 const numberOrNull = (text: string): number | null => wholeNumberOf(text) ?? null;
 const RULE_FALLBACK = 1;
 
+/**
+ * The slug field's hint. A new product's empty slug is made from its name by the server; an existing product's empty
+ * slug is left out of the patch ({@link fieldsOf}), so the saved slug stays.
+ */
+export const slugHintIdOf = (productId: string | null): string =>
+  productId === null ? 'catalog.editor-slug-hint' : 'catalog.editor-slug-hint-edit';
+
 function fieldsOf(form: EditorForm): ProductFieldsInput {
   const slug = form.slug.trim();
   return {

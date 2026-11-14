@@ -4,6 +4,7 @@ import { useLingui } from '@lingui/react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { SLUG_CHECK_DELAY_MS } from '../constants';
 import { useSlugAvailability } from '../editor-queries';
+import { slugHintIdOf } from '../model/editor-patch';
 import type { StoreScope } from '../queries';
 
 /** `value` once it has not changed for `delayMs`, so a check runs per pause in typing, not per key. */
@@ -38,7 +39,7 @@ function useSlugVerdict(props: SlugFieldProps): string | undefined {
 
 /**
  * The product's URL name in its store. The business-scoped check (D2103) runs 500 ms after the last key; the server
- * decides again on save, and an empty slug is made from the title.
+ * decides again on save. An empty slug is made from the title on create and keeps the saved one on edit.
  */
 export function SlugField(props: SlugFieldProps): ReactNode {
   const { i18n } = useLingui();
@@ -47,7 +48,7 @@ export function SlugField(props: SlugFieldProps): ReactNode {
     <div className="grid gap-1">
       <TextField
         label={i18n._('catalog.editor-slug')}
-        hint={i18n._('catalog.editor-slug-hint')}
+        hint={i18n._(slugHintIdOf(props.productId))}
         value={props.value}
         maxLength={SLUG_MAX}
         disabled={props.disabled}

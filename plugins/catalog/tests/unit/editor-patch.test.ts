@@ -1,7 +1,7 @@
 import { productInputSchema, productPatchSchema } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { editorFormOf, emptyEditorForm } from '../../dashboard/model/editor-form';
-import { createInputOf, isEmptyPatch, patchOf } from '../../dashboard/model/editor-patch';
+import { createInputOf, isEmptyPatch, patchOf, slugHintIdOf } from '../../dashboard/model/editor-patch';
 import { addValue, removeValue } from '../../dashboard/model/options-draft';
 import { savedRunner } from './editor-fixtures';
 
@@ -115,5 +115,26 @@ describe('editor patch', () => {
 
     // Assert
     expect(patch).toEqual({ description: '<p><strong>Light</strong> and fast</p>' });
+  });
+
+  it('keeps the saved slug when the field is cleared on an existing product, as its hint says', () => {
+    // Arrange
+    const form = { ...saved, slug: '  ' };
+
+    // Act
+    const patch = patchOf(saved, form);
+
+    // Assert
+    expect(patch).not.toHaveProperty('slug');
+    expect(isEmptyPatch(patch)).toBe(true);
+    expect(slugHintIdOf('7')).toBe('catalog.editor-slug-hint-edit');
+  });
+
+  it("says a new product's empty slug is made from its name", () => {
+    // Act
+    const hintId = slugHintIdOf(null);
+
+    // Assert
+    expect(hintId).toBe('catalog.editor-slug-hint');
   });
 });
