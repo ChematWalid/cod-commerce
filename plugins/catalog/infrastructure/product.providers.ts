@@ -7,6 +7,7 @@ import { DeleteProductService } from '../application/delete-product.service';
 import { GetProductService } from '../application/get-product.service';
 import { HighlightService } from '../application/highlight.service';
 import { ListProductsService } from '../application/list-products.service';
+import { MediaLibraryService } from '../application/media-library.service';
 import { OrderManagerCheckRegistry } from '../application/order-manager-check.registry';
 import { SetProductStatusService } from '../application/set-product-status.service';
 import { SlugAvailabilityService } from '../application/slug-availability.service';
@@ -18,6 +19,7 @@ import {
   HIGHLIGHT_REPOSITORY,
   ID_GENERATOR,
   MEDIA_REPOSITORY,
+  MEDIA_STORAGE,
   ORDER_MANAGER_CHECK_REGISTRAR,
   PRODUCT_CATALOG,
   PRODUCT_COLLECTION_REPOSITORY,
@@ -44,7 +46,9 @@ import { TypeOrmProductSettingsRepository } from './typeorm-product-settings.rep
 import { TypeOrmTagRepository } from './typeorm-tag.repository';
 import { PgProductLock } from './pg-product-lock';
 import { PgTaxonomyLock } from './pg-taxonomy-lock';
+import { VendureAssetReads } from './vendure-asset-reads';
 import { DefaultChannelExit } from './vendure-default-channel';
+import { VendureMediaStorage } from './vendure-media-storage.adapter';
 import { VendureOptionSync } from './vendure-option-sync';
 import { VendureProductCatalog } from './vendure-product-catalog.adapter';
 import { VendureProductStructure } from './vendure-product-structure';
@@ -64,6 +68,7 @@ const PORT_TOKENS = [
   HIGHLIGHT_REPOSITORY,
   PRODUCT_SETTINGS_REPOSITORY,
   MEDIA_REPOSITORY,
+  MEDIA_STORAGE,
   PRODUCT_COLLECTION_REPOSITORY,
   DESCRIPTION_SANITIZER,
   ID_GENERATOR,
@@ -82,6 +87,7 @@ const PORT_KEYS = [
   'highlights',
   'settings',
   'media',
+  'storage',
   'collections',
   'sanitizer',
   'ids',
@@ -97,7 +103,7 @@ const useCase = (type: new (ports: ProductPorts) => object): Provider => ({
   inject: [PRODUCT_PORTS],
 });
 
-/** Wires the product and taxonomy use cases to their adapters; Task 13 reuses the repositories. */
+/** Wires the product, taxonomy and media library use cases to their adapters. */
 export const PRODUCT_PROVIDERS: Provider[] = [
   VendureOptionSync,
   VendureVariantSync,
@@ -111,6 +117,8 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   { provide: BRAND_REPOSITORY, useClass: TypeOrmBrandRepository },
   { provide: PRODUCT_SETTINGS_REPOSITORY, useClass: TypeOrmProductSettingsRepository },
   { provide: MEDIA_REPOSITORY, useClass: TypeOrmMediaRepository },
+  VendureAssetReads,
+  { provide: MEDIA_STORAGE, useClass: VendureMediaStorage },
   { provide: DESCRIPTION_SANITIZER, useClass: HtmlDescriptionSanitizer },
   { provide: CLOCK, useValue: SYSTEM_CLOCK },
   { provide: TAXONOMY_LOCK, useClass: PgTaxonomyLock },
@@ -154,4 +162,5 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(BrandService),
   useCase(TagService),
   useCase(HighlightService),
+  useCase(MediaLibraryService),
 ];

@@ -1,8 +1,13 @@
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
+import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { CatalogTranslations } from './api/catalog-translations';
+import { MediaActions } from './api/media-actions';
+import { MediaController } from './api/media.controller';
+import { MediaResolver } from './api/media.resolver';
+import { MediaThrottle } from './api/media-throttle';
 import { ProductActions } from './api/product-actions';
 import { ProductReadUseCases, ProductWriteUseCases } from './api/product-use-cases';
 import { ProductReadController } from './api/product-read.controller';
@@ -22,16 +27,24 @@ import { configureCatalogCustomFields } from './infrastructure/custom-fields';
 import { PRODUCT_PROVIDERS } from './infrastructure/product.providers';
 
 /** Every REST controller; the product read controller first, its `slug-availability` route before `:id` (D2103). */
-const CONTROLLERS = [ProductReadController, ProductsController, BrandsController, TagsController, HighlightsController];
+const CONTROLLERS = [
+  ProductReadController,
+  ProductsController,
+  BrandsController,
+  TagsController,
+  HighlightsController,
+  MediaController,
+];
 
 /**
  * The store catalog: products and variants on Vendure's own entities, with our fields and tables beside them
- * (D2100), and the store's brands, tags and highlights. This module only wires the layers; Tasks 13-17 add more.
+ * (D2100), the store's brands, tags and highlights, and the business's media library (D2113). This module only wires
+ * the layers.
  */
 @VendurePlugin({
   // `requirePermission` applies `@TenantScoped()`, whose guard resolves through tenancy's exports; product changes
-  // go out through the outbox in the write transaction (D2127).
-  imports: [PluginCommonModule, TenancyPlugin, PlatformOutboxPlugin],
+  // go out through the outbox in the write transaction (D2127); `RateLimitPlugin` serves the upload limiter (D2138).
+  imports: [PluginCommonModule, TenancyPlugin, PlatformOutboxPlugin, RateLimitPlugin],
   entities: CATALOG_ENTITIES,
   configuration: configureCatalogCustomFields,
   providers: [
@@ -40,6 +53,8 @@ const CONTROLLERS = [ProductReadController, ProductsController, BrandsController
     ProductReadUseCases,
     ProductActions,
     TaxonomyActions,
+    MediaActions,
+    MediaThrottle,
     CatalogTranslations,
     CatalogProductQueries,
   ],
@@ -48,7 +63,7 @@ const CONTROLLERS = [ProductReadController, ProductsController, BrandsController
   exports: [CatalogProductQueries, ORDER_MANAGER_CHECK_REGISTRAR],
   adminApiExtensions: {
     schema: catalogAdminApiSchema,
-    resolvers: [ProductsResolver, TaxonomyResolver],
+    resolvers: [ProductsResolver, TaxonomyResolver, MediaResolver],
   },
   controllers: CONTROLLERS,
   dashboard: './dashboard/index.tsx',

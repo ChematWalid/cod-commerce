@@ -24,8 +24,8 @@ async function call(entry: OperationEntry, ids: TargetIds): Promise<{ code: stri
   }
 }
 
-/** Only the taxonomy ids matter here; the product ids are never read by these entries. */
-const UNUSED = { productId: '', variantId: '', collectionId: '' };
+/** Only the taxonomy ids matter here; the product and media ids are never read by these entries. */
+const UNUSED = { productId: '', variantId: '', collectionId: '', mediaId: '' };
 
 describe("brands, tags and highlights of A's other store (store isolation inside one business)", () => {
   let ofFirst: TargetIds;

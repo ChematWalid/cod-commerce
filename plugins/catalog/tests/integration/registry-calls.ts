@@ -8,6 +8,7 @@ export interface TargetIds {
   readonly brandId: string;
   readonly tagId: string;
   readonly highlightId: string;
+  readonly mediaId: string;
 }
 
 /** The id of {@link TargetIds} an entry names: the one a malformed id replaces and an own-only answer must not hold. */
@@ -26,6 +27,8 @@ export interface OperationEntry {
   readonly foreign: ForeignOutcome;
   /** Whether the call names one id that a malformed id can replace. */
   readonly byId: boolean;
+  /** Whether the call is a GraphQL multipart upload of one file at `variables.file`. */
+  readonly upload?: boolean;
   /** The id the entry is about; `productId` when absent. */
   readonly idField?: TargetIdField;
   /** The not-found code a foreign id answers; the product's when absent. */

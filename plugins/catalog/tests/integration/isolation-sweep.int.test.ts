@@ -12,6 +12,7 @@ import {
   type TargetIdField,
   type TargetIds,
 } from './endpoint-registry';
+import { createMedia, uploadEntry } from './media-kit';
 import { createTaxonomy } from './taxonomy-kit';
 
 const suite = catalogSuite(1020, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
@@ -31,7 +32,14 @@ interface ClientErrorShape {
   readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
 }
 
+/** A multipart upload entry's outcome. */
+async function uploadOutcome(entry: OperationEntry): Promise<Outcome> {
+  const answer = await uploadEntry(suite.kit, entry);
+  return { code: answer.code, data: answer.data?.[entry.operation] ?? null, text: answer.text };
+}
+
 async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Outcome> {
+  if (entry.upload === true) return uploadOutcome(entry);
   try {
     const data = await suite.kit.client.query<Record<string, unknown>>(gql(entry.document), entry.variables(ids));
     return { code: undefined, data: data[entry.operation], text: JSON.stringify(data) };
@@ -84,9 +92,10 @@ describe('catalog isolation sweep (two businesses)', () => {
       optionGroups: [{ name: 'Size', values: ['S'] }],
     });
     const taxonomy = await createTaxonomy(suite.kit);
+    const { id: mediaId } = await createMedia(suite.kit);
     const variantId = product.variants[0]?.id ?? '';
-    idsOfB = { productId: product.id, variantId, collectionId: `T_${collectionId}`, ...taxonomy };
-    restIdsOfB = { productId: rawId(product.id), variantId: rawId(variantId), collectionId, ...taxonomy };
+    idsOfB = { productId: product.id, variantId, collectionId: `T_${collectionId}`, mediaId, ...taxonomy };
+    restIdsOfB = { productId: rawId(product.id), variantId: rawId(variantId), collectionId, mediaId, ...taxonomy };
   });
 
   it.each(OPERATION_REGISTRY)("$operation as A against B's ids answers $foreign", async (entry) => {

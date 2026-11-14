@@ -41,6 +41,21 @@ store's products in the same transaction (D2140) and publishes `product.changed`
 on the product's create and update (`settings`); their order managers are checked by Team's registered check, and
 refused with `catalog.order-managers-unavailable` while none is registered (D2114).
 
+## Media library (Task 13)
+
+GraphQL `uploadCatalogMedia(file: Upload!)` (multipart; GraphQL only, D2102), `catalogMedia(options)`,
+`deleteCatalogMedia(id)`; REST `GET /catalog/media`, `DELETE /catalog/media/:id`. Upload and delete need
+`catalog.products.edit`, the list `.view`. An upload is at most `MEDIA_MAX_BYTES`, a PNG, JPEG, GIF or WebP image by
+its bytes (SVG never); its file name and type come from the sniffed format, never from the client; auth's content
+guard refuses a body that does not decode or is over 40 MP (`catalog.media-type`). Uploads are rate-limited per
+administrator and per business (policies `catalog-media-actor`, `catalog-media-business`, D2138). Each upload is one
+`catalog_media` row in the uploading store and one Vendure asset in that store's channel only (it leaves the default
+channel); the key is `assets/b/{business}/s/{store}/source/…` from `TenantAssetNamingStrategy` in `apps/server`.
+A caller sees, attaches and deletes the media of the stores it reaches (D2132: every store for `all` access, its
+stores for a restricted member, the active store while no team check is registered); attaching an image of another
+store to a product shares the asset with the product's store channel. Media a live product, variant or collection of
+any store uses cannot be deleted (`catalog.media-in-use`, D2128).
+
 ## Registration (D2137)
 
 `apps/server/src/config/plugins.config.ts` registers `CatalogPlugin` once, inside `memberPlugins`, after

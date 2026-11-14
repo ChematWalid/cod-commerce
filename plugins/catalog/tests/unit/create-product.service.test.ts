@@ -10,6 +10,7 @@ import {
   TagNotFoundError,
   TooManyHighlightsError,
 } from '../../domain/errors';
+import { FakeOrderManagerCheck } from '../fakes/fake-order-manager-check';
 import { ProductWorld } from '../fakes/product-world';
 import { brandOf, highlightOf, mediaOf, newId, scopeA, scopeA2, scopeB, tagOf } from '../support/builders';
 
@@ -161,6 +162,32 @@ describe('CreateProductService', () => {
 
     // Assert
     expect(product.featuredAssetId).toBe(own.assetId);
+    expect(world.storage.shares).toEqual([`${scopeA.storeId}:${own.assetId}`]);
+  });
+
+  it("accepts and shares an image of the business's other store for a caller reaching every store (D2132)", async () => {
+    // Arrange
+    world.orderManagerChecks.register(new FakeOrderManagerCheck(new Map(), 'all'));
+    const otherStore = mediaOf(scopeA2);
+    await world.media.insert(world.ctxOf(scopeA2), scopeA2, otherStore);
+
+    // Act
+    const { product } = await create({ assetIds: [otherStore.assetId] });
+
+    // Assert
+    expect(product.assetIds).toEqual([otherStore.assetId]);
+    expect(world.storage.shares).toEqual([`${scopeA.storeId}:${otherStore.assetId}`]);
+  });
+
+  it('refuses an image of a store the member does not reach (D2132)', async () => {
+    // Arrange
+    world.orderManagerChecks.register(new FakeOrderManagerCheck(new Map(), new Set([scopeA.storeId])));
+    const otherStore = mediaOf(scopeA2);
+    await world.media.insert(world.ctxOf(scopeA2), scopeA2, otherStore);
+
+    // Act / Assert
+    await expect(create({ assetIds: [otherStore.assetId] })).rejects.toBeInstanceOf(MediaNotFoundError);
+    expect(world.storage.shares).toEqual([]);
   });
 
   it('refuses seven highlights', async () => {

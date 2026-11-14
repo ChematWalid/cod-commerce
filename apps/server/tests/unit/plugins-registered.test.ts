@@ -1,4 +1,4 @@
-import { AuthPlugin, RandomAssetNamingStrategy } from '@cod/plugin-auth';
+import { AuthPlugin } from '@cod/plugin-auth';
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { authEmailTemplates } from '../../src/email';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
 import { buildPlugins } from '../../src/config/plugins.config';
+import { TenantAssetNamingStrategy } from '../../src/config/tenant-asset-naming.strategy';
 import {
   CORE_ENV,
   DEPLOYED_OVERRIDES,
@@ -265,7 +266,7 @@ describe('buildPlugins', () => {
     const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
     expect(options.route).toBe('assets');
     expect(options.storageStrategyFactory).toBeTypeOf('function');
-    expect(options.namingStrategy).toBeInstanceOf(RandomAssetNamingStrategy);
+    expect(options.namingStrategy).toBeInstanceOf(TenantAssetNamingStrategy);
   });
 
   it('lets an anonymous asset request pick a preset only, never its own size', async () => {
@@ -274,7 +275,6 @@ describe('buildPlugins', () => {
     buildPlugins(env, 'api');
     const { options } = AssetServerPlugin as unknown as { options: AssetServerOptions };
     const strategy = options.imageTransformStrategy as ImageTransformStrategy;
-    const medium = { name: 'medium', width: 500, height: 500, mode: 'resize' } as const;
     const input = {
       width: 37,
       height: 11,
@@ -291,7 +291,7 @@ describe('buildPlugins', () => {
     const parameters = await strategy.getImageTransformParameters({
       req: {} as never,
       input,
-      availablePresets: [medium],
+      availablePresets: [{ name: 'medium', width: 500, height: 500, mode: 'resize' }],
     });
 
     // Assert

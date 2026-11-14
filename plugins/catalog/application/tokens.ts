@@ -8,6 +8,7 @@ export const TAG_REPOSITORY = Symbol('CatalogTagRepository');
 export const HIGHLIGHT_REPOSITORY = Symbol('CatalogHighlightRepository');
 export const PRODUCT_SETTINGS_REPOSITORY = Symbol('CatalogProductSettingsRepository');
 export const MEDIA_REPOSITORY = Symbol('CatalogMediaRepository');
+export const MEDIA_STORAGE = Symbol('CatalogMediaStorage');
 export const PRODUCT_COLLECTION_REPOSITORY = Symbol('CatalogProductCollectionRepository');
 export const DESCRIPTION_SANITIZER = Symbol('CatalogDescriptionSanitizer');
 export const ID_GENERATOR = Symbol('CatalogIdGenerator');

@@ -3,6 +3,7 @@
  * another business gets back. The coverage test and the isolation sweep both read it.
  */
 import type { OperationEntry, TargetIds } from './registry-calls';
+import { MEDIA_OPERATIONS } from './media-registry';
 import { TAXONOMY_OPERATIONS } from './taxonomy-registry';
 
 export { ROUTE_REGISTRY } from './route-registry';
@@ -86,4 +87,5 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     variables: (ids) => ({ id: ids.productId }),
   },
   ...TAXONOMY_OPERATIONS,
+  ...MEDIA_OPERATIONS,
 ];

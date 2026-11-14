@@ -1,3 +1,4 @@
+import { RateLimitedError } from '@cod/plugin-rate-limit';
 import { CATALOG_ERROR_CODES, DomainError } from '@cod/shared';
 import {
   type ArgumentsHost,
@@ -81,13 +82,13 @@ function logFault(error: unknown): void {
 
 /**
  * The one translation of what a use case threw into what an API answers (D2136): a domain error stays itself, a
- * Vendure "entity not found" becomes the catalog's not found, a permission refusal stays a permission refusal, and
- * anything else is a fault of the server, logged here and returned as `undefined` (the caller answers generically).
+ * Vendure "entity not found" becomes the catalog's not found, a permission or rate-limit refusal stays itself (D2138),
+ * and anything else is a fault of the server, logged here and returned as `undefined` (the caller answers generically).
  */
-export function catalogErrorOf(error: unknown): DomainError | ForbiddenError | undefined {
+export function catalogErrorOf(error: unknown): DomainError | ForbiddenError | RateLimitedError | undefined {
   if (error instanceof DomainError) return error;
   if (error instanceof EntityNotFoundError) return new ProductNotFoundError();
-  if (error instanceof ForbiddenError) return error;
+  if (error instanceof ForbiddenError || error instanceof RateLimitedError) return error;
   logFault(error);
   return undefined;
 }

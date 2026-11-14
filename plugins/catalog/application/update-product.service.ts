@@ -88,6 +88,7 @@ export class UpdateProductService {
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();
       const refs = await this.references.check(tx, scope, references);
+      await this.references.shareImages(tx, references);
       const saved = await this.save(tx, id, updateOf(record, patch, refs, this.ports));
       await saveLinks(this.ports, tx, { scope, productId: id }, { refs, settings: patch.settings });
       await this.ports.events.publish(tx, scope, id, 'updated');

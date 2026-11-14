@@ -1,4 +1,5 @@
 import type { RouteEntry } from './registry-calls';
+import { MEDIA_ROUTES } from './media-registry';
 import { TAXONOMY_ROUTES } from './taxonomy-registry';
 
 const productUrl =
@@ -61,4 +62,5 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     url: productUrl(),
   },
   ...TAXONOMY_ROUTES,
+  ...MEDIA_ROUTES,
 ];

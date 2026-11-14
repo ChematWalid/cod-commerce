@@ -1,14 +1,15 @@
 import { type TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import { type Snowflake, type StoreId, type TenantScope, toBusinessId, toSnowflake, toStoreId } from '@cod/shared';
+import { type Snowflake, type TenantScope, toBusinessId, toSnowflake, toStoreId } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
 import { type CoreId, toCoreId } from '../domain/core-id';
-import { InvalidCatalogInputError } from '../domain/errors';
+import { ConcurrentUpdateError, InvalidCatalogInputError } from '../domain/errors';
 import type { MediaItem } from '../domain/media-item';
-import type { MediaList, MediaPage, MediaRepositoryPort } from '../domain/ports/media-repository.port';
+import type { MediaList, MediaPage, MediaReach, MediaRepositoryPort } from '../domain/ports/media-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { MediaEntity } from './media.entity';
 import { requestScope } from './request-scope';
+import { onUniqueViolation } from './unique-violation';
 
 const EMPTY_LIST: MediaList = { items: [], totalItems: 0 };
 
@@ -22,12 +23,15 @@ function toItem(row: MediaEntity): MediaItem {
   };
 }
 
-/** The store filter of a read or delete; never called with an empty list, which callers answer themselves. */
-const ofStores = (storeIds: readonly StoreId[]) => ({ storeId: In([...storeIds]) });
+/** The store filter of a read or delete: none for every store of the business. */
+const ofStores = (reach: MediaReach) => (reach === 'all' ? {} : { storeId: In([...reach]) });
+
+/** A reach that names no store finds nothing, so the query is not run. */
+const reachesNothing = (reach: MediaReach): boolean => reach !== 'all' && reach.length === 0;
 
 /**
  * The Postgres adapter of {@link MediaRepositoryPort}: `catalog_media` through `TenantRepository` (ADR 0002). Every
- * read and the delete are narrowed to the stores they are given (D2132).
+ * read and the delete are narrowed to the stores the caller reaches (D2132).
  */
 @Injectable()
 export class TypeOrmMediaRepository implements MediaRepositoryPort {
@@ -40,52 +44,44 @@ export class TypeOrmMediaRepository implements MediaRepositoryPort {
   async insert(ctx: OperationContext, scope: TenantScope, item: MediaItem): Promise<void> {
     if (item.businessId !== scope.businessId) throw new InvalidCatalogInputError();
     const { id, storeId, assetId, createdAt } = item;
-    await this.rows.insert(requestScope(ctx, scope), { id, storeId, assetId, createdAt });
+    // The unique (businessId, assetId) index refuses a second row of one asset; its driver error names the constraint.
+    const inserting = this.rows.insert(requestScope(ctx, scope), { id, storeId, assetId, createdAt });
+    await onUniqueViolation(inserting, () => new ConcurrentUpdateError());
   }
 
   async findById(
     ctx: OperationContext,
     scope: TenantScope,
-    storeIds: readonly StoreId[],
+    reach: MediaReach,
     id: Snowflake,
   ): Promise<MediaItem | undefined> {
-    if (storeIds.length === 0) return undefined;
-    const row = await this.rows.findOne(requestScope(ctx, scope), { ...ofStores(storeIds), id });
+    if (reachesNothing(reach)) return undefined;
+    const row = await this.rows.findOne(requestScope(ctx, scope), { ...ofStores(reach), id });
     return row === null ? undefined : toItem(row);
   }
 
   async findByAssetIds(
     ctx: OperationContext,
     scope: TenantScope,
-    storeIds: readonly StoreId[],
+    reach: MediaReach,
     assetIds: readonly CoreId[],
   ): Promise<readonly MediaItem[]> {
-    if (storeIds.length === 0 || assetIds.length === 0) return [];
-    const where = { ...ofStores(storeIds), assetId: In([...assetIds]) };
+    if (reachesNothing(reach) || assetIds.length === 0) return [];
+    const where = { ...ofStores(reach), assetId: In([...assetIds]) };
     return (await this.rows.find(requestScope(ctx, scope), { where })).map(toItem);
   }
 
-  async list(
-    ctx: OperationContext,
-    scope: TenantScope,
-    storeIds: readonly StoreId[],
-    page: MediaPage,
-  ): Promise<MediaList> {
-    if (storeIds.length === 0) return EMPTY_LIST;
+  async list(ctx: OperationContext, scope: TenantScope, reach: MediaReach, page: MediaPage): Promise<MediaList> {
+    if (reachesNothing(reach)) return EMPTY_LIST;
     const tenant = requestScope(ctx, scope);
-    const where = ofStores(storeIds);
+    const where = ofStores(reach);
     const order = { createdAt: 'DESC', id: 'DESC' } as const;
     const rows = await this.rows.find(tenant, { where, order, skip: page.skip, take: page.take });
     return { items: rows.map(toItem), totalItems: await this.rows.count(tenant, where) };
   }
 
-  async delete(
-    ctx: OperationContext,
-    scope: TenantScope,
-    storeIds: readonly StoreId[],
-    id: Snowflake,
-  ): Promise<boolean> {
-    if (storeIds.length === 0) return false;
-    return (await this.rows.delete(requestScope(ctx, scope), { ...ofStores(storeIds), id })) > 0;
+  async delete(ctx: OperationContext, scope: TenantScope, reach: MediaReach, id: Snowflake): Promise<boolean> {
+    if (reachesNothing(reach)) return false;
+    return (await this.rows.delete(requestScope(ctx, scope), { ...ofStores(reach), id })) > 0;
   }
 }

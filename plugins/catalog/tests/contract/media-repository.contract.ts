@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InvalidCatalogInputError } from '../../domain/errors';
+import { ConcurrentUpdateError, InvalidCatalogInputError } from '../../domain/errors';
 import type { MediaRepositoryPort } from '../../domain/ports/media-repository.port';
 import { at, mediaOf, scopeA, scopeA2, scopeB } from '../support/builders';
 import type { MakeHarness } from './repository-harness';
@@ -42,6 +42,25 @@ export function describeMediaRepositoryContract(name: string, make: MakeHarness<
 
       // Assert
       expect(page).toEqual({ items: [items[1]], totalItems: 3 });
+    });
+
+    it('reaches every store of the business, and no other business, with "all" (D2132)', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [inA1, inA2] = [mediaOf(scopeA, at(1)), mediaOf(scopeA2, at(2))];
+      for (const item of [inA1, inA2]) await repo.insert(ctx, scopeA, item);
+      const ofB = mediaOf(scopeB, at(3));
+      await repo.insert(ctx, scopeB, ofB);
+
+      // Act
+      const listed = await repo.list(ctx, scopeA, 'all', ALL_ON_ONE_PAGE);
+      const found = await repo.findByAssetIds(ctx, scopeA, 'all', [inA2.assetId, ofB.assetId]);
+      const fromB = await repo.findById(ctx, scopeB, 'all', inA1.id);
+      const deleted = await repo.delete(ctx, scopeA, 'all', inA2.id);
+
+      // Assert
+      expect(listed).toEqual({ items: [inA2, inA1], totalItems: 2 });
+      expect([found, fromB, deleted]).toEqual([[inA2], undefined, true]);
     });
 
     it('lists nothing for an empty store list', async () => {
@@ -113,8 +132,8 @@ export function describeMediaRepositoryContract(name: string, make: MakeHarness<
       // Act
       const second = repo.insert(ctx, scopeA, { ...mediaOf(scopeA2), assetId: first.assetId });
 
-      // Assert
-      await expect(second).rejects.toThrow();
+      // Assert: a typed refusal, never the driver's error naming the constraint
+      await expect(second).rejects.toBeInstanceOf(ConcurrentUpdateError);
       const listed = await repo.list(ctx, scopeA, [scopeA.storeId, scopeA2.storeId], ALL_ON_ONE_PAGE);
       expect(listed).toEqual({ items: [first], totalItems: 1 });
     });

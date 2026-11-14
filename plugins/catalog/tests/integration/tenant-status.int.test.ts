@@ -2,19 +2,21 @@ import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { failureOf } from '@cod/testing';
 import { describe, expect, it } from 'vitest';
 import { catalogSuite, CREATE_PRODUCT, PRODUCTS } from './catalog-kit';
+import { png, uploadAs } from './media-kit';
 
 const suite = catalogSuite(1021, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FORBIDDEN = 'FORBIDDEN';
 const FORBIDDEN_STATUS = 403;
 
 describe('archived stores and suspended businesses (TEN-3, D2117)', () => {
-  /** Every handler kind refuses: a GraphQL read and write, a REST read and write. */
-  async function refusals(): Promise<{ codes: string[]; statuses: number[] }> {
+  /** Every handler kind refuses: a GraphQL read and write, a media upload, a REST read and write. */
+  async function refusals(): Promise<{ codes: (string | undefined)[]; statuses: number[] }> {
     const read = await failureOf(suite.kit.gql(PRODUCTS, {}));
     const write = await failureOf(suite.kit.gql(CREATE_PRODUCT, { input: { title: 'x', status: 'active', price: 1 } }));
+    const upload = await uploadAs(suite.kit, png());
     const restRead = await suite.kit.rest('GET', '/catalog/products');
     const restWrite = await suite.kit.rest('POST', '/catalog/products', { title: 'x', status: 'active', price: 1 });
-    return { codes: [...read.codes, ...write.codes], statuses: [restRead.status, restWrite.status] };
+    return { codes: [...read.codes, ...write.codes, upload.code], statuses: [restRead.status, restWrite.status] };
   }
 
   it('forbids every catalog handler on an archived store', async () => {
@@ -27,7 +29,10 @@ describe('archived stores and suspended businesses (TEN-3, D2117)', () => {
     const answer = await refusals();
 
     // Assert
-    expect(answer).toEqual({ codes: [FORBIDDEN, FORBIDDEN], statuses: [FORBIDDEN_STATUS, FORBIDDEN_STATUS] });
+    expect(answer).toEqual({
+      codes: [FORBIDDEN, FORBIDDEN, FORBIDDEN],
+      statuses: [FORBIDDEN_STATUS, FORBIDDEN_STATUS],
+    });
   });
 
   it('forbids every catalog handler for a suspended business', async () => {
@@ -40,7 +45,10 @@ describe('archived stores and suspended businesses (TEN-3, D2117)', () => {
     const answer = await refusals();
 
     // Assert
-    expect(answer).toEqual({ codes: [FORBIDDEN, FORBIDDEN], statuses: [FORBIDDEN_STATUS, FORBIDDEN_STATUS] });
+    expect(answer).toEqual({
+      codes: [FORBIDDEN, FORBIDDEN, FORBIDDEN],
+      statuses: [FORBIDDEN_STATUS, FORBIDDEN_STATUS],
+    });
   });
 
   it('serves the active store of an active business (positive control)', async () => {

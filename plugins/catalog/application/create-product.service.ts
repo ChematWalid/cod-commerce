@@ -25,6 +25,7 @@ export class CreateProductService {
       // Checked under the shared taxonomy locks, so no brand, tag or highlight it names is deleted before it commits.
       await this.references.lockNamed(tx, references);
       const refs = await this.references.check(tx, scope, references);
+      await this.references.shareImages(tx, references);
       const fields = fieldsOfCommand(command, refs, this.ports.sanitizer);
       const plan = planVariantMatrix({
         productName: fields.title,

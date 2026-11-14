@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CATALOG_MAX_PAGE_SIZE, CATALOG_PAGE_SIZE, productListQuerySchema } from '../../src/index';
+import {
+  CATALOG_MAX_PAGE_SIZE,
+  CATALOG_PAGE_SIZE,
+  INT_COLUMN_MAX,
+  mediaListQuerySchema,
+  productListQuerySchema,
+} from '../../src/index';
 
 describe('productListQuerySchema', () => {
   it('defaults to the all tab, first page of twenty', () => {
@@ -34,5 +40,23 @@ describe('productListQuerySchema', () => {
 
   it('takes a null field from an unset GraphQL variable as not asked', () => {
     expect(productListQuerySchema.parse({ q: null, take: null })).toEqual({ tab: 'all', skip: 0, take: 20 });
+  });
+});
+
+describe('mediaListQuerySchema', () => {
+  it('defaults to the first page and reads a REST query string', () => {
+    expect(mediaListQuerySchema.parse({})).toEqual({ skip: 0, take: CATALOG_PAGE_SIZE });
+    expect(mediaListQuerySchema.parse({ skip: '20', take: '50' })).toEqual({ skip: 20, take: 50 });
+  });
+
+  it('treats an unset GraphQL variable as not asked', () => {
+    expect(mediaListQuerySchema.parse({ skip: null, take: null })).toEqual({ skip: 0, take: CATALOG_PAGE_SIZE });
+    expect(mediaListQuerySchema.parse(undefined)).toEqual({ skip: 0, take: CATALOG_PAGE_SIZE });
+  });
+
+  it('refuses a page past the cap, and a negative or oversized skip', () => {
+    expect(mediaListQuerySchema.safeParse({ take: CATALOG_MAX_PAGE_SIZE + 1 }).success).toBe(false);
+    expect(mediaListQuerySchema.safeParse({ skip: -1 }).success).toBe(false);
+    expect(mediaListQuerySchema.safeParse({ skip: INT_COLUMN_MAX + 1 }).success).toBe(false);
   });
 });

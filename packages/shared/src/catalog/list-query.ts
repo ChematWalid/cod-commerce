@@ -15,6 +15,21 @@ function withoutUnsetFields(query: unknown): unknown {
   return Object.fromEntries(Object.entries(query).filter(([, value]) => value !== null && value !== ''));
 }
 
+// Capped like an int column: a larger offset is no page anyone reads, and Postgres refuses an OFFSET past bigint.
+const pageSkipSchema = z.coerce
+  .number(invalidCatalogInput)
+  .int(invalidCatalogInput)
+  .min(0, invalidCatalogInput)
+  .max(INT_COLUMN_MAX, invalidCatalogInput)
+  .default(0);
+
+const pageTakeSchema = z.coerce
+  .number(invalidCatalogInput)
+  .int(invalidCatalogInput)
+  .min(1, invalidCatalogInput)
+  .max(CATALOG_MAX_PAGE_SIZE, invalidCatalogInput)
+  .default(CATALOG_PAGE_SIZE);
+
 const productListFieldsSchema = catalogObject({
   tab: z.enum(PRODUCT_LIST_TABS, invalidCatalogInput).default('all'),
   // A NUL would reach the `contains` filter and fail in Postgres with a 500 (#171).
@@ -27,19 +42,8 @@ const productListFieldsSchema = catalogObject({
   collectionId: catalogRefIdSchema.optional(),
   brandId: catalogRefIdSchema.optional(),
   tagId: catalogRefIdSchema.optional(),
-  // Capped like an int column: a larger offset is no page anyone reads, and Postgres refuses an OFFSET past bigint.
-  skip: z.coerce
-    .number(invalidCatalogInput)
-    .int(invalidCatalogInput)
-    .min(0, invalidCatalogInput)
-    .max(INT_COLUMN_MAX, invalidCatalogInput)
-    .default(0),
-  take: z.coerce
-    .number(invalidCatalogInput)
-    .int(invalidCatalogInput)
-    .min(1, invalidCatalogInput)
-    .max(CATALOG_MAX_PAGE_SIZE, invalidCatalogInput)
-    .default(CATALOG_PAGE_SIZE),
+  skip: pageSkipSchema,
+  take: pageTakeSchema,
 });
 
 /**
@@ -60,3 +64,16 @@ export const soldOutOrdersInputSchema = catalogObject({
 });
 
 export type SoldOutOrdersCommand = z.output<typeof soldOutOrdersInputSchema>;
+
+const mediaListFieldsSchema = catalogObject({ skip: pageSkipSchema, take: pageTakeSchema });
+
+/**
+ * A page of the business's media library, newest first (D2113). Like the product list it may come as a REST query
+ * string, and a null field (an unset GraphQL variable) or no options at all mean the first page.
+ */
+export const mediaListQuerySchema = z.preprocess(
+  (query: unknown) => withoutUnsetFields(query ?? {}),
+  mediaListFieldsSchema,
+);
+
+export type MediaListQuery = z.output<typeof mediaListQuerySchema>;

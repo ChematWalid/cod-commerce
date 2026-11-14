@@ -59,6 +59,10 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/catalog/infrastructure/pg-product-lock.ts',
   // Runs only the advisory locks that keep product saves and taxonomy deletes apart (P2.S1 Task 12 review).
   '**/plugins/catalog/infrastructure/pg-taxonomy-lock.ts',
+  // Asset reads AssetService has only per channel: assets by id, their channels, and whether a live product, variant
+  // or collection uses one (core reads only featured images). Every id was found in the business's `catalog_media`
+  // first (P2.S1 Task 13, D2128, D2132).
+  '**/plugins/catalog/infrastructure/vendure-asset-reads.ts',
   // `platform_task_heartbeat` is a platform table, one row per scheduled task (D108, D120).
   '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
   // DDL and catalog reads of partition maintenance (`SET LOCAL`, `pg_advisory_xact_lock`); no tenant row (D106).

@@ -8,6 +8,7 @@ import { newId, T0 } from '../support/builders';
 import { InMemoryBrandRepository } from './in-memory-brand-repository';
 import { InMemoryHighlightRepository } from './in-memory-highlight-repository';
 import { InMemoryMediaRepository } from './in-memory-media-repository';
+import { InMemoryMediaStorage } from './in-memory-media-storage';
 import { InMemoryProductCatalog, storeContext } from './in-memory-product-catalog';
 import { InMemoryProductCollectionRepository } from './in-memory-product-collection-repository';
 import { InMemoryProductSettingsRepository } from './in-memory-product-settings-repository';
@@ -28,6 +29,7 @@ export class ProductWorld {
   readonly highlights = new InMemoryHighlightRepository();
   readonly settings = new InMemoryProductSettingsRepository();
   readonly media = new InMemoryMediaRepository();
+  readonly storage = new InMemoryMediaStorage();
   readonly collections = new InMemoryProductCollectionRepository();
   /** Where a test registers a fake team check (D2114); empty by default, like a server without team. */
   readonly orderManagerChecks = new OrderManagerCheckRegistry();
@@ -65,6 +67,7 @@ export class ProductWorld {
     highlights: this.highlights,
     settings: this.settings,
     media: this.media,
+    storage: this.storage,
     collections: this.collections,
     // Marks the text so a test sees the sanitiser ran; the real allow-list is tested on its own.
     sanitizer: { sanitize: (html) => html.replaceAll(/<script>.*?<\/script>/g, '') },

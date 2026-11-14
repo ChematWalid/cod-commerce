@@ -4,6 +4,7 @@ import type { DescriptionSanitizerPort } from '../domain/ports/description-sanit
 import type { HighlightRepositoryPort } from '../domain/ports/highlight-repository.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { MediaRepositoryPort } from '../domain/ports/media-repository.port';
+import type { MediaStoragePort } from '../domain/ports/media-storage.port';
 import type { OrderManagerCheckSource } from '../domain/ports/order-manager-check.port';
 import type { ProductCatalogPort } from '../domain/ports/product-catalog.port';
 import type { ProductCollectionRepositoryPort } from '../domain/ports/product-collection-repository.port';
@@ -28,6 +29,8 @@ export interface ProductPorts {
   readonly highlights: HighlightRepositoryPort;
   readonly settings: ProductSettingsRepositoryPort;
   readonly media: MediaRepositoryPort;
+  /** The files behind the media library (D2113). */
+  readonly storage: MediaStoragePort;
   readonly collections: ProductCollectionRepositoryPort;
   readonly sanitizer: DescriptionSanitizerPort;
   readonly ids: IdGeneratorPort;

@@ -4,13 +4,23 @@ import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { PRODUCT_PERMISSIONS } from '../../api/permissions';
 import { catalogSuite } from './catalog-kit';
-import { OPERATION_REGISTRY, ROUTE_REGISTRY, type TargetIds } from './endpoint-registry';
+import { type OperationEntry, OPERATION_REGISTRY, ROUTE_REGISTRY, type TargetIds } from './endpoint-registry';
+import { createMedia, uploadEntry } from './media-kit';
 import { createTaxonomy } from './taxonomy-kit';
 
 const suite = catalogSuite(1022, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FORBIDDEN = 'FORBIDDEN';
 const FORBIDDEN_STATUS = 403;
 const PRODUCT_KEYS = Object.values(PRODUCT_PERMISSIONS);
+
+/** The error codes of one registry operation; an upload goes as a multipart request. */
+async function codesOf(entry: OperationEntry, ids: TargetIds): Promise<readonly string[]> {
+  if (entry.upload === true) {
+    const answer = await uploadEntry(suite.kit, entry);
+    return answer.code === undefined ? [] : [answer.code];
+  }
+  return (await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)))).codes;
+}
 
 /** Every product key but the one a handler requires: a role that can do everything else. */
 const allKeysBut = (access: string) => PRODUCT_KEYS.filter((key) => key !== access);
@@ -27,7 +37,8 @@ describe('catalog handlers refuse a role that lacks their key', () => {
       optionGroups: [{ name: 'Size', values: ['S'] }],
     });
     const taxonomy = await createTaxonomy(suite.kit);
-    ids = { productId: product.id, variantId: product.variants[0]?.id ?? '', collectionId, ...taxonomy };
+    const { id: mediaId } = await createMedia(suite.kit);
+    ids = { productId: product.id, variantId: product.variants[0]?.id ?? '', collectionId, mediaId, ...taxonomy };
   });
 
   it.each(OPERATION_REGISTRY.filter((entry) => entry.access !== 'catalog.products.view'))(
@@ -37,10 +48,10 @@ describe('catalog handlers refuse a role that lacks their key', () => {
       await suite.kit.signInAsMember(suite.fixtures.a, ['catalog.products.view']);
 
       // Act
-      const failure = await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)));
+      const codes = await codesOf(entry, ids);
 
       // Assert
-      expect(failure.codes).toEqual([FORBIDDEN]);
+      expect(codes).toEqual([FORBIDDEN]);
     },
   );
 
@@ -49,10 +60,10 @@ describe('catalog handlers refuse a role that lacks their key', () => {
     await suite.kit.signInAsMember(suite.fixtures.a, []);
 
     // Act
-    const failure = await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)));
+    const codes = await codesOf(entry, ids);
 
     // Assert
-    expect(failure.codes).toEqual([FORBIDDEN]);
+    expect(codes).toEqual([FORBIDDEN]);
   });
 
   it.each(ROUTE_REGISTRY.filter((entry) => entry.access !== 'catalog.products.view'))(
@@ -76,10 +87,10 @@ describe('catalog handlers refuse a role that lacks their key', () => {
       await suite.kit.signInAsMember(suite.fixtures.a, allKeysBut(entry.access));
 
       // Act
-      const failure = await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)));
+      const codes = await codesOf(entry, ids);
 
       // Assert
-      expect(failure.codes).toEqual([FORBIDDEN]);
+      expect(codes).toEqual([FORBIDDEN]);
     },
   );
 

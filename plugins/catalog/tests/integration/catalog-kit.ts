@@ -31,7 +31,12 @@ import {
 import type { SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll } from 'vitest';
-import { CatalogPlugin } from '../../index';
+import {
+  CatalogPlugin,
+  ORDER_MANAGER_CHECK_REGISTRAR,
+  type OrderManagerCheck,
+  type OrderManagerCheckRegistrar,
+} from '../../index';
 
 export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 
@@ -151,6 +156,11 @@ export class CatalogKit {
   private baseUrl(): string {
     const { port } = (this.app.getHttpServer() as Server).address() as AddressInfo;
     return `http://localhost:${String(port)}`;
+  }
+
+  /** Registers a stand-in for team's order-manager check (D2114, D2132) on this server's registrar. */
+  registerOrderManagerCheck(check: OrderManagerCheck): void {
+    this.app.get<unknown, OrderManagerCheckRegistrar>(ORDER_MANAGER_CHECK_REGISTRAR).register(check);
   }
 
   /** Test-only direct SQL (test files are outside the data access gate). */

@@ -12,6 +12,7 @@ import { assertHighlightCount } from '../domain/highlights';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import type { ProductPorts } from './catalog-ports';
+import { mediaReachOf } from './media-reach';
 import { checkOrderManagers } from './product-settings.service';
 
 /** The ids a product body names, as sent; `undefined` means "not sent", `null` clears a single id. */
@@ -57,6 +58,13 @@ export function coreIdsOf(ids: readonly string[], notFound: NotFound): CoreId[] 
   });
 }
 
+/** Every image id a product body names: featured, gallery and variant images; a malformed one answers not found. */
+function imageIdsOf(input: ReferenceInput): CoreId[] {
+  const featured = input.featuredAssetId;
+  const named = [...(featured === undefined || featured === null ? [] : [featured]), ...(input.assetIds ?? [])];
+  return coreIdsOf([...named, ...(input.variantAssetIds ?? [])], MediaNotFoundError);
+}
+
 /** True when every id of `wanted` is among `found`. */
 const allFound = (wanted: readonly string[], found: readonly string[]): boolean => {
   const present = new Set(found);
@@ -65,8 +73,8 @@ const allFound = (wanted: readonly string[], found: readonly string[]): boolean 
 
 /**
  * Checks that every id a product body names is the caller's: brands, tags and highlights of the active store,
- * collections of its channel, images of the media the caller may use (the active store's until the team check of
- * D2132 is registered), order managers team's check accepts for the store (D2114). Another business's id, the
+ * collections of its channel, images of the media of the stores the caller reaches (D2132), order managers team's
+ * check accepts for the store (D2114). Another business's id, the
  * business's other store's id and a malformed id all answer "not found" with the entity's code; nothing is written
  * before every id passed.
  */
@@ -140,16 +148,25 @@ export class ProductReferenceCheck {
     return collectionIds;
   }
 
+  /**
+   * Makes every image `input` names usable in the store channel of `ctx` (D2113): a media item of the business's other
+   * store is in that store's channel only. Run it after {@link check}, in the same transaction.
+   */
+  async shareImages(ctx: OperationContext, input: ReferenceInput): Promise<void> {
+    const ids = [...new Set(imageIdsOf(input))];
+    if (ids.length > 0) await this.ports.storage.shareWithStore(ctx, ids);
+  }
+
   private async assets(
     ctx: OperationContext,
     scope: StoreScope,
     input: ReferenceInput,
   ): Promise<Pick<CheckedReferences, 'featuredAssetId' | 'assetIds'>> {
     const featured = input.featuredAssetId;
-    const named = [...(featured === undefined || featured === null ? [] : [featured]), ...(input.assetIds ?? [])];
-    const ids = coreIdsOf([...named, ...(input.variantAssetIds ?? [])], MediaNotFoundError);
+    const ids = imageIdsOf(input);
     if (ids.length > 0) {
-      const items = await this.ports.media.findByAssetIds(ctx, scope, [scope.storeId], ids);
+      const reach = await mediaReachOf(this.ports.orderManagers, ctx, scope);
+      const items = await this.ports.media.findByAssetIds(ctx, scope, reach, ids);
       if (
         !allFound(
           ids,
