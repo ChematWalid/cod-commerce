@@ -1,9 +1,4 @@
-import {
-  ACTIVE_STORE_ALIAS,
-  type ShellPageProps,
-  storePathFor,
-  type SwitchableStoreView,
-} from '@cod/plugin-merchant-shell/shell-api';
+import { ACTIVE_STORE_ALIAS, type ShellPageProps, storePathFor } from '@cod/plugin-merchant-shell/shell-api';
 import { CATALOG_PRODUCT_LIST_PAGE_ID } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -15,7 +10,6 @@ import {
   PageActionBar,
   PageLayout,
   PageTitle,
-  useAuth,
 } from '@vendure/dashboard';
 import { type ReactNode, useDeferredValue, useEffect, useState } from 'react';
 import { DeleteDialog } from '../components/delete-dialog';
@@ -34,6 +28,7 @@ import {
 } from '../constants';
 import type { CatalogProductRowDto } from '../dto';
 import { useProductCommand } from '../hooks/use-product-commands';
+import { useStoreScope } from '../hooks/use-store-scope';
 import {
   clampPage,
   INITIAL_LIST_STATE,
@@ -191,14 +186,6 @@ function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
       />
     </div>
   );
-}
-
-/** The store the page's queries answer for, once the session holds its channel token. */
-function useStoreScope(store: SwitchableStoreView | undefined): StoreScope | null {
-  const { channels } = useAuth();
-  if (store === undefined) return null;
-  const channelToken = channels?.find((channel) => channel.id === store.channelId)?.token;
-  return channelToken === undefined ? null : { storeId: store.id, channelToken };
 }
 
 /** The store's products (the `products.all` leaf): tabs, search, filters, the table and its row actions (AC4). */

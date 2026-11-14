@@ -10,9 +10,18 @@ export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/por
 export type { OperationContext as CatalogOperationContext } from './domain/ports/operation-context';
 export {
   CREATE_PRODUCT_TEST_ID,
+  EDITOR_PRICE_TEST_ID,
+  EDITOR_SAVE_TEST_ID,
+  EDITOR_SKU_TEST_ID,
+  EDITOR_TITLE_TEST_ID,
+  OPTION_NAME_INPUT_TEST_ID,
+  OPTION_VALUE_INPUT_TEST_ID,
+  PRODUCT_EDITOR_TEST_ID,
   PRODUCT_LIST_TEST_ID,
   PRODUCT_ROW_TEST_ID,
   PRODUCT_SEARCH_TEST_ID,
   PRODUCT_TABS_TEST_ID,
   PRODUCTS_EMPTY_TEST_ID,
+  VARIANT_PRICE_TEST_ID,
+  VARIANT_ROW_TEST_ID,
 } from './dashboard/constants';

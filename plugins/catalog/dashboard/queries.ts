@@ -65,7 +65,12 @@ function readRequestToken(): string | null {
  * A query of `scope`'s store, keyed by it and waiting while the store is unknown. While a new key loads it shows the
  * previous answer only if that answer is of the same store ({@link placeholderWithinStore}).
  */
-function storeQuery<T>(prefix: readonly string[], scope: StoreScope | null, fetchAnswer: () => Promise<T>, extra = {}) {
+export function storeQuery<T>(
+  prefix: readonly string[],
+  scope: StoreScope | null,
+  fetchAnswer: () => Promise<T>,
+  extra = {},
+) {
   return {
     queryKey: [...prefix, scope?.storeId ?? null, extra],
     queryFn: scope === null ? skipToken : () => fetchForStore(scope.channelToken, readRequestToken, fetchAnswer),
