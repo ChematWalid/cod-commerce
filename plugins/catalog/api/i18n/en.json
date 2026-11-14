@@ -17,6 +17,7 @@
     "catalog-order-managers-unavailable": "Order managers cannot be set yet.",
     "catalog-name-taken": "This name is already used in this store.",
     "catalog-concurrent-update": "This product was changed at the same time. Try again.",
+    "catalog-taxonomy-limit": "This store has reached the most brands, tags or highlights it can keep (500 of each).",
     "catalog-internal": "The request could not be completed."
   }
 }

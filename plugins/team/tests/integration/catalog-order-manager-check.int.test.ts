@@ -25,6 +25,20 @@ const CREATE_PRODUCT = gql`
   }
 `;
 
+const PRODUCT_MANAGERS = gql`
+  query ($id: String!) {
+    catalogProduct(id: $id) {
+      settings {
+        orderManagerIds
+      }
+    }
+  }
+`;
+
+interface CreatedProduct {
+  readonly createCatalogProduct: { product: { id: string; settings: { orderManagerIds: string[] } } };
+}
+
 let businesses: TwoBusinesses;
 let kit: TeamKit;
 
@@ -48,10 +62,17 @@ function productNaming(orderManagerIds: readonly string[]) {
     quantityRules: { enabled: false, min: 1, step: 1 },
     orderManagerIds,
   };
-  return kit.client.query<{ createCatalogProduct: { product: { settings: { orderManagerIds: string[] } } } }>(
-    CREATE_PRODUCT,
-    { input: { title: 'Managed', status: 'active', price: 100, settings } },
-  );
+  return kit.client.query<CreatedProduct>(CREATE_PRODUCT, {
+    input: { title: 'Managed', status: 'active', price: 100, settings },
+  });
+}
+
+/** The order managers of the product `created`, read back from the store (AC5: saved, not only answered). */
+async function reloadedManagers(created: CreatedProduct): Promise<readonly string[] | undefined> {
+  const { catalogProduct } = await kit.client.query<{
+    catalogProduct: { settings: { orderManagerIds: string[] } } | null;
+  }>(PRODUCT_MANAGERS, { id: created.createCatalogProduct.product.id });
+  return catalogProduct?.settings.orderManagerIds;
 }
 
 describe("team's order-manager check for catalog products (D2114, D2137)", () => {
@@ -62,10 +83,11 @@ describe("team's order-manager check for catalog products (D2114, D2137)", () =>
     await kit.signIn(a.owner, a.stores[0]);
 
     // Act
-    const { createCatalogProduct } = await productNaming([member.memberId]);
+    const created = await productNaming([member.memberId]);
 
     // Assert
-    expect(createCatalogProduct.product.settings.orderManagerIds).toEqual([member.memberId]);
+    expect(created.createCatalogProduct.product.settings.orderManagerIds).toEqual([member.memberId]);
+    expect(await reloadedManagers(created)).toEqual([member.memberId]);
   });
 
   it('refuses an order manager of another business', async () => {
@@ -96,5 +118,6 @@ describe("team's order-manager check for catalog products (D2114, D2137)", () =>
     // Assert
     expect(refused.codes).toEqual([CATALOG_ERROR_CODES.ORDER_MANAGER_UNKNOWN]);
     expect(accepted.createCatalogProduct.product.settings.orderManagerIds).toEqual([member.memberId]);
+    expect(await reloadedManagers(accepted)).toEqual([member.memberId]);
   });
 });

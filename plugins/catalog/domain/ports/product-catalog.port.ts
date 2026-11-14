@@ -62,7 +62,8 @@ export interface ProductCatalogPort {
 
   /**
    * Clears `brandId` from every live product of the store that names it, before the brand is deleted (D2140), and
-   * returns the products it changed.
+   * returns the products it changed. Each product is changed under its {@link lockForUpdate} lock, after a save in
+   * flight, and only if it still names the brand then.
    */
   clearBrand(ctx: OperationContext, brandId: Snowflake): Promise<readonly CoreId[]>;
 

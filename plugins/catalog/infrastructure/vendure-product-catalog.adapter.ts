@@ -22,7 +22,7 @@ import { createsDefaultVariant, type MatrixPlan } from '../domain/variant-matrix
 import { toRequestContext } from './request-scope';
 import { derivedSlug, merchantSlug } from './stored-slug';
 import type { OptionTarget } from './vendure-option-sync';
-import { clearableId, coreIdOf, type ProductCustomFields, productRecordOf } from './vendure-product-mapper';
+import { brandIdOf, clearableId, coreIdOf, type ProductCustomFields, productRecordOf } from './vendure-product-mapper';
 import { VendureProductStructure } from './vendure-product-structure';
 
 /** Relations a product is read with; its variants are read apart, with their channel price. */
@@ -157,9 +157,17 @@ export class VendureProductCatalog implements ProductCatalogPort {
 
   async clearBrand(ctx: OperationContext, brandId: Snowflake): Promise<readonly CoreId[]> {
     const request = toRequestContext(ctx);
-    const branded = await this.idsWithBrand(request, brandId);
-    for (const id of branded) await this.products.update(request, { id, customFields: { brandId: null } });
-    return branded;
+    const cleared: CoreId[] = [];
+    // In id order, under each product's lock, so a save of the product in flight finishes first and cannot write the
+    // brand back from what it read before; a product that left the brand meanwhile keeps its new one.
+    for (const id of await this.idsWithBrand(request, brandId)) {
+      await this.structure.lock.acquire(request, id);
+      const product = await this.products.findOne(request, id, []);
+      if (product === undefined || brandIdOf(product) !== brandId) continue;
+      await this.products.update(request, { id, customFields: { brandId: null } });
+      cleared.push(id);
+    }
+    return cleared;
   }
 
   async existingCollections(ctx: OperationContext, ids: readonly CoreId[]): Promise<readonly CoreId[]> {

@@ -22,6 +22,9 @@ export interface CatalogNameRepositoryPort {
   /** The entry of the scope's store with that name key, or `undefined`. */
   findByNameKey(ctx: OperationContext, scope: StoreScope, nameKey: string): Promise<CatalogNameEntry | undefined>;
 
+  /** How many entries the scope's store keeps. */
+  count(ctx: OperationContext, scope: StoreScope): Promise<number>;
+
   /** Every entry of the scope's store, newest first, then by id descending. */
   list(ctx: OperationContext, scope: StoreScope): Promise<readonly CatalogNameEntry[]>;
 

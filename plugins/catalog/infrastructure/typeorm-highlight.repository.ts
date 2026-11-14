@@ -58,6 +58,10 @@ export class TypeOrmHighlightRepository implements HighlightRepositoryPort {
     return rows.map(toHighlight);
   }
 
+  count(ctx: OperationContext, scope: StoreScope): Promise<number> {
+    return this.rows.count(requestScope(ctx, scope), inStore(scope));
+  }
+
   async list(ctx: OperationContext, scope: StoreScope): Promise<readonly Highlight[]> {
     const rows = await this.rows.find(requestScope(ctx, scope), {
       where: inStore(scope),

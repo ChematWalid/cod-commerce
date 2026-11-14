@@ -20,6 +20,21 @@ export function describeHighlightRepositoryContract(name: string, make: MakeHarn
       await expect(repo.findByIds(ctx, scopeB, [highlight.id])).resolves.toEqual([]);
     });
 
+    it('counts the highlights of its store only', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      await repo.insert(ctx, scopeA, highlightOf(scopeA));
+      await repo.insert(ctx, scopeA, highlightOf(scopeA));
+      await repo.insert(ctx, scopeA2, highlightOf(scopeA2));
+      await repo.insert(ctx, scopeB, highlightOf(scopeB));
+
+      // Act
+      const counted = await repo.count(ctx, scopeA);
+
+      // Assert
+      expect(counted).toBe(2);
+    });
+
     it('lists highlights newest first', async () => {
       // Arrange
       const { repo, ctx } = await make();

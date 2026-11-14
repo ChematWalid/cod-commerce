@@ -36,6 +36,9 @@ export class ProductWorld {
   searchHits: CoreId[] = [];
   /** Transactions run, so a test can tell a write ran inside one. */
   transactions = 0;
+  /** Taxonomy locks taken outside a transaction, where they would end at once. */
+  locksOutsideTransaction = 0;
+  private openTransactions = 0;
 
   readonly ports: ProductPorts = {
     products: this.products,
@@ -47,9 +50,14 @@ export class ProductWorld {
       },
     },
     transaction: {
-      run: <T>(ctx: OperationContext, _scope: TenantScope, work: (tx: OperationContext) => Promise<T>) => {
+      run: async <T>(ctx: OperationContext, _scope: TenantScope, work: (tx: OperationContext) => Promise<T>) => {
         this.transactions += 1;
-        return work(ctx);
+        this.openTransactions += 1;
+        try {
+          return await work(ctx);
+        } finally {
+          this.openTransactions -= 1;
+        }
       },
     },
     brands: this.brands,
@@ -62,8 +70,24 @@ export class ProductWorld {
     sanitizer: { sanitize: (html) => html.replaceAll(/<script>.*?<\/script>/g, '') },
     ids: { next: newId },
     clock: { now: () => T0 },
+    taxonomyLock: {
+      // Logged with the product calls, so a test sees which lock came first; an empty share takes nothing.
+      share: (_ctx, ids) => {
+        if (ids.length > 0) this.lockCall(`share:${[...ids].sort().join(',')}`);
+        return Promise.resolve();
+      },
+      exclusive: (_ctx, id) => {
+        this.lockCall(`exclusive:${id}`);
+        return Promise.resolve();
+      },
+    },
     orderManagers: this.orderManagerChecks,
   };
+
+  private lockCall(call: string): void {
+    if (this.openTransactions === 0) this.locksOutsideTransaction += 1;
+    this.products.calls.push(call);
+  }
 
   /** The context of a call made in `scope`'s store channel. */
   ctxOf(scope: StoreScope): OperationContext {

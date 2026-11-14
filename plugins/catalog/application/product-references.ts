@@ -73,6 +73,15 @@ const allFound = (wanted: readonly string[], found: readonly string[]): boolean 
 export class ProductReferenceCheck {
   constructor(private readonly ports: ProductPorts) {}
 
+  /**
+   * Takes the shared taxonomy lock of every well-formed brand, tag and highlight id `input` names, so none of them is
+   * deleted before the save commits. Run it inside the save's transaction, before its product lock.
+   */
+  lockNamed(ctx: OperationContext, input: ReferenceInput): Promise<void> {
+    const named = [...(input.brandId ? [input.brandId] : []), ...(input.tagIds ?? []), ...(input.highlightIds ?? [])];
+    return this.ports.taxonomyLock.share(ctx, named.filter(isSnowflake));
+  }
+
   async check(ctx: OperationContext, scope: StoreScope, input: ReferenceInput): Promise<CheckedReferences> {
     const [brandId, tagIds, highlightIds, collectionIds, assets] = await Promise.all([
       this.brand(ctx, scope, input.brandId),

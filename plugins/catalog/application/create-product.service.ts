@@ -20,18 +20,20 @@ export class CreateProductService {
   }
 
   async create(ctx: OperationContext, scope: StoreScope, command: ProductCommand): Promise<ProductSaveResult> {
-    const orderManagerIds = command.settings?.orderManagerIds;
-    const refs = await this.references.check(ctx, scope, { ...command, orderManagerIds });
-    const fields = fieldsOfCommand(command, refs, this.ports.sanitizer);
-    const plan = planVariantMatrix({
-      productName: fields.title,
-      baseSku: fields.sku,
-      basePrice: fields.price,
-      groups: command.optionGroups,
-      existing: [],
-    });
-    const draft = { ...fields, slug: slugOf(command.slug), optionGroups: command.optionGroups };
+    const references = { ...command, orderManagerIds: command.settings?.orderManagerIds };
     return this.ports.transaction.run(ctx, scope, async (tx) => {
+      // Checked under the shared taxonomy locks, so no brand, tag or highlight it names is deleted before it commits.
+      await this.references.lockNamed(tx, references);
+      const refs = await this.references.check(tx, scope, references);
+      const fields = fieldsOfCommand(command, refs, this.ports.sanitizer);
+      const plan = planVariantMatrix({
+        productName: fields.title,
+        baseSku: fields.sku,
+        basePrice: fields.price,
+        groups: command.optionGroups,
+        existing: [],
+      });
+      const draft = { ...fields, slug: slugOf(command.slug), optionGroups: command.optionGroups };
       const record = await this.ports.products.create(tx, draft, plan);
       await saveLinks(this.ports, tx, { scope, productId: record.id }, { refs, settings: command.settings });
       await this.ports.events.publish(tx, scope, record.id, 'created');

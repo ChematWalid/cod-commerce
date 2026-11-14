@@ -75,6 +75,7 @@ describe('catalog constants', () => {
         'catalog.order-managers-unavailable',
         'catalog.name-taken',
         'catalog.concurrent-update',
+        'catalog.taxonomy-limit',
       ].sort(),
     );
   });

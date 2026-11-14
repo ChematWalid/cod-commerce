@@ -42,6 +42,7 @@ const STATUS_OF_CODE: ReadonlyMap<string, HttpStatus> = new Map([
   [C.NAME_TAKEN, HttpStatus.CONFLICT],
   [C.MEDIA_IN_USE, HttpStatus.CONFLICT],
   [C.CONCURRENT_UPDATE, HttpStatus.CONFLICT],
+  [C.TAXONOMY_LIMIT, HttpStatus.CONFLICT],
   [C.MEDIA_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE],
   [C.MEDIA_TYPE, HttpStatus.UNSUPPORTED_MEDIA_TYPE],
 ]);

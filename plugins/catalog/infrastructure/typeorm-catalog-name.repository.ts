@@ -64,6 +64,10 @@ export class TypeOrmCatalogNameRepository implements CatalogNameRepositoryPort {
     return row === null ? undefined : toEntry(row);
   }
 
+  count(ctx: OperationContext, scope: StoreScope): Promise<number> {
+    return this.rows.count(requestScope(ctx, scope), inStore(scope));
+  }
+
   async list(ctx: OperationContext, scope: StoreScope): Promise<readonly CatalogNameEntry[]> {
     const rows = await this.rows.find(requestScope(ctx, scope), {
       where: inStore(scope),

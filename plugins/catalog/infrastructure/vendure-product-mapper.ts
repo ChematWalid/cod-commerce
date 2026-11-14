@@ -43,6 +43,9 @@ const customOf = <T>(entity: { customFields?: unknown }): Partial<T> => {
   return fields as Partial<T>;
 };
 
+/** The brand a product names, as stored; `null` for none. */
+export const brandIdOf = (product: Product): Snowflake | null => customOf<ProductCustomFields>(product).brandId ?? null;
+
 /** A relation as read: TypeORM leaves one that was not loaded `undefined`, whatever the entity's type says. */
 const loaded = <T>(relation: readonly T[] | undefined): readonly T[] => relation ?? [];
 

@@ -27,6 +27,12 @@ export const MAX_OPTION_GROUPS = 3;
 export const MAX_OPTION_VALUES = 20;
 export const MAX_VARIANTS = 100;
 
+/**
+ * Most brands, most tags and most highlights one store keeps, each kind on its own. The lists answer every entry of
+ * the store unpaged, so a create past this cap is refused (P2.S1 Task 12 review).
+ */
+export const MAX_TAXONOMY_ENTRIES_PER_STORE = 500;
+
 /** Most order managers one product names (D2114). */
 export const MAX_ORDER_MANAGERS = 20;
 /** Most custom attributes one product carries. */

@@ -11,6 +11,7 @@ import type { ProductEventsPort } from '../domain/ports/product-events.port';
 import type { ProductSearchPort } from '../domain/ports/product-search.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
 import type { TagRepositoryPort } from '../domain/ports/tag-repository.port';
+import type { TaxonomyLockPort } from '../domain/ports/taxonomy-lock.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 
 /**
@@ -31,6 +32,8 @@ export interface ProductPorts {
   readonly sanitizer: DescriptionSanitizerPort;
   readonly ids: IdGeneratorPort;
   readonly clock: ClockPort;
+  /** Keeps product saves and taxonomy deletes apart. */
+  readonly taxonomyLock: TaxonomyLockPort;
   /** Team's order-manager check, once registered (D2114). */
   readonly orderManagers: OrderManagerCheckSource;
 }

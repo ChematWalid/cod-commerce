@@ -4,7 +4,7 @@ import { createHighlight, type Highlight, rewordHighlight } from '../domain/high
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import type { ProductPorts } from './catalog-ports';
-import { snowflakeIdOf } from './catalog-names';
+import { assertRoomFor, snowflakeIdOf } from './catalog-names';
 
 /**
  * The highlights of the caller's active store (brief AC3: a product shows at most six of them): add, reword, list
@@ -25,6 +25,7 @@ export class HighlightService {
       now: this.ports.clock.now(),
     });
     return await this.ports.transaction.run(ctx, scope, async (tx) => {
+      await assertRoomFor(() => this.ports.highlights.count(tx, scope));
       await this.ports.highlights.insert(tx, scope, highlight);
       return highlight;
     });
@@ -44,6 +45,8 @@ export class HighlightService {
   async delete(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<void> {
     const id = snowflakeIdOf(rawId, HighlightNotFoundError);
     await this.ports.transaction.run(ctx, scope, async (tx) => {
+      // First, so a product save naming the highlight either commits its link before the delete or finds it gone.
+      await this.ports.taxonomyLock.exclusive(tx, id);
       if (!(await this.ports.highlights.delete(tx, scope, id))) throw new HighlightNotFoundError();
     });
   }

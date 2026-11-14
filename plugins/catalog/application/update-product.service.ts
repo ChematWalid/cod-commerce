@@ -81,11 +81,13 @@ export class UpdateProductService {
   ): Promise<ProductSaveResult> {
     const id = parseCoreId(rawId);
     if (id === undefined) throw new ProductNotFoundError();
+    const references = referencesOf(patch);
     return this.ports.transaction.run(ctx, scope, async (tx) => {
+      await this.references.lockNamed(tx, references);
       if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();
-      const refs = await this.references.check(tx, scope, referencesOf(patch));
+      const refs = await this.references.check(tx, scope, references);
       const saved = await this.save(tx, id, updateOf(record, patch, refs, this.ports));
       await saveLinks(this.ports, tx, { scope, productId: id }, { refs, settings: patch.settings });
       await this.ports.events.publish(tx, scope, id, 'updated');

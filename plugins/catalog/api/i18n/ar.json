@@ -17,6 +17,7 @@
     "catalog-order-managers-unavailable": "لا يمكن تعيين مسؤولي الطلبات بعد.",
     "catalog-name-taken": "هذا الاسم مستخدم في هذا المتجر.",
     "catalog-concurrent-update": "تم تعديل هذا المنتج في الوقت نفسه. حاول مرة أخرى.",
+    "catalog-taxonomy-limit": "بلغ هذا المتجر الحد الأقصى من العلامات التجارية أو الوسوم أو المزايا (500 من كل نوع).",
     "catalog-internal": "تعذر إكمال الطلب."
   }
 }

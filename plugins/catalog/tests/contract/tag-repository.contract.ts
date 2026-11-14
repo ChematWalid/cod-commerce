@@ -26,6 +26,21 @@ export function describeTagRepositoryContract(name: string, make: MakeHarness<Ta
       expect(listed).toEqual([newest, middle, oldest]);
     });
 
+    it('counts the tags of its store only', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      await repo.insert(ctx, scopeA, tagOf(scopeA));
+      await repo.insert(ctx, scopeA, tagOf(scopeA));
+      await repo.insert(ctx, scopeA2, tagOf(scopeA2));
+      await repo.insert(ctx, scopeB, tagOf(scopeB));
+
+      // Act
+      const counted = await repo.count(ctx, scopeA);
+
+      // Assert
+      expect(counted).toBe(2);
+    });
+
     it('refuses a second tag of the same name in one store', async () => {
       // Arrange
       const { repo, ctx } = await make();

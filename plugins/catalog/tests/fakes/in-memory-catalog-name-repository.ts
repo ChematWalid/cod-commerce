@@ -40,6 +40,10 @@ export class InMemoryCatalogNameRepository implements CatalogNameRepositoryPort 
     return Promise.resolve(this.rows.find((row) => inStore(scope, row) && row.nameKey === nameKey));
   }
 
+  count(_ctx: OperationContext, scope: StoreScope): Promise<number> {
+    return Promise.resolve(this.rows.filter((row) => inStore(scope, row)).length);
+  }
+
   list(_ctx: OperationContext, scope: StoreScope): Promise<readonly CatalogNameEntry[]> {
     return Promise.resolve(newestFirst(this.rows.filter((row) => inStore(scope, row))));
   }

@@ -17,6 +17,7 @@ export const CATALOG_ERROR_CODES = {
   ORDER_MANAGERS_UNAVAILABLE: 'catalog.order-managers-unavailable',
   NAME_TAKEN: 'catalog.name-taken',
   CONCURRENT_UPDATE: 'catalog.concurrent-update',
+  TAXONOMY_LIMIT: 'catalog.taxonomy-limit',
 } as const;
 
 /** One of the {@link CATALOG_ERROR_CODES} values. */

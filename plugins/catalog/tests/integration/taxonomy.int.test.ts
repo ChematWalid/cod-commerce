@@ -110,21 +110,26 @@ describe('brands, tags and highlights of a store', () => {
     expect(highlights.catalogHighlights.map((row) => row.id)).toContain(ids.highlightId);
   });
 
-  it('deleting a brand clears it from products', async () => {
+  it('deleting a brand clears it from its products only', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
-    const { createCatalogBrand } = await suite.kit.gql<{ createCatalogBrand: Named }>(CREATE_BRAND, {
-      input: { name: 'Short-lived' },
-    });
-    const product = await suite.kit.createProduct({ title: 'Branded', brandId: createCatalogBrand.id });
+    const brandOf = async (name: string) =>
+      (await suite.kit.gql<{ createCatalogBrand: Named }>(CREATE_BRAND, { input: { name } })).createCatalogBrand.id;
+    const [doomed, kept] = [await brandOf('Short-lived'), await brandOf('Staying')];
+    const branded = await suite.kit.createProduct({ title: 'Branded', brandId: doomed });
+    const otherBrand = await suite.kit.createProduct({ title: 'Other brand', brandId: kept });
+    const noBrand = await suite.kit.createProduct({ title: 'No brand' });
 
     // Act
-    await suite.kit.gql(DELETE_BRAND, { id: createCatalogBrand.id });
+    await suite.kit.gql(DELETE_BRAND, { id: doomed });
 
     // Assert
-    const { catalogProduct } = await suite.kit.gql<{ catalogProduct: ProductResult }>(PRODUCT, { id: product.id });
-    expect(product.brandId).toBe(createCatalogBrand.id);
-    expect(catalogProduct.brandId).toBeNull();
+    const brandNow = async (id: string) =>
+      (await suite.kit.gql<{ catalogProduct: ProductResult }>(PRODUCT, { id })).catalogProduct.brandId;
+    expect(branded.brandId).toBe(doomed);
+    expect(await brandNow(branded.id)).toBeNull();
+    expect(await brandNow(otherBrand.id)).toBe(kept);
+    expect(await brandNow(noBrand.id)).toBeNull();
   });
 
   it('keeps highlight order and drops a deleted highlight from the product', async () => {

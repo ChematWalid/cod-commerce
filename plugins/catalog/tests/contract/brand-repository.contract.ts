@@ -42,6 +42,21 @@ export function describeBrandRepositoryContract(name: string, make: MakeHarness<
       await expect(repo.findByIds(ctx, scopeA, [brand.id])).resolves.toEqual([brand]);
     });
 
+    it('counts the brands of its store only', async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      await repo.insert(ctx, scopeA, brandOf(scopeA));
+      await repo.insert(ctx, scopeA, brandOf(scopeA));
+      await repo.insert(ctx, scopeA2, brandOf(scopeA2));
+      await repo.insert(ctx, scopeB, brandOf(scopeB));
+
+      // Act
+      const counted = await repo.count(ctx, scopeA);
+
+      // Assert
+      expect(counted).toBe(2);
+    });
+
     it('refuses a second brand of the same name in one store, whatever its case or Unicode form', async () => {
       // Arrange
       const { repo, ctx } = await make();

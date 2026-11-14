@@ -39,6 +39,10 @@ export class InMemoryHighlightRepository implements HighlightRepositoryPort {
     return Promise.resolve(this.rows.filter((row) => inStore(scope, row) && ids.includes(row.id)));
   }
 
+  count(_ctx: OperationContext, scope: StoreScope): Promise<number> {
+    return Promise.resolve(this.rows.filter((row) => inStore(scope, row)).length);
+  }
+
   list(_ctx: OperationContext, scope: StoreScope): Promise<readonly Highlight[]> {
     return Promise.resolve(newestFirst(this.rows.filter((row) => inStore(scope, row))));
   }

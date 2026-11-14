@@ -26,6 +26,7 @@ import {
   PRODUCT_SEARCH,
   PRODUCT_SETTINGS_REPOSITORY,
   TAG_REPOSITORY,
+  TAXONOMY_LOCK,
   TRANSACTION,
 } from '../application/tokens';
 import { UpdateProductService } from '../application/update-product.service';
@@ -42,6 +43,7 @@ import { TypeOrmProductCollectionRepository } from './typeorm-product-collection
 import { TypeOrmProductSettingsRepository } from './typeorm-product-settings.repository';
 import { TypeOrmTagRepository } from './typeorm-tag.repository';
 import { PgProductLock } from './pg-product-lock';
+import { PgTaxonomyLock } from './pg-taxonomy-lock';
 import { DefaultChannelExit } from './vendure-default-channel';
 import { VendureOptionSync } from './vendure-option-sync';
 import { VendureProductCatalog } from './vendure-product-catalog.adapter';
@@ -66,6 +68,7 @@ const PORT_TOKENS = [
   DESCRIPTION_SANITIZER,
   ID_GENERATOR,
   CLOCK,
+  TAXONOMY_LOCK,
   ORDER_MANAGER_CHECK_REGISTRAR,
 ] as const;
 
@@ -83,6 +86,7 @@ const PORT_KEYS = [
   'sanitizer',
   'ids',
   'clock',
+  'taxonomyLock',
   'orderManagers',
 ] as const satisfies readonly (keyof ProductPorts)[];
 
@@ -109,6 +113,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   { provide: MEDIA_REPOSITORY, useClass: TypeOrmMediaRepository },
   { provide: DESCRIPTION_SANITIZER, useClass: HtmlDescriptionSanitizer },
   { provide: CLOCK, useValue: SYSTEM_CLOCK },
+  { provide: TAXONOMY_LOCK, useClass: PgTaxonomyLock },
   // One registry for the module: team registers its check on it, the use cases read it (D2114, D2137).
   { provide: ORDER_MANAGER_CHECK_REGISTRAR, useClass: OrderManagerCheckRegistry },
   {

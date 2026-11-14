@@ -136,6 +136,14 @@ export class ConcurrentUpdateError extends DomainError {
   }
 }
 
+/** The store already keeps `MAX_TAXONOMY_ENTRIES_PER_STORE` entries of that kind (brands, tags or highlights). */
+export class TaxonomyLimitError extends DomainError {
+  readonly code = CATALOG_ERROR_CODES.TAXONOMY_LIMIT;
+  constructor() {
+    super('This store keeps as many entries of this kind as it may');
+  }
+}
+
 /** Every catalog error, one per code of `CATALOG_ERROR_CODES`; the API's error mapping covers each. */
 export const CATALOG_ERROR_CLASSES = [
   ProductNotFoundError,
@@ -155,4 +163,5 @@ export const CATALOG_ERROR_CLASSES = [
   OrderManagersUnavailableError,
   NameTakenError,
   ConcurrentUpdateError,
+  TaxonomyLimitError,
 ] as const;

@@ -15,6 +15,9 @@ export interface HighlightRepositoryPort {
   /** The highlights of the scope's store among `ids`, in no set order; ids of other stores are left out. */
   findByIds(ctx: OperationContext, scope: StoreScope, ids: readonly Snowflake[]): Promise<readonly Highlight[]>;
 
+  /** How many highlights the scope's store keeps. */
+  count(ctx: OperationContext, scope: StoreScope): Promise<number>;
+
   /** Every highlight of the scope's store, newest first, then by id descending. */
   list(ctx: OperationContext, scope: StoreScope): Promise<readonly Highlight[]>;
 

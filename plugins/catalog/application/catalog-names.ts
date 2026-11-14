@@ -1,5 +1,5 @@
-import { type DomainError, isSnowflake, type Snowflake } from '@cod/shared';
-import { NameTakenError } from '../domain/errors';
+import { type DomainError, isSnowflake, MAX_TAXONOMY_ENTRIES_PER_STORE, type Snowflake } from '@cod/shared';
+import { NameTakenError, TaxonomyLimitError } from '../domain/errors';
 import type { CatalogNameRepositoryPort } from '../domain/ports/catalog-name-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
@@ -26,7 +26,17 @@ export interface CatalogNameRules {
   readonly notFound: NotFoundError;
 }
 
-type NamePorts = Pick<ProductPorts, 'transaction' | 'ids' | 'clock'>;
+type NamePorts = Pick<ProductPorts, 'transaction' | 'ids' | 'clock' | 'taxonomyLock'>;
+
+/**
+ * Refuses a new entry once the store keeps `MAX_TAXONOMY_ENTRIES_PER_STORE` of its kind. Two creates racing at the cap
+ * may both pass; the lists stay bounded by the cap plus the parallel requests.
+ *
+ * @throws {TaxonomyLimitError} when the store is full.
+ */
+export async function assertRoomFor(count: () => Promise<number>): Promise<void> {
+  if ((await count()) >= MAX_TAXONOMY_ENTRIES_PER_STORE) throw new TaxonomyLimitError();
+}
 
 /**
  * The use cases brands and tags share (D2140): a name unique in its store whatever its case or Unicode form, and
@@ -45,10 +55,14 @@ export class CatalogNames {
     return this.repository.list(ctx, scope);
   }
 
-  /** @throws {NameTakenError} when another entry of the store has that name. */
+  /**
+   * @throws {NameTakenError} when another entry of the store has that name.
+   * @throws {TaxonomyLimitError} when the store keeps as many entries of the kind as it may.
+   */
   async create(ctx: OperationContext, scope: StoreScope, name: string): Promise<CatalogNameEntry> {
     const entry = this.rules.create({ id: this.ports.ids.next(), scope, name, now: this.ports.clock.now() });
     return await this.ports.transaction.run(ctx, scope, async (tx) => {
+      await assertRoomFor(() => this.repository.count(tx, scope));
       await this.assertFree(tx, scope, entry);
       await this.repository.insert(tx, scope, entry);
       return entry;
@@ -68,7 +82,8 @@ export class CatalogNames {
 
   /**
    * Deletes the entry `rawId` of the store after `beforeDelete` ran in the same transaction (a brand clears its
-   * products first, D2140); a tag's links go with it.
+   * products first, D2140); a tag's links go with it. The entry's exclusive lock comes first, so a product save
+   * naming it either commits before the delete looks or finds the entry gone.
    */
   async delete(
     ctx: OperationContext,
@@ -78,6 +93,7 @@ export class CatalogNames {
   ): Promise<void> {
     const id = snowflakeIdOf(rawId, this.rules.notFound);
     await this.ports.transaction.run(ctx, scope, async (tx) => {
+      await this.ports.taxonomyLock.exclusive(tx, id);
       await this.found(tx, scope, id);
       await beforeDelete(tx, id);
       if (!(await this.repository.delete(tx, scope, id))) throw new this.rules.notFound();
