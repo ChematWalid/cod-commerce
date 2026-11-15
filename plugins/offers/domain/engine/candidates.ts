@@ -2,7 +2,7 @@ import type { RunningLine } from '../cart';
 import type { Offer } from '../offer';
 import { checkEligibility } from './eligibility';
 import type { OfferKindRegistry } from './kind-registry';
-import type { OfferOutcome } from './outcome';
+import type { LineOutcome, OfferOutcome } from './outcome';
 import { kindInputOf, type Candidate, type OfferEntry, type PricingContext } from './pricing-state';
 import { mergeRefusals, NO_REFUSALS, refusalOf, zeroEffectRefusal, type Refusals } from './refusals';
 
@@ -41,6 +41,10 @@ export function entriesOf(
   });
 }
 
+/** Keys of the lines a line outcome takes something off. */
+const discountedLineKeysOf = (outcome: LineOutcome): string[] =>
+  [...outcome.unitDiscounts].filter(([, perUnit]) => perUnit > 0).map(([key]) => key);
+
 const isWorthless = (outcome: OfferOutcome): boolean => outcome.kind !== 'skip' && outcome.value === 0;
 
 /**
@@ -55,7 +59,8 @@ function verdictOf(entry: OfferEntry, lines: readonly RunningLine[], context: Pr
   if (reason !== null) return { eligible, candidate: null, refusals: refusalOf(entry, reason) };
   if (outcome.kind === 'skip') return { eligible, candidate: null, refusals: refusalOf(entry, outcome.reason) };
   if (outcome.value === 0) return { eligible, candidate: null, refusals: zeroEffectRefusal(entry, outcome.kind) };
-  const candidate = { ...entry, combinationClass: entry.calculator.combinationClass, value: outcome.value };
+  const lineKeys = outcome.kind === 'line' ? discountedLineKeysOf(outcome) : [];
+  const candidate = { ...entry, combinationClass: entry.calculator.combinationClass, value: outcome.value, lineKeys };
   return { eligible, candidate, refusals: NO_REFUSALS };
 }
 

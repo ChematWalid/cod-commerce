@@ -63,3 +63,15 @@ export class NoActiveStoreError extends DomainError {
     super('No active store');
   }
 }
+
+/**
+ * The server asked to sign a quote it could not redeem: `issuedAt` is not integer epoch seconds, the payload breaks
+ * the token schema, or the token is longer than `MAX_QUOTE_TOKEN_LENGTH` (D2421). A server fault, never buyer input,
+ * so it is not a domain error; the message never repeats a value.
+ */
+export class UnsignableQuoteError extends Error {
+  constructor(reason: string) {
+    super(`Cannot sign the quote: ${reason}`);
+    this.name = 'UnsignableQuoteError';
+  }
+}

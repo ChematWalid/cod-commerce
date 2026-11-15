@@ -24,6 +24,8 @@ export interface OfferEntry {
 export interface Candidate extends OfferEntry {
   readonly combinationClass: CombinationClass;
   readonly value: number;
+  /** Keys of the lines the outcome discounts; empty for order and delivery outcomes. */
+  readonly lineKeys: readonly string[];
 }
 
 /** The lines before any line offer: each at its original unit price. */

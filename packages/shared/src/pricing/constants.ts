@@ -11,8 +11,13 @@ export const QUOTE_TOKEN_VERSION = 1;
 export const QUOTE_TOKEN_PREFIX = 'qt1';
 /** Random bytes of the token nonce `n`. */
 export const QUOTE_NONCE_BYTES = 12;
-/** Longest token `verifyQuote` reads; a longer one is malformed before any decoding (D2421). */
-export const MAX_QUOTE_TOKEN_LENGTH = 4096;
+/**
+ * Longest token `signQuote` issues and `verifyQuote` reads; a longer one is malformed before any decoding (D2421).
+ * Sized for the worst quote the request and stacking bounds allow (D2429): `MAX_QUOTE_LINES` lines with the widest
+ * ids, quantities and prices and `MAX_LINE_OFFERS_APPLIED` offers each, plus `MAX_ORDER_DISCOUNTS_APPLIED` order
+ * discounts, is about 13 KB.
+ */
+export const MAX_QUOTE_TOKEN_LENGTH = 16_384;
 /** Domain label of the keyed phone hash inside the cart hash (D2421). */
 export const QUOTE_PHONE_KEY_LABEL = 'qt1-phone:';
 
@@ -20,6 +25,13 @@ export const QUOTE_PHONE_KEY_LABEL = 'qt1-phone:';
 export const MAX_QUOTE_LINES = 50;
 export const MAX_LINE_QUANTITY = 999;
 export const MAX_QUOTE_CODES = 5;
+/**
+ * Stacking bounds (D2411): most product-class (line) offers one line carries and most order discounts one quote
+ * applies, so the signed token has a worst case. A further combinable candidate that would overfill a line or the
+ * quote is refused `not_combinable`.
+ */
+export const MAX_LINE_OFFERS_APPLIED = 4;
+export const MAX_ORDER_DISCOUNTS_APPLIED = MAX_QUOTE_CODES + 3;
 /** Longest code a buyer may type, before trimming and upper-casing. */
 export const MAX_CODE_INPUT_LENGTH = 64;
 /** Longest phone text a request may carry, before normalising. */
