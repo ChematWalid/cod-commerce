@@ -83,3 +83,15 @@ export class UnsignableQuoteError extends Error {
     this.name = 'UnsignableQuoteError';
   }
 }
+
+/**
+ * A registered unit-price resolver answered a price outside whole DZD 0..`MONEY_MAX_DZD` or a bad weight (D2441). A
+ * server fault, not a buyer's: the quote fails loudly rather than price a line wrongly. The message names the
+ * resolver key and the variant id only.
+ */
+export class InvalidUnitPriceError extends Error {
+  constructor(resolverKey: string, variantId: string) {
+    super(`Unit price resolver "${resolverKey}" answered an invalid price for variant ${variantId}`);
+    this.name = 'InvalidUnitPriceError';
+  }
+}

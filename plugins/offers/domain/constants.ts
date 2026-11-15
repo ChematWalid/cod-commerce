@@ -39,3 +39,6 @@ export const ACCEPTED_LIMIT_PER_LINE_BY_CLASS: Readonly<Partial<Record<Combinati
 
 /** Width of the short enum-like columns (`method`, `status`, target `role` and `refType`); every value is shorter. */
 export const ENUM_COLUMN_LENGTH = 16;
+
+/** The `source` of a unit price no resolver claimed: the variant's channel list price (D2423). */
+export const LIST_PRICE_SOURCE = 'variant';
