@@ -3,7 +3,11 @@
 // clients, ADR 0017). api/, application/, domain/ and dashboard/ never do. The handoff lists what later sessions use.
 export { CatalogPlugin } from './catalog.plugin';
 export { CatalogProductQueries } from './infrastructure/catalog-product-queries';
-export { CatalogProductCommands, type ProductStatusChange } from './infrastructure/catalog-product-commands';
+export {
+  CatalogProductCommands,
+  type PackSaveLock,
+  type ProductStatusChange,
+} from './infrastructure/catalog-product-commands';
 export type { ProductSaveResult, ProductView } from './application/product-view';
 export type { ProductWithVariantsCommand, VariantOverride } from './application/create-product-with-variants.service';
 export type {

@@ -17,6 +17,7 @@ const failingWith = (error: Error): CatalogProductsAdapter =>
   new CatalogProductsAdapter({
     byId: () => Promise.reject(error),
     writePackValues: () => Promise.reject(error),
+    lockForPackSave: () => Promise.reject(error),
   } as unknown as CatalogProductCommands);
 
 const WRITE = { productId: '20', price: 1, weight: 0, sharedOption: null };
@@ -31,6 +32,17 @@ describe('CatalogProductsAdapter error translation', () => {
 
     // Assert
     await expect(reading).rejects.toThrow(PackNotFoundError);
+  });
+
+  it("answers catalog's refusal of the save locks as the pack's not found (D2242)", async () => {
+    // Arrange
+    const adapter = failingWith(new CatalogRefusal(CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND));
+
+    // Act
+    const locking = adapter.lockForSave(CTX, SCOPE_A, { packProductId: '20', componentIds: ['11'] });
+
+    // Assert
+    await expect(locking).rejects.toThrow(PackNotFoundError);
   });
 
   it('answers any other catalog refusal as invalid pack input', async () => {

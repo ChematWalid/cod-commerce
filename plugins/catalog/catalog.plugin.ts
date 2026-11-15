@@ -26,7 +26,11 @@ import { TaxonomyResolver } from './api/taxonomy.resolver';
 import { CatalogReadService } from './application/catalog-read.service';
 import { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
 import { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE_REGISTRAR } from './application/tokens';
-import { CatalogCommandReads, CatalogCommandWrites } from './infrastructure/catalog-command-use-cases';
+import {
+  CatalogCommandReads,
+  CatalogCommandWrites,
+  CatalogPackEntries,
+} from './infrastructure/catalog-command-use-cases';
 import { CatalogProductCommands } from './infrastructure/catalog-product-commands';
 import { CatalogProductQueries } from './infrastructure/catalog-product-queries';
 import { CATALOG_ENTITIES } from './infrastructure/catalog-entities';
@@ -69,6 +73,7 @@ export const CATALOG_REST_CONTROLLERS = [
     CatalogProductQueries,
     CatalogCommandWrites,
     CatalogCommandReads,
+    CatalogPackEntries,
     CatalogStoreContexts,
     CatalogProductCommands,
   ],

@@ -154,6 +154,23 @@ describe('SavePackService (D2202, D2203)', () => {
     expect(catalog.get(SCOPE_A, '20')?.price).toBe(3150);
   });
 
+  it('holds the components through catalog before reading them, so an edit cannot commit unseen (D2242)', async () => {
+    // Arrange: a component edit commits while this save waits for the component locks
+    const { catalog, lock, saving } = arranged();
+    catalog.onLockForSave = () => {
+      catalog.put(SCOPE_A, aProduct({ id: '11', price: 2500, weight: 300 }));
+    };
+
+    // Act
+    const view = await saving.save(CTX, SCOPE_A, { productId: '20', definition: aDefinition() });
+
+    // Assert: (2 500 + 2 000) x 0.9, the pack lock taken first
+    expect(lock.acquired).toEqual(['20']);
+    expect(catalog.saveLocks).toEqual([{ packProductId: '20', componentIds: ['11', '12'] }]);
+    expect(view.price).toBe(4050);
+    expect(catalog.writes[0]?.price).toBe(4050);
+  });
+
   it('writes 0 g once into a pack product that holds no weight, so save and read agree (D2241)', async () => {
     // Arrange
     const { catalog, ports, saving } = arranged();

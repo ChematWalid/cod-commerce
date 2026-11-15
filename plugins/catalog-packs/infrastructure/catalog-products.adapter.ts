@@ -3,7 +3,7 @@ import { CATALOG_ERROR_CODES, DomainError } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { ComponentProduct } from '../domain/component-product';
 import { InvalidPackInputError, PackNotFoundError } from '../domain/errors';
-import type { CatalogProductsPort, PackWrite } from '../domain/ports/catalog-products.port';
+import type { CatalogProductsPort, PackSaveLock, PackWrite } from '../domain/ports/catalog-products.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import { toRequestContext } from './request-scope';
@@ -51,6 +51,12 @@ export class CatalogProductsAdapter implements CatalogProductsPort {
       throw packErrorOf(error);
     });
     return view === undefined ? undefined : componentOf(view);
+  }
+
+  async lockForSave(ctx: OperationContext, scope: StoreScope, lock: PackSaveLock): Promise<void> {
+    await this.commands.lockForPackSave(toRequestContext(ctx), scope, lock).catch((error: unknown) => {
+      throw packErrorOf(error);
+    });
   }
 
   async writePackValues(ctx: OperationContext, scope: StoreScope, values: PackWrite): Promise<void> {

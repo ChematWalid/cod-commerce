@@ -4,17 +4,26 @@ import type { RequestContext } from '@vendure/core';
 import type { ProductWithVariantsCommand } from '../application/create-product-with-variants.service';
 import type { ProductIdsPage, ProductIdsPageRequest, TaxonomyIndex } from '../application/product-lookup.service';
 import type { ProductSaveResult, ProductView } from '../application/product-view';
-import { type PackValues, WritePackValuesService } from '../application/write-pack-values.service';
+import type { PackValues } from '../application/write-pack-values.service';
+import { parseCoreId } from '../domain/core-id';
+import { ProductNotFoundError } from '../domain/errors';
 import { asOperationContext } from '../domain/ports/operation-context';
+import { packSaveLockSteps } from '../domain/product-lock-order';
 import type { SkuMatch } from '../domain/sku-match';
 import type { StoreScope } from '../domain/store-scope';
-import { CatalogCommandReads, CatalogCommandWrites } from './catalog-command-use-cases';
+import { CatalogCommandReads, CatalogCommandWrites, CatalogPackEntries } from './catalog-command-use-cases';
 import { CatalogStoreContexts } from './store-context';
 
 /** A status change of one product. */
 export interface ProductStatusChange {
   readonly productId: string;
   readonly status: ProductStatus;
+}
+
+/** The products a pack save writes (its pack product) and reads (its components' products). */
+export interface PackSaveLock {
+  readonly packProductId: string;
+  readonly componentIds: readonly string[];
 }
 
 /**
@@ -31,7 +40,7 @@ export class CatalogProductCommands {
   constructor(
     private readonly writes: CatalogCommandWrites,
     private readonly reads: CatalogCommandReads,
-    private readonly packs: WritePackValuesService,
+    private readonly packs: CatalogPackEntries,
     private readonly contexts: CatalogStoreContexts,
   ) {}
 
@@ -68,7 +77,24 @@ export class CatalogProductCommands {
    */
   async writePackValues(ctx: RequestContext, scope: StoreScope, values: PackValues): Promise<ProductSaveResult> {
     await this.contexts.assertScope(ctx, scope);
-    return this.packs.write(asOperationContext(ctx), scope, values);
+    return this.packs.writing.write(asOperationContext(ctx), scope, values);
+  }
+
+  /**
+   * Holds, until the transaction of `ctx` ends, the pack product's lock exclusively and each component's lock shared,
+   * in id order (D2242): an edit, status change or delete of a component then commits only after the save, so its
+   * `product.changed` finds the saved pack. Call it inside the save's transaction, before reading the components.
+   *
+   * @throws {ProductNotFoundError} for a malformed pack product id or a scope `ctx` does not run in.
+   */
+  async lockForPackSave(ctx: RequestContext, scope: StoreScope, lock: PackSaveLock): Promise<void> {
+    await this.contexts.assertScope(ctx, scope);
+    const packProductId = parseCoreId(lock.packProductId);
+    if (packProductId === undefined) throw new ProductNotFoundError();
+    for (const step of packSaveLockSteps(packProductId, lock.componentIds)) {
+      if (step.mode === 'exclusive') await this.packs.locks.acquire(ctx, step.productId);
+      else await this.packs.locks.acquireShared(ctx, step.productId);
+    }
   }
 
   /** "Set a product Active, Hidden or Draft" in the scope's store. */

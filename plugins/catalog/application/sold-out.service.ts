@@ -2,6 +2,7 @@ import { CATALOG_MAX_PAGE_SIZE, type SoldOutListQuery, type SoldOutOrdersCommand
 import { type CoreId, parseCoreId } from '../domain/core-id';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { DEFAULT_PRODUCT_SETTINGS } from '../domain/product-settings';
+import { inLockOrder } from '../domain/product-lock-order';
 import { allowsOrdersAfter, type SoldOutOrdersAction } from '../domain/sold-out';
 import type { StoreScope } from '../domain/store-scope';
 import type { ProductPorts } from './catalog-ports';
@@ -26,16 +27,6 @@ const parsedIds = (ids: readonly string[]): CoreId[] =>
     const parsed = parseCoreId(id);
     return parsed === undefined ? [] : [parsed];
   });
-
-/** Compares two decimal ids by value. */
-function byValue(left: CoreId, right: CoreId): number {
-  const [first, second] = [BigInt(left), BigInt(right)];
-  if (first === second) return 0;
-  return first < second ? -1 : 1;
-}
-
-/** Ids in ascending numeric order, the order product locks are taken in, so two bulk writes never deadlock. */
-const inLockOrder = (ids: readonly CoreId[]): CoreId[] => [...ids].sort(byValue);
 
 /** `ids` cut into runs of at most `CATALOG_MAX_PAGE_SIZE`, in order: one transaction each. */
 function batchesOf(ids: readonly CoreId[]): CoreId[][] {

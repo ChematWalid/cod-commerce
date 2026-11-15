@@ -1,5 +1,5 @@
 import type { ComponentProduct } from '../../domain/component-product';
-import type { CatalogProductsPort, PackWrite } from '../../domain/ports/catalog-products.port';
+import type { CatalogProductsPort, PackSaveLock, PackWrite } from '../../domain/ports/catalog-products.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { StoreScope } from '../../domain/store-scope';
 
@@ -9,6 +9,9 @@ const keyOf = (scope: StoreScope): string => `${scope.businessId}:${scope.storeI
 export class FakeCatalogProducts implements CatalogProductsPort {
   private readonly products = new Map<string, Map<string, ComponentProduct>>();
   readonly writes: PackWrite[] = [];
+  readonly saveLocks: PackSaveLock[] = [];
+  /** Runs once the save locks are "granted", standing in for a component write that committed before them. */
+  onLockForSave: () => void = () => undefined;
 
   put(scope: StoreScope, ...products: readonly ComponentProduct[]): void {
     const store = this.products.get(keyOf(scope)) ?? new Map<string, ComponentProduct>();
@@ -26,6 +29,12 @@ export class FakeCatalogProducts implements CatalogProductsPort {
 
   byId(_ctx: OperationContext, scope: StoreScope, productId: string): Promise<ComponentProduct | undefined> {
     return Promise.resolve(this.get(scope, productId));
+  }
+
+  lockForSave(_ctx: OperationContext, _scope: StoreScope, lock: PackSaveLock): Promise<void> {
+    this.saveLocks.push(lock);
+    this.onLockForSave();
+    return Promise.resolve();
   }
 
   writePackValues(_ctx: OperationContext, scope: StoreScope, values: PackWrite): Promise<void> {

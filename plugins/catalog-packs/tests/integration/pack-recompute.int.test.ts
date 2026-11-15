@@ -1,5 +1,6 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { rawTestId } from '@cod/testing';
+import { TransactionalConnection } from '@vendure/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   PACK,
@@ -145,6 +146,17 @@ describe('pack recompute on product.changed (D2203)', () => {
   });
 });
 
+/** How many lock requests of `locktype` (`relation` on table `table`) wait in this database. */
+async function waitingLocks(locktype: 'advisory' | 'relation', table?: string): Promise<number> {
+  const [row] = await suite.kit.query<{ waiting: number }>(
+    `SELECT count(*)::int AS waiting FROM pg_locks
+      WHERE NOT granted AND locktype = $1 AND ($2::text IS NULL OR relation = to_regclass($2))
+        AND database = (SELECT oid FROM pg_database WHERE datname = current_database())`,
+    [locktype, table ?? null],
+  );
+  return row?.waiting ?? 0;
+}
+
 describe('concurrent pack writes (D2241)', () => {
   it('two concurrent first saves of one pack both succeed and leave one pack row', async () => {
     // Arrange: a fresh pack product, so neither save finds a row
@@ -164,5 +176,43 @@ describe('concurrent pack writes (D2241)', () => {
       [Number(rawTestId(fresh.id))],
     );
     expect(row?.count).toBe('1');
+  });
+});
+
+describe('a component written during a pack save (D2242)', () => {
+  it("an edit of a component during a pack's first save is reflected in the stored price once the outbox drains", async () => {
+    // Arrange: fresh components no other pack holds, and a fresh pack product
+    await suite.kit.asOwner(suite.fixtures.a);
+    const belt = await suite.kit.createProduct({ title: 'Belt', price: 1500 });
+    const cap = await suite.kit.createProduct({ title: 'Cap', price: 2000 });
+    const pack = await suite.kit.createPackProduct();
+    await outboxSettled();
+    // Hold the save after it read its components: a transaction that lets reads through but blocks the pack rows' insert
+    const runner = suite.kit.app.get(TransactionalConnection).rawConnection.createQueryRunner();
+    await runner.connect();
+    await runner.startTransaction();
+    await runner.query('LOCK TABLE catalog_pack, catalog_pack_component IN SHARE MODE');
+    const edit = { done: false };
+    try {
+      const saving = suite.kit.gql(SAVE_PACK, { id: pack.id, input: packInput([belt.id, cap.id]) });
+      await until(async () => ((await waitingLocks('relation', 'catalog_pack')) > 0 ? true : undefined));
+
+      // Act: the edit either commits at once (its recompute then runs while the save is open) or waits for the save
+      const editing = suite.kit.gql(UPDATE_PRODUCT, { id: belt.id, input: { price: 2500 } }).then(() => {
+        edit.done = true;
+      });
+      await until(async () => (edit.done || (await waitingLocks('advisory')) > 0 ? true : undefined));
+      if (edit.done) await outboxSettled();
+      await runner.commitTransaction();
+      await Promise.all([saving, editing]);
+    } finally {
+      if (runner.isTransactionActive) await runner.rollbackTransaction();
+      await runner.release();
+    }
+    await outboxSettled();
+
+    // Assert: (2 500 + 2 000) x 0.9 on the pack product and its pack, still ok
+    expect((await suite.kit.product(pack.id))?.price).toBe(4050);
+    expect(await packOf(pack.id)).toMatchObject({ price: 4050, status: 'ok' });
   });
 });
