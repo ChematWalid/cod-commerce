@@ -7,13 +7,15 @@ import type { PackPorts } from '../application/pack-ports';
 import { PreviewPackService } from '../application/preview-pack.service';
 import { RecomputePacksService } from '../application/recompute-packs.service';
 import { SavePackService } from '../application/save-pack.service';
-import { CATALOG_PRODUCTS, PACK_PORTS, PACK_REPOSITORY, PACK_TRANSACTION } from '../application/tokens';
+import { CATALOG_PRODUCTS, PACK_LOCK, PACK_PORTS, PACK_REPOSITORY, PACK_TRANSACTION } from '../application/tokens';
 import type { CatalogProductsPort } from '../domain/ports/catalog-products.port';
+import type { PackLockPort } from '../domain/ports/pack-lock.port';
 import type { PackRepositoryPort } from '../domain/ports/pack-repository.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 import { CatalogProductsAdapter } from './catalog-products.adapter';
 import { PackRecomputeConsumer } from './pack-recompute.consumer';
 import { PackUnitPriceResolver } from './pack-unit-price.resolver';
+import { PgPackLock } from './pg-pack-lock';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmPackRepository } from './typeorm-pack.repository';
 
@@ -28,6 +30,7 @@ const useCase = (type: new (ports: PackPorts) => object): Provider => ({
 export const PACK_PROVIDERS: Provider[] = [
   { provide: CATALOG_PRODUCTS, useClass: CatalogProductsAdapter },
   { provide: PACK_TRANSACTION, useClass: TransactionAdapter },
+  { provide: PACK_LOCK, useClass: PgPackLock },
   {
     provide: PACK_REPOSITORY,
     useFactory: (factory: TenantRepositoryFactory, ids: SnowflakeIdGeneratorPort) =>
@@ -36,12 +39,13 @@ export const PACK_PROVIDERS: Provider[] = [
   },
   {
     provide: PACK_PORTS,
-    useFactory: (packs: PackRepositoryPort, catalog: CatalogProductsPort, transaction: TransactionPort): PackPorts => ({
-      packs,
-      catalog,
-      transaction,
-    }),
-    inject: [PACK_REPOSITORY, CATALOG_PRODUCTS, PACK_TRANSACTION],
+    useFactory: (
+      packs: PackRepositoryPort,
+      catalog: CatalogProductsPort,
+      transaction: TransactionPort,
+      lock: PackLockPort,
+    ): PackPorts => ({ packs, catalog, transaction, lock }),
+    inject: [PACK_REPOSITORY, CATALOG_PRODUCTS, PACK_TRANSACTION, PACK_LOCK],
   },
   useCase(SavePackService),
   useCase(GetPackService),

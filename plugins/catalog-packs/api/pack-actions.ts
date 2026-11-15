@@ -18,11 +18,13 @@ export class PackActions {
     private readonly throttle: PackThrottle,
   ) {}
 
+  /** The pack of product `productId` in the caller's store, or `null` (none, not a pack, foreign, malformed). */
   async get(ctx: RequestContext, productId: unknown): Promise<CatalogPackDto | null> {
     const view = await this.useCases.getting.get(asOperationContext(ctx), scopeOf(ctx), idArgOf(productId));
     return view === undefined ? null : toPackDto(view);
   }
 
+  /** Parses the input and saves the pack of product `productId`; refusals are thrown as domain errors. */
   async save(ctx: RequestContext, productId: unknown, input: unknown): Promise<CatalogPackDto> {
     const scope = scopeOf(ctx);
     const definition = definitionOf(parsePackInput(input));
@@ -30,6 +32,10 @@ export class PackActions {
     return toPackDto(await this.useCases.saving.save(asOperationContext(ctx), scope, request));
   }
 
+  /**
+   * Computes a pack without saving it. The caller's preview budget is spent before the input is parsed, so a malformed
+   * input counts against it too (D2217).
+   */
   async preview(ctx: RequestContext, input: unknown): Promise<CatalogPackPreviewDto> {
     const scope = scopeOf(ctx);
     await this.throttle.spendPreview(scope.businessId, String(ctx.activeUserId));

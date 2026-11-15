@@ -12,6 +12,7 @@ import type { RequestContext } from '@vendure/core';
 import { RecomputePacksService } from '../application/recompute-packs.service';
 import { PACK_RECOMPUTE_CONSUMER, PACK_RECOMPUTE_QUEUE } from '../domain/constants';
 import { asOperationContext } from '../domain/ports/operation-context';
+import { parseProductId } from '../domain/product-id';
 import type { StoreScope } from '../domain/store-scope';
 
 /** What the consumer needs of catalog's facade: the store-channel context of a scope (D2201). */
@@ -19,11 +20,15 @@ export interface StoreContexts {
   storeContext(scope: StoreScope): Promise<RequestContext>;
 }
 
-/** The product and store a `product.changed` payload names (D2127), or `undefined` when it names none. */
+/**
+ * The product and store a `product.changed` payload names (D2127), or `undefined` when it names none; a malformed
+ * product id names none too, so it never reaches the database (D2136, D2238).
+ */
 function changeOf(delivery: OutboxDelivery): { productId: string; storeId: StoreId } | undefined {
   const { productId, storeId } = delivery.payload as Record<string, unknown>;
   if (typeof productId !== 'string' || typeof storeId !== 'string' || !isSnowflake(storeId)) return undefined;
-  return { productId, storeId: toStoreId(storeId) };
+  const parsed = parseProductId(productId);
+  return parsed === undefined ? undefined : { productId: parsed, storeId: toStoreId(storeId) };
 }
 
 /**

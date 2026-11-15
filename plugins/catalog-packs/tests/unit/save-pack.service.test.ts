@@ -123,6 +123,68 @@ describe('SavePackService (D2202, D2203)', () => {
     // Assert
     await expect(save).rejects.toThrow(InvalidPackInputError);
   });
+
+  it('saves a fixed pack whose components sum beyond an int column, since only written values must fit', async () => {
+    // Arrange
+    const { catalog, saving } = arranged();
+    catalog.put(SCOPE_A, aProduct({ id: '11', price: 1_500_000_000 }), aProduct({ id: '12', price: 1_500_000_000 }));
+    const definition = aDefinition({ packPricingMode: 'fixed', packFixedPrice: 100 });
+
+    // Act
+    const view = await saving.save(CTX, SCOPE_A, { productId: '20', definition });
+
+    // Assert
+    expect(view.price).toBe(100);
+  });
+
+  it('takes the pack lock, then plans the write from the product as stored once it is held (D2241)', async () => {
+    // Arrange: a concurrent save commits other values while this save waits for the lock
+    const { catalog, lock, saving } = arranged();
+    await saving.save(CTX, SCOPE_A, { productId: '20', definition: aDefinition() });
+    lock.onAcquire = () => {
+      catalog.put(SCOPE_A, aProduct({ id: '20', type: 'pack', price: 9999, weight: 800 }));
+    };
+
+    // Act
+    await saving.save(CTX, SCOPE_A, { productId: '20', definition: aDefinition() });
+
+    // Assert
+    expect(lock.acquired).toEqual(['20', '20']);
+    expect(catalog.writes).toHaveLength(2);
+    expect(catalog.get(SCOPE_A, '20')?.price).toBe(3150);
+  });
+
+  it('writes 0 g once into a pack product that holds no weight, so save and read agree (D2241)', async () => {
+    // Arrange
+    const { catalog, ports, saving } = arranged();
+    catalog.put(SCOPE_A, aProduct({ id: '11', price: 1500 }), aProduct({ id: '12', price: 2000 }));
+    catalog.put(SCOPE_A, aProduct({ id: '20', type: 'pack', price: 3150 }));
+    const getting = new GetPackService(ports);
+
+    // Act
+    const view = await saving.save(CTX, SCOPE_A, { productId: '20', definition: aDefinition() });
+    await saving.save(CTX, SCOPE_A, { productId: '20', definition: aDefinition() });
+
+    // Assert
+    expect(view.weightGrams).toBe(0);
+    expect(catalog.writes.map((write) => write.weight)).toEqual([0]);
+    expect((await getting.get(CTX, SCOPE_A, '20'))?.weightGrams).toBe(0);
+  });
+
+  it('writes a changed spelling of the shared option and its values (D2241)', async () => {
+    // Arrange
+    const { catalog, saving } = arranged();
+    catalog.put(SCOPE_A, aSizedProduct('11', 'Size', ['m'], 1500), aSizedProduct('12', 'Size', ['m'], 2000));
+    const definition = aDefinition({ packVariantMode: 'shared_option', packSharedOption: 'size' });
+    await saving.save(CTX, SCOPE_A, { productId: '20', definition });
+    catalog.put(SCOPE_A, aSizedProduct('11', 'Size', ['M'], 1500));
+
+    // Act
+    await saving.save(CTX, SCOPE_A, { productId: '20', definition: { ...definition, packSharedOption: 'Size' } });
+
+    // Assert
+    expect(catalog.writes[1]?.sharedOption).toEqual({ name: 'Size', values: [{ value: 'M', price: 3150 }] });
+  });
 });
 
 describe('PreviewPackService and GetPackService', () => {

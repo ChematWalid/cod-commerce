@@ -51,11 +51,18 @@ function sharedValuesOf(definition: PackDefinition, products: readonly Component
 
 const isStorable = (value: number): boolean => Number.isSafeInteger(value) && value <= INT_COLUMN_MAX;
 
+/** True when every value a pack write stores fits its int column; `originalPrice` is never stored, only exact. */
+function fitsColumns(weightGrams: number, head: SharedValuePrice, sharedValues: readonly SharedValuePrice[]): boolean {
+  const written = [weightGrams, head.price, ...sharedValues.map((entry) => entry.price)];
+  const unwritten = [head.originalPrice, ...sharedValues.map((entry) => entry.originalPrice)];
+  return written.every(isStorable) && unwritten.every((value) => Number.isSafeInteger(value));
+}
+
 /**
  * Prices and weighs `definition` from its checked component products (same order as its lines).
  *
  * @throws {SharedOptionMissingError} or {NoCommonValueError} in `shared_option` mode (see {@link sharedOptionMatrix}).
- * @throws {InvalidPackInputError} when a price or the weight is beyond an int column.
+ * @throws {InvalidPackInputError} when a stored price or the weight is beyond an int column (D2237, D2241).
  */
 export function computePack(definition: PackDefinition, products: readonly ComponentProduct[]): PackComputation {
   const lines = definition.components;
@@ -69,13 +76,7 @@ export function computePack(definition: PackDefinition, products: readonly Compo
   );
   const sharedValues = definition.packVariantMode === 'shared_option' ? sharedValuesOf(definition, products) : [];
   const head = sharedValues[0] ?? valuePrice(definition, priced, '');
-  const amounts = [
-    weightGrams,
-    head.originalPrice,
-    ...sharedValues.flatMap((entry) => [entry.price, entry.originalPrice]),
-    head.price,
-  ];
-  if (!amounts.every(isStorable)) throw new InvalidPackInputError();
+  if (!fitsColumns(weightGrams, head, sharedValues)) throw new InvalidPackInputError();
   return { price: head.price, originalPrice: head.originalPrice, weightGrams, sharedValues };
 }
 

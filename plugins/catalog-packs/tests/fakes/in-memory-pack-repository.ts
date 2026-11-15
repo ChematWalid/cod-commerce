@@ -17,6 +17,14 @@ export class InMemoryPackRepository implements PackRepositoryPort {
     this.rows.set(keyOf(scope), [...this.of(scope).filter((row) => row.productId !== record.productId), record]);
   }
 
+  /** Drops the stored pack of `productId`, as a concurrent writer would. */
+  remove(scope: StoreScope, productId: string): void {
+    this.rows.set(
+      keyOf(scope),
+      this.of(scope).filter((row) => row.productId !== productId),
+    );
+  }
+
   all(scope: StoreScope): readonly PackRecord[] {
     return this.of(scope);
   }

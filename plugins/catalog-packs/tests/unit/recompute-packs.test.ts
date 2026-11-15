@@ -10,7 +10,7 @@ function arranged() {
     SCOPE_A,
     aProduct({ id: '11', price: 1500 }),
     aProduct({ id: '12', price: 2000 }),
-    aProduct({ id: '20', type: 'pack', price: 3150 }),
+    aProduct({ id: '20', type: 'pack', price: 3150, weight: 0 }),
   );
   world.packs.put(SCOPE_A, aPackRecord('20'));
   return { ...world, service: new RecomputePacksService(world.ports) };
@@ -115,5 +115,37 @@ describe('RecomputePacksService (D2203)', () => {
 
     // Assert
     expect(catalog.writes).toEqual([{ productId: '20', price: 3150, weight: 300, sharedOption: null }]);
+  });
+
+  it('reprices from the pack as stored once its lock is held, not the one read before (D2241)', async () => {
+    // Arrange: a save commits a 0 % definition between the holding read and the recompute's lock
+    const { catalog, lock, packs, service } = arranged();
+    catalog.put(SCOPE_A, aProduct({ id: '11', price: 2500 }));
+    lock.onAcquire = () => {
+      packs.put(SCOPE_A, aPackRecord('20', aDefinition({ packDiscountValue: 0 })));
+    };
+
+    // Act
+    await service.recompute(CTX, SCOPE_A, '11');
+
+    // Assert: (2 500 + 2 000) × 1, not × 0.9
+    expect(lock.acquired).toEqual(['20']);
+    expect(catalog.get(SCOPE_A, '20')?.price).toBe(4500);
+  });
+
+  it('does nothing for a pack removed before its lock is held', async () => {
+    // Arrange
+    const { catalog, lock, packs, service } = arranged();
+    catalog.put(SCOPE_A, aProduct({ id: '11', price: 2500 }));
+    lock.onAcquire = () => {
+      packs.remove(SCOPE_A, '20');
+    };
+
+    // Act
+    await service.recompute(CTX, SCOPE_A, '11');
+
+    // Assert
+    expect(catalog.writes).toEqual([]);
+    expect(packs.all(SCOPE_A)).toEqual([]);
   });
 });

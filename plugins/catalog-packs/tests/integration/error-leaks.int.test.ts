@@ -57,9 +57,9 @@ describe('pack faults and facade refusals reach no client as internal text (D213
     for (const leak of LEAKS) expect(answer.text).not.toMatch(leak);
   });
 
-  it('facade catalog.* errors map to typed codes, no stack or SQL in bodies', async () => {
-    // Arrange: an archived-looking scope is not reachable from a request, so the facade's refusal is reached
-    // through a pack product deleted between the client's read and its save.
+  it('a pack product deleted before its save answers packs.not-found, no stack or SQL in the body', async () => {
+    // Arrange: a pack product deleted between the client's read and its save. Catalog's read answers no product,
+    // so the save refuses it itself; the facade's catalog.* translation is covered by catalog-products.adapter.test.ts.
     const ids = await arranged();
     await suite.kit.gql('mutation ($id: ID!) { deleteCatalogProduct(id: $id) }', { id: ids.pack });
 

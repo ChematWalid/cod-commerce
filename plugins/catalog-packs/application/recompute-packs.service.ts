@@ -13,7 +13,7 @@ import type { PackPorts } from './pack-ports';
  * Keeps stored pack prices true when a product changes (D2203): the packs holding it are repriced and their
  * product written when the values change; a component deleted, set to draft or losing the shared value marks the
  * pack `stale` and keeps its last price; a pack product that is gone or no longer a pack loses its pack rows. Each
- * pack runs in its own transaction.
+ * pack runs in its own transaction under the pack's lock.
  */
 export class RecomputePacksService {
   constructor(private readonly ports: PackPorts) {}
@@ -21,14 +21,18 @@ export class RecomputePacksService {
   /** Recomputes for a change of product `productId` of the scope's store. */
   async recompute(ctx: OperationContext, scope: StoreScope, productId: string): Promise<void> {
     const own = await this.ports.packs.findByProduct(ctx, scope, productId);
-    if (own !== undefined) await this.recomputeOne(ctx, scope, own);
+    if (own !== undefined) await this.recomputeOne(ctx, scope, own.productId);
     for (const pack of await this.ports.packs.holding(ctx, scope, productId)) {
-      await this.recomputeOne(ctx, scope, pack);
+      await this.recomputeOne(ctx, scope, pack.productId);
     }
   }
 
-  private recomputeOne(ctx: OperationContext, scope: StoreScope, pack: PackRecord): Promise<void> {
+  /** Reprices one pack from its row as stored once the pack's lock is held (D2241); a pack gone by then is done. */
+  private recomputeOne(ctx: OperationContext, scope: StoreScope, packProductId: string): Promise<void> {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
+      await this.ports.lock.acquire(tx, packProductId);
+      const pack = await this.ports.packs.findByProduct(tx, scope, packProductId);
+      if (pack === undefined) return;
       const product = await this.ports.catalog.byId(tx, scope, pack.productId);
       if (product?.type !== PACK_PRODUCT_TYPE) {
         await this.ports.packs.deleteByProduct(tx, scope, pack.productId);

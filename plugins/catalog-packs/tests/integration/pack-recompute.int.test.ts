@@ -1,4 +1,5 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
+import { rawTestId } from '@cod/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   PACK,
@@ -27,6 +28,37 @@ async function packWorld(business = suite.fixtures.a): Promise<PackWorld> {
   const pack = await suite.kit.createPackProduct();
   await suite.kit.gql(SAVE_PACK, { id: pack.id, input: packInput([shirt.id, trousers.id]) });
   return { shirt, trousers, pack };
+}
+
+interface PackRow {
+  id: string;
+  businessId: string;
+  storeId: string;
+  status: string;
+  updatedAt: string;
+}
+
+/** The stored `catalog_pack` row of pack product `productId`, read under catalog-packs. */
+async function packRowOf(productId: string): Promise<PackRow> {
+  const [row] = await suite.kit.query<PackRow>(
+    `SELECT "id"::text AS id, "businessId"::text AS "businessId", "storeId"::text AS "storeId", status,
+            "updatedAt"::text AS "updatedAt"
+       FROM catalog_pack WHERE "productId" = $1`,
+    [Number(rawTestId(productId))],
+  );
+  if (row === undefined) throw new Error('the pack row is missing');
+  return row;
+}
+
+/** Waits until every event is relayed and every delivery has run, so no earlier recompute is still pending. */
+async function outboxSettled(): Promise<void> {
+  await until(async () => {
+    const [row] = await suite.kit.query<{ open: string }>(
+      `SELECT ((SELECT count(*) FROM outbox_event WHERE status = 'pending')
+             + (SELECT count(*) FROM outbox_delivery WHERE status IN ('pending', 'enqueued')))::text AS open`,
+    );
+    return row?.open === '0' ? true : undefined;
+  });
 }
 
 async function packOf(productId: string): Promise<PackResult | null> {
@@ -89,17 +121,48 @@ describe('pack recompute on product.changed (D2203)', () => {
     expect(rows).toBe('0');
   });
 
-  it("a change in business A never recomputes B's packs", async () => {
-    // Arrange
+  it("a change in business A never recomputes B's packs, even one whose row names A's product", async () => {
+    // Arrange: a B component row naming A's shirt, planted under catalog-packs (no API stores one). A consumer that
+    // read packs by product id alone would find B's pack, fail to read A's shirt in B's store and mark it stale.
     const other = await packWorld(suite.fixtures.b);
+    await outboxSettled();
+    const packOfB = await packRowOf(other.pack.id);
+    await suite.kit.query(
+      `INSERT INTO catalog_pack_component ("id", "businessId", "storeId", "packId", "position", "productId", "variantId", "quantity")
+       SELECT max("id") + 1, $1, $2, $3, 99, $4, NULL, 1 FROM catalog_pack_component`,
+      [packOfB.businessId, packOfB.storeId, packOfB.id, Number(rawTestId(world.shirt.id))],
+    );
     await suite.kit.asOwner(suite.fixtures.a);
 
-    // Act: A's change drains, then B's pack is read
+    // Act: A's change drains
     await suite.kit.gql(UPDATE_PRODUCT, { id: world.shirt.id, input: { price: 2500 } });
     await until(async () => ((await suite.kit.product(world.pack.id))?.price === 4050 ? true : undefined));
+
+    // Assert: B's pack row was neither repriced nor marked
+    expect(await packRowOf(other.pack.id)).toEqual(packOfB);
     await suite.kit.asOwner(suite.fixtures.b);
+    expect((await suite.kit.product(other.pack.id))?.price).toBe(3150);
+  });
+});
+
+describe('concurrent pack writes (D2241)', () => {
+  it('two concurrent first saves of one pack both succeed and leave one pack row', async () => {
+    // Arrange: a fresh pack product, so neither save finds a row
+    const { shirt, trousers } = await packWorld();
+    const fresh = await suite.kit.createPackProduct();
+    const input = packInput([shirt.id, trousers.id]);
+
+    // Act
+    const saved = await Promise.all(
+      [1, 2].map(() => suite.kit.gql<{ saveCatalogPack: PackResult }>(SAVE_PACK, { id: fresh.id, input })),
+    );
 
     // Assert
-    expect((await suite.kit.product(other.pack.id))?.price).toBe(3150);
+    expect(saved.map(({ saveCatalogPack }) => saveCatalogPack.price)).toEqual([3150, 3150]);
+    const [row] = await suite.kit.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM catalog_pack WHERE "productId" = $1',
+      [Number(rawTestId(fresh.id))],
+    );
+    expect(row?.count).toBe('1');
   });
 });

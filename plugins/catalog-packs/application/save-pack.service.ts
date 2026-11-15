@@ -20,7 +20,8 @@ export interface SavePackRequest {
 /**
  * "Save a pack" (D2202, D2203): checks the components against the store, prices the pack, stores it with its
  * components and writes the computed price, weight and variant matrix into the pack product through catalog (only
- * when they change), in one transaction. A draft component stores the pack `stale`.
+ * when they change), in one transaction under the pack's lock (D2241), so concurrent saves of one pack run one after
+ * the other. A draft component stores the pack `stale`.
  */
 export class SavePackService {
   constructor(private readonly ports: PackPorts) {}
@@ -34,6 +35,7 @@ export class SavePackService {
     const productId = parseProductId(request.productId);
     if (productId === undefined) throw new PackNotFoundError();
     return this.ports.transaction.run(ctx, scope, async (tx) => {
+      await this.ports.lock.acquire(tx, productId);
       const product = await this.packProduct(tx, scope, productId);
       const { definition } = request;
       const { products, computed } = await pricePack(this.ports, tx, scope, { packProductId: productId, definition });

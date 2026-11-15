@@ -85,4 +85,17 @@ describe('PackRecomputeConsumer (D2203)', () => {
     await expect(handling).rejects.toThrow(OutboxParkError);
     expect(contexts).toEqual([]);
   });
+
+  it.each(['abc', '0', '99999999999'])('parks a payload whose productId %s is not a product id', async (productId) => {
+    // Arrange
+    const { consumer, contexts, packs } = arranged();
+
+    // Act
+    const handling = consumer.handle(delivery(productId, SCOPE_A.storeId));
+
+    // Assert
+    await expect(handling).rejects.toThrow(OutboxParkError);
+    expect(contexts).toEqual([]);
+    expect(packs.reads).toEqual([]);
+  });
 });
