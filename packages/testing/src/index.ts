@@ -5,4 +5,5 @@ export * from './create-plugin-test-environment';
 export * from './failure-of';
 export * from './partitioned-schema';
 export * from './plugin-test-db-config';
+export * from './store-kit';
 export * from './two-businesses';

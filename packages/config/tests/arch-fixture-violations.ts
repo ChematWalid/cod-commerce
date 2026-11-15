@@ -11,6 +11,7 @@ const RBAC_GUARD_ENTRY = 'plugins/rbac/guard.ts';
 const RBAC_MEMBER_ACCESS_ENTRY = 'plugins/rbac/member-access.ts';
 const AUTH_INVITATIONS_ENTRY = 'plugins/auth/invitations.ts';
 const CATALOG_ENTRY = 'plugins/catalog/index.ts';
+const CATALOG_PACKS_ENTRY = 'plugins/catalog-packs/index.ts';
 const ADAPTER = `${BAD}/infrastructure/adapter.ts`;
 const OWN_ENTRY = `${BAD}/index.ts`;
 /** Code parked where the permission and data access gates do not scan: production code must not import it. */
@@ -39,6 +40,8 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('application-is-pure', 'application/uses-typeorm.ts', TYPEORM),
   violation('catalog-entry-infra-only', 'api/uses-catalog-package.ts', CATALOG_ENTRY),
   violation('catalog-entry-infra-only', 'application/uses-catalog-package.ts', CATALOG_ENTRY),
+  violation('catalog-packs-entry-infra-only', 'api/uses-catalog-packs-package.ts', CATALOG_PACKS_ENTRY),
+  violation('catalog-packs-entry-infra-only', 'application/uses-catalog-packs-package.ts', CATALOG_PACKS_ENTRY),
   violation('application-is-pure', 'application/uses-vendure-type.ts', '@vendure/core'),
   violation('application-no-concretes', 'application/district-pricing.service.ts', ADAPTER),
   violation('application-no-concretes', 'application/uses-infrastructure.ts', ADAPTER),
