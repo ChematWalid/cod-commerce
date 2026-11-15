@@ -2,8 +2,9 @@ import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { COLLECTIONS_ERROR_CODES, COLLECTIONS_PER_STORE_MAX, toBusinessId, toStoreId } from '@cod/shared';
 import { CollectionService, RequestContextService } from '@vendure/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { asOperationContext } from '../../domain/ports/operation-context';
+import { OutboxCollectionEvents } from '../../infrastructure/collection-events';
 import { TypeOrmCollectionDefinitionRepository } from '../../infrastructure/typeorm-collection-definition.repository';
 import { definitionOf } from '../support/builders';
 import {
@@ -15,6 +16,7 @@ import {
   rawId,
   UPDATE_COLLECTION,
 } from './collections-api';
+import { collectionsWithSlug, uploadImage } from './collections-images';
 import { collectionsSuite } from './collections-kit';
 
 const suite = collectionsSuite(1016, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
@@ -110,6 +112,62 @@ describe('collections CRUD over GraphQL', () => {
 
     // Assert
     expect(codes).toEqual([COLLECTIONS_ERROR_CODES.SLUG_TAKEN, COLLECTIONS_ERROR_CODES.RULE_INVALID]);
+  });
+});
+
+describe('the collection image (D2320)', () => {
+  it('shows an image of the store with an absolute preview, and an edit with null clears it', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const assetId = await uploadImage(suite.kit);
+
+    // Act
+    const created = await createCollection(suite.kit, { featuredAssetId: assetId });
+    const { updateStoreCollection: cleared } = await suite.kit.gql<{ updateStoreCollection: CollectionResult }>(
+      UPDATE_COLLECTION,
+      { id: created.id, input: { featuredAssetId: null } },
+    );
+    const { storeCollection: read } = await suite.kit.gql<{ storeCollection: CollectionResult | null }>(COLLECTION, {
+      id: created.id,
+    });
+
+    // Assert
+    expect(created.featuredAsset?.id).toBe(assetId);
+    // The test server's asset storage makes an identifier absolute as `test-url/<identifier>`.
+    expect(created.featuredAsset?.preview).toMatch(/^test-url\/test-assets\//);
+    expect(cleared.featuredAsset).toBeNull();
+    expect(read?.featuredAsset).toBeNull();
+  });
+});
+
+describe('one transaction per create (D2333, D2335)', () => {
+  it('a failure after the Vendure collection is made leaves no collection, definition or event', async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    await suite.kit.asOwner(a);
+    const slug = 'rolled-back-create';
+    const before = await suite.kit.query<{ count: string }>(
+      'SELECT count(*) AS count FROM collections_definition WHERE "storeId" = $1',
+      [a.stores[0].id],
+    );
+    const publish = vi
+      .spyOn(OutboxCollectionEvents.prototype, 'publish')
+      .mockRejectedValueOnce(new Error('synthetic outbox failure'));
+
+    // Act
+    const failed = await codeOf(createCollection(suite.kit, { slug }));
+    const publishCalls = publish.mock.calls.length;
+    publish.mockRestore();
+
+    // Assert
+    expect(failed).toBe('INTERNAL_SERVER_ERROR');
+    expect(publishCalls).toBe(1);
+    expect(await collectionsWithSlug(suite.kit, slug)).toBe(0);
+    const after = await suite.kit.query<{ count: string }>(
+      'SELECT count(*) AS count FROM collections_definition WHERE "storeId" = $1',
+      [a.stores[0].id],
+    );
+    expect(after).toEqual(before);
   });
 });
 

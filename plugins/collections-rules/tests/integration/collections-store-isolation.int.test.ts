@@ -1,8 +1,32 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { COLLECTION, COLLECTIONS, type CollectionResult, createCollection, rawId } from './collections-api';
+import {
+  COLLECTION,
+  COLLECTIONS,
+  type CollectionResult,
+  createCollection,
+  DELETE_COLLECTION,
+  rawId,
+  UPDATE_COLLECTION,
+} from './collections-api';
 import { collectionsSuite } from './collections-kit';
+
+const NOT_FOUND = COLLECTIONS_ERROR_CODES.NOT_FOUND;
+
+interface ErrorShape {
+  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
+}
+
+/** The error code a GraphQL call failed with; none when it succeeded. */
+async function codeOf(call: Promise<unknown>): Promise<string | undefined> {
+  try {
+    await call;
+    return undefined;
+  } catch (error: unknown) {
+    return (error as ErrorShape).response?.errors?.[0]?.extensions?.code;
+  }
+}
 
 const suite = collectionsSuite(1017, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 
@@ -28,11 +52,29 @@ describe("collections of one business's two stores", () => {
     // Assert
     expect(storeCollections.totalItems).toBe(0);
     expect(storeCollection).toBeNull();
-    expect(rest).toMatchObject({ status: 404, body: { code: COLLECTIONS_ERROR_CODES.NOT_FOUND } });
+    expect(rest).toMatchObject({ status: 404, body: { code: NOT_FOUND } });
     expect(restList.text).not.toContain(rawId(inFirst.id));
   });
 
-  it('the first store reads its own collection (positive control)', async () => {
+  it("A's second store can neither edit nor delete its first store's collection", async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    await suite.kit.asOwner(a, a.stores[1]);
+    const url = `/catalog/collections/${rawId(inFirst.id)}`;
+
+    // Act
+    const codes = [
+      await codeOf(suite.kit.gql(UPDATE_COLLECTION, { id: inFirst.id, input: { title: 'Taken over' } })),
+      await codeOf(suite.kit.gql(DELETE_COLLECTION, { id: inFirst.id })),
+    ];
+    const answers = [await suite.kit.rest('PATCH', url, { title: 'Taken over' }), await suite.kit.rest('DELETE', url)];
+
+    // Assert
+    expect(codes).toEqual([NOT_FOUND, NOT_FOUND]);
+    for (const answer of answers) expect(answer).toMatchObject({ status: 404, body: { code: NOT_FOUND } });
+  });
+
+  it('the first store reads its own collection, unchanged (positive control)', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
 
@@ -43,7 +85,7 @@ describe("collections of one business's two stores", () => {
     const { storeCollections } = await suite.kit.gql<{ storeCollections: { items: CollectionResult[] } }>(COLLECTIONS);
 
     // Assert
-    expect(storeCollection).toMatchObject({ id: inFirst.id, title: 'First store only' });
+    expect(storeCollection).toEqual(inFirst);
     expect(storeCollections.items.map((item) => item.id)).toContain(inFirst.id);
   });
 });

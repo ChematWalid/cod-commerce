@@ -153,6 +153,25 @@ describe('collections isolation sweep (two businesses)', () => {
     expect(outcome.code).toBe(code);
   });
 
+  it.each([
+    ["B's channel", (): string => suite.fixtures.b.stores[0].channelToken, 403, undefined],
+    ['the default channel', (): string => PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN, 403, undefined],
+    ['an unknown token', (): string => 'synthetic-unknown-channel-token', 404, 'CHANNEL_NOT_FOUND'],
+  ] as const)('refuses A on %s over REST', async (_name, token, status, code) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    suite.kit.client.setChannelToken(token());
+
+    // Act
+    const answer = await suite.kit.rest('GET', '/catalog/collections');
+
+    // Assert
+    expect(answer.status).toBe(status);
+    if (code !== undefined) expect(answer.body).toMatchObject({ code });
+    expect(answer.text).not.toContain(`"${restIdsOfB.collectionId}"`);
+    for (const leak of LEAKS) expect(answer.text).not.toMatch(leak);
+  });
+
   it("leaves B's collection unchanged and serves it to B (positive control)", async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.b);
