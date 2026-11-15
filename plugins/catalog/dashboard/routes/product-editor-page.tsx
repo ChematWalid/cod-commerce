@@ -19,6 +19,7 @@ import { useEditorSave } from '../hooks/use-editor-save';
 import { useStoreScope } from '../hooks/use-store-scope';
 import { type EditorForm, type EditorFormErrors, editorFormOf, emptyEditorForm } from '../model/editor-form';
 import { editorLoadViewOf } from '../model/editor-load';
+import { packRefreshOf } from '../model/editor-refresh';
 import { resetsVariants } from '../model/options-draft';
 import { type StoreScope, useHeldPermissions } from '../queries';
 
@@ -37,6 +38,16 @@ function useEditorState(product: CatalogProductDto | null) {
   const initial = useMemo(() => (product === null ? emptyEditorForm() : editorFormOf(product)), [product]);
   const [form, setForm] = useState<EditorForm>(initial);
   const [saved, setSaved] = useState<EditorForm>(initial);
+  // A pack block save rewrites the pack's computed fields; the refetched product brings them in (D2249).
+  const [readFrom, setReadFrom] = useState(initial);
+  if (readFrom !== initial) {
+    setReadFrom(initial);
+    const next = packRefreshOf({ form, saved }, initial);
+    if (next !== null) {
+      setForm(next.form);
+      setSaved(next.saved);
+    }
+  }
   const [errors, setErrors] = useState<EditorFormErrors>({});
   const [warnings, setWarnings] = useState<readonly string[]>([]);
   const [confirming, setConfirming] = useState(false);

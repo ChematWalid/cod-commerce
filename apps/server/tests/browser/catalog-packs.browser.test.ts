@@ -1,4 +1,9 @@
-import { EDITOR_SAVE_TEST_ID, EDITOR_TITLE_TEST_ID, PRODUCT_EDITOR_TEST_ID } from '@cod/plugin-catalog';
+import {
+  EDITOR_PRICE_TEST_ID,
+  EDITOR_SAVE_TEST_ID,
+  EDITOR_TITLE_TEST_ID,
+  PRODUCT_EDITOR_TEST_ID,
+} from '@cod/plugin-catalog';
 import {
   PACK_BLOCK_TEST_ID,
   PACK_COMPONENT_ROW_TEST_ID,
@@ -105,6 +110,8 @@ describe('pack editor block', () => {
     // Assert: (1 500 + 2 000) × 90 % = 3 150, shown and stored
     await expect.poll(() => byTestId(page, PACK_PRICE_TEST_ID).textContent()).toContain('3,150');
     await expect.poll(() => storedPrice(page, packId)).toBe(3150);
+    // The editor's own read-only price follows the block's save without a reload (D2249).
+    await expect.poll(() => byTestId(page, EDITOR_PRICE_TEST_ID).inputValue()).toBe('3150');
     await assertNoPageError(page);
   });
 });
