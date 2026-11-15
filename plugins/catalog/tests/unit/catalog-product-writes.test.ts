@@ -1,4 +1,4 @@
-import { productInputSchema, type ProductInput } from '@cod/shared';
+import { BARCODE_MAX, INT_COLUMN_MAX, productInputSchema, type ProductInput, SKU_MAX } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CreateProductService } from '../../application/create-product.service';
 import { CreateProductWithVariantsService } from '../../application/create-product-with-variants.service';
@@ -73,6 +73,38 @@ describe('CreateProductWithVariantsService (D2219)', () => {
 
     // Assert
     await expect(creating).rejects.toBeInstanceOf(InvalidCatalogInputError);
+  });
+
+  it.each([
+    ['a negative price', { price: -5 }],
+    ['a fractional price', { price: 1.5 }],
+    ['a price past an int column', { price: INT_COLUMN_MAX + 1 }],
+    ['a negative old price', { oldPrice: -1 }],
+    ['an over-long SKU', { sku: 'S'.repeat(SKU_MAX + 1) }],
+    ['a SKU with a control character', { sku: 'TS\u0000S' }],
+    ['a SKU with a bidi override', { sku: 'TS\u202eS' }],
+    ['an over-long barcode', { barcode: '1'.repeat(BARCODE_MAX + 1) }],
+  ])('refuses a row with %s and saves nothing', async (_case, override) => {
+    // Act
+    const creating = service.create(world.ctxOf(scopeA), scopeA, {
+      product: command({ optionGroups: [{ name: 'Size', values: ['S'] }] }),
+      variants: [{ optionValues: ['S'], ...override }],
+    });
+
+    // Assert
+    await expect(creating).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    expect(world.events).toEqual([]);
+  });
+
+  it("trims a row's SKU as the catalog API does", async () => {
+    // Act
+    const { product } = await service.create(world.ctxOf(scopeA), scopeA, {
+      product: command({ optionGroups: [{ name: 'Size', values: ['S'] }] }),
+      variants: [{ optionValues: ['S'], sku: '  TS-S  ' }],
+    });
+
+    // Assert
+    expect(product.variants[0]?.sku).toBe('TS-S');
   });
 
   it('creates with the plain defaults when no row overrides a variant', async () => {

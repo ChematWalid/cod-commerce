@@ -1,4 +1,4 @@
-import type { ProductCommand, VariantPatchCommand } from '@cod/shared';
+import { type ProductCommand, type VariantPatchCommand, variantPatchSchema } from '@cod/shared';
 import { comparableText } from '../domain/comparable-text';
 import { InvalidCatalogInputError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -29,23 +29,45 @@ export interface ProductWithVariantsCommand {
 
 const combinationKey = (optionValues: readonly string[]): string => JSON.stringify(optionValues.map(comparableText));
 
+/** The own values a row may set, checked as the catalog API checks a variant edit (money, SKU and barcode text). */
+const overrideValuesSchema = variantPatchSchema.pick({ sku: true, price: true, oldPrice: true, barcode: true });
+
+type OverrideValues = Omit<VariantPatchCommand, 'id'>;
+
+interface ParsedOverride {
+  readonly key: string;
+  readonly values: OverrideValues;
+}
+
+/**
+ * `override`'s values as the catalog API would accept them: callers such as the import pass plain rows, not commands
+ * parsed at an API edge (D2201 keeps validation in catalog).
+ *
+ * @throws {InvalidCatalogInputError} when a value breaks the variant edit's rules.
+ */
+function parseOverride(override: VariantOverride): ParsedOverride {
+  const { sku, price, oldPrice, barcode } = override;
+  const parsed = overrideValuesSchema.safeParse({ sku, price, oldPrice, barcode });
+  if (!parsed.success) throw new InvalidCatalogInputError();
+  return { key: combinationKey(override.optionValues), values: parsed.data };
+}
+
 /** The variant edit of `override`, on the variant of `variants` with its combination. */
-function patchOf(variants: readonly VariantRecord[], override: VariantOverride): VariantPatchCommand {
-  const key = combinationKey(override.optionValues);
-  const variant = variants.find((held) => combinationKey(held.optionValues) === key);
+function patchOf(variants: readonly VariantRecord[], override: ParsedOverride): VariantPatchCommand {
+  const variant = variants.find((held) => combinationKey(held.optionValues) === override.key);
   if (variant === undefined) throw new InvalidCatalogInputError();
+  const { sku, price, oldPrice, barcode } = override.values;
   return {
     id: variant.id,
-    ...(override.sku === undefined ? {} : { sku: override.sku }),
-    ...(override.price === undefined ? {} : { price: override.price }),
-    ...(override.oldPrice === undefined ? {} : { oldPrice: override.oldPrice }),
-    ...(override.barcode === undefined ? {} : { barcode: override.barcode }),
+    ...(sku === undefined ? {} : { sku }),
+    ...(price === undefined ? {} : { price }),
+    ...(oldPrice === undefined ? {} : { oldPrice }),
+    ...(barcode === undefined ? {} : { barcode }),
   };
 }
 
-function hasRepeatedCombination(overrides: readonly VariantOverride[]): boolean {
-  const keys = overrides.map((override) => combinationKey(override.optionValues));
-  return new Set(keys).size !== keys.length;
+function hasRepeatedCombination(overrides: readonly ParsedOverride[]): boolean {
+  return new Set(overrides.map((override) => override.key)).size !== overrides.length;
 }
 
 /**
@@ -63,19 +85,20 @@ export class CreateProductWithVariantsService {
   }
 
   /**
-   * @throws {InvalidCatalogInputError} when a row names a combination the product does not have, or two rows name
-   * one; any refusal of the create or the edit rolls both back.
+   * @throws {InvalidCatalogInputError} when a row holds a value the variant edit refuses (checked before any write),
+   * names a combination the product does not have, or two rows name one; any refusal of the create or the edit rolls both back.
    */
   async create(
     ctx: OperationContext,
     scope: StoreScope,
     command: ProductWithVariantsCommand,
   ): Promise<ProductSaveResult> {
-    if (hasRepeatedCombination(command.variants)) throw new InvalidCatalogInputError();
+    const overrides = command.variants.map(parseOverride);
+    if (hasRepeatedCombination(overrides)) throw new InvalidCatalogInputError();
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       const created = await this.creating.create(tx, scope, command.product);
-      if (command.variants.length === 0) return created;
-      const variants = command.variants.map((override) => patchOf(created.product.variants, override));
+      if (overrides.length === 0) return created;
+      const variants = overrides.map((override) => patchOf(created.product.variants, override));
       return this.updating.update(tx, scope, created.product.id, { variants });
     });
   }
