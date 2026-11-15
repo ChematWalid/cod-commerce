@@ -27,17 +27,21 @@ const toFacts = (facts: CatalogProductFacts): ProductFacts => ({
   variantOptions: facts.variantOptions,
 });
 
-/** Splits ids into reader-sized chunks. */
+/** Splits ids into reader-sized chunks, each id once, so a repeated id never lands in two chunks. */
 function chunks(ids: readonly string[]): string[][] {
+  const distinct = [...new Set(ids)];
   const result: string[][] = [];
-  for (let start = 0; start < ids.length; start += CATALOG_FACTS_MAX_IDS) {
-    result.push(ids.slice(start, start + CATALOG_FACTS_MAX_IDS));
+  for (let start = 0; start < distinct.length; start += CATALOG_FACTS_MAX_IDS) {
+    result.push(distinct.slice(start, start + CATALOG_FACTS_MAX_IDS));
   }
   return result;
 }
 
-const byNewest = (left: ProductFacts, right: ProductFacts): number =>
-  BigInt(right.productId) > BigInt(left.productId) ? 1 : -1;
+function byNewest(left: ProductFacts, right: ProductFacts): number {
+  const [leftId, rightId] = [BigInt(left.productId), BigInt(right.productId)];
+  if (leftId === rightId) return 0;
+  return rightId > leftId ? 1 : -1;
+}
 
 /**
  * {@link ProductFactsPort} over the catalog's batched reader (D2308). The reader takes at most

@@ -4,5 +4,5 @@ export const AUTOMATIC_MEMBER_POSITION = 0;
 /** The position of the first product of a manual collection; the next ones follow at +1 (D2318). */
 export const FIRST_MANUAL_POSITION = 0;
 
-/** The smallest product id Vendure issues: its int ids start at 1, so 0 names no product. */
-export const MIN_PRODUCT_ID = 1;
+/** The smallest core id (product, collection) Vendure issues: its int ids start at 1, so 0 names nothing. */
+export const MIN_CORE_ID = 1;

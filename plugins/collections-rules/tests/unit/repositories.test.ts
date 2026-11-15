@@ -1,6 +1,7 @@
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { describeCollectionDefinitionRepositoryContract } from '../contract/collection-definition-repository.contract';
 import { describeCollectionMemberRepositoryContract } from '../contract/collection-member-repository.contract';
+import { describeCoreIdBoundaryContract } from '../contract/core-id-boundary.contract';
 import type { MakeHarness } from '../contract/repository-harness';
 import { InMemoryCollectionTables } from '../fakes/in-memory-collection-tables';
 
@@ -16,3 +17,4 @@ const inMemory: MakeHarness = () => {
 
 describeCollectionDefinitionRepositoryContract('InMemoryCollectionDefinitionRepository', inMemory);
 describeCollectionMemberRepositoryContract('InMemoryCollectionMemberRepository', inMemory);
+describeCoreIdBoundaryContract('InMemoryCollectionTables', inMemory);

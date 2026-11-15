@@ -2,7 +2,8 @@ import type { TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tena
 import { COLLECTION_MODES, type CollectionMode, type CollectionRule, collectionRuleSchema } from '@cod/shared';
 import { In } from 'typeorm';
 import type { CollectionDefinition } from '../domain/collection';
-import { InvalidCollectionRuleError } from '../domain/errors';
+import { CorruptCollectionDefinitionError } from '../domain/corrupt-collection-definition.error';
+import { canonicalCoreId, canonicalCoreIds } from '../domain/core-id';
 import type {
   CollectionDefinitionRepositoryPort,
   DefinitionListRequest,
@@ -18,22 +19,28 @@ const LIST_ORDER = { position: 'ASC', id: 'ASC' } as const;
 
 const isMode = (value: string): value is CollectionMode => (COLLECTION_MODES as readonly string[]).includes(value);
 
-/** A stored rule read back through the shared schema, so a row edited by hand never reaches the evaluator untyped. */
-function ruleOf(stored: unknown): CollectionRule | null {
+/**
+ * A stored rule read back through the shared schema, so a row edited by hand never reaches the evaluator untyped;
+ * `undefined` when the stored value breaks the schema.
+ */
+function ruleOf(stored: unknown): CollectionRule | null | undefined {
   if (stored === null || stored === undefined) return null;
   const parsed = collectionRuleSchema.safeParse(stored);
-  if (!parsed.success) throw new InvalidCollectionRuleError();
-  return parsed.data;
+  return parsed.success ? parsed.data : undefined;
 }
 
+/** @throws {CorruptCollectionDefinitionError} for a row that breaks the stored shape (server-side corruption). */
 function toDefinition(row: CollectionDefinitionEntity): CollectionDefinition {
-  if (!isMode(row.mode) || row.storeId === null) throw new InvalidCollectionRuleError();
+  const rule = ruleOf(row.rule);
+  if (!isMode(row.mode) || row.storeId === null || rule === undefined) {
+    throw new CorruptCollectionDefinitionError(row.businessId, row.id);
+  }
   return {
     id: row.id,
     collectionId: row.collectionId,
     storeId: row.storeId,
     mode: row.mode,
-    rule: ruleOf(row.rule),
+    rule,
     matchVersion: row.matchVersion,
     visible: row.visible,
     position: row.position,
@@ -50,7 +57,10 @@ const columnsOf = (definition: CollectionDefinition) => ({
   position: definition.position,
 });
 
-/** The Postgres adapter of {@link CollectionDefinitionRepositoryPort} through `TenantRepository` (ADR 0002). */
+/**
+ * The Postgres adapter of {@link CollectionDefinitionRepositoryPort} through `TenantRepository` (ADR 0002). A collection
+ * id is made canonical before it reaches Postgres: a malformed one names no definition.
+ */
 export class TypeOrmCollectionDefinitionRepository implements CollectionDefinitionRepositoryPort {
   private readonly rows: TenantRepository<CollectionDefinitionEntity>;
 
@@ -72,16 +82,19 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
     scope: StoreScope,
     collectionId: string,
   ): Promise<CollectionDefinition | undefined> {
-    const row = await this.rows.findOne(requestScope(ctx, scope), { storeId: scope.storeId, collectionId });
+    const canonical = canonicalCoreId(collectionId);
+    if (canonical === undefined) return undefined;
+    const row = await this.rows.findOne(requestScope(ctx, scope), { storeId: scope.storeId, collectionId: canonical });
     return row === null ? undefined : toDefinition(row);
   }
 
   async list(ctx: OperationContext, scope: StoreScope, request: DefinitionListRequest): Promise<DefinitionPage> {
-    if (request.collectionIds?.length === 0) return { items: [], totalItems: 0 };
+    const narrowedTo = request.collectionIds === undefined ? undefined : canonicalCoreIds(request.collectionIds);
+    if (narrowedTo?.length === 0) return { items: [], totalItems: 0 };
     const tenant = requestScope(ctx, scope);
     const where = {
       storeId: scope.storeId,
-      ...(request.collectionIds === undefined ? {} : { collectionId: In([...request.collectionIds]) }),
+      ...(narrowedTo === undefined ? {} : { collectionId: In(narrowedTo) }),
     };
     const [rows, totalItems] = await Promise.all([
       this.rows.find(tenant, { where, order: LIST_ORDER, skip: request.skip, take: request.take }),
@@ -104,22 +117,27 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
     scope: StoreScope,
     collectionIds: readonly string[],
   ): Promise<readonly string[]> {
-    if (collectionIds.length === 0) return [];
+    const canonical = canonicalCoreIds(collectionIds);
+    if (canonical.length === 0) return [];
     const rows = await this.rows.find(requestScope(ctx, scope), {
-      where: { storeId: scope.storeId, collectionId: In([...collectionIds]) },
+      where: { storeId: scope.storeId, collectionId: In(canonical) },
       select: { collectionId: true },
     });
     const found = new Set(rows.map((row) => row.collectionId));
-    return collectionIds.filter((collectionId) => found.has(collectionId));
+    return collectionIds.filter((collectionId) => found.has(canonicalCoreId(collectionId) ?? ''));
   }
 
   async update(ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<boolean> {
-    const where = { storeId: scope.storeId, collectionId: definition.collectionId };
+    const canonical = canonicalCoreId(definition.collectionId);
+    if (canonical === undefined) return false;
+    const where = { storeId: scope.storeId, collectionId: canonical };
     return (await this.rows.update(requestScope(ctx, scope), where, columnsOf(definition))) > 0;
   }
 
   async delete(ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<boolean> {
-    return (await this.rows.delete(requestScope(ctx, scope), { storeId: scope.storeId, collectionId })) > 0;
+    const canonical = canonicalCoreId(collectionId);
+    if (canonical === undefined) return false;
+    return (await this.rows.delete(requestScope(ctx, scope), { storeId: scope.storeId, collectionId: canonical })) > 0;
   }
 
   countInStore(ctx: OperationContext, scope: StoreScope): Promise<number> {

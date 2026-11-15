@@ -39,7 +39,7 @@ export interface CollectionMemberRepositoryPort {
     productId: string,
     change: ProductMembershipChange,
   ): Promise<void>;
-  /** The collections of each given product, in one query; a product of no collection is absent. */
+  /** The collections of each given product in collection id order, in one query; a product of none is absent. */
   collectionIdsOfProducts(
     ctx: OperationContext,
     scope: StoreScope,

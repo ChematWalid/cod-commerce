@@ -1,6 +1,7 @@
 import type { CollectionDefinition } from '../../domain/collection';
 import { CollectionNotFoundError } from '../../domain/errors';
-import { membershipDiff, type MemberRow } from '../../domain/membership';
+import { canonicalCoreIds, distinctPlacements, writableCollectionId } from '../../domain/core-id';
+import { canonicalProductId, membershipDiff, type MemberRow } from '../../domain/membership';
 import type {
   CollectionDefinitionRepositoryPort,
   DefinitionListRequest,
@@ -171,7 +172,7 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
   ): Promise<void> {
     // Settled later, like a database call: a refusal rejects the promise instead of throwing at the call.
     return Promise.resolve().then(() => {
-      this.replaceNow(scope, collectionId, rows);
+      this.replaceNow(scope, writableCollectionId(collectionId), rows);
     });
   }
 
@@ -202,10 +203,12 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
     });
   }
 
-  private setNow(scope: StoreScope, productId: string, change: ProductMembershipChange): void {
-    const out = new Set(change.out);
+  private setNow(scope: StoreScope, rawProductId: string, change: ProductMembershipChange): void {
+    const productId = canonicalProductId(rawProductId);
+    const joins = distinctPlacements(change.in);
+    const out = new Set(canonicalCoreIds(change.out));
     this.tables.removeMembers((row) => inStore(scope, row) && row.productId === productId && out.has(row.collectionId));
-    for (const { collectionId, position } of change.in) {
+    for (const { collectionId, position } of joins) {
       const present = this.rowsOf(scope, collectionId).some((row) => row.productId === productId);
       if (!present) this.add(scope, collectionId, { productId, position });
     }
@@ -218,7 +221,9 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
   ): Promise<ReadonlyMap<string, readonly string[]>> {
     const wanted = new Set(productIds);
     const found = new Map<string, string[]>();
-    for (const row of this.tables.memberRows) {
+    const byCollectionId = (left: StoredMember, right: StoredMember): number =>
+      Number(BigInt(left.collectionId) - BigInt(right.collectionId));
+    for (const row of [...this.tables.memberRows].sort(byCollectionId)) {
       if (!inStore(scope, row) || !wanted.has(row.productId)) continue;
       found.set(row.productId, [...(found.get(row.productId) ?? []), row.collectionId]);
     }

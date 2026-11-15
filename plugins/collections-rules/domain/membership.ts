@@ -1,5 +1,6 @@
-import { COLLECTION_MAX_MANUAL_PRODUCTS, INT_COLUMN_MAX } from '@cod/shared';
-import { AUTOMATIC_MEMBER_POSITION, FIRST_MANUAL_POSITION, MIN_PRODUCT_ID } from './constants';
+import { COLLECTION_MAX_MANUAL_PRODUCTS } from '@cod/shared';
+import { AUTOMATIC_MEMBER_POSITION, FIRST_MANUAL_POSITION } from './constants';
+import { canonicalCoreId } from './core-id';
 import { CollectionProductNotFoundError, InvalidCollectionInputError, TooManyManualProductsError } from './errors';
 
 /** One product of a collection and its place in it (D2318). */
@@ -15,23 +16,14 @@ export interface MembershipDiff {
   readonly remove: readonly string[];
 }
 
-/** A product id in decimal digits; leading zeros are allowed in input and dropped by {@link canonicalProductId}. */
-const DECIMAL_DIGITS = /^\d+$/;
-
 /**
  * A product id in canonical decimal form (`'07'` → `'7'`), so one product always has one key in a membership.
- * A malformed id, or one outside the int column range, answers as a foreign one: no such product. The range check
- * keeps such an id from reaching Postgres, which would fail with an out-of-range error instead.
+ * A malformed id, or one outside the int column range, answers as a foreign one: no such product.
  */
 export function canonicalProductId(productId: string): string {
-  if (!DECIMAL_DIGITS.test(productId)) {
-    throw new CollectionProductNotFoundError();
-  }
-  const id = BigInt(productId);
-  if (id < BigInt(MIN_PRODUCT_ID) || id > BigInt(INT_COLUMN_MAX)) {
-    throw new CollectionProductNotFoundError();
-  }
-  return id.toString();
+  const canonical = canonicalCoreId(productId);
+  if (canonical === undefined) throw new CollectionProductNotFoundError();
+  return canonical;
 }
 
 /** Sort order newest product first: Vendure ids grow with time, compared as numbers (`'10'` after `'9'`). */

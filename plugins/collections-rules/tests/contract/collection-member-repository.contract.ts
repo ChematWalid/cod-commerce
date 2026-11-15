@@ -183,20 +183,19 @@ export function describeCollectionMemberRepositoryContract(name: string, make: M
       }
     });
 
-    it('collectionIdsOfProducts answers a batch of products', async () => {
-      // Arrange
+    it('collectionIdsOfProducts answers a batch of products, each in collection id order', async () => {
+      // Arrange: the later collection is filled first, so insertion order cannot pass for collection id order.
       const harness = await make();
       const [first, second] = [await collectionIn(harness, scopeA), await collectionIn(harness, scopeA)];
       const [both, one, none] = [newCoreId(), newCoreId(), newCoreId()];
-      await harness.repos.members.replaceMembers(harness.ctx, scopeA, first, [at(both, 0), at(one, 1)]);
       await harness.repos.members.replaceMembers(harness.ctx, scopeA, second, [at(both, 0)]);
+      await harness.repos.members.replaceMembers(harness.ctx, scopeA, first, [at(both, 0), at(one, 1)]);
 
       // Act
       const found = await harness.repos.members.collectionIdsOfProducts(harness.ctx, scopeA, [both, one, none]);
 
       // Assert
-      expect(found.get(both)).toEqual(expect.arrayContaining([first, second]));
-      expect(found.get(both)).toHaveLength(2);
+      expect(found.get(both)).toEqual([first, second]);
       expect(found.get(one)).toEqual([first]);
       expect(found.has(none)).toBe(false);
     });

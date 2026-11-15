@@ -13,6 +13,7 @@ import { TypeOrmCollectionDefinitionRepository } from '../../infrastructure/type
 import { TypeOrmCollectionMemberRepository } from '../../infrastructure/typeorm-collection-member.repository';
 import { describeCollectionDefinitionRepositoryContract } from '../contract/collection-definition-repository.contract';
 import { describeCollectionMemberRepositoryContract } from '../contract/collection-member-repository.contract';
+import { describeCoreIdBoundaryContract } from '../contract/core-id-boundary.contract';
 import type { MakeHarness } from '../contract/repository-harness';
 import { definitionOf, newCoreId, scopeA, scopeB } from '../support/builders';
 import { createCollectionsTestEnvironment } from './collections-kit';
@@ -67,6 +68,7 @@ const typeOrm: MakeHarness = async () => {
 
 describeCollectionDefinitionRepositoryContract('TypeOrmCollectionDefinitionRepository', typeOrm);
 describeCollectionMemberRepositoryContract('TypeOrmCollectionMemberRepository', typeOrm);
+describeCoreIdBoundaryContract('TypeOrm collection repositories', typeOrm);
 
 /** Runs `work` and counts the SQL statements it sent, transaction control left out. */
 async function statementsOf(work: () => Promise<unknown>): Promise<number> {
