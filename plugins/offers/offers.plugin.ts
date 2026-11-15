@@ -4,7 +4,7 @@ import type { QuoteKeyRing } from '@cod/shared/quote-keys';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { QUOTE_KEY_RING } from './application/tokens';
 import { OFFERS_ENTITIES } from './infrastructure/offers-entities';
-import { OFFERS_PROVIDERS, OFFERS_REGISTRARS } from './infrastructure/offers.providers';
+import { OFFERS_PROVIDERS, OFFERS_REGISTRARS, OFFERS_USE_CASES } from './infrastructure/offers.providers';
 
 /** How the server configures {@link OffersPlugin}. */
 export interface OffersPluginOptions {
@@ -23,7 +23,7 @@ export interface OffersPluginOptions {
     { provide: QUOTE_KEY_RING, useFactory: (): QuoteKeyRing => OffersPlugin.requireOptions().quoteKeys },
     ...OFFERS_PROVIDERS,
   ],
-  exports: [...OFFERS_REGISTRARS],
+  exports: [...OFFERS_USE_CASES, ...OFFERS_REGISTRARS],
   compatibility: '^3.8.0',
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- a Vendure plugin is a decorated class

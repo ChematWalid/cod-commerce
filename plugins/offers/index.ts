@@ -1,8 +1,24 @@
 // The public entry of the offers (D2402, rule `offers-entry-infra-only`): another plugin imports it only from its
 // infrastructure/, its root *.plugin.ts file or its tests/; of the apps only apps/server does (frontends are API
 // clients, ADR 0017). api/, application/, domain/ and dashboard/ never do, and the catalog never does
-// (`catalog-no-offers`). Later tasks add PricingService and OfferAdminService.
+// (`catalog-no-offers`).
 export { OffersPlugin, type OffersPluginOptions } from './offers.plugin';
+
+// The use cases (D2408, D2431): inject them by class.
+export {
+  type OrderFieldLine,
+  type OrderFields,
+  type PricedOrderChange,
+  PricingService,
+  type RepriceInput,
+  type RepriceResult,
+  type UnpricedOrderChange,
+} from './application/pricing.service';
+export { OfferAdminService } from './application/offer-admin.service';
+export type { OfferRecord, StoredCode } from './domain/offer-record';
+export type { OrderUsage } from './domain/engine/order-usage';
+export type { QuotePayload, QuoteRejectReason, QuoteVerification } from './domain/token/quote-token';
+export { asOperationContext } from './domain/ports/operation-context.port';
 
 // The seams (D2423): a sibling plugin injects a registrar token and calls `register(this)` on bootstrap.
 export {

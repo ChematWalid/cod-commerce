@@ -8,6 +8,12 @@ export const ID_GENERATOR: unique symbol = Symbol('OffersIdGenerator');
 export const CLOCK: unique symbol = Symbol('OffersClock');
 export const PRICING_LOGGER: unique symbol = Symbol('OffersPricingLogger');
 
+/** Which store a request prices: the resolved tenant's active store on its own channel (D2408). */
+export const ACTIVE_STORE: unique symbol = Symbol('OffersActiveStore');
+
+/** The kinds of offer the engine prices (D2404), one registry for the admin use case and the pricing service. */
+export const OFFER_KIND_REGISTRY: unique symbol = Symbol('OffersOfferKindRegistry');
+
 /** The store-channel variant gate every unit price starts from (D2423). */
 export const VARIANT_GATE: unique symbol = Symbol('OffersVariantGate');
 

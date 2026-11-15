@@ -1,0 +1,267 @@
+import { type Quote, type QuoteRequest, type QuoteRequestInput, quoteRequestSchema } from '@cod/shared';
+import type { PricingCart } from '../domain/cart';
+import { MS_PER_SECOND } from '../domain/constants';
+import type { OfferKindRegistry } from '../domain/engine/kind-registry';
+import { mergeLines } from '../domain/engine/merge-lines';
+import { type OrderRelease, type OrderUsage, releaseOrderUsage } from '../domain/engine/order-usage';
+import { priceCart } from '../domain/engine/pipeline';
+import type { PricedQuote } from '../domain/engine/priced-quote';
+import { InvalidQuoteRequestError, NoActiveStoreError } from '../domain/errors';
+import type { ActiveStorePort } from '../domain/ports/active-store.port';
+import type { OperationContext } from '../domain/ports/operation-context.port';
+import type { StoreScope } from '../domain/store-scope';
+import type { QuoteVerification } from '../domain/token/quote-token';
+import { parseOrderUsage } from './order-usage.schema';
+import type { PricingSnapshotLoader } from './pricing-snapshot.loader';
+import type { QuoteSigner, TokenCart } from './quote-signer';
+
+/** What the pricing use case is built from. */
+export interface PricingServiceDeps {
+  readonly stores: ActiveStorePort;
+  readonly loader: PricingSnapshotLoader;
+  readonly signer: QuoteSigner;
+  readonly kinds: OfferKindRegistry;
+}
+
+/** An order change to price (D2427): the order's cart as it is and as it would be. */
+export interface RepriceInput {
+  readonly current: QuoteRequestInput;
+  readonly next: QuoteRequestInput;
+  /**
+   * The offers and codes the order already holds. The stored usage counts include this order's own uses, so both carts
+   * are priced with them given back; without it an order that took an offer's last use would lose the offer on edit.
+   * The caller builds it from the stored order (its lines' `offerIds` and the codes of its `quoteDiscounts`), never
+   * from a request body. The buyer's own uses and order count are given back only for a cart that keeps the phone of
+   * `current`, the order as stored.
+   */
+  readonly orderUsage: OrderUsage;
+}
+
+/** One order line as the order stores it (ADR 0004 `quotedUnitPrice`). */
+export interface OrderFieldLine {
+  readonly variantId: string;
+  readonly quotedUnitPrice: number;
+  readonly originalPrice: number;
+  readonly offerIds: readonly string[];
+}
+
+/** The order custom fields of the changed cart (ADR 0004); P4.S3 writes them, the pricing service never does. */
+export interface OrderFields {
+  readonly lines: readonly OrderFieldLine[];
+  /** JSON of the token's order discounts `d`. */
+  readonly quoteDiscounts: string;
+  readonly quotedShipping: number;
+}
+
+/**
+ * An order change whose carts are both fully priced: the change of total and the new cart's order fields (D2427). Its
+ * quotes carry no token (`quoteToken` and `expiresAt` null): they are priced with the order's uses given back, so a
+ * token would carry a released limit to a new checkout.
+ */
+export interface PricedOrderChange {
+  readonly available: true;
+  readonly before: Quote;
+  readonly after: Quote;
+  readonly delta: number;
+  readonly orderFields: OrderFields;
+}
+
+/**
+ * An order change with a variant the gate refuses in either cart: no delta and no order fields, since both would
+ * silently leave the refused line out (D2425: never commit over a partial cart).
+ */
+export interface UnpricedOrderChange {
+  readonly available: false;
+  readonly before: Quote;
+  readonly after: Quote;
+  /** The refused variants of both carts, each once. */
+  readonly unavailableVariantIds: readonly string[];
+}
+
+/** Both quotes of an order change, priced only when every line of both carts is available (D2425, D2427). */
+export type RepriceResult = PricedOrderChange | UnpricedOrderChange;
+
+/** The engine's pricing of a cart and the variants the gate refused in it. */
+interface EvaluatedCart {
+  readonly priced: PricedQuote;
+  readonly unavailableVariantIds: readonly string[];
+}
+
+/** The engine's pricing of a cart and the quote the buyer gets. */
+interface PricedCart {
+  readonly priced: PricedQuote;
+  readonly quote: Quote;
+}
+
+/** The request parsed: phone in E.164, unknown keys such as a body `storeId` stripped (D2408, D2418). */
+function parseRequest(raw: QuoteRequestInput): QuoteRequest {
+  const parsed = quoteRequestSchema.safeParse(raw);
+  if (!parsed.success) throw new InvalidQuoteRequestError();
+  return parsed.data;
+}
+
+const tokenCartOf = (request: QuoteRequest): TokenCart => ({
+  channel: request.channel,
+  lines: request.lines,
+  destination: request.destination ?? null,
+  codes: request.codes ?? [],
+  phone: request.phone ?? null,
+});
+
+/** The quote without the engine's token parts (`tokenLines`, `tokenDiscounts`, `phoneUsed`), field by field. */
+function publicQuoteOf(priced: PricedQuote): Omit<Quote, 'quoteToken' | 'expiresAt'> {
+  const { currency, lines, discounts, subtotal, discountTotal, delivery, total, savings, nudge } = priced;
+  const { applied, skipped, rejectedCodes, suggestions, available, orderPricingMode, unavailableVariantIds } = priced;
+  return {
+    ...{ currency, lines, discounts, subtotal, discountTotal, delivery, total, savings, nudge },
+    ...{ applied, skipped, rejectedCodes, suggestions, available, orderPricingMode, unavailableVariantIds },
+  };
+}
+
+/** The quote without a token; `available: false` with the refused variants when the gate refused any. */
+function unsignedQuoteOf({ priced, unavailableVariantIds }: EvaluatedCart): Quote {
+  const unsigned = { ...publicQuoteOf(priced), quoteToken: null, expiresAt: null };
+  if (unavailableVariantIds.length === 0) return unsigned;
+  return { ...unsigned, available: false, unavailableVariantIds: [...unavailableVariantIds] };
+}
+
+function orderFieldsOf(priced: PricedQuote): OrderFields {
+  return {
+    lines: priced.tokenLines.map(({ variantId, unitPrice, originalPrice, offerIds }) => ({
+      variantId,
+      quotedUnitPrice: unitPrice,
+      originalPrice,
+      offerIds,
+    })),
+    quoteDiscounts: JSON.stringify(priced.tokenDiscounts),
+    quotedShipping: priced.delivery.price,
+  };
+}
+
+/**
+ * Prices carts of a store into signed quotes, verifies quote tokens and prices order changes (ADR 0004, D2408). The
+ * `quote`, `verifyQuote` and `repriceOrder` methods take the store from the tenant the guard resolved; the `…ForScope`
+ * core is for trusted callers without a guarded request (jobs, tests, evidence) and still refuses a context that is
+ * not on the store's own channel. No HTTP here: P3.S3 and P2.S5 wrap it.
+ *
+ * The request's `channel` (D2420) is asserted by the caller, not derived from `ctx`: offer eligibility by channel is
+ * only as trustworthy as the wrapper that sets it. Each API surface must overwrite the body's `channel` with its own
+ * (a storefront route always sends `storefront`), or a buyer could claim `dashboard` and unlock staff-only offers.
+ */
+export class PricingService {
+  constructor(private readonly deps: PricingServiceDeps) {}
+
+  /** The quote of `request` in the request's active store. @throws {@link NoActiveStoreError} without one. */
+  async quote(ctx: OperationContext, request: QuoteRequestInput): Promise<Quote> {
+    return (await this.price(ctx, await this.activeStore(ctx), request)).quote;
+  }
+
+  /**
+   * The quote of `request` in `scope` (D2425: without a token when a line is unavailable).
+   *
+   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s channel.
+   * @throws {@link InvalidQuoteRequestError} when the request breaks its schema.
+   * @throws {@link PricingTotalTooLargeError} when the total leaves the money range.
+   */
+  async quoteForScope(ctx: OperationContext, scope: StoreScope, request: QuoteRequestInput): Promise<Quote> {
+    await this.assertChannel(ctx, scope);
+    return (await this.price(ctx, scope, request)).quote;
+  }
+
+  /** The verdict on `token` for `cart` in the request's active store. @throws {@link NoActiveStoreError}. */
+  async verifyQuote(ctx: OperationContext, token: string, cart: QuoteRequestInput): Promise<QuoteVerification> {
+    return this.deps.signer.verify(await this.activeStore(ctx), token, tokenCartOf(parseRequest(cart)));
+  }
+
+  /**
+   * The verdict on `token` for `cart` in `scope`: the cart hash is recomputed from the submitted cart (merged,
+   * normalised, with the keyed phone only when the token's `p` is 1).
+   *
+   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s channel.
+   * @throws {@link InvalidQuoteRequestError} when the cart breaks the request schema.
+   */
+  async verifyQuoteForScope(
+    ctx: OperationContext,
+    scope: StoreScope,
+    token: string,
+    cart: QuoteRequestInput,
+  ): Promise<QuoteVerification> {
+    await this.assertChannel(ctx, scope);
+    return this.deps.signer.verify(scope, token, tokenCartOf(parseRequest(cart)));
+  }
+
+  /**
+   * The order change priced in the request's active store; writes nothing. `available: false` (no delta, no order
+   * fields) when either cart has a refused variant. @throws {@link NoActiveStoreError}.
+   */
+  async repriceOrder(ctx: OperationContext, input: RepriceInput): Promise<RepriceResult> {
+    return this.reprice(ctx, await this.activeStore(ctx), input);
+  }
+
+  /** The order change priced in `scope`; writes nothing. @throws {@link NoActiveStoreError} off its channel. */
+  async repriceOrderForScope(ctx: OperationContext, scope: StoreScope, input: RepriceInput): Promise<RepriceResult> {
+    await this.assertChannel(ctx, scope);
+    return this.reprice(ctx, scope, input);
+  }
+
+  private async reprice(ctx: OperationContext, scope: StoreScope, input: RepriceInput): Promise<RepriceResult> {
+    const usage = parseOrderUsage(input.orderUsage);
+    const current = parseRequest(input.current);
+    const next = parseRequest(input.next);
+    const ownBuyer = (next.phone ?? null) === (current.phone ?? null);
+    const before = await this.evaluate(ctx, scope, current, { ...usage, ownBuyer: true });
+    const after = await this.evaluate(ctx, scope, next, { ...usage, ownBuyer });
+    const [beforeQuote, afterQuote] = [unsignedQuoteOf(before), unsignedQuoteOf(after)];
+    const refused = [...before.unavailableVariantIds, ...after.unavailableVariantIds];
+    if (refused.length > 0) {
+      return { available: false, before: beforeQuote, after: afterQuote, unavailableVariantIds: [...new Set(refused)] };
+    }
+    return {
+      available: true,
+      before: beforeQuote,
+      after: afterQuote,
+      delta: afterQuote.total - beforeQuote.total,
+      orderFields: orderFieldsOf(after.priced),
+    };
+  }
+
+  /** Parse → price → sign when every line is available (D2412, D2425). */
+  private async price(ctx: OperationContext, scope: StoreScope, raw: QuoteRequestInput): Promise<PricedCart> {
+    const request = parseRequest(raw);
+    const evaluated = await this.evaluate(ctx, scope, request, null);
+    const { priced } = evaluated;
+    if (evaluated.unavailableVariantIds.length > 0) return { priced, quote: unsignedQuoteOf(evaluated) };
+    const signed = this.deps.signer.sign(scope, priced, tokenCartOf(request));
+    const expiresAt = new Date(signed.expiresAt * MS_PER_SECOND).toISOString();
+    return { priced, quote: { ...publicQuoteOf(priced), quoteToken: signed.token, expiresAt } };
+  }
+
+  /** Merge lines → load the snapshot (with an order's own uses given back when re-pricing it, D2427) → price. */
+  private async evaluate(
+    ctx: OperationContext,
+    scope: StoreScope,
+    request: QuoteRequest,
+    release: OrderRelease | null,
+  ): Promise<EvaluatedCart> {
+    const destination = request.destination ?? null;
+    const phone = request.phone ?? null;
+    const buyer = phone === null ? null : { phone };
+    const codes = request.codes ?? [];
+    const lines = mergeLines(request.lines);
+    const loaded = await this.deps.loader.load(ctx, scope, { lines, destination, buyer, codes });
+    const cart: PricingCart = { channel: request.channel, lines: loaded.lines, destination, buyer, codes };
+    const snapshot = release === null ? loaded.snapshot : releaseOrderUsage(loaded.snapshot, release);
+    const priced = priceCart({ registry: this.deps.kinds, snapshot, cart });
+    return { priced, unavailableVariantIds: loaded.unavailableVariantIds };
+  }
+
+  private async activeStore(ctx: OperationContext): Promise<StoreScope> {
+    const scope = await this.deps.stores.activeStoreOf(ctx);
+    if (scope === undefined) throw new NoActiveStoreError();
+    return scope;
+  }
+
+  private async assertChannel(ctx: OperationContext, scope: StoreScope): Promise<void> {
+    if (!(await this.deps.stores.isChannelOf(ctx, scope))) throw new NoActiveStoreError();
+  }
+}

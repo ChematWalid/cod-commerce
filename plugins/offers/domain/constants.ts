@@ -1,4 +1,9 @@
-import { MAX_LINE_OFFERS_APPLIED, MAX_ORDER_DISCOUNTS_APPLIED, type CombinationClass } from '@cod/shared';
+import {
+  MAX_LINE_OFFERS_APPLIED,
+  MAX_ORDER_DISCOUNTS_APPLIED,
+  MAX_QUOTE_LINES,
+  type CombinationClass,
+} from '@cod/shared';
 
 /** Orders a buyer has before their first one: a `first` audience offer is for a buyer with this many (D2418). */
 export const FIRST_ORDER_COUNT = 0;
@@ -8,6 +13,9 @@ export const FIRST_ORDER_COUNT = 0;
  * `addon` roles, which are not bought lines.
  */
 export const BUY_ROLES: ReadonlySet<string> = new Set(['buy']);
+
+/** Milliseconds per second: token instants are integer epoch seconds (D2421). */
+export const MS_PER_SECOND = 1_000;
 
 /** Dot-separated parts of a quote token: `qt1.<payload>.<signature>` (D2421). */
 export const QUOTE_TOKEN_PART_COUNT = 3;
@@ -42,3 +50,9 @@ export const ENUM_COLUMN_LENGTH = 16;
 
 /** The `source` of a unit price no resolver claimed: the variant's channel list price (D2423). */
 export const LIST_PRICE_SOURCE = 'variant';
+
+/**
+ * Most offers one order can hold (D2427): every line at its line-offer bound plus the order discounts. A re-pricing
+ * order usage naming more did not come from a stored order.
+ */
+export const MAX_ORDER_HELD_OFFERS = MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED + MAX_ORDER_DISCOUNTS_APPLIED;

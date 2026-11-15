@@ -7,7 +7,10 @@ import type { OperationContext } from './operation-context.port';
  * `BUYER_HISTORY_REGISTRAR`; until then no order exists, so every phone is a first-time buyer.
  */
 export interface BuyerHistory {
-  /** Orders of the buyer (by E.164 phone) in the store. */
+  /**
+   * Orders of the buyer (by E.164 phone) in the store, the repriced order included: re-pricing gives that one back
+   * (D2427), so a source must not leave it out itself.
+   */
   orderCountOf(ctx: OperationContext, scope: StoreScope, buyer: BuyerRef): Promise<number>;
 }
 
