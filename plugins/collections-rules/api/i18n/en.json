@@ -1,0 +1,15 @@
+{
+  "error": {
+    "collections-not-found": "Collection not found.",
+    "collections-invalid-input": "Some of the details are not valid.",
+    "collections-rule-invalid": "The conditions are not valid.",
+    "collections-slug-taken": "This slug is already used by another collection of this store.",
+    "collections-image-not-found": "Image not found.",
+    "collections-product-not-found": "A product was not found in this store.",
+    "collections-too-many-products": "A collection can hold at most 500 hand-picked products.",
+    "collections-too-many-collections": "This store has reached the most collections it can keep (500).",
+    "collections-not-manual": "This collection gets its products from its conditions.",
+    "collections-rate-limited": "Too many requests. Try again shortly.",
+    "collections-internal": "The request could not be completed."
+  }
+}

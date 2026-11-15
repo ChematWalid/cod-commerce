@@ -4,3 +4,9 @@ export const MEMBER_REPOSITORY = Symbol('CollectionsMemberRepository');
 export const STORE_LOCK = Symbol('CollectionsStoreLock');
 export const PRODUCT_FACTS = Symbol('CollectionsProductFacts');
 export const ID_GENERATOR = Symbol('CollectionsIdGenerator');
+export const TRANSACTION = Symbol('CollectionsTransaction');
+export const VENDURE_COLLECTIONS = Symbol('CollectionsVendureCollections');
+export const COLLECTION_EVENTS = Symbol('CollectionsEvents');
+export const DESCRIPTION_SANITIZER = Symbol('CollectionsDescriptionSanitizer');
+/** The bundle of `CollectionPorts` every collection use case is built from. */
+export const COLLECTION_PORTS = Symbol('CollectionsPorts');

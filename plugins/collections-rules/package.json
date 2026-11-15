@@ -34,6 +34,7 @@
     "@vendure/dashboard": "3.8.1",
     "graphql-tag": "2.12.7",
     "react": "19.3.0",
+    "sanitize-html": "2.18.1",
     "typeorm": "0.3.31",
     "zod": "4.6.7"
   },
@@ -43,6 +44,7 @@
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
+    "@types/sanitize-html": "2.16.2",
     "@vendure/testing": "3.8.1",
     "typescript": "5.9.3",
     "vite": "7.3.7",
