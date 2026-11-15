@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   pickableProducts,
   typedQuantity,
+  variantChoiceOf,
   withComponent,
   withComponentChange,
   withoutComponent,
@@ -66,6 +67,62 @@ describe('pack components', () => {
       4,
       PACK_MAX_QUANTITY,
     ]);
+  });
+});
+
+describe("a component line's variant choice", () => {
+  const tee = {
+    id: '14',
+    title: 'Tee',
+    type: 'physical',
+    variants: [
+      { id: '1401', name: 'Red' },
+      { id: '1402', name: 'Blue' },
+    ],
+  };
+  const lineOf = (variantId: string | null, productId = '14') => ({ productId, title: 'Tee', variantId, quantity: 1 });
+
+  it('names the pinned variant and lets the merchant change it', () => {
+    // Act
+    const choice = variantChoiceOf(lineOf('1402'), tee, false);
+
+    // Assert
+    expect(choice).toEqual({ pinned: { id: '1402', name: 'Blue' }, pinGone: false, locked: false });
+  });
+
+  it('locks the choice of a product with one variant when nothing dead is pinned', () => {
+    // Act
+    const choice = variantChoiceOf(lineOf(null, '11'), shirt, false);
+
+    // Assert
+    expect(choice).toEqual({ pinned: undefined, pinGone: false, locked: true });
+  });
+
+  it('flags a pinned variant the product no longer has and keeps the choice open so the pin can be cleared', () => {
+    // Arrange: the product kept one variant, the line pins a deleted one.
+    const product = { ...tee, variants: [{ id: '1401', name: 'Red' }] };
+
+    // Act
+    const choice = variantChoiceOf(lineOf('1499'), product, false);
+
+    // Assert
+    expect(choice).toEqual({ pinned: undefined, pinGone: true, locked: false });
+  });
+
+  it('does not call a pin dead before the product is read', () => {
+    // Act
+    const choice = variantChoiceOf(lineOf('1499'), undefined, false);
+
+    // Assert
+    expect(choice).toEqual({ pinned: undefined, pinGone: false, locked: true });
+  });
+
+  it('keeps the choice locked when the variant field is disabled, dead pin or not', () => {
+    // Act
+    const choice = variantChoiceOf(lineOf('1499'), tee, true);
+
+    // Assert
+    expect(choice.locked).toBe(true);
   });
 });
 

@@ -112,6 +112,14 @@ msgid "packs.component-variant"
 msgstr "Variant"
 
 #. js-lingui-explicit-id
+msgid "packs.variant-unavailable"
+msgstr "Variant unavailable"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-unavailable-hint"
+msgstr "This variant no longer exists: choose another one or “Customer chooses”."
+
+#. js-lingui-explicit-id
 msgid "packs.component-quantity"
 msgstr "Quantity"
 

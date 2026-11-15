@@ -112,6 +112,14 @@ msgid "packs.component-variant"
 msgstr "المتغير"
 
 #. js-lingui-explicit-id
+msgid "packs.variant-unavailable"
+msgstr "متغير غير متوفر"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-unavailable-hint"
+msgstr "لم يعد هذا المتغير موجوداً: اختر متغيراً آخر أو «يختار الزبون»."
+
+#. js-lingui-explicit-id
 msgid "packs.component-quantity"
 msgstr "الكمية"
 

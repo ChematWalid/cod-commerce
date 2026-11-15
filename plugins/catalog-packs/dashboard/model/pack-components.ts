@@ -54,6 +54,30 @@ export const withComponentChange = (
   components: form.components.map((line, at) => (at === index ? { ...line, ...change } : line)),
 });
 
+/** What a component line's variant select shows and allows. */
+export interface VariantChoice {
+  /** The pinned variant, when the product still has it. */
+  readonly pinned: PickableVariant | undefined;
+  /** The line pins a variant the product no longer has (deleted since): the server refuses it until it is cleared. */
+  readonly pinGone: boolean;
+  readonly locked: boolean;
+}
+
+/**
+ * The variant choice of `line`: a product with one variant offers nothing to choose, except when the line pins a dead
+ * variant, which must stay clearable (D2248). An unread product (`undefined`) is never called dead.
+ */
+export function variantChoiceOf(
+  line: PackComponentDraft,
+  product: PickableProduct | undefined,
+  fieldDisabled: boolean,
+): VariantChoice {
+  const variants = product?.variants ?? [];
+  const pinned = variants.find((variant) => variant.id === line.variantId);
+  const pinGone = product !== undefined && line.variantId !== null && pinned === undefined;
+  return { pinned, pinGone, locked: fieldDisabled || (!pinGone && variants.length < 2) };
+}
+
 /**
  * A typed quantity as a whole number, at most what one line holds; `undefined` while the field is empty or holds no
  * count, so the merchant can clear the field and type another number (the line keeps its last count meanwhile).

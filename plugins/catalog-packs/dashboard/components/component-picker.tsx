@@ -8,6 +8,7 @@ import {
   type PickableProduct,
   pickableProducts,
   typedQuantity,
+  variantChoiceOf,
   withComponent,
   withComponentChange,
   withoutComponent,
@@ -36,25 +37,29 @@ interface RowProps {
   readonly onRemove: () => void;
 }
 
-/** A component's variant: any (the buyer's choice) or one pinned. */
+/** A component's variant: any (the buyer's choice) or one pinned; a pin the product lost shows as unavailable. */
 function VariantSelect({ line, product, variantDisabled, onChange }: RowProps): ReactNode {
   const { i18n } = useLingui();
-  const variants = product?.variants ?? [];
-  const chosen = variants.find((variant) => variant.id === line.variantId);
+  const { pinned, pinGone, locked } = variantChoiceOf(line, product, variantDisabled);
+  const label = pinGone ? i18n._('packs.variant-unavailable') : (pinned?.name ?? i18n._('packs.any-variant'));
   return (
     <Select
       value={line.variantId ?? ANY_VARIANT}
-      disabled={variantDisabled || variants.length < 2}
+      disabled={locked}
       onValueChange={(value) => {
         onChange({ variantId: value === null || value === ANY_VARIANT ? null : value });
       }}
     >
-      <SelectTrigger className="w-full sm:w-48" aria-label={i18n._('packs.component-variant')}>
-        <SelectValue>{chosen?.name ?? i18n._('packs.any-variant')}</SelectValue>
+      <SelectTrigger
+        className={pinGone ? 'border-destructive text-destructive w-full sm:w-48' : 'w-full sm:w-48'}
+        aria-label={i18n._('packs.component-variant')}
+        aria-invalid={pinGone}
+      >
+        <SelectValue>{label}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={ANY_VARIANT}>{i18n._('packs.any-variant')}</SelectItem>
-        {variants.map((variant) => (
+        {(product?.variants ?? []).map((variant) => (
           <SelectItem key={variant.id} value={variant.id}>
             {variant.name}
           </SelectItem>
@@ -62,6 +67,13 @@ function VariantSelect({ line, product, variantDisabled, onChange }: RowProps): 
       </SelectContent>
     </Select>
   );
+}
+
+/** Why a line's pinned variant is refused, when the product no longer has it. */
+function VariantGoneHint({ line, product }: RowProps): ReactNode {
+  const { i18n } = useLingui();
+  if (!variantChoiceOf(line, product, false).pinGone) return null;
+  return <p className="text-destructive w-full text-sm">{i18n._('packs.variant-unavailable-hint')}</p>;
 }
 
 /** A line's quantity as typed: the field may be cleared and retyped; it shows the line's count again on blur. */
@@ -100,6 +112,7 @@ function ComponentRow(props: RowProps): ReactNode {
       <Button type="button" variant="outline" disabled={props.disabled} onClick={props.onRemove}>
         {i18n._('packs.remove-component')}
       </Button>
+      <VariantGoneHint {...props} />
     </li>
   );
 }
