@@ -3,6 +3,7 @@ import { TenancyPlugin } from '@cod/plugin-tenancy';
 import type { QuoteKeyRing } from '@cod/shared/quote-keys';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { QUOTE_KEY_RING } from './application/tokens';
+import { OFFERS_ENTITIES } from './infrastructure/offers-entities';
 
 /** How the server configures {@link OffersPlugin}. */
 export interface OffersPluginOptions {
@@ -16,6 +17,7 @@ export interface OffersPluginOptions {
  */
 @VendurePlugin({
   imports: [PluginCommonModule, TenancyPlugin, CatalogPlugin],
+  entities: OFFERS_ENTITIES,
   providers: [{ provide: QUOTE_KEY_RING, useFactory: (): QuoteKeyRing => OffersPlugin.requireOptions().quoteKeys }],
   compatibility: '^3.8.0',
 })

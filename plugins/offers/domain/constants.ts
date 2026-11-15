@@ -36,3 +36,6 @@ export const ACCEPTED_LIMIT_PER_QUOTE_BY_CLASS: Readonly<Partial<Record<Combinat
 export const ACCEPTED_LIMIT_PER_LINE_BY_CLASS: Readonly<Partial<Record<CombinationClass, number>>> = {
   product: MAX_LINE_OFFERS_APPLIED,
 };
+
+/** Width of the short enum-like columns (`method`, `status`, target `role` and `refType`); every value is shorter. */
+export const ENUM_COLUMN_LENGTH = 16;

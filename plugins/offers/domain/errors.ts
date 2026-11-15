@@ -40,6 +40,14 @@ export class InvalidOfferTransitionError extends DomainError {
   }
 }
 
+/** The offer changed since it was read (another edit or status change won); the caller reads it again. */
+export class OfferConflictError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.OFFER_CONFLICT;
+  constructor() {
+    super('The offer changed since it was read');
+  }
+}
+
 /** A quote total exceeds the money range (D2415). */
 export class PricingTotalTooLargeError extends DomainError {
   readonly code = PRICING_ERROR_CODES.TOTAL_TOO_LARGE;

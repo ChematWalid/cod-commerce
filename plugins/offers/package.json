@@ -13,6 +13,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts",
     "test:coverage": "vitest run --configLoader runner --coverage"
   },
   "dependencies": {

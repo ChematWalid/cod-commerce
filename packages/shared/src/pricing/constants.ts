@@ -32,6 +32,8 @@ export const MAX_QUOTE_CODES = 5;
  */
 export const MAX_LINE_OFFERS_APPLIED = 4;
 export const MAX_ORDER_DISCOUNTS_APPLIED = MAX_QUOTE_CODES + 3;
+/** Most codes one admin add may carry, so one call never holds a transaction for an unbounded batch. */
+export const MAX_CODES_PER_ADD = 100;
 /** Longest code a buyer may type, before trimming and upper-casing. */
 export const MAX_CODE_INPUT_LENGTH = 64;
 /** Longest phone text a request may carry, before normalising. */
