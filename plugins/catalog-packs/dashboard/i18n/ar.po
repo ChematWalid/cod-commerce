@@ -1,0 +1,208 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "packs.block-title"
+msgstr "الحزمة"
+
+#. js-lingui-explicit-id
+msgid "packs.save-first"
+msgstr "احفظ المنتج أولاً كحزمة لاختيار مكوّناتها."
+
+#. js-lingui-explicit-id
+msgid "packs.not-a-pack"
+msgstr "المنتجات من نوع حزمة فقط لها مكوّنات."
+
+#. js-lingui-explicit-id
+msgid "packs.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "packs.pricing-mode"
+msgstr "السعر"
+
+#. js-lingui-explicit-id
+msgid "packs.pricing-fixed"
+msgstr "سعر ثابت"
+
+#. js-lingui-explicit-id
+msgid "packs.pricing-sum"
+msgstr "مجموع المكوّنات"
+
+#. js-lingui-explicit-id
+msgid "packs.fixed-price"
+msgstr "سعر الحزمة"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-type"
+msgstr "الخصم"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-none"
+msgstr "بدون خصم"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-percent"
+msgstr "نسبة مئوية"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-amount"
+msgstr "مبلغ"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-value"
+msgstr "قيمة الخصم"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-mode"
+msgstr "المتغيرات"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-per-component"
+msgstr "تُختار لكل مكوّن"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-shared"
+msgstr "خيار مشترك واحد"
+
+#. js-lingui-explicit-id
+msgid "packs.shared-option"
+msgstr "اسم الخيار المشترك"
+
+#. js-lingui-explicit-id
+msgid "packs.weight-mode"
+msgstr "الوزن"
+
+#. js-lingui-explicit-id
+msgid "packs.weight-sum"
+msgstr "مجموع المكوّنات"
+
+#. js-lingui-explicit-id
+msgid "packs.weight-fixed"
+msgstr "وزن ثابت"
+
+#. js-lingui-explicit-id
+msgid "packs.fixed-weight"
+msgstr "وزن الحزمة"
+
+#. js-lingui-explicit-id
+msgid "packs.currency"
+msgstr "د.ج"
+
+#. js-lingui-explicit-id
+msgid "packs.grams"
+msgstr "غ"
+
+#. js-lingui-explicit-id
+msgid "packs.picker-search"
+msgstr "أضف منتجاً"
+
+#. js-lingui-explicit-id
+msgid "packs.no-candidates"
+msgstr "لا يوجد منتج لإضافته."
+
+#. js-lingui-explicit-id
+msgid "packs.any-variant"
+msgstr "يختار الزبون"
+
+#. js-lingui-explicit-id
+msgid "packs.component-variant"
+msgstr "المتغير"
+
+#. js-lingui-explicit-id
+msgid "packs.component-quantity"
+msgstr "الكمية"
+
+#. js-lingui-explicit-id
+msgid "packs.remove-component"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "packs.stored-price"
+msgstr "السعر الحالي:"
+
+#. js-lingui-explicit-id
+msgid "packs.preview"
+msgstr "معاينة السعر"
+
+#. js-lingui-explicit-id
+msgid "packs.preview-price"
+msgstr "السعر:"
+
+#. js-lingui-explicit-id
+msgid "packs.preview-weight"
+msgstr "الوزن:"
+
+#. js-lingui-explicit-id
+msgid "packs.stale"
+msgstr "أحد المكوّنات غير متوفر: تحتفظ الحزمة بآخر سعر لها حتى يعود."
+
+#. js-lingui-explicit-id
+msgid "packs.save"
+msgstr "حفظ الحزمة"
+
+#. js-lingui-explicit-id
+msgid "packs.saved"
+msgstr "تم حفظ الحزمة"
+
+#. js-lingui-explicit-id
+msgid "packs.fix-errors"
+msgstr "صحّح الحقول المشار إليها."
+
+#. js-lingui-explicit-id
+msgid "packs.error-too-few-components"
+msgstr "تضم الحزمة مكوّنين على الأقل."
+
+#. js-lingui-explicit-id
+msgid "packs.error-too-many-components"
+msgstr "تضم الحزمة 10 مكوّنات على الأكثر."
+
+#. js-lingui-explicit-id
+msgid "packs.error-amount"
+msgstr "أدخل عدداً صحيحاً."
+
+#. js-lingui-explicit-id
+msgid "packs.error-discount"
+msgstr "أدخل عدداً صحيحاً؛ النسبة المئوية 100 على الأكثر."
+
+#. js-lingui-explicit-id
+msgid "packs.error-shared-option"
+msgstr "سمِّ الخيار الذي تشترك فيه كل المكوّنات."
+
+#. js-lingui-explicit-id
+msgid "packs.error-generic"
+msgstr "حدث خطأ. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "packs.error-forbidden"
+msgstr "ليست لديك صلاحية القيام بذلك."
+
+#. js-lingui-explicit-id
+msgid "packs.error-store-switched"
+msgstr "تغيّر المتجر النشط. أعد تحميل الصفحة."
+
+#. js-lingui-explicit-id
+msgid "packs.invalid-input"
+msgstr "الحزمة غير صالحة."
+
+#. js-lingui-explicit-id
+msgid "packs.not-found"
+msgstr "المنتج غير موجود."
+
+#. js-lingui-explicit-id
+msgid "packs.component-not-found"
+msgstr "أحد المكوّنات ليس منتجاً في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "packs.component-is-pack"
+msgstr "لا يمكن أن تضم الحزمة حزمة أخرى."
+
+#. js-lingui-explicit-id
+msgid "packs.shared-option-missing"
+msgstr "يجب أن يكون لكل مكوّن الخيار المشترك وحده."
+
+#. js-lingui-explicit-id
+msgid "packs.no-common-value"
+msgstr "لا تشترك المكوّنات في أي قيمة لهذا الخيار."

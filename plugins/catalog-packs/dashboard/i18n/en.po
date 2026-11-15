@@ -1,0 +1,208 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "packs.block-title"
+msgstr "Pack"
+
+#. js-lingui-explicit-id
+msgid "packs.save-first"
+msgstr "Save the product first, as a Pack, to choose its components."
+
+#. js-lingui-explicit-id
+msgid "packs.not-a-pack"
+msgstr "Only a product of type Pack has components."
+
+#. js-lingui-explicit-id
+msgid "packs.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "packs.pricing-mode"
+msgstr "Price"
+
+#. js-lingui-explicit-id
+msgid "packs.pricing-fixed"
+msgstr "Fixed price"
+
+#. js-lingui-explicit-id
+msgid "packs.pricing-sum"
+msgstr "Sum of the components"
+
+#. js-lingui-explicit-id
+msgid "packs.fixed-price"
+msgstr "Pack price"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-type"
+msgstr "Discount"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-none"
+msgstr "No discount"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-percent"
+msgstr "Percentage"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-amount"
+msgstr "Amount"
+
+#. js-lingui-explicit-id
+msgid "packs.discount-value"
+msgstr "Discount value"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-mode"
+msgstr "Variants"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-per-component"
+msgstr "Chosen per component"
+
+#. js-lingui-explicit-id
+msgid "packs.variant-shared"
+msgstr "One shared option"
+
+#. js-lingui-explicit-id
+msgid "packs.shared-option"
+msgstr "Shared option name"
+
+#. js-lingui-explicit-id
+msgid "packs.weight-mode"
+msgstr "Weight"
+
+#. js-lingui-explicit-id
+msgid "packs.weight-sum"
+msgstr "Sum of the components"
+
+#. js-lingui-explicit-id
+msgid "packs.weight-fixed"
+msgstr "Fixed weight"
+
+#. js-lingui-explicit-id
+msgid "packs.fixed-weight"
+msgstr "Pack weight"
+
+#. js-lingui-explicit-id
+msgid "packs.currency"
+msgstr "DZD"
+
+#. js-lingui-explicit-id
+msgid "packs.grams"
+msgstr "g"
+
+#. js-lingui-explicit-id
+msgid "packs.picker-search"
+msgstr "Add a product"
+
+#. js-lingui-explicit-id
+msgid "packs.no-candidates"
+msgstr "No product to add."
+
+#. js-lingui-explicit-id
+msgid "packs.any-variant"
+msgstr "Customer chooses"
+
+#. js-lingui-explicit-id
+msgid "packs.component-variant"
+msgstr "Variant"
+
+#. js-lingui-explicit-id
+msgid "packs.component-quantity"
+msgstr "Quantity"
+
+#. js-lingui-explicit-id
+msgid "packs.remove-component"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "packs.stored-price"
+msgstr "Current price:"
+
+#. js-lingui-explicit-id
+msgid "packs.preview"
+msgstr "Preview price"
+
+#. js-lingui-explicit-id
+msgid "packs.preview-price"
+msgstr "Price:"
+
+#. js-lingui-explicit-id
+msgid "packs.preview-weight"
+msgstr "Weight:"
+
+#. js-lingui-explicit-id
+msgid "packs.stale"
+msgstr "A component is unavailable: the pack keeps its last price until it is back."
+
+#. js-lingui-explicit-id
+msgid "packs.save"
+msgstr "Save pack"
+
+#. js-lingui-explicit-id
+msgid "packs.saved"
+msgstr "Pack saved"
+
+#. js-lingui-explicit-id
+msgid "packs.fix-errors"
+msgstr "Fix the highlighted fields."
+
+#. js-lingui-explicit-id
+msgid "packs.error-too-few-components"
+msgstr "A pack holds at least 2 components."
+
+#. js-lingui-explicit-id
+msgid "packs.error-too-many-components"
+msgstr "A pack holds at most 10 components."
+
+#. js-lingui-explicit-id
+msgid "packs.error-amount"
+msgstr "Enter a whole number."
+
+#. js-lingui-explicit-id
+msgid "packs.error-discount"
+msgstr "Enter a whole number; a percentage is at most 100."
+
+#. js-lingui-explicit-id
+msgid "packs.error-shared-option"
+msgstr "Name the option all components share."
+
+#. js-lingui-explicit-id
+msgid "packs.error-generic"
+msgstr "Something went wrong. Try again."
+
+#. js-lingui-explicit-id
+msgid "packs.error-forbidden"
+msgstr "You do not have permission to do this."
+
+#. js-lingui-explicit-id
+msgid "packs.error-store-switched"
+msgstr "The active store changed. Reload the page."
+
+#. js-lingui-explicit-id
+msgid "packs.invalid-input"
+msgstr "The pack is not valid."
+
+#. js-lingui-explicit-id
+msgid "packs.not-found"
+msgstr "Product not found."
+
+#. js-lingui-explicit-id
+msgid "packs.component-not-found"
+msgstr "A component is not a product of this store."
+
+#. js-lingui-explicit-id
+msgid "packs.component-is-pack"
+msgstr "A pack cannot hold another pack."
+
+#. js-lingui-explicit-id
+msgid "packs.shared-option-missing"
+msgstr "Each component must have exactly the shared option."
+
+#. js-lingui-explicit-id
+msgid "packs.no-common-value"
+msgstr "The components share no value of this option."
