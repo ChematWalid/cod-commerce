@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { PACK_PREVIEW_TEST_ID, PACK_PRICE_TEST_ID } from '../constants';
 import { packFailureMessageId } from '../hooks/use-pack-save';
 import { formatDzd } from '../model/format-dzd';
-import { type PackForm, packFormErrors, packInputOf } from '../model/pack-form';
+import { type PackForm, type PackInput, packFormErrors, packInputOf, previewDescribes } from '../model/pack-form';
 import { type CatalogPackPreviewDto, previewCatalogPack } from '../queries';
 import { LtrRun } from './ltr-run';
 
@@ -45,11 +45,14 @@ function PreviewAnswer({ preview }: { readonly preview: CatalogPackPreviewDto })
   );
 }
 
-/** The stored price, and a preview of the form's price and weight computed by the server without saving. */
+/**
+ * The stored price, and a preview of the form's price and weight computed by the server without saving; the answer is
+ * hidden once the form no longer matches the input it was computed for.
+ */
 export function PackPreview({ scope, form, disabled, storedPrice }: PackPreviewProps): ReactNode {
   const { i18n } = useLingui();
   const preview = useMutation({
-    mutationFn: () => previewCatalogPack(scope, packInputOf(form)),
+    mutationFn: (input: PackInput) => previewCatalogPack(scope, input),
     onError: (error: unknown) => {
       toast.error(i18n._(packFailureMessageId(error)));
     },
@@ -67,13 +70,15 @@ export function PackPreview({ scope, form, disabled, storedPrice }: PackPreviewP
           data-testid={PACK_PREVIEW_TEST_ID}
           disabled={disabled || !valid || preview.isPending}
           onClick={() => {
-            preview.mutate();
+            preview.mutate(packInputOf(form));
           }}
         >
           {i18n._('packs.preview')}
         </Button>
       </div>
-      {preview.data !== undefined && <PreviewAnswer preview={preview.data} />}
+      {preview.data !== undefined && previewDescribes(preview.variables, form) && (
+        <PreviewAnswer preview={preview.data} />
+      )}
     </div>
   );
 }

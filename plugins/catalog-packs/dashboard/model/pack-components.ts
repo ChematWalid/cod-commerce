@@ -54,9 +54,12 @@ export const withComponentChange = (
   components: form.components.map((line, at) => (at === index ? { ...line, ...change } : line)),
 });
 
-/** A typed quantity as a whole number from 1 to the most one line holds; anything else counts as 1. */
-export function quantityOf(text: string): number {
+/**
+ * A typed quantity as a whole number, at most what one line holds; `undefined` while the field is empty or holds no
+ * count, so the merchant can clear the field and type another number (the line keeps its last count meanwhile).
+ */
+export function typedQuantity(text: string): number | undefined {
   const value = Number.parseInt(text, 10);
-  if (!Number.isFinite(value) || value < 1) return 1;
+  if (!Number.isFinite(value) || value < 1) return undefined;
   return Math.min(value, PACK_MAX_QUANTITY);
 }

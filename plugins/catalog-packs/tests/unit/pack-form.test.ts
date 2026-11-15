@@ -8,6 +8,7 @@ import {
   packFormErrors,
   packFormOf,
   packInputOf,
+  previewDescribes,
   TOO_FEW_COMPONENTS_MESSAGE_ID,
 } from '../../dashboard/model/pack-form';
 
@@ -140,5 +141,16 @@ describe('pack form', () => {
       { productId: '12', title: '12', variantId: null, quantity: 3 },
     ]);
     expect(packInputOf(form)).toEqual(stored);
+  });
+
+  it('shows a preview only for the form it was computed for', () => {
+    // Arrange
+    const previewed = packInputOf(twoComponents);
+    const changed: PackForm = { ...twoComponents, discountValue: '20' };
+
+    // Assert
+    expect(previewDescribes(previewed, twoComponents)).toBe(true);
+    expect(previewDescribes(previewed, changed)).toBe(false);
+    expect(previewDescribes(undefined, twoComponents)).toBe(false);
   });
 });

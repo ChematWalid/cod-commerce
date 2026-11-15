@@ -140,6 +140,10 @@ export function packInputOf(form: PackForm): PackInput {
   };
 }
 
+/** Whether a preview computed for `previewed` still describes the form as it stands. */
+export const previewDescribes = (previewed: PackInput | undefined, form: PackForm): boolean =>
+  previewed !== undefined && JSON.stringify(previewed) === JSON.stringify(packInputOf(form));
+
 function componentsError(form: PackForm): string | undefined {
   if (form.components.length < PACK_MIN_COMPONENTS) return TOO_FEW_COMPONENTS_MESSAGE_ID;
   return form.components.length > PACK_MAX_COMPONENTS ? TOO_MANY_COMPONENTS_MESSAGE_ID : undefined;

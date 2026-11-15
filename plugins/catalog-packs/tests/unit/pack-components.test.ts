@@ -2,7 +2,7 @@ import { CATALOG_PACKS_ERROR_CODES, PACK_MAX_COMPONENTS, PACK_MAX_QUANTITY } fro
 import { describe, expect, it } from 'vitest';
 import {
   pickableProducts,
-  quantityOf,
+  typedQuantity,
   withComponent,
   withComponentChange,
   withoutComponent,
@@ -13,7 +13,8 @@ import { emptyPackForm } from '../../dashboard/model/pack-form';
 const shirt = { id: '11', title: 'Shirt', type: 'physical', variants: [{ id: '1101', name: 'Shirt' }] };
 const cap = { id: '12', title: 'Cap', type: 'physical', variants: [{ id: '1201', name: 'Cap' }] };
 const otherPack = { id: '13', title: 'Duo', type: 'pack', variants: [{ id: '1301', name: 'Duo' }] };
-const self = { id: '30', title: 'This pack', type: 'pack', variants: [] };
+/** The pack being edited, listed with a non-pack type (its type change not saved yet), so only its id excludes it. */
+const self = { id: '30', title: 'This pack', type: 'physical', variants: [] };
 
 describe('pack components', () => {
   it('offers neither packs, nor the pack itself, nor a product already in it', () => {
@@ -56,11 +57,12 @@ describe('pack components', () => {
     expect(removed.components).toEqual([{ productId: '12', title: 'Cap', variantId: '1201', quantity: 3 }]);
   });
 
-  it('reads a typed quantity between 1 and the most a line holds', () => {
+  it('reads a typed quantity up to the most a line holds, and nothing while the field is empty or not a count', () => {
     // Assert
-    expect([quantityOf('0'), quantityOf('abc'), quantityOf('4'), quantityOf('1000')]).toEqual([
-      1,
-      1,
+    expect(['', '0', 'abc', '4', '1000'].map(typedQuantity)).toEqual([
+      undefined,
+      undefined,
+      undefined,
       4,
       PACK_MAX_QUANTITY,
     ]);

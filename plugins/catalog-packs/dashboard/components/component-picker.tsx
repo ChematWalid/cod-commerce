@@ -7,7 +7,7 @@ import { PACK_COMPONENT_ROW_TEST_ID, PACK_PICKER_OPTION_TEST_ID, PACK_PICKER_SEA
 import {
   type PickableProduct,
   pickableProducts,
-  quantityOf,
+  typedQuantity,
   withComponent,
   withComponentChange,
   withoutComponent,
@@ -64,6 +64,31 @@ function VariantSelect({ line, product, variantDisabled, onChange }: RowProps): 
   );
 }
 
+/** A line's quantity as typed: the field may be cleared and retyped; it shows the line's count again on blur. */
+function QuantityInput({ line, disabled, onChange }: RowProps): ReactNode {
+  const { i18n } = useLingui();
+  const [text, setText] = useState(String(line.quantity));
+  return (
+    <Input
+      type="number"
+      min={1}
+      max={PACK_MAX_QUANTITY}
+      className="w-20"
+      aria-label={i18n._('packs.component-quantity')}
+      value={text}
+      disabled={disabled}
+      onChange={(event) => {
+        setText(event.target.value);
+        const quantity = typedQuantity(event.target.value);
+        if (quantity !== undefined) onChange({ quantity });
+      }}
+      onBlur={() => {
+        setText(String(typedQuantity(text) ?? line.quantity));
+      }}
+    />
+  );
+}
+
 /** One component line: its title, variant, quantity and a remove button. */
 function ComponentRow(props: RowProps): ReactNode {
   const { i18n } = useLingui();
@@ -71,18 +96,7 @@ function ComponentRow(props: RowProps): ReactNode {
     <li data-testid={PACK_COMPONENT_ROW_TEST_ID} className="flex flex-wrap items-center gap-2">
       <span className="min-w-0 flex-1 truncate">{props.product?.title ?? props.line.title}</span>
       <VariantSelect {...props} />
-      <Input
-        type="number"
-        min={1}
-        max={PACK_MAX_QUANTITY}
-        className="w-20"
-        aria-label={i18n._('packs.component-quantity')}
-        value={props.line.quantity}
-        disabled={props.disabled}
-        onChange={(event) => {
-          props.onChange({ quantity: quantityOf(event.target.value) });
-        }}
-      />
+      <QuantityInput {...props} />
       <Button type="button" variant="outline" disabled={props.disabled} onClick={props.onRemove}>
         {i18n._('packs.remove-component')}
       </Button>
@@ -139,7 +153,8 @@ export function ComponentPicker(props: PickerProps): ReactNode {
       <ul className="grid gap-2">
         {form.components.map((line, index) => (
           <ComponentRow
-            key={line.productId}
+            // A stored pack may repeat a product with another pinned variant (D2202), so the id alone is not unique.
+            key={`${String(index)}:${line.productId}:${line.variantId ?? ANY_VARIANT}`}
             line={line}
             product={props.known.get(line.productId)}
             disabled={disabled}
