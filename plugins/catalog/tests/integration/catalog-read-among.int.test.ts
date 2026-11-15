@@ -99,6 +99,7 @@ describe('CatalogReadService among given products on a live server (D2310)', () 
     // Assert
     expect(among).toEqual({ ids: [own], totalItems: 1 });
     expect(listed).toEqual({ ids: [own], totalItems: 1 });
+    expect(sent.map(String)).toContain(String(own));
     for (const malformed of MALFORMED_IDS) expect(sent.map(String)).not.toContain(malformed);
   });
 

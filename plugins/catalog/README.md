@@ -42,7 +42,7 @@ reads live in `infrastructure/vendure-product-facts.query.ts`, a reviewed raw-da
 - `COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR` (with `CollectionMembershipSource`, `CollectionMembershipSourceRegistrar`
   and `CatalogCollectionOption`): the catalog reads which collections hold a product through
   `CollectionMembershipRegistry`, the `catalog_product_collection` table until collection rules register their
-  source on bootstrap (a second registration throws). A product's `collectionIds` are its manual collections only; a
+  source on bootstrap. A product's `collectionIds` are its manual collections only; a
   product write naming a collection the source does not call manual (`manualCollectionIdsAmong`) answers
   `catalog.collection-not-found`; the list's collection filter sees every member (`productIdsInCollection`). The
   Admin API query `catalogCollectionOptions` (`catalog.products.view`) lists the source's `collectionOptionsOf`,
@@ -52,6 +52,11 @@ reads live in `infrastructure/vendure-product-facts.query.ts`, a reviewed raw-da
   filtered by `ProductCatalogPort.visibleIdsAmong` (ids only) and only the page's records are read.
   `listVisible(ctx, context, { skip, take, productIds })` limits the newest-first list to at most
   `CATALOG_MAX_AMONG_IDS` ids (an automatic collection). Malformed, repeated and other-store ids are left out.
+- `VisibleProduct.collectionIds` (the public read) holds manual collections only (D2309); a product's automatic
+  memberships come from the collections-rules read, never from this field.
+- The registrar the plugin exports can only `register`; a second registration throws
+  `CollectionMembershipSourceAlreadyRegisteredError`. A registered source must take its per-store lock (D2334) in
+  `replaceProductCollections` and drop or refuse ids that turned automatic since the use case's manual check.
 - Deleting a tag publishes `product.changed` (`updated`) for every product it unlinks, in the delete's transaction,
   as a brand delete does.
 

@@ -71,5 +71,6 @@ describe('TagService delete (D2311)', () => {
     expect(world.transactions).toBe(before + 1);
     expect(world.products.calls).toContain(`exclusive:${promo.id}`);
     expect(world.events).toHaveLength(1);
+    expect(world.eventsOutsideTransaction).toBe(0);
   });
 });

@@ -18,7 +18,10 @@ export interface CollectionOption {
 export interface CollectionMembershipSource {
   /**
    * Replaces the manual collections of `productId` in the scope's store with `collectionIds`, in that order; a
-   * repeated id is linked once. The ids already passed {@link manualCollectionIdsAmong} (the use case checks them).
+   * repeated id is linked once. The ids already passed {@link manualCollectionIdsAmong} (the use case checks them),
+   * but that check runs before this write and the catalog takes no store lock: a collection switched to automatic in
+   * between would still be named here. A source with automatic collections must therefore take its per-store lock
+   * (D2334) inside this call and refuse or drop every id that is no longer manual.
    */
   replaceProductCollections(
     ctx: OperationContext,
@@ -52,6 +55,6 @@ export interface CollectionMembershipSource {
 
 /** Where another plugin replaces the default {@link CollectionMembershipSource} (D2309). */
 export interface CollectionMembershipSourceRegistrar {
-  /** @throws {Error} when a source is already registered: two sources would silently disagree. */
+  /** @throws {CollectionMembershipSourceAlreadyRegisteredError} when a source is already registered. */
   register(source: CollectionMembershipSource): void;
 }

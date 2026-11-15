@@ -50,6 +50,8 @@ export class ProductWorld {
   transactions = 0;
   /** Taxonomy and media locks taken outside a transaction, where they would end at once. */
   locksOutsideTransaction = 0;
+  /** `product.changed` events published outside a transaction, where they would not commit with the change. */
+  eventsOutsideTransaction = 0;
   /** The business each taxonomy or media lock was keyed by, in call order. */
   readonly lockBusinesses: string[] = [];
   private openTransactions = 0;
@@ -59,6 +61,7 @@ export class ProductWorld {
     search: { matchingProductIds: () => Promise.resolve(this.searchHits) },
     events: {
       publish: (_ctx, scope, productId, change) => {
+        if (this.openTransactions === 0) this.eventsOutsideTransaction += 1;
         this.events.push({ scope, productId, change });
         return Promise.resolve();
       },

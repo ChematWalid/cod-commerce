@@ -45,7 +45,7 @@ import { UpdateProductService } from '../application/update-product.service';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
-import { CollectionMembershipRegistry } from './collection-membership-registry';
+import { CollectionMembershipRegistry, registrarOf } from './collection-membership-registry';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
 import { OutboxProductEvents } from './product-changed.outbox';
 import { SettingsFlagSoldOutSource } from './settings-flag-sold-out.source';
@@ -161,7 +161,12 @@ export const PRODUCT_PROVIDERS: Provider[] = [
       new CollectionMembershipRegistry(new TypeOrmProductCollectionRepository(factory, ids)),
     inject: [TenantRepositoryFactory, ID_GENERATOR],
   },
-  { provide: COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR, useExisting: PRODUCT_COLLECTION_REPOSITORY },
+  // Only `register` leaves the module: the registry's source methods would write links past every product check.
+  {
+    provide: COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
+    useFactory: registrarOf,
+    inject: [PRODUCT_COLLECTION_REPOSITORY],
+  },
   {
     provide: PRODUCT_PORTS,
     // Nest hands the adapters in `inject` order, which is PORT_ENTRIES' own order: each lands on its entry's key.

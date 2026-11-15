@@ -40,6 +40,7 @@ export type {
   CollectionMembershipSourceRegistrar,
   CollectionOption as CatalogCollectionOption,
 } from './domain/ports/collection-membership-source.port';
+export { CollectionMembershipSourceAlreadyRegisteredError } from './domain/errors';
 export { CATALOG_MAX_AMONG_IDS } from './domain/constants';
 export type { SoldOutSource, SoldOutSourceRegistrar } from './domain/ports/sold-out-source.port';
 export { type CoreId, parseCoreId, toCoreId } from './domain/core-id';

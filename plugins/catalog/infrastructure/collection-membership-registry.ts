@@ -1,4 +1,5 @@
 import type { CoreId } from '../domain/core-id';
+import { CollectionMembershipSourceAlreadyRegisteredError } from '../domain/errors';
 import type {
   CollectionMembershipSource,
   CollectionMembershipSourceRegistrar,
@@ -22,7 +23,7 @@ export class CollectionMembershipRegistry implements CollectionMembershipSource,
   constructor(private readonly table: ProductCollectionRepositoryPort) {}
 
   register(source: CollectionMembershipSource): void {
-    if (this.registered !== undefined) throw new Error('A collection membership source is already registered');
+    if (this.registered !== undefined) throw new CollectionMembershipSourceAlreadyRegisteredError();
     this.registered = source;
   }
 
@@ -64,4 +65,17 @@ export class CollectionMembershipRegistry implements CollectionMembershipSource,
   private links(): ProductCollectionRepositoryPort {
     return this.registered ?? this.table;
   }
+}
+
+/**
+ * The registrar other plugins receive (D2309): it can only register. Handing out the registry itself would let a
+ * consumer call its source methods and write product links with no channel check, no manual check, no product lock and
+ * no `product.changed` event.
+ */
+export function registrarOf(registry: CollectionMembershipRegistry): CollectionMembershipSourceRegistrar {
+  return Object.freeze({
+    register: (source: CollectionMembershipSource): void => {
+      registry.register(source);
+    },
+  });
 }

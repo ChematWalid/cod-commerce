@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { CreateProductService } from '../../application/create-product.service';
 import { UpdateProductService } from '../../application/update-product.service';
 import { type CoreId, toCoreId } from '../../domain/core-id';
+import { CollectionMembershipSourceAlreadyRegisteredError } from '../../domain/errors';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type {
   CollectionMembershipSource,
   CollectionOption,
 } from '../../domain/ports/collection-membership-source.port';
 import type { StoreScope } from '../../domain/store-scope';
-import { CollectionMembershipRegistry } from '../../infrastructure/collection-membership-registry';
+import { CollectionMembershipRegistry, registrarOf } from '../../infrastructure/collection-membership-registry';
 import { InMemoryProductCollectionRepository } from '../fakes/in-memory-product-collection-repository';
 import { storeContext } from '../fakes/in-memory-product-catalog';
 import { ProductWorld } from '../fakes/product-world';
@@ -106,7 +107,23 @@ describe('CollectionMembershipRegistry (D2309)', () => {
     };
 
     // Assert
-    expect(registering).toThrow(/already registered/);
+    expect(registering).toThrow(CollectionMembershipSourceAlreadyRegisteredError);
+  });
+
+  it('the exported registrar can only register, and registers on the registry', async () => {
+    // Arrange
+    const registry = new CollectionMembershipRegistry(new InMemoryProductCollectionRepository());
+    const registrar = registrarOf(registry);
+    const options = [{ id: first, title: 'Summer' }];
+
+    // Act
+    registrar.register(new RecordingSource([], options));
+    const answered = await registry.collectionOptionsOf(ctx, scopeA);
+
+    // Assert
+    expect(Object.keys(registrar)).toEqual(['register']);
+    expect(Object.isFrozen(registrar)).toBe(true);
+    expect(answered).toEqual(options);
   });
 
   it('default collection options are empty; a registered source answers them', async () => {
