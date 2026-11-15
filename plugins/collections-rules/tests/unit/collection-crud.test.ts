@@ -82,6 +82,22 @@ describe('UpdateCollectionService.update', () => {
       await expect(answer).rejects.toMatchObject({ code: COLLECTIONS_ERROR_CODES.NOT_FOUND });
   });
 
+  it('leaves the Vendure collection alone when the edit names none of its fields', async () => {
+    // Arrange
+    const created = await create();
+
+    // Act
+    const view = await new UpdateCollectionService(world.ports).update(ctx, scopeA, created.id, {
+      position: 3,
+      mode: 'manual',
+    });
+
+    // Assert
+    expect(view.position).toBe(3);
+    expect(world.vendure.updated).toEqual([]);
+    expect(world.events.published.map((event) => event.change)).toEqual(['created', 'updated']);
+  });
+
   it('refuses a switch to automatic with rule-invalid until rule saves land (Task 7)', async () => {
     // Arrange
     const created = await create();
@@ -147,6 +163,37 @@ describe('reading collections', () => {
     ]);
     expect(all.totalItems).toBe(2);
     expect(found).toEqual({ items: [expect.objectContaining({ id: shoes.id })], totalItems: 1 });
+  });
+
+  it('a search with no letter left after normalising matches nothing', async () => {
+    // Arrange
+    await create();
+    const list = new ListCollectionsService(world.ports);
+
+    // Act
+    const pages = await Promise.all(
+      ['\u0640\u0640\u0640', '\u064e'].map((search) => list.list(ctx, scopeA, { skip: 0, take: 20, search })),
+    );
+
+    // Assert
+    expect(pages).toEqual([
+      { items: [], totalItems: 0 },
+      { items: [], totalItems: 0 },
+    ]);
+  });
+
+  it('counts only the collections a page can show when a Vendure collection is missing', async () => {
+    // Arrange
+    const kept = await create({ title: 'Kept', slug: 'kept', position: 1 });
+    const orphan = await create({ title: 'Orphan', slug: 'orphan', position: 2 });
+    world.vendure.rows.delete(orphan.id);
+
+    // Act
+    const page = await new ListCollectionsService(world.ports).list(ctx, scopeA, { skip: 0, take: 20 });
+
+    // Assert
+    expect(page.items.map((item) => item.id)).toEqual([kept.id]);
+    expect(page.totalItems).toBe(page.items.length);
   });
 
   it("finds a collection of the store and nothing for the other store's or a malformed id", async () => {

@@ -36,7 +36,9 @@ export class UpdateCollectionService {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       await this.ports.lock.lockStore(tx, scope.storeId);
       const current = await this.currentOf(tx, scope, collectionId);
-      await this.ports.vendure.update(tx, collectionId, await this.patchOf(tx, current, command));
+      const patch = await this.patchOf(tx, current, command);
+      // A position or mode edit leaves Vendure's collection as it is: no write, no Vendure `updated` event.
+      if (Object.keys(patch).length > 0) await this.ports.vendure.update(tx, collectionId, patch);
       const definition = await this.switchedMode(tx, scope, current.definition, command);
       const saved = {
         ...definition,

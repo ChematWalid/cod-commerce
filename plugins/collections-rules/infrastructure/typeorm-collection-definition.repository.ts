@@ -101,10 +101,9 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
       storeId: scope.storeId,
       ...(narrowedTo === undefined ? {} : { collectionId: In(narrowedTo) }),
     };
-    const [rows, totalItems] = await Promise.all([
-      this.rows.find(tenant, { where, order: LIST_ORDER, skip: request.skip, take: request.take }),
-      this.rows.count(tenant, where),
-    ]);
+    // One after the other: inside a transaction both share one connection (pg 9 refuses concurrent queries).
+    const rows = await this.rows.find(tenant, { where, order: LIST_ORDER, skip: request.skip, take: request.take });
+    const totalItems = await this.rows.count(tenant, where);
     return { items: rows.map(toDefinition), totalItems };
   }
 

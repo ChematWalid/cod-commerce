@@ -24,6 +24,8 @@ const slugKey = (slug: string): string => slug.trim().toLowerCase().replaceAll(/
 export class FakeVendureCollections implements VendureCollectionsPort {
   readonly rows = new Map<string, FakeVendureCollection>();
   readonly assets = new Set<string>(['31', '32']);
+  /** The collection ids `update` was called with, in order. */
+  readonly updated: string[] = [];
   private nextId = 900;
 
   create(_ctx: OperationContext, collection: NewVendureCollection): Promise<string> {
@@ -34,6 +36,7 @@ export class FakeVendureCollections implements VendureCollectionsPort {
   }
 
   update(_ctx: OperationContext, collectionId: string, patch: VendureCollectionPatch): Promise<void> {
+    this.updated.push(collectionId);
     return Promise.resolve().then(() => {
       const row = this.rows.get(collectionId);
       if (row === undefined) throw new Error('no such Vendure collection');

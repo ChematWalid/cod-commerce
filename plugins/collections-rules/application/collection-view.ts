@@ -45,10 +45,9 @@ export async function viewsOf(
 ): Promise<StoreCollectionView[]> {
   const ids = definitions.map((definition) => definition.collectionId);
   if (ids.length === 0) return [];
-  const [metas, counts] = await Promise.all([
-    ports.vendure.findMany(ctx, ids),
-    ports.members.countsOf(ctx, scope, ids),
-  ]);
+  // One after the other: inside a transaction both reads share one connection (pg 9 refuses concurrent queries).
+  const metas = await ports.vendure.findMany(ctx, ids);
+  const counts = await ports.members.countsOf(ctx, scope, ids);
   return definitions.flatMap((definition) => {
     const meta = metas.get(definition.collectionId);
     return meta === undefined ? [] : [joined(definition, meta, counts.get(definition.collectionId) ?? 0)];
