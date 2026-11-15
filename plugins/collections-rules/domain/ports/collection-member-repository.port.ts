@@ -17,7 +17,10 @@ export interface ProductMembershipChange {
 /**
  * The store's collection members (`collections_member`, D2300). Every call names the business and the store, and
  * writes run in the transaction of `ctx` after the caller took the store lock (D2334), so a read-then-write plan holds.
- * A member of a collection the business has no definition for is refused (FK, D2337) with `CollectionNotFoundError`.
+ * A member of a collection the store has no definition for, another store's of the same business included, is refused
+ * (FK by business, store and collection, D2337) with `CollectionNotFoundError`. That refusal is terminal for the
+ * transaction: Postgres has already aborted it, so a caller must let the error end the unit of work and never run
+ * another statement on `ctx` after catching it.
  */
 export interface CollectionMemberRepositoryPort {
   /** The members of a collection, by position, then newest product first (D2318). */

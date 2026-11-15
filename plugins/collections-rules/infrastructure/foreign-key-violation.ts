@@ -9,7 +9,9 @@ const isForeignKeyViolation = (error: unknown): boolean =>
 
 /**
  * Awaits `write`, turning an FK refusal into the domain error `toError` makes, so the raw driver error (which names
- * the constraint and the table) never reaches an API; any other failure is rethrown unchanged.
+ * the constraint and the table) never reaches an API; any other failure is rethrown unchanged. The mapped error is
+ * terminal for the transaction: the failed statement has already aborted it in Postgres, so the caller must not run
+ * another statement on it (a caller that needs to go on would wrap the write in a savepoint first).
  */
 export async function onForeignKeyViolation<T>(write: Promise<T>, toError: () => DomainError): Promise<T> {
   try {

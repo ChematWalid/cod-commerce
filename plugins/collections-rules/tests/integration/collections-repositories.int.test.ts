@@ -107,26 +107,36 @@ it('collectionIdsOfProducts answers a batch in one query', async () => {
   expect(found.size).toBe(products.length);
 });
 
-it('has the unique, list and member indexes and the cascading FK of D2300', async () => {
+it('has the unique, list and member indexes, the store-bound cascading FK and the store checks of D2300', async () => {
   // Act
-  const [indexes, foreignKeys] = await Promise.all([
+  const [indexes, foreignKeys, checks] = await Promise.all([
     connection().rawConnection.query<{ indexdef: string }[]>(
       "SELECT indexdef FROM pg_indexes WHERE tablename IN ('collections_definition', 'collections_member')",
     ),
     connection().rawConnection.query<{ definition: string }[]>(
       "SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid = 'collections_member'::regclass AND contype = 'f'",
     ),
+    connection().rawConnection.query<{ name: string; definition: string }[]>(
+      "SELECT conname AS name, pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid IN ('collections_definition'::regclass, 'collections_member'::regclass) AND contype = 'c' ORDER BY conname",
+    ),
   ]);
 
   // Assert
   const definitions = indexes.map((row) => row.indexdef).join('\n');
   expect(definitions).toMatch(/UNIQUE INDEX .* ON public\.collections_definition .*\("businessId", "collectionId"\)/);
+  expect(definitions).toMatch(
+    /UNIQUE INDEX .* ON public\.collections_definition .*\("businessId", "storeId", "collectionId"\)/,
+  );
   expect(definitions).toContain('("businessId", "storeId", "position", id)');
   expect(definitions).toMatch(/UNIQUE INDEX .*\("businessId", "collectionId", "productId"\)/);
   expect(definitions).toContain('("businessId", "storeId", "productId")');
   expect(definitions).toContain('("businessId", "collectionId", "position", "productId")');
   expect(foreignKeys.map((row) => row.definition)).toEqual([
-    'FOREIGN KEY ("businessId", "collectionId") REFERENCES collections_definition("businessId", "collectionId") ON DELETE CASCADE',
+    'FOREIGN KEY ("businessId", "storeId", "collectionId") REFERENCES collections_definition("businessId", "storeId", "collectionId") ON DELETE CASCADE',
+  ]);
+  expect(checks).toEqual([
+    { name: 'collections_definition_store_required', definition: 'CHECK (("storeId" IS NOT NULL))' },
+    { name: 'collections_member_store_required', definition: 'CHECK (("storeId" IS NOT NULL))' },
   ]);
 });
 

@@ -45,10 +45,12 @@ export class InMemoryCollectionTables {
   readonly definitions: CollectionDefinitionRepositoryPort = new InMemoryDefinitions(this);
   readonly members: CollectionMemberRepositoryPort = new InMemoryMembers(this);
 
-  /** The FK: a member needs a definition of the same business with that collection id. */
-  assertDefined(businessId: string, collectionId: string): void {
+  /** The FK: a member needs a definition of the same business and store with that collection id. */
+  assertDefined(scope: StoreScope, collectionId: string): void {
     const found = this.definitionRows.some(
-      (row) => row.businessId === businessId && row.definition.collectionId === collectionId,
+      (row) =>
+        inStore(scope, { businessId: row.businessId, storeId: row.definition.storeId }) &&
+        row.definition.collectionId === collectionId,
     );
     if (!found) throw new CollectionNotFoundError();
   }
@@ -151,7 +153,7 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
   }
 
   private add(scope: StoreScope, collectionId: string, member: MemberRow): void {
-    this.tables.assertDefined(scope.businessId, collectionId);
+    this.tables.assertDefined(scope, collectionId);
     const { businessId, storeId } = scope;
     this.tables.memberRows.push({ id: newId(), businessId, storeId, collectionId, ...member });
   }

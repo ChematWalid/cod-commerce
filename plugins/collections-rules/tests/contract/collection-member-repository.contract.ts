@@ -106,16 +106,36 @@ export function describeCollectionMemberRepositoryContract(name: string, make: M
       const missing = newCoreId();
       const foreign = await collectionIn(harness, scopeB);
 
-      // Act
-      const replaced = harness.repos.members.replaceMembers(harness.ctx, scopeA, missing, [at(newCoreId(), 0)]);
-      const placed = harness.repos.members.setProductIn(harness.ctx, scopeA, newCoreId(), {
-        in: [{ collectionId: foreign, position: 0 }],
-        out: [],
-      });
+      // Act and Assert: each call is awaited on its own, so no rejection is ever left without a handler.
+      await expect(
+        harness.repos.members.replaceMembers(harness.ctx, scopeA, missing, [at(newCoreId(), 0)]),
+      ).rejects.toBeInstanceOf(CollectionNotFoundError);
+      await expect(
+        harness.repos.members.setProductIn(harness.ctx, scopeA, newCoreId(), {
+          in: [{ collectionId: foreign, position: 0 }],
+          out: [],
+        }),
+      ).rejects.toBeInstanceOf(CollectionNotFoundError);
+    });
 
-      // Assert
-      await expect(replaced).rejects.toBeInstanceOf(CollectionNotFoundError);
-      await expect(placed).rejects.toBeInstanceOf(CollectionNotFoundError);
+    it("a member write into the business's other store's collection is refused", async () => {
+      // Arrange
+      const harness = await make();
+      const otherStore = await collectionIn(harness, scopeA2);
+      const productId = newCoreId();
+
+      // Act and Assert
+      await expect(
+        harness.repos.members.replaceMembers(harness.ctx, scopeA, otherStore, [at(productId, 0)]),
+      ).rejects.toBeInstanceOf(CollectionNotFoundError);
+      await expect(
+        harness.repos.members.setProductIn(harness.ctx, scopeA, productId, {
+          in: [{ collectionId: otherStore, position: 0 }],
+          out: [],
+        }),
+      ).rejects.toBeInstanceOf(CollectionNotFoundError);
+      expect(await harness.repos.members.collectionIdsOfProducts(harness.ctx, scopeA, [productId])).toEqual(new Map());
+      expect(await harness.repos.members.membersOf(harness.ctx, scopeA2, otherStore)).toEqual([]);
     });
 
     it('deleteProduct removes the product from every collection of its store only', async () => {
