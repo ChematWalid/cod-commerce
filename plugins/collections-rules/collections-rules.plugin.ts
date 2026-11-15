@@ -4,6 +4,8 @@ import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { COLLECTIONS_PROVIDERS } from './infrastructure/collections.providers';
+import { COLLECTIONS_ENTITIES } from './infrastructure/collections-entities';
 
 /**
  * Store collections (P2.S3): a Vendure `Collection` in the store channel for identity and texts, with our rule,
@@ -21,6 +23,8 @@ import { PluginCommonModule, VendurePlugin } from '@vendure/core';
     RateLimitPlugin,
     CatalogPlugin,
   ],
+  entities: COLLECTIONS_ENTITIES,
+  providers: COLLECTIONS_PROVIDERS,
   dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })

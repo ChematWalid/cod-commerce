@@ -1,0 +1,41 @@
+import type { CollectionDefinition } from '../collection';
+import type { StoreScope } from '../store-scope';
+import type { OperationContext } from './operation-context';
+
+/** A page of a store's definitions; `collectionIds` narrows it to those collections (the list's search). */
+export interface DefinitionListRequest {
+  readonly skip: number;
+  readonly take: number;
+  readonly collectionIds?: readonly string[];
+}
+
+/** One page of definitions and how many match in all. */
+export interface DefinitionPage {
+  readonly items: readonly CollectionDefinition[];
+  readonly totalItems: number;
+}
+
+/**
+ * The store's collection definitions (`collections_definition`, D2300). Every call names the business and the store:
+ * a collection of the business's other store answers like a foreign one. Writes run in the transaction of `ctx`.
+ */
+export interface CollectionDefinitionRepositoryPort {
+  /** Stores a new definition in the scope's store; the definition's own `storeId` is ignored. */
+  insert(ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<void>;
+  findByCollectionId(
+    ctx: OperationContext,
+    scope: StoreScope,
+    collectionId: string,
+  ): Promise<CollectionDefinition | undefined>;
+  /** A page ordered by position, then id (D2318). */
+  list(ctx: OperationContext, scope: StoreScope, request: DefinitionListRequest): Promise<DefinitionPage>;
+  /** Every automatic definition of the store, the ones a product change is matched against (D2312). */
+  listAutomatic(ctx: OperationContext, scope: StoreScope): Promise<readonly CollectionDefinition[]>;
+  /** Those of `collectionIds` that are collections of the store, in the given order. */
+  existing(ctx: OperationContext, scope: StoreScope, collectionIds: readonly string[]): Promise<readonly string[]>;
+  /** Saves a changed definition of the store, matched by its collection id; false when the store has no such one. */
+  update(ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<boolean>;
+  /** Deletes the store's definition of a collection with its members (FK cascade, D2337); false when none. */
+  delete(ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<boolean>;
+  countInStore(ctx: OperationContext, scope: StoreScope): Promise<number>;
+}
