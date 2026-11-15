@@ -52,6 +52,12 @@ const PRODUCT_OPERATIONS: readonly CatalogOperation[] = [
     byId: { field: 'productId', notFound: null },
   },
   {
+    name: 'catalogCollectionOptions',
+    entity: 'product',
+    document: 'query { catalogCollectionOptions { id title } }',
+    variables: () => ({}),
+  },
+  {
     name: 'catalogSlugAvailability',
     entity: 'product',
     document: 'query ($slug: String!) { catalogSlugAvailability(slug: $slug) { available slug } }',

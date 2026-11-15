@@ -20,3 +20,4 @@ export const ORDER_MANAGER_CHECK_REGISTRAR = Symbol('CatalogOrderManagerCheckReg
 export const SOLD_OUT_SOURCE = Symbol('CatalogSoldOutSource');
 export const SOLD_OUT_SOURCE_REGISTRAR = Symbol('CatalogSoldOutSourceRegistrar');
 export const STORE_SETTINGS = Symbol('CatalogStoreSettings');
+export const COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR = Symbol('CatalogCollectionMembershipSourceRegistrar');

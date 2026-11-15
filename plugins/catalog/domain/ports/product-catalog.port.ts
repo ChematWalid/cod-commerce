@@ -18,6 +18,9 @@ export interface ProductCriteria {
   readonly take: number;
 }
 
+/** What a public context shows (D2109): only these statuses, never these products. */
+export type VisibilityCriteria = Pick<ProductCriteria, 'statuses' | 'excludedProductIds'>;
+
 /** The products of one list page, newest first, and how many match in all. */
 export interface ProductPage {
   readonly items: readonly ProductRecord[];
@@ -52,6 +55,16 @@ export interface ProductCatalogPort {
 
   /** One page of the store's products matching `criteria`, newest first. */
   list(ctx: OperationContext, criteria: ProductCriteria): Promise<ProductPage>;
+
+  /**
+   * The live products of the store among `ids` that match `criteria`, in the order of `ids`; ids only, no record is
+   * read (D2310). The ids are parsed; at most `COLLECTION_MAX_MANUAL_PRODUCTS` of them.
+   */
+  visibleIdsAmong(
+    ctx: OperationContext,
+    criteria: VisibilityCriteria,
+    ids: readonly CoreId[],
+  ): Promise<readonly CoreId[]>;
 
   /** Soft-deletes the product `id` of the store and its variants; `false` when none. */
   softDelete(ctx: OperationContext, id: CoreId): Promise<boolean>;

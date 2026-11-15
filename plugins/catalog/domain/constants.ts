@@ -12,6 +12,12 @@ export const PUBLIC_VISIBILITY_CONTEXTS = ['listing', 'productPage', 'landingPag
 /** The public contexts that list products: a hidden product is reached only by its slug on a landing page (AC2). */
 export const PUBLIC_LIST_CONTEXTS = ['listing', 'productPage'] as const;
 
+/**
+ * Most product ids a public list may be limited to (an automatic collection's members, D2310); a caller holding more
+ * passes the newest ones.
+ */
+export const CATALOG_MAX_AMONG_IDS = 10_000;
+
 /** The number of the first variant SKU: `<sku>-1`. */
 export const FIRST_SKU_NUMBER = 1;
 

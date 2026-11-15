@@ -21,6 +21,7 @@ export type { StoreScope as CatalogStoreScope } from './domain/store-scope';
 export type { ProductView } from './application/product-view';
 export type { ProductViewPage } from './application/list-products.service';
 export {
+  type CatalogListOptions,
   type CatalogReadOptions,
   CatalogReadService,
   NoActiveStoreError,
@@ -29,7 +30,17 @@ export {
 } from './application/catalog-read.service';
 export { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
 export type { PublicListContext, PublicVisibilityContext } from './domain/visibility';
-export { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE_REGISTRAR } from './application/tokens';
+export {
+  COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
+  ORDER_MANAGER_CHECK_REGISTRAR,
+  SOLD_OUT_SOURCE_REGISTRAR,
+} from './application/tokens';
+export type {
+  CollectionMembershipSource,
+  CollectionMembershipSourceRegistrar,
+  CollectionOption as CatalogCollectionOption,
+} from './domain/ports/collection-membership-source.port';
+export { CATALOG_MAX_AMONG_IDS } from './domain/constants';
 export type { SoldOutSource, SoldOutSourceRegistrar } from './domain/ports/sold-out-source.port';
 export { type CoreId, parseCoreId, toCoreId } from './domain/core-id';
 export type { OrderManagerCheck, OrderManagerCheckRegistrar } from './domain/ports/order-manager-check.port';

@@ -218,8 +218,15 @@ const productAdminApiSchema = gql`
     variants: [CatalogVariantInput!]
   }
 
+  "A collection of the active store the product list can filter by (D2324)."
+  type CatalogCollectionOption {
+    id: ID!
+    title: String!
+  }
+
   extend type Query {
     catalogProducts(options: CatalogProductListInput): CatalogProductList!
+    catalogCollectionOptions: [CatalogCollectionOption!]!
     catalogProduct(id: ID!): CatalogProduct
     catalogSlugAvailability(slug: String!, productId: ID): CatalogSlugAvailability!
   }

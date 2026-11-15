@@ -4,6 +4,7 @@ import { TenancyPlugin } from '@cod/plugin-tenancy';
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { CatalogTranslations } from './api/catalog-translations';
+import { CollectionOptionsResolver } from './api/collection-options.resolver';
 import { MediaActions } from './api/media-actions';
 import { MediaController } from './api/media.controller';
 import { MediaResolver } from './api/media.resolver';
@@ -25,7 +26,11 @@ import { TaxonomyActions } from './api/taxonomy-actions';
 import { TaxonomyResolver } from './api/taxonomy.resolver';
 import { CatalogReadService } from './application/catalog-read.service';
 import { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
-import { ORDER_MANAGER_CHECK_REGISTRAR, SOLD_OUT_SOURCE_REGISTRAR } from './application/tokens';
+import {
+  COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
+  ORDER_MANAGER_CHECK_REGISTRAR,
+  SOLD_OUT_SOURCE_REGISTRAR,
+} from './application/tokens';
 import { CatalogProductFactsReader } from './infrastructure/catalog-product-facts';
 import { CatalogProductQueries } from './infrastructure/catalog-product-queries';
 import { CATALOG_ENTITIES } from './infrastructure/catalog-entities';
@@ -71,8 +76,8 @@ export const CATALOG_REST_CONTROLLERS = [
   ],
   // The read facades of later sessions (D2104, D2109), the registrar team's order-manager check joins (D2114) and the
   // registrar P6.S1's sold-out source joins (D2107); collection rules read product facts through the batched reader
-  // (P2.S3, D2308); other plugins inject them from their infrastructure. The demo seed of the
-  // server app gets its products through `DemoCatalogSeedService` (D2129).
+  // (P2.S3, D2308) and register their membership source (D2309); other plugins inject them from their infrastructure.
+  // The demo seed of the server app gets its products through `DemoCatalogSeedService` (D2129).
   exports: [
     CatalogProductQueries,
     CatalogProductFactsReader,
@@ -80,10 +85,11 @@ export const CATALOG_REST_CONTROLLERS = [
     DemoCatalogSeedService,
     ORDER_MANAGER_CHECK_REGISTRAR,
     SOLD_OUT_SOURCE_REGISTRAR,
+    COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
   ],
   adminApiExtensions: {
     schema: catalogAdminApiSchema,
-    resolvers: [ProductsResolver, TaxonomyResolver, MediaResolver, SoldOutResolver],
+    resolvers: [ProductsResolver, TaxonomyResolver, MediaResolver, SoldOutResolver, CollectionOptionsResolver],
   },
   controllers: CATALOG_REST_CONTROLLERS,
   dashboard: './dashboard/index.tsx',

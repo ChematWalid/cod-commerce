@@ -37,6 +37,24 @@ store's brands, tags and option names with their values, merged by the shared `n
 reads live in `infrastructure/vendure-product-facts.query.ts`, a reviewed raw-data entry; tag links go through
 `TagRepositoryPort.tagIdsOfProducts`.
 
+### Collection membership and visible reads (P2.S3, D2309-D2311, D2324)
+
+- `COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR` (with `CollectionMembershipSource`, `CollectionMembershipSourceRegistrar`
+  and `CatalogCollectionOption`): the catalog reads which collections hold a product through
+  `CollectionMembershipRegistry`, the `catalog_product_collection` table until collection rules register their
+  source on bootstrap (a second registration throws). A product's `collectionIds` are its manual collections only; a
+  product write naming a collection the source does not call manual (`manualCollectionIdsAmong`) answers
+  `catalog.collection-not-found`; the list's collection filter sees every member (`productIdsInCollection`). The
+  Admin API query `catalogCollectionOptions` (`catalog.products.view`) lists the source's `collectionOptionsOf`,
+  empty without collection rules.
+- `CatalogReadService.listVisibleAmong(ctx, context, productIds, { skip, take })`: the products a public list
+  context shows among at most `COLLECTION_MAX_MANUAL_PRODUCTS` ids, in the given order (a manual collection); ids are
+  filtered by `ProductCatalogPort.visibleIdsAmong` (ids only) and only the page's records are read.
+  `listVisible(ctx, context, { skip, take, productIds })` limits the newest-first list to at most
+  `CATALOG_MAX_AMONG_IDS` ids (an automatic collection). Malformed, repeated and other-store ids are left out.
+- Deleting a tag publishes `product.changed` (`updated`) for every product it unlinks, in the delete's transaction,
+  as a brand delete does.
+
 ## API (Task 11)
 
 GraphQL `catalogProducts`, `catalogProduct`, `catalogSlugAvailability`, `createCatalogProduct`,

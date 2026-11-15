@@ -16,6 +16,7 @@ import { TagService } from '../application/tag.service';
 import {
   BRAND_REPOSITORY,
   CLOCK,
+  COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
   DESCRIPTION_SANITIZER,
   HIGHLIGHT_REPOSITORY,
   ID_GENERATOR,
@@ -37,12 +38,14 @@ import {
   TRANSACTION,
 } from '../application/tokens';
 import { CatalogReadService } from '../application/catalog-read.service';
+import { CollectionOptionsService } from '../application/collection-options.service';
 import { SoldOutService } from '../application/sold-out.service';
 import { SoldOutSourceRegistry } from '../application/sold-out-source.registry';
 import { UpdateProductService } from '../application/update-product.service';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
+import { CollectionMembershipRegistry } from './collection-membership-registry';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
 import { OutboxProductEvents } from './product-changed.outbox';
 import { SettingsFlagSoldOutSource } from './settings-flag-sold-out.source';
@@ -151,12 +154,14 @@ export const PRODUCT_PROVIDERS: Provider[] = [
       new TypeOrmHighlightRepository(factory, ids),
     inject: [TenantRepositoryFactory, ID_GENERATOR],
   },
+  // The catalog's own links until collection rules register their source on the registrar (D2309).
   {
     provide: PRODUCT_COLLECTION_REPOSITORY,
     useFactory: (factory: TenantRepositoryFactory, ids: IdGeneratorPort) =>
-      new TypeOrmProductCollectionRepository(factory, ids),
+      new CollectionMembershipRegistry(new TypeOrmProductCollectionRepository(factory, ids)),
     inject: [TenantRepositoryFactory, ID_GENERATOR],
   },
+  { provide: COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR, useExisting: PRODUCT_COLLECTION_REPOSITORY },
   {
     provide: PRODUCT_PORTS,
     // Nest hands the adapters in `inject` order, which is PORT_ENTRIES' own order: each lands on its entry's key.
@@ -177,5 +182,6 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(MediaLibraryService),
   useCase(SoldOutService),
   useCase(CatalogReadService),
+  useCase(CollectionOptionsService),
   useCase(DemoCatalogSeedService),
 ];
