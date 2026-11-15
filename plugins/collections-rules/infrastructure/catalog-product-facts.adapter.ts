@@ -5,6 +5,8 @@ import {
   toCoreId,
 } from '@cod/plugin-catalog';
 import { Injectable } from '@nestjs/common';
+import { canonicalCoreId, canonicalCoreIds } from '../domain/core-id';
+import { InvalidCollectionInputError } from '../domain/errors';
 import type { ProductFacts } from '../domain/product-facts';
 import type {
   ProductFactsPort,
@@ -27,14 +29,24 @@ const toFacts = (facts: CatalogProductFacts): ProductFacts => ({
   variantOptions: facts.variantOptions,
 });
 
-/** Splits ids into reader-sized chunks, each id once, so a repeated id never lands in two chunks. */
+/**
+ * Splits ids into reader-sized chunks, each canonical id once (`'07'` and `'7'` are one product), so a repeated id
+ * never lands in two chunks; a malformed id names no product and is left out.
+ */
 function chunks(ids: readonly string[]): string[][] {
-  const distinct = [...new Set(ids)];
+  const distinct = canonicalCoreIds(ids);
   const result: string[][] = [];
   for (let start = 0; start < distinct.length; start += CATALOG_FACTS_MAX_IDS) {
     result.push(distinct.slice(start, start + CATALOG_FACTS_MAX_IDS));
   }
   return result;
+}
+
+/** A page cursor in canonical form; a malformed one is refused here, so no catalog error crosses the boundary. */
+function cursorOf(after: string): string {
+  const canonical = canonicalCoreId(after);
+  if (canonical === undefined) throw new InvalidCollectionInputError();
+  return canonical;
 }
 
 function byNewest(left: ProductFacts, right: ProductFacts): number {
@@ -65,7 +77,7 @@ export class CatalogProductFactsAdapter implements ProductFactsPort {
   }
 
   async pageIds(ctx: OperationContext, scope: StoreScope, page: ProductIdPageRequest): Promise<ProductIdPage> {
-    const after = page.after === null ? null : toCoreId(page.after);
+    const after = page.after === null ? null : toCoreId(cursorOf(page.after));
     const { ids, next } = await this.reader.pageIds(toRequestContext(ctx), scope, { ...page, after });
     return { ids, next };
   }

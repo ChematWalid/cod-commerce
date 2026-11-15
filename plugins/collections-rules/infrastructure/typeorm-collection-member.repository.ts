@@ -2,6 +2,7 @@ import { type TenantRepository, type TenantRepositoryFactory, tenantQuery } from
 import type { TenantScope } from '@cod/shared';
 import { In } from 'typeorm';
 import { FIRST_MANUAL_POSITION } from '../domain/constants';
+import { CollectionRowConflictError } from '../domain/collection-row-conflict.error';
 import { CollectionNotFoundError } from '../domain/errors';
 import { canonicalCoreId, canonicalCoreIds, distinctPlacements, writableCollectionId } from '../domain/core-id';
 import { canonicalProductId, membershipDiff, type MemberRow } from '../domain/membership';
@@ -14,7 +15,7 @@ import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import { CollectionMemberEntity } from './collection-member.entity';
-import { onForeignKeyViolation } from './foreign-key-violation';
+import { onForeignKeyViolation, onUniqueViolation } from './constraint-violation';
 import { requestScope } from './request-scope';
 
 /** The order of a collection's members: by position, then newest product first (D2318). */
@@ -36,7 +37,8 @@ const toMember = (row: CollectionMemberEntity): MemberRow => ({ productId: row.p
 /**
  * The Postgres adapter of {@link CollectionMemberRepositoryPort} through `TenantRepository` (ADR 0002). Writers hold the
  * store lock (D2334), so a read of the current rows followed by the writes of the difference is never interleaved;
- * inserts skip rows that exist, so a repeat is ignored rather than refused by the unique index. Every core id is made
+ * inserts skip rows that exist, so a repeat is ignored rather than refused by the unique index (a writer that skipped
+ * the lock and raced another gets `CollectionRowConflictError`, never the raw driver error). Every core id is made
  * canonical before it reaches Postgres: a malformed one reads as absent and is refused on write.
  */
 export class TypeOrmCollectionMemberRepository implements CollectionMemberRepositoryPort {
@@ -162,7 +164,14 @@ export class TypeOrmCollectionMemberRepository implements CollectionMemberReposi
     placement: MemberPlacement,
     productId: string,
   ): Promise<void> {
-    const row = { id: this.ids.next(), storeId: scope.storeId, productId, ...placement };
-    await onForeignKeyViolation(this.rows.insert(tenant, row), () => new CollectionNotFoundError());
+    const row = {
+      collectionId: placement.collectionId,
+      position: placement.position,
+      productId,
+      storeId: scope.storeId,
+      id: this.ids.next(),
+    };
+    const inserted = onForeignKeyViolation(this.rows.insert(tenant, row), () => new CollectionNotFoundError());
+    await onUniqueViolation(inserted, () => new CollectionRowConflictError('collections_member'));
   }
 }

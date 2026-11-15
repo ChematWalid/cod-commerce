@@ -30,15 +30,22 @@ export function writableCollectionId(collectionId: string): string {
   return canonical;
 }
 
+/** A collection a product joins and its position, with the collection id canonical. */
+export interface CanonicalPlacement {
+  readonly collectionId: string;
+  readonly position: number;
+}
+
 /**
  * The placements of one product with canonical collection ids, the first one of a repeated collection kept, so a
- * collection is joined once; a malformed collection id is refused like a foreign one before anything is written.
+ * collection is joined once; a malformed collection id is refused like a foreign one before anything is written. Only
+ * the collection and the position are kept, so a wider object passed as a placement never leaks other fields.
  */
-export function distinctPlacements<P extends { readonly collectionId: string }>(placements: readonly P[]): P[] {
-  const byCollection = new Map<string, P>();
+export function distinctPlacements(placements: readonly CanonicalPlacement[]): CanonicalPlacement[] {
+  const byCollection = new Map<string, CanonicalPlacement>();
   for (const placement of placements) {
     const collectionId = writableCollectionId(placement.collectionId);
-    if (!byCollection.has(collectionId)) byCollection.set(collectionId, { ...placement, collectionId });
+    if (!byCollection.has(collectionId)) byCollection.set(collectionId, { collectionId, position: placement.position });
   }
   return [...byCollection.values()];
 }

@@ -20,7 +20,8 @@ export interface ProductMembershipChange {
  * A member of a collection the store has no definition for, another store's of the same business included, is refused
  * (FK by business, store and collection, D2337) with `CollectionNotFoundError`. That refusal is terminal for the
  * transaction: Postgres has already aborted it, so a caller must let the error end the unit of work and never run
- * another statement on `ctx` after catching it.
+ * another statement on `ctx` after catching it. A writer without the store lock may also be refused by the unique key
+ * with `CollectionRowConflictError`, equally terminal. Maps are keyed by canonical ids (`'07'` is keyed `'7'`).
  */
 export interface CollectionMemberRepositoryPort {
   /** The members of a collection, by position, then newest product first (D2318). */
@@ -32,14 +33,20 @@ export interface CollectionMemberRepositoryPort {
     collectionId: string,
     rows: readonly MemberRow[],
   ): Promise<void>;
-  /** Adds one product to the `in` collections it is not yet in and removes it from the `out` ones. */
+  /**
+   * Adds one product to the `in` collections it is not yet in and removes it from the `out` ones. A collection named in
+   * both ends in it: `in` wins, at its `in` position.
+   */
   setProductIn(
     ctx: OperationContext,
     scope: StoreScope,
     productId: string,
     change: ProductMembershipChange,
   ): Promise<void>;
-  /** The collections of each given product in collection id order, in one query; a product of none is absent. */
+  /**
+   * The collections of each given product in collection id order, in one query, keyed by the canonical product id;
+   * a product of none is absent.
+   */
   collectionIdsOfProducts(
     ctx: OperationContext,
     scope: StoreScope,

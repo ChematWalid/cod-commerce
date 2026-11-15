@@ -1,4 +1,5 @@
 import type { CollectionDefinition } from '../../domain/collection';
+import { CollectionRowConflictError } from '../../domain/collection-row-conflict.error';
 import { CollectionNotFoundError } from '../../domain/errors';
 import { canonicalCoreIds, distinctPlacements, writableCollectionId } from '../../domain/core-id';
 import { canonicalProductId, membershipDiff, type MemberRow } from '../../domain/membership';
@@ -82,11 +83,17 @@ class InMemoryDefinitions implements CollectionDefinitionRepositoryPort {
   }
 
   insert(_ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<void> {
-    this.tables.definitionRows.push({
-      businessId: scope.businessId,
-      definition: { ...definition, storeId: scope.storeId },
+    return Promise.resolve().then(() => {
+      const collectionId = writableCollectionId(definition.collectionId);
+      const taken = this.tables.definitionRows.some(
+        (row) => row.businessId === scope.businessId && row.definition.collectionId === collectionId,
+      );
+      if (taken) throw new CollectionRowConflictError('collections_definition');
+      this.tables.definitionRows.push({
+        businessId: scope.businessId,
+        definition: { ...definition, collectionId, storeId: scope.storeId },
+      });
     });
-    return Promise.resolve();
   }
 
   findByCollectionId(
@@ -112,7 +119,7 @@ class InMemoryDefinitions implements CollectionDefinitionRepositoryPort {
 
   existing(_ctx: OperationContext, scope: StoreScope, collectionIds: readonly string[]): Promise<readonly string[]> {
     const own = new Set(this.own(scope).map((definition) => definition.collectionId));
-    return Promise.resolve(collectionIds.filter((collectionId) => own.has(collectionId)));
+    return Promise.resolve(canonicalCoreIds(collectionIds).filter((collectionId) => own.has(collectionId)));
   }
 
   update(_ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<boolean> {
@@ -219,7 +226,7 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
     scope: StoreScope,
     productIds: readonly string[],
   ): Promise<ReadonlyMap<string, readonly string[]>> {
-    const wanted = new Set(productIds);
+    const wanted = new Set(canonicalCoreIds(productIds));
     const found = new Map<string, string[]>();
     const byCollectionId = (left: StoredMember, right: StoredMember): number =>
       Number(BigInt(left.collectionId) - BigInt(right.collectionId));
@@ -241,7 +248,7 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
     collectionIds: readonly string[],
   ): Promise<ReadonlyMap<string, number>> {
     const counts = new Map<string, number>();
-    for (const collectionId of collectionIds) {
+    for (const collectionId of canonicalCoreIds(collectionIds)) {
       const count = this.rowsOf(scope, collectionId).length;
       if (count > 0) counts.set(collectionId, count);
     }

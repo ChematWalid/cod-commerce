@@ -3,7 +3,8 @@ import { COLLECTION_MODES, type CollectionMode, type CollectionRule, collectionR
 import { In } from 'typeorm';
 import type { CollectionDefinition } from '../domain/collection';
 import { CorruptCollectionDefinitionError } from '../domain/corrupt-collection-definition.error';
-import { canonicalCoreId, canonicalCoreIds } from '../domain/core-id';
+import { CollectionRowConflictError } from '../domain/collection-row-conflict.error';
+import { canonicalCoreId, canonicalCoreIds, writableCollectionId } from '../domain/core-id';
 import type {
   CollectionDefinitionRepositoryPort,
   DefinitionListRequest,
@@ -12,6 +13,7 @@ import type {
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import { CollectionDefinitionEntity } from './collection-definition.entity';
+import { onUniqueViolation } from './constraint-violation';
 import { requestScope } from './request-scope';
 
 /** The order of every list of definitions (D2318). */
@@ -32,6 +34,7 @@ function ruleOf(stored: unknown): CollectionRule | null | undefined {
 /** @throws {CorruptCollectionDefinitionError} for a row that breaks the stored shape (server-side corruption). */
 function toDefinition(row: CollectionDefinitionEntity): CollectionDefinition {
   const rule = ruleOf(row.rule);
+  // The CHECK `collections_definition_store_required` keeps `storeId` set; the null test only narrows the type.
   if (!isMode(row.mode) || row.storeId === null || rule === undefined) {
     throw new CorruptCollectionDefinitionError(row.businessId, row.id);
   }
@@ -69,12 +72,14 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
   }
 
   async insert(ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<void> {
-    await this.rows.insert(requestScope(ctx, scope), {
+    const row = {
+      ...columnsOf(definition),
       id: definition.id,
       storeId: scope.storeId,
-      collectionId: definition.collectionId,
-      ...columnsOf(definition),
-    });
+      collectionId: writableCollectionId(definition.collectionId),
+    };
+    const inserted = this.rows.insert(requestScope(ctx, scope), row);
+    await onUniqueViolation(inserted, () => new CollectionRowConflictError('collections_definition'));
   }
 
   async findByCollectionId(
@@ -124,7 +129,7 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
       select: { collectionId: true },
     });
     const found = new Set(rows.map((row) => row.collectionId));
-    return collectionIds.filter((collectionId) => found.has(canonicalCoreId(collectionId) ?? ''));
+    return canonical.filter((collectionId) => found.has(collectionId));
   }
 
   async update(ctx: OperationContext, scope: StoreScope, definition: CollectionDefinition): Promise<boolean> {

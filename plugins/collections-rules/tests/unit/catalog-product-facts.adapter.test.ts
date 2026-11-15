@@ -1,5 +1,6 @@
 import { CATALOG_FACTS_MAX_IDS, type CatalogProductFacts, type CatalogProductFactsReader } from '@cod/plugin-catalog';
 import { describe, expect, it } from 'vitest';
+import { InvalidCollectionInputError } from '../../domain/errors';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { CatalogProductFactsAdapter } from '../../infrastructure/catalog-product-facts.adapter';
 import { scopeA } from '../support/builders';
@@ -32,5 +33,30 @@ describe('CatalogProductFactsAdapter', () => {
     // Assert
     expect(facts.map((fact) => fact.productId)).toEqual([...ids].reverse());
     expect(Math.max(...callSizes)).toBeLessThanOrEqual(CATALOG_FACTS_MAX_IDS);
+  });
+
+  it('reads a padded id and its canonical form as one product, and leaves a malformed id out', async () => {
+    // Arrange
+    const { reader, callSizes } = recordingReader();
+    const adapter = new CatalogProductFactsAdapter(reader);
+
+    // Act
+    const facts = await adapter.factsOf(asOperationContext({}), scopeA, ['07', '7', 'abc', '3']);
+
+    // Assert
+    expect(facts.map((fact) => fact.productId)).toEqual(['7', '3']);
+    expect(callSizes).toEqual([2]);
+  });
+
+  it('refuses a malformed page cursor with a collections error', async () => {
+    // Arrange
+    const { reader } = recordingReader();
+    const adapter = new CatalogProductFactsAdapter(reader);
+
+    // Act
+    const page = adapter.pageIds(asOperationContext({}), scopeA, { after: 'abc', take: 10 });
+
+    // Assert
+    await expect(page).rejects.toBeInstanceOf(InvalidCollectionInputError);
   });
 });

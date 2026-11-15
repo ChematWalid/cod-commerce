@@ -65,19 +65,32 @@ describe('StoreChannelContexts.forStore', () => {
   const forStore = (from: RequestContext, scope: StoreScope) =>
     contexts().forStore(from, scope.businessId, scope.storeId);
 
-  it('answers nothing for a missing store, a foreign one or an archived one', async () => {
+  it("answers nothing for another business's active store, and a context for the owner", async () => {
+    // Arrange
+    const vendureCtx = ctx as unknown as RequestContext;
+    const active = scopeOf(0);
+    const foreign = { businessId: toBusinessId(fixtures.b.businessId), storeId: active.storeId };
+
+    // Act
+    const [asForeign, asOwner] = await Promise.all([forStore(vendureCtx, foreign), forStore(vendureCtx, active)]);
+
+    // Assert
+    expect(asForeign).toBeUndefined();
+    expect(asOwner?.channel.token).toBe(fixtures.a.stores[0].channelToken);
+  });
+
+  it('answers nothing for a missing store or an archived one', async () => {
     // Arrange
     const vendureCtx = ctx as unknown as RequestContext;
     const archived = scopeOf(1);
-    const foreign = { businessId: toBusinessId(fixtures.b.businessId), storeId: archived.storeId };
     const missing = { businessId: archived.businessId, storeId: toStoreId('999999999') };
     await connection().rawConnection.query(`UPDATE store SET status = 'archived' WHERE id = $1`, [archived.storeId]);
 
     // Act
-    const answers = await Promise.all([missing, foreign, archived].map((scope) => forStore(vendureCtx, scope)));
+    const answers = await Promise.all([missing, archived].map((scope) => forStore(vendureCtx, scope)));
 
     // Assert
-    expect(answers).toEqual([undefined, undefined, undefined]);
+    expect(answers).toEqual([undefined, undefined]);
   });
 
   it("gives a context on the store's channel that runs in the caller's transaction", async () => {
