@@ -214,20 +214,15 @@ function ProductList({ list, selection, scope, held, onCommand }: ProductListPro
 }
 
 /**
- * The action bar, rendered for every viewer (D2201): other plugins add items (export, bulk edit, import) by the
- * page's id, each gated by its own key; Create product is shown to holders of the create key only.
+ * The page's own action-bar items: Create product, shown to holders of the create key only. A plain function, not a
+ * component: `PageActionBar` merges only its direct `ActionBarItem` children with the items other plugins register.
  */
-function ListActionBar({ held, storeAlias }: { readonly held: ReadonlySet<string>; readonly storeAlias: string }) {
-  const shown = actionItemsShown([CREATE_PRODUCT_ACTION], held);
-  return (
-    <PageActionBar>
-      {shown.map((item) => (
-        <ActionBarItem key={item.id} itemId={item.id}>
-          <CreateButton storeAlias={storeAlias} />
-        </ActionBarItem>
-      ))}
-    </PageActionBar>
-  );
+function actionBarItemsOf(held: ReadonlySet<string>, storeAlias: string): ReactNode[] {
+  return actionItemsShown([CREATE_PRODUCT_ACTION], held).map((item) => (
+    <ActionBarItem key={item.id} itemId={item.id}>
+      <CreateButton storeAlias={storeAlias} />
+    </ActionBarItem>
+  ));
 }
 
 /**
@@ -249,8 +244,11 @@ export function ProductListPage({ store }: ShellPageProps): ReactNode {
   return (
     <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID} entity={entity}>
       <PageTitle>{i18n._('catalog.products-title')}</PageTitle>
-      {/* A direct child: the page puts only its own `PageActionBar` children in the title row. */}
-      <ListActionBar held={held} storeAlias={storeAlias} />
+      {/*
+        A literal direct child, rendered for every viewer (D2201): `Page` finds its action bar by element type, and other
+        plugins add items (export, bulk edit, import) by the page's id, each gated by its own key.
+      */}
+      <PageActionBar>{actionBarItemsOf(held, storeAlias)}</PageActionBar>
       <PageLayout>
         <FullWidthPageBlock blockId={CATALOG_PRODUCT_LIST_BLOCK_ID}>
           <ProductList list={list} selection={selection} scope={scope} held={held} onCommand={rows.onCommand} />
