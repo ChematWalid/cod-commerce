@@ -1,11 +1,12 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
 import { CATALOG_OPERATIONS, CATALOG_ROUTES } from '../isolation/catalog-operations';
 import { CATALOG_WORLDS, type CatalogWorld } from '../isolation/catalog-world';
 import { TEAM_WORLDS } from '../isolation/team-world';
-import { CATALOG_TABLE_COUNTS } from '../isolation/tenant-tables';
+import { CATALOG_TABLE_COUNTS, OFFERS_TABLE_COUNTS } from '../isolation/tenant-tables';
 import type { BusinessWorld, World } from '../isolation/world-types';
 
 type Class = abstract new (...args: never[]) => object;
@@ -91,9 +92,9 @@ function catalogOf(label: 'A' | 'B'): CatalogWorld {
   };
 }
 
-/** The tables of the entities the catalog plugin registers (Vendure's `entities` plugin metadata). */
-function catalogTables(): string[] {
-  const entities = Reflect.getMetadata('entities', CatalogPlugin) as Class[];
+/** The tables of the entities `plugin` registers (Vendure's `entities` plugin metadata). */
+function tablesOf(plugin: Class): string[] {
+  const entities = Reflect.getMetadata('entities', plugin) as Class[];
   const tables = getMetadataArgsStorage().tables;
   return entities.map((entity) => tables.find((table) => table.target === entity)?.name ?? entity.name);
 }
@@ -122,7 +123,15 @@ describe('P2 isolation matrix', () => {
     const counted = Object.keys(CATALOG_TABLE_COUNTS);
 
     // Assert
-    expect([...counted].sort()).toEqual(catalogTables().sort());
+    expect([...counted].sort()).toEqual(tablesOf(CatalogPlugin).sort());
+  });
+
+  it('counts every table the offers plugin registers in the P2 census', () => {
+    // Act
+    const counted = Object.keys(OFFERS_TABLE_COUNTS);
+
+    // Assert
+    expect([...counted].sort()).toEqual(tablesOf(OffersPlugin).sort());
   });
 
   it('names every Admin API operation the catalog plugin declares', () => {
