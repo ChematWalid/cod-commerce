@@ -9,6 +9,7 @@
     "collections-too-many-products": "يمكن أن تضم المجموعة 500 منتج مختار يدويًا على الأكثر.",
     "collections-too-many-collections": "بلغ هذا المتجر الحد الأقصى من المجموعات (500).",
     "collections-not-manual": "هذه المجموعة تأخذ منتجاتها من شروطها.",
+    "collections-channel-not-found": "المتجر غير موجود.",
     "collections-rate-limited": "طلبات كثيرة جدًا. حاول مرة أخرى بعد قليل.",
     "collections-internal": "تعذر إتمام الطلب."
   }

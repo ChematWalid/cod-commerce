@@ -1,10 +1,10 @@
 import { RateLimitedFilter } from '@cod/plugin-rate-limit';
 import { COLLECTIONS_ERROR_CODES, type DomainError } from '@cod/shared';
 import { ForbiddenException, HttpStatus, InternalServerErrorException } from '@nestjs/common';
-import { EntityNotFoundError, ForbiddenError } from '@vendure/core';
+import { ChannelNotFoundError, EntityNotFoundError, ForbiddenError } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { COLLECTIONS_REST_CONTROLLERS } from '../../collections-rules.plugin';
-import { CollectionsRestErrorFilter, restCall, restStatusOf } from '../../api/error-mapping';
+import { ChannelNotFoundRestFilter, CollectionsRestErrorFilter, restCall, restStatusOf } from '../../api/error-mapping';
 import { CorruptCollectionDefinitionError } from '../../domain/corrupt-collection-definition.error';
 import * as errors from '../../domain/errors';
 
@@ -62,14 +62,46 @@ describe('the collections REST error mapping', () => {
     expect((answer as Error).message).not.toMatch(/101|555/);
   });
 
+  it('answers an unknown channel token with 404 CHANNEL_NOT_FOUND, never a 500', () => {
+    // Arrange
+    const answer: { status?: number; body?: unknown } = {};
+    const res = {
+      status: (status: number) => {
+        answer.status = status;
+        return res;
+      },
+      json: (body: unknown) => {
+        answer.body = body;
+      },
+    };
+    const req = { url: '/catalog/collections?search=x', t: (key: string) => `translated ${key}` };
+    const host = { getType: () => 'http', switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }) };
+
+    // Act
+    new ChannelNotFoundRestFilter().catch(new ChannelNotFoundError('synthetic-token'), host as never);
+
+    // Assert
+    expect(answer).toEqual({
+      status: HttpStatus.NOT_FOUND,
+      body: {
+        statusCode: HttpStatus.NOT_FOUND,
+        code: 'CHANNEL_NOT_FOUND',
+        message: 'translated error.collections-channel-not-found',
+        path: '/catalog/collections',
+      },
+    });
+  });
+
   it.each(COLLECTIONS_REST_CONTROLLERS.map((controller) => [controller.name, controller] as const))(
-    '%s answers domain refusals and over-limit refusals with their own status',
+    '%s answers domain, over-limit and unknown-channel refusals with their own status',
     (_name, controller) => {
       // Act
       const filters = Reflect.getMetadata(EXCEPTION_FILTERS_METADATA, controller) as readonly unknown[] | undefined;
 
       // Assert
-      expect(filters).toEqual(expect.arrayContaining([CollectionsRestErrorFilter, RateLimitedFilter]));
+      expect(filters).toEqual(
+        expect.arrayContaining([CollectionsRestErrorFilter, RateLimitedFilter, ChannelNotFoundRestFilter]),
+      );
     },
   );
 });

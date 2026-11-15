@@ -9,6 +9,7 @@
     "collections-too-many-products": "A collection can hold at most 500 hand-picked products.",
     "collections-too-many-collections": "This store has reached the most collections it can keep (500).",
     "collections-not-manual": "This collection gets its products from its conditions.",
+    "collections-channel-not-found": "Store not found.",
     "collections-rate-limited": "Too many requests. Try again shortly.",
     "collections-internal": "The request could not be completed."
   }

@@ -10,6 +10,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import {
+  ChannelNotFoundError,
   EntityNotFoundError,
   ForbiddenError,
   type I18nRequest,
@@ -146,5 +147,30 @@ export class CollectionsRestErrorFilter implements ExceptionFilter<DomainError> 
   }
 }
 
-/** The filters of every collections REST controller: domain refusals, then over-limit refusals. */
-export const COLLECTIONS_REST_FILTERS = [CollectionsRestErrorFilter, RateLimitedFilter] as const;
+/** What the GraphQL API answers for an unknown channel token; REST gives the same code. */
+const CHANNEL_NOT_FOUND_CODE = 'CHANNEL_NOT_FOUND';
+
+/**
+ * The REST answer of an unknown channel token. Vendure refuses it while building the request context, before the
+ * handler, so {@link restCall} never sees it and Nest would answer a bare 500.
+ */
+@Catch(ChannelNotFoundError)
+export class ChannelNotFoundRestFilter implements ExceptionFilter<ChannelNotFoundError> {
+  catch(_error: ChannelNotFoundError, host: ArgumentsHost): void {
+    const { req, res } = parseContext(host);
+    const messageKey = messageKeyOf('collections.channel-not-found');
+    res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      code: CHANNEL_NOT_FOUND_CODE,
+      message: (req as Partial<I18nRequest>).t?.(messageKey) ?? CHANNEL_NOT_FOUND_CODE,
+      path: pathOf(req.url),
+    });
+  }
+}
+
+/** The filters of every collections REST controller: domain, over-limit and unknown-channel refusals. */
+export const COLLECTIONS_REST_FILTERS = [
+  CollectionsRestErrorFilter,
+  RateLimitedFilter,
+  ChannelNotFoundRestFilter,
+] as const;
