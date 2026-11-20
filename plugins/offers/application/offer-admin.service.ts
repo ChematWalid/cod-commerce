@@ -185,9 +185,8 @@ export class OfferAdminService {
     const parsed = offerInputSchema.safeParse(input);
     if (!parsed.success) throw new InvalidOfferConfigError();
     const { kind, config: rawConfig, targets } = parsed.data;
-    const config = this.ports.kinds.parseConfig(kind, rawConfig);
-    const { allowed } = this.ports.kinds.targetRulesOf(kind, config);
-    if (targets.some((target) => !allowed.includes(target.role))) throw new InvalidOfferTargetsError();
+    const { config, rules } = this.ports.kinds.parsedWithRules(kind, rawConfig);
+    if (targets.some((target) => !rules.allowed.includes(target.role))) throw new InvalidOfferTargetsError();
     return { command: parsed.data, config };
   }
 

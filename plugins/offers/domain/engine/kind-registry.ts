@@ -12,6 +12,12 @@ export interface TargetRules {
   readonly required: readonly OfferTargetRole[];
 }
 
+/** A configuration parsed by its kind's schema, with the target rules that configuration gives (D2501). */
+export interface ParsedKindConfig {
+  readonly config: unknown;
+  readonly rules: TargetRules;
+}
+
 /** One synthetic cart the admin preview prices for a kind (D2516): its pieces and the extra lines it holds. */
 export interface PreviewCart {
   readonly pieces: number;
@@ -83,8 +89,20 @@ export class OfferKindRegistry {
    * @throws {@link InvalidOfferConfigError} when the schema rejects `raw`.
    */
   targetRulesOf(kind: string, raw: unknown): TargetRules {
+    return this.parsedWithRules(kind, raw).rules;
+  }
+
+  /**
+   * `raw` parsed once with the schema of `kind`, and the target rules of the result (D2501). Callers that need both
+   * use this instead of parsing again, since a schema's transforms need not be idempotent.
+   *
+   * @throws {@link UnknownOfferKindError} when no calculator handles `kind`.
+   * @throws {@link InvalidOfferConfigError} when the schema rejects `raw`.
+   */
+  parsedWithRules(kind: string, raw: unknown): ParsedKindConfig {
     const calculator = this.calculatorOf(kind);
-    return calculator.targetRules(parseWith(calculator, raw));
+    const config = parseWith(calculator, raw);
+    return { config, rules: calculator.targetRules(config) };
   }
 
   private calculatorOf(kind: string): OfferKindCalculator<unknown> {

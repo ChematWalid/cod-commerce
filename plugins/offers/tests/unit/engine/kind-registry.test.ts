@@ -150,4 +150,24 @@ describe('OfferKindRegistry target rules (D2501)', () => {
     // Assert
     expect(read).toThrow(InvalidOfferConfigError);
   });
+
+  it('returns the parsed config with its target rules from one parse', () => {
+    // Arrange
+    const raw = { valueType: 'percent', value: 10, appliesTo: 'targets', extra: true };
+
+    // Act
+    const { config, rules } = builtIns.parsedWithRules('product_discount', raw);
+
+    // Assert
+    expect(config).toEqual(builtIns.parseConfig('product_discount', raw));
+    expect(rules).toEqual({ allowed: ['buy'], required: ['buy'] });
+  });
+
+  it('throws for parsed rules of a config its schema rejects', () => {
+    // Act
+    const read = () => builtIns.parsedWithRules('quantity', { tiers: 'many' });
+
+    // Assert
+    expect(read).toThrow(InvalidOfferConfigError);
+  });
 });

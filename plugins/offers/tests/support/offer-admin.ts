@@ -1,6 +1,6 @@
 import type { OfferInput } from '@cod/shared';
 import { OfferAdminService } from '../../application/offer-admin.service';
-import { OfferKindRegistry } from '../../domain/engine/kind-registry';
+import { type OfferKindCalculator, OfferKindRegistry } from '../../domain/engine/kind-registry';
 import { BUILT_IN_OFFER_KINDS } from '../../domain/kinds';
 import type { OfferRecord } from '../../domain/offer-record';
 import type { ActiveStorePort } from '../../domain/ports/active-store.port';
@@ -40,11 +40,18 @@ export const EVERY_CHANNEL: ActiveStorePort = {
   isOwnChannelOf: () => Promise.resolve(true),
 };
 
+/** What a test may swap in the admin service: the channel guard, and the calculators its kinds come from. */
+export interface OfferAdminSetUp {
+  readonly stores?: ActiveStorePort;
+  readonly calculators?: readonly OfferKindCalculator<unknown>[];
+}
+
 /**
  * A service over empty in-memory tables whose clock reads `now()` of the returned setter; `race(write)` runs `write`
- * just before the service's next save. `stores` answers the channel guard (D2448).
+ * just before the service's next save. `stores` answers the channel guard (D2448); `calculators` default to the
+ * built-in kinds.
  */
-export function setUpOfferAdmin({ stores = EVERY_CHANNEL }: { stores?: ActiveStorePort } = {}) {
+export function setUpOfferAdmin({ stores = EVERY_CHANNEL, calculators = BUILT_IN_OFFER_KINDS }: OfferAdminSetUp = {}) {
   const tables = new InMemoryOfferTables();
   const offers = new RacingOfferRepository(tables);
   let now = T0;
@@ -53,7 +60,7 @@ export function setUpOfferAdmin({ stores = EVERY_CHANNEL }: { stores?: ActiveSto
     codes: tables.codes,
     ids: { next: newId },
     clock: { now: () => now },
-    kinds: new OfferKindRegistry(BUILT_IN_OFFER_KINDS),
+    kinds: new OfferKindRegistry(calculators),
     stores,
   });
   const race = (write: () => Promise<unknown>) => (offers.queued = write);
