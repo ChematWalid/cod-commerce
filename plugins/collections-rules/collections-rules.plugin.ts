@@ -17,7 +17,7 @@ import { RulesActions, RulesUseCases } from './api/rules-actions';
 import { RulesController } from './api/rules.controller';
 import { RulesResolver } from './api/rules.resolver';
 import { collectionsRulesAdminApiSchema } from './api/schema';
-import { COLLECTIONS_PROVIDERS } from './infrastructure/collections.providers';
+import { COLLECTIONS_EXPORTS, COLLECTIONS_PROVIDERS } from './infrastructure/collections.providers';
 import { COLLECTIONS_ENTITIES } from './infrastructure/collections-entities';
 import { COLLECTIONS_RECONCILE_TASK_ID, collectionsReconcileTask } from './infrastructure/reconcile.task';
 
@@ -65,6 +65,7 @@ export const COLLECTIONS_REST_CONTROLLERS = [RulesController, CollectionsControl
     resolvers: [CollectionsResolver, MembershipResolver, RulesResolver],
   },
   controllers: COLLECTIONS_REST_CONTROLLERS,
+  exports: COLLECTIONS_EXPORTS,
   dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })

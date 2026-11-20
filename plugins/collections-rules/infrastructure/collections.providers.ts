@@ -1,6 +1,7 @@
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import type { CollectionPorts } from '../application/collection-ports';
+import { CollectionMembershipQueries } from '../application/collection-membership-queries.service';
 import { CollectionProductsService } from '../application/collection-products.service';
 import { CreateCollectionService } from '../application/create-collection.service';
 import { DeleteCollectionService } from '../application/delete-collection.service';
@@ -35,7 +36,9 @@ import { UpdateCollectionService } from '../application/update-collection.servic
 import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { StoreReconcileQueuePort } from '../domain/ports/store-reconcile.port';
+import { CatalogCollectionsReadService } from './catalog-collections-read';
 import { CatalogProductFactsAdapter } from './catalog-product-facts.adapter';
+import { CatalogVisibleProducts } from './catalog-visible-products.adapter';
 import { OutboxCollectionEvents } from './collection-events';
 import { CollectionsMembershipSource } from './collections-membership.source';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
@@ -46,6 +49,7 @@ import { PlatformStoreReconcileQueue, RecomputeStoreJob } from './recompute-stor
 import { SnowflakeCollectionsIdGenerator } from './snowflake-id.generator';
 import { StockFiltersOff } from './stock-filters-off';
 import { StoreChannelContexts } from './store-channel-context';
+import { TenancyActiveStore } from './tenancy-active-store.adapter';
 import { TenancyBusinessDirectoryAdapter } from './tenancy-business-directory.adapter';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmCollectionDefinitionRepository } from './typeorm-collection-definition.repository';
@@ -163,4 +167,12 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   useCase(ProductSearchService),
   CollectionsMembershipSource,
   ...RECONCILE_PROVIDERS,
+  // The reads other plugins import (D2316, D2317).
+  TenancyActiveStore,
+  CatalogVisibleProducts,
+  CatalogCollectionsReadService,
+  useCase(CollectionMembershipQueries),
 ];
+
+/** What the plugin module exports to other plugins, through `index.ts` (D2316, D2317). */
+export const COLLECTIONS_EXPORTS = [CatalogCollectionsReadService, CollectionMembershipQueries];

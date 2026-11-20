@@ -17,8 +17,24 @@ and the ordered membership (D2300-D2303). The layout and layer rules are those o
 
 `index.ts` is the only file another workspace package may import, as `@cod/plugin-collections-rules`, and only from
 its `infrastructure/`, its root `*.plugin.ts` file and its `tests/` (rule `collections-entry-infra-only` in
-`packages/config/architecture/rules.ts`). It exports `CollectionsRulesPlugin`; the read service and the membership
-queries join it in later tasks of P2.S3.
+`packages/config/architecture/rules.ts`). It exports:
+
+- `CollectionsRulesPlugin`;
+- `CollectionsReadService` (D2316, for P3.S2's storefront routes): `listVisible(ctx, { skip, take })` lists the
+  visible collections of the context's active store by position, then id; `productsOf(ctx, collectionId, context,
+  { skip, take })` reads one visible collection's products through the catalog's `CatalogReadService` (hand order for
+  a manual collection, newest first for an automatic one, at most the newest `CATALOG_MAX_AMONG_IDS`), `undefined`
+  for a hidden, foreign or unknown collection. The store is never an argument: a context without an active store on
+  that store's own channel is refused with `CollectionsNoActiveStoreError`;
+- `CollectionMembershipQueries` (D2317, for P2.S4, P2.S5 and P3.S2): `productIdsOf`, `collectionIdsOfProducts` (one
+  query for N products), `isMember`, `existingCollectionIds`, each naming its `CollectionsStoreScope`, so a consumer
+  or job context works too;
+- `asCollectionsOperationContext` to pass a Vendure `RequestContext` to both.
+
+Membership is **eventually consistent** with product edits: a tag, price or option change reaches automatic
+collections through the outbox (`product.changed`, seconds of lag), and the nightly reconcile repairs what a failed
+delivery missed (D2336). Drafts, hidden and sold-out products are members (D2306); visibility applies when products
+are read through `CollectionsReadService`.
 
 ## Commands
 

@@ -110,6 +110,7 @@ class InMemoryDefinitions implements CollectionDefinitionRepositoryPort {
     const wanted = request.collectionIds === undefined ? undefined : new Set(request.collectionIds);
     const matching = this.own(scope)
       .filter((definition) => wanted === undefined || wanted.has(definition.collectionId))
+      .filter((definition) => request.visibleOnly !== true || definition.visible)
       .sort(byPositionThenId);
     const items = matching.slice(request.skip, request.skip + request.take);
     return Promise.resolve({ items, totalItems: matching.length });

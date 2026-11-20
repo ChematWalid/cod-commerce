@@ -3,11 +3,15 @@ import type { CollectionDefinition } from '../collection';
 import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context';
 
-/** A page of a store's definitions; `collectionIds` narrows it to those collections (those the list can show). */
+/**
+ * A page of a store's definitions; `collectionIds` narrows it to those collections (those the list can show) and
+ * `visibleOnly` to the visible ones (the public read, D2316).
+ */
 export interface DefinitionListRequest {
   readonly skip: number;
   readonly take: number;
   readonly collectionIds?: readonly string[];
+  readonly visibleOnly?: boolean;
 }
 
 /** One page of definitions and how many match in all. */

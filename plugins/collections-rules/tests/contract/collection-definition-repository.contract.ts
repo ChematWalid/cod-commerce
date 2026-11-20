@@ -83,6 +83,21 @@ export function describeCollectionDefinitionRepositoryContract(name: string, mak
       expect(page).toEqual({ items: [], totalItems: 0 });
     });
 
+    it('visibleOnly lists and counts only the visible definitions of the store', async () => {
+      // Arrange
+      const { repos, ctx } = await make();
+      const [shown, hidden] = [definitionOf(scopeA, { position: 2 }), definitionOf(scopeA, { visible: false })];
+      await repos.definitions.insert(ctx, scopeA, shown);
+      await repos.definitions.insert(ctx, scopeA, hidden);
+      await repos.definitions.insert(ctx, scopeA2, definitionOf(scopeA2));
+
+      // Act
+      const page = await repos.definitions.list(ctx, scopeA, { skip: 0, take: 10, visibleOnly: true });
+
+      // Assert
+      expect(page).toEqual({ items: [shown], totalItems: 1 });
+    });
+
     it("lists only the store's automatic definitions", async () => {
       // Arrange
       const { repos, ctx } = await make();

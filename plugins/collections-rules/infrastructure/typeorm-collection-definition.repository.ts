@@ -111,6 +111,7 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
     const where = {
       storeId: scope.storeId,
       ...(narrowedTo === undefined ? {} : { collectionId: In(narrowedTo) }),
+      ...(request.visibleOnly === true ? { visible: true } : {}),
     };
     // One after the other: inside a transaction both share one connection (pg 9 refuses concurrent queries).
     const rows = await this.rows.find(tenant, { where, order: LIST_ORDER, skip: request.skip, take: request.take });
