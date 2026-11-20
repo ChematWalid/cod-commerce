@@ -6,7 +6,10 @@ import type { OperationContext } from './operation-context.port';
 export interface AddonOrder {
   readonly id: string;
   readonly status: string;
-  /** The order's cart as a quote request, so the add-on is priced against the order's own lines. */
+  /**
+   * The order's cart as a quote request, so the add-on is priced against the order's own lines. Its `addons` must
+   * hold every add-on line already on the order, summed per offer and variant, so a repeat is capped (D2532 b).
+   */
   readonly cart: QuoteRequest;
 }
 
@@ -34,7 +37,10 @@ export interface OrderAddonTarget {
   /** The order of `scope`'s store with that id; `undefined` for an unknown or foreign one. */
   orderOf(ctx: OperationContext, scope: StoreScope, orderId: string): Promise<AddonOrder | undefined>;
 
-  /** Appends `line` to the order, in the transaction `ctx` carries. */
+  /**
+   * Appends `line` to the order, in the transaction `ctx` carries. `line.quantity` is only the pieces added by this
+   * call: an order that already holds the same offer and variant gets a second line (or merges it into the first).
+   */
   appendLine(ctx: OperationContext, scope: StoreScope, orderId: string, line: PricedAddonLine): Promise<void>;
 }
 

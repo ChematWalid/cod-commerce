@@ -35,19 +35,35 @@ type QuoteAddon = QuoteRequest['addons'][number];
 /** The thank-you page's quote options: only its add-ons are priced, the order form's are refused (D2506). */
 const THANK_YOU: ScopedQuoteOptions = { addonPlacement: 'thank_you' };
 
-/** The order's cart with the accepted add-on, replacing an earlier entry of the same offer and variant. */
+/** The pieces of the add-on of `offerId` on `variantId` the order already holds. */
+function heldPiecesOf(cart: QuoteRequest, { offerId, variantId }: QuoteAddon): number {
+  const held = cart.addons.find((addon) => addon.offerId === offerId && addon.variantId === variantId);
+  return held?.quantity ?? 0;
+}
+
+/**
+ * The order's cart with the accepted add-on: an entry of the same offer and variant the order already holds is
+ * summed with it, so the engine caps the order's pieces together at the offer's per-order cap (D2532 b).
+ */
 function cartWithAddon(cart: QuoteRequest, accepted: QuoteAddon): QuoteRequest {
   const { offerId, variantId } = accepted;
   const others = cart.addons.filter((addon) => addon.offerId !== offerId || addon.variantId !== variantId);
-  return { ...cart, addons: [...others, accepted] };
+  const quantity = heldPiecesOf(cart, accepted) + accepted.quantity;
+  return { ...cart, addons: [...others, { ...accepted, quantity }] };
 }
 
-/** The add-on line the quote priced for `input`, with its offer's kind. @throws {@link AddonNotOfferedError}. */
-function pricedAddonOf(quote: Quote, { offerId, variantId }: OrderAddonInput): PricedAddonLine {
+/**
+ * The add-on line the quote priced for `input`, with its offer's kind, less the `heldPieces` already on the order.
+ *
+ * @throws {@link AddonNotOfferedError} when nothing is priced or the order already holds the capped pieces.
+ */
+function pricedAddonOf(quote: Quote, { offerId, variantId }: OrderAddonInput, heldPieces: number): PricedAddonLine {
   const line = quote.lines.find((candidate) => candidate.addonOf === offerId && candidate.variantId === variantId);
   const applied = quote.applied.find((offer) => offer.offerId === offerId);
   if (line === undefined || applied === undefined) throw new AddonNotOfferedError();
-  const { productId, quantity, originalPrice, unitPrice, parentVariantId = null } = line;
+  const quantity = line.quantity - heldPieces;
+  if (quantity <= 0) throw new AddonNotOfferedError();
+  const { productId, originalPrice, unitPrice, parentVariantId = null } = line;
   return { offerId, kind: applied.kind, productId, variantId, quantity, originalPrice, unitPrice, parentVariantId };
 }
 
@@ -78,13 +94,15 @@ export class OrderAddonService {
   constructor(private readonly ports: OrderAddonPorts) {}
 
   /**
-   * Prices the add-on with the thank-you placement, appends it to the order and publishes `offer.applied`.
+   * Prices the add-on with the thank-you placement, appends it to the order and publishes `offer.applied`. A repeat
+   * of an add-on the order holds appends only the pieces still under the offer's per-order cap.
    *
    * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s active store channel.
    * @throws {@link OrderAddonUnavailableError} while no order source is registered.
    * @throws {@link OrderNotFoundForAddonError} when the store has no such order.
    * @throws {@link OrderNotEditableError} when the order is past `pending` and `unconfirmed`.
-   * @throws {@link AddonNotOfferedError} unless an active thank-you add-on offer of the store offers the variant.
+   * @throws {@link AddonNotOfferedError} unless an active thank-you add-on offer of the store offers the variant, or
+   *   when the order already holds the offer's per-order pieces.
    * @throws {@link InvalidQuoteRequestError} when the order's cart with the add-on breaks the quote schema.
    */
   async addAddonToOrder(ctx: OperationContext, scope: StoreScope, input: OrderAddonInput): Promise<PricedAddonLine> {
@@ -93,9 +111,10 @@ export class OrderAddonService {
     const order = await this.editableOrder(target, ctx, scope, input.orderId);
     const { offerId, variantId, quantity } = input;
     if (!isSnowflake(offerId)) throw new AddonNotOfferedError();
-    const cart = cartWithAddon(order.cart, { offerId, variantId, quantity });
+    const accepted = { offerId, variantId, quantity };
+    const cart = cartWithAddon(order.cart, accepted);
     const quote = await this.ports.pricing.quoteForScope(ctx, scope, cart, THANK_YOU);
-    const line = pricedAddonOf(quote, input);
+    const line = pricedAddonOf(quote, input, heldPiecesOf(order.cart, accepted));
     await target.appendLine(ctx, scope, order.id, line);
     await this.ports.events.offerApplied(ctx, scope, appliedPayloadOf(scope, { orderId: order.id, offerId }, line));
     return line;

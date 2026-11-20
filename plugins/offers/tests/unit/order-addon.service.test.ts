@@ -206,6 +206,47 @@ describe('OrderAddonService.addAddonToOrder', () => {
     ]);
   });
 
+  it("caps a repeated add-on at the offer's per-order pieces", async () => {
+    // Arrange
+    const world = setUpOrderAddons();
+    const offer = aThankYouAddon({ maxPiecesPerOrder: 3 });
+    world.seed(scopeA, offer);
+    const cart = anAddonOrder().cart;
+    world.target.add(
+      scopeA,
+      anAddonOrder({ cart: { ...cart, addons: [{ offerId: offer.id, variantId: '12', quantity: 2 }] } }),
+    );
+    const ctx = world.stores.contextOf(scopeA);
+
+    // Act
+    const line = await world.addons.addAddonToOrder(ctx, scopeA, anAddonInput(offer.id, 2));
+
+    // Assert
+    expect(line.quantity).toBe(1);
+    expect(world.target.appended.map(({ line: appended }) => appended.quantity)).toEqual([1]);
+    expect(world.events.applied.map(({ payload }) => payload.amount)).toEqual([(3_000 - 1_500) * 1]);
+  });
+
+  it('refuses a repeated add-on once the order holds its per-order pieces', async () => {
+    // Arrange
+    const world = setUpOrderAddons();
+    const offer = aThankYouAddon({ maxPiecesPerOrder: 2 });
+    world.seed(scopeA, offer);
+    const cart = anAddonOrder().cart;
+    world.target.add(
+      scopeA,
+      anAddonOrder({ cart: { ...cart, addons: [{ offerId: offer.id, variantId: '12', quantity: 2 }] } }),
+    );
+
+    // Act
+    const adding = world.addons.addAddonToOrder(world.stores.contextOf(scopeA), scopeA, anAddonInput(offer.id, 2));
+
+    // Assert
+    await expect(adding).rejects.toMatchObject({ code: PRICING_ERROR_CODES.ADDON_NOT_OFFERED });
+    expect(world.target.appended).toEqual([]);
+    expect(world.events.applied).toEqual([]);
+  });
+
   it('emits nothing when the append fails', async () => {
     // Arrange
     const world = setUpOrderAddons();
