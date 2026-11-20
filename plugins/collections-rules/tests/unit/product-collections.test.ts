@@ -1,10 +1,11 @@
 import { COLLECTION_MAX_MANUAL_PRODUCTS, COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ProductCollectionsService } from '../../application/product-collections.service';
+import { ProductLinksService } from '../../application/product-links.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { FakeCollectionWorld } from '../fakes/collection-ports';
 import { automaticCollection, manualCollection } from '../support/arrange-collections';
-import { scopeA, scopeA2 } from '../support/builders';
+import { scopeA, scopeA2, scopeB } from '../support/builders';
 
 const ctx = asOperationContext({});
 const C = COLLECTIONS_ERROR_CODES;
@@ -16,7 +17,7 @@ beforeEach(() => {
   world = new FakeCollectionWorld();
   world.facts.add(scopeA, '1', '2');
   world.facts.add(scopeA2, '9');
-  service = new ProductCollectionsService(world.ports);
+  service = new ProductCollectionsService(world.ports, new ProductLinksService(world.ports));
 });
 
 const idsOf = (refs: readonly { id: string }[]): string[] => refs.map((ref) => ref.id);
@@ -102,16 +103,52 @@ describe('ProductCollectionsService.set', () => {
 
   it.each([
     ["the other store's collection", 'other'],
+    ["another business's collection", 'foreign'],
     ['a malformed id', 'abc'],
-  ])('refuses %s with not-found', async (_case, which) => {
+  ])('refuses %s with not-found and writes nothing', async (_case, which) => {
     // Arrange
-    const collectionId = which === 'other' ? await manualCollection(world, scopeA2) : which;
+    const own = await manualCollection(world, scopeA);
+    const collectionId =
+      which === 'other'
+        ? await manualCollection(world, scopeA2)
+        : which === 'foreign'
+          ? await manualCollection(world, scopeB)
+          : which;
+    world.events.published.length = 0;
 
     // Act
-    const set = service.set(ctx, scopeA, { productId: '1', collectionIds: [collectionId] });
+    const set = service.set(ctx, scopeA, { productId: '1', collectionIds: [own, collectionId] });
 
     // Assert
     await expect(set).rejects.toMatchObject({ code: C.NOT_FOUND });
+    expect(await world.tables.members.membersOf(ctx, scopeA, own)).toEqual([]);
+    expect(world.events.published).toEqual([]);
+  });
+
+  it('refuses a collection whose Vendure collection left the store with not-found', async () => {
+    // Arrange
+    const stale = await manualCollection(world, scopeA);
+    world.vendure.rows.delete(stale);
+
+    // Act
+    const set = service.set(ctx, scopeA, { productId: '1', collectionIds: [stale] });
+
+    // Assert
+    await expect(set).rejects.toMatchObject({ code: C.NOT_FOUND });
+    expect(await world.tables.members.membersOf(ctx, scopeA, stale)).toEqual([]);
+  });
+
+  it('joins a collection named twice once and publishes one change', async () => {
+    // Arrange
+    const collectionId = await manualCollection(world, scopeA);
+    world.events.published.length = 0;
+
+    // Act
+    const view = await service.set(ctx, scopeA, { productId: '1', collectionIds: [collectionId, `0${collectionId}`] });
+
+    // Assert
+    expect(idsOf(view.manual)).toEqual([collectionId]);
+    expect(world.events.published.map((event) => event.collectionId)).toEqual([collectionId]);
   });
 
   it("refuses another store's product with product-not-found", async () => {

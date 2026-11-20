@@ -8,6 +8,12 @@ export interface MemberPlacement {
   readonly position: number;
 }
 
+/** A page of a collection's members. */
+export interface MemberPageRequest {
+  readonly skip: number;
+  readonly take: number;
+}
+
 /** The collections one product joins and leaves; a collection it is already in keeps its place. */
 export interface ProductMembershipChange {
   readonly in: readonly MemberPlacement[];
@@ -26,6 +32,13 @@ export interface ProductMembershipChange {
 export interface CollectionMemberRepositoryPort {
   /** The members of a collection, by position, then newest product first (D2318). */
   membersOf(ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<readonly MemberRow[]>;
+  /** One page of {@link membersOf}, read from the table page by page (an automatic collection has no member cap). */
+  membersPage(
+    ctx: OperationContext,
+    scope: StoreScope,
+    collectionId: string,
+    page: MemberPageRequest,
+  ): Promise<readonly MemberRow[]>;
   /** Makes the collection's members exactly `rows`, writing only the difference (`membershipDiff`). */
   replaceMembers(
     ctx: OperationContext,

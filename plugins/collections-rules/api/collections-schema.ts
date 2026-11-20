@@ -3,8 +3,9 @@ import gql from 'graphql-tag';
 /**
  * Store collections of the active store (D2300, D2314). Names are `StoreCollection*`, never Vendure's stock
  * `Collection` ones (D2101). Collection and asset ids are Vendure ids, so `ID`; the tag and brand ids a rule names are
- * our snowflakes, so `String`. Reads need `catalog.collections.view`, create `.create`, edit `.edit` (also the product
- * lists of a collection or a product), delete `.delete`.
+ * our snowflakes, so `String`. Reads (including a collection's products, a product's collections and slug
+ * availability) need `catalog.collections.view`; create `.create`; edit `.edit` (also setting a collection's products
+ * or a product's collections); delete `.delete`.
  */
 export const collectionsAdminApiSchema = gql`
   type StoreCollectionImage {

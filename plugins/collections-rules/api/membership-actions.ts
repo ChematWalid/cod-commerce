@@ -50,7 +50,9 @@ export class MembershipActions {
     return toCollectionDto(view);
   }
 
-  slugAvailability(ctx: RequestContext, query: unknown): Promise<SlugAvailabilityView> {
+  async slugAvailability(ctx: RequestContext, query: unknown): Promise<SlugAvailabilityView> {
+    // The slug check reads the active store's channel only: the store must be resolved, as for every other handler.
+    scopeOf(ctx);
     const parsed = parseInput(storeCollectionSlugQuerySchema, query ?? {});
     return this.useCases.slugs.check(asOperationContext(ctx), parsed);
   }

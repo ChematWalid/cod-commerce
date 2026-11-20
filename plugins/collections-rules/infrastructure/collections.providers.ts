@@ -99,7 +99,11 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   useCase(GetCollectionService),
   useCase(CollectionProductsService),
   useCase(SetCollectionProductsService),
-  useCase(ProductCollectionsService),
+  {
+    provide: ProductCollectionsService,
+    useFactory: (ports: CollectionPorts, links: ProductLinksService) => new ProductCollectionsService(ports, links),
+    inject: [COLLECTION_PORTS, ProductLinksService],
+  },
   useCase(SlugAvailabilityService),
   useCase(ProductLinksService),
   CollectionsMembershipSource,

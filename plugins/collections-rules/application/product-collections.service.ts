@@ -5,7 +5,7 @@ import { canonicalProductId } from '../domain/membership';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import type { CollectionPorts } from './collection-ports';
-import { type CollectionRefView, ProductLinksService } from './product-links.service';
+import type { CollectionRefView, ProductLinksService } from './product-links.service';
 
 /** A collection named on the product side: its id and title. */
 export interface StoreCollectionRef {
@@ -26,11 +26,10 @@ const refOf = ({ id, title }: CollectionRefView): StoreCollectionRef => ({ id, t
  * its manual ones, under the store lock (D2334), appending it last to each collection it joins (D2318).
  */
 export class ProductCollectionsService {
-  private readonly links: ProductLinksService;
-
-  constructor(private readonly ports: CollectionPorts) {
-    this.links = new ProductLinksService(ports);
-  }
+  constructor(
+    private readonly ports: CollectionPorts,
+    private readonly links: ProductLinksService,
+  ) {}
 
   /** @throws {CollectionProductNotFoundError} when the product is not one of the store. */
   async of(ctx: OperationContext, scope: StoreScope, rawProductId: string): Promise<StoreProductCollectionsView> {
@@ -51,7 +50,7 @@ export class ProductCollectionsService {
     command: SetStoreProductCollectionsCommand,
   ): Promise<StoreProductCollectionsView> {
     const productId = canonicalProductId(command.productId);
-    const collectionIds = command.collectionIds.map(writableCollectionId);
+    const collectionIds = [...new Set(command.collectionIds.map(writableCollectionId))];
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       await this.ports.lock.lockStore(tx, scope.storeId);
       await this.requireProduct(tx, scope, productId);
@@ -67,8 +66,8 @@ export class ProductCollectionsService {
   }
 
   private async requireManual(ctx: OperationContext, scope: StoreScope, collectionIds: readonly string[]) {
-    const definitions = await this.links.definitionsAmong(ctx, scope, collectionIds);
-    if (definitions.length !== new Set(collectionIds).size) throw new CollectionNotFoundError();
+    const definitions = await this.links.liveDefinitionsAmong(ctx, scope, collectionIds);
+    if (definitions.length !== collectionIds.length) throw new CollectionNotFoundError();
     if (definitions.some((definition) => definition.mode !== 'manual')) throw new CollectionNotManualError();
   }
 

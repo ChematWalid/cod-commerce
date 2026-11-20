@@ -2,6 +2,7 @@ import { COLLECTION_MAX_MANUAL_PRODUCTS, COLLECTIONS_ERROR_CODES } from '@cod/sh
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CollectionProductsService } from '../../application/collection-products.service';
 import { ProductCollectionsService } from '../../application/product-collections.service';
+import { ProductLinksService } from '../../application/product-links.service';
 import { SetCollectionProductsService } from '../../application/set-collection-products.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { FakeCollectionWorld } from '../fakes/collection-ports';
@@ -128,6 +129,39 @@ describe('CollectionProductsService.list', () => {
     });
   });
 
+  it('counts every member row and leaves a product deleted since out of its page', async () => {
+    // Arrange
+    const collectionId = await manualCollection(world, scopeA);
+    await setProducts(collectionId, ['3', '1', '2']);
+    world.facts.remove(scopeA, '1');
+
+    // Act
+    const page = await new CollectionProductsService(world.ports).list(ctx, scopeA, collectionId, {
+      skip: 0,
+      take: 2,
+    });
+
+    // Assert
+    expect(page.items.map((item) => item.productId)).toEqual(['3']);
+    expect(page.totalItems).toBe(3);
+  });
+
+  it('reads only the requested page of members', async () => {
+    // Arrange
+    const collectionId = await manualCollection(world, scopeA);
+    await setProducts(collectionId, ['3', '1', '2']);
+    world.tables.members.membersOf = () => Promise.reject(new Error('read every member'));
+
+    // Act
+    const page = await new CollectionProductsService(world.ports).list(ctx, scopeA, collectionId, {
+      skip: 2,
+      take: 5,
+    });
+
+    // Assert
+    expect(page).toMatchObject({ items: [{ productId: '2' }], totalItems: 3 });
+  });
+
   it('answers not-found for a collection the store does not have', async () => {
     // Act
     const list = new CollectionProductsService(world.ports).list(ctx, scopeA, '424242', ALL);
@@ -141,7 +175,7 @@ describe('product-side appends under the store lock (D2334)', () => {
   it('parallel appends get distinct positions', async () => {
     // Arrange
     const collectionId = await manualCollection(world, scopeA);
-    const service = new ProductCollectionsService(world.ports);
+    const service = new ProductCollectionsService(world.ports, new ProductLinksService(world.ports));
 
     // Act
     await Promise.all(

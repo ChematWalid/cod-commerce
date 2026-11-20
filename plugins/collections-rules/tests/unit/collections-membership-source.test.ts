@@ -4,14 +4,14 @@ import {
   type CollectionMembershipSourceRegistrar,
   toCoreId,
 } from '@cod/plugin-catalog';
-import { CATALOG_ERROR_CODES, COLLECTION_MAX_MANUAL_PRODUCTS } from '@cod/shared';
+import { CATALOG_ERROR_CODES, COLLECTION_MAX_MANUAL_PRODUCTS, COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ProductLinksService } from '../../application/product-links.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { CollectionsMembershipSource } from '../../infrastructure/collections-membership.source';
 import { FakeCollectionWorld } from '../fakes/collection-ports';
 import { automaticCollection, manualCollection } from '../support/arrange-collections';
-import { scopeA, scopeA2 } from '../support/builders';
+import { scopeA, scopeA2, scopeB } from '../support/builders';
 
 const ctx = asOperationContext({});
 const catalogCtx = asCatalogOperationContext({});
@@ -83,6 +83,57 @@ describe('CollectionsMembershipSource', () => {
     await expect(write).rejects.toMatchObject({ code: CATALOG_ERROR_CODES.COLLECTION_NOT_FOUND });
     expect(await membersOf(manual)).toEqual([]);
     expect(await membersOf(automatic)).toEqual([]);
+  });
+
+  it.each([
+    ["the other store's collection", 'other'],
+    ["another business's collection", 'foreign'],
+    ['a collection whose Vendure collection left the store', 'stale'],
+  ])('refuses %s with the catalog code and writes nothing', async (_case, which) => {
+    // Arrange
+    const own = await manualCollection(world, scopeA);
+    const target =
+      which === 'other'
+        ? await manualCollection(world, scopeA2)
+        : which === 'foreign'
+          ? await manualCollection(world, scopeB)
+          : await manualCollection(world, scopeA);
+    if (which === 'stale') world.vendure.rows.delete(target);
+
+    // Act
+    const write = source.replaceProductCollections(catalogCtx, scopeA, toCoreId('1'), ids(own, target));
+
+    // Assert
+    await expect(write).rejects.toMatchObject({ code: CATALOG_ERROR_CODES.COLLECTION_NOT_FOUND });
+    expect([await membersOf(own), await membersOf(target)]).toEqual([[], []]);
+    expect(await source.manualCollectionIdsAmong(catalogCtx, scopeA, ids(own, target))).toEqual([own]);
+  });
+
+  it('refuses a malformed collection id instead of reading it as no collection', async () => {
+    // Arrange
+    const manual = await manualCollection(world, scopeA);
+    const links = new ProductLinksService(world.ports);
+    await links.replaceManual(ctx, scopeA, '1', [manual]);
+
+    // Act
+    const write = links.replaceManual(ctx, scopeA, '1', ['abc']);
+
+    // Assert
+    await expect(write).rejects.toMatchObject({ code: COLLECTIONS_ERROR_CODES.NOT_FOUND });
+    expect(await membersOf(manual)).toEqual(['1']);
+  });
+
+  it('leaves the dropped collections of a product named with a zero-padded id', async () => {
+    // Arrange
+    const [first, second] = [await manualCollection(world, scopeA), await manualCollection(world, scopeA)];
+    const links = new ProductLinksService(world.ports);
+    await links.replaceManual(ctx, scopeA, '1', [first]);
+
+    // Act
+    await links.replaceManual(ctx, scopeA, '01', [second]);
+
+    // Assert
+    expect([await membersOf(first), await membersOf(second)]).toEqual([[], ['1']]);
   });
 
   it('refuses an append past the manual cap with a code the catalog answers', async () => {

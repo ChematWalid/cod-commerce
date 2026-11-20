@@ -34,14 +34,16 @@ export class CollectionProductsService {
     const collectionId = writableCollectionId(rawId);
     const definition = await this.ports.definitions.findByCollectionId(ctx, scope, collectionId);
     if (definition === undefined) throw new CollectionNotFoundError();
-    const members = await this.ports.members.membersOf(ctx, scope, collectionId);
-    const pageIds = members.slice(page.skip, page.skip + page.take).map((member) => member.productId);
+    const members = await this.ports.members.membersPage(ctx, scope, collectionId, page);
+    const totalItems = (await this.ports.members.countsOf(ctx, scope, [collectionId])).get(collectionId) ?? 0;
+    const pageIds = members.map((member) => member.productId);
     const summaries = await this.ports.facts.summariesOf(ctx, scope, pageIds);
-    // A product deleted since its member row was read is simply left out of the page.
+    // `totalItems` counts member rows. A deleted product's rows go with it under the store lock (D2306), so a row
+    // whose product the reader no longer returns only exists while that delete races this read: it is left out.
     const items = pageIds.flatMap((productId) => {
       const summary = summaries.get(productId);
       return summary === undefined ? [] : [summary];
     });
-    return { items, totalItems: members.length };
+    return { items, totalItems };
   }
 }

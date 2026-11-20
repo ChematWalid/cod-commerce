@@ -1,6 +1,6 @@
 import { COLLECTION_MAX_MANUAL_PRODUCTS, COLLECTIONS_PER_STORE_MAX } from '@cod/shared';
 import type { CollectionDefinition } from '../domain/collection';
-import { canonicalCoreId, canonicalCoreIds } from '../domain/core-id';
+import { canonicalCoreId, canonicalCoreIds, writableCollectionId } from '../domain/core-id';
 import { CollectionNotFoundError, TooManyManualProductsError } from '../domain/errors';
 import type { MemberPlacement } from '../domain/ports/collection-member-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -39,10 +39,28 @@ export class ProductLinksService {
     return page.items;
   }
 
-  /** The manual collections of the store among `collectionIds`, canonical, in first-given order. */
+  /**
+   * The store's definitions among `collectionIds` whose Vendure collection is still in the store, so a product is
+   * never linked to a stale definition the views would hide (an orphan left after its collection was removed).
+   */
+  async liveDefinitionsAmong(
+    ctx: OperationContext,
+    scope: StoreScope,
+    collectionIds: readonly string[],
+  ): Promise<readonly CollectionDefinition[]> {
+    const definitions = await this.definitionsAmong(ctx, scope, collectionIds);
+    if (definitions.length === 0) return [];
+    const metas = await this.ports.vendure.findMany(
+      ctx,
+      definitions.map((definition) => definition.collectionId),
+    );
+    return definitions.filter((definition) => metas.has(definition.collectionId));
+  }
+
+  /** The live manual collections of the store among `collectionIds`, canonical, in first-given order. */
   async manualAmong(ctx: OperationContext, scope: StoreScope, collectionIds: readonly string[]): Promise<string[]> {
     const manual = new Set(
-      (await this.definitionsAmong(ctx, scope, collectionIds)).filter(isManual).map((item) => item.collectionId),
+      (await this.liveDefinitionsAmong(ctx, scope, collectionIds)).filter(isManual).map((item) => item.collectionId),
     );
     return canonicalCoreIds(collectionIds).filter((collectionId) => manual.has(collectionId));
   }
@@ -73,7 +91,10 @@ export class ProductLinksService {
    * collections become `collectionIds`. A collection that is not (or no longer) a manual one of the store refuses the
    * whole write, so a mode switch racing the product save never links an automatic collection.
    *
-   * @throws {CollectionNotFoundError} when an id is not a manual collection of the store.
+   * The catalog sends canonical ids; a malformed collection id is still refused (never read as "no collection", which
+   * would unlink the product everywhere), and a malformed product id writes nothing.
+   *
+   * @throws {CollectionNotFoundError} when an id is not a manual collection of the store, or is malformed.
    * @throws {TooManyManualProductsError} when a collection is full.
    */
   async replaceManual(
@@ -82,19 +103,22 @@ export class ProductLinksService {
     productId: string,
     collectionIds: readonly string[],
   ): Promise<void> {
+    const product = canonicalCoreId(productId);
+    if (product === undefined) return;
+    const wanted = [...new Set(collectionIds.map(writableCollectionId))];
     await this.ports.transaction.run(ctx, scope, async (tx) => {
       await this.ports.lock.lockStore(tx, scope.storeId);
-      const wanted = canonicalCoreIds(collectionIds);
       const manual = await this.manualAmong(tx, scope, wanted);
       if (manual.length !== wanted.length) throw new CollectionNotFoundError();
-      await this.writeManual(tx, scope, productId, manual);
+      await this.writeManual(tx, scope, product, manual);
     });
   }
 
   /**
-   * Makes the product's manual collections exactly `collectionIds` (checked manual ones of the store, canonical): it
-   * joins the new ones last (D2318) and leaves the dropped ones; automatic memberships stay. Run under the store lock.
-   * Publishes `collection.changed` (`membership`) for each collection joined or left.
+   * Makes the product's manual collections exactly `collectionIds` (checked manual ones of the store; the product id
+   * canonical): it joins the new ones last (D2318) and leaves the dropped ones, stale ones included; automatic
+   * memberships stay. A repeated id counts once. Run under the store lock. Publishes `collection.changed`
+   * (`membership`) once for each collection joined or left.
    */
   async writeManual(
     tx: OperationContext,
@@ -102,10 +126,13 @@ export class ProductLinksService {
     productId: string,
     collectionIds: readonly string[],
   ): Promise<void> {
+    const wanted = canonicalCoreIds(collectionIds);
     const current = (await this.ports.members.collectionIdsOfProducts(tx, scope, [productId])).get(productId) ?? [];
-    const target = new Set(collectionIds);
-    const left = (await this.manualAmong(tx, scope, current)).filter((collectionId) => !target.has(collectionId));
-    const joined = collectionIds.filter((collectionId) => !current.includes(collectionId));
+    const target = new Set(wanted);
+    const left = (await this.definitionsAmong(tx, scope, current))
+      .filter((definition) => isManual(definition) && !target.has(definition.collectionId))
+      .map((definition) => definition.collectionId);
+    const joined = wanted.filter((collectionId) => !current.includes(collectionId));
     if (joined.length === 0 && left.length === 0) return;
     const placements = await this.placementsAtEnd(tx, scope, joined);
     await this.ports.members.setProductIn(tx, scope, productId, { in: placements, out: left });

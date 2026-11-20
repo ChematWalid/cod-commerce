@@ -10,6 +10,7 @@ import type {
 } from '../../domain/ports/collection-definition-repository.port';
 import type {
   CollectionMemberRepositoryPort,
+  MemberPageRequest,
   ProductMembershipChange,
 } from '../../domain/ports/collection-member-repository.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
@@ -169,6 +170,16 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
   membersOf(_ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<readonly MemberRow[]> {
     const rows = this.rowsOf(scope, collectionId).map(({ productId, position }) => ({ productId, position }));
     return Promise.resolve(rows.sort(byPositionThenNewest));
+  }
+
+  membersPage(
+    _ctx: OperationContext,
+    scope: StoreScope,
+    collectionId: string,
+    page: MemberPageRequest,
+  ): Promise<readonly MemberRow[]> {
+    const rows = this.rowsOf(scope, collectionId).map(({ productId, position }) => ({ productId, position }));
+    return Promise.resolve(rows.sort(byPositionThenNewest).slice(page.skip, page.skip + page.take));
   }
 
   replaceMembers(

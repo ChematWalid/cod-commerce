@@ -8,6 +8,7 @@ import { canonicalCoreId, canonicalCoreIds, distinctPlacements, writableCollecti
 import { canonicalProductId, membershipDiff, type MemberRow } from '../domain/membership';
 import type {
   CollectionMemberRepositoryPort,
+  MemberPageRequest,
   MemberPlacement,
   ProductMembershipChange,
 } from '../domain/ports/collection-member-repository.port';
@@ -57,6 +58,23 @@ export class TypeOrmCollectionMemberRepository implements CollectionMemberReposi
     const rows = await this.rows.find(requestScope(ctx, scope), {
       where: { storeId: scope.storeId, collectionId: canonical },
       order: MEMBER_ORDER,
+    });
+    return rows.map(toMember);
+  }
+
+  async membersPage(
+    ctx: OperationContext,
+    scope: StoreScope,
+    collectionId: string,
+    page: MemberPageRequest,
+  ): Promise<readonly MemberRow[]> {
+    const canonical = canonicalCoreId(collectionId);
+    if (canonical === undefined) return [];
+    const rows = await this.rows.find(requestScope(ctx, scope), {
+      where: { storeId: scope.storeId, collectionId: canonical },
+      order: MEMBER_ORDER,
+      skip: page.skip,
+      take: page.take,
     });
     return rows.map(toMember);
   }
