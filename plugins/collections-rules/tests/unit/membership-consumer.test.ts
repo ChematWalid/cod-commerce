@@ -8,15 +8,17 @@ import { RecomputeMembershipService } from '../../application/recompute-membersh
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type { ReconcileReason, StoreReconcileQueuePort } from '../../domain/ports/store-reconcile.port';
 import type { StoreScope } from '../../domain/store-scope';
-import { CollectionsMembershipConsumer } from '../../infrastructure/membership.consumer';
+import { CollectionsMembershipConsumer, MissingDeliveryContextError } from '../../infrastructure/membership.consumer';
 import type { StoreChannelContexts } from '../../infrastructure/store-channel-context';
 import { FakeCollectionWorld } from '../fakes/collection-ports';
 import { automaticCollection, manualCollection } from '../support/arrange-collections';
-import { scopeA, scopeA2 } from '../support/builders';
+import { scopeA, scopeA2, scopeB } from '../support/builders';
 import { facts, PROMO_TAG, ruleOf, tagIs } from './rule-fixtures';
 
 const ctx = asOperationContext({});
 const LAST_ATTEMPT = QUEUES['catalog-effects'].attempts;
+/** Which business owns each store, as `settingsOf(businessId, storeId)` sees it. */
+const OWNER_OF = new Map<string, string>([scopeA, scopeA2, scopeB].map((scope) => [scope.storeId, scope.businessId]));
 
 /** Records the store reconciles asked for. */
 class RecordingReconcile implements StoreReconcileQueuePort {
@@ -40,8 +42,8 @@ beforeEach(() => {
   archived = new Set();
   registered = [];
   const contexts = {
-    forStore: (from: RequestContext, _businessId: string, storeId: string) =>
-      Promise.resolve(archived.has(storeId) ? undefined : from),
+    forStore: (from: RequestContext, businessId: string, storeId: string) =>
+      Promise.resolve(archived.has(storeId) || OWNER_OF.get(storeId) !== businessId ? undefined : from),
   } as unknown as StoreChannelContexts;
   const registry = { register: (entry: OutboxConsumer) => registered.push(entry) } as unknown as OutboxConsumerRegistry;
   consumer = new CollectionsMembershipConsumer(
@@ -205,5 +207,31 @@ describe('CollectionsMembershipConsumer (D2312, D2313)', () => {
     expect([earlyOutcome, lastOutcome]).toEqual([failure, failure]);
     expect(asked).toBe(0);
     expect(reconcile.asked).toEqual([{ scope: scopeA, reason: 'delivery' }]);
+  });
+
+  it("a delivery of business A naming B's store writes nothing in B", async () => {
+    // Arrange
+    const ofB = await promoCollection(scopeB, ['8']);
+    world.facts.put(scopeB, facts({ productId: '7', tagIds: [PROMO_TAG] }));
+    world.steps.length = 0;
+    const { delivery, tenant } = deliveryOf(scopeA, { productId: '7', storeId: scopeB.storeId, change: 'updated' });
+
+    // Act
+    await consumer.handle({ ...delivery, storeId: null }, tenant);
+
+    // Assert
+    expect(world.steps).toEqual([]);
+    expect(await memberIds(scopeB, ofB)).toEqual(['8']);
+  });
+
+  it('a delivery without a request context fails with a typed error', async () => {
+    // Arrange
+    const { delivery } = changed(scopeA, '7');
+
+    // Act
+    const outcome = consumer.handle(delivery, { businessId: scopeA.businessId });
+
+    // Assert
+    await expect(outcome).rejects.toBeInstanceOf(MissingDeliveryContextError);
   });
 });

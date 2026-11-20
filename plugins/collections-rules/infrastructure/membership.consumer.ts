@@ -29,7 +29,20 @@ const productChangedSchema = z.object({
   change: z.enum(PRODUCT_CHANGE_KINDS),
 });
 
-/** True when this run is the delivery's last: the queue gives up after it (D2336 (3)). */
+/** The outbox handed a delivery without the request context its scope should carry: a wiring fault, retried. */
+export class MissingDeliveryContextError extends Error {
+  constructor() {
+    super('The outbox delivery carries no request context');
+    this.name = 'MissingDeliveryContextError';
+  }
+}
+
+/**
+ * True when this run is the delivery's last by the delivery row's counter (D2336 (3)). The row also counts crashed
+ * runs and runs of a delivery the outbox reconciler queued again, so it can say "last" early; the store reconcile it
+ * asks for is merged per store and hour, so repeats queue nothing more. A delivery the reconciler fails by itself never
+ * reaches this handler: the nightly sweep heals that store.
+ */
 const isLastDelivery = (delivery: OutboxDelivery): boolean => delivery.attempt >= QUEUES[MEMBERSHIP_QUEUE].attempts;
 
 /**
@@ -79,7 +92,7 @@ export class CollectionsMembershipConsumer implements OnModuleInit {
     productId: string,
   ): Promise<void> {
     const ctx = requestContextOf(scope);
-    if (ctx === undefined) throw new Error('The outbox delivery carries no request context');
+    if (ctx === undefined) throw new MissingDeliveryContextError();
     const onStore = await this.contexts.forStore(ctx, store.businessId, store.storeId);
     if (onStore === undefined) {
       Logger.info(

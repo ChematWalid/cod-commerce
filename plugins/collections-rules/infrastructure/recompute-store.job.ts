@@ -1,5 +1,7 @@
 import {
   BusinessSemaphore,
+  PLATFORM_CLOCK,
+  type PlatformClock,
   PlatformQueues,
   SemaphoreBusyError,
   semaphoreRetryDelayMs,
@@ -23,6 +25,7 @@ import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { ReconcileReason, StoreReconcileQueuePort } from '../domain/ports/store-reconcile.port';
 import type { StoreScope } from '../domain/store-scope';
+import { utcDayKey, utcHourKey } from '../domain/utc-time-keys';
 import { StoreChannelContexts } from './store-channel-context';
 
 /** The queue of the store reconcile job `collections.recompute-store` (D2336, ADR 0013 amendment). */
@@ -44,19 +47,19 @@ const jobDataSchema = z.object({
   storeId: z.string().refine(isSnowflake),
 });
 
-/** `YYYYMMDD` of `now` in UTC: one nightly reconcile per store and day. */
-const dayOf = (now: Date): string => now.toISOString().slice(0, 'YYYY-MM-DD'.length).replaceAll('-', '');
-
 /**
  * {@link StoreReconcileQueuePort} on the platform's durable queues. A bootstrap or nightly reconcile has one id per
- * store and version or day, so a repeat is ignored; a save or a failed delivery always queues a new run, since the
- * store may have changed after a queued one read it.
+ * store and version or UTC day, so a repeat is ignored. Failed deliveries of one store share one id per UTC hour: a
+ * systemic failure during an import would otherwise queue one whole-store walk per product, and one run reads the
+ * latest rules and facts once it holds the store lock. A save always queues a new run, since the store may have
+ * changed after a started one read it.
  */
 @Injectable()
 export class PlatformStoreReconcileQueue implements StoreReconcileQueuePort {
   constructor(
     private readonly queues: PlatformQueues,
     @Inject(ID_GENERATOR) private readonly ids: IdGeneratorPort,
+    @Inject(PLATFORM_CLOCK) private readonly clock: PlatformClock,
   ) {}
 
   enqueue(scope: StoreScope, reason: ReconcileReason): Promise<void> {
@@ -70,7 +73,8 @@ export class PlatformStoreReconcileQueue implements StoreReconcileQueuePort {
 
   private runKeyOf(reason: ReconcileReason): string {
     if (reason === 'version') return `v${String(NORMAL_FORM_VERSION)}`;
-    if (reason === 'nightly') return `n${dayOf(new Date())}`;
+    if (reason === 'nightly') return `n${utcDayKey(this.clock.now())}`;
+    if (reason === 'delivery') return `d${utcHourKey(this.clock.now())}`;
     return this.ids.next();
   }
 }
