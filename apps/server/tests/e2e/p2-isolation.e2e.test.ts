@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CATALOG_ERROR_CODES } from '@cod/shared';
+import { type InternalSigningKey, parseInternalKeys } from '@cod/shared/internal-auth';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
 import {
   AssetServerPlugin,
@@ -21,6 +22,13 @@ import {
   otherStoreSnapshotOf,
   seedCatalog,
 } from '../isolation/catalog-world';
+import {
+  COLLECTION_WORLDS,
+  collectionsFingerprints,
+  collectionsOf,
+  COLLECTIONS_SNAPSHOT_FIELDS,
+  seedCollections,
+} from '../isolation/collections-world';
 import { errorCodesOf, IsolationHttp } from '../isolation/http';
 import { ownChannel } from '../isolation/matrix';
 import { CORRUPT_PNG, OVERSIZED_PNG, sourceKeyOf, storedState } from '../isolation/media-guard';
@@ -28,7 +36,7 @@ import { type Outcome, runMatrix } from '../isolation/run';
 import { UPLOAD_CATALOG_MEDIA } from '../isolation/seed-operations';
 import { OFFERS_WORLDS, seedOffers } from '../isolation/offers-world';
 import { snapshotOf } from '../isolation/snapshot';
-import { P2_TENANT_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
+import { P2_TENANT_TABLES, RETIRED_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
 import { buildWorld, type World } from '../isolation/world';
 import {
   afterE2eInit,
@@ -39,6 +47,7 @@ import {
   removeBullKeys,
 } from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
+import { sendRaw, signedHeaders } from './support/signed-request';
 import { ASSET_KEY_PREFIX, ASSET_ROUTE } from '../../src/config/asset-storage.config';
 import { PrefixedAssetStorage } from '../../src/config/prefixed-asset-storage';
 import { TenantAssetNamingStrategy } from '../../src/config/tenant-asset-naming.strategy';
@@ -50,7 +59,14 @@ const ENV = { PLATFORM_DEMO_HANDLERS: 'true' };
 const PASSWORD = 'synthetic-isolation-password';
 const CENSUS_WAIT_MS = 60_000;
 const CENSUS_POLL_MS = 500;
+/** What each owner's snapshot reads of its first store: the catalog and the collections (P2.S3). */
+const FIRST_STORE_FIELDS = `${CATALOG_SNAPSHOT_FIELDS} ${COLLECTIONS_SNAPSHOT_FIELDS}`;
 /** Text no answer may carry: SQL, entity names, stacks (D2136). */
+/** The default storefront's collection list: the Shop API is internal-only (D112), so the call is signed. */
+const SHOP_COLLECTIONS = JSON.stringify({ query: '{ collections(options: { take: 100 }) { items { name slug } } }' });
+interface ShopCollections {
+  readonly data?: { readonly collections?: { readonly items?: unknown } };
+}
 const INTERNALS = [/\bselect\b.+\bfrom\b/i, /QueryFailedError/, /EntityNotFound/, /\bat .+\.(?:js|ts):\d+/];
 
 const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
@@ -64,7 +80,8 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * catalog endpoint, by id, by list, by write, by naming B's rows in its own writes and with B's store token, and A's
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
  * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
- * (P2.S4), seeded in process, that A's quotes must never see.
+ * (P2.S4), seeded in process, that A's quotes must never see, and collections (P2.S3: manual, by rule, on each store)
+ * seeded as its owner through `createStoreCollection`, which A reaches for through every collections endpoint.
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -103,15 +120,17 @@ describe('P2 isolation: a business sees only its own catalog', () => {
       suffix: randomBytes(4).toString('hex'),
       password: PASSWORD,
     });
-    CATALOG_WORLDS.set('A', await seedCatalog(http, world.superadmin, world.a));
-    CATALOG_WORLDS.set('B', await seedCatalog(http, world.superadmin, world.b));
+    CATALOG_WORLDS.set('A', await seedCatalog(http, world.a));
+    CATALOG_WORLDS.set('B', await seedCatalog(http, world.b));
+    COLLECTION_WORLDS.set('A', await seedCollections(http, world.a));
+    COLLECTION_WORLDS.set('B', await seedCollections(http, world.b));
     OFFERS_WORLDS.set('A', await seedOffers(server.app, world.a));
     OFFERS_WORLDS.set('B', await seedOffers(server.app, world.b));
     before = {
-      a: await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS),
-      b: await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS),
-      aOtherStore: await otherStoreSnapshotOf(http, world.a),
-      bOtherStore: await otherStoreSnapshotOf(http, world.b),
+      a: await snapshotOf(http, world.a, FIRST_STORE_FIELDS),
+      b: await snapshotOf(http, world.b, FIRST_STORE_FIELDS),
+      aOtherStore: await otherStoreSnapshotOf(http, world.a, COLLECTIONS_SNAPSHOT_FIELDS),
+      bOtherStore: await otherStoreSnapshotOf(http, world.b, COLLECTIONS_SNAPSHOT_FIELDS),
     };
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
     outcomes = new Map(
@@ -128,7 +147,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it(
-    'seeds a row of each business in every P1, catalog and offers tenant table',
+    'seeds a row of each business in every P1, catalog, offers and collections tenant table',
     async () => {
       // The outbox rows come from the webhooks' asynchronous processing, so the census waits for them.
       const emptyTables = async (): Promise<string[]> => {
@@ -146,6 +165,12 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     },
     CENSUS_WAIT_MS + CENSUS_POLL_MS * 10,
   );
+
+  it('writes no row of either business to a retired table (D2309)', async () => {
+    const counts = await tenantRowCounts(sql(), [world.a.businessId, world.b.businessId], RETIRED_TABLES);
+
+    expect(Object.values(counts)).toEqual(RETIRED_TABLES.map(() => ({ a: 0, b: 0 })));
+  });
 
   it.each(runsOf)('%s', (run) => {
     const outcome = outcomes.get(run);
@@ -165,13 +190,34 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it("leaves each business's data and catalog as its owner saw them before the attacks", async () => {
-    expect(await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS)).toEqual(before.a);
-    expect(await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS)).toEqual(before.b);
+    expect(await snapshotOf(http, world.a, FIRST_STORE_FIELDS)).toEqual(before.a);
+    expect(await snapshotOf(http, world.b, FIRST_STORE_FIELDS)).toEqual(before.b);
   });
 
   it("leaves each business's second store catalog as its owner saw it before the attacks", async () => {
-    expect(await otherStoreSnapshotOf(http, world.a)).toEqual(before.aOtherStore);
-    expect(await otherStoreSnapshotOf(http, world.b)).toEqual(before.bOtherStore);
+    expect(await otherStoreSnapshotOf(http, world.a, COLLECTIONS_SNAPSHOT_FIELDS)).toEqual(before.aOtherStore);
+    expect(await otherStoreSnapshotOf(http, world.b, COLLECTIONS_SNAPSHOT_FIELDS)).toEqual(before.bOtherStore);
+  });
+
+  it("lists none of either business's collections on the default storefront (D2333)", async () => {
+    const key = parseInternalKeys(env.INTERNAL_HMAC_KEYS)[0] as InternalSigningKey;
+    const call = { method: 'POST', path: '/shop-api', body: SHOP_COLLECTIONS };
+    const seeded = [world.a, world.b].flatMap((business) => [
+      catalogOf(business).collection.name,
+      catalogOf(business).collection.slug,
+      ...collectionsFingerprints(collectionsOf(business)),
+    ]);
+
+    const answer = await sendRaw({
+      ...call,
+      port: PORT,
+      host: `api.${env.PLATFORM_DOMAIN}`,
+      headers: { 'content-type': 'application/json', ...signedHeaders(key, call) },
+    });
+
+    expect(answer.status).toBe(200);
+    expect(Array.isArray((JSON.parse(answer.body) as ShopCollections).data?.collections?.items)).toBe(true);
+    expect(seeded.filter((value) => answer.body.includes(value))).toEqual([]);
   });
 
   it("stores A's media file under A's business and store prefix", async () => {

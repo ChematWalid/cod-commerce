@@ -9,8 +9,8 @@ import {
   CREATE_CATALOG_TAG,
   CREATE_ROLE,
   ONE_PIXEL_PNG,
+  CREATE_STORE_COLLECTION,
   SET_MEMBER_ACCESS,
-  STOCK_CREATE_COLLECTION,
   UPLOAD_CATALOG_MEDIA,
 } from './seed-operations';
 import { storeSnapshotOf } from './snapshot';
@@ -25,14 +25,16 @@ export interface WorldMedia {
 
 /**
  * The catalog rows (plugins/catalog, P2.S1) of one business, seeded through the catalog Admin API as its owner on its
- * first store, except the collection (stock API, as the superadmin: no merchant creates one before P2.S3) and the
- * media item of the second store. Names carry the business id, so they are unique to the run like the rest of the world.
+ * first store, except the collection (the collections API, `createStoreCollection`: the registered membership source
+ * refuses a collection without its definition, D2330) and the media item of the second store. Names carry the
+ * business id, so they are unique to the run like the rest of the world.
  */
 export interface CatalogWorld {
   readonly brand: { readonly id: string; readonly name: string };
   readonly tag: { readonly id: string; readonly name: string };
   readonly highlight: { readonly id: string; readonly text: string };
-  readonly collection: { readonly id: string; readonly name: string };
+  /** A manual collection of the first store (P2.S3) holding the product; `collections-world.ts` adds a second one. */
+  readonly collection: { readonly id: string; readonly name: string; readonly slug: string };
   /** Uploaded on the first store and shown by the product. */
   readonly media: WorldMedia;
   /** Uploaded on the second store: the member, who reaches the first store only, may not see it (D2132). */
@@ -68,15 +70,14 @@ const channelOf = (store: WorldStore): NonNullable<MatrixRequest['channel']> => 
 const PRODUCT_PRICE = 1500;
 const SIZE_VALUES = ['S', 'M'];
 
-/** Creates a collection of the store's channel through the stock API, as the platform superadmin. */
-async function createCollection(http: IsolationHttp, superadmin: Caller, store: WorldStore, name: string) {
-  const translation = { languageCode: 'ar', name, slug: `collection-${store.id}`, description: '' };
-  const input = { translations: [translation], filters: [] };
+/** Creates a manual collection of `store` through the collections API (P2.S3), as the business owner. */
+async function createCollection(http: IsolationHttp, owner: Caller, store: WorldStore, name: string) {
+  const input = { title: name, slug: `collection-${store.id}`, visible: true, position: 0, mode: 'manual' };
   const created = fieldOf(
-    await http.graphql(superadmin, STOCK_CREATE_COLLECTION, { input }, channelOf(store)),
-    'createCollection',
+    await http.graphql(owner, CREATE_STORE_COLLECTION, { input }, channelOf(store)),
+    'createStoreCollection',
   ) as { id: string };
-  return { id: created.id, name };
+  return { id: created.id, name, slug: input.slug };
 }
 
 /** Uploads the one-pixel PNG to the library of `store`, as `caller`. */
@@ -113,14 +114,14 @@ async function grantCatalogToMember(http: IsolationHttp, business: BusinessWorld
  *
  * @throws Error when a call fails or the business has no Team rows.
  */
-export async function seedCatalog(http: IsolationHttp, superadmin: Caller, business: BusinessWorld) {
+export async function seedCatalog(http: IsolationHttp, business: BusinessWorld) {
   const team = TEAM_WORLDS.get(business.label);
   if (team === undefined) throw new Error(`business ${business.label}: seedTeam must run before seedCatalog`);
   const [first, second] = business.stores;
   const as = async <T>(query: string, variables: Record<string, unknown>, field: string): Promise<T> =>
     fieldOf(await http.graphql(business.owner, query, variables, channelOf(first)), field) as T;
   const tag = `${business.label} ${business.businessId}`;
-  const collection = await createCollection(http, superadmin, first, `Collection ${tag}`);
+  const collection = await createCollection(http, business.owner, first, `Collection ${tag}`);
   const brand = await as<CatalogWorld['brand']>(
     CREATE_CATALOG_BRAND,
     { input: { name: `Brand ${tag}` } },
@@ -230,8 +231,18 @@ export const CATALOG_SNAPSHOT_FIELDS = `
 `;
 
 /**
- * The products and media library of `business`'s second store as its owner sees them: the member-other-store and
- * victim-channel cells aim there, so a write that slipped through on it shows here too.
+ * The products and media library of `business`'s second store as its owner sees them, with `extraFields` (the
+ * collections, P2.S3): the member-other-store and victim-channel cells aim there, so a write that slipped through on
+ * it shows here too.
  */
-export const otherStoreSnapshotOf = (http: IsolationHttp, business: BusinessWorld): Promise<unknown> =>
-  storeSnapshotOf(http, business, channelOf(business.stores[1]), `${PRODUCT_SNAPSHOT_FIELDS} ${MEDIA_SNAPSHOT_FIELDS}`);
+export const otherStoreSnapshotOf = (
+  http: IsolationHttp,
+  business: BusinessWorld,
+  extraFields = '',
+): Promise<unknown> =>
+  storeSnapshotOf(
+    http,
+    business,
+    channelOf(business.stores[1]),
+    `${PRODUCT_SNAPSHOT_FIELDS} ${MEDIA_SNAPSHOT_FIELDS} ${extraFields}`,
+  );

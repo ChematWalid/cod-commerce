@@ -49,16 +49,38 @@ export const OFFERS_TABLE_COUNTS = {
   offers_code: BY_BUSINESS('offers_code'),
 } as const;
 
-/** Every counted table: P1's, the catalog's and the offers'. */
-const ALL_TABLE_COUNTS = { ...TENANT_TABLE_COUNTS, ...CATALOG_TABLE_COUNTS, ...OFFERS_TABLE_COUNTS };
+/**
+ * The collections tables (P2.S3, D2300): the P2 world seeds collections with rules and members in each business
+ * through `createStoreCollection` (D2330).
+ */
+export const COLLECTIONS_TABLE_COUNTS = {
+  collections_definition: BY_BUSINESS('collections_definition'),
+  collections_member: BY_BUSINESS('collections_member'),
+} as const;
+
+/** Every counted table: P1's, the catalog's, the offers' and the collections'. */
+const ALL_TABLE_COUNTS = {
+  ...TENANT_TABLE_COUNTS,
+  ...CATALOG_TABLE_COUNTS,
+  ...OFFERS_TABLE_COUNTS,
+  ...COLLECTIONS_TABLE_COUNTS,
+};
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
+
+/**
+ * Catalog tables no server path writes any more: with the collections plugin registered, a product's manual
+ * collection links live in `collections_member` (D2309); the table is dropped after P2. The census expects them empty.
+ */
+export const RETIRED_TABLES: readonly TenantTable[] = ['catalog_product_collection'];
 
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
-/** The P1 tables, the catalog's and the offers': the P2 world fills each. */
-export const P2_TENANT_TABLES = Object.keys(ALL_TABLE_COUNTS) as TenantTable[];
+/** The P1 tables, the catalog's, the offers' and the collections', less the retired ones: the P2 world fills each. */
+export const P2_TENANT_TABLES = (Object.keys(ALL_TABLE_COUNTS) as TenantTable[]).filter(
+  (table) => !RETIRED_TABLES.includes(table),
+);
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */
 export interface SqlRunner {

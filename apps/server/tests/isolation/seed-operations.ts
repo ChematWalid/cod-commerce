@@ -66,10 +66,16 @@ export const ONE_PIXEL_PNG = Buffer.from(
   'base64',
 );
 
-/** The catalog documents (P2.S1) the world's catalog is seeded with. */
-export const STOCK_CREATE_COLLECTION = `mutation ($input: CreateCollectionInput!) {
-  createCollection(input: $input) { id }
+/** The collections documents (P2.S3) the world's collections are seeded with, as each owner (D2330). */
+export const CREATE_STORE_COLLECTION = `mutation ($input: CreateStoreCollectionInput!) {
+  createStoreCollection(input: $input) { id title slug }
 }`;
+
+export const SET_STORE_COLLECTION_PRODUCTS = `mutation ($id: ID!, $productIds: [ID!]!) {
+  setStoreCollectionProducts(id: $id, productIds: $productIds) { id productCount }
+}`;
+
+/** The catalog documents (P2.S1) the world's catalog is seeded with. */
 
 export const CREATE_CATALOG_BRAND = `mutation ($input: CatalogBrandInput!) {
   createCatalogBrand(input: $input) { id name }

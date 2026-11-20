@@ -1,7 +1,7 @@
 import { CATALOG_ERROR_CODES } from '@cod/shared';
 import type { ById, CatalogOperation, CatalogRoute, CatalogTarget, TargetField } from './catalog-operation-types';
 import { SOLD_OUT_OPERATIONS, SOLD_OUT_ROUTES } from './catalog-sold-out-operations';
-import { catalogOf } from './catalog-world';
+import { catalogOf, restIdOf } from './catalog-world';
 import type { IsolationEntity } from './matrix';
 import type { BusinessWorld } from './world-types';
 
@@ -11,7 +11,14 @@ import type { BusinessWorld } from './world-types';
  * their cells from these lists, so a new endpoint is one entry here.
  */
 
-export type { ById, CatalogOperation, CatalogRoute, CatalogTarget, TargetField } from './catalog-operation-types';
+export {
+  type ById,
+  type CatalogOperation,
+  type CatalogRoute,
+  type CatalogTarget,
+  ENGINE_ID_FIELDS,
+  type TargetField,
+} from './catalog-operation-types';
 /** The rows of `business` as GraphQL names them. */
 export function targetOf(business: BusinessWorld): CatalogTarget {
   const catalog = catalogOf(business);
@@ -28,10 +35,11 @@ export function targetOf(business: BusinessWorld): CatalogTarget {
   };
 }
 
-/** The rows of `business` as the REST routes name them. */
+/** The rows of `business` as the REST routes name them: engine ids without the e2e boot's `T_` prefix. */
 export const restTargetOf = (business: BusinessWorld): CatalogTarget => ({
   ...targetOf(business),
   productId: catalogOf(business).product.restId,
+  collectionId: restIdOf(catalogOf(business).collection.id),
 });
 
 const C = CATALOG_ERROR_CODES;
@@ -53,7 +61,8 @@ const PRODUCT_OPERATIONS: readonly CatalogOperation[] = [
   },
   {
     name: 'catalogCollectionOptions',
-    entity: 'product',
+    // Served by the collections plugin's registered source (D2324): it lists collections, not products.
+    entity: 'collection',
     document: 'query { catalogCollectionOptions { id title } }',
     variables: () => ({}),
   },
