@@ -6,7 +6,8 @@ import {
   type ExportItem,
   exportRowsOf,
   projectRow,
-  type TaxonomyNames,
+  type TaxonomyNameIndex,
+  taxonomyNamesIndex,
   withTaxonomyNames,
 } from '../domain/export-row';
 import type { StoreScope } from '../domain/store-scope';
@@ -21,6 +22,8 @@ export interface ExportFileRequest {
   readonly productIds: readonly string[];
   readonly fields: readonly ImportFieldKey[];
   readonly format: string;
+  /** Most rows (one per variant) the file may hold; past it no file is written (D2259). */
+  readonly maxRows: number;
   /** Called after each batch with the number of products read so far. */
   readonly onProgress?: (done: number) => Promise<void>;
 }
@@ -46,23 +49,25 @@ const isProduct = (product: ExportableProduct | undefined): product is Exportabl
  * Builds an export file (D2209, D2211): reads the products of the scope's store in batches, names their brand and
  * tags, adds their origin's image links, writes one row per variant in the asked columns with the format's writer.
  * An id of no product of the store (another store's, deleted) writes nothing; packs are skipped and counted (D2220).
+ * Reading stops as soon as the rows pass `maxRows`, so memory stays bounded by the cap, not by the variants (D2259).
  */
 export class ExportFileBuilder {
   constructor(private readonly deps: ExportFileDeps) {}
 
   /**
-   * The file of `request.productIds` in the scope's store.
+   * The file of `request.productIds` in the scope's store, or `undefined` when it would pass `request.maxRows` rows.
    * @throws FileTypeError for a format nobody registered
    */
-  async build(ctx: OperationContext, scope: StoreScope, request: ExportFileRequest): Promise<ExportFile> {
+  async build(ctx: OperationContext, scope: StoreScope, request: ExportFileRequest): Promise<ExportFile | undefined> {
     const adapter = this.deps.formats.get(request.format);
-    const taxonomy = await this.deps.reads.taxonomyIndex(ctx, scope);
+    const taxonomy = taxonomyNamesIndex(await this.deps.reads.taxonomyIndex(ctx, scope));
     const rows: ExportCell[][] = [];
     let skippedPacks = 0;
     const ids = request.productIds;
     for (let start = 0; start < ids.length; start += EXPORT_READ_BATCH) {
       const end = Math.min(start + EXPORT_READ_BATCH, ids.length);
       const batch = exportRowsOf(await this.itemsOf(ctx, scope, { ids: ids.slice(start, end), taxonomy }));
+      if (rows.length + batch.rows.length > request.maxRows) return undefined;
       for (const row of batch.rows) rows.push(projectRow(row, request.fields));
       skippedPacks += batch.skippedPacks;
       await request.onProgress?.(end);
@@ -75,7 +80,7 @@ export class ExportFileBuilder {
   private async itemsOf(
     ctx: OperationContext,
     scope: StoreScope,
-    batch: { readonly ids: readonly string[]; readonly taxonomy: TaxonomyNames },
+    batch: { readonly ids: readonly string[]; readonly taxonomy: TaxonomyNameIndex },
   ): Promise<ExportItem[]> {
     const read = await Promise.all(batch.ids.map((id) => this.deps.reads.product(ctx, scope, id)));
     const products = read.filter(isProduct);

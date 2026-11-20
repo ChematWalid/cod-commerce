@@ -1,4 +1,10 @@
-import { CATALOG_IMPORT_ERROR_CODES, EXPORT_HEADER, exportInputSchema } from '@cod/shared';
+import {
+  CATALOG_IMPORT_ERROR_CODES,
+  EXPORT_HEADER,
+  EXPORT_MAX_ROWS,
+  EXPORT_SYNC_MAX_ROWS,
+  exportInputSchema,
+} from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { ExportProductsService } from '../../application/export-products.service';
 import { ExportStatusService } from '../../application/export-status.service';
@@ -81,6 +87,24 @@ describe('ExportProductsService (D2211)', () => {
     expect(world.enqueued).toEqual([]);
   });
 
+  it('hands selected products writing more than EXPORT_SYNC_MAX_ROWS variant rows to the worker (D2259)', async () => {
+    // Arrange
+    const world = new FakeExportWorld(2);
+    world.variantsPerProduct = 300;
+    const command = exportInputSchema.parse({ scope: 'selected', format: 'csv', productIds: ['1', '2'] });
+
+    // Act
+    const view = await serviceOf(world).export(world.ctx, SCOPE, ACTOR, command);
+
+    // Assert
+    expect(world.builds[0]?.maxRows).toBe(EXPORT_SYNC_MAX_ROWS);
+    expect(view).toMatchObject({ status: 'queued', downloadUrl: null });
+    expect(world.rows.get(view.exportId)?.target).toEqual({ kind: 'selected', productIds: ['1', '2'] });
+    expect(world.enqueued).toEqual([{ table: 'export', id: view.exportId, ...SCOPE }]);
+    expect(world.objects.size).toBe(0);
+    expect(world.activities).toEqual([]);
+  });
+
   it('keeps product_key, name and price in a partial export, in header order', async () => {
     // Arrange
     const world = new FakeExportWorld(1);
@@ -141,6 +165,46 @@ describe('RunExportJobService (D2211, D2212)', () => {
     });
     expect(world.objects.size).toBe(0);
     expect(world.activities).toEqual([]);
+  });
+
+  it('fails the row with too-many-rows when its products write more than EXPORT_MAX_ROWS rows (D2259)', async () => {
+    // Arrange
+    const world = new FakeExportWorld(600);
+    const queued = await serviceOf(world).export(world.ctx, SCOPE, ACTOR, filtered());
+    world.variantsPerProduct = 100;
+
+    // Act
+    await new RunExportJobService(world).run(world.ctx, SCOPE, queued.exportId);
+
+    // Assert
+    expect(world.builds.at(-1)?.maxRows).toBe(EXPORT_MAX_ROWS);
+    expect(world.rows.get(queued.exportId)).toMatchObject({
+      status: 'failed',
+      errorCode: CATALOG_IMPORT_ERROR_CODES.TOO_MANY_ROWS,
+    });
+    expect(world.objects.size).toBe(0);
+    expect(world.activities).toEqual([]);
+  });
+
+  it('records the activity of a job whose administrator is gone with no actor', async () => {
+    // Arrange
+    const world = new FakeExportWorld(501);
+    const queued = await serviceOf(world).export(world.ctx, SCOPE, ACTOR, filtered());
+    const row = world.rows.get(queued.exportId);
+    if (row === undefined) throw new Error('no queued row');
+    world.rows.set(queued.exportId, { ...row, actorAdministratorId: null });
+
+    // Act
+    await new RunExportJobService(world).run(world.ctx, SCOPE, queued.exportId);
+
+    // Assert
+    expect(world.rows.get(queued.exportId)?.status).toBe('done');
+    expect(world.activities).toEqual([
+      expect.objectContaining({
+        exportId: queued.exportId,
+        actor: { administratorId: null, ip: null, userAgent: null },
+      }),
+    ]);
   });
 
   it('leaves a done row alone and a missing row unread', async () => {

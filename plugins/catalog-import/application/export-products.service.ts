@@ -7,7 +7,7 @@ import {
 } from '@cod/shared';
 import { PROGRESS_DONE } from '../domain/constants';
 import { TooManyRowsError } from '../domain/errors';
-import { exportFilterOf, type ExportFilter, type ExportTarget } from '../domain/export-target';
+import { exportFilterOf, type ExportTarget } from '../domain/export-target';
 import { exportFileKey } from '../domain/object-keys';
 import type { StoreScope } from '../domain/store-scope';
 import { filteredIds, firstIdsPage } from './export-ids';
@@ -38,7 +38,7 @@ export interface ExportProductsDeps extends ExportViewDeps {
 /** How a request's export runs: written now, for these ids, or handed to the worker. */
 type ExportPlan =
   | { readonly mode: 'now'; readonly productIds: readonly string[] }
-  | { readonly mode: 'job'; readonly filter: ExportFilter };
+  | { readonly mode: 'job'; readonly target: ExportTarget };
 
 /** The export of one request, its ids and columns settled. */
 interface ExportOrder {
@@ -50,10 +50,11 @@ interface ExportOrder {
 
 /**
  * "Export products" (D2211): the selected ids (at most 500) or every product the list's filter finds in the active
- * store. Up to {@link EXPORT_SYNC_MAX_ROWS} products the file is written now and answered with a presigned download;
- * above, a `queued` row is handed to the `imports-exports` worker and the dashboard polls it; a filter finding more
- * than {@link EXPORT_MAX_ROWS} is refused before anything is written. The export row and its activity row commit
- * together.
+ * store. A file of up to {@link EXPORT_SYNC_MAX_ROWS} variant rows is written now and answered with a presigned
+ * download; above (more products, or fewer products with many variants, D2259), a `queued` row is handed to the
+ * `imports-exports` worker and the dashboard polls it; a filter finding more than {@link EXPORT_MAX_ROWS} products
+ * (each writes at least one row, packs aside) is refused before anything is written. The export row and its activity
+ * row commit together.
  */
 export class ExportProductsService {
   private readonly now: () => Date;
@@ -74,7 +75,7 @@ export class ExportProductsService {
   ): Promise<ExportView> {
     const plan = await this.planOf(ctx, scope, command);
     const order: ExportOrder = { id: this.deps.ids.next(), command, fields: command.fields ?? EXPORT_HEADER, actor };
-    if (plan.mode === 'job') return this.queue(ctx, scope, { order, filter: plan.filter });
+    if (plan.mode === 'job') return this.queue(ctx, scope, { order, target: plan.target });
     return this.writeNow(ctx, scope, { order, productIds: plan.productIds });
   }
 
@@ -84,10 +85,10 @@ export class ExportProductsService {
     const filter = exportFilterOf(command.query);
     const first = await firstIdsPage(this.deps.reads, ctx, scope, filter);
     if (first.total > EXPORT_MAX_ROWS) throw new TooManyRowsError();
-    if (first.total > EXPORT_SYNC_MAX_ROWS) return { mode: 'job', filter };
+    if (first.total > EXPORT_SYNC_MAX_ROWS) return { mode: 'job', target: { kind: 'filtered', filter } };
     const ids = await filteredIds(this.deps.reads, ctx, scope, { filter, limit: EXPORT_SYNC_MAX_ROWS, first });
     // Products created since the count can push a small filter past the cap: the worker then writes it.
-    return ids === undefined ? { mode: 'job', filter } : { mode: 'now', productIds: ids };
+    return ids === undefined ? { mode: 'job', target: { kind: 'filtered', filter } } : { mode: 'now', productIds: ids };
   }
 
   private async writeNow(
@@ -100,7 +101,10 @@ export class ExportProductsService {
       productIds: run.productIds,
       fields: order.fields,
       format: order.command.format,
+      maxRows: EXPORT_SYNC_MAX_ROWS,
     });
+    // Few products with many variants can pass the rows written in a request: the worker writes them (D2259).
+    if (file === undefined) return this.queue(ctx, scope, { order, target: targetOf(order.command) });
     await this.deps.storage.write(exportFileKey(scope, order.id), file.bytes, file.contentType);
     const job = this.newJob(order, {
       status: 'done',
@@ -127,11 +131,11 @@ export class ExportProductsService {
   private async queue(
     ctx: OperationContext,
     scope: StoreScope,
-    run: { readonly order: ExportOrder; readonly filter: ExportFilter },
+    run: { readonly order: ExportOrder; readonly target: ExportTarget },
   ): Promise<ExportView> {
     const job = this.newJob(run.order, {
       status: 'queued',
-      target: { kind: 'filtered', filter: run.filter },
+      target: run.target,
       rowCount: 0,
       skippedPacks: 0,
     });

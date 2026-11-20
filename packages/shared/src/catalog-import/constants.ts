@@ -22,9 +22,9 @@ export const IMPORT_MAX_URL_CHARS = 2_048;
 /** Separator of the list cells (`tags`, `image_urls`). */
 export const IMPORT_LIST_SEPARATOR = ';';
 
-/** Up to this many rows an export is written at once; above, it is a job on `imports-exports` (D2211). */
+/** Up to this many rows (one per variant) an export is written at once; above, it is a job on `imports-exports` (D2211, D2259). */
 export const EXPORT_SYNC_MAX_ROWS = 500;
-/** Most rows one filtered export writes; above, it is refused with `catalog-import.too-many-rows`. */
+/** Most rows (one per variant) one export writes, and most products a filter may find; above, `catalog-import.too-many-rows` (D2259). */
 export const EXPORT_MAX_ROWS = 20_000;
 /** Most products one bulk edit changes (D2213). */
 export const BULK_EDIT_MAX_PRODUCTS = 500;

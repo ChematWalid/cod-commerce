@@ -43,4 +43,15 @@ describe('the CSV export writer (D2209)', () => {
     // Assert
     expect(text(bytes.subarray(BOM.length))).toBe('name,price\r\n"\'=HYPERLINK(""x"")",-3\r\nفستان,10\r\n');
   });
+
+  it('quotes a cell holding a lone LF or CR, so each product row stays one record', async () => {
+    // Arrange
+    const writer = new CsvSpreadsheetWriter();
+
+    // Act
+    const bytes = await writer.write(['description', 'note', 'price'], [['<p>a</p>\n<p>b</p>', 'c\rd', 4500]]);
+
+    // Assert
+    expect(text(bytes.subarray(BOM.length))).toBe('description,note,price\r\n"<p>a</p>\n<p>b</p>","c\rd",4500\r\n');
+  });
 });

@@ -27,6 +27,9 @@ export class FakeExportWorld {
   readonly pageReads: ExportIdsPageRequest[] = [];
   private nextId = 900_000_000_001n;
 
+  /** Rows each product writes: one per variant. */
+  variantsPerProduct = 1;
+
   constructor(public productCount: number) {}
 
   readonly ids = { next: (): string => String(this.nextId++) };
@@ -41,13 +44,19 @@ export class FakeExportWorld {
   };
 
   readonly files = {
-    build: async (_ctx: OperationContext, _scope: TenantScope, request: ExportFileRequest): Promise<ExportFile> => {
+    build: async (
+      _ctx: OperationContext,
+      _scope: TenantScope,
+      request: ExportFileRequest,
+    ): Promise<ExportFile | undefined> => {
       this.builds.push(request);
+      const rowCount = request.productIds.length * this.variantsPerProduct;
+      if (rowCount > request.maxRows) return undefined;
       await request.onProgress?.(request.productIds.length);
       return {
         bytes: new TextEncoder().encode(request.productIds.join(',')),
         contentType: 'text/csv',
-        rowCount: request.productIds.length,
+        rowCount,
         skippedPacks: 0,
       };
     },

@@ -133,6 +133,22 @@ describe('catalog-import isolation sweep (two businesses)', () => {
     },
   );
 
+  it.each(OPERATION_REGISTRY.filter((entry) => entry.foreign === 'reported'))(
+    "$operation as A on A's own product changes it (positive control)",
+    async (entry) => {
+      // Arrange
+      await suite.kit.asOwner(suite.fixtures.a);
+      const own = await suite.kit.createProduct();
+
+      // Act
+      const outcome = await callOperation(entry, { ...idsOfB, productId: own.id });
+
+      // Assert
+      expect(reportedErrorsOf(outcome.data)).toEqual([null]);
+      expect((await suite.kit.product(own.id))?.status).toBe('draft');
+    },
+  );
+
   it.each(ROUTE_REGISTRY.filter((entry) => entry.foreign === 'own-only'))(
     "$method $route as A against B's ids answers about A's store only",
     async (entry: RouteEntry) => {

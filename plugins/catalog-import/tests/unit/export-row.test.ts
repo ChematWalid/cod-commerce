@@ -4,6 +4,7 @@ import {
   exportRowsOf,
   type NamedExportProduct,
   projectRow,
+  taxonomyNamesIndex,
   toExportRows,
   withTaxonomyNames,
 } from '../../domain/export-row';
@@ -101,13 +102,14 @@ describe('export rows (D2209)', () => {
 
   it('writes the product fields, brand and tag names, weight and the origin image links', () => {
     // Arrange
-    const product = withTaxonomyNames(productOf({ brandId: 'b1', tagIds: ['t2', 't1', 'gone'] }), {
+    const index = taxonomyNamesIndex({
       brands: [{ id: 'b1', name: 'Atlas' }],
       tags: [
         { id: 't1', name: 'Été' },
         { id: 't2', name: 'Promo' },
       ],
     });
+    const product = withTaxonomyNames(productOf({ brandId: 'b1', tagIds: ['t2', 't1', 'gone'] }), index);
 
     // Act
     const [row] = toExportRows(product, {

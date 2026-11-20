@@ -73,15 +73,27 @@ export function productKeyOf(product: Pick<ExportableProduct, 'id' | 'sku'>): st
   return sku === '' ? `${ID_KEY_PREFIX}${product.id}` : sku;
 }
 
+/** The store's brand and tag names by id, built once per export. */
+export interface TaxonomyNameIndex {
+  readonly brands: ReadonlyMap<string, string>;
+  readonly tags: ReadonlyMap<string, string>;
+}
+
+/** The id → name maps of the store's brands and tags. */
+export function taxonomyNamesIndex(taxonomy: TaxonomyNames): TaxonomyNameIndex {
+  return {
+    brands: new Map(taxonomy.brands.map((brand) => [brand.id, brand.name])),
+    tags: new Map(taxonomy.tags.map((tag) => [tag.id, tag.name])),
+  };
+}
+
 /** The product with the names of its brand and tags; an id the store no longer has is left out. */
-export function withTaxonomyNames(product: ExportableProduct, taxonomy: TaxonomyNames): NamedExportProduct {
-  const brands = new Map(taxonomy.brands.map((brand) => [brand.id, brand.name]));
-  const tags = new Map(taxonomy.tags.map((tag) => [tag.id, tag.name]));
+export function withTaxonomyNames(product: ExportableProduct, index: TaxonomyNameIndex): NamedExportProduct {
   return {
     ...product,
-    brandName: product.brandId === null ? null : (brands.get(product.brandId) ?? null),
+    brandName: product.brandId === null ? null : (index.brands.get(product.brandId) ?? null),
     tagNames: product.tagIds.flatMap((id) => {
-      const name = tags.get(id);
+      const name = index.tags.get(id);
       return name === undefined ? [] : [name];
     }),
   };
