@@ -15,6 +15,7 @@ import {
   InvalidOfferConfigError,
   InvalidOfferTargetsError,
   InvalidQuoteRequestError,
+  OfferConflictError,
   OfferNotDeletableError,
   OfferNotFoundError,
 } from '../domain/errors';
@@ -47,6 +48,12 @@ export interface OfferAdminPorts extends OfferLifecyclePorts, OfferCodesPorts {
 export interface OfferSummaryPage {
   readonly items: readonly OfferSummaryRecord[];
   readonly totalItems: number;
+}
+
+/** An edit of an offer: the fields to change, and the version the caller read it at, if it checks one (D2535). */
+export interface OfferEdit {
+  readonly patch: Partial<OfferInput>;
+  readonly expectedVersion?: number;
 }
 
 /** Statuses of a live offer: an edit of one must keep it publishable (D2510). */
@@ -91,22 +98,27 @@ export class OfferAdminService {
   }
 
   /**
-   * Applies `patch` over the offer's editable fields and bumps its version (D2424). A key given as `undefined` keeps
-   * the stored value, as an absent one does.
+   * Applies `patch` over the offer's editable fields and bumps its version (D2424); see {@link edit}.
+   */
+  update(ctx: OperationContext, scope: StoreScope, rawId: string, patch: Partial<OfferInput>): Promise<OfferRecord> {
+    return this.edit(ctx, scope, rawId, { patch });
+  }
+
+  /**
+   * Applies the edit's `patch` over the offer's editable fields and bumps its version (D2424). A key given as
+   * `undefined` keeps the stored value, as an absent one does.
    *
    * @throws {@link InvalidOfferTransitionError} when the offer is archived.
    * @throws {@link InvalidOfferTargetsError} when a target has a role the edited kind does not allow (D2501).
    * @throws {@link OfferPublishInvalidError} when the edit leaves an active or paused offer incomplete (D2510).
    * @throws {@link CodeMethodRequiredError} when the patch makes a code offer that has codes automatic (D2449).
-   * @throws {@link OfferConflictError} when another write changed the offer after it was read.
+   * @throws {@link OfferConflictError} when another write changed the offer after it was read, or after the caller
+   * read it at `expectedVersion` (the API's optimistic edit, D2535).
    */
-  async update(
-    ctx: OperationContext,
-    scope: StoreScope,
-    rawId: string,
-    patch: Partial<OfferInput>,
-  ): Promise<OfferRecord> {
+  async edit(ctx: OperationContext, scope: StoreScope, rawId: string, edit: OfferEdit): Promise<OfferRecord> {
+    const { patch, expectedVersion } = edit;
     const current = await this.get(ctx, scope, rawId);
+    if (expectedVersion !== undefined && expectedVersion !== current.version) throw new OfferConflictError();
     assertEditable(current);
     const { command, config, rules } = this.parse({ ...inputOf(current), ...definedKeysOf(patch) });
     const now = this.ports.clock.now();
@@ -170,13 +182,22 @@ export class OfferAdminService {
     const { productId, ...filter } = parsed.data;
     const refs = await this.refsOf(ctx, scope, productId);
     const page = await this.ports.offers.list(ctx, scope, { ...filter, refs });
-    const counts = await this.ports.codes.countByOffer(
-      ctx,
-      scope,
-      page.items.map((offer) => offer.id),
-    );
-    const items = page.items.map((offer) => ({ ...offer, codeCount: counts.get(offer.id) ?? 0 }));
-    return { items, totalItems: page.totalItems };
+    return { items: await this.countCodes(ctx, scope, page.items), totalItems: page.totalItems };
+  }
+
+  /**
+   * `offers` of the store, each with how many codes it holds, counted in one grouped read (D2513); the API answers a
+   * single offer with it too.
+   *
+   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s store channel.
+   */
+  async withCodeCounts(
+    ctx: OperationContext,
+    scope: StoreScope,
+    offers: readonly OfferRecord[],
+  ): Promise<readonly OfferSummaryRecord[]> {
+    await assertOnChannelOf(this.ports.stores, ctx, scope);
+    return this.countCodes(ctx, scope, offers);
   }
 
   /** Adds codes to the offer; see `OfferCodesService.add` (D2406, D2449). */
@@ -197,6 +218,19 @@ export class OfferAdminService {
   /** The offer's codes, oldest first; see `OfferCodesService.list`. */
   codesOf(ctx: OperationContext, scope: StoreScope, rawOfferId: string): Promise<readonly StoredCode[]> {
     return this.codeBook.list(ctx, scope, rawOfferId);
+  }
+
+  private async countCodes(
+    ctx: OperationContext,
+    scope: StoreScope,
+    offers: readonly OfferRecord[],
+  ): Promise<readonly OfferSummaryRecord[]> {
+    const counts = await this.ports.codes.countByOffer(
+      ctx,
+      scope,
+      offers.map((offer) => offer.id),
+    );
+    return offers.map((offer) => ({ ...offer, codeCount: counts.get(offer.id) ?? 0 }));
   }
 
   /** The product and variant ids a `productId` filter matches; none set without one. */

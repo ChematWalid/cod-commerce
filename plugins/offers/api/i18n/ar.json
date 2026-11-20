@@ -1,0 +1,22 @@
+{
+  "error": {
+    "pricing-invalid-request": "بعض المعلومات غير صحيحة.",
+    "pricing-total-too-large": "المبلغ الإجمالي كبير جدا.",
+    "pricing-no-active-store": "هذا المتجر غير متاح.",
+    "offers-offer-not-found": "العرض غير موجود.",
+    "offers-invalid-config": "بعض معلومات العرض غير صحيحة.",
+    "offers-unknown-kind": "هذا النوع من العروض غير موجود.",
+    "offers-code-taken": "هذا الرمز مستعمل من قبل في هذا المتجر.",
+    "offers-invalid-transition": "لا يمكن نقل هذا العرض إلى هذه الحالة.",
+    "offers-offer-conflict": "تم تعديل هذا العرض في نفس الوقت. أعد تحميله ثم حاول مرة أخرى.",
+    "offers-code-method-required": "الرموز متاحة فقط للعروض التي تفعل بالرمز.",
+    "offers-invalid-targets": "هذا النوع من العروض لا يقبل أحد هذه المنتجات.",
+    "offers-publish-invalid": "هذا العرض غير جاهز للنشر بعد.",
+    "offers-offer-not-deletable": "يمكن حذف المسودة فقط. قم بأرشفة هذا العرض بدلا من ذلك.",
+    "offers-order-addon-unavailable": "لا يمكن إضافة منتجات إضافية إلى الطلبات حاليا.",
+    "offers-order-not-editable": "لم يعد بالإمكان إضافة منتج إضافي إلى هذا الطلب.",
+    "offers-order-not-found": "الطلب غير موجود.",
+    "offers-addon-not-offered": "هذا المنتج الإضافي غير متاح لهذا الطلب.",
+    "offers-internal": "تعذر إتمام الطلب."
+  }
+}

@@ -19,7 +19,8 @@ export interface OfferOrderFact {
   readonly offers: readonly OfferOrderUse[];
 }
 
-const NO_PERFORMANCE: OfferPerformance = { orders: 0, deliveredRevenue: 0, discountGiven: 0 };
+/** The performance of an offer no order applied. */
+export const NO_PERFORMANCE: Readonly<OfferPerformance> = { orders: 0, deliveredRevenue: 0, discountGiven: 0 };
 
 /** What `fact` adds to the performance of an offer it applied with `amount` in all. */
 function withFact(performance: OfferPerformance, fact: OfferOrderFact, amount: number): OfferPerformance {

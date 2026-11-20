@@ -83,7 +83,8 @@ export function setUpOfferAdmin({
   const lifecycle = new OfferLifecycleService(ports);
   const codeBook = new OfferCodesService(ports);
   const race = (write: () => Promise<unknown>) => (offers.queued = write);
-  return { service, lifecycle, codeBook, tables, variants, race, setNow: (instant: Date) => (now = instant) };
+  const { kinds } = ports;
+  return { service, lifecycle, codeBook, tables, variants, kinds, race, setNow: (instant: Date) => (now = instant) };
 }
 
 /** A valid quantity offer input: 10 % off from two pieces of variant 11. */
