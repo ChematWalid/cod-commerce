@@ -28,7 +28,7 @@ Run from the repo root.
 
 | Script | What it does |
 |---|---|
-| `pnpm lint` | ESLint (zero warnings) and a Prettier check |
+| `pnpm lint` | ESLint (zero warnings, one workspace at a time: `scripts/ci/lint.sh`) and a Prettier check |
 | `pnpm typecheck` | TypeScript across the workspace (via turbo) |
 | `pnpm test` | Unit tests across the workspace (via turbo) |
 | `pnpm test:arch` | Whole-repo gates: architecture rules, Vendure pin, CI workflow, branding, `.env.example` completeness |
