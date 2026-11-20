@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 const repoRoot = resolve(__dirname, '../../..');
 interface TurboConfig {
@@ -9,6 +10,7 @@ interface TurboConfig {
 }
 interface TurboTask {
   outputs?: string[];
+  passThroughEnv?: string[];
   env?: string[];
   inputs?: string[];
   dependsOn?: string[];
@@ -93,5 +95,26 @@ describe('turbo task cache keys', () => {
     // Packages resolve workspace dependencies to their source (the @cod/source condition), and turbo only folds a
     // dependency into a task hash through dependsOn. Without it a change in packages/shared replays a stale pass.
     expect(hashesWorkspaceDependencies(tasks, name)).toBe(true);
+  });
+});
+
+interface IntegrationWorkflow {
+  jobs: Record<string, { env?: Record<string, unknown> }>;
+}
+
+/** True when a turbo env entry names `key`, either exactly or as a `PREFIX_*` wildcard. */
+const passesThrough = (entries: readonly string[], key: string): boolean =>
+  entries.some((entry) => (entry.endsWith('*') ? key.startsWith(entry.slice(0, -1)) : entry === key));
+
+describe('turbo test:integration environment', () => {
+  it('passes through every variable the CI integration job sets', () => {
+    // Strict env mode hides any variable not listed: the e2e servers then failed loadEnv on QUOTE_HMAC_KEYS although
+    // the job set it (CI run 44686430717).
+    const workflow = parse(readFileSync(join(repoRoot, '.github/workflows/ci.yml'), 'utf8')) as IntegrationWorkflow;
+    const jobEnv = Object.keys(workflow.jobs['integration']?.env ?? {});
+    const entries = readJson('turbo.json').tasks['test:integration']?.passThroughEnv ?? [];
+
+    expect(jobEnv.length).toBeGreaterThan(0);
+    expect(jobEnv.filter((key) => !passesThrough(entries, key))).toEqual([]);
   });
 });
