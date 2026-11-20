@@ -1,0 +1,328 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "collections.heading"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "collections.create"
+msgstr "إنشاء مجموعة"
+
+#. js-lingui-explicit-id
+msgid "collections.search"
+msgstr "البحث بالعنوان"
+
+#. js-lingui-explicit-id
+msgid "collections.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "collections.empty"
+msgstr "لا توجد مجموعات بعد. أنشئ مجموعة لتجميع منتجات متجرك."
+
+#. js-lingui-explicit-id
+msgid "collections.no-match"
+msgstr "لا توجد مجموعة تطابق هذا البحث."
+
+#. js-lingui-explicit-id
+msgid "collections.column-title"
+msgstr "المجموعة"
+
+#. js-lingui-explicit-id
+msgid "collections.column-type"
+msgstr "النوع"
+
+#. js-lingui-explicit-id
+msgid "collections.column-products"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "collections.column-visibility"
+msgstr "الظهور"
+
+#. js-lingui-explicit-id
+msgid "collections.column-position"
+msgstr "الترتيب"
+
+#. js-lingui-explicit-id
+msgid "collections.row-actions"
+msgstr "الإجراءات"
+
+#. js-lingui-explicit-id
+msgid "collections.action-edit"
+msgstr "تعديل"
+
+#. js-lingui-explicit-id
+msgid "collections.action-delete"
+msgstr "حذف"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-manual"
+msgstr "يدوية"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-automatic"
+msgstr "تلقائية"
+
+#. js-lingui-explicit-id
+msgid "collections.visible-yes"
+msgstr "ظاهرة"
+
+#. js-lingui-explicit-id
+msgid "collections.visible-no"
+msgstr "مخفية"
+
+#. js-lingui-explicit-id
+msgid "collections.page-previous"
+msgstr "السابق"
+
+#. js-lingui-explicit-id
+msgid "collections.page-next"
+msgstr "التالي"
+
+#. js-lingui-explicit-id
+msgid "collections.delete-heading"
+msgstr "حذف هذه المجموعة؟"
+
+#. js-lingui-explicit-id
+msgid "collections.delete-body"
+msgstr "سيتم حذف «{name}». تبقى منتجاتها في متجرك."
+
+#. js-lingui-explicit-id
+msgid "collections.deleted"
+msgstr "تم حذف المجموعة"
+
+#. js-lingui-explicit-id
+msgid "collections.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "collections.new-heading"
+msgstr "مجموعة جديدة"
+
+#. js-lingui-explicit-id
+msgid "collections.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "collections.created"
+msgstr "تم إنشاء المجموعة"
+
+#. js-lingui-explicit-id
+msgid "collections.saved"
+msgstr "تم حفظ المجموعة"
+
+#. js-lingui-explicit-id
+msgid "collections.no-changes"
+msgstr "لا يوجد ما يُحفظ"
+
+#. js-lingui-explicit-id
+msgid "collections.fix-errors"
+msgstr "تحقّق من الحقول المشار إليها"
+
+#. js-lingui-explicit-id
+msgid "collections.not-found"
+msgstr "المجموعة غير موجودة"
+
+#. js-lingui-explicit-id
+msgid "collections.block-details"
+msgstr "التفاصيل"
+
+#. js-lingui-explicit-id
+msgid "collections.block-products"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "collections.block-image"
+msgstr "الصورة"
+
+#. js-lingui-explicit-id
+msgid "collections.block-visibility"
+msgstr "الظهور"
+
+#. js-lingui-explicit-id
+msgid "collections.block-organisation"
+msgstr "التنظيم"
+
+#. js-lingui-explicit-id
+msgid "collections.title"
+msgstr "العنوان"
+
+#. js-lingui-explicit-id
+msgid "collections.slug"
+msgstr "اسم الرابط"
+
+#. js-lingui-explicit-id
+msgid "collections.slug-hint-new"
+msgstr "اتركه فارغًا ليُنشأ من العنوان."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-hint-edit"
+msgstr "اتركه فارغًا للإبقاء على الحالي."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-available"
+msgstr "اسم الرابط هذا متاح."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-unavailable"
+msgstr "مجموعة أخرى في هذا المتجر تستعمل اسم الرابط هذا."
+
+#. js-lingui-explicit-id
+msgid "collections.description"
+msgstr "الوصف"
+
+#. js-lingui-explicit-id
+msgid "collections.visible"
+msgstr "إظهار في المتجر"
+
+#. js-lingui-explicit-id
+msgid "collections.visible-hint"
+msgstr "المجموعات المخفية لا تظهر في واجهة المتجر."
+
+#. js-lingui-explicit-id
+msgid "collections.position"
+msgstr "الترتيب"
+
+#. js-lingui-explicit-id
+msgid "collections.position-hint"
+msgstr "الأرقام الأصغر تظهر أولًا (من 0 إلى 9999)."
+
+#. js-lingui-explicit-id
+msgid "collections.image-choose"
+msgstr "اختيار من المكتبة"
+
+#. js-lingui-explicit-id
+msgid "collections.image-upload"
+msgstr "رفع صورة"
+
+#. js-lingui-explicit-id
+msgid "collections.image-uploading"
+msgstr "جارٍ الرفع…"
+
+#. js-lingui-explicit-id
+msgid "collections.image-remove"
+msgstr "إزالة الصورة"
+
+#. js-lingui-explicit-id
+msgid "collections.image-library"
+msgstr "مكتبة الوسائط"
+
+#. js-lingui-explicit-id
+msgid "collections.image-library-empty"
+msgstr "لا توجد صور في المكتبة بعد."
+
+#. js-lingui-explicit-id
+msgid "collections.image-pick"
+msgstr "استعمال هذه الصورة"
+
+#. js-lingui-explicit-id
+msgid "collections.image-use"
+msgstr "استعمال الصورة"
+
+#. js-lingui-explicit-id
+msgid "collections.image-needs-products"
+msgstr "يتطلب اختيار صورة صلاحية الوصول إلى المنتجات."
+
+#. js-lingui-explicit-id
+msgid "collections.automatic-hint"
+msgstr "تُضاف المنتجات التي تستوفي الشروط تلقائيًا."
+
+#. js-lingui-explicit-id
+msgid "collections.add-products"
+msgstr "إضافة منتجات"
+
+#. js-lingui-explicit-id
+msgid "collections.search-products"
+msgstr "البحث عن المنتجات بالعنوان"
+
+#. js-lingui-explicit-id
+msgid "collections.search-no-match"
+msgstr "لا يوجد منتج يطابق هذا البحث."
+
+#. js-lingui-explicit-id
+msgid "collections.add-picked"
+msgstr "إضافة المحدّد ({count})"
+
+#. js-lingui-explicit-id
+msgid "collections.no-products"
+msgstr "لا توجد منتجات في هذه المجموعة بعد."
+
+#. js-lingui-explicit-id
+msgid "collections.remove-product"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "collections.reorder-handle"
+msgstr "تحريك (بالسحب أو بمفاتيح الأسهم)"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-confirm-heading"
+msgstr "التحويل إلى تلقائية؟"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-confirm-body"
+msgstr "ستُستبدل المنتجات التي اخترتها وترتيبها بالمنتجات التي تستوفي الشروط."
+
+#. js-lingui-explicit-id
+msgid "collections.mode-confirm-save"
+msgstr "تحويل وحفظ"
+
+#. js-lingui-explicit-id
+msgid "collections.error-title-required"
+msgstr "أدخل عنوانًا."
+
+#. js-lingui-explicit-id
+msgid "collections.error-position"
+msgstr "أدخل عددًا صحيحًا من 0 إلى 9999."
+
+#. js-lingui-explicit-id
+msgid "collections.error-generic"
+msgstr "حدث خطأ. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "collections.error-forbidden"
+msgstr "ليست لديك صلاحية لهذا الإجراء."
+
+#. js-lingui-explicit-id
+msgid "collections.error-store-switched"
+msgstr "تغيّر المتجر النشط. أعد تحميل الصفحة."
+
+#. js-lingui-explicit-id
+msgid "collections.invalid-input"
+msgstr "بعض القيم غير صالحة."
+
+#. js-lingui-explicit-id
+msgid "collections.rule-invalid"
+msgstr "أضف شرطًا كاملًا واحدًا على الأقل."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-taken"
+msgstr "مجموعة أخرى في هذا المتجر تستعمل اسم الرابط هذا."
+
+#. js-lingui-explicit-id
+msgid "collections.image-not-found"
+msgstr "لم تعد هذه الصورة في المكتبة."
+
+#. js-lingui-explicit-id
+msgid "collections.product-not-found"
+msgstr "لم يُعثر على منتج في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "collections.too-many-products"
+msgstr "تضم المجموعة 500 منتج على الأكثر."
+
+#. js-lingui-explicit-id
+msgid "collections.too-many-collections"
+msgstr "يضم المتجر 500 مجموعة على الأكثر."
+
+#. js-lingui-explicit-id
+msgid "collections.not-manual"
+msgstr "لا يمكن اختيار المنتجات يدويًا إلا في مجموعة يدوية."
+
+#. js-lingui-explicit-id
+msgid "collections.rate-limited"
+msgstr "طلبات كثيرة جدًا. انتظر قليلًا ثم حاول مرة أخرى."
