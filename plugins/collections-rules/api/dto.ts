@@ -1,4 +1,5 @@
 import type { CollectionRule, RuleCondition } from '@cod/shared';
+import type { StoreCollectionProductPage } from '../application/collection-products.service';
 import type { StoreCollectionPage, StoreCollectionView } from '../application/collection-view';
 
 /** One condition as the API shows it: every field of every kind, the ones a kind does not use `null`. */
@@ -29,6 +30,9 @@ export interface StoreCollectionListDto {
   readonly items: readonly StoreCollectionDto[];
   readonly totalItems: number;
 }
+
+/** A page of a collection's products (`StoreCollectionProductList`): id, title, status and price of each. */
+export type StoreCollectionProductListDto = StoreCollectionProductPage;
 
 const EMPTY_CONDITION = { option: null, values: null, min: null, max: null, value: null } as const;
 

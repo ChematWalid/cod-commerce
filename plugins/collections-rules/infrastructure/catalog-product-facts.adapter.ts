@@ -12,6 +12,7 @@ import type {
   ProductFactsPort,
   ProductIdPage,
   ProductIdPageRequest,
+  ProductSummary,
   RuleOptions,
 } from '../domain/ports/product-facts.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -74,6 +75,21 @@ export class CatalogProductFactsAdapter implements ProductFactsPort {
       found.push(...facts.map(toFacts));
     }
     return found.sort(byNewest);
+  }
+
+  async summariesOf(
+    ctx: OperationContext,
+    scope: StoreScope,
+    productIds: readonly string[],
+  ): Promise<ReadonlyMap<string, ProductSummary>> {
+    const found = new Map<string, ProductSummary>();
+    for (const chunk of chunks(productIds)) {
+      for (const facts of await this.reader.factsOf(toRequestContext(ctx), scope, chunk)) {
+        const { productId, title, status, price } = facts;
+        found.set(productId, { productId, title, status, price });
+      }
+    }
+    return found;
   }
 
   async pageIds(ctx: OperationContext, scope: StoreScope, page: ProductIdPageRequest): Promise<ProductIdPage> {

@@ -61,6 +61,10 @@ export class FakeVendureCollections implements VendureCollectionsPort {
     return Promise.resolve(new Map(found));
   }
 
+  storedSlugOf(slug: string): string {
+    return slugKey(slug);
+  }
+
   slugTaken(_ctx: OperationContext, slug: string, exceptId?: string): Promise<boolean> {
     const taken = [...this.rows].some(([id, row]) => id !== exceptId && row.meta.slug === slugKey(slug));
     return Promise.resolve(taken);

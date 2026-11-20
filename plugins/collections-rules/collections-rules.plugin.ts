@@ -9,6 +9,8 @@ import { CollectionReadUseCases, CollectionsActions, CollectionUseCases } from '
 import { CollectionsController } from './api/collections.controller';
 import { CollectionsResolver } from './api/collections.resolver';
 import { CollectionsTranslations } from './api/collections-translations';
+import { MembershipActions, MembershipUseCases } from './api/membership-actions';
+import { MembershipResolver } from './api/membership.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
 import { collectionsRulesAdminApiSchema } from './api/schema';
 import { COLLECTIONS_PROVIDERS } from './infrastructure/collections.providers';
@@ -39,11 +41,13 @@ export const COLLECTIONS_REST_CONTROLLERS = [CollectionsController];
     CollectionReadUseCases,
     CollectionUseCases,
     CollectionsActions,
+    MembershipUseCases,
+    MembershipActions,
     CollectionsTranslations,
   ],
   adminApiExtensions: {
     schema: collectionsRulesAdminApiSchema,
-    resolvers: [CollectionsResolver],
+    resolvers: [CollectionsResolver, MembershipResolver],
   },
   controllers: COLLECTIONS_REST_CONTROLLERS,
   dashboard: './dashboard/index.tsx',

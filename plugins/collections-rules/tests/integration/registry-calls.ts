@@ -3,6 +3,7 @@ import type { PermissionKey } from '@cod/shared';
 /** The ids of one store a call names; the isolation sweep fills them with B's (or A2's) and calls as A. */
 export interface TargetIds {
   readonly collectionId: string;
+  readonly productId: string;
 }
 
 /** The id of {@link TargetIds} an entry names: the one a malformed id replaces and an own-only answer must not hold. */
@@ -10,9 +11,10 @@ export type TargetIdField = keyof TargetIds;
 
 /**
  * What another store's caller gets when it names the target's ids: `null` (a read of none), `not-found`
- * (`collections.not-found`, 404 on REST), or `own-only` (an answer about its own store only).
+ * (`collections.not-found`, 404 on REST), `product-not-found` (`collections.product-not-found`, 404 on REST), or
+ * `own-only` (an answer about its own store only).
  */
-export type ForeignOutcome = 'null' | 'not-found' | 'own-only';
+export type ForeignOutcome = 'null' | 'not-found' | 'product-not-found' | 'own-only';
 
 /** One Admin API operation of the plugin, with a call aimed at a target's ids. */
 export interface OperationEntry {

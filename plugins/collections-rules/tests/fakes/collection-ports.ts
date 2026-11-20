@@ -2,11 +2,13 @@ import type { CollectionChangeKind, TenantScope } from '@cod/shared';
 import type { CollectionPorts } from '../../application/collection-ports';
 import type { CollectionEventsPort } from '../../domain/ports/collection-events.port';
 import type { DescriptionSanitizerPort } from '../../domain/ports/description-sanitizer.port';
-import type { OperationContext } from '../../domain/ports/operation-context';
+import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
 import type { StoreLockPort } from '../../domain/ports/store-lock.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
 import type { StoreScope } from '../../domain/store-scope';
 import { newId } from '../support/builders';
+import { FakeProductFacts } from './fake-product-facts';
+import { FakeStoreLocks } from './fake-store-locks';
 import { FakeVendureCollections } from './fake-vendure-collections';
 import { InMemoryCollectionTables } from './in-memory-collection-tables';
 
@@ -43,20 +45,30 @@ export class FakeCollectionWorld {
   readonly tables = new InMemoryCollectionTables();
   readonly vendure = new FakeVendureCollections();
   readonly events = new RecordingEvents();
+  readonly facts = new FakeProductFacts();
+  readonly locks = new FakeStoreLocks();
   readonly steps: Step[] = [];
   readonly ports: CollectionPorts;
 
   constructor() {
     const transaction: TransactionPort = {
-      run: <T>(ctx: OperationContext, _scope: TenantScope, work: (tx: OperationContext) => Promise<T>) => {
+      // Joins a transaction `ctx` already is, like Vendure's `withTransaction`; a new one ends with its locks.
+      run: async <T>(ctx: OperationContext, _scope: TenantScope, work: (tx: OperationContext) => Promise<T>) => {
         this.steps.push('transaction');
-        return work(ctx);
+        if (this.locks.isTransaction(ctx)) return work(ctx);
+        const tx = asOperationContext({ transactionOf: ctx });
+        this.locks.begin(tx);
+        try {
+          return await work(tx);
+        } finally {
+          this.locks.end(tx);
+        }
       },
     };
     const lock: StoreLockPort = {
-      lockStore: (_ctx, storeId) => {
+      lockStore: (ctx, storeId) => {
         this.steps.push(`lock ${storeId}`);
-        return Promise.resolve();
+        return this.locks.acquire(ctx, storeId);
       },
     };
     const definitions = this.tables.definitions;
@@ -76,6 +88,7 @@ export class FakeCollectionWorld {
       events: this.events,
       ids: { next: newId },
       sanitizer: stripTags,
+      facts: this.facts,
     };
   }
 }

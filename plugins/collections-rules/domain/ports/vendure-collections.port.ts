@@ -46,6 +46,8 @@ export interface VendureCollectionsPort {
   delete(ctx: OperationContext, collectionId: string): Promise<void>;
   /** The store channel's collections among `collectionIds`; one of another channel is simply absent. */
   findMany(ctx: OperationContext, collectionIds: readonly string[]): Promise<ReadonlyMap<string, CollectionMeta>>;
+  /** The slug as the store would keep it (D2319): what availability answers and `slugTaken` compares. */
+  storedSlugOf(slug: string): string;
   /** Whether another collection of the store channel already uses the slug (D2319), `exceptId` aside. */
   slugTaken(ctx: OperationContext, slug: string, exceptId?: string): Promise<boolean>;
   /** Whether the asset is one of the store channel's (D2320). */

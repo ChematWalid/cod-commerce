@@ -106,3 +106,38 @@ describe("collections of one business's two stores", () => {
     expect(patched).toMatchObject({ status: 200, body: { slug } });
   });
 });
+
+describe('the catalog list filter through the registered source (D2309, D2324)', () => {
+  const OPTIONS = 'query { catalogCollectionOptions { id title } }';
+
+  async function optionsOf(): Promise<{ id: string; title: string }[]> {
+    const { catalogCollectionOptions } = await suite.kit.gql<{
+      catalogCollectionOptions: { id: string; title: string }[];
+    }>(OPTIONS);
+    return catalogCollectionOptions;
+  }
+
+  it("catalogCollectionOptions lists only the caller's store collections through the registered source", async () => {
+    // Arrange
+    const { a, b } = suite.fixtures;
+    await suite.kit.asOwner(a);
+    const first = await createCollection(suite.kit, { title: 'Options of A1' });
+    await suite.kit.asOwner(a, a.stores[1]);
+    const second = await createCollection(suite.kit, { title: 'Options of A2' });
+    await suite.kit.asOwner(b);
+    const ofB = await createCollection(suite.kit, { title: 'Options of B' });
+
+    // Act
+    await suite.kit.asOwner(a);
+    const inFirst = await optionsOf();
+    await suite.kit.asOwner(a, a.stores[1]);
+    const inSecond = await optionsOf();
+
+    // Assert
+    expect(inFirst).toContainEqual({ id: first.id, title: 'Options of A1' });
+    expect(inFirst.map((option) => option.id)).not.toContain(second.id);
+    expect(inFirst.map((option) => option.id)).not.toContain(ofB.id);
+    expect(JSON.stringify(inFirst)).not.toMatch(/Options of (A2|B)/);
+    expect(inSecond).toEqual([{ id: second.id, title: 'Options of A2' }]);
+  });
+});

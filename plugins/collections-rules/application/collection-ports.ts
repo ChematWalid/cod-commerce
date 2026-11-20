@@ -3,6 +3,7 @@ import type { CollectionEventsPort } from '../domain/ports/collection-events.por
 import type { CollectionMemberRepositoryPort } from '../domain/ports/collection-member-repository.port';
 import type { DescriptionSanitizerPort } from '../domain/ports/description-sanitizer.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
+import type { ProductFactsPort } from '../domain/ports/product-facts.port';
 import type { StoreLockPort } from '../domain/ports/store-lock.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 import type { VendureCollectionsPort } from '../domain/ports/vendure-collections.port';
@@ -17,4 +18,5 @@ export interface CollectionPorts {
   readonly events: CollectionEventsPort;
   readonly ids: IdGeneratorPort;
   readonly sanitizer: DescriptionSanitizerPort;
+  readonly facts: ProductFactsPort;
 }

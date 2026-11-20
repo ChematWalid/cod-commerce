@@ -130,6 +130,30 @@ export const storeCollectionListQuerySchema = z
   .preprocess(withoutUnsetFields, listQueryFieldsSchema)
   .transform(({ search, ...query }) => (search === undefined || search === '' ? query : { ...query, search }));
 
+/** A page of one collection's products (D2318 order); it may come as a REST query string. */
+export const storeCollectionProductsQuerySchema = z.preprocess(
+  withoutUnsetFields,
+  z.object(
+    {
+      skip: queryPageNumberSchema(0, INT_COLUMN_MAX).default(0),
+      take: queryPageNumberSchema(1, COLLECTION_MAX_MANUAL_PRODUCTS).default(COLLECTION_LIST_PAGE_SIZE),
+    },
+    issue,
+  ),
+);
+
+/** "Is this slug free in the store?" (D2319): the slug typed, and the collection being edited, whose own slug is free. */
+export const storeCollectionSlugQuerySchema = z.preprocess(
+  withoutUnsetFields,
+  z.object(
+    {
+      slug: z.string(issue).trim().min(1, issue).max(SLUG_MAX, issue).refine(isCleanLine, issue),
+      collectionId: collectionRefIdSchema.optional(),
+    },
+    issue,
+  ),
+);
+
 export type CreateStoreCollectionInput = z.input<typeof createStoreCollectionInputSchema>;
 export type CreateStoreCollectionCommand = z.output<typeof createStoreCollectionInputSchema>;
 export type UpdateStoreCollectionInput = z.input<typeof updateStoreCollectionInputSchema>;
@@ -138,3 +162,5 @@ export type SetStoreCollectionProductsCommand = z.output<typeof setStoreCollecti
 export type SetStoreProductCollectionsCommand = z.output<typeof setStoreProductCollectionsInputSchema>;
 export type PreviewStoreCollectionCommand = z.output<typeof previewStoreCollectionInputSchema>;
 export type StoreCollectionListQuery = z.output<typeof storeCollectionListQuerySchema>;
+export type StoreCollectionProductsQuery = z.output<typeof storeCollectionProductsQuerySchema>;
+export type StoreCollectionSlugQuery = z.output<typeof storeCollectionSlugQuerySchema>;

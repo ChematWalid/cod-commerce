@@ -21,6 +21,9 @@ export const COLLECTION_FIELDS =
 /** A valid edit that names no other id, so only the target collection decides the answer. */
 const EDIT = { title: 'Taken over', visible: false };
 
+/** A slug no store of the sweep uses; the answer must be about the caller's store only. */
+const SWEEP_SLUG = 'sweep-slug';
+
 /** Every Admin API operation the plugin's resolvers declare. */
 export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   {
@@ -64,6 +67,56 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     byId: true,
     document: `mutation ($id: ID!) { deleteStoreCollection(id: $id) }`,
     variables: (ids) => ({ id: ids.collectionId }),
+  },
+  {
+    operation: 'storeCollectionProducts',
+    access: 'catalog.collections.view',
+    foreign: 'not-found',
+    byId: true,
+    document: `query ($id: ID!) { storeCollectionProducts(id: $id) { totalItems items { productId title } } }`,
+    variables: (ids) => ({ id: ids.collectionId }),
+  },
+  {
+    operation: 'storeCollectionSlugAvailability',
+    access: 'catalog.collections.view',
+    foreign: 'own-only',
+    byId: false,
+    document: `query ($slug: String!, $collectionId: ID) {
+      storeCollectionSlugAvailability(slug: $slug, collectionId: $collectionId) { slug available }
+    }`,
+    variables: (ids) => ({ slug: SWEEP_SLUG, collectionId: ids.collectionId }),
+  },
+  {
+    operation: 'storeProductCollections',
+    access: 'catalog.collections.view',
+    foreign: 'product-not-found',
+    byId: true,
+    idField: 'productId',
+    document: `query ($productId: ID!) {
+      storeProductCollections(productId: $productId) { manual { id title } automatic { id title } }
+    }`,
+    variables: (ids) => ({ productId: ids.productId }),
+  },
+  {
+    operation: 'setStoreCollectionProducts',
+    access: 'catalog.collections.edit',
+    foreign: 'not-found',
+    byId: true,
+    document: `mutation ($id: ID!, $productIds: [ID!]!) {
+      setStoreCollectionProducts(id: $id, productIds: $productIds) { id productCount }
+    }`,
+    variables: (ids) => ({ id: ids.collectionId, productIds: [] }),
+  },
+  {
+    operation: 'setStoreProductCollections',
+    access: 'catalog.collections.edit',
+    foreign: 'product-not-found',
+    byId: true,
+    idField: 'productId',
+    document: `mutation ($productId: ID!, $collectionIds: [ID!]!) {
+      setStoreProductCollections(productId: $productId, collectionIds: $collectionIds) { manual { id } automatic { id } }
+    }`,
+    variables: (ids) => ({ productId: ids.productId, collectionIds: [] }),
   },
 ];
 
@@ -116,5 +169,49 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     foreign: 'not-found',
     byId: true,
     url: (ids) => `/catalog/collections/${ids.collectionId}`,
+  },
+  {
+    method: 'GET',
+    route: '/catalog/collections/slug-availability',
+    access: 'catalog.collections.view',
+    foreign: 'own-only',
+    byId: false,
+    url: (ids) => `/catalog/collections/slug-availability?slug=${SWEEP_SLUG}&collectionId=${ids.collectionId}`,
+  },
+  {
+    method: 'GET',
+    route: '/catalog/collections/of-product/:productId',
+    access: 'catalog.collections.view',
+    foreign: 'product-not-found',
+    byId: true,
+    idField: 'productId',
+    url: (ids) => `/catalog/collections/of-product/${ids.productId}`,
+  },
+  {
+    method: 'PUT',
+    route: '/catalog/collections/of-product/:productId',
+    access: 'catalog.collections.edit',
+    foreign: 'product-not-found',
+    byId: true,
+    idField: 'productId',
+    url: (ids) => `/catalog/collections/of-product/${ids.productId}`,
+    body: () => ({ collectionIds: [] }),
+  },
+  {
+    method: 'GET',
+    route: '/catalog/collections/:id/products',
+    access: 'catalog.collections.view',
+    foreign: 'not-found',
+    byId: true,
+    url: (ids) => `/catalog/collections/${ids.collectionId}/products`,
+  },
+  {
+    method: 'PUT',
+    route: '/catalog/collections/:id/products',
+    access: 'catalog.collections.edit',
+    foreign: 'not-found',
+    byId: true,
+    url: (ids) => `/catalog/collections/${ids.collectionId}/products`,
+    body: () => ({ productIds: [] }),
   },
 ];

@@ -12,6 +12,7 @@ import {
   rawId,
 } from './collections-api';
 import { collectionsSuite } from './collections-kit';
+import { createProduct } from './collections-products';
 import {
   type OperationEntry,
   OPERATION_REGISTRY,
@@ -23,6 +24,9 @@ import {
 
 const suite = collectionsSuite(1017, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const NOT_FOUND = COLLECTIONS_ERROR_CODES.NOT_FOUND;
+const PRODUCT_NOT_FOUND = COLLECTIONS_ERROR_CODES.PRODUCT_NOT_FOUND;
+/** The refusals that answer 404 on REST. */
+const NOT_FOUND_OUTCOMES: ReadonlySet<string> = new Set(['not-found', 'product-not-found']);
 const MALFORMED_IDS = ['abc', '-1', '1.5', '99999999999999999999', ''];
 /**
  * Text no answer may carry: SQL, Vendure entity names and their not-found text, stacks (D2136). The plain word
@@ -82,6 +86,7 @@ const fieldOf = (entry: { idField?: TargetIdField }): TargetIdField => entry.idF
 function expectForeign(entry: OperationEntry | RouteEntry, outcome: Outcome, ids: TargetIds): void {
   if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
   if (entry.foreign === 'not-found') expect(outcome.code).toBe(NOT_FOUND);
+  if (entry.foreign === 'product-not-found') expect(outcome.code).toBe(PRODUCT_NOT_FOUND);
   if (entry.foreign === 'own-only') expect(outcome.text).not.toContain(`"${ids[fieldOf(entry)]}"`);
   for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
 }
@@ -100,8 +105,9 @@ describe('collections isolation sweep (two businesses)', () => {
   beforeAll(async () => {
     await suite.kit.asOwner(suite.fixtures.b);
     ofB = await createCollection(suite.kit, { title: 'B only', slug: 'b-only' });
-    idsOfB = { collectionId: ofB.id };
-    restIdsOfB = { collectionId: rawId(ofB.id) };
+    const productOfB = await createProduct(suite.kit, 'B product');
+    idsOfB = { collectionId: ofB.id, productId: productOfB };
+    restIdsOfB = { collectionId: rawId(ofB.id), productId: rawId(productOfB) };
   });
 
   it.each(OPERATION_REGISTRY)("$operation as A against B's ids answers $foreign", async (entry) => {
@@ -124,7 +130,7 @@ describe('collections isolation sweep (two businesses)', () => {
 
     // Assert
     expectForeign(entry, outcome, restIdsOfB);
-    if (entry.foreign === 'not-found') expect(outcome.status).toBe(404);
+    if (NOT_FOUND_OUTCOMES.has(entry.foreign)) expect(outcome.status).toBe(404);
   });
 
   it.each(
@@ -170,7 +176,7 @@ describe('collections isolation sweep (two businesses)', () => {
 
     // Assert
     expect(outcome.code).toBe(channel === UNKNOWN_CHANNEL ? 'CHANNEL_NOT_FOUND' : 'FORBIDDEN');
-    expect(outcome.text).not.toContain(`"${idsOfB.collectionId}"`);
+    expect(outcome.text).not.toContain(`"${idsOfB[fieldOf(entry)]}"`);
     for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
   });
 
@@ -193,7 +199,7 @@ describe('collections isolation sweep (two businesses)', () => {
     } else {
       expect(outcome.status).toBe(403);
     }
-    expect(outcome.text).not.toContain(`"${restIdsOfB.collectionId}"`);
+    expect(outcome.text).not.toContain(`"${restIdsOfB[fieldOf(entry)]}"`);
     for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
   });
 

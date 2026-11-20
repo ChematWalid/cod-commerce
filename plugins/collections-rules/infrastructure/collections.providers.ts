@@ -1,10 +1,15 @@
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import type { CollectionPorts } from '../application/collection-ports';
+import { CollectionProductsService } from '../application/collection-products.service';
 import { CreateCollectionService } from '../application/create-collection.service';
 import { DeleteCollectionService } from '../application/delete-collection.service';
 import { GetCollectionService } from '../application/get-collection.service';
 import { ListCollectionsService } from '../application/list-collections.service';
+import { ProductCollectionsService } from '../application/product-collections.service';
+import { ProductLinksService } from '../application/product-links.service';
+import { SetCollectionProductsService } from '../application/set-collection-products.service';
+import { SlugAvailabilityService } from '../application/slug-availability.service';
 import {
   COLLECTION_EVENTS,
   COLLECTION_PORTS,
@@ -21,6 +26,7 @@ import { UpdateCollectionService } from '../application/update-collection.servic
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import { CatalogProductFactsAdapter } from './catalog-product-facts.adapter';
 import { OutboxCollectionEvents } from './collection-events';
+import { CollectionsMembershipSource } from './collections-membership.source';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
 import { PgCollectionsLock } from './pg-collections-lock';
 import { SnowflakeCollectionsIdGenerator } from './snowflake-id.generator';
@@ -41,6 +47,7 @@ const PORT_TOKEN_OF = {
   events: COLLECTION_EVENTS,
   ids: ID_GENERATOR,
   sanitizer: DESCRIPTION_SANITIZER,
+  facts: PRODUCT_FACTS,
 } as const satisfies Record<keyof CollectionPorts, symbol>;
 
 const PORT_ENTRIES = Object.entries(PORT_TOKEN_OF) as readonly [keyof CollectionPorts, symbol][];
@@ -90,4 +97,10 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   useCase(DeleteCollectionService),
   useCase(ListCollectionsService),
   useCase(GetCollectionService),
+  useCase(CollectionProductsService),
+  useCase(SetCollectionProductsService),
+  useCase(ProductCollectionsService),
+  useCase(SlugAvailabilityService),
+  useCase(ProductLinksService),
+  CollectionsMembershipSource,
 ];

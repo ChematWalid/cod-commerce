@@ -3,7 +3,8 @@ import gql from 'graphql-tag';
 /**
  * Store collections of the active store (D2300, D2314). Names are `StoreCollection*`, never Vendure's stock
  * `Collection` ones (D2101). Collection and asset ids are Vendure ids, so `ID`; the tag and brand ids a rule names are
- * our snowflakes, so `String`. Reads need `catalog.collections.view`, create `.create`, edit `.edit`, delete `.delete`.
+ * our snowflakes, so `String`. Reads need `catalog.collections.view`, create `.create`, edit `.edit` (also the product
+ * lists of a collection or a product), delete `.delete`.
  */
 export const collectionsAdminApiSchema = gql`
   type StoreCollectionImage {
@@ -83,6 +84,38 @@ export const collectionsAdminApiSchema = gql`
     rule: StoreCollectionRuleInput
   }
 
+  type StoreCollectionProduct {
+    productId: ID!
+    title: String!
+    status: String!
+    price: Int!
+  }
+
+  type StoreCollectionProductList {
+    items: [StoreCollectionProduct!]!
+    totalItems: Int!
+  }
+
+  type StoreCollectionSlugAvailability {
+    slug: String!
+    available: Boolean!
+  }
+
+  type StoreCollectionRef {
+    id: ID!
+    title: String!
+  }
+
+  type StoreProductCollections {
+    manual: [StoreCollectionRef!]!
+    automatic: [StoreCollectionRef!]!
+  }
+
+  input StoreCollectionProductListInput {
+    skip: Int
+    take: Int
+  }
+
   input StoreCollectionListInput {
     skip: Int
     take: Int
@@ -92,11 +125,16 @@ export const collectionsAdminApiSchema = gql`
   extend type Query {
     storeCollections(options: StoreCollectionListInput): StoreCollectionList!
     storeCollection(id: ID!): StoreCollection
+    storeCollectionProducts(id: ID!, options: StoreCollectionProductListInput): StoreCollectionProductList!
+    storeCollectionSlugAvailability(slug: String!, collectionId: ID): StoreCollectionSlugAvailability!
+    storeProductCollections(productId: ID!): StoreProductCollections!
   }
 
   extend type Mutation {
     createStoreCollection(input: CreateStoreCollectionInput!): StoreCollection!
     updateStoreCollection(id: ID!, input: UpdateStoreCollectionInput!): StoreCollection!
     deleteStoreCollection(id: ID!): Boolean!
+    setStoreCollectionProducts(id: ID!, productIds: [ID!]!): StoreCollection!
+    setStoreProductCollections(productId: ID!, collectionIds: [ID!]!): StoreProductCollections!
   }
 `;
