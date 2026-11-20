@@ -6,6 +6,7 @@ import type {
   UpdateStoreCollectionInput,
 } from '../dto';
 import { type ManualProduct, productIdsOf, sameOrder } from './manual-order';
+import { isCompleteRule } from './rule-draft';
 
 /** Everything the collection editor edits; text and the position are kept as typed and parsed on save. */
 export interface CollectionForm {
@@ -70,14 +71,12 @@ function positionOf(text: string): number | undefined {
   return position <= COLLECTION_POSITION_MAX ? position : undefined;
 }
 
-const hasRule = (form: CollectionForm): boolean => form.rule !== null && form.rule.conditions.length > 0;
-
 /** What the form refuses before the server is asked (the server checks again). */
 export function collectionFormErrors(form: CollectionForm): CollectionFormErrors {
   const checks: readonly [CollectionFormField, boolean, string][] = [
     ['title', form.title.trim() !== '', TITLE_REQUIRED_MESSAGE_ID],
     ['position', positionOf(form.position) !== undefined, POSITION_MESSAGE_ID],
-    ['rule', form.mode === 'manual' || hasRule(form), COLLECTIONS_ERROR_CODES.RULE_INVALID],
+    ['rule', form.mode === 'manual' || isCompleteRule(form.rule), COLLECTIONS_ERROR_CODES.RULE_INVALID],
   ];
   return Object.fromEntries(checks.filter(([, valid]) => !valid).map(([field, , messageId]) => [field, messageId]));
 }

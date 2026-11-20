@@ -330,3 +330,163 @@ msgstr "لا يمكن اختيار المنتجات يدويًا إلا في م�
 #. js-lingui-explicit-id
 msgid "collections.rate-limited"
 msgstr "طلبات كثيرة جدًا. انتظر قليلًا ثم حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "collections.match-label"
+msgstr "يجب أن تطابق المنتجات"
+
+#. js-lingui-explicit-id
+msgid "collections.match-all"
+msgstr "كل الشروط"
+
+#. js-lingui-explicit-id
+msgid "collections.match-any"
+msgstr "أي شرط"
+
+#. js-lingui-explicit-id
+msgid "collections.field-tag"
+msgstr "الوسم"
+
+#. js-lingui-explicit-id
+msgid "collections.field-brand"
+msgstr "العلامة التجارية"
+
+#. js-lingui-explicit-id
+msgid "collections.field-price"
+msgstr "السعر"
+
+#. js-lingui-explicit-id
+msgid "collections.field-on_sale"
+msgstr "في التخفيض"
+
+#. js-lingui-explicit-id
+msgid "collections.field-title"
+msgstr "العنوان"
+
+#. js-lingui-explicit-id
+msgid "collections.field-option"
+msgstr "الخيار"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-is_any_of"
+msgstr "أحد"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-is_not"
+msgstr "ليس"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-between"
+msgstr "بين"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-is"
+msgstr "هو"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-contains"
+msgstr "يحتوي على"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-not_contains"
+msgstr "لا يحتوي على"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-field"
+msgstr "الحقل"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-operator"
+msgstr "المعامل"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-remove"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-add"
+msgstr "إضافة شرط"
+
+#. js-lingui-explicit-id
+msgid "collections.price-min"
+msgstr "أدنى سعر (دج)"
+
+#. js-lingui-explicit-id
+msgid "collections.price-max"
+msgstr "أعلى سعر (دج)"
+
+#. js-lingui-explicit-id
+msgid "collections.on-sale-yes"
+msgstr "نعم"
+
+#. js-lingui-explicit-id
+msgid "collections.on-sale-no"
+msgstr "لا"
+
+#. js-lingui-explicit-id
+msgid "collections.title-value"
+msgstr "كلمة في العنوان"
+
+#. js-lingui-explicit-id
+msgid "collections.title-value-add"
+msgstr "إضافة"
+
+#. js-lingui-explicit-id
+msgid "collections.value-remove"
+msgstr "إزالة القيمة"
+
+#. js-lingui-explicit-id
+msgid "collections.value-unknown"
+msgstr "غير معروف (محذوف)"
+
+#. js-lingui-explicit-id
+msgid "collections.values-none"
+msgstr "لا يوجد شيء في هذا المتجر بعد."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-heading"
+msgstr "معاينة"
+
+#. js-lingui-explicit-id
+msgid "collections.preview-incomplete"
+msgstr "أكمل شرطًا لعرض المنتجات المطابقة."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-loading"
+msgstr "جارٍ عدّ المنتجات المطابقة…"
+
+#. js-lingui-explicit-id
+msgid "collections.preview-count"
+msgstr "المنتجات المطابقة: {count}"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-title"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-manual"
+msgstr "مختارة يدويًا"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-by-rule"
+msgstr "مضافة بقاعدة"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-save"
+msgstr "حفظ المجموعات"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-saved"
+msgstr "تم حفظ المجموعات."
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-new"
+msgstr "احفظ المنتج أولًا لإضافته إلى المجموعات."
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-none"
+msgstr "لا توجد مجموعة يدوية في المتجر بعد."
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-read-only"
+msgstr "يمكنك رؤية هذه المجموعات دون تعديلها."

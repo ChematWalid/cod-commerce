@@ -137,4 +137,18 @@ describe('editor patch', () => {
     // Assert
     expect(hintId).toBe('catalog.editor-slug-hint');
   });
+
+  it('never sends collectionIds, so the collections block owns them (D2324)', () => {
+    // Arrange
+    const form = { ...saved, collectionIds: [...saved.collectionIds, '99'] };
+
+    // Act
+    const patch = patchOf(saved, form);
+    const created = createInputOf({ ...emptyEditorForm(), title: 'Lamp', collectionIds: ['99'] });
+
+    // Assert
+    expect(patch).not.toHaveProperty('collectionIds');
+    expect(isEmptyPatch(patch)).toBe(true);
+    expect(created).not.toHaveProperty('collectionIds');
+  });
 });

@@ -26,3 +26,8 @@ html[dir='rtl'] .cod-collections-switch [data-slot='switch-thumb'][data-checked]
 .cod-collections-dragging {
   opacity: 0.5;
 }
+
+/* The collections block of the product editor when the caller may not see collections: the whole card goes. */
+[data-slot='card']:has(> [data-slot='card-content'] > .cod-collections-block-hidden) {
+  display: none;
+}

@@ -12,6 +12,7 @@ export const VIEW_MEMBERS_KEY: PermissionKey = 'team.members.view';
 export const PRODUCTS_QUERY_KEY = ['catalog', 'products'] as const;
 export const BRANDS_QUERY_KEY = ['catalog', 'brands'] as const;
 export const TAGS_QUERY_KEY = ['catalog', 'tags'] as const;
+export const COLLECTION_OPTIONS_QUERY_KEY = ['catalog', 'collection-options'] as const;
 export const MEDIA_PREVIEWS_QUERY_KEY = ['catalog', 'media-previews'] as const;
 export const EFFECTIVE_PERMISSIONS_QUERY_KEY = ['catalog', 'effective-permissions'] as const;
 export const PRODUCT_QUERY_KEY = ['catalog', 'product'] as const;

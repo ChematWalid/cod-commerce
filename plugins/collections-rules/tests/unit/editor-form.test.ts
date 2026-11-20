@@ -121,6 +121,20 @@ describe('collection editor form', () => {
     expect(Object.keys(errors).sort()).toEqual(['position', 'rule', 'title']);
   });
 
+  it('refuses an automatic collection whose rule still has an incomplete row', () => {
+    // Arrange
+    const incomplete: StoreCollectionRuleDto = {
+      ...RULE,
+      conditions: [...RULE.conditions, { field: 'price', operator: 'between', min: null, max: null }],
+    };
+
+    // Act
+    const errors = collectionFormErrors(filled({ mode: 'automatic', rule: incomplete }));
+
+    // Assert
+    expect(errors).toEqual({ rule: COLLECTIONS_ERROR_CODES.RULE_INVALID });
+  });
+
   it('sends only what changed, and null to clear the description or the image', () => {
     // Arrange
     const saved = { ...collectionFormOf(SAVED_MANUAL, []), description: '<p>Hi</p>', featuredAssetId: '9' };

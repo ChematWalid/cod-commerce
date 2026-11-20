@@ -9,6 +9,7 @@ import { AddProductsDialog } from './add-products-dialog';
 import type { ScopedCardProps } from './card-props';
 import { FieldError } from './field-error';
 import { ProductRows } from './product-rows';
+import { RuleBuilder } from './rule-builder';
 
 /** Manual or automatic (D2302); the save asks before a saved manual list is replaced (D2339). */
 function ModeSwitch({ form, disabled, onChange }: ScopedCardProps): ReactNode {
@@ -97,18 +98,18 @@ function ManualList(props: ScopedCardProps): ReactNode {
   );
 }
 
-/** The current members of an automatic collection, read-only: its conditions decide them. */
-function AutomaticMembers({ form }: ScopedCardProps): ReactNode {
+/** An automatic collection: its conditions decide the members, with a live preview of what they match. */
+function AutomaticMembers(props: ScopedCardProps): ReactNode {
   const { i18n } = useLingui();
   return (
     <div className="grid gap-3">
       <p className="text-muted-foreground text-sm">{i18n._('collections.automatic-hint')}</p>
-      <ProductRows products={form.products} editable={false} onReorder={() => undefined} />
+      <RuleBuilder {...props} />
     </div>
   );
 }
 
-/** The Products card: the mode, then the hand-ordered list or the rule's current members. */
+/** The Products card: the mode, then the hand-ordered list or the rule builder. */
 export function ManualProductsCard(props: ScopedCardProps): ReactNode {
   return (
     <div className="grid gap-4">

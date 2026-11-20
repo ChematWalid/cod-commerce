@@ -496,14 +496,6 @@ msgid "catalog.editor-no-brand"
 msgstr "بدون علامة تجارية"
 
 #. js-lingui-explicit-id
-msgid "catalog.editor-collections"
-msgstr "المجموعات"
-
-#. js-lingui-explicit-id
-msgid "catalog.editor-collections-later"
-msgstr "يمكن اختيار المجموعات عندما يضيفها المتجر."
-
-#. js-lingui-explicit-id
 msgid "catalog.editor-tags"
 msgstr "الوسوم"
 

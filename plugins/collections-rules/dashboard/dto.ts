@@ -89,3 +89,34 @@ export interface UpdateStoreCollectionInput {
   readonly mode?: CollectionMode;
   readonly rule?: StoreCollectionRuleDto;
 }
+
+/** A brand or tag a rule can name: our snowflake id and the store's name for it (`StoreCollectionRuleName`). */
+export interface StoreCollectionRuleNameDto {
+  readonly id: string;
+  readonly name: string;
+}
+
+/** An option name of the store's variants with every value it takes (`StoreCollectionRuleOption`). */
+export interface StoreCollectionRuleOptionDto {
+  readonly name: string;
+  readonly values: readonly string[];
+}
+
+/** What the rule builder offers for the active store (D2321). */
+export interface StoreCollectionRuleOptionsDto {
+  readonly brands: readonly StoreCollectionRuleNameDto[];
+  readonly tags: readonly StoreCollectionRuleNameDto[];
+  readonly options: readonly StoreCollectionRuleOptionDto[];
+}
+
+/** A collection named by id and title (`StoreCollectionRef`). */
+export interface StoreCollectionRefDto {
+  readonly id: string;
+  readonly title: string;
+}
+
+/** The collections of one product: the hand-picked ones and those its rules add (`StoreProductCollections`). */
+export interface StoreProductCollectionsDto {
+  readonly manual: readonly StoreCollectionRefDto[];
+  readonly automatic: readonly StoreCollectionRefDto[];
+}

@@ -17,6 +17,9 @@ export const PRODUCT_SEARCH_QUERY_KEY = ['collections', 'product-search'] as con
 export const SLUG_QUERY_KEY = ['collections', 'slug-availability'] as const;
 export const MEDIA_LIBRARY_QUERY_KEY = ['collections', 'media-library'] as const;
 export const EFFECTIVE_PERMISSIONS_QUERY_KEY = ['collections', 'effective-permissions'] as const;
+export const RULE_OPTIONS_QUERY_KEY = ['collections', 'rule-options'] as const;
+export const PRODUCT_COLLECTIONS_QUERY_KEY = ['collections', 'of-product'] as const;
+export const COLLECTION_CHOICES_QUERY_KEY = ['collections', 'choices'] as const;
 
 /** The collection pages below `/stores/<store>/` (D82): the list is the shell leaf, the editor routes are ours. */
 export const COLLECTIONS_PATH = 'collections';
@@ -38,6 +41,11 @@ export const COLLECTION_EDITOR_BLOCK_IDS = {
 /** How long the editor waits after the last change before it asks for a preview or a slug check. */
 export const PREVIEW_DELAY_MS = 400;
 export const SLUG_CHECK_DELAY_MS = 500;
+/** How many matching products the preview lists under its count. */
+export const PREVIEW_ROWS = 10;
+/** The block the collections plugin adds to catalog's product editor (D2324a). */
+export const PRODUCT_COLLECTIONS_BLOCK_ID = 'collections-product-collections';
+
 /** How long the product search waits after the last key. */
 export const PRODUCT_SEARCH_DELAY_MS = 300;
 
@@ -63,3 +71,5 @@ export const ADD_PRODUCTS_TEST_ID = 'collections-add-products';
 export const COLLECTION_VISIBLE_TEST_ID = 'collections-visible';
 export const COLLECTION_POSITION_TEST_ID = 'collections-position';
 export const PRODUCT_COLLECTIONS_BLOCK_TEST_ID = 'collections-product-block';
+export const ADD_CONDITION_TEST_ID = 'collections-add-condition';
+export const PRODUCT_COLLECTIONS_SAVE_TEST_ID = 'collections-product-block-save';

@@ -12,6 +12,7 @@ export {
 } from './domain/ports/operation-context';
 // `data-testid`s and paths of the collections pages, for the server's browser specs and the evidence script.
 export {
+  ADD_CONDITION_TEST_ID,
   ADD_PRODUCTS_TEST_ID,
   COLLECTION_EDITOR_TEST_ID,
   COLLECTION_LIST_TEST_ID,
@@ -30,4 +31,5 @@ export {
   MODE_SWITCH_CONFIRM_TEST_ID,
   PREVIEW_COUNT_TEST_ID,
   PRODUCT_COLLECTIONS_BLOCK_TEST_ID,
+  PRODUCT_COLLECTIONS_SAVE_TEST_ID,
 } from './dashboard/constants';

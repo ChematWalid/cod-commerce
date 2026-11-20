@@ -3,6 +3,7 @@ import type {
   CollectionMediaDto,
   CreateStoreCollectionInput,
   StoreCollectionDto,
+  StoreProductCollectionsDto,
   UpdateStoreCollectionInput,
 } from './dto';
 import { type StoreScope, sendToStore } from './model/store-query';
@@ -15,6 +16,8 @@ const UPDATE_MUTATION = `mutation StoreCollectionUpdate($id: ID!, $input: Update
 const DELETE_MUTATION = 'mutation StoreCollectionDelete($id: ID!) { deleteStoreCollection(id: $id) }';
 const SET_PRODUCTS_MUTATION = `mutation StoreCollectionSetProducts($id: ID!, $productIds: [ID!]!) {
   setStoreCollectionProducts(id: $id, productIds: $productIds) { ${COLLECTION_FIELDS} } }`;
+const SET_PRODUCT_COLLECTIONS_MUTATION = `mutation StoreProductCollectionsSet($productId: ID!, $collectionIds: [ID!]!) {
+  setStoreProductCollections(productId: $productId, collectionIds: $collectionIds) { manual { id title } automatic { id title } } }`;
 const UPLOAD_MUTATION = `mutation CollectionsUploadMedia($file: Upload!) {
   uploadCatalogMedia(file: $file) { id assetId previewUrl } }`;
 
@@ -61,3 +64,17 @@ export const setStoreCollectionProducts = async (
 export const uploadCollectionImage = async (scope: StoreScope | null, file: File): Promise<CollectionMediaDto> =>
   (await mutate<{ readonly uploadCatalogMedia: CollectionMediaDto }>(scope, UPLOAD_MUTATION, { file }))
     .uploadCatalogMedia;
+
+/** Replaces the manual collections of one product with `collectionIds` (D2324); automatic ones stay the rule's. */
+export const setStoreProductCollections = async (
+  scope: StoreScope | null,
+  productId: string,
+  collectionIds: readonly string[],
+): Promise<StoreProductCollectionsDto> =>
+  (
+    await mutate<{ readonly setStoreProductCollections: StoreProductCollectionsDto }>(
+      scope,
+      SET_PRODUCT_COLLECTIONS_MUTATION,
+      { productId, collectionIds },
+    )
+  ).setStoreProductCollections;

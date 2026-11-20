@@ -45,6 +45,7 @@ import { soldOutOrdersOffered } from '../model/sold-out-view';
 import {
   type StoreScope,
   useCatalogBrands,
+  useCatalogCollectionOptions,
   useCatalogProducts,
   useCatalogTags,
   useHeldPermissions,
@@ -139,6 +140,7 @@ interface ListToolbarProps {
 
 /** The tabs, the search and the filters; each change starts again at page 1. The sold-out tab adds its actions. */
 function ListToolbar({ list, scope, held }: ListToolbarProps): ReactNode {
+  const collections = useCatalogCollectionOptions(scope);
   const brands = useCatalogBrands(scope);
   const tags = useCatalogTags(scope);
   const change = (next: ProductListFilterChange): void => {
@@ -152,7 +154,13 @@ function ListToolbar({ list, scope, held }: ListToolbarProps): ReactNode {
           change({ tab });
         }}
       />
-      <ListFilters state={list.state} brands={brands.data ?? []} tags={tags.data ?? []} onChange={change} />
+      <ListFilters
+        state={list.state}
+        collections={collections.data ?? []}
+        brands={brands.data ?? []}
+        tags={tags.data ?? []}
+        onChange={change}
+      />
       {soldOutOrdersOffered(list.state.tab, held) ? <SoldOutBar scope={scope} /> : null}
     </div>
   );
