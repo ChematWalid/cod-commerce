@@ -186,9 +186,7 @@ describe('PricingService.verifyQuote: add-ons', () => {
     // Assert
     if (!result.available) throw new Error('expected a priced order change');
     const { lines, addons, quotedShipping, quoteDiscounts } = result.orderFields;
-    expect(addons).toEqual([
-      { offerId: offer.id, variantId: '12', qty: 2, unitPrice: 1_500, parentVariantId: null },
-    ]);
+    expect(addons).toEqual([{ offerId: offer.id, variantId: '12', qty: 2, unitPrice: 1_500, parentVariantId: null }]);
     expect(lines.map(({ variantId }) => variantId)).toEqual(['11']);
     // One piece of each cart line: the order line, not the order fields, holds the quantity.
     const lineSum = lines.reduce((sum, line) => sum + line.quotedUnitPrice, 0);
