@@ -3,7 +3,14 @@ import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { COLLECTION, type CollectionResult, createCollection, type GraphqlErrorShape, rawId } from './collections-api';
+import {
+  COLLECTION,
+  type CollectionResult,
+  createCollection,
+  DELETE_COLLECTION,
+  type GraphqlErrorShape,
+  rawId,
+} from './collections-api';
 import { collectionsSuite } from './collections-kit';
 import {
   type OperationEntry,
@@ -204,4 +211,40 @@ describe('collections isolation sweep (two businesses)', () => {
     expect(storeCollection).toMatchObject({ id: ofB.id, title: 'B only', slug: 'b-only', visible: true, position: 0 });
     expect(inStoreOfB).toBe(1);
   });
+});
+
+describe('slugs of two businesses (D2319: a slug is unique within one store)', () => {
+  const SLUG_OF_B = 'b-slug-only';
+  /** Arabic letters with no NFD decomposition, so the stored slug is the typed one. */
+  const ARABIC_SLUG_OF_B = 'ملابس-صيفية';
+
+  beforeAll(async () => {
+    await suite.kit.asOwner(suite.fixtures.b);
+    await createCollection(suite.kit, { slug: SLUG_OF_B });
+    await createCollection(suite.kit, { slug: ARABIC_SLUG_OF_B });
+  });
+
+  it.each([SLUG_OF_B, ARABIC_SLUG_OF_B])(
+    'A gets B\'s slug "%s" unchanged over GraphQL and REST, neither refused nor suffixed',
+    async (slug) => {
+      // Arrange
+      await suite.kit.asOwner(suite.fixtures.a);
+
+      // Act
+      const overGraphql = await createCollection(suite.kit, { slug });
+      await suite.kit.gql(DELETE_COLLECTION, { id: overGraphql.id });
+      const overRest = await suite.kit.rest('POST', '/catalog/collections', {
+        title: 'Same slug as B',
+        slug,
+        visible: true,
+        position: 0,
+        mode: 'manual',
+      });
+      await suite.kit.rest('DELETE', `/catalog/collections/${(overRest.body as { id: string }).id}`);
+
+      // Assert
+      expect(overGraphql.slug).toBe(slug);
+      expect(overRest).toMatchObject({ status: 201, body: { slug } });
+    },
+  );
 });
