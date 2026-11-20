@@ -51,8 +51,13 @@ const routeRequest = (route: OffersRoute, caller: Caller, channel: Channel, t: O
 const routeName = (route: OffersRoute): string => `${route.method} ${route.route}`;
 const routeId = (route: OffersRoute): string => `offers.${route.method.toLowerCase()}-${route.route}`;
 
+/**
+ * The evidence-matrix column of an endpoint, the same on GraphQL and REST: an answer about the caller's own store or
+ * computed from its input alone (`own-only`, `no-read`: the preview is a POST on REST but writes nothing) is checked
+ * like a list, for none of the victim's rows; a by-id call is a read or a write.
+ */
 const accessOf = (foreign: OffersOperation['foreign'], isRead: boolean): IsolationAccess => {
-  if (foreign === 'own-only') return 'list';
+  if (foreign === 'own-only' || foreign === 'no-read') return 'list';
   return isRead ? 'read by id' : 'write';
 };
 const operationAccess = (op: OffersOperation): IsolationAccess => accessOf(op.foreign, op.document.startsWith('query'));
@@ -76,10 +81,32 @@ const writesNoRow = (entry: { readonly foreign: OffersOperation['foreign'] }): b
 const byOfferId = (entry: { readonly foreign: OffersOperation['foreign'] }): boolean =>
   entry.foreign === 'null' || entry.foreign === 'not-found';
 
-/** Each store's list holds its own three offers and none of the other business's (both directions). */
+const OFFERS_LIST = 'query { offers { totalItems items { id title status } } }';
+
+/**
+ * Each store's list holds its own three offers and none of the other business's (both directions); the
+ * store-restricted member lists them on its first store too, so its refusal on the second store (the
+ * member-other-store cells) comes from the store restriction, not from a missing offers permission.
+ */
 function ownLists(): IsolationCase[] {
   const own: Expectation = { kind: 'own', mustInclude: ownOfferIdsOf };
   return [
+    {
+      id: 'offers.offers.member-own-store',
+      entity: 'offer',
+      endpoint: 'offers',
+      access: 'list',
+      title: "A's member (first store only) lists offers on its first store: A's offers only",
+      request: (a) => ({
+        method: 'POST',
+        path: '/admin-api',
+        caller: a.member,
+        channel: ownChannel(a),
+        body: { query: OFFERS_LIST, variables: {} },
+      }),
+      expect: own,
+      reverse: true,
+    },
     {
       id: 'offers.offers.own-list',
       entity: 'offer',
@@ -91,7 +118,7 @@ function ownLists(): IsolationCase[] {
         path: '/admin-api',
         caller: a.owner,
         channel: ownChannel(a),
-        body: { query: 'query { offers { totalItems items { id title status } } }', variables: {} },
+        body: { query: OFFERS_LIST, variables: {} },
       }),
       expect: own,
       reverse: true,

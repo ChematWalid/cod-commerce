@@ -25,6 +25,8 @@ export interface OffersWorld {
   readonly sharedCode: string;
   /** The catalog product's first variant, as the pricing core takes it (no `T_` prefix). */
   readonly variantId: string;
+  /** The offers role the world's member holds on the first store only (D2132), beside its own and catalog roles. */
+  readonly offersRole: { readonly id: string; readonly name: string };
 }
 
 /** The offers rows of businesses A and B, filled by the controller with `seedOffers`, like `CATALOG_WORLDS`. */
@@ -37,10 +39,12 @@ export function offersOf(business: BusinessWorld): OffersWorld {
   return offers;
 }
 
-/** The offer ids of `offers`: none may show in another business's answer. */
+/** The offer ids, unique code and member's offers role of `offers`: none may show in another business's answer. */
 export const offersFingerprints = (offers: OffersWorld): string[] => [
   offers.automaticOfferId,
   offers.codeOfferId,
   offers.sharedCodeOfferId,
   offers.code,
+  offers.offersRole.id,
+  offers.offersRole.name,
 ];

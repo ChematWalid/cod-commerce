@@ -7,14 +7,21 @@ import { offersOf, scopeOf, storeContextOf } from '../offers-world';
 import { OFFERS_TABLE_COUNTS } from '../tenant-tables';
 import type { BusinessWorld, World } from '../world-types';
 
+/** Each business's offers rows as {@link offerRowsOf} read them. */
+export interface OfferRowsOfBoth {
+  readonly a: Record<string, unknown>;
+  readonly b: Record<string, unknown>;
+}
+
 /**
- * What the offers rows need from the controller: the seeded world, the booted server and B's offers rows as
- * {@link offerRowsOf} read them before the matrix ran, each read once it exists.
+ * What the offers rows need from the controller: the seeded world, the booted server and both businesses' offers rows
+ * as {@link offerRowsOf} read them right before the matrix ran (its cells write in both directions), each read once it
+ * exists.
  */
 export interface OffersIsolationHarness {
   readonly world: () => World;
   readonly app: () => INestApplicationContext;
-  readonly victimRowsBeforeMatrix: () => Record<string, unknown>;
+  readonly rowsBeforeMatrix: () => OfferRowsOfBoth;
 }
 
 /** Algiers, home delivery: any destination works, no shipping source is registered before P3.S1 (D2423). */
@@ -63,7 +70,8 @@ async function quoteIn(app: INestApplicationContext, business: BusinessWorld, co
  * The offers rows of the P2 isolation suite (P2.S4 Task 14, P2.S5 Task 11): A quotes on its first store through the
  * scoped pricing core (D2408) while B has an automatic offer on every line and a code; none of B's offers, codes or
  * tokens may work in A, and A's quotes write nothing to B's rows. Both businesses hold `SAME10` (D2528), each applying
- * its own offer; and B's rows are as they were before the HTTP matrix (`cases/offers-sweep.ts`) ran.
+ * its own offer; and each business's rows are as they were before the HTTP matrix (`cases/offers-sweep.ts`) ran, whose
+ * cells write in both directions.
  */
 export function describeOffersIsolation(harness: OffersIsolationHarness): void {
   const { world, app } = harness;
@@ -71,6 +79,16 @@ export function describeOffersIsolation(harness: OffersIsolationHarness): void {
   const quoteInA = (codes: string[] = []): Promise<Quote> => quoteIn(app(), world().a, codes);
 
   describe('offers: a business prices only with its own offers', () => {
+    // First: the shared-code rows below change A's rows on purpose.
+    it("leaves B's offers_* rows unchanged after A's calls, and A's after B's", async () => {
+      const { a, b } = world();
+
+      const after = { a: await offerRowsOf(app(), a), b: await offerRowsOf(app(), b) };
+
+      expect(after.b).toEqual(harness.rowsBeforeMatrix().b);
+      expect(after.a).toEqual(harness.rowsBeforeMatrix().a);
+    });
+
     it("quotes store A without B's offers", async () => {
       const { a, b } = world();
 
@@ -115,14 +133,6 @@ export function describeOffersIsolation(harness: OffersIsolationHarness): void {
       await quoteInA([offersOf(b).code]);
 
       expect(await offerRowsOf(app(), b)).toEqual(before);
-    });
-
-    it("leaves B's offers_* rows unchanged after A's calls", async () => {
-      const { b } = world();
-
-      const after = await offerRowsOf(app(), b);
-
-      expect(after).toEqual(harness.victimRowsBeforeMatrix());
     });
   });
 

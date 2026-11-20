@@ -3,9 +3,10 @@ import { OffersPlugin } from '@cod/plugin-offers';
 import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
+import { OFFERS_SWEEP_CASES } from '../isolation/cases/offers-sweep';
 import { CATALOG_OPERATIONS, CATALOG_ROUTES } from '../isolation/catalog-operations';
 import { CATALOG_WORLDS, type CatalogWorld } from '../isolation/catalog-world';
-import { OFFERS_OPERATIONS, OFFERS_ROUTES } from '../isolation/offers-operations';
+import { OFFERS_OPERATIONS, OFFERS_ROUTES, ownOfferIdsOf } from '../isolation/offers-operations';
 import { OFFERS_WORLDS, type OffersWorld, SHARED_CODE } from '../isolation/offers-rows';
 import { TEAM_WORLDS } from '../isolation/team-world';
 import { CATALOG_TABLE_COUNTS, OFFERS_TABLE_COUNTS } from '../isolation/tenant-tables';
@@ -104,6 +105,7 @@ function offersOf(label: 'A' | 'B'): OffersWorld {
     sharedCodeOfferId: id('19'),
     sharedCode: SHARED_CODE,
     variantId: `5${n}`,
+    offersRole: { id: id('20'), name: `Offers role ${label}` },
   };
 }
 
@@ -193,6 +195,36 @@ describe('P2 isolation matrix', () => {
 
     // Assert
     expect([...covered].sort()).toEqual([...declared].sort());
+  });
+
+  it("lists A's offers as A's store-restricted member on its first store (the member-other-store control)", () => {
+    // Arrange
+    const control = OFFERS_SWEEP_CASES.find((testCase) => testCase.id === 'offers.offers.member-own-store');
+
+    // Act
+    const request = control?.request(world.a, world.b, world);
+
+    // Assert
+    expect(request?.caller).toBe(world.a.member);
+    expect(request?.channel?.token).toBe(world.a.stores[0].channelToken);
+    expect(control?.expect.kind === 'own' ? control.expect.mustInclude(world.a) : []).toEqual(ownOfferIdsOf(world.a));
+  });
+
+  it.each([
+    ['offers.offer', 'offers.get-/offers/:id'],
+    ['offers.offerAppTypes', 'offers.get-/offers/app-types'],
+    ['offers.previewOffer', 'offers.post-/offers/preview'],
+    ['offers.deleteOffer', 'offers.delete-/offers/:id'],
+  ])('puts %s and %s in the same access column', (operation, route) => {
+    // Arrange
+    const accessOf = (id: string) => OFFERS_SWEEP_CASES.find((testCase) => testCase.id === `${id}.foreign-id`)?.access;
+
+    // Act
+    const [onGraphql, onRest] = [accessOf(operation), accessOf(route)];
+
+    // Assert
+    expect(onGraphql).toBeDefined();
+    expect(onRest).toBe(onGraphql);
   });
 
   it('gives every cell a unique id', () => {

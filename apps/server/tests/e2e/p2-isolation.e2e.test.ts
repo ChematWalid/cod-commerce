@@ -13,7 +13,7 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
-import { describeOffersIsolation, offerRowsOf } from '../isolation/cases/offers';
+import { describeOffersIsolation, type OfferRowsOfBoth, offerRowsOf } from '../isolation/cases/offers';
 import {
   CATALOG_SNAPSHOT_FIELDS,
   CATALOG_WORLDS,
@@ -85,7 +85,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   let world: World;
   let outcomes: Map<string, Outcome>;
   let before: { a: unknown; b: unknown; aOtherStore: unknown; bOtherStore: unknown };
-  let bOfferRows: Record<string, unknown>;
+  let offerRows: OfferRowsOfBoth;
 
   beforeAll(async () => {
     await server.init({ initialData: E2E_INITIAL_DATA, customerCount: 0 });
@@ -107,15 +107,15 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     });
     CATALOG_WORLDS.set('A', await seedCatalog(http, world.superadmin, world.a));
     CATALOG_WORLDS.set('B', await seedCatalog(http, world.superadmin, world.b));
-    OFFERS_WORLDS.set('A', await seedOffers(server.app, world.a));
-    OFFERS_WORLDS.set('B', await seedOffers(server.app, world.b));
+    OFFERS_WORLDS.set('A', await seedOffers(server.app, http, world.a));
+    OFFERS_WORLDS.set('B', await seedOffers(server.app, http, world.b));
     before = {
       a: await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS),
       b: await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS),
       aOtherStore: await otherStoreSnapshotOf(http, world.a),
       bOtherStore: await otherStoreSnapshotOf(http, world.b),
     };
-    bOfferRows = await offerRowsOf(server.app, world.b);
+    offerRows = { a: await offerRowsOf(server.app, world.a), b: await offerRowsOf(server.app, world.b) };
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
     outcomes = new Map(
       ran.map((outcome) => [
@@ -193,7 +193,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(existsSync(join(assetDir, `${ASSET_KEY_PREFIX}${key ?? ''}`))).toBe(true);
   });
 
-  describeOffersIsolation({ world: () => world, app: () => server.app, victimRowsBeforeMatrix: () => bOfferRows });
+  describeOffersIsolation({ world: () => world, app: () => server.app, rowsBeforeMatrix: () => offerRows });
 
   it.each([
     ['a PNG header with a corrupt body', CORRUPT_PNG],
