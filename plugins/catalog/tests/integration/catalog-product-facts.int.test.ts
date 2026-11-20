@@ -103,6 +103,9 @@ describe('CatalogProductFactsReader (D2308)', () => {
     const ctx = await contextOn(suite, store.channelToken);
     const scope = scopeOf(a, store);
     let read = 0;
+    // One read first, so caches that fill once per context (channel, tenant session) count in neither measurement:
+    // in CI's catalog-2 part this file can be the first to touch them, and the first read then paid 2 extra statements.
+    await suite.reader.factsOf(ctx, scope, ids.slice(0, 1));
 
     // Act
     const few = await queriesOf(suite, () => suite.reader.factsOf(ctx, scope, ids.slice(0, FEW_IDS)));
