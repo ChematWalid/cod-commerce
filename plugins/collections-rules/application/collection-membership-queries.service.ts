@@ -8,11 +8,19 @@ import type { CollectionPorts } from './collection-ports';
  * scope is named by the caller, so a consumer or job context works as well as a request one; every answer is of that
  * store only. Membership is eventually consistent with product edits (outbox lag, seconds), and drafts, hidden and
  * sold-out products are members (D2306). A malformed id names nothing and never reaches Postgres.
+ *
+ * The answers are merchant-level, never buyer-safe: they include hidden collections and draft or hidden products, so
+ * anything shown to a buyer goes through `CollectionsReadService`. The scope comes from the tenant or active store of
+ * the context (`tenantOf`, the active store), never from request input.
  */
 export class CollectionMembershipQueries {
   constructor(private readonly ports: Pick<CollectionPorts, 'definitions' | 'members'>) {}
 
-  /** Every member of a collection of the store, rule or hand-picked, in collection order (D2318). */
+  /**
+   * Every member of a collection of the store, rule or hand-picked, in collection order (D2318). Unbounded: an
+   * automatic collection may return tens of thousands of ids, so an order path prefers `isMember` or
+   * `collectionIdsOfProducts`.
+   */
   async productIdsOf(ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<readonly string[]> {
     const canonical = canonicalCoreId(collectionId);
     if (canonical === undefined) return [];

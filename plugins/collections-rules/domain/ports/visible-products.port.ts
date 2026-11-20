@@ -1,9 +1,17 @@
+import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context';
 
 /** Which page of a public product list to read. */
 export interface ProductPage {
   readonly skip: number;
   readonly take: number;
+}
+
+/** An automatic collection's member ids, newest first, and whose they are, so an over-cap warning names it (§3a.8). */
+export interface NewestMembers {
+  readonly scope: StoreScope;
+  readonly collectionId: string;
+  readonly productIds: readonly string[];
 }
 
 /**
@@ -17,13 +25,9 @@ export interface VisibleProductsPort<TContext, TPage> {
   /** One page of the visible products among `productIds`, in the given order (a manual collection). */
   among(ctx: OperationContext, context: TContext, productIds: readonly string[], page: ProductPage): Promise<TPage>;
   /**
-   * One page of the visible products among `productIds`, newest first (an automatic collection); given more than
-   * {@link maxNewestIds} ids it reads the first `maxNewestIds` and logs a warning, never an error.
+   * One page of the visible products among `members.productIds`, newest first (an automatic collection); given more
+   * than {@link maxNewestIds} ids it reads the first `maxNewestIds` and logs a warning naming the collection, never an
+   * error.
    */
-  newestAmong(
-    ctx: OperationContext,
-    context: TContext,
-    productIds: readonly string[],
-    page: ProductPage,
-  ): Promise<TPage>;
+  newestAmong(ctx: OperationContext, context: TContext, members: NewestMembers, page: ProductPage): Promise<TPage>;
 }

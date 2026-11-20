@@ -99,7 +99,7 @@ describe('CollectionsReadService.listVisible (D2316)', () => {
     }
   });
 
-  it('a context on another channel than the store is refused', async () => {
+  it('a context without an active store is refused', async () => {
     // Arrange
     const collectionId = await manualWith('1');
     active = undefined;
@@ -170,5 +170,19 @@ describe('CollectionsReadService.productsOf (D2316, D2310)', () => {
     // Assert
     expect(page).toBeUndefined();
     expect(listed.items).toEqual([]);
+    expect(listed.totalItems).toBe(0);
+  });
+
+  it('listVisible drops a definition whose Vendure collection left the store from the page and its total', async () => {
+    // Arrange
+    const [kept, gone] = [await manualWith('1'), await manualWith('2')];
+    world.vendure.rows.delete(gone);
+
+    // Act
+    const listed = await reads().listVisible(ctx, PAGE);
+
+    // Assert
+    expect(listed.items.map((item) => item.id)).toEqual([kept]);
+    expect(listed.totalItems).toBe(1);
   });
 });

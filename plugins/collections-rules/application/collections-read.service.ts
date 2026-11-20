@@ -43,7 +43,9 @@ export class CollectionsReadService<TContext, TPage> {
   ) {}
 
   /**
-   * One page of the visible collections, ordered by position, then id (D2318).
+   * One page of the visible collections, ordered by position, then id (D2318). A definition whose Vendure collection
+   * has left the store channel (until the delete or reconcile catches up) is dropped from the page and from
+   * `totalItems`; rows of such definitions on other pages still count, so `totalItems` is an upper bound then.
    *
    * @throws {CollectionsNoActiveStoreError} for a context without an active store on its channel.
    * @throws {InvalidCollectionInputError} for a page outside the bounds.
@@ -62,7 +64,7 @@ export class CollectionsReadService<TContext, TPage> {
       const meta = metas.get(collectionId);
       return meta === undefined ? [] : [{ id: collectionId, ...meta, position }];
     });
-    return { items: visible, totalItems };
+    return { items: visible, totalItems: totalItems - (items.length - visible.length) };
   }
 
   /**
@@ -90,7 +92,7 @@ export class CollectionsReadService<TContext, TPage> {
     // One past the cap, so the catalog adapter sees and logs a collection it lists only partly (D2310).
     const newest = { skip: 0, take: this.products.maxNewestIds + 1 };
     const members = await this.ports.members.membersPage(ctx, scope, collectionId, newest);
-    return this.products.newestAmong(ctx, context, idsOf(members), page);
+    return this.products.newestAmong(ctx, context, { scope, collectionId, productIds: idsOf(members) }, page);
   }
 
   /** The store's visible definition of a collection whose Vendure collection is still in the store channel. */

@@ -203,11 +203,43 @@ describe('CollectionMembershipQueries on a live server (D2317)', () => {
     const found = await probe<Record<string, string[]>>(
       `of-products?ids=${[one, two, foreignProduct, 'abc'].join(',')}`,
     );
-    const isMember = await probe<boolean>(`is-member?id=${second}&product=${one}`);
+    const [isMember, isNotMember] = await Promise.all([
+      probe<boolean>(`is-member?id=${first}&product=${one}`),
+      probe<boolean>(`is-member?id=${second}&product=${one}`),
+    ]);
 
     // Assert
     expect(found).toEqual({ [one]: [first], [two]: [first, second] });
-    expect(isMember).toBe(false);
+    expect(isMember).toBe(true);
+    expect(isNotMember).toBe(false);
+  });
+
+  it("isMember answers false for B's ids, A's other store's and malformed ids", async () => {
+    // Arrange
+    const { a, b } = suite.fixtures;
+    await suite.kit.asOwner(b);
+    const foreignProduct = await product('Member foreign');
+    const foreign = rawId(await manualWith([foreignProduct]));
+    await suite.kit.asOwner(a, a.stores[1]);
+    const otherProduct = await product('Member other store');
+    const otherStore = rawId(await manualWith([otherProduct]));
+    await suite.kit.asOwner(a);
+    const own = await product('Member own');
+    const mine = rawId(await manualWith([own]));
+
+    // Act
+    const answers = await Promise.all(
+      [
+        [mine, own],
+        [foreign, foreignProduct],
+        [otherStore, otherProduct],
+        ['abc', own],
+        [mine, 'abc'],
+      ].map(([id, member]) => probe<boolean>(`is-member?id=${String(id)}&product=${String(member)}`)),
+    );
+
+    // Assert
+    expect(answers).toEqual([true, false, false, false, false]);
   });
 
   it("existingCollectionIds drops B's and deleted ids", async () => {

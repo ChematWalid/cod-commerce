@@ -28,7 +28,10 @@ its `infrastructure/`, its root `*.plugin.ts` file and its `tests/` (rule `colle
   that store's own channel is refused with `CollectionsNoActiveStoreError`;
 - `CollectionMembershipQueries` (D2317, for P2.S4, P2.S5 and P3.S2): `productIdsOf`, `collectionIdsOfProducts` (one
   query for N products), `isMember`, `existingCollectionIds`, each naming its `CollectionsStoreScope`, so a consumer
-  or job context works too;
+  or job context works too. These answers are merchant-level, not buyer-safe: they include hidden collections and
+  draft or hidden products, so anything a buyer sees goes through `CollectionsReadService`; the scope comes from
+  `tenantOf` or the active store, never from request input. `productIdsOf` is unbounded (an automatic collection can
+  hold tens of thousands of ids): an order path prefers `isMember` or `collectionIdsOfProducts`;
 - `asCollectionsOperationContext` to pass a Vendure `RequestContext` to both.
 
 Membership is **eventually consistent** with product edits: a tag, price or option change reaches automatic

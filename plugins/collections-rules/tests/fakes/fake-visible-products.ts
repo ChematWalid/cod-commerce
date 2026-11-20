@@ -1,5 +1,5 @@
 import type { OperationContext } from '../../domain/ports/operation-context';
-import type { ProductPage, VisibleProductsPort } from '../../domain/ports/visible-products.port';
+import type { NewestMembers, ProductPage, VisibleProductsPort } from '../../domain/ports/visible-products.port';
 
 /** What the fake answers: the page's product ids, how many were visible in all, and which read made it. */
 export interface FakeProductPage {
@@ -23,9 +23,9 @@ export class FakeVisibleProducts implements VisibleProductsPort<string, FakeProd
     return Promise.resolve(this.pageOf('among', context, productIds, page));
   }
 
-  newestAmong(_ctx: OperationContext, context: string, productIds: readonly string[], page: ProductPage) {
-    const newest = [...productIds].sort((left, right) => Number(BigInt(right) - BigInt(left)));
-    return Promise.resolve(this.pageOf('newest', context, newest.slice(0, this.maxNewestIds), page));
+  /** Keeps the given order, so the service's newest-first member order is what a test sees. */
+  newestAmong(_ctx: OperationContext, context: string, { productIds }: NewestMembers, page: ProductPage) {
+    return Promise.resolve(this.pageOf('newest', context, productIds.slice(0, this.maxNewestIds), page));
   }
 
   private pageOf(
