@@ -1,7 +1,12 @@
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OfferAdminService } from '../../application/offer-admin.service';
-import { InvalidOfferTransitionError, NoActiveStoreError, OfferNotFoundError } from '../../domain/errors';
+import {
+  InvalidOfferTransitionError,
+  NoActiveStoreError,
+  OfferNotDeletableError,
+  OfferNotFoundError,
+} from '../../domain/errors';
 import { aVariantIn, offersTestEnvironment, scopeOf, storeContext, twoPieceOfferOn } from './offers-kit';
 
 /** One snowflake worker id per offers integration file (D2433). */
@@ -33,12 +38,14 @@ describe('OfferAdminService on a real database (D2431, D2440)', () => {
     // Act
     const draft = await admin.createDraft(ctx, scope, twoPieceOfferOn(variantId));
     const edited = await admin.update(ctx, scope, draft.id, { title: 'Two or more' });
-    const published = await admin.setStatus(ctx, scope, draft.id, 'active');
+    const published = await admin.publish(ctx, scope, draft.id);
     const paused = await admin.setStatus(ctx, scope, draft.id, 'paused');
     const archived = await admin.setStatus(ctx, scope, draft.id, 'archived');
     const editError = await admin.update(ctx, scope, draft.id, { title: 'Again' }).catch((error: unknown) => error);
-    await admin.delete(ctx, scope, draft.id);
-    const readError = await admin.get(ctx, scope, draft.id).catch((error: unknown) => error);
+    const deleteError = await admin.delete(ctx, scope, draft.id).catch((error: unknown) => error);
+    const other = await admin.createDraft(ctx, scope, twoPieceOfferOn(variantId));
+    await admin.delete(ctx, scope, other.id);
+    const readError = await admin.get(ctx, scope, other.id).catch((error: unknown) => error);
 
     // Assert
     expect(draft).toMatchObject({ status: 'draft', version: 1 });
@@ -47,6 +54,7 @@ describe('OfferAdminService on a real database (D2431, D2440)', () => {
     expect(paused.pausedAt).not.toBeNull();
     expect(archived.archivedAt).not.toBeNull();
     expect(editError).toBeInstanceOf(InvalidOfferTransitionError);
+    expect(deleteError).toBeInstanceOf(OfferNotDeletableError);
     expect(readError).toBeInstanceOf(OfferNotFoundError);
   });
 
@@ -61,10 +69,10 @@ describe('OfferAdminService on a real database (D2431, D2440)', () => {
     const ctxB = await storeContext(server, b.stores[0]);
 
     // Act
-    const listedInA1 = await admin.list(ctxA1, scopeOf(a, a.stores[0]));
+    const { items: listedInA1 } = await admin.list(ctxA1, scopeOf(a, a.stores[0]));
     const readInA1 = await admin.get(ctxA1, scopeOf(a, a.stores[0]), offer.id);
-    const listedInA2 = await admin.list(ctxA2, scopeOf(a, a.stores[1]));
-    const listedInB = await admin.list(ctxB, scopeOf(b, b.stores[0]));
+    const { items: listedInA2 } = await admin.list(ctxA2, scopeOf(a, a.stores[1]));
+    const { items: listedInB } = await admin.list(ctxB, scopeOf(b, b.stores[0]));
     const readInA2 = admin.get(ctxA2, scopeOf(a, a.stores[1]), offer.id);
 
     // Assert
@@ -108,7 +116,7 @@ describe('OfferAdminService on a real database (D2431, D2440)', () => {
     for (const refusal of refusals) expect(refusal).toBeInstanceOf(NoActiveStoreError);
     for (const { scope, store, offer, variantId } of owned) {
       const ownCtx = await storeContext(server, store);
-      const onVariant = (await admin.list(ownCtx, scope)).filter((listed) =>
+      const onVariant = (await admin.list(ownCtx, scope)).items.filter((listed) =>
         listed.targets.some((target) => target.refId === variantId),
       );
       expect(onVariant.map((listed) => listed.id)).toEqual([offer.id]);

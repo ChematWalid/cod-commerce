@@ -14,6 +14,8 @@ import {
   newShippingQuoteRegistry,
 } from '../application/default-sources';
 import { type OfferAdminPorts, OfferAdminService } from '../application/offer-admin.service';
+import { type OfferCodesPorts, OfferCodesService } from '../application/offer-codes.service';
+import { type OfferLifecyclePorts, OfferLifecycleService } from '../application/offer-lifecycle.service';
 import { type OfferUsagePorts, OfferUsageService } from '../application/offer-usage.service';
 import { OrderAddonService } from '../application/order-addon.service';
 import { PricingService } from '../application/pricing.service';
@@ -38,7 +40,9 @@ import {
   ORDER_ADDON_TARGET_REGISTRAR,
   PRICING_LOGGER,
   PRICING_SNAPSHOT_SOURCE,
+  PRODUCT_VARIANTS,
   QUOTE_KEY_RING,
+  RANDOM_CODE_SOURCE,
   SHIPPING_QUOTE,
   SHIPPING_QUOTE_REGISTRAR,
   UNIT_PRICE_RESOLVER,
@@ -57,6 +61,7 @@ import type { PricingLogger } from '../domain/ports/pricing-logger.port';
 import type { PricingSnapshotSource } from '../domain/ports/pricing-snapshot-source.port';
 import type { VariantGate } from '../domain/ports/variant-gate.port';
 import type { SourceHolder } from '../application/single-source.registry';
+import { CryptoCodeSource } from './crypto-code-source';
 import { OutboxOfferEvents } from './offer-applied.outbox';
 import { SnowflakeOfferIdGenerator } from './snowflake-id.generator';
 import { SYSTEM_CLOCK } from './system-clock';
@@ -64,6 +69,7 @@ import { TenancyActiveStore } from './tenancy-active-store.adapter';
 import { TypeOrmOfferCodeRepository } from './typeorm-offer-code.repository';
 import { TypeOrmOfferRepository } from './typeorm-offer.repository';
 import { TypeOrmOfferUsageCounter } from './typeorm-offer-usage.counter';
+import { VendureProductVariants } from './vendure-product-variants';
 import { VendureVariantGate } from './variant-gate';
 import { VENDURE_PRICING_LOGGER } from './vendure-pricing.logger';
 
@@ -83,8 +89,15 @@ export const OFFERS_REGISTRARS = [
   ORDER_ADDON_TARGET_REGISTRAR,
 ] as const;
 
-/** The use cases other plugins, tests and the evidence script inject by class (D2408, D2431, D2447). */
-export const OFFERS_USE_CASES = [PricingService, OfferAdminService, OfferUsageService, OrderAddonService] as const;
+/** The use cases other plugins, tests and the evidence script inject by class (D2408, D2431, D2447, D2510). */
+export const OFFERS_USE_CASES = [
+  PricingService,
+  OfferAdminService,
+  OfferLifecycleService,
+  OfferCodesService,
+  OfferUsageService,
+  OrderAddonService,
+] as const;
 
 /** The seams (D2423, D2508): the variant gate, the unit-price chain and the five one-source registries. */
 const SEAM_PROVIDERS: Provider[] = [
@@ -103,9 +116,14 @@ const SEAM_PROVIDERS: Provider[] = [
   ...seam(ORDER_ADDON_TARGET, ORDER_ADDON_TARGET_REGISTRAR, newOrderAddonTargetRegistry),
 ];
 
-/** The adapters behind the offers' ports: repositories, ids, clock, logger, kinds, events and the active store. */
+/**
+ * The adapters behind the offers' ports: repositories, ids, clock, logger, kinds, events, the active store, the random
+ * source of generated codes and the product variants.
+ */
 const PORT_PROVIDERS: Provider[] = [
   { provide: OFFER_EVENTS, useClass: OutboxOfferEvents },
+  { provide: RANDOM_CODE_SOURCE, useClass: CryptoCodeSource },
+  { provide: PRODUCT_VARIANTS, useClass: VendureProductVariants },
   { provide: CLOCK, useValue: SYSTEM_CLOCK },
   { provide: PRICING_LOGGER, useValue: VENDURE_PRICING_LOGGER },
   { provide: OFFER_KIND_REGISTRY, useFactory: () => new OfferKindRegistry(BUILT_IN_OFFER_KINDS) },
@@ -168,13 +186,27 @@ const SNAPSHOT_PORT_TOKENS = {
   clock: CLOCK,
 } as const satisfies Record<keyof PricingSnapshotPorts, symbol>;
 
-const OFFER_ADMIN_PORT_TOKENS = {
+const OFFER_LIFECYCLE_PORT_TOKENS = {
   offers: OFFER_REPOSITORY,
-  codes: OFFER_CODE_REPOSITORY,
   ids: ID_GENERATOR,
   clock: CLOCK,
   kinds: OFFER_KIND_REGISTRY,
   stores: ACTIVE_STORE,
+} as const satisfies Record<keyof OfferLifecyclePorts, symbol>;
+
+const OFFER_CODES_PORT_TOKENS = {
+  offers: OFFER_REPOSITORY,
+  codes: OFFER_CODE_REPOSITORY,
+  ids: ID_GENERATOR,
+  clock: CLOCK,
+  stores: ACTIVE_STORE,
+  random: RANDOM_CODE_SOURCE,
+} as const satisfies Record<keyof OfferCodesPorts, symbol>;
+
+const OFFER_ADMIN_PORT_TOKENS = {
+  ...OFFER_LIFECYCLE_PORT_TOKENS,
+  ...OFFER_CODES_PORT_TOKENS,
+  variants: PRODUCT_VARIANTS,
 } as const satisfies Record<keyof OfferAdminPorts, symbol>;
 
 const OFFER_USAGE_PORT_TOKENS = {
@@ -184,8 +216,8 @@ const OFFER_USAGE_PORT_TOKENS = {
 
 /**
  * The use cases: the snapshot loader behind `PRICING_SNAPSHOT_SOURCE` (D2424; P3.S3 rebinds the token to a cache
- * wrapping the loader), the quote signer, the pricing service, the offer admin and usage (D2408, D2431, D2447) and
- * the post-order add-on (D2508).
+ * wrapping the loader), the quote signer, the pricing service, the offer admin, lifecycle, codes and usage (D2408,
+ * D2431, D2447, D2510, D2512) and the post-order add-on (D2508).
  */
 const USE_CASE_PROVIDERS: Provider[] = [
   fromPorts(PricingSnapshotLoader, SNAPSHOT_PORT_TOKENS),
@@ -206,6 +238,8 @@ const USE_CASE_PROVIDERS: Provider[] = [
     inject: [ACTIVE_STORE, PRICING_SNAPSHOT_SOURCE, QuoteSigner, OFFER_KIND_REGISTRY],
   },
   fromPorts(OfferAdminService, OFFER_ADMIN_PORT_TOKENS),
+  fromPorts(OfferLifecycleService, OFFER_LIFECYCLE_PORT_TOKENS),
+  fromPorts(OfferCodesService, OFFER_CODES_PORT_TOKENS),
   fromPorts(OfferUsageService, OFFER_USAGE_PORT_TOKENS),
   {
     provide: OrderAddonService,

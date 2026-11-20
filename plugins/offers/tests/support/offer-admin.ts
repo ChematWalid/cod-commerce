@@ -1,12 +1,17 @@
 import type { OfferInput } from '@cod/shared';
 import { OfferAdminService } from '../../application/offer-admin.service';
+import { OfferCodesService } from '../../application/offer-codes.service';
+import { OfferLifecycleService } from '../../application/offer-lifecycle.service';
 import { type OfferKindCalculator, OfferKindRegistry } from '../../domain/engine/kind-registry';
 import { BUILT_IN_OFFER_KINDS } from '../../domain/kinds';
 import type { OfferRecord } from '../../domain/offer-record';
 import type { ActiveStorePort } from '../../domain/ports/active-store.port';
 import type { OperationContext } from '../../domain/ports/operation-context.port';
 import type { StoreScope } from '../../domain/store-scope';
+import type { RandomCodeSource } from '../../domain/ports/random-code-source.port';
+import { FakeProductVariants } from '../fakes/fake-product-variants';
 import { InMemoryOfferRepository, InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
+import { ScriptedCodeSource } from '../fakes/scripted-code-source';
 import { T0 } from './builders';
 import { newId } from './offer-records';
 
@@ -40,31 +45,45 @@ export const EVERY_CHANNEL: ActiveStorePort = {
   isOwnChannelOf: () => Promise.resolve(true),
 };
 
-/** What a test may swap in the admin service: the channel guard, and the calculators its kinds come from. */
+/**
+ * What a test may swap in the admin service: the channel guard, the calculators its kinds come from and the random
+ * source generated codes are drawn from.
+ */
 export interface OfferAdminSetUp {
   readonly stores?: ActiveStorePort;
   readonly calculators?: readonly OfferKindCalculator<unknown>[];
+  readonly random?: RandomCodeSource;
 }
 
 /**
- * A service over empty in-memory tables whose clock reads `now()` of the returned setter; `race(write)` runs `write`
- * just before the service's next save. `stores` answers the channel guard (D2448); `calculators` default to the
- * built-in kinds.
+ * The admin, lifecycle and codes services over the same empty in-memory tables, whose clock reads `now()` of the
+ * returned setter; `race(write)` runs `write` just before the next save. `stores` answers the channel guard (D2448);
+ * `calculators` default to the built-in kinds; `variants` holds each store's product variants (D2513).
  */
-export function setUpOfferAdmin({ stores = EVERY_CHANNEL, calculators = BUILT_IN_OFFER_KINDS }: OfferAdminSetUp = {}) {
+export function setUpOfferAdmin({
+  stores = EVERY_CHANNEL,
+  calculators = BUILT_IN_OFFER_KINDS,
+  random = new ScriptedCodeSource(),
+}: OfferAdminSetUp = {}) {
   const tables = new InMemoryOfferTables();
   const offers = new RacingOfferRepository(tables);
+  const variants = new FakeProductVariants();
   let now = T0;
-  const service = new OfferAdminService({
+  const ports = {
     offers,
     codes: tables.codes,
     ids: { next: newId },
     clock: { now: () => now },
     kinds: new OfferKindRegistry(calculators),
     stores,
-  });
+    random,
+    variants,
+  };
+  const service = new OfferAdminService(ports);
+  const lifecycle = new OfferLifecycleService(ports);
+  const codeBook = new OfferCodesService(ports);
   const race = (write: () => Promise<unknown>) => (offers.queued = write);
-  return { service, tables, race, setNow: (instant: Date) => (now = instant) };
+  return { service, lifecycle, codeBook, tables, variants, race, setNow: (instant: Date) => (now = instant) };
 }
 
 /** A valid quantity offer input: 10 % off from two pieces of variant 11. */
@@ -73,4 +92,11 @@ export const QUANTITY_INPUT: OfferInput = {
   title: '  Buy two  ',
   config: { priceMode: 'percent', tiers: [{ quantity: 2, price: 10 }] },
   targets: [{ refType: 'variant', refId: '11' }],
+};
+
+/** A valid order discount: 300 DZD off the order, with no target (D2501: it needs none). */
+export const ORDER_DISCOUNT_INPUT: OfferInput = {
+  kind: 'order_discount',
+  title: 'Order discount',
+  config: { valueType: 'fixed', value: 300 },
 };

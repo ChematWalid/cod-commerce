@@ -14,10 +14,12 @@ export type {
   RepriceResult,
   UnpricedOrderChange,
 } from './application/order-change';
-export { OfferAdminService } from './application/offer-admin.service';
+export { OfferAdminService, type OfferSummaryPage } from './application/offer-admin.service';
+export { OfferLifecycleService } from './application/offer-lifecycle.service';
+export { OfferCodesService } from './application/offer-codes.service';
 export { OfferUsageService, type RecordedOrderUses } from './application/offer-usage.service';
 export { OrderAddonService, type OrderAddonInput } from './application/order-addon.service';
-export type { OfferRecord, StoredCode } from './domain/offer-record';
+export type { OfferRecord, OfferSummaryRecord, StoredCode } from './domain/offer-record';
 export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';
 export type { TokenAddon, TokenUse } from './domain/engine/priced-quote';
 export type { QuotePayload, QuoteRejectReason, QuoteVerification } from './domain/token/quote-token';

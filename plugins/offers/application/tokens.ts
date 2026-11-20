@@ -42,3 +42,9 @@ export const ORDER_ADDON_TARGET_REGISTRAR: unique symbol = Symbol('OffersOrderAd
 
 /** Where the offers publish their domain events (D2509): the platform outbox. */
 export const OFFER_EVENTS: unique symbol = Symbol('OffersOfferEvents');
+
+/** Where generated discount codes draw their random part (D2512). */
+export const RANDOM_CODE_SOURCE: unique symbol = Symbol('OffersRandomCodeSource');
+
+/** The variants of a store's product, read on the store's channel (D2513). */
+export const PRODUCT_VARIANTS: unique symbol = Symbol('OffersProductVariants');

@@ -95,7 +95,7 @@ export async function anActiveOfferIn(
   const admin = server.app.get(OfferAdminService);
   const ctx = await storeContext(server, store);
   const draft = await admin.createDraft(ctx, scope, input);
-  return admin.setStatus(ctx, scope, draft.id, 'active');
+  return admin.publish(ctx, scope, draft.id);
 }
 
 /** 10 % off from two pieces of `variantId` (the worked examples' tier). */

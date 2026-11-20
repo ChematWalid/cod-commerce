@@ -27,6 +27,7 @@ import { TypeOrmOfferRepository } from '../../infrastructure/typeorm-offer.repos
 import { TypeOrmOfferUsageCounter } from '../../infrastructure/typeorm-offer-usage.counter';
 import { OffersPlugin } from '../../offers.plugin';
 import { describeOfferCodeRepositoryContract } from '../contract/offer-code-repository.contract';
+import { describeOfferListContract } from '../contract/offer-list.contract';
 import { describeOfferRepositoryContract, type MakeOfferHarness } from '../contract/offer-repository.contract';
 import { describeOfferUsageCounterContract } from '../contract/offer-usage-counter.contract';
 import { anOfferRecord, newId, scopeA, scopeA2 } from '../support/offer-records';
@@ -91,6 +92,7 @@ const harness: MakeOfferHarness = async () => {
 
 describeOfferRepositoryContract('TypeOrmOfferRepository', harness);
 describeOfferCodeRepositoryContract('TypeOrmOfferCodeRepository', harness);
+describeOfferListContract('TypeOrmOfferRepository', harness);
 describeOfferUsageCounterContract('TypeOrmOfferUsageCounter', harness);
 
 async function indexDefinitions(table: string): Promise<string> {

@@ -65,7 +65,7 @@ export async function seedOffers(app: INestApplicationContext, business: Busines
   const scope = scopeOf(business, store);
   const publish = async (input: OfferInput): Promise<string> => {
     const draft = await admin.createDraft(ctx, scope, input);
-    return (await admin.setStatus(ctx, scope, draft.id, 'active')).id;
+    return (await admin.publish(ctx, scope, draft.id)).id;
   };
   const automaticOfferId = await publish(offerInputOf(variantId, 'automatic', AUTOMATIC_PERCENT));
   const codeOfferId = await publish(offerInputOf(variantId, 'codes', CODE_PERCENT));

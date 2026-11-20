@@ -1,4 +1,4 @@
-import type { StoreId } from '@cod/shared';
+import { OFFER_PAGE_MAX, type StoreId } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { NoActiveStoreError } from '../../domain/errors';
 import type { OfferCodeRepositoryPort, OfferRepositoryPort } from '../../domain/ports/offer-repository.port';
@@ -23,6 +23,9 @@ export type MakeOfferHarness = () => Promise<OfferHarness>;
 /** A scope whose store is missing, as an untyped caller that skipped the store check would build it (D2405). */
 const storeless = { businessId: scopeA.businessId, storeId: '' as StoreId } satisfies StoreScope;
 
+/** The first page of the largest size: every offer these cases create. */
+const FIRST_PAGE = { skip: 0, take: OFFER_PAGE_MAX };
+
 /** The behaviour every {@link OfferRepositoryPort} adapter must have, store and business isolation included. */
 export function describeOfferRepositoryContract(name: string, make: MakeOfferHarness): void {
   describe(`${name} (OfferRepositoryPort contract)`, () => {
@@ -37,7 +40,7 @@ export function describeOfferRepositoryContract(name: string, make: MakeOfferHar
       // Assert
       await expect(offers.findById(ctx, scopeA, offer.id)).resolves.toEqual(offer);
       await expect(offers.findById(ctx, scopeB, offer.id)).resolves.toBeUndefined();
-      await expect(offers.list(ctx, scopeB, {})).resolves.toEqual([]);
+      await expect(offers.list(ctx, scopeB, FIRST_PAGE)).resolves.toEqual({ items: [], totalItems: 0 });
     });
 
     it('finds an offer only in its store', async () => {
@@ -53,7 +56,7 @@ export function describeOfferRepositoryContract(name: string, make: MakeOfferHar
       // Assert
       expect(fromOtherStore).toBeUndefined();
       expect(activeInOtherStore).toEqual([]);
-      await expect(offers.list(ctx, scopeA2, {})).resolves.toEqual([]);
+      await expect(offers.list(ctx, scopeA2, FIRST_PAGE)).resolves.toEqual({ items: [], totalItems: 0 });
     });
 
     it('lists active offers of the store with their targets', async () => {
@@ -94,8 +97,10 @@ export function describeOfferRepositoryContract(name: string, make: MakeOfferHar
 
       // Assert
       expect(listed.map((offer) => offer.id)).toEqual([active.id]);
-      await expect(offers.list(ctx, scopeA, {})).resolves.toHaveLength(4);
-      await expect(offers.list(ctx, scopeA, { status: 'paused' })).resolves.toHaveLength(1);
+      await expect(offers.list(ctx, scopeA, FIRST_PAGE)).resolves.toMatchObject({ totalItems: 4 });
+      await expect(offers.list(ctx, scopeA, { ...FIRST_PAGE, status: 'paused' })).resolves.toMatchObject({
+        totalItems: 1,
+      });
     });
 
     it('stores config, eligibility and label as given', async () => {
@@ -128,7 +133,7 @@ export function describeOfferRepositoryContract(name: string, make: MakeOfferHar
       await offers.create(ctx, scopeA, newer);
 
       // Act
-      const listed = await offers.list(ctx, scopeA, {});
+      const { items: listed } = await offers.list(ctx, scopeA, FIRST_PAGE);
 
       // Assert
       expect(listed.map((offer) => offer.id)).toEqual([newer.id, older.id]);

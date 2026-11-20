@@ -1,4 +1,9 @@
-import type { TenantRepository, TenantRepositoryFactory, TenantTransaction } from '@cod/plugin-tenancy';
+import {
+  type TenantRepository,
+  type TenantRepositoryFactory,
+  type TenantTransaction,
+  tenantQuery,
+} from '@cod/plugin-tenancy';
 import { type Snowflake, toSnowflake } from '@cod/shared';
 import { In } from 'typeorm';
 import { normaliseCode } from '../domain/engine/codes';
@@ -57,6 +62,22 @@ export class TypeOrmOfferCodeRepository implements OfferCodeRepositoryPort {
       order: { createdAt: 'ASC', id: 'ASC' },
     });
     return rows.map(toStoredCode);
+  }
+
+  async countByOffer(
+    ctx: OperationContext,
+    scope: StoreScope,
+    offerIds: readonly Snowflake[],
+  ): Promise<ReadonlyMap<string, number>> {
+    if (offerIds.length === 0) return new Map();
+    const rows = await tenantQuery(requestScope(ctx, scope), this.codes, 'code')
+      .select('code.offerId', 'offerId')
+      .addSelect('COUNT(*)', 'count')
+      .andWhere('code.storeId = :storeId', { storeId: inStore(scope).storeId })
+      .andWhere('code.offerId IN (:...offerIds)', { offerIds: [...offerIds] })
+      .groupBy('code.offerId')
+      .getRawMany<{ offerId: string; count: string }>();
+    return new Map(rows.map(({ offerId, count }) => [offerId, Number(count)]));
   }
 
   async findByCodes(
