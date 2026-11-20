@@ -11,6 +11,7 @@ import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import { InvalidOfferConfigError, OfferConflictError, OfferNotFoundError } from '../domain/errors';
 import { assertEditable, withStatus } from '../domain/offer-lifecycle';
 import { draftOf, editedOffer, inputOf, type OfferRecord, type StoredCode } from '../domain/offer-record';
+import type { ActiveStorePort } from '../domain/ports/active-store.port';
 import type { Clock } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type {
@@ -20,6 +21,7 @@ import type {
 } from '../domain/ports/offer-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context.port';
 import type { StoreScope } from '../domain/store-scope';
+import { assertOnChannelOf } from './store-channel';
 
 /** Everything the admin use case reaches the outside through. */
 export interface OfferAdminPorts {
@@ -28,6 +30,8 @@ export interface OfferAdminPorts {
   readonly ids: IdGeneratorPort;
   readonly clock: Clock;
   readonly kinds: OfferKindRegistry;
+  /** Checks every call's `ctx` is on `scope`'s store channel (D2448). */
+  readonly stores: ActiveStorePort;
 }
 
 /** A validated offer command and its configuration parsed by the kind's schema (D2404). */
@@ -38,7 +42,9 @@ interface ParsedOffer {
 
 /**
  * The offer write path without HTTP (D2431): create a draft, edit, change status, delete, read and list the offers of
- * the caller's store, and add or remove their codes. Business and store always come from `scope`, never from input.
+ * the caller's store, and add or remove their codes. Business and store always come from `scope`, never from input,
+ * and every call is refused with `NoActiveStoreError` unless `ctx` is on `scope`'s store channel (D2448), as
+ * the trusted scoped pricing core is (D2408).
  */
 export class OfferAdminService {
   constructor(private readonly ports: OfferAdminPorts) {}
@@ -50,6 +56,7 @@ export class OfferAdminService {
    * @throws {@link UnknownOfferKindError} when no calculator handles the kind.
    */
   async createDraft(ctx: OperationContext, scope: StoreScope, input: OfferInput): Promise<OfferRecord> {
+    await assertOnChannelOf(this.ports.stores, ctx, scope);
     const { command, config } = this.parse(input);
     const offer = draftOf({ id: this.ports.ids.next(), command, config, now: this.ports.clock.now() });
     await this.ports.offers.create(ctx, scope, offer);
@@ -92,19 +99,22 @@ export class OfferAdminService {
 
   /** Deletes the offer with its targets and codes; @throws {@link OfferNotFoundError} when the store has none. */
   async delete(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<void> {
+    await assertOnChannelOf(this.ports.stores, ctx, scope);
     const deleted = await this.ports.offers.delete(ctx, scope, offerIdOf(rawId));
     if (!deleted) throw new OfferNotFoundError();
   }
 
   /** The offer of the store; @throws {@link OfferNotFoundError} for a foreign, unknown or malformed id. */
   async get(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<OfferRecord> {
+    await assertOnChannelOf(this.ports.stores, ctx, scope);
     const offer = await this.ports.offers.findById(ctx, scope, offerIdOf(rawId));
     if (offer === undefined) throw new OfferNotFoundError();
     return offer;
   }
 
   /** The store's offers matching `filter`, newest first. */
-  list(ctx: OperationContext, scope: StoreScope, filter: OfferListFilter = {}): Promise<readonly OfferRecord[]> {
+  async list(ctx: OperationContext, scope: StoreScope, filter: OfferListFilter = {}): Promise<readonly OfferRecord[]> {
+    await assertOnChannelOf(this.ports.stores, ctx, scope);
     return this.ports.offers.list(ctx, scope, filter);
   }
 

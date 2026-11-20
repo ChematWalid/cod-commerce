@@ -1,7 +1,7 @@
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OfferAdminService } from '../../application/offer-admin.service';
-import { InvalidOfferTransitionError, OfferNotFoundError } from '../../domain/errors';
+import { InvalidOfferTransitionError, NoActiveStoreError, OfferNotFoundError } from '../../domain/errors';
 import { aVariantIn, offersTestEnvironment, scopeOf, storeContext, twoPieceOfferOn } from './offers-kit';
 
 /** One snowflake worker id per offers integration file (D2433). */
@@ -73,5 +73,46 @@ describe('OfferAdminService on a real database (D2431, D2440)', () => {
     expect(listedInA2.map((listed) => listed.id)).not.toContain(offer.id);
     expect(listedInB.map((listed) => listed.id)).not.toContain(offer.id);
     await expect(readInA2).rejects.toBeInstanceOf(OfferNotFoundError);
+  });
+
+  it("refuses createDraft, update and addCodes on a ctx of A1's channel for store A2 or business B (D2448)", async () => {
+    // Arrange
+    const { a, b } = fixtures;
+    const admin = server.app.get(OfferAdminService);
+    const ctxA1 = await storeContext(server, a.stores[0]);
+    const owned = await Promise.all(
+      [
+        { scope: scopeOf(a, a.stores[1]), store: a.stores[1] },
+        { scope: scopeOf(b, b.stores[0]), store: b.stores[0] },
+      ].map(async ({ scope, store }) => {
+        const { variantId } = await aVariantIn(server, store);
+        const offer = await admin.createDraft(await storeContext(server, store), scope, {
+          ...twoPieceOfferOn(variantId),
+          method: 'codes',
+        });
+        return { scope, store, offer, variantId };
+      }),
+    );
+
+    // Act
+    const refusals: unknown[] = [];
+    for (const { scope, offer, variantId } of owned) {
+      const refusedOf = (error: unknown) => error;
+      refusals.push(await admin.createDraft(ctxA1, scope, twoPieceOfferOn(variantId)).catch(refusedOf));
+      refusals.push(await admin.update(ctxA1, scope, offer.id, { title: 'Taken over' }).catch(refusedOf));
+      refusals.push(await admin.addCodes(ctxA1, scope, offer.id, [{ code: 'TAKEOVER10' }]).catch(refusedOf));
+    }
+
+    // Assert
+    expect(refusals).toHaveLength(6);
+    for (const refusal of refusals) expect(refusal).toBeInstanceOf(NoActiveStoreError);
+    for (const { scope, store, offer, variantId } of owned) {
+      const ownCtx = await storeContext(server, store);
+      const onVariant = (await admin.list(ownCtx, scope)).filter((listed) =>
+        listed.targets.some((target) => target.refId === variantId),
+      );
+      expect(onVariant.map((listed) => listed.id)).toEqual([offer.id]);
+      expect(onVariant[0]).toMatchObject({ title: offer.title, version: 1 });
+    }
   });
 });

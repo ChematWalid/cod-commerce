@@ -162,10 +162,12 @@ const OFFER_ADMIN_PORT_TOKENS = {
   ids: ID_GENERATOR,
   clock: CLOCK,
   kinds: OFFER_KIND_REGISTRY,
+  stores: ACTIVE_STORE,
 } as const satisfies Record<keyof OfferAdminPorts, symbol>;
 
 const OFFER_USAGE_PORT_TOKENS = {
   counter: OFFER_USAGE_COUNTER,
+  stores: ACTIVE_STORE,
 } as const satisfies Record<keyof OfferUsagePorts, symbol>;
 
 /**

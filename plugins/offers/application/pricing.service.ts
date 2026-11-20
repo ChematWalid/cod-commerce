@@ -15,6 +15,7 @@ import type { QuoteVerification } from '../domain/token/quote-token';
 import type { OrderFields, RepriceInput, RepriceResult } from './order-change';
 import { parseOrderUsage, parseStoredTotal } from './order-usage.schema';
 import type { QuoteSigner, TokenCart } from './quote-signer';
+import { assertOnChannelOf } from './store-channel';
 
 /** What the pricing use case is built from. */
 export interface PricingServiceDeps {
@@ -211,7 +212,7 @@ export class PricingService {
     return scope;
   }
 
-  private async assertChannel(ctx: OperationContext, scope: StoreScope): Promise<void> {
-    if (!(await this.deps.stores.isChannelOf(ctx, scope))) throw new NoActiveStoreError();
+  private assertChannel(ctx: OperationContext, scope: StoreScope): Promise<void> {
+    return assertOnChannelOf(this.deps.stores, ctx, scope);
   }
 }

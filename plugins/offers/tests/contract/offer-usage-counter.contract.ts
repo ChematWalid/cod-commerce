@@ -98,5 +98,24 @@ export function describeOfferUsageCounterContract(name: string, make: MakeOfferH
       expect(results).toEqual([false, false, false, false]);
       await expect(counts()).resolves.toEqual({ offer: 0, code: 0 });
     });
+
+    it("never gives back a use from another store's or another business's scope", async () => {
+      // Arrange
+      const { usage, ctx, a, counts } = await withLimitedOffer(make, null);
+      await usage.recordOfferUse(ctx, scopeA, a.id);
+      await usage.recordCodeUse(ctx, scopeA, 'INFLU10');
+
+      // Act
+      const results = [
+        await usage.releaseOfferUse(ctx, scopeA2, a.id),
+        await usage.releaseOfferUse(ctx, scopeB, a.id),
+        await usage.releaseCodeUse(ctx, scopeA2, 'INFLU10'),
+        await usage.releaseCodeUse(ctx, scopeB, 'INFLU10'),
+      ];
+
+      // Assert
+      expect(results).toEqual([false, false, false, false]);
+      await expect(counts()).resolves.toEqual({ offer: 1, code: 1 });
+    });
   });
 }

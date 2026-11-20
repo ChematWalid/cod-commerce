@@ -3,11 +3,12 @@ import { OfferUsageService } from '../../application/offer-usage.service';
 import { orderUsageOf } from '../../domain/engine/order-usage';
 import { InvalidQuoteRequestError } from '../../domain/errors';
 import type { OrderUsage } from '../../domain/engine/order-usage';
-import { asOperationContext } from '../../domain/ports/operation-context.port';
+import { FakeActiveStores } from '../fakes/fake-active-stores';
 import { InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
 import { aCode, anActiveOffer, scopeA, scopeB } from '../support/offer-records';
 
-const ctx = asOperationContext({});
+const stores = new FakeActiveStores();
+const ctx = stores.contextOf(scopeA);
 
 /** A store with a code offer (total limit `limit`) and its code INFLU10 (limit `limit`), and the service over it. */
 function setUpUsage(limit: number | null = 1) {
@@ -15,7 +16,7 @@ function setUpUsage(limit: number | null = 1) {
   const offer = anActiveOffer({ method: 'codes', totalUsageLimit: limit });
   tables.offerRows.push({ ...scopeA, value: offer });
   tables.codeRows.push({ ...scopeA, value: aCode(offer.id, 'INFLU10', { usageLimit: limit }) });
-  const service = new OfferUsageService({ counter: tables.usage });
+  const service = new OfferUsageService({ counter: tables.usage, stores });
   const counts = () => ({ offer: tables.offerRows[0]?.value.usageCount, code: tables.codeRows[0]?.value.usageCount });
   const uses = orderUsageOf([{ offerId: offer.id, code: 'INFLU10' }]);
   return { service, counts, uses };
@@ -64,7 +65,7 @@ describe('OfferUsageService (D2447)', () => {
     const { service, counts, uses } = setUpUsage(null);
 
     // Act
-    const recorded = await service.recordOrderUses(ctx, scopeB, uses);
+    const recorded = await service.recordOrderUses(stores.contextOf(scopeB), scopeB, uses);
 
     // Assert
     expect(recorded).toEqual({ refusedOfferIds: uses.offerIds, refusedCodes: ['INFLU10'] });

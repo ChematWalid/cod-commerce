@@ -3,6 +3,7 @@ import { OfferAdminService } from '../../application/offer-admin.service';
 import { OfferKindRegistry } from '../../domain/engine/kind-registry';
 import { BUILT_IN_OFFER_KINDS } from '../../domain/kinds';
 import type { OfferRecord } from '../../domain/offer-record';
+import type { ActiveStorePort } from '../../domain/ports/active-store.port';
 import type { OperationContext } from '../../domain/ports/operation-context.port';
 import type { StoreScope } from '../../domain/store-scope';
 import { InMemoryOfferRepository, InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
@@ -30,10 +31,19 @@ class RacingOfferRepository extends InMemoryOfferRepository {
 }
 
 /**
- * A service over empty in-memory tables whose clock reads `now()` of the returned setter; `race(write)` runs `write`
- * just before the service's next save.
+ * A caller already on the channel of whatever store it names: the tests of repository scoping use it, and the channel
+ * guard (D2448) has its own tests over `FakeActiveStores`.
  */
-export function setUpOfferAdmin() {
+export const EVERY_CHANNEL: ActiveStorePort = {
+  activeStoreOf: () => Promise.resolve(undefined),
+  isChannelOf: () => Promise.resolve(true),
+};
+
+/**
+ * A service over empty in-memory tables whose clock reads `now()` of the returned setter; `race(write)` runs `write`
+ * just before the service's next save. `stores` answers the channel guard (D2448).
+ */
+export function setUpOfferAdmin({ stores = EVERY_CHANNEL }: { stores?: ActiveStorePort } = {}) {
   const tables = new InMemoryOfferTables();
   const offers = new RacingOfferRepository(tables);
   let now = T0;
@@ -43,6 +53,7 @@ export function setUpOfferAdmin() {
     ids: { next: newId },
     clock: { now: () => now },
     kinds: new OfferKindRegistry(BUILT_IN_OFFER_KINDS),
+    stores,
   });
   const race = (write: () => Promise<unknown>) => (offers.queued = write);
   return { service, tables, race, setNow: (instant: Date) => (now = instant) };
