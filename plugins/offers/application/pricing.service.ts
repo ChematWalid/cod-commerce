@@ -106,6 +106,7 @@ function orderFieldsOf({ priced, buyerOrdersBefore }: EvaluatedCart): OrderField
       originalPrice,
       offerIds,
     })),
+    addons: [...priced.tokenAddons],
     quoteDiscounts: JSON.stringify(priced.tokenDiscounts),
     quotedShipping: priced.delivery.price,
     appliedOffers: [...priced.tokenUses],

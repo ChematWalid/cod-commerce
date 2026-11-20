@@ -168,4 +168,33 @@ describe('PricingService.verifyQuote: add-ons', () => {
     // Assert
     expect(verdicts).toEqual(carts.map(() => ({ ok: false, reason: 'cart_mismatch' })));
   });
+
+  it('stores the add-on lines of a repriced order so its fields add up to the total', async () => {
+    // Arrange
+    const { service, stores, seed } = setUpPricing();
+    const offer = anAddonRecord();
+    const orderDiscount = anActiveOffer({ kind: 'order_discount', config: { valueType: 'fixed', value: 400 } });
+    seed(scopeA, offer, orderDiscount);
+    const input = { current: aRequest(1), next: aRequestWithAddon(offer, 2), storedTotal: 4_500 };
+
+    // Act
+    const result = await service.repriceOrder(stores.contextOf(scopeA), {
+      ...input,
+      orderUsage: { offerIds: [], codes: [] },
+    });
+
+    // Assert
+    if (!result.available) throw new Error('expected a priced order change');
+    const { lines, addons, quotedShipping, quoteDiscounts } = result.orderFields;
+    expect(addons).toEqual([
+      { offerId: offer.id, variantId: '12', qty: 2, unitPrice: 1_500, parentVariantId: null },
+    ]);
+    expect(lines.map(({ variantId }) => variantId)).toEqual(['11']);
+    // One piece of each cart line: the order line, not the order fields, holds the quantity.
+    const lineSum = lines.reduce((sum, line) => sum + line.quotedUnitPrice, 0);
+    const addonSum = addons.reduce((sum, addon) => sum + addon.unitPrice * addon.qty, 0);
+    const discounts = (JSON.parse(quoteDiscounts) as { amount: number }[]).reduce((sum, d) => sum + d.amount, 0);
+    expect(lineSum + addonSum + quotedShipping - discounts).toBe(result.after.total);
+    expect(result.delta).toBe(3_000);
+  });
 });
