@@ -1,3 +1,4 @@
+import { type StoreId, type TenantScope, toStoreId } from '@cod/shared';
 import type { CollectionDefinition } from '../../domain/collection';
 import { CollectionRowConflictError } from '../../domain/collection-row-conflict.error';
 import { CollectionNotFoundError } from '../../domain/errors';
@@ -143,6 +144,15 @@ class InMemoryDefinitions implements CollectionDefinitionRepositoryPort {
 
   countInStore(_ctx: OperationContext, scope: StoreScope): Promise<number> {
     return Promise.resolve(this.own(scope).length);
+  }
+
+  automaticStores(_ctx: OperationContext, scope: TenantScope, belowVersion?: number): Promise<readonly StoreId[]> {
+    const stores = this.tables.definitionRows
+      .filter((row) => row.businessId === scope.businessId && row.definition.mode === 'automatic')
+      .filter((row) => belowVersion === undefined || row.definition.matchVersion < belowVersion)
+      .map((row) => row.definition.storeId);
+    const ascending = [...new Set(stores)].sort((left, right) => (BigInt(left) < BigInt(right) ? -1 : 1));
+    return Promise.resolve(ascending.map(toStoreId));
   }
 
   private indexOf(scope: StoreScope, collectionId: string): number {

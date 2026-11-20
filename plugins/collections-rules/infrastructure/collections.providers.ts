@@ -11,10 +11,14 @@ import { ProductCollectionsService } from '../application/product-collections.se
 import { ProductLinksService } from '../application/product-links.service';
 import { ProductSearchService } from '../application/product-search.service';
 import { RecomputeMembershipService } from '../application/recompute-membership.service';
+import { ReconcileSweepService } from '../application/reconcile-sweep.service';
+import { RecomputeStoreService } from '../application/recompute-store.service';
 import { RuleOptionsService } from '../application/rule-options.service';
+import { SaveRecomputeService, type SaveTimeRecompute } from '../application/save-recompute.service';
 import { SetCollectionProductsService } from '../application/set-collection-products.service';
 import { SlugAvailabilityService } from '../application/slug-availability.service';
 import {
+  BUSINESS_DIRECTORY,
   COLLECTION_EVENTS,
   COLLECTION_PORTS,
   DEFINITION_REPOSITORY,
@@ -23,19 +27,26 @@ import {
   MEMBER_REPOSITORY,
   PRODUCT_FACTS,
   STORE_LOCK,
+  STORE_RECONCILE_QUEUE,
   TRANSACTION,
   VENDURE_COLLECTIONS,
 } from '../application/tokens';
 import { UpdateCollectionService } from '../application/update-collection.service';
+import type { BusinessDirectoryPort } from '../domain/ports/business-directory.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
+import type { StoreReconcileQueuePort } from '../domain/ports/store-reconcile.port';
 import { CatalogProductFactsAdapter } from './catalog-product-facts.adapter';
 import { OutboxCollectionEvents } from './collection-events';
 import { CollectionsMembershipSource } from './collections-membership.source';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
+import { CollectionsMembershipConsumer } from './membership.consumer';
 import { PgCollectionsLock } from './pg-collections-lock';
+import { MatchVersionCheck } from './reconcile.task';
+import { PlatformStoreReconcileQueue, RecomputeStoreJob } from './recompute-store.job';
 import { SnowflakeCollectionsIdGenerator } from './snowflake-id.generator';
 import { StockFiltersOff } from './stock-filters-off';
 import { StoreChannelContexts } from './store-channel-context';
+import { TenancyBusinessDirectoryAdapter } from './tenancy-business-directory.adapter';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmCollectionDefinitionRepository } from './typeorm-collection-definition.repository';
 import { TypeOrmCollectionMemberRepository } from './typeorm-collection-member.repository';
@@ -64,13 +75,39 @@ const useCase = (type: new (ports: CollectionPorts) => object): Provider => ({
 });
 
 /** A use case that saves a collection and recomputes its members through the one registered recompute. */
-const savingUseCase = (
-  type: new (ports: CollectionPorts, recompute: RecomputeMembershipService) => object,
-): Provider => ({
+const savingUseCase = (type: new (ports: CollectionPorts, recompute: SaveTimeRecompute) => object): Provider => ({
   provide: type,
-  useFactory: (ports: CollectionPorts, recompute: RecomputeMembershipService) => new type(ports, recompute),
-  inject: [COLLECTION_PORTS, RecomputeMembershipService],
+  useFactory: (ports: CollectionPorts, recompute: SaveTimeRecompute) => new type(ports, recompute),
+  inject: [COLLECTION_PORTS, SaveRecomputeService],
 });
+
+/** The reconcile side (D2336): the store job, the save-time cap and the sweeps. */
+const RECONCILE_PROVIDERS: Provider[] = [
+  { provide: BUSINESS_DIRECTORY, useClass: TenancyBusinessDirectoryAdapter },
+  {
+    provide: RecomputeStoreService,
+    useFactory: (ports: CollectionPorts, recompute: RecomputeMembershipService) =>
+      new RecomputeStoreService(ports, recompute),
+    inject: [COLLECTION_PORTS, RecomputeMembershipService],
+  },
+  PlatformStoreReconcileQueue,
+  { provide: STORE_RECONCILE_QUEUE, useExisting: PlatformStoreReconcileQueue },
+  RecomputeStoreJob,
+  {
+    provide: SaveRecomputeService,
+    useFactory: (recompute: RecomputeMembershipService, ports: CollectionPorts, queue: StoreReconcileQueuePort) =>
+      new SaveRecomputeService(recompute, ports.facts, queue),
+    inject: [RecomputeMembershipService, COLLECTION_PORTS, STORE_RECONCILE_QUEUE],
+  },
+  {
+    provide: ReconcileSweepService,
+    useFactory: (ports: CollectionPorts, directory: BusinessDirectoryPort, queue: StoreReconcileQueuePort) =>
+      new ReconcileSweepService(ports.definitions, directory, queue),
+    inject: [COLLECTION_PORTS, BUSINESS_DIRECTORY, STORE_RECONCILE_QUEUE],
+  },
+  CollectionsMembershipConsumer,
+  MatchVersionCheck,
+];
 
 /** Wires the persistence, the store lock, Vendure, the outbox and the catalog facts to their ports (D2300). */
 export const COLLECTIONS_PROVIDERS: Provider[] = [
@@ -105,7 +142,7 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
       Object.fromEntries(PORT_ENTRIES.map(([key], index) => [key, adapters[index]])) as unknown as CollectionPorts,
     inject: PORT_ENTRIES.map(([, token]) => token),
   },
-  // Saves recompute through the registered service, so a later wrapper of it (Task 8's large-store path) covers them.
+  // Saves recompute through the save-time service: over the sync cap it queues the store reconcile (D2312).
   savingUseCase(CreateCollectionService),
   savingUseCase(UpdateCollectionService),
   useCase(DeleteCollectionService),
@@ -125,4 +162,5 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   useCase(RuleOptionsService),
   useCase(ProductSearchService),
   CollectionsMembershipSource,
+  ...RECONCILE_PROVIDERS,
 ];

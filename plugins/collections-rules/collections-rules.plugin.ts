@@ -19,6 +19,7 @@ import { RulesResolver } from './api/rules.resolver';
 import { collectionsRulesAdminApiSchema } from './api/schema';
 import { COLLECTIONS_PROVIDERS } from './infrastructure/collections.providers';
 import { COLLECTIONS_ENTITIES } from './infrastructure/collections-entities';
+import { COLLECTIONS_RECONCILE_TASK_ID, collectionsReconcileTask } from './infrastructure/reconcile.task';
 
 /** Every REST controller; literal routes are declared before `:id` (D2315), so the rule builder's come first. */
 export const COLLECTIONS_REST_CONTROLLERS = [RulesController, CollectionsController];
@@ -40,6 +41,13 @@ export const COLLECTIONS_REST_CONTROLLERS = [RulesController, CollectionsControl
     CatalogPlugin,
   ],
   entities: COLLECTIONS_ENTITIES,
+  configuration: (config) => {
+    config.schedulerOptions.tasks = [
+      ...config.schedulerOptions.tasks.filter((task) => task.id !== COLLECTIONS_RECONCILE_TASK_ID),
+      collectionsReconcileTask,
+    ];
+    return config;
+  },
   providers: [
     ...COLLECTIONS_PROVIDERS,
     CollectionReadUseCases,

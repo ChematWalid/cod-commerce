@@ -1,6 +1,14 @@
 import type { TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
-import { COLLECTION_MODES, type CollectionMode, type CollectionRule, collectionRuleSchema } from '@cod/shared';
-import { In } from 'typeorm';
+import {
+  COLLECTION_MODES,
+  type CollectionMode,
+  type CollectionRule,
+  collectionRuleSchema,
+  type StoreId,
+  type TenantScope,
+  toStoreId,
+} from '@cod/shared';
+import { In, LessThan } from 'typeorm';
 import type { CollectionDefinition } from '../domain/collection';
 import { CorruptCollectionDefinitionError } from '../domain/corrupt-collection-definition.error';
 import { CollectionRowConflictError } from '../domain/collection-row-conflict.error';
@@ -15,6 +23,9 @@ import type { StoreScope } from '../domain/store-scope';
 import { CollectionDefinitionEntity } from './collection-definition.entity';
 import { onUniqueViolation } from './constraint-violation';
 import { requestScope } from './request-scope';
+
+/** Ascending store ids (snowflakes, compared as numbers). */
+const byStoreId = (left: string, right: string): number => (BigInt(left) < BigInt(right) ? -1 : 1);
 
 /** The order of every list of definitions (D2318). */
 const LIST_ORDER = { position: 'ASC', id: 'ASC' } as const;
@@ -146,5 +157,15 @@ export class TypeOrmCollectionDefinitionRepository implements CollectionDefiniti
 
   countInStore(ctx: OperationContext, scope: StoreScope): Promise<number> {
     return this.rows.count(requestScope(ctx, scope), { storeId: scope.storeId });
+  }
+
+  async automaticStores(ctx: OperationContext, scope: TenantScope, belowVersion?: number): Promise<readonly StoreId[]> {
+    const automatic: CollectionMode = 'automatic';
+    const rows = await this.rows.find(requestScope(ctx, scope), {
+      where: { mode: automatic, ...(belowVersion === undefined ? {} : { matchVersion: LessThan(belowVersion) }) },
+      select: { storeId: true },
+    });
+    const stores = new Set(rows.flatMap((row) => (row.storeId === null ? [] : [row.storeId])));
+    return [...stores].sort(byStoreId).map(toStoreId);
   }
 }

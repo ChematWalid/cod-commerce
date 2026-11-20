@@ -9,6 +9,7 @@ import { checkedImageId, cleanDescription, refuseTakenSlug } from './collection-
 import type { CollectionPorts } from './collection-ports';
 import { type StoreCollectionView, viewOf } from './collection-view';
 import { RecomputeMembershipService } from './recompute-membership.service';
+import type { SaveTimeRecompute } from './save-recompute.service';
 
 /** What an update reads before it writes: the store's definition and its Vendure texts. */
 interface Current {
@@ -45,7 +46,7 @@ function ruleAfter(
 export class UpdateCollectionService {
   constructor(
     private readonly ports: CollectionPorts,
-    private readonly recompute = new RecomputeMembershipService(ports),
+    private readonly recompute: SaveTimeRecompute = new RecomputeMembershipService(ports),
   ) {}
 
   async update(

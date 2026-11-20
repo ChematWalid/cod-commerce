@@ -64,6 +64,17 @@ describe('queue registry', () => {
     expect(activeQueuesFor('bulk')).toContain('catalog-effects');
   });
 
+  it('puts catalog-reconcile, the store reconcile of collections, in the bulk pool (D2336)', () => {
+    expect(QUEUES['catalog-reconcile']).toEqual({
+      pool: 'bulk',
+      concurrency: 1,
+      attempts: 5,
+      backoff: { type: 'exponential', delayMs: 30_000 },
+    });
+    expect(activeQueuesFor('bulk')).toContain('catalog-reconcile');
+    expect(durableJobId(DURABLE_JOB_KINDS.collectionsReconcile, '1001', 'v1')).toBe('crs-1001-v1');
+  });
+
   it('rejects names outside the registry', () => {
     expect(isQueueName('nope')).toBe(false);
     expect(isQueueName('toString')).toBe(false);

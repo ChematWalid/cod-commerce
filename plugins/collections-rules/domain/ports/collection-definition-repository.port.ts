@@ -1,3 +1,4 @@
+import type { StoreId, TenantScope } from '@cod/shared';
 import type { CollectionDefinition } from '../collection';
 import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context';
@@ -42,4 +43,9 @@ export interface CollectionDefinitionRepositoryPort {
   /** Deletes the store's definition of a collection with its members (FK cascade, D2337); false when none. */
   delete(ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<boolean>;
   countInStore(ctx: OperationContext, scope: StoreScope): Promise<number>;
+  /**
+   * The stores of the scope's business that hold an automatic collection, ascending, each once (D2336); with
+   * `belowVersion`, only those holding one whose members were built with an older `matchVersion`.
+   */
+  automaticStores(ctx: OperationContext, scope: TenantScope, belowVersion?: number): Promise<readonly StoreId[]>;
 }

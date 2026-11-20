@@ -10,3 +10,5 @@ export const COLLECTION_EVENTS = Symbol('CollectionsEvents');
 export const DESCRIPTION_SANITIZER = Symbol('CollectionsDescriptionSanitizer');
 /** The bundle of `CollectionPorts` every collection use case is built from. */
 export const COLLECTION_PORTS = Symbol('CollectionsPorts');
+export const STORE_RECONCILE_QUEUE = Symbol('CollectionsStoreReconcileQueue');
+export const BUSINESS_DIRECTORY = Symbol('CollectionsBusinessDirectory');

@@ -40,4 +40,9 @@ export class StoreChannelContexts {
     const onChannel = await this.contexts.create({ apiType: 'admin', channelOrToken: channel });
     return shareTransaction(ctx, onChannel);
   }
+
+  /** A context on the channel of `storeId` for a job, which has no context of its own; no transaction yet. */
+  async forJob(businessId: BusinessId, storeId: StoreId): Promise<RequestContext | undefined> {
+    return this.forStore(await this.contexts.create({ apiType: 'admin' }), businessId, storeId);
+  }
 }

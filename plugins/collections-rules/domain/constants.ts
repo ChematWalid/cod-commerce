@@ -12,3 +12,5 @@ export const STORE_WALK_PAGE_SIZE = 100;
 
 /** The retry delay a rate-limited refusal names when the limiter gave none: the soonest a caller may come back. */
 export const MIN_RETRY_AFTER_SECONDS = 1;
+/** Businesses read per page by the reconcile sweeps (D2336): tenancy's directory answers at most 500 at once. */
+export const RECONCILE_BUSINESS_PAGE_SIZE = 500;

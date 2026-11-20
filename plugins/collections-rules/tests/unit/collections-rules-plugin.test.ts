@@ -6,7 +6,7 @@ import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { COLLECTIONS_ERROR_CODES, DomainError } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { CreateCollectionService } from '../../application/create-collection.service';
-import { RecomputeMembershipService } from '../../application/recompute-membership.service';
+import { SaveRecomputeService } from '../../application/save-recompute.service';
 import { UpdateCollectionService } from '../../application/update-collection.service';
 import { COLLECTIONS_PROVIDERS } from '../../infrastructure/collections.providers';
 import * as errors from '../../domain/errors';
@@ -58,7 +58,7 @@ describe('collections domain errors', () => {
   });
 
   it.each([CreateCollectionService, UpdateCollectionService])(
-    '%o saves through the one registered recompute, so what Task 8 adds to it applies to saves too',
+    '%o saves through the save-time recompute, which queues the store reconcile over the sync cap (D2312)',
     (service) => {
       // Act
       const provider = COLLECTIONS_PROVIDERS.find(
@@ -66,7 +66,7 @@ describe('collections domain errors', () => {
       );
 
       // Assert
-      expect(provider).toMatchObject({ inject: expect.arrayContaining([RecomputeMembershipService]) as unknown });
+      expect(provider).toMatchObject({ inject: expect.arrayContaining([SaveRecomputeService]) as unknown });
     },
   );
 });

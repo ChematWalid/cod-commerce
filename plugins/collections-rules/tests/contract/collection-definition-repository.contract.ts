@@ -156,5 +156,36 @@ export function describeCollectionDefinitionRepositoryContract(name: string, mak
       expect(await repos.definitions.countInStore(ctx, scopeA)).toBe(1);
       expect(await repos.definitions.findByCollectionId(ctx, scopeA, removed.collectionId)).toBeUndefined();
     });
+
+    it("names the business's stores with automatic collections, or those built below a version (D2336)", async () => {
+      // Arrange
+      const { repos, ctx } = await make();
+      await repos.definitions.insert(ctx, scopeA, automaticOf(scopeA, { matchVersion: 2 }));
+      await repos.definitions.insert(ctx, scopeA2, automaticOf(scopeA2, { matchVersion: 1 }));
+      await repos.definitions.insert(ctx, scopeA2, automaticOf(scopeA2, { matchVersion: 2 }));
+      await repos.definitions.insert(ctx, scopeA2, definitionOf(scopeA2, { matchVersion: 1 }));
+      await repos.definitions.insert(ctx, scopeB, automaticOf(scopeB, { matchVersion: 1 }));
+      const business = { businessId: scopeA.businessId };
+
+      // Act
+      const every = await repos.definitions.automaticStores(ctx, business);
+      const older = await repos.definitions.automaticStores(ctx, business, 2);
+
+      // Assert
+      expect(every).toEqual([scopeA.storeId, scopeA2.storeId]);
+      expect(older).toEqual([scopeA2.storeId]);
+    });
+
+    it('names no store when the business has only manual collections', async () => {
+      // Arrange
+      const { repos, ctx } = await make();
+      await repos.definitions.insert(ctx, scopeA, definitionOf(scopeA, { matchVersion: 1 }));
+
+      // Act
+      const stores = await repos.definitions.automaticStores(ctx, { businessId: scopeA.businessId }, 2);
+
+      // Assert
+      expect(stores).toEqual([]);
+    });
   });
 }

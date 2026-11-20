@@ -49,3 +49,21 @@ export async function storeMatches(
   } while (after !== null);
   return matched;
 }
+
+/** True when the store holds more than `limit` products; walks id pages only until it knows (D2312). */
+export async function storeHoldsMoreThan(
+  facts: ProductFactsPort,
+  ctx: OperationContext,
+  scope: StoreScope,
+  limit: number,
+): Promise<boolean> {
+  let counted = 0;
+  let after: string | null = null;
+  do {
+    const page = await facts.pageIds(ctx, scope, { after, take: STORE_WALK_PAGE_SIZE });
+    counted += page.ids.length;
+    if (counted > limit) return true;
+    after = page.next;
+  } while (after !== null);
+  return false;
+}
