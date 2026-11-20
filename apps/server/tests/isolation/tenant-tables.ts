@@ -49,15 +49,38 @@ export const OFFERS_TABLE_COUNTS = {
   offers_code: BY_BUSINESS('offers_code'),
 } as const;
 
-/** Every counted table: P1's, the catalog's and the offers'. */
-const ALL_TABLE_COUNTS = { ...TENANT_TABLE_COUNTS, ...CATALOG_TABLE_COUNTS, ...OFFERS_TABLE_COUNTS };
+/** The pack tables (P2.S2, D2202): the P2 world saves a pack with two components in each business. */
+export const CATALOG_PACKS_TABLE_COUNTS = {
+  catalog_pack: BY_BUSINESS('catalog_pack'),
+  catalog_pack_component: BY_BUSINESS('catalog_pack_component'),
+} as const;
+
+/**
+ * The import and export tables (P2.S2, D2210, D2211, D2214): the P2 world previews a spreadsheet import (its job and
+ * rows), exports a product and imports a link (its job and the Draft's origin) in each business.
+ */
+export const CATALOG_IMPORT_TABLE_COUNTS = {
+  catalog_import_job: BY_BUSINESS('catalog_import_job'),
+  catalog_import_row: BY_BUSINESS('catalog_import_row'),
+  catalog_export_job: BY_BUSINESS('catalog_export_job'),
+  catalog_product_origin: BY_BUSINESS('catalog_product_origin'),
+} as const;
+
+/** Every counted table: P1's, the catalog's, the offers', the packs' and the import's. */
+const ALL_TABLE_COUNTS = {
+  ...TENANT_TABLE_COUNTS,
+  ...CATALOG_TABLE_COUNTS,
+  ...OFFERS_TABLE_COUNTS,
+  ...CATALOG_PACKS_TABLE_COUNTS,
+  ...CATALOG_IMPORT_TABLE_COUNTS,
+};
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
 
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
-/** The P1 tables, the catalog's and the offers': the P2 world fills each. */
+/** The P1 tables, the catalog's, the offers', the packs' and the import's: the P2 world fills each. */
 export const P2_TENANT_TABLES = Object.keys(ALL_TABLE_COUNTS) as TenantTable[];
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */

@@ -122,6 +122,25 @@ describe('browser.yml', () => {
     expect(read('.env.example')).toContain(`S3_BUCKET_PRIVATE=${job.env?.['S3_BUCKET_PRIVATE'] ?? 'missing'}`);
   });
 
+  it('signs the browser upload and download links on the endpoint the browser reaches (D2208)', () => {
+    expect(job.env?.['S3_PUBLIC_ENDPOINT']).toBe('http://localhost:3900');
+  });
+
+  it('sets the Garage bucket CORS right after the object storage starts, before the api (D2208)', () => {
+    const garage = index('docker compose --env-file .env.example up -d --wait garage');
+
+    expect(index('node scripts/garage-cors.mjs')).toBe(garage + 1);
+    expect(index('node scripts/garage-cors.mjs')).toBeLessThan(index('apps/server/dist/main-api.js'));
+  });
+
+  it('proves against the real Garage that a presigned PUT with a larger body than signed is refused with 403 (D2208)', () => {
+    const probe = index('node scripts/check-presigned-put.mjs');
+
+    expect(probe).toBeGreaterThan(index('node scripts/garage-cors.mjs'));
+    expect(probe).toBeLessThan(index('${{ matrix.command }}'));
+    expect(read('scripts/check-presigned-put.mjs')).toContain('PRESIGNED-PUT-OK');
+  });
+
   it('stays inside the ADR 0001 time budget', () => {
     expect(job['timeout-minutes']).toBeLessThanOrEqual(10);
   });

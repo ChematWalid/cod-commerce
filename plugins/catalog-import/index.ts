@@ -19,6 +19,10 @@ export type {
   JobStatus as ImportsExportsJobStatus,
 } from './application/ports/job-repository.port';
 export type { ImportsExportsJobData } from './domain/imports-exports-job';
+// The private object storage's token and port: the server's e2e suite puts an upload's bytes where the presigned PUT
+// points through the instance the token resolves to (memory in the e2e boot), as the browser would (D2208).
+export { OBJECT_STORAGE as CATALOG_IMPORT_OBJECT_STORAGE } from './application/tokens';
+export type { ObjectStorage as CatalogImportObjectStorage } from './application/ports/object-storage.port';
 export type { StoreScope as ImportStoreScope } from './domain/store-scope';
 // The dashboard's test ids, for the browser spec and the evidence script (framework-free, `dashboard-shared-is-pure`).
 export {

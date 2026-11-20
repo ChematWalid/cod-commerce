@@ -1,12 +1,22 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { CatalogImportPlugin } from '@cod/plugin-catalog-import';
+import { CatalogPacksPlugin } from '@cod/plugin-catalog-packs';
 import { OffersPlugin } from '@cod/plugin-offers';
 import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
 import { CATALOG_OPERATIONS, CATALOG_ROUTES } from '../isolation/catalog-operations';
+import { CATALOG_IMPORT_WORLDS, type CatalogImportWorld } from '../isolation/catalog-import-world';
 import { CATALOG_WORLDS, type CatalogWorld } from '../isolation/catalog-world';
+import { IMPORT_OPERATIONS, IMPORT_ROUTES } from '../isolation/import-operations';
+import { PACKS_OPERATIONS, PACKS_ROUTES } from '../isolation/packs-operations';
 import { TEAM_WORLDS } from '../isolation/team-world';
-import { CATALOG_TABLE_COUNTS, OFFERS_TABLE_COUNTS } from '../isolation/tenant-tables';
+import {
+  CATALOG_IMPORT_TABLE_COUNTS,
+  CATALOG_PACKS_TABLE_COUNTS,
+  CATALOG_TABLE_COUNTS,
+  OFFERS_TABLE_COUNTS,
+} from '../isolation/tenant-tables';
 import type { BusinessWorld, World } from '../isolation/world-types';
 
 type Class = abstract new (...args: never[]) => object;
@@ -20,9 +30,9 @@ const handlersOf = (type: Class): Handler[] =>
     .filter((name) => name !== 'constructor')
     .map((name) => (type.prototype as Record<string, Handler>)[name] as Handler);
 
-/** Every Admin API operation the catalog's resolvers declare (Nest's GraphQL metadata). */
-function declaredOperations(): string[] {
-  const extension = Reflect.getMetadata('adminApiExtensions', CatalogPlugin) as { resolvers: Class[] };
+/** Every Admin API operation the resolvers of `plugin` declare (Nest's GraphQL metadata). */
+function declaredOperations(plugin: Class): string[] {
+  const extension = Reflect.getMetadata('adminApiExtensions', plugin) as { resolvers: Class[] };
   return extension.resolvers.flatMap((resolver) =>
     handlersOf(resolver).flatMap((handler) => {
       const type = Reflect.getMetadata('graphql:resolver_type', handler) as string | undefined;
@@ -32,9 +42,9 @@ function declaredOperations(): string[] {
   );
 }
 
-/** Every REST route the catalog's controllers declare, as `METHOD /path`. */
-function declaredRoutes(): string[] {
-  const controllers = Reflect.getMetadata('controllers', CatalogPlugin) as Class[];
+/** Every REST route the controllers of `plugin` declare, as `METHOD /path`. */
+function declaredRoutes(plugin: Class): string[] {
+  const controllers = Reflect.getMetadata('controllers', plugin) as Class[];
   return controllers.flatMap((controller) => {
     const base = Reflect.getMetadata('path', controller) as string;
     return handlersOf(controller).flatMap((handler) => {
@@ -92,6 +102,18 @@ function catalogOf(label: 'A' | 'B'): CatalogWorld {
   };
 }
 
+/** The packs, import and export rows of a business of the matrix, with made-up ids. */
+function catalogImportOf(label: 'A' | 'B'): CatalogImportWorld {
+  const n = label === 'A' ? '1' : '2';
+  const id = (prefix: string): string => `${prefix}0000000000000000${n}`;
+  return {
+    pack: { productId: `T_7${n}`, componentIds: [`T_8${n}`, `T_9${n}`] },
+    spreadsheet: { importId: id('17'), uploadKey: `uploads/b/${id('1')}/s/${id('2')}/imports/${id('17')}/source` },
+    exportId: id('18'),
+    link: { importId: id('19'), productId: `T_10${n}` },
+  };
+}
+
 /** The tables of the entities `plugin` registers (Vendure's `entities` plugin metadata). */
 function tablesOf(plugin: Class): string[] {
   const entities = Reflect.getMetadata('entities', plugin) as Class[];
@@ -105,6 +127,7 @@ describe('P2 isolation matrix', () => {
   beforeAll(() => {
     for (const label of ['A', 'B'] as const) {
       CATALOG_WORLDS.set(label, catalogOf(label));
+      CATALOG_IMPORT_WORLDS.set(label, catalogImportOf(label));
       TEAM_WORLDS.set(label, {
         ownerMemberId: `14000000000000000${label === 'A' ? '1' : '2'}`,
         invited: { memberId: '15', email: 'i@example.test' },
@@ -115,6 +138,7 @@ describe('P2 isolation matrix', () => {
 
   afterAll(() => {
     CATALOG_WORLDS.clear();
+    CATALOG_IMPORT_WORLDS.clear();
     TEAM_WORLDS.clear();
   });
 
@@ -134,9 +158,48 @@ describe('P2 isolation matrix', () => {
     expect([...counted].sort()).toEqual(tablesOf(OffersPlugin).sort());
   });
 
+  it.each([
+    ['catalog-packs', CatalogPacksPlugin, CATALOG_PACKS_TABLE_COUNTS],
+    ['catalog-import', CatalogImportPlugin, CATALOG_IMPORT_TABLE_COUNTS],
+  ] as const)('counts every new table the %s plugin registers in the P2 census', (_name, plugin, census) => {
+    // Act
+    const counted = Object.keys(census);
+
+    // Assert
+    expect([...counted].sort()).toEqual(tablesOf(plugin).sort());
+  });
+
+  it.each([
+    ['CatalogPacksPlugin', CatalogPacksPlugin, PACKS_OPERATIONS, PACKS_ROUTES],
+    ['CatalogImportPlugin', CatalogImportPlugin, IMPORT_OPERATIONS, IMPORT_ROUTES],
+  ] as const)('names every Admin API operation and REST route %s declares', (_name, plugin, operations, routes) => {
+    // Act
+    const named = {
+      operations: operations.map((operation) => operation.name).sort(),
+      routes: routes.map((route) => `${route.method} ${route.route}`).sort(),
+    };
+
+    // Assert
+    expect(named).toEqual({ operations: declaredOperations(plugin).sort(), routes: declaredRoutes(plugin).sort() });
+  });
+
+  it.each([
+    ['CatalogPacksPlugin', CatalogPacksPlugin],
+    ['CatalogImportPlugin', CatalogImportPlugin],
+  ] as const)('gives every route and operation of %s a cell', (_name, plugin) => {
+    // Arrange
+    const declared = [...declaredOperations(plugin), ...declaredRoutes(plugin)];
+
+    // Act
+    const covered = new Set(P2_ISOLATION_CASES.map((testCase) => testCase.endpoint));
+
+    // Assert
+    expect(declared.filter((endpoint) => !covered.has(endpoint))).toEqual([]);
+  });
+
   it('names every Admin API operation the catalog plugin declares', () => {
     // Arrange
-    const declared = declaredOperations();
+    const declared = declaredOperations(CatalogPlugin);
 
     // Act
     const covered = CATALOG_OPERATIONS.map((operation) => operation.name);
@@ -147,7 +210,7 @@ describe('P2 isolation matrix', () => {
 
   it('names every REST route the catalog plugin declares', () => {
     // Arrange
-    const declared = declaredRoutes();
+    const declared = declaredRoutes(CatalogPlugin);
 
     // Act
     const covered = CATALOG_ROUTES.map((route) => `${route.method} ${route.route}`);
