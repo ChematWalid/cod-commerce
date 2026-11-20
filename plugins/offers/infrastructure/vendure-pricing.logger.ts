@@ -15,4 +15,10 @@ export const VENDURE_PRICING_LOGGER: PricingLogger = {
       OFFERS_LOG_CONTEXT,
     );
   },
+  invalidConfig: (offerId, kind) => {
+    Logger.warn(
+      `Offer ${offerId} has a config its kind "${kind}" no longer accepts; it is left out of quotes`,
+      OFFERS_LOG_CONTEXT,
+    );
+  },
 };

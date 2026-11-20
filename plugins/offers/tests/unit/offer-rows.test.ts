@@ -11,6 +11,7 @@ function recordingLogger() {
   const logger: PricingLogger = {
     unknownKind: () => undefined,
     unknownTarget: (offerId, refType, role) => unknownTargets.push([offerId, refType, role]),
+    invalidConfig: () => undefined,
   };
   return { logger, unknownTargets };
 }

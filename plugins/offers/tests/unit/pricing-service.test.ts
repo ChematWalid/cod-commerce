@@ -139,4 +139,19 @@ describe('PricingService.quote', () => {
     expect(payloadOf(quote.quoteToken ?? '').p).toBe(0);
     expect(verdict.ok).toBe(true);
   });
+
+  it("prices the store's other offers when one active offer's stored config no longer parses (D2450)", async () => {
+    // Arrange
+    const { service, stores, seed, logger } = setUpPricing();
+    const broken = anActiveOffer({ config: { priceMode: 'percent', tiers: [] }, targets: PRODUCT_1_TARGET });
+    seed(scopeA, aTwoPieceOffer(), broken);
+
+    // Act
+    const quote = await service.quote(stores.contextOf(scopeA), aRequest(2));
+
+    // Assert
+    expect(quote.lines[0]?.unitPrice).toBe(4_410);
+    expect(quote.applied.map((applied) => applied.offerId)).not.toContain(broken.id);
+    expect(logger.invalidConfigs).toEqual([{ offerId: broken.id, kind: 'quantity' }]);
+  });
 });

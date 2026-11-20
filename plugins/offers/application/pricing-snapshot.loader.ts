@@ -42,12 +42,12 @@ const coreIdsOf = (lines: readonly MergeableLine[]): CoreId[] =>
 
 /**
  * Loads what one quote reads before the pure engine runs (D2424): the gated unit prices, collection memberships, the
- * store's active offers of a known kind, the submitted codes, the shipping quote and the buyer's history. Nothing is
+ * store's active offers of a known kind and a valid config, the submitted codes, the shipping quote and the buyer's history. Nothing is
  * cached here: it answers the {@link PricingSnapshotSource} port, and P3.S3 wraps it with a caching adapter.
  */
 export class PricingSnapshotLoader implements PricingSnapshotSource {
-  /** Offers already reported for an unknown kind, so each is logged once per process, not on every quote. */
-  private readonly reportedUnknownKinds = new Set<string>();
+  /** Offers already reported for an unknown kind or an invalid config, so each is logged once per process. */
+  private readonly reportedOffers = new Set<string>();
 
   constructor(private readonly ports: PricingSnapshotPorts) {}
 
@@ -95,20 +95,29 @@ export class PricingSnapshotLoader implements PricingSnapshotSource {
     });
   }
 
-  /** The store's active offers whose kind the registry knows; an unknown kind is left out and reported (D2404). */
+  /**
+   * The store's active offers the engine can price: an unknown kind (D2404) or a stored config its kind's schema no
+   * longer accepts (D2450) is left out and reported, so one stale offer never fails every quote of the store.
+   */
   private async knownOffers(ctx: OperationContext, scope: StoreScope): Promise<readonly Offer[]> {
     const active = await this.ports.offers.activeOf(ctx, scope);
     return active.filter((offer) => {
-      if (this.ports.kinds.get(offer.kind) !== undefined) return true;
-      this.reportUnknownKind(offer.id, offer.kind);
+      const calculator = this.ports.kinds.get(offer.kind);
+      if (calculator === undefined) {
+        if (this.firstReportOf(offer.id)) this.ports.logger.unknownKind(offer.id, offer.kind);
+        return false;
+      }
+      if (calculator.configSchema.safeParse(offer.config).success) return true;
+      if (this.firstReportOf(offer.id)) this.ports.logger.invalidConfig(offer.id, offer.kind);
       return false;
     });
   }
 
-  private reportUnknownKind(offerId: string, kind: string): void {
-    if (this.reportedUnknownKinds.has(offerId)) return;
-    this.reportedUnknownKinds.add(offerId);
-    this.ports.logger.unknownKind(offerId, kind);
+  /** Whether the offer is not reported yet; it counts as reported from now on. */
+  private firstReportOf(offerId: string): boolean {
+    if (this.reportedOffers.has(offerId)) return false;
+    this.reportedOffers.add(offerId);
+    return true;
   }
 
   /** The store's codes among the submitted ones, by normalised text (D2406). */

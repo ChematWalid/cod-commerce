@@ -8,4 +8,7 @@ export interface PricingLogger {
 
   /** A stored target has a `refType` or `role` the engine does not know; it is left out of its offer (Task 10). */
   unknownTarget(offerId: string, refType: string, role: string): void;
+
+  /** A stored offer's config no longer fits its kind's schema (D2450); it is left out of the snapshot. */
+  invalidConfig(offerId: string, kind: string): void;
 }

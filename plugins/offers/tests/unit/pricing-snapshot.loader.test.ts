@@ -87,6 +87,22 @@ describe('PricingSnapshotLoader', () => {
     expect(logger.unknownKinds).toEqual([{ offerId: unknown.id, kind: 'mystery_box' }]);
   });
 
+  it('logs a stored config its kind no longer accepts once and leaves the offer out of the snapshot (D2450)', async () => {
+    // Arrange
+    const { loader, tables, logger } = setUpLoader();
+    const valid = anActiveOffer();
+    const invalid = anActiveOffer({ config: { priceMode: 'percent', tiers: [] } });
+    tables.offerRows.push({ ...scopeA, value: valid }, { ...scopeA, value: invalid });
+
+    // Act
+    const first = await loader.load(ctx, scopeA, aSnapshotRequest());
+    await loader.load(ctx, scopeA, aSnapshotRequest());
+
+    // Assert
+    expect(first.snapshot.offers.map((offer) => offer.id)).toEqual([valid.id]);
+    expect(logger.invalidConfigs).toEqual([{ offerId: invalid.id, kind: 'quantity' }]);
+  });
+
   it('loads only the submitted codes of the store, by their normalised text', async () => {
     // Arrange
     const { loader, tables } = setUpLoader();

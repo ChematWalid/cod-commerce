@@ -25,7 +25,8 @@ interface Verdict {
  * The entries the cart may get: active automatic offers and code offers a typed code activated (D2403). An offer of
  * an unknown kind is left out (the snapshot loader reports it, D2404).
  *
- * @throws InvalidOfferConfigError when a stored config no longer fits its kind's schema.
+ * @throws InvalidOfferConfigError when a stored config no longer fits its kind's schema; the snapshot loader leaves
+ * such an offer out and reports it (D2450), so only a snapshot built elsewhere reaches this.
  */
 export function entriesOf(
   registry: OfferKindRegistry,

@@ -56,7 +56,11 @@ const { server } = createPluginTestEnvironment({
 });
 withPartitionedSchemas(server, OUTBOX_SCHEMAS, PartitionMaintenanceService);
 
-const silentLogger: PricingLogger = { unknownKind: () => undefined, unknownTarget: () => undefined };
+const silentLogger: PricingLogger = {
+  unknownKind: () => undefined,
+  unknownTarget: () => undefined,
+  invalidConfig: () => undefined,
+};
 
 let ctx: OperationContext;
 
