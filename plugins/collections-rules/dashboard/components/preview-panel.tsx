@@ -4,7 +4,7 @@ import { PREVIEW_COUNT_TEST_ID } from '../constants';
 import { usePreviewMatches } from '../hooks/use-preview-matches';
 import { errorMessageIdOf } from '../model/list-view';
 import type { PreviewState } from '../model/preview-request';
-import type { RuleDraft } from '../model/rule-draft';
+import { ignoredRowCountOf, type RuleDraft } from '../model/rule-draft';
 import type { StoreScope } from '../model/store-query';
 import { ProductRows } from './product-rows';
 
@@ -28,6 +28,14 @@ function PreviewCount({ state }: { readonly state: PreviewState }): ReactNode {
   );
 }
 
+/** How many rows the preview left out, so a count for fewer rows is never read as the rule's (an All rule broadens). */
+function IgnoredRows({ rule }: { readonly rule: RuleDraft | null }): ReactNode {
+  const { i18n } = useLingui();
+  const count = ignoredRowCountOf(rule);
+  if (count === 0) return null;
+  return <p className="text-muted-foreground text-sm">{i18n._('collections.preview-ignored', { count })}</p>;
+}
+
 /** "N products match" and the first matches of the unsaved rule, newest first; nothing is saved (AC4, D2331). */
 export function PreviewPanel({ scope, rule }: { readonly scope: StoreScope | null; readonly rule: RuleDraft | null }) {
   const { i18n } = useLingui();
@@ -36,6 +44,7 @@ export function PreviewPanel({ scope, rule }: { readonly scope: StoreScope | nul
     <section className="grid gap-2" aria-label={i18n._('collections.preview-heading')}>
       <p className="text-sm font-medium">{i18n._('collections.preview-heading')}</p>
       <PreviewCount state={state} />
+      <IgnoredRows rule={rule} />
       {state.kind === 'answered' && (
         <ProductRows products={state.page.items} editable={false} onReorder={() => undefined} />
       )}

@@ -1,7 +1,10 @@
 import {
   COLLECTION_RULE_MAX_CONDITIONS,
+  COLLECTION_RULE_MAX_TEXT_VALUES,
   COLLECTION_RULE_VERSION,
   collectionRuleSchema,
+  MONEY_MAX_DZD,
+  normalForMatch,
   ruleConditionSchema,
   type RuleMatch,
 } from '@cod/shared';
@@ -77,4 +80,36 @@ export function previewRuleOf(rule: RuleDraft | null): RuleDraft | null {
   if (rule === null) return null;
   const complete = rule.conditions.filter((condition) => ruleConditionSchema.safeParse(condition).success);
   return complete.length === 0 ? null : withConditions(rule, complete);
+}
+
+/** How many rows the preview leaves out because the server would refuse them as they are. */
+export const ignoredRowCountOf = (rule: RuleDraft | null): number =>
+  rule === null ? 0 : rule.conditions.length - (previewRuleOf(rule)?.conditions.length ?? 0);
+
+/**
+ * Whether a typed title word can join the row: it must still say something once folded and must not read like one
+ * already there (`Shoe` and `shoe` are one word), as the server refuses both (D2305).
+ */
+export function canAddTitleWord(values: readonly string[], text: string): boolean {
+  const folded = normalForMatch(text);
+  if (folded === '' || values.length >= COLLECTION_RULE_MAX_TEXT_VALUES) return false;
+  return !values.some((value) => normalForMatch(value) === folded);
+}
+
+const isBound = (bound: number | null | undefined): bound is number => bound !== null && bound !== undefined;
+const isWholeDzd = (bound: number): boolean => Number.isInteger(bound) && bound >= 0 && bound <= MONEY_MAX_DZD;
+
+function priceProblemIdOf({ min, max }: StoreCollectionConditionDto): string {
+  const bounds = [min, max].filter(isBound);
+  if (bounds.length === 0) return 'collections.price-bound-needed';
+  if (!bounds.every(isWholeDzd)) return 'collections.price-whole-dzd';
+  if (isBound(min) && isBound(max) && min > max) return 'collections.price-min-above-max';
+  return 'collections.row-invalid';
+}
+
+/** The message id of what keeps a row from being sent, shown under the row; null for a complete row. */
+export function rowProblemIdOf(condition: StoreCollectionConditionDto): string | null {
+  if (ruleConditionSchema.safeParse(condition).success) return null;
+  if (condition.field === 'price') return priceProblemIdOf(condition);
+  return (condition.values ?? []).length === 0 ? 'collections.row-values-needed' : 'collections.row-invalid';
 }

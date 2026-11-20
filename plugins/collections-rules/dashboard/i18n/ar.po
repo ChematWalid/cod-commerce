@@ -460,6 +460,38 @@ msgid "collections.preview-count"
 msgstr "المنتجات المطابقة: {count}"
 
 #. js-lingui-explicit-id
+msgid "collections.value-unknown-hint"
+msgstr "(غير معروف)"
+
+#. js-lingui-explicit-id
+msgid "collections.values-unavailable"
+msgstr "لم يتم تحميل قيم هذا المتجر بعد."
+
+#. js-lingui-explicit-id
+msgid "collections.row-values-needed"
+msgstr "اختر قيمة واحدة على الأقل."
+
+#. js-lingui-explicit-id
+msgid "collections.row-invalid"
+msgstr "هذا الشرط غير مكتمل."
+
+#. js-lingui-explicit-id
+msgid "collections.price-bound-needed"
+msgstr "أدخل حدًا أدنى أو حدًا أقصى أو كليهما."
+
+#. js-lingui-explicit-id
+msgid "collections.price-min-above-max"
+msgstr "يجب ألا يتجاوز الحد الأدنى الحد الأقصى."
+
+#. js-lingui-explicit-id
+msgid "collections.price-whole-dzd"
+msgstr "استخدم مبالغ كاملة بالدينار حتى {max}."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-ignored"
+msgstr "شروط غير مكتملة مستبعدة من هذه المعاينة: {count}"
+
+#. js-lingui-explicit-id
 msgid "collections.product-block-title"
 msgstr "المجموعات"
 

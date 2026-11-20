@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { StoreCollectionRuleDto } from '../dto';
 import { type PreviewState, PreviewRequester } from '../model/preview-request';
 import { previewRuleOf, type RuleDraft } from '../model/rule-draft';
@@ -12,7 +12,8 @@ import { fetchPreview } from '../rule-queries';
  */
 export function usePreviewMatches(scope: StoreScope | null, rule: RuleDraft | null): PreviewState {
   const [state, setState] = useState<PreviewState>({ kind: 'idle' });
-  const requester = useMemo(() => new PreviewRequester({ readToken: readRequestToken, fetchPreview }, setState), []);
+  // One requester for the component's life: it holds the pending timer, and a cache React may drop would orphan it.
+  const [requester] = useState(() => new PreviewRequester({ readToken: readRequestToken, fetchPreview }, setState));
   const asked = JSON.stringify(previewRuleOf(rule));
   const storeId = scope?.storeId;
   const channelToken = scope?.channelToken;

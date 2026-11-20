@@ -3,9 +3,12 @@ import type { StoreCollectionRuleOptionsDto } from '../../dashboard/dto';
 import {
   conditionFieldsOf,
   fieldChoiceOf,
+  isPickedValue,
   RULE_LABEL_IDS,
   unknownValuesOf,
   valueChoicesOf,
+  valueInputOf,
+  withToggledValue,
 } from '../../dashboard/model/condition-fields';
 import { conditionFor } from '../../dashboard/model/rule-draft';
 
@@ -71,10 +74,71 @@ describe('condition fields', () => {
     const choices = [{ id: 'a', name: 'A' }];
 
     // Act
-    const unknown = unknownValuesOf(['a', 'gone'], choices);
+    const unknown = unknownValuesOf(['a', 'gone'], choices, 'tag');
 
     // Assert
     expect(unknown).toEqual(['gone']);
+  });
+
+  it("a title row offers the word input while the store's options load", () => {
+    // Arrange
+    const title = conditionFor({ key: 'title', field: 'title', option: null });
+
+    // Act
+    const input = valueInputOf(title, undefined);
+
+    // Assert
+    expect(input).toEqual({ kind: 'words' });
+  });
+
+  it("a tag, brand or option row waits for the store's options instead of calling its values unknown", () => {
+    // Arrange
+    const tag = { ...conditionFor({ key: 'tag', field: 'tag', option: null }), values: ['7301234567890123402'] };
+    const color = conditionFor({ key: 'option:Color', field: 'option', option: 'Color' });
+
+    // Act
+    const inputs = [valueInputOf(tag, undefined), valueInputOf(color, undefined)];
+    const loaded = valueInputOf(tag, OPTIONS);
+
+    // Assert
+    expect(inputs).toEqual([{ kind: 'unavailable' }, { kind: 'unavailable' }]);
+    expect(loaded).toEqual({ kind: 'choices', choices: OPTIONS.tags });
+  });
+
+  it('a price or on-sale row has its own input whatever the options', () => {
+    // Act
+    const price = valueInputOf(conditionFor({ key: 'price', field: 'price', option: null }), undefined);
+    const onSale = valueInputOf(conditionFor({ key: 'on_sale', field: 'on_sale', option: null }), OPTIONS);
+
+    // Assert
+    expect(price).toEqual({ kind: 'range' });
+    expect(onSale).toEqual({ kind: 'yes-no' });
+  });
+
+  it('an option value the store lists in another case is not unknown', () => {
+    // Arrange
+    const choices = [{ id: 'red', name: 'red' }];
+
+    // Act
+    const optionUnknown = unknownValuesOf(['Red', 'Gone'], choices, 'option');
+    const tagUnknown = unknownValuesOf(['Red'], choices, 'tag');
+
+    // Assert
+    expect(optionUnknown).toEqual(['Gone']);
+    expect(tagUnknown).toEqual(['Red']);
+  });
+
+  it('an option value stored in another case shows as picked and is removed by its choice', () => {
+    // Arrange
+    const stored = ['Red'];
+
+    // Act
+    const picked = isPickedValue(stored, 'red', 'option');
+    const toggled = withToggledValue(stored, 'red', 'option');
+
+    // Assert
+    expect(picked).toBe(true);
+    expect(toggled).toEqual([]);
   });
 
   it('labels every field and operator of the shared registry', () => {

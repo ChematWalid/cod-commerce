@@ -460,6 +460,38 @@ msgid "collections.preview-count"
 msgstr "Matching products: {count}"
 
 #. js-lingui-explicit-id
+msgid "collections.value-unknown-hint"
+msgstr "(unknown)"
+
+#. js-lingui-explicit-id
+msgid "collections.values-unavailable"
+msgstr "This store's values are not loaded yet."
+
+#. js-lingui-explicit-id
+msgid "collections.row-values-needed"
+msgstr "Pick at least one value."
+
+#. js-lingui-explicit-id
+msgid "collections.row-invalid"
+msgstr "This condition is not complete."
+
+#. js-lingui-explicit-id
+msgid "collections.price-bound-needed"
+msgstr "Enter a minimum, a maximum or both."
+
+#. js-lingui-explicit-id
+msgid "collections.price-min-above-max"
+msgstr "The minimum must not be above the maximum."
+
+#. js-lingui-explicit-id
+msgid "collections.price-whole-dzd"
+msgstr "Use whole DZD amounts up to {max}."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-ignored"
+msgstr "Incomplete conditions left out of this preview: {count}"
+
+#. js-lingui-explicit-id
 msgid "collections.product-block-title"
 msgstr "Collections"
 

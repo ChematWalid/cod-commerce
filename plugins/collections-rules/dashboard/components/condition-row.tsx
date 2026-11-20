@@ -1,3 +1,4 @@
+import { MONEY_MAX_DZD } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
@@ -10,6 +11,7 @@ import {
   operatorLabelIdOf,
   operatorsOf,
 } from '../model/condition-fields';
+import { rowProblemIdOf } from '../model/rule-draft';
 import { ValuesField } from './values-field';
 
 export interface ConditionRowProps {
@@ -82,6 +84,14 @@ function OperatorSelect({ condition, disabled, onChange }: ConditionRowProps): R
   );
 }
 
+/** What keeps the row from counting: the preview leaves it out and the server refuses it until it is fixed. */
+function RowProblem({ condition }: { readonly condition: StoreCollectionConditionDto }): ReactNode {
+  const { i18n } = useLingui();
+  const problemId = rowProblemIdOf(condition);
+  if (problemId === null) return null;
+  return <p className="text-destructive text-sm">{i18n._(problemId, { max: MONEY_MAX_DZD })}</p>;
+}
+
 /** One condition: field, operator, then its values; removable. */
 export function ConditionRow(props: ConditionRowProps): ReactNode {
   const { i18n } = useLingui();
@@ -111,6 +121,7 @@ export function ConditionRow(props: ConditionRowProps): ReactNode {
         disabled={props.disabled}
         onChange={props.onChange}
       />
+      <RowProblem condition={props.condition} />
     </li>
   );
 }

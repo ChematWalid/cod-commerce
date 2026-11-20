@@ -98,6 +98,44 @@ export function valueChoicesOf(
   return null;
 }
 
+/** How a condition's values are entered: decided by its field alone, so loading options never changes the input. */
+export type ValueInput =
+  | { readonly kind: 'range' }
+  | { readonly kind: 'yes-no' }
+  | { readonly kind: 'words' }
+  /** A field with a list whose options have not arrived (loading or failed): nothing is flagged unknown yet. */
+  | { readonly kind: 'unavailable' }
+  | { readonly kind: 'choices'; readonly choices: readonly ValueChoice[] };
+
+const LIST_FIELDS: ReadonlySet<string> = new Set<RuleField>(['tag', 'brand', 'option']);
+
+/** The input of a condition's values: a range, yes/no, typed words, or the store's list once it is loaded. */
+export function valueInputOf(
+  condition: StoreCollectionConditionDto,
+  options: StoreCollectionRuleOptionsDto | undefined,
+): ValueInput {
+  if (condition.field === 'price') return { kind: 'range' };
+  if (condition.field === 'on_sale') return { kind: 'yes-no' };
+  if (!LIST_FIELDS.has(condition.field)) return { kind: 'words' };
+  if (options === undefined) return { kind: 'unavailable' };
+  return { kind: 'choices', choices: valueChoicesOf(condition, options) ?? [] };
+}
+
+/** Option values are matched once folded (D2305), so `Red` and `red` are one value; tag and brand ids are exact. */
+const sameValue = (field: string, left: string, right: string): boolean =>
+  field === 'option' ? normalForMatch(left) === normalForMatch(right) : left === right;
+
+/** Whether `id` is among the stored values, by the field's own comparison. */
+export const isPickedValue = (values: readonly string[], id: string, field: string): boolean =>
+  values.some((value) => sameValue(field, value, id));
+
+/** Picks `id`, or drops every stored value that reads as it. */
+export const withToggledValue = (values: readonly string[], id: string, field: string): readonly string[] =>
+  isPickedValue(values, id, field) ? values.filter((value) => !sameValue(field, value, id)) : [...values, id];
+
 /** The stored values the store no longer offers (D2307), shown as unknown so they can be removed. */
-export const unknownValuesOf = (values: readonly string[], choices: readonly ValueChoice[]): readonly string[] =>
-  values.filter((value) => !choices.some(({ id }) => id === value));
+export const unknownValuesOf = (
+  values: readonly string[],
+  choices: readonly ValueChoice[],
+  field: string,
+): readonly string[] => values.filter((value) => !choices.some(({ id }) => sameValue(field, id, value)));

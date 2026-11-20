@@ -1,9 +1,12 @@
-import { COLLECTION_RULE_MAX_CONDITIONS } from '@cod/shared';
+import { COLLECTION_RULE_MAX_CONDITIONS, MONEY_MAX_DZD } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import type { StoreCollectionRuleDto } from '../../dashboard/dto';
 import type { ConditionFieldChoice } from '../../dashboard/model/condition-fields';
 import {
+  canAddTitleWord,
   conditionFor,
+  ignoredRowCountOf,
+  rowProblemIdOf,
   emptyRule,
   isCompleteRule,
   previewRuleOf,
@@ -87,5 +90,64 @@ describe('rule draft', () => {
 
     // Assert
     expect(rule.conditions).toHaveLength(COLLECTION_RULE_MAX_CONDITIONS);
+  });
+});
+
+describe('rule rows the server would refuse', () => {
+  it('a title word that reads like one already added, or says nothing once folded, is not added', () => {
+    // Arrange
+    const values = ['Shoe'];
+
+    // Act
+    const sameWord = canAddTitleWord(values, 'shoe');
+    const onlyHarakat = canAddTitleWord(values, '\u064E\u0650');
+    const empty = canAddTitleWord(values, '');
+    const other = canAddTitleWord(values, 'Boot');
+
+    // Assert
+    expect([sameWord, onlyHarakat, empty, other]).toEqual([false, false, false, true]);
+  });
+
+  it('names what a price row lacks', () => {
+    // Arrange
+    const row = conditionFor(PRICE);
+
+    // Act
+    const problems = [
+      rowProblemIdOf(row),
+      rowProblemIdOf({ ...row, min: 500, max: 100 }),
+      rowProblemIdOf({ ...row, max: MONEY_MAX_DZD + 1 }),
+      rowProblemIdOf({ ...row, min: 100 }),
+    ];
+
+    // Assert
+    expect(problems).toEqual([
+      'collections.price-bound-needed',
+      'collections.price-min-above-max',
+      'collections.price-whole-dzd',
+      null,
+    ]);
+  });
+
+  it('asks for a value on a row with none picked', () => {
+    // Act
+    const tag = rowProblemIdOf(conditionFor(TAG));
+    const done = rowProblemIdOf({ ...conditionFor(TAG), values: [TAG_ID] });
+
+    // Assert
+    expect(tag).toBe('collections.row-values-needed');
+    expect(done).toBeNull();
+  });
+
+  it('counts the rows the preview leaves out', () => {
+    // Arrange
+    const rule = withAddedCondition(withAddedCondition(tagRule(), PRICE), COLOR);
+
+    // Act
+    const ignored = ignoredRowCountOf(rule);
+
+    // Assert
+    expect(ignored).toBe(2);
+    expect(ignoredRowCountOf(null)).toBe(0);
   });
 });
