@@ -1,7 +1,7 @@
 import type { LineDiscount, QuoteLine } from '@cod/shared';
 import { giftLineKey, type RunningLine } from '../cart';
-import type { GiftOutcome, LineOutcome } from './outcome';
-import type { TokenLine } from './priced-quote';
+import type { AddonOutcome, GiftOutcome, LineOutcome } from './outcome';
+import type { TokenAddon, TokenLine } from './priced-quote';
 
 /** The discounts each line got, by line key, in the order they applied. */
 export type LineDiscounts = ReadonlyMap<string, readonly LineDiscount[]>;
@@ -121,7 +121,38 @@ export function applyGiftOutcome(input: GiftOutcomeInput): AppliedLineOutcome {
   return { lines: [...paid, ...gifts], lineDiscounts: discounts, saving };
 }
 
-/** The quote lines: `totalPrice = unitPrice × quantity` always (D2409); a gift line names its offer (D2504). */
+/** What `applyAddonOutcome` reads. */
+export interface AddonOutcomeInput {
+  readonly lines: readonly RunningLine[];
+  readonly lineDiscounts: LineDiscounts;
+  readonly outcome: AddonOutcome;
+  /** The offer the add-on saving is reported under. */
+  readonly source: Omit<LineDiscount, 'amount'>;
+}
+
+/**
+ * Appends the outcome's add-on lines after the cart's lines (D2506) and records each one's saving against its list
+ * price as its line discount, so `savings` counts it like any line offer.
+ */
+export function applyAddonOutcome({ lines, lineDiscounts, outcome, source }: AddonOutcomeInput): AppliedLineOutcome {
+  const discounts = new Map(lineDiscounts);
+  let saving = 0;
+  for (const line of outcome.lines) {
+    const amount = (line.originalPrice - line.unitPrice) * line.quantity;
+    if (amount > 0) discounts.set(line.key, [{ ...source, amount }]);
+    saving += amount;
+  }
+  return { lines: [...lines, ...outcome.lines], lineDiscounts: discounts, saving };
+}
+
+/** The add-on fields of a quote line: its offer and the cart variant it rides with (D2506). */
+const addonFieldsOf = ({ addonOf, parentVariantId = null }: RunningLine): Partial<QuoteLine> =>
+  addonOf === undefined ? {} : { addonOf, parentVariantId };
+
+/**
+ * The quote lines: `totalPrice = unitPrice × quantity` always (D2409); a gift line names its offer (D2504), an add-on
+ * line its offer and parent (D2506).
+ */
 export function quoteLinesOf(lines: readonly RunningLine[], lineDiscounts: LineDiscounts): QuoteLine[] {
   return lines.map((line) => ({
     key: line.key,
@@ -133,17 +164,30 @@ export function quoteLinesOf(lines: readonly RunningLine[], lineDiscounts: LineD
     totalPrice: line.unitPrice * line.quantity,
     discounts: [...(lineDiscounts.get(line.key) ?? [])],
     ...(line.giftOf === undefined ? {} : { giftOf: line.giftOf }),
+    ...addonFieldsOf(line),
   }));
 }
 
-/** The lines as the token signs them (ADR 0004 `l`); a gift line carries its offer as `g` (D2504). */
+/**
+ * The lines as the token signs them (ADR 0004 `l`): a gift line carries its offer as `g` (D2504); add-on lines are
+ * signed in `a` only, never here, so an order counts each once (D2506).
+ */
 export function tokenLinesOf(lines: readonly QuoteLine[]): TokenLine[] {
-  return lines.map((line) => ({
-    variantId: line.variantId,
-    qty: line.quantity,
-    unitPrice: line.unitPrice,
-    originalPrice: line.originalPrice,
-    offerIds: line.discounts.map((discount) => discount.offerId),
-    ...(line.giftOf === undefined ? {} : { g: line.giftOf }),
-  }));
+  return lines
+    .filter((line) => line.addonOf === undefined)
+    .map((line) => ({
+      variantId: line.variantId,
+      qty: line.quantity,
+      unitPrice: line.unitPrice,
+      originalPrice: line.originalPrice,
+      offerIds: line.discounts.map((discount) => discount.offerId),
+      ...(line.giftOf === undefined ? {} : { g: line.giftOf }),
+    }));
+}
+
+/** The add-on lines as the token signs them (ADR 0004 `a`, D2506): offer, variant, quantity, price and parent. */
+export function tokenAddonsOf(lines: readonly QuoteLine[]): TokenAddon[] {
+  return lines.flatMap(({ addonOf, variantId, quantity, unitPrice, parentVariantId = null }) =>
+    addonOf === undefined ? [] : [{ offerId: addonOf, variantId, qty: quantity, unitPrice, parentVariantId }],
+  );
 }

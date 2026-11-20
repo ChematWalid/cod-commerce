@@ -7,14 +7,15 @@ import {
 } from '@cod/shared';
 import type { PricingCart, RunningLine } from '../cart';
 import type { PricingSnapshot } from '../snapshot';
-import { assessOffers, entriesOf } from './candidates';
+import { addonRequestsOf, assessWithAddons, rejectedAddonsOf, withAddons, type AddonRequests } from './addon-lines';
+import { entriesOf } from './candidates';
 import { resolveCodes } from './codes';
 import { combine } from './combine';
 import { deliveryBlock, deliveryContextOf } from './delivery';
 import { nudgeOf, suggestionsOf } from './hints';
 import type { OfferKindRegistry } from './kind-registry';
 import type { DeliveryContext } from './outcome';
-import { quoteLinesOf, tokenLinesOf } from './line-stage';
+import { quoteLinesOf, tokenAddonsOf, tokenLinesOf } from './line-stage';
 import { mergeLines } from './merge-lines';
 import type { PricedQuote, TokenDiscount, TokenUse } from './priced-quote';
 import { runningLinesOf, type OfferEntry } from './pricing-state';
@@ -38,21 +39,27 @@ interface PricedOffers {
   readonly delivery: DeliveryContext;
   readonly eligible: readonly OfferEntry[];
   readonly codeRejections: readonly RejectedCode[];
+  readonly addons: AddonRequests;
   readonly settled: SettledState;
 }
 
-/** Merge lines → resolve codes → assess offers on the lines before offers → combine (D2411) → apply by stage. */
+/**
+ * Merge lines → resolve codes → sort the add-ons (D2506) → assess offers on the lines before offers, add-ons first
+ * (D2507) → combine (D2411) → apply by stage.
+ */
 function priceOffers({ registry, snapshot, cart }: PriceCartInput): PricedOffers {
   const lines = runningLinesOf(mergeLines(cart.lines));
   const delivery = deliveryContextOf(snapshot.shipping, cart.destination);
   const codes = resolveCodes(cart.codes, snapshot);
-  const entries = entriesOf(registry, snapshot.offers, codes.activated);
-  const assessment = assessOffers(entries, lines, { cart: { ...cart, lines }, snapshot, delivery });
+  const offered = entriesOf(registry, snapshot.offers, codes.activated);
+  const addons = addonRequestsOf(offered, cart);
+  const entries = withAddons(offered, addons);
+  const assessment = assessWithAddons(entries, lines, { cart: { ...cart, lines }, snapshot, delivery });
   const { accepted, rejected } = combine(assessment.candidates);
   const losers = rejected.map((candidate) => refusalOf(candidate, 'not_combinable'));
   const refusals = losers.reduce(mergeRefusals, assessment.refusals);
   const settled = settle({ accepted, lines, delivery, refusals });
-  return { lines, delivery, eligible: assessment.eligible, codeRejections: codes.rejected, settled };
+  return { lines, delivery, eligible: assessment.eligible, codeRejections: codes.rejected, addons, settled };
 }
 
 /** The order discounts as the token signs them (ADR 0004 `d`). */
@@ -70,7 +77,7 @@ const tokenUsesOf = (applied: readonly AppliedOffer[]): TokenUse[] =>
  * @throws PricingTotalTooLargeError when the total leaves the money range (D2415).
  */
 export function priceCart(input: PriceCartInput): PricedQuote {
-  const { lines, delivery, eligible, codeRejections, settled } = priceOffers(input);
+  const { lines, delivery, eligible, codeRejections, addons, settled } = priceOffers(input);
   const quoteLines = quoteLinesOf(settled.lines, settled.lineDiscounts);
   const deliveryOut = deliveryBlock(input.snapshot.shipping, settled.waived);
   const discounts = [...settled.orderDiscounts];
@@ -84,12 +91,13 @@ export function priceCart(input: PriceCartInput): PricedQuote {
     applied: [...settled.applied],
     skipped: [...settled.refusals.skipped],
     rejectedCodes: [...codeRejections, ...settled.refusals.rejectedCodes],
-    rejectedAddons: [],
+    rejectedAddons: rejectedAddonsOf(input.cart, addons, settled.lines),
     suggestions: suggestionsOf({ entries: eligible, lines: settled.lines, delivery, waived: settled.waived }),
     available: true,
     orderPricingMode: QUOTE_PRICING_MODE,
     unavailableVariantIds: [],
     tokenLines: tokenLinesOf(quoteLines),
+    tokenAddons: tokenAddonsOf(quoteLines),
     tokenDiscounts: tokenDiscountsOf(discounts),
     tokenUses: tokenUsesOf(settled.applied),
     phoneUsed: settled.phoneUsed,

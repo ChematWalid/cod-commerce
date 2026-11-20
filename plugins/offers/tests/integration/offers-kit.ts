@@ -116,6 +116,20 @@ export const productDiscountOn = (variantId: string, percent: number, method: 'a
     targets: [{ refType: 'variant', refId: variantId }],
   }) satisfies OfferInput;
 
+/** A free add-on of `variantId` on any order of the order form (D2505). */
+export const addonOfferOn = (variantId: string) =>
+  ({
+    kind: 'addon',
+    title: 'Add-on',
+    config: {
+      condition: 'any_order',
+      price: { mode: 'fixed', value: 0 },
+      maxPiecesPerOrder: 1,
+      placement: 'order_form',
+    },
+    targets: [{ role: 'addon', refType: 'variant', refId: variantId }],
+  }) satisfies OfferInput;
+
 /** A storefront request for `quantity` of `variantId`, home delivery to Algiers. */
 export const aRequestFor = (variantId: string, quantity: number, overrides: Partial<QuoteRequestInput> = {}) =>
   ({

@@ -218,3 +218,33 @@ describe('signQuote: gift lines', () => {
     expect(result).toEqual({ ok: false, reason: 'bad_signature' });
   });
 });
+
+describe('signQuote: add-ons (D2506)', () => {
+  const ANY_ORDER_ADDON = { offerId: '7006', variantId: '21', qty: 1, unitPrice: 1_200, parentVariantId: null };
+  const RIDING_ADDON = { ...ANY_ORDER_ADDON, variantId: '22', parentVariantId: '7' };
+
+  it('signs a with offerId and a null parent', () => {
+    // Arrange
+    const body = aBody({ t: 8_820 + 2_400, a: [ANY_ORDER_ADDON, RIDING_ADDON], o: [{ offerId: '7006' }] });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(aToken(body)));
+
+    // Assert
+    expect(result.ok && result.payload.a).toEqual([ANY_ORDER_ADDON, RIDING_ADDON]);
+  });
+
+  it('fails a token whose add-on price was changed as a bad signature', () => {
+    // Arrange
+    const token = tampered(aToken(aBody({ a: [ANY_ORDER_ADDON] })), (payload) => {
+      const addon = payload.a[0];
+      if (addon !== undefined) addon.unitPrice = 0;
+    });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(token));
+
+    // Assert
+    expect(result).toEqual({ ok: false, reason: 'bad_signature' });
+  });
+});

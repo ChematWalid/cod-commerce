@@ -1,4 +1,4 @@
-import { type OfferInput, STAGE_DELIVERY } from '@cod/shared';
+import { MAX_ADDON_PRODUCTS, type OfferInput, STAGE_DELIVERY } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { OfferKindCalculator } from '../../domain/engine/kind-registry';
@@ -15,6 +15,18 @@ const ORDER_DISCOUNT_INPUT: OfferInput = {
   kind: 'order_discount',
   title: 'Order discount',
   config: { valueType: 'fixed', value: 300 },
+};
+
+/** A valid add-on offer: a fixed 1,200 DZD add-on on any order of the order form. */
+const ADDON_INPUT: OfferInput = {
+  kind: 'addon',
+  title: 'Add-on',
+  config: {
+    condition: 'any_order',
+    price: { mode: 'fixed', value: 1_200 },
+    maxPiecesPerOrder: 3,
+    placement: 'order_form',
+  },
 };
 
 /** One buy target on every existing kind, each with a config its schema accepts. */
@@ -164,5 +176,25 @@ describe('OfferAdminService target roles (D2501)', () => {
 
     // Assert
     expect(draft).toMatchObject({ status: 'draft', targets: [] });
+  });
+
+  it('refuses more add-on targets than an add-on offer may hold', async () => {
+    // Arrange
+    const { service, tables } = setUpOfferAdmin();
+    const addonTargets = Array.from({ length: MAX_ADDON_PRODUCTS + 1 }, (_, index) => ({
+      role: 'addon' as const,
+      refType: 'variant' as const,
+      refId: String(21 + index),
+    }));
+    const input: OfferInput = { ...ADDON_INPUT, targets: addonTargets };
+
+    // Act
+    const creating = service.createDraft(ctx, scopeA, input);
+    const atTheCap = await service.createDraft(ctx, scopeA, { ...input, targets: addonTargets.slice(1) });
+
+    // Assert
+    await expect(creating).rejects.toBeInstanceOf(InvalidOfferTargetsError);
+    expect(atTheCap.targets).toHaveLength(MAX_ADDON_PRODUCTS);
+    expect(tables.offerRows).toHaveLength(1);
   });
 });

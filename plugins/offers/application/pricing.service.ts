@@ -1,4 +1,10 @@
-import { type Quote, type QuoteRequest, type QuoteRequestInput, quoteRequestSchema } from '@cod/shared';
+import {
+  type AddonPlacement,
+  type Quote,
+  type QuoteRequest,
+  type QuoteRequestInput,
+  quoteRequestSchema,
+} from '@cod/shared';
 import type { PricingCart } from '../domain/cart';
 import { MS_PER_SECOND } from '../domain/constants';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
@@ -24,6 +30,23 @@ export interface PricingServiceDeps {
   readonly snapshots: PricingSnapshotSource;
   readonly signer: QuoteSigner;
   readonly kinds: OfferKindRegistry;
+}
+
+/**
+ * Options of the trusted scoped quote, never fields of the public quote request (D2506): the placement whose add-ons
+ * the quote may price. Checkout and the public quote use `order_form`; the post-order add-on use case `thank_you`.
+ */
+export interface ScopedQuoteOptions {
+  readonly addonPlacement: AddonPlacement;
+}
+
+/** Checkout's options: the add-ons of the order form. */
+const CHECKOUT: ScopedQuoteOptions = { addonPlacement: 'order_form' };
+
+/** How a cart is evaluated: the quote's add-on placement and, when re-pricing an order, its own uses (D2427). */
+interface Evaluation {
+  readonly options: ScopedQuoteOptions;
+  readonly release: OrderRelease | null;
 }
 
 /** The engine's pricing of a cart and the variants the gate refused in it. */
@@ -53,6 +76,7 @@ const tokenCartOf = (request: QuoteRequest): TokenCart => ({
   destination: request.destination ?? null,
   codes: request.codes ?? [],
   phone: request.phone ?? null,
+  addons: request.addons,
 });
 
 /** The quote without the engine's token parts (`tokenLines`, `tokenDiscounts`, `tokenUses`, `phoneUsed`). */
@@ -102,21 +126,27 @@ function orderFieldsOf({ priced, buyerOrdersBefore }: EvaluatedCart): OrderField
 export class PricingService {
   constructor(private readonly deps: PricingServiceDeps) {}
 
-  /** The quote of `request` in the request's active store. @throws {@link NoActiveStoreError} without one. */
+  /** The quote of `request` in the request's active store, order-form add-ons only. @throws {@link NoActiveStoreError}. */
   async quote(ctx: OperationContext, request: QuoteRequestInput): Promise<Quote> {
-    return (await this.price(ctx, await this.activeStore(ctx), request)).quote;
+    return (await this.price(ctx, await this.activeStore(ctx), request, CHECKOUT)).quote;
   }
 
   /**
-   * The quote of `request` in `scope` (D2425: without a token when a line is unavailable).
+   * The quote of `request` in `scope` (D2425: without a token when a line is unavailable), pricing the add-ons of
+   * `options.addonPlacement` (D2506; the order form unless a trusted caller asks for the thank-you page).
    *
    * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s channel.
    * @throws {@link InvalidQuoteRequestError} when the request breaks its schema.
    * @throws {@link PricingTotalTooLargeError} when the total leaves the money range.
    */
-  async quoteForScope(ctx: OperationContext, scope: StoreScope, request: QuoteRequestInput): Promise<Quote> {
+  async quoteForScope(
+    ctx: OperationContext,
+    scope: StoreScope,
+    request: QuoteRequestInput,
+    options: ScopedQuoteOptions = CHECKOUT,
+  ): Promise<Quote> {
     await this.assertChannel(ctx, scope);
-    return (await this.price(ctx, scope, request)).quote;
+    return (await this.price(ctx, scope, request, options)).quote;
   }
 
   /** The verdict on `token` for `cart` in the request's active store. @throws {@link NoActiveStoreError}. */
@@ -161,8 +191,11 @@ export class PricingService {
     const current = parseRequest(input.current);
     const next = parseRequest(input.next);
     const ownBuyer = (next.phone ?? null) === (current.phone ?? null);
-    const before = await this.evaluate(ctx, scope, current, { ...usage, ownBuyer: true });
-    const after = await this.evaluate(ctx, scope, next, { ...usage, ownBuyer });
+    const before = await this.evaluate(ctx, scope, current, {
+      options: CHECKOUT,
+      release: { ...usage, ownBuyer: true },
+    });
+    const after = await this.evaluate(ctx, scope, next, { options: CHECKOUT, release: { ...usage, ownBuyer } });
     const [beforeQuote, afterQuote] = [unsignedQuoteOf(before), unsignedQuoteOf(after)];
     const refused = [...before.unavailableVariantIds, ...after.unavailableVariantIds];
     if (refused.length > 0) {
@@ -179,9 +212,14 @@ export class PricingService {
   }
 
   /** Parse → price → sign when every line is available (D2412, D2425). */
-  private async price(ctx: OperationContext, scope: StoreScope, raw: QuoteRequestInput): Promise<PricedCart> {
+  private async price(
+    ctx: OperationContext,
+    scope: StoreScope,
+    raw: QuoteRequestInput,
+    options: ScopedQuoteOptions,
+  ): Promise<PricedCart> {
     const request = parseRequest(raw);
-    const evaluated = await this.evaluate(ctx, scope, request, null);
+    const evaluated = await this.evaluate(ctx, scope, request, { options, release: null });
     const { priced } = evaluated;
     if (evaluated.unavailableVariantIds.length > 0) return { priced, quote: unsignedQuoteOf(evaluated) };
     const signed = this.deps.signer.sign(scope, priced, tokenCartOf(request));
@@ -194,15 +232,19 @@ export class PricingService {
     ctx: OperationContext,
     scope: StoreScope,
     request: QuoteRequest,
-    release: OrderRelease | null,
+    { options, release }: Evaluation,
   ): Promise<EvaluatedCart> {
     const destination = request.destination ?? null;
     const phone = request.phone ?? null;
     const buyer = phone === null ? null : { phone };
     const codes = request.codes ?? [];
+    const { addons } = request;
     const lines = mergeLines(request.lines);
-    const loaded = await this.deps.snapshots.load(ctx, scope, { lines, destination, buyer, codes });
-    const cart: PricingCart = { channel: request.channel, lines: loaded.lines, destination, buyer, codes };
+    const loaded = await this.deps.snapshots.load(ctx, scope, { lines, destination, buyer, codes, addons });
+    const cart: PricingCart = {
+      ...{ channel: request.channel, lines: loaded.lines, destination, buyer, codes },
+      ...{ addons: loaded.addons, addonPlacement: options.addonPlacement },
+    };
     const snapshot = release === null ? loaded.snapshot : releaseOrderUsage(loaded.snapshot, release);
     const priced = priceCart({ registry: this.deps.kinds, snapshot, cart });
     return { priced, unavailableVariantIds: loaded.unavailableVariantIds, buyerOrdersBefore: snapshot.buyerOrderCount };

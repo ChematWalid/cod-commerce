@@ -5,6 +5,7 @@ import { PricingService } from '../../application/pricing.service';
 import {
   anActiveOfferIn,
   aRequestFor,
+  addonOfferOn,
   aVariantIn,
   LIST_PRICE,
   offersTestEnvironment,
@@ -139,5 +140,24 @@ describe('offers isolation between businesses and stores (ADR 0002)', () => {
 
     // Assert
     expect(verdict).toEqual({ ok: false, reason: 'business_mismatch' });
+  });
+
+  it('does not price an add-on offer of another business', async () => {
+    // Arrange
+    const { a, b } = fixtures;
+    const store = a.stores[0];
+    const { variantId } = await aVariantIn(server, store);
+    const addonOfB = await anActiveOfferIn(server, scopeOf(b, b.stores[0]), b.stores[0], addonOfferOn(variantId));
+    const request = aRequestFor(variantId, 1, { addons: [{ offerId: addonOfB.id, variantId, quantity: 1 }] });
+
+    // Act
+    const quote = await server.app
+      .get(PricingService)
+      .quoteForScope(await storeContext(server, store), scopeOf(a, store), request);
+
+    // Assert
+    expect(quote.rejectedAddons).toEqual([{ offerId: addonOfB.id, variantId, reason: 'not_offered' }]);
+    expect(quote.lines.map((line) => line.addonOf)).toEqual([undefined]);
+    expect(quote.total).toBe(LIST_PRICE);
   });
 });

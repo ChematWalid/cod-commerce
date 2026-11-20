@@ -6,8 +6,8 @@ import type { Offer } from '../offer';
 /** Whether a target of `refType` names `line`. */
 type TargetMatcher = (line: PricedLine, refId: string) => boolean;
 
-/** A line an offer may read: a priced line, or a running one that may be a gift line (D2504). */
-type TargetableLine = PricedLine & { readonly giftOf?: string };
+/** A line an offer may read: a priced line, or a running one that may be a gift (D2504) or add-on line (D2506). */
+type TargetableLine = PricedLine & { readonly giftOf?: string; readonly addonOf?: string };
 
 /**
  * One matcher per target type (§3a.7): a collection target matches a line of a product in that collection.
@@ -24,11 +24,14 @@ const MATCHERS: ReadonlyMap<string, TargetMatcher> = new Map<TargetRefType, Targ
 const namesLine = (line: PricedLine) => (target: Readonly<OfferTarget>) =>
   MATCHERS.get(target.refType)?.(line, target.refId) ?? false;
 
-/** The lines no offer has gifted: a gift line carries no later line offer (D2504). */
+/**
+ * The lines the buyer bought at their own price: a gift line carries no later line offer (D2504), and an add-on line
+ * is priced by its add-on offer alone (D2506).
+ */
 const paidLines = <Line extends TargetableLine>(lines: readonly Line[]): readonly Line[] =>
-  lines.filter((line) => line.giftOf === undefined);
+  lines.filter((line) => line.giftOf === undefined && line.addonOf === undefined);
 
-/** The lines the offer's targets of one of `roles` name, gift lines left out, in cart order. */
+/** The lines the offer's targets of one of `roles` name, gift and add-on lines left out, in cart order. */
 function linesNamedBy<Line extends TargetableLine>(
   offer: Offer,
   lines: readonly Line[],
@@ -40,8 +43,8 @@ function linesNamedBy<Line extends TargetableLine>(
 
 /**
  * The lines the offer's buy targets name, in cart order (D2410). `coverage: 'all'` (a product discount on every
- * product) matches every line whatever the targets; the kind adapter decides it from its parsed config. Gift lines
- * never match (D2504).
+ * product) matches every line whatever the targets; the kind adapter decides it from its parsed config. Gift and
+ * add-on lines never match (D2504, D2506).
  */
 export function matchingLines<Line extends TargetableLine>(
   offer: Offer,
@@ -52,7 +55,7 @@ export function matchingLines<Line extends TargetableLine>(
   return linesNamedBy(offer, lines, BUY_ROLES);
 }
 
-/** The lines the offer's targets of `role` name, gift lines left out, in cart order (a bxgy reads its `get` lines). */
+/** The lines the offer's targets of `role` name, gift and add-on lines left out, in cart order (bxgy `get` lines). */
 export function matchingLinesByRole<Line extends TargetableLine>(
   offer: Offer,
   lines: readonly Line[],

@@ -53,7 +53,7 @@ export function aLine(overrides: Partial<PricedLine> = {}): PricedLine {
   };
 }
 
-/** A storefront cart of one line, home delivery to Algiers (16), without buyer or code. */
+/** A storefront cart of one line, home delivery to Algiers (16), without buyer, code or add-on, at checkout. */
 export function aCart(overrides: Partial<PricingCart> = {}): PricingCart {
   return {
     channel: 'storefront',
@@ -61,6 +61,8 @@ export function aCart(overrides: Partial<PricingCart> = {}): PricingCart {
     destination: { provinceCode: '16', stopdesk: false },
     buyer: null,
     codes: [],
+    addons: [],
+    addonPlacement: 'order_form',
     ...overrides,
   };
 }

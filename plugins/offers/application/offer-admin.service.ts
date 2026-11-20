@@ -8,7 +8,7 @@ import {
 } from '@cod/shared';
 import { type CodeInput, parseCodes } from '../domain/code-text';
 import { CODES_METHOD } from '../domain/constants';
-import type { OfferKindRegistry } from '../domain/engine/kind-registry';
+import { fitsTargetRules, type OfferKindRegistry } from '../domain/engine/kind-registry';
 import {
   CodeMethodRequiredError,
   InvalidOfferConfigError,
@@ -180,13 +180,16 @@ export class OfferAdminService {
     if (codes.length > 0) throw new CodeMethodRequiredError();
   }
 
-  /** `input` validated, its config parsed by its kind, and every target's role allowed by the kind (D2501). */
+  /**
+   * `input` validated, its config parsed by its kind, every target's role allowed by the kind (D2501) and no role
+   * holding more targets than the kind allows (an add-on offer's products, D2505).
+   */
   private parse(input: unknown): ParsedOffer {
     const parsed = offerInputSchema.safeParse(input);
     if (!parsed.success) throw new InvalidOfferConfigError();
     const { kind, config: rawConfig, targets } = parsed.data;
     const { config, rules } = this.ports.kinds.parsedWithRules(kind, rawConfig);
-    if (targets.some((target) => !rules.allowed.includes(target.role))) throw new InvalidOfferTargetsError();
+    if (!fitsTargetRules(targets, rules)) throw new InvalidOfferTargetsError();
     return { command: parsed.data, config };
   }
 

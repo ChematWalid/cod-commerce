@@ -120,6 +120,55 @@ describe('cartHash', () => {
   });
 });
 
+describe('cartHash: add-ons (D2506)', () => {
+  /** The P2.S4 hash of {@link aHashInput}: a cart without add-ons keeps it. */
+  const P2_S4_HASH = '64fb8d596362b688322fc1b4eeb6184bcef9f636357ad2db8c50801a8c1f49dd';
+  const ADDON = { offerId: '7006', variantId: '21', quantity: 1 };
+
+  it('keeps the P2.S4 hash of a cart without add-ons', () => {
+    // Arrange
+    const withoutKey = aHashInput();
+    const empty = aHashInput({ addons: [] });
+
+    // Act
+    const hashes = [cartHash(withoutKey), cartHash(empty)];
+
+    // Assert
+    expect(hashes).toEqual([P2_S4_HASH, P2_S4_HASH]);
+  });
+
+  it('changes h when an add-on changes', () => {
+    // Arrange
+    const carts = [
+      aHashInput({ addons: [ADDON] }),
+      aHashInput({ addons: [{ ...ADDON, offerId: '7007' }] }),
+      aHashInput({ addons: [{ ...ADDON, variantId: '22' }] }),
+      aHashInput({ addons: [{ ...ADDON, quantity: 2 }] }),
+      aHashInput(),
+    ];
+
+    // Act
+    const hashes = carts.map(cartHash);
+
+    // Assert
+    expect(new Set(hashes).size).toBe(carts.length);
+  });
+
+  it('ignores add-on order', () => {
+    // Arrange
+    const second = { offerId: '7006', variantId: '102', quantity: 3 };
+    const third = { offerId: '10', variantId: '21', quantity: 1 };
+    const forward = aHashInput({ addons: [ADDON, second, third] });
+    const backward = aHashInput({ addons: [third, second, ADDON] });
+
+    // Act
+    const hashes = [cartHash(forward), cartHash(backward)];
+
+    // Assert
+    expect(hashes[0]).toBe(hashes[1]);
+  });
+});
+
 describe('phoneKey', () => {
   it('derives one phone key from one E.164 phone and another from another phone', () => {
     // Arrange

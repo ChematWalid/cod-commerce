@@ -3,7 +3,7 @@ import { CODES_METHOD } from '../constants';
 import type { Offer } from '../offer';
 import { checkEligibility } from './eligibility';
 import type { OfferKindRegistry } from './kind-registry';
-import type { OfferOutcome } from './outcome';
+import { isEmptyEffect, type EffectOutcome, type OfferOutcome } from './outcome';
 import { kindInputOf, type Candidate, type OfferEntry, type PricingContext } from './pricing-state';
 import { mergeRefusals, NO_REFUSALS, refusalOf, zeroEffectRefusal, type Refusals } from './refusals';
 
@@ -39,11 +39,9 @@ export function entriesOf(
     const code = activated.get(offer.id) ?? null;
     if (calculator === undefined || offer.status !== 'active') return [];
     if (offer.method === CODES_METHOD && code === null) return [];
-    return [{ offer, calculator, config: registry.parseConfig(offer.kind, offer.config), code }];
+    return [{ offer, calculator, config: registry.parseConfig(offer.kind, offer.config), code, addons: [] }];
   });
 }
-
-type Effect = Exclude<OfferOutcome, { kind: 'skip' }>;
 
 /** Keys of the lines a positive per-line amount names. */
 const positiveKeysOf = (amounts: ReadonlyMap<string, number>): string[] =>
@@ -51,19 +49,23 @@ const positiveKeysOf = (amounts: ReadonlyMap<string, number>): string[] =>
 
 /**
  * Keys of the lines an effect counts on, by effect kind (§3a.7): the lines a line outcome takes something off, the
- * source lines a gift splits units off (D2504), none for order and delivery outcomes.
+ * source lines a gift splits units off (D2504), none for order, delivery and add-on outcomes (an add-on appends its
+ * own lines and never fills a line's offer slots, D2507).
  */
-const LINE_KEYS_BY_EFFECT: { readonly [K in Effect['kind']]: (outcome: Extract<Effect, { kind: K }>) => string[] } = {
+const LINE_KEYS_BY_EFFECT: {
+  readonly [K in EffectOutcome['kind']]: (outcome: Extract<EffectOutcome, { kind: K }>) => string[];
+} = {
   line: (outcome) => positiveKeysOf(outcome.unitDiscounts),
   gift: (outcome) => positiveKeysOf(outcome.gifts),
   order: () => [],
   delivery: () => [],
+  addon: () => [],
 };
 
-const lineKeysOf = (outcome: Effect): string[] =>
-  (LINE_KEYS_BY_EFFECT[outcome.kind] as (outcome: Effect) => string[])(outcome);
+const lineKeysOf = (outcome: EffectOutcome): string[] =>
+  (LINE_KEYS_BY_EFFECT[outcome.kind] as (outcome: EffectOutcome) => string[])(outcome);
 
-const isWorthless = (outcome: OfferOutcome): boolean => outcome.kind !== 'skip' && outcome.value === 0;
+const isWorthless = (outcome: OfferOutcome): boolean => outcome.kind !== 'skip' && isEmptyEffect(outcome);
 
 /**
  * One entry on the lines before offers. An automatic offer that touches nothing is silent whatever its eligibility
@@ -76,9 +78,10 @@ function verdictOf(entry: OfferEntry, lines: readonly RunningLine[], context: Pr
   if (entry.code === null && isWorthless(outcome)) return { eligible, candidate: null, refusals: NO_REFUSALS };
   if (reason !== null) return { eligible, candidate: null, refusals: refusalOf(entry, reason) };
   if (outcome.kind === 'skip') return { eligible, candidate: null, refusals: refusalOf(entry, outcome.reason) };
-  if (outcome.value === 0) return { eligible, candidate: null, refusals: zeroEffectRefusal(entry, outcome) };
+  if (isEmptyEffect(outcome)) return { eligible, candidate: null, refusals: zeroEffectRefusal(entry, outcome) };
+  const { combinationClass, combinesAlways = false } = entry.calculator;
   const lineKeys = lineKeysOf(outcome);
-  const candidate = { ...entry, combinationClass: entry.calculator.combinationClass, value: outcome.value, lineKeys };
+  const candidate = { ...entry, combinationClass, value: outcome.value, lineKeys, combinesAlways };
   return { eligible, candidate, refusals: NO_REFUSALS };
 }
 

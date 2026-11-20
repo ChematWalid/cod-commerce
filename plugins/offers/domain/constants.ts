@@ -21,6 +21,9 @@ export const BUY_ROLES: ReadonlySet<string> = new Set(['buy']);
 /** What joins a gift line's variant id and offer id in its key (D2504); `:` never occurs in a decimal id. */
 export const GIFT_KEY_SEPARATOR = ':gift:';
 
+/** What joins an add-on line's variant id and offer id in its key (D2506); `:` never occurs in a decimal id. */
+export const ADDON_KEY_SEPARATOR = ':addon:';
+
 /** Milliseconds per second: token instants are integer epoch seconds (D2421). */
 export const MS_PER_SECOND = 1_000;
 

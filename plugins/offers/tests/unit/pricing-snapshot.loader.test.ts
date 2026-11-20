@@ -1,3 +1,4 @@
+import { toSnowflake } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import {
   newBuyerHistoryRegistry,
@@ -49,6 +50,7 @@ const aSnapshotRequest = (overrides: Partial<SnapshotRequest> = {}): SnapshotReq
   destination: { provinceCode: '16', stopdesk: false },
   buyer: null,
   codes: [],
+  addons: [],
   ...overrides,
 });
 
@@ -211,5 +213,52 @@ describe('PricingSnapshotLoader', () => {
     expect(loaded.snapshot.buyerOrderCount).toBe(3);
     expect(askedFor).toEqual([[limited.id]]);
     expect(loaded.snapshot.perBuyerUsage.get(limited.id)).toBe(1);
+  });
+});
+
+describe('PricingSnapshotLoader: add-ons (D2506)', () => {
+  const ADDON_OFFER_ID = toSnowflake('7006');
+
+  it('prices add-on variants through the gate and keeps a refused one unpriced', async () => {
+    // Arrange
+    const { loader } = setUpLoader();
+    const addons = [
+      { offerId: ADDON_OFFER_ID, variantId: '12', quantity: 2 },
+      { offerId: ADDON_OFFER_ID, variantId: '99', quantity: 1 },
+    ];
+
+    // Act
+    const loaded = await loader.load(ctx, scopeA, aSnapshotRequest({ addons }));
+
+    // Assert
+    expect(loaded.addons).toEqual([
+      {
+        offerId: '7006',
+        variantId: '12',
+        quantity: 2,
+        priced: { productId: '2', originalPrice: 3_000, collectionIds: [] },
+      },
+      { offerId: '7006', variantId: '99', quantity: 1, priced: null },
+    ]);
+    expect(loaded.unavailableVariantIds).toEqual([]);
+  });
+
+  it('quotes delivery for the cart lines only, never for the add-ons', async () => {
+    // Arrange
+    const { loader, shipping } = setUpLoader();
+    const asked: ShippingQuoteInput[] = [];
+    shipping.register({
+      quote: (_ctx, _scope, input) => {
+        asked.push(input);
+        return Promise.resolve({ resolved: true, baseFee: 800, overweightFee: 0, speed: null });
+      },
+    });
+    const addons = [{ offerId: ADDON_OFFER_ID, variantId: '12', quantity: 1 }];
+
+    // Act
+    await loader.load(ctx, scopeA, aSnapshotRequest({ addons }));
+
+    // Assert
+    expect(asked.map(({ items }) => items.map(({ variantId }) => variantId))).toEqual([['11']]);
   });
 });

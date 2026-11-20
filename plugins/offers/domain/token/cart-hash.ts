@@ -9,13 +9,24 @@ export interface CartHashLine {
   readonly quantity: number;
 }
 
-/** What `h` covers (D2421): the channel, lines, destination, codes as typed and the keyed phone, if any. */
+/** One add-on as the token commits to it: the offer, the variant and how many the buyer asked for (D2506). */
+export interface CartHashAddon {
+  readonly offerId: string;
+  readonly variantId: string;
+  readonly quantity: number;
+}
+
+/**
+ * What `h` covers (D2421): the channel, lines, destination, codes as typed, the keyed phone, if any, and the add-ons
+ * the buyer accepted (D2506; none when absent).
+ */
 export interface CartHashInput {
   readonly channel: PricingChannel;
   readonly lines: readonly CartHashLine[];
   readonly destination: PricingDestination;
   readonly codes: readonly string[];
   readonly phoneKey: string | null;
+  readonly addons?: readonly CartHashAddon[];
 }
 
 /**
@@ -39,6 +50,20 @@ function mergedLines(lines: readonly CartHashLine[]): [string, number][] {
   return [...quantities.entries()].sort(([left], [right]) => byDecimalId(left, right));
 }
 
+/** Add-ons as `[offerId, variantId, quantity]` triples sorted by offer id, then variant id (D2506). */
+const sortedAddons = (addons: readonly CartHashAddon[]): [string, string, number][] =>
+  addons
+    .map(({ offerId, variantId, quantity }): [string, string, number] => [offerId, variantId, quantity])
+    .sort(
+      ([leftOffer, leftVariant], [rightOffer, rightVariant]) =>
+        byDecimalId(leftOffer, rightOffer) || byDecimalId(leftVariant, rightVariant),
+    );
+
+/** The `addons` key of the hashed cart: present only with add-ons, so every hash without them stays as in P2.S4. */
+function addonsKeyOf(addons: readonly CartHashAddon[] = []): { addons?: [string, string, number][] } {
+  return addons.length === 0 ? {} : { addons: sortedAddons(addons) };
+}
+
 /** Codes as the engine reads them: trimmed, upper-cased, each once, sorted (D2406). */
 const normalisedCodes = (codes: readonly string[]): string[] =>
   [...new Set(codes.map((code) => code.trim().toUpperCase()))].sort();
@@ -52,7 +77,8 @@ function canonicalDestination(destination: PricingDestination): object | null {
 
 /**
  * `h` of the quote token (D2421): SHA-256 hex of the canonical JSON of the structured cart, never of a joined string,
- * so a free-text commune cannot pass for another field. Line order, repeated lines and code spelling do not matter.
+ * so a free-text commune cannot pass for another field. Line order, repeated lines, code spelling and add-on order do
+ * not matter; add-ons enter only when there are some (D2506), so a cart without them keeps its P2.S4 hash.
  */
 export function cartHash(cart: CartHashInput): string {
   const canonical = canonicalJson({
@@ -61,6 +87,7 @@ export function cartHash(cart: CartHashInput): string {
     destination: canonicalDestination(cart.destination),
     codes: normalisedCodes(cart.codes),
     phoneKey: cart.phoneKey,
+    ...addonsKeyOf(cart.addons),
   });
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }

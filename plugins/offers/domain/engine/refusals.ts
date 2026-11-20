@@ -46,7 +46,7 @@ export function refusalOf(entry: RefusedEntry, reason: SkipReason): Refusals {
 
 /**
  * Whether a worthless outcome names no line of the cart, by outcome kind (§3a.7): a zero line outcome touches no
- * line, a gift names none only without a buy line (D2530); order, delivery and skip outcomes never count.
+ * line, a gift names none only without a buy line (D2530); order, delivery, add-on and skip outcomes never count.
  */
 const NAMES_NO_LINE: {
   readonly [K in OfferOutcome['kind']]: (outcome: Extract<OfferOutcome, { kind: K }>) => boolean;
@@ -55,6 +55,7 @@ const NAMES_NO_LINE: {
   gift: (outcome) => !outcome.namesLine,
   order: () => false,
   delivery: () => false,
+  addon: () => false,
   skip: () => false,
 };
 

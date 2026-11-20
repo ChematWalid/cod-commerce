@@ -17,7 +17,7 @@ const subtotalOf = (lines: readonly RunningLine[]): number =>
 
 /**
  * What a calculator reads for `config` over `lines`: an offer targeting product 1 by default, bases computed from
- * the lines and an unresolved home delivery.
+ * the lines, an unresolved home delivery and no add-on.
  */
 export function aKindInput<C>(
   config: C,
@@ -30,6 +30,7 @@ export function aKindInput<C>(
     lines,
     base: { subtotal: subtotalOf(lines), pieces: piecesOf(lines) },
     delivery: { ...UNRESOLVED_SHIPPING, method: 'home' },
+    addons: [],
     ...overrides,
   };
 }

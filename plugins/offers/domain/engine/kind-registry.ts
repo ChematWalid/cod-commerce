@@ -1,4 +1,11 @@
-import type { CombinationClass, Nudge, OfferConfigWarning, OfferTargetRole, Suggestion } from '@cod/shared';
+import type {
+  AddonPlacement,
+  CombinationClass,
+  Nudge,
+  OfferConfigWarning,
+  OfferTargetRole,
+  Suggestion,
+} from '@cod/shared';
 import type { ZodType } from 'zod';
 import { InvalidOfferConfigError, UnknownOfferKindError } from '../errors';
 import type { KindInput, OfferOutcome } from './outcome';
@@ -10,6 +17,18 @@ import type { KindInput, OfferOutcome } from './outcome';
 export interface TargetRules {
   readonly allowed: readonly OfferTargetRole[];
   readonly required: readonly OfferTargetRole[];
+  /** Most targets of a role the offer may hold, enforced with `allowed` (an add-on offer's products, D2505). */
+  readonly maxPerRole?: Readonly<Partial<Record<OfferTargetRole, number>>>;
+}
+
+/** Whether every target's role is allowed and no role holds more targets than its maximum (D2501, D2505). */
+export function fitsTargetRules(targets: readonly { readonly role: OfferTargetRole }[], rules: TargetRules): boolean {
+  if (targets.some((target) => !rules.allowed.includes(target.role))) return false;
+  const { maxPerRole = {} } = rules;
+  return rules.allowed.every((role) => {
+    const max = maxPerRole[role];
+    return max === undefined || targets.filter((target) => target.role === role).length <= max;
+  });
 }
 
 /** A configuration parsed by its kind's schema, with the target rules that configuration gives (D2501). */
@@ -46,6 +65,8 @@ export interface OfferKindCalculator<C> {
   previewCarts?(config: C): readonly PreviewCart[];
   /** Configurations the engine prices, but likely not as the merchant meant (D2516). */
   configWarnings?(config: C): readonly OfferConfigWarning[];
+  /** Set on a kind that offers add-ons: where an offer with `config` offers them (D2506). */
+  addonPlacement?(config: C): AddonPlacement;
 }
 
 /** The calculators by kind; the engine and the admin use case look kinds up here, never by name in code. */
