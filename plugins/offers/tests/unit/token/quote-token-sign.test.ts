@@ -1,9 +1,11 @@
 import {
   CODE_MAX_LENGTH,
+  MAX_ADDON_PIECES,
   INT_COLUMN_MAX,
   MAX_LINE_OFFERS_APPLIED,
   MAX_LINE_QUANTITY,
   MAX_ORDER_DISCOUNTS_APPLIED,
+  MAX_QUOTE_ADDONS,
   MAX_QUOTE_LINES,
   MAX_QUOTE_TOKEN_LENGTH,
   MONEY_MAX_DZD,
@@ -22,7 +24,10 @@ const ALL = { order: true, product: true, delivery: true };
 const signAt = (issuedAt: number, payload: QuotePayloadBody = aBody()) =>
   signQuote({ ring: RING_K1, payload, issuedAt, nonce: NONCE });
 
-/** A body at every width bound: the most lines, the widest ids and prices, the most offers per line and codes. */
+/**
+ * A body at every width bound: the most lines, the widest ids and prices, the most offers per line and codes, and the
+ * most add-on lines with their offers in `o`.
+ */
 function aWorstCaseBody(lineCount: number): QuotePayloadBody {
   const line = {
     variantId: String(INT_COLUMN_MAX),
@@ -32,6 +37,13 @@ function aWorstCaseBody(lineCount: number): QuotePayloadBody {
     offerIds: Array.from({ length: MAX_LINE_OFFERS_APPLIED }, () => WIDEST_SNOWFLAKE),
   };
   const discount = { amount: MONEY_MAX_DZD, offerId: WIDEST_SNOWFLAKE, code: 'X'.repeat(CODE_MAX_LENGTH) };
+  const addon = {
+    offerId: WIDEST_SNOWFLAKE,
+    variantId: String(INT_COLUMN_MAX),
+    qty: MAX_ADDON_PIECES,
+    unitPrice: MONEY_MAX_DZD,
+    parentVariantId: String(INT_COLUMN_MAX),
+  };
   return aBody({
     b: WIDEST_SNOWFLAKE,
     s: WIDEST_SNOWFLAKE,
@@ -40,11 +52,13 @@ function aWorstCaseBody(lineCount: number): QuotePayloadBody {
     sh: MONEY_MAX_DZD,
     l: Array.from({ length: lineCount }, () => line),
     d: Array.from({ length: MAX_ORDER_DISCOUNTS_APPLIED }, () => discount),
+    o: [{ offerId: '7001' }, ...Array.from({ length: MAX_QUOTE_ADDONS }, () => ({ offerId: WIDEST_SNOWFLAKE }))],
+    a: Array.from({ length: MAX_QUOTE_ADDONS }, () => addon),
   });
 }
 
 describe('signQuote: bounds', () => {
-  it('signs a worst-case cart of MAX_QUOTE_LINES lines into a token verify accepts as well formed', () => {
+  it('signs a worst-case cart of MAX_QUOTE_LINES lines and MAX_QUOTE_ADDONS add-ons into a token verify accepts as well formed', () => {
     // Arrange
     const body = aWorstCaseBody(MAX_QUOTE_LINES);
 

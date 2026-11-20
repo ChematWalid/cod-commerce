@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { addonCalculator } from '../../../domain/kinds/addon';
 import { aLine } from '../../support/builders';
 import { ADDON_ID, ADDON_KEY, ADDON_TARGET, anAddon, anAddonConfig, anAddonOffer } from '../../support/addon';
-import { lineOf, shapeOf } from '../../support/bxgy';
+import { aBxgyOffer, BUY_P1_GET_P2, BXGY_ID, lineOf, shapeOf } from '../../support/bxgy';
 import { anOrderDiscount, aProductDiscount, quoteOf } from '../../support/pipeline';
 
 const BUY_PRODUCT_1 = { role: 'buy' as const, refType: 'product' as const, refId: '1' };
@@ -148,6 +148,23 @@ describe('addonCalculator: condition and parent', () => {
     expect(quote.rejectedAddons).toEqual([{ offerId: ADDON_ID, variantId: '21', reason: 'not_eligible' }]);
     expect(quote.applied).toEqual([]);
     expect(quote.available).toBe(true);
+  });
+
+  it('rides with a buy line a buy x get y offer gifted whole', () => {
+    // Arrange
+    const bxgy = aBxgyOffer({ buyQuantity: 1, getQuantity: 1, getFrom: 'targets' }, { targets: BUY_P1_GET_P2 });
+    const buyProduct2 = { ...BUY_PRODUCT_1, refId: '2' };
+    const addon = anAddonOffer({ condition: 'targets' }, { targets: [ADDON_TARGET, buyProduct2] });
+    const lines = [aLine(), aLine({ key: '22', variantId: '22', productId: '2' })];
+
+    // Act
+    const quote = quoteOf({ offers: [bxgy, addon] }, { lines, addons: [anAddon()] });
+
+    // Assert
+    expect(lineOf(quote.lines, `22:gift:${BXGY_ID}`).unitPrice).toBe(0);
+    expect(lineOf(quote.lines, ADDON_KEY).parentVariantId).toBe('22');
+    expect(quote.rejectedAddons).toEqual([]);
+    expect(quote.skipped).toEqual([]);
   });
 
   it('rejects an add-on of an offer the buyer is not eligible for as not_eligible', () => {

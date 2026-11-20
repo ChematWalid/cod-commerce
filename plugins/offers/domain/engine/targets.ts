@@ -63,3 +63,12 @@ export function matchingLinesByRole<Line extends TargetableLine>(
 ): readonly Line[] {
   return linesNamedBy(offer, lines, new Set([role]));
 }
+
+/**
+ * The lines the offer's buy targets name among the lines the buyer put in the cart, in cart order: a gift line counts,
+ * since a buy-x-get-y offer split it off a line the buyer added (D2504); an add-on line does not (D2506, D2531).
+ */
+export function cartLinesNamedBy<Line extends TargetableLine>(offer: Offer, lines: readonly Line[]): readonly Line[] {
+  const targets = offer.targets.filter((target) => BUY_ROLES.has(target.role));
+  return lines.filter((line) => line.addonOf === undefined && targets.some(namesLine(line)));
+}

@@ -12,7 +12,7 @@ import { addonLineKey, type AddonItem, type RunningLine } from '../cart';
 import { compareOfferIds } from '../engine/combine';
 import type { OfferKindCalculator, PreviewCart, TargetRules } from '../engine/kind-registry';
 import type { AddonOutcome, KindInput, OfferOutcome } from '../engine/outcome';
-import { matchingLines } from '../engine/targets';
+import { cartLinesNamedBy } from '../engine/targets';
 
 type PriceOf<M extends AddonPrice['mode']> = Extract<AddonPrice, { mode: M }>;
 
@@ -29,9 +29,12 @@ const ADDON_PRICERS: { readonly [M in AddonPrice['mode']]: (price: PriceOf<M>, l
 const addonPriceOf = (price: AddonPrice, listPrice: number): number =>
   (ADDON_PRICERS[price.mode] as (price: AddonPrice, listPrice: number) => number)(price, listPrice);
 
-/** The variant id of the smallest buy line of the cart, or undefined when no line matches a buy target. */
+/**
+ * The variant id of the smallest buy line of the cart, a line a buy-x-get-y offer gifted whole included (D2531 j), or
+ * undefined when no line matches a buy target.
+ */
 function smallestBuyLineOf(input: KindInput<AddonConfig>): string | undefined {
-  const ids = matchingLines(input.offer, input.lines).map((line) => line.variantId);
+  const ids = cartLinesNamedBy(input.offer, input.lines).map((line) => line.variantId);
   return [...ids].sort(compareOfferIds)[0];
 }
 

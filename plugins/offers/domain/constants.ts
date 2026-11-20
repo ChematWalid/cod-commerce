@@ -1,6 +1,7 @@
 import {
   MAX_LINE_OFFERS_APPLIED,
   MAX_ORDER_DISCOUNTS_APPLIED,
+  MAX_QUOTE_ADDONS,
   MAX_QUOTE_LINES,
   type CombinationClass,
   type OfferMethod,
@@ -68,8 +69,12 @@ export const LIST_PRICE_SOURCE = 'variant';
 export const MAX_DELIVERY_OFFERS_APPLIED = 1;
 
 /**
- * Most offers one order can hold (D2427, D2445, D2451): every line at its line-offer bound, the order discounts and the
- * one delivery waiver, as the token's `o` lists them. An order usage naming more did not come from a stored order.
+ * Most offers one order can hold (D2427, D2445, D2451, D2531 c): every line at its line-offer bound, the order
+ * discounts, the one delivery waiver and one add-on offer per add-on, as the token's `o` lists them. An order usage
+ * naming more did not come from a stored order.
  */
 export const MAX_ORDER_HELD_OFFERS =
-  MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED + MAX_ORDER_DISCOUNTS_APPLIED + MAX_DELIVERY_OFFERS_APPLIED;
+  MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED +
+  MAX_ORDER_DISCOUNTS_APPLIED +
+  MAX_DELIVERY_OFFERS_APPLIED +
+  MAX_QUOTE_ADDONS;
