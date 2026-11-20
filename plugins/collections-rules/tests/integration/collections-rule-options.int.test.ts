@@ -1,7 +1,7 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { codeOf } from './collections-api';
+import { refusalOf } from './collections-api';
 import { collectionsSuite } from './collections-kit';
 import { CollectionsMembers } from './collections-members';
 import {
@@ -91,7 +91,7 @@ describe('the condition builder options (D2321, AC3)', () => {
     // Act
     const burst = await burstPastBudget(
       RULE_OPTIONS_BUDGET,
-      () => codeOf(suite.kit.gql(RULE_OPTIONS)),
+      () => refusalOf(suite.kit.gql(RULE_OPTIONS)),
       () => suite.kit.rest('GET', '/catalog/collections/rule-options'),
     );
 
@@ -101,6 +101,7 @@ describe('the condition builder options (D2321, AC3)', () => {
       [],
     );
     expect(refused).toBeGreaterThanOrEqual(burst.minimumRefused);
+    expect(burst.retryAfterSeconds).toBeGreaterThan(0);
     expect(burst.limited?.status).toBe(TOO_MANY_REQUESTS);
     expect(burst.limited?.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED });
     expect(Number(burst.limited?.headers.get('Retry-After'))).toBeGreaterThan(0);

@@ -68,7 +68,8 @@ const isUpToDate = (definition: CollectionDefinition, rule: CollectionRule): boo
  * Sets a collection's mode and rule (D2302). Automatic → manual keeps the current members in their current order as
  * the manual list (refused above the manual cap); a switch to automatic, a new rule, or members built with an older
  * normal form ask for a recompute; an automatic collection saved with its current rule keeps its members; manual
- * stays manual with its members. `currentMembers` is read only for automatic → manual ({@link needsCurrentMembers}). An automatic collection needs a rule and a manual one takes none.
+ * stays manual with its members. `currentMembers` is read only for automatic → manual ({@link needsCurrentMembers}).
+ * An automatic collection needs a rule and a manual one takes none.
  */
 export function switchMode(
   definition: CollectionDefinition,

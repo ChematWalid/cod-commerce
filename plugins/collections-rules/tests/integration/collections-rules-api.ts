@@ -1,3 +1,5 @@
+import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
+import type { GraphqlRefusal } from './collections-api';
 import type { CollectionsKit, RestAnswer } from './collections-kit';
 
 /** The catalog's taxonomy and product writes the rule tests arrange a store with (all through the API). */
@@ -132,27 +134,44 @@ const TOO_MANY_REQUESTS = 429;
 export interface BudgetBurst {
   /** The GraphQL codes of the burst, `undefined` for an answered call. */
   readonly codes: readonly (string | undefined)[];
-  /** How many of the burst must have been refused, whatever refilled while it ran. */
+  /** How many of the burst must have been refused, whatever refilled while it ran; always at least one. */
   readonly minimumRefused: number;
+  /** The `extensions.retryAfterSeconds` of the first rate-limited GraphQL refusal, if any. */
+  readonly retryAfterSeconds: number | undefined;
   /** The first REST call refused after the burst, if any. */
   readonly limited: RestAnswer | undefined;
 }
 
+/** Thrown when a burst ran so long that the refill could have answered every call: the test would prove nothing. */
+class BurstTooSlowError extends Error {
+  constructor(elapsedMs: number) {
+    super(`the burst took ${String(elapsedMs)} ms, past ${String(OVERSHOOT * REFILL_MS)} ms: the runner is too slow`);
+  }
+}
+
 /**
  * Spends a fresh budget with `budget + OVERSHOOT` concurrent GraphQL calls, then calls REST until one is refused (at
- * most `OVERSHOOT` tries): the refill of a loaded runner lowers `minimumRefused` instead of turning the test red.
+ * most `OVERSHOOT` tries): the refill of a loaded runner lowers `minimumRefused` instead of turning the test red, but
+ * never below one, so the GraphQL throttle stays pinned; a burst too slow for that fails loudly.
  */
 export async function burstPastBudget(
   budget: number,
-  graphql: () => Promise<string | undefined>,
+  graphql: () => Promise<GraphqlRefusal | undefined>,
   rest: () => Promise<RestAnswer>,
 ): Promise<BudgetBurst> {
   const started = Date.now();
-  const codes = await Promise.all(Array.from({ length: budget + OVERSHOOT }, graphql));
-  const minimumRefused = OVERSHOOT - Math.floor((Date.now() - started) / REFILL_MS);
+  const refusals = await Promise.all(Array.from({ length: budget + OVERSHOOT }, graphql));
+  const elapsedMs = Date.now() - started;
+  const minimumRefused = OVERSHOOT - Math.floor(elapsedMs / REFILL_MS);
+  if (minimumRefused < 1) throw new BurstTooSlowError(elapsedMs);
+  const codes = refusals.map((refusal) => refusal?.code);
+  const retryAfterSeconds = refusals.find(
+    (refusal) => refusal?.code === COLLECTIONS_ERROR_CODES.RATE_LIMITED,
+  )?.retryAfterSeconds;
+  const answered = { codes, minimumRefused, retryAfterSeconds };
   for (let attempt = 0; attempt < OVERSHOOT; attempt += 1) {
     const answer = await rest();
-    if (answer.status === TOO_MANY_REQUESTS) return { codes, minimumRefused, limited: answer };
+    if (answer.status === TOO_MANY_REQUESTS) return { ...answered, limited: answer };
   }
-  return { codes, minimumRefused, limited: undefined };
+  return { ...answered, limited: undefined };
 }

@@ -4,7 +4,13 @@ import { ForbiddenException, HttpStatus, InternalServerErrorException } from '@n
 import { ChannelNotFoundError, EntityNotFoundError, ForbiddenError } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { COLLECTIONS_REST_CONTROLLERS } from '../../collections-rules.plugin';
-import { ChannelNotFoundRestFilter, CollectionsRestErrorFilter, restCall, restStatusOf } from '../../api/error-mapping';
+import {
+  ChannelNotFoundRestFilter,
+  CollectionsApiError,
+  CollectionsRestErrorFilter,
+  restCall,
+  restStatusOf,
+} from '../../api/error-mapping';
 import { CorruptCollectionDefinitionError } from '../../domain/corrupt-collection-definition.error';
 import * as errors from '../../domain/errors';
 
@@ -108,6 +114,14 @@ describe('the collections REST error mapping', () => {
 
     // Assert
     expect(headers.get('Retry-After')).toBe('7');
+  });
+
+  it('tells a rate-limited GraphQL caller when to retry through extensions.retryAfterSeconds', () => {
+    // Act
+    const error = new CollectionsApiError(new errors.CollectionsRateLimitedError(7));
+
+    // Assert
+    expect(error.extensions).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED, retryAfterSeconds: 7 });
   });
 
   it.each(COLLECTIONS_REST_CONTROLLERS.map((controller) => [controller.name, controller] as const))(

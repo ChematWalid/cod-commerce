@@ -26,19 +26,30 @@ export const COLLECTIONS = `query ($options: StoreCollectionListInput) {
 }`;
 export const DELETE_COLLECTION = 'mutation ($id: ID!) { deleteStoreCollection(id: $id) }';
 
-/** The part of a failed GraphQL call the tests read: the first error's code. */
-export interface GraphqlErrorShape {
-  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
+/** The extensions of a GraphQL refusal the tests read. */
+export interface GraphqlRefusal {
+  readonly code?: string;
+  readonly retryAfterSeconds?: number;
 }
 
-/** The error code a GraphQL call failed with; none when it succeeded. */
-export async function codeOf(call: Promise<unknown>): Promise<string | undefined> {
+/** The part of a failed GraphQL call the tests read: the first error's extensions. */
+export interface GraphqlErrorShape {
+  readonly response?: { readonly errors?: readonly { readonly extensions?: GraphqlRefusal }[] };
+}
+
+/** The extensions a GraphQL call was refused with; none when it succeeded. */
+export async function refusalOf(call: Promise<unknown>): Promise<GraphqlRefusal | undefined> {
   try {
     await call;
     return undefined;
   } catch (error: unknown) {
-    return (error as GraphqlErrorShape).response?.errors?.[0]?.extensions?.code;
+    return (error as GraphqlErrorShape).response?.errors?.[0]?.extensions ?? {};
   }
+}
+
+/** The error code a GraphQL call failed with; none when it succeeded. */
+export async function codeOf(call: Promise<unknown>): Promise<string | undefined> {
+  return (await refusalOf(call))?.code;
 }
 
 let made = 0;

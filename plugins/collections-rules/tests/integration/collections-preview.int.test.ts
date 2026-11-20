@@ -1,7 +1,7 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { codeOf, createCollection, rawId } from './collections-api';
+import { codeOf, createCollection, rawId, refusalOf } from './collections-api';
 import { collectionsSuite } from './collections-kit';
 import {
   createRuleProduct,
@@ -115,7 +115,7 @@ describe('the live rule preview (D2331, AC4)', () => {
     // Act
     const burst = await burstPastBudget(
       PREVIEW_BUDGET,
-      () => codeOf(suite.kit.gql(PREVIEW, { input: { rule } })),
+      () => refusalOf(suite.kit.gql(PREVIEW, { input: { rule } })),
       () => suite.kit.rest('POST', '/catalog/collections/preview', { rule }),
     );
 
@@ -125,6 +125,7 @@ describe('the live rule preview (D2331, AC4)', () => {
       [],
     );
     expect(refused).toBeGreaterThanOrEqual(burst.minimumRefused);
+    expect(burst.retryAfterSeconds).toBeGreaterThan(0);
     expect(burst.limited?.status).toBe(TOO_MANY_REQUESTS);
     expect(burst.limited?.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED });
     expect(Number(burst.limited?.headers.get('Retry-After'))).toBeGreaterThan(0);
