@@ -16,6 +16,14 @@ export class InvalidOfferConfigError extends DomainError {
   }
 }
 
+/** A target has a role its offer's kind does not allow (D2501); the message never repeats the targets. */
+export class InvalidOfferTargetsError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.INVALID_TARGETS;
+  constructor() {
+    super('This offer kind does not allow one of these targets');
+  }
+}
+
 /** No calculator of the kind registry handles that kind (D2404). */
 export class UnknownOfferKindError extends DomainError {
   readonly code = PRICING_ERROR_CODES.UNKNOWN_KIND;

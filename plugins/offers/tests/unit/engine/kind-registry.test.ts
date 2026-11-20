@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { InvalidOfferConfigError, UnknownOfferKindError } from '../../../domain/errors';
 import { OfferKindRegistry, type OfferKindCalculator } from '../../../domain/engine/kind-registry';
+import { BUILT_IN_OFFER_KINDS } from '../../../domain/kinds';
 
 /** A minimal calculator of `kind` whose config is `{ percent: 1..100 }`, skipping every offer. */
 function aCalculator(kind: string): OfferKindCalculator<{ percent: number }> {
@@ -11,6 +12,7 @@ function aCalculator(kind: string): OfferKindCalculator<{ percent: number }> {
     stage: 30,
     configSchema: z.object({ percent: z.number().int().min(1).max(100) }),
     evaluate: () => ({ kind: 'skip', reason: 'min_not_met' }),
+    targetRules: () => ({ allowed: ['buy'], required: [] }),
   };
 }
 
@@ -81,5 +83,71 @@ describe('OfferKindRegistry', () => {
 
     // Assert
     expect(config).toEqual({ percent: 10 });
+  });
+});
+
+describe('OfferKindRegistry target rules (D2501)', () => {
+  const builtIns = new OfferKindRegistry(BUILT_IN_OFFER_KINDS);
+
+  it('reports quantity as requiring a buy target', () => {
+    // Arrange
+    const config = { priceMode: 'percent', tiers: [{ quantity: 2, price: 10 }] };
+
+    // Act
+    const rules = builtIns.targetRulesOf('quantity', config);
+
+    // Assert
+    expect(rules).toEqual({ allowed: ['buy'], required: ['buy'] });
+  });
+
+  it('reports product discount on all products as requiring no target', () => {
+    // Arrange
+    const config = { valueType: 'percent', value: 10, appliesTo: 'all' };
+
+    // Act
+    const rules = builtIns.targetRulesOf('product_discount', config);
+
+    // Assert
+    expect(rules).toEqual({ allowed: ['buy'], required: [] });
+  });
+
+  it('reports product discount on targets as requiring a buy target', () => {
+    // Arrange
+    const config = { valueType: 'percent', value: 10, appliesTo: 'targets' };
+
+    // Act
+    const rules = builtIns.targetRulesOf('product_discount', config);
+
+    // Assert
+    expect(rules).toEqual({ allowed: ['buy'], required: ['buy'] });
+  });
+
+  it('reports order discount and free delivery as allowing buy targets and requiring none', () => {
+    // Arrange
+    const orderConfig = { valueType: 'fixed', value: 300 };
+
+    // Act
+    const orderRules = builtIns.targetRulesOf('order_discount', orderConfig);
+    const deliveryRules = builtIns.targetRulesOf('free_delivery', {});
+
+    // Assert
+    expect(orderRules).toEqual({ allowed: ['buy'], required: [] });
+    expect(deliveryRules).toEqual({ allowed: ['buy'], required: [] });
+  });
+
+  it('throws for target rules of an unknown kind', () => {
+    // Act
+    const read = () => builtIns.targetRulesOf('teleport', {});
+
+    // Assert
+    expect(read).toThrow(UnknownOfferKindError);
+  });
+
+  it('throws for target rules of a config its schema rejects', () => {
+    // Act
+    const read = () => builtIns.targetRulesOf('quantity', { tiers: 'many' });
+
+    // Assert
+    expect(read).toThrow(InvalidOfferConfigError);
   });
 });

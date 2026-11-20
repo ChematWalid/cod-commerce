@@ -1,5 +1,6 @@
 import { quantityConfigSchema, STAGE_QUANTITY, type QuantityConfig } from '@cod/shared';
 import type { OfferKindCalculator } from '../engine/kind-registry';
+import { BUY_TARGET_REQUIRED } from './target-rules';
 import type { KindInput, OfferOutcome } from '../engine/outcome';
 import { matchingLines } from '../engine/targets';
 import { lineOutcome } from './line-outcome';
@@ -30,4 +31,5 @@ export const quantityCalculator: OfferKindCalculator<QuantityConfig> = {
   configSchema: quantityConfigSchema,
   evaluate: evaluateQuantity,
   nudge: quantityNudge,
+  targetRules: () => BUY_TARGET_REQUIRED,
 };

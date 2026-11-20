@@ -12,6 +12,7 @@ import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import {
   CodeMethodRequiredError,
   InvalidOfferConfigError,
+  InvalidOfferTargetsError,
   OfferConflictError,
   OfferNotFoundError,
 } from '../domain/errors';
@@ -60,6 +61,7 @@ export class OfferAdminService {
    *
    * @throws {@link InvalidOfferConfigError} when the input or the kind's configuration is invalid.
    * @throws {@link UnknownOfferKindError} when no calculator handles the kind.
+   * @throws {@link InvalidOfferTargetsError} when a target has a role the kind does not allow (D2501).
    */
   async createDraft(ctx: OperationContext, scope: StoreScope, input: OfferInput): Promise<OfferRecord> {
     await assertOnChannelOf(this.ports.stores, ctx, scope);
@@ -74,6 +76,7 @@ export class OfferAdminService {
    * the stored value, as an absent one does.
    *
    * @throws {@link InvalidOfferTransitionError} when the offer is archived.
+   * @throws {@link InvalidOfferTargetsError} when a target has a role the edited kind does not allow (D2501).
    * @throws {@link CodeMethodRequiredError} when the patch makes a code offer that has codes automatic (D2449).
    * @throws {@link OfferConflictError} when another write changed the offer after it was read.
    */
@@ -177,10 +180,15 @@ export class OfferAdminService {
     if (codes.length > 0) throw new CodeMethodRequiredError();
   }
 
+  /** `input` validated, its config parsed by its kind, and every target's role allowed by the kind (D2501). */
   private parse(input: unknown): ParsedOffer {
     const parsed = offerInputSchema.safeParse(input);
     if (!parsed.success) throw new InvalidOfferConfigError();
-    return { command: parsed.data, config: this.ports.kinds.parseConfig(parsed.data.kind, parsed.data.config) };
+    const { kind, config: rawConfig, targets } = parsed.data;
+    const config = this.ports.kinds.parseConfig(kind, rawConfig);
+    const { allowed } = this.ports.kinds.targetRulesOf(kind, config);
+    if (targets.some((target) => !allowed.includes(target.role))) throw new InvalidOfferTargetsError();
+    return { command: parsed.data, config };
   }
 
   /**

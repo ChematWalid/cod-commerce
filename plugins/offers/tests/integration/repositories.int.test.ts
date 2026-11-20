@@ -147,3 +147,28 @@ it('refuses a store-less row and a child row of another store in Postgres itself
   expect(otherStoreTarget).toHaveProperty('message', expect.stringMatching(/foreign key constraint/));
   await expect(insertTarget(scopeA.storeId)).resolves.toBeDefined();
 });
+
+it('stores a get target and an addon target (D2501, D2502)', async () => {
+  // Arrange
+  const targets = [
+    { role: 'buy', refType: 'variant', refId: '11' },
+    { role: 'get', refType: 'product', refId: '3' },
+    { role: 'addon', refType: 'variant', refId: '21' },
+  ] as const;
+  const offer = anOfferRecord({ targets: targets.map((target) => ({ ...target })) });
+  const { offers } = await harness();
+
+  // Act
+  await offers.create(ctx, scopeA, offer);
+  const stored = await offers.findById(ctx, scopeA, offer.id);
+  const unknownRole = await rejectionOf(
+    rawConnection().query(
+      'INSERT INTO offers_offer_target (id, "businessId", "storeId", "offerId", role, "refType", "refId", position) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [newId(), scopeA.businessId, scopeA.storeId, offer.id, 'gift', 'variant', 12, 9],
+    ),
+  );
+
+  // Assert
+  expect(stored?.targets).toEqual(targets);
+  expect(unknownRole).toHaveProperty('message', expect.stringMatching(/check constraint/));
+});

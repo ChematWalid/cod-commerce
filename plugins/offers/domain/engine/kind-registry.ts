@@ -1,7 +1,23 @@
-import type { CombinationClass, Nudge, Suggestion } from '@cod/shared';
+import type { CombinationClass, Nudge, OfferConfigWarning, OfferTargetRole, Suggestion } from '@cod/shared';
 import type { ZodType } from 'zod';
 import { InvalidOfferConfigError, UnknownOfferKindError } from '../errors';
 import type { KindInput, OfferOutcome } from './outcome';
+
+/**
+ * Which target roles an offer of a kind may hold, and which it needs before it is published (D2501). `allowed` is
+ * enforced on every create and update; `required` only at publish, so a draft may stay incomplete.
+ */
+export interface TargetRules {
+  readonly allowed: readonly OfferTargetRole[];
+  readonly required: readonly OfferTargetRole[];
+}
+
+/** One synthetic cart the admin preview prices for a kind (D2516): its pieces and the extra lines it holds. */
+export interface PreviewCart {
+  readonly pieces: number;
+  readonly withGet: boolean;
+  readonly withAddon: boolean;
+}
 
 /**
  * One offer kind (D2404, §3a.7): its combination class, pipeline stage, config schema and effect. A new kind is a
@@ -16,6 +32,14 @@ export interface OfferKindCalculator<C> {
   evaluate(input: KindInput<C>): OfferOutcome;
   nudge?(input: KindInput<C>): Nudge | null;
   suggest?(input: KindInput<C>): Suggestion | null;
+  /** The target roles an offer of this kind with `config` may hold and needs (D2501). */
+  targetRules(config: C): TargetRules;
+  /** Set when an accepted outcome never competes with another offer, as an add-on the buyer chose (D2507). */
+  readonly combinesAlways?: true;
+  /** The carts the admin preview prices for `config` (D2516); one cart of one piece when absent. */
+  previewCarts?(config: C): readonly PreviewCart[];
+  /** Configurations the engine prices, but likely not as the merchant meant (D2516). */
+  configWarnings?(config: C): readonly OfferConfigWarning[];
 }
 
 /** The calculators by kind; the engine and the admin use case look kinds up here, never by name in code. */
@@ -49,10 +73,30 @@ export class OfferKindRegistry {
    * @throws {@link InvalidOfferConfigError} when the schema rejects `raw`.
    */
   parseConfig(kind: string, raw: unknown): unknown {
+    return parseWith(this.calculatorOf(kind), raw);
+  }
+
+  /**
+   * The target rules of `kind` for the configuration `raw` (D2501).
+   *
+   * @throws {@link UnknownOfferKindError} when no calculator handles `kind`.
+   * @throws {@link InvalidOfferConfigError} when the schema rejects `raw`.
+   */
+  targetRulesOf(kind: string, raw: unknown): TargetRules {
+    const calculator = this.calculatorOf(kind);
+    return calculator.targetRules(parseWith(calculator, raw));
+  }
+
+  private calculatorOf(kind: string): OfferKindCalculator<unknown> {
     const calculator = this.byKind.get(kind);
     if (calculator === undefined) throw new UnknownOfferKindError();
-    const parsed = calculator.configSchema.safeParse(raw);
-    if (!parsed.success) throw new InvalidOfferConfigError();
-    return parsed.data;
+    return calculator;
   }
+}
+
+/** `raw` parsed with `calculator`'s schema; @throws {@link InvalidOfferConfigError} when it rejects it. */
+function parseWith(calculator: OfferKindCalculator<unknown>, raw: unknown): unknown {
+  const parsed = calculator.configSchema.safeParse(raw);
+  if (!parsed.success) throw new InvalidOfferConfigError();
+  return parsed.data;
 }
