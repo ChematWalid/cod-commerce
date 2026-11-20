@@ -2,8 +2,9 @@ import type { ImportFieldKey } from '@cod/shared';
 import { EXPORT_READ_BATCH } from '../domain/constants';
 import {
   type ExportableProduct,
-  type ExportCell,
+  exportColumnsFor,
   type ExportItem,
+  type ExportRow,
   exportRowsOf,
   projectRow,
   type TaxonomyNameIndex,
@@ -47,7 +48,8 @@ const isProduct = (product: ExportableProduct | undefined): product is Exportabl
 
 /**
  * Builds an export file (D2209, D2211): reads the products of the scope's store in batches, names their brand and
- * tags, adds their origin's image links, writes one row per variant in the asked columns with the format's writer.
+ * tags, adds their origin's image links, writes one row per variant in the asked columns (plus `variant_sku` and the
+ * option pairs when a product has variants, D2260) with the format's writer.
  * An id of no product of the store (another store's, deleted) writes nothing; packs are skipped and counted (D2220).
  * Reading stops as soon as the rows pass `maxRows`, so memory stays bounded by the cap, not by the variants (D2259).
  */
@@ -61,18 +63,27 @@ export class ExportFileBuilder {
   async build(ctx: OperationContext, scope: StoreScope, request: ExportFileRequest): Promise<ExportFile | undefined> {
     const adapter = this.deps.formats.get(request.format);
     const taxonomy = taxonomyNamesIndex(await this.deps.reads.taxonomyIndex(ctx, scope));
-    const rows: ExportCell[][] = [];
+    const rows: ExportRow[] = [];
+    let columns: readonly ImportFieldKey[] = request.fields;
     let skippedPacks = 0;
     const ids = request.productIds;
     for (let start = 0; start < ids.length; start += EXPORT_READ_BATCH) {
       const end = Math.min(start + EXPORT_READ_BATCH, ids.length);
-      const batch = exportRowsOf(await this.itemsOf(ctx, scope, { ids: ids.slice(start, end), taxonomy }));
+      const items = await this.itemsOf(ctx, scope, { ids: ids.slice(start, end), taxonomy });
+      const batch = exportRowsOf(items);
       if (rows.length + batch.rows.length > request.maxRows) return undefined;
-      for (const row of batch.rows) rows.push(projectRow(row, request.fields));
+      rows.push(...batch.rows);
+      columns = exportColumnsFor(
+        columns,
+        items.map((item) => item.product),
+      );
       skippedPacks += batch.skippedPacks;
       await request.onProgress?.(end);
     }
-    const bytes = await adapter.writer.write(request.fields, rows);
+    const bytes = await adapter.writer.write(
+      columns,
+      rows.map((row) => projectRow(row, columns)),
+    );
     return { bytes, contentType: adapter.contentType, rowCount: rows.length, skippedPacks };
   }
 

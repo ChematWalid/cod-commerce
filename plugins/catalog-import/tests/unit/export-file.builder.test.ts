@@ -33,6 +33,7 @@ function productOf(id: string, variants: number): ExportableProduct {
 /** A builder over a store of `products`, recording what its writer was given. */
 function builderOf(products: readonly ExportableProduct[]) {
   const written: (readonly (readonly ExportCell[])[])[] = [];
+  const headers: (readonly string[])[] = [];
   let taxonomyReads = 0;
   const builder = new ExportFileBuilder({
     reads: {
@@ -51,7 +52,8 @@ function builderOf(products: readonly ExportableProduct[]) {
         contentType: 'text/csv',
         extension: 'csv',
         writer: {
-          write: (_header, rows) => {
+          write: (header, rows) => {
+            headers.push(header);
             written.push(rows);
             return Promise.resolve(new Uint8Array([1]));
           },
@@ -59,7 +61,7 @@ function builderOf(products: readonly ExportableProduct[]) {
       }),
     },
   });
-  return { builder, written, taxonomyReads: () => taxonomyReads };
+  return { builder, written, headers, taxonomyReads: () => taxonomyReads };
 }
 
 describe('ExportFileBuilder (D2259)', () => {
@@ -94,7 +96,46 @@ describe('ExportFileBuilder (D2259)', () => {
 
     // Assert
     expect(file?.rowCount).toBe(200);
-    expect(written[0]?.[0]).toEqual(['SKU-1', 'Atlas', 'Promo']);
+    expect(written[0]?.[0]).toEqual(['SKU-1', 'Atlas', 'Promo', 'Taille', '0', 'SKU-1-0']);
     expect(taxonomyReads()).toBe(1);
+  });
+
+  it('writes the option pair and variant_sku of a 3-variant product exported with fields brand only (D2260)', async () => {
+    // Arrange
+    const sized: ExportableProduct = {
+      ...productOf('1', 0),
+      variants: ['S', 'M', 'L'].map((size, index) => ({
+        sku: `SKU-1-${size}`,
+        price: 1000 + index * 100,
+        oldPrice: null,
+        barcode: null,
+        optionValues: [size],
+      })),
+    };
+    const { builder, written, headers } = builderOf([sized]);
+
+    // Act
+    await builder.build(CTX, SCOPE, {
+      productIds: ['1'],
+      fields: ['product_key', 'name', 'price', 'brand'],
+      format: 'csv',
+      maxRows: 10,
+    });
+
+    // Assert
+    expect(headers[0]).toEqual([
+      'product_key',
+      'name',
+      'price',
+      'brand',
+      'option1_name',
+      'option1_value',
+      'variant_sku',
+    ]);
+    expect(written[0]).toEqual([
+      ['SKU-1', 'Synthetic product 1', 1000, 'Atlas', 'Taille', 'S', 'SKU-1-S'],
+      ['SKU-1', 'Synthetic product 1', 1100, 'Atlas', 'Taille', 'M', 'SKU-1-M'],
+      ['SKU-1', 'Synthetic product 1', 1200, 'Atlas', 'Taille', 'L', 'SKU-1-L'],
+    ]);
   });
 });

@@ -1,6 +1,7 @@
 import { EXPORT_HEADER } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  exportColumnsFor,
   exportRowsOf,
   type NamedExportProduct,
   projectRow,
@@ -143,5 +144,37 @@ describe('export rows (D2209)', () => {
     // Assert
     expect(all).toHaveLength(EXPORT_HEADER.length);
     expect(some).toEqual(['ROBE', 'Robe kabyle', 4500]);
+  });
+
+  it('adds variant_sku and the used option pairs to a partial export of a product with variants (D2260)', () => {
+    // Arrange
+    const sized = productOf({
+      optionGroups: [{ name: 'Taille' }],
+      variants: ['S', 'M', 'L'].map((size, index) => ({
+        sku: `ROBE-${size}`,
+        price: 1000 + index * 100,
+        oldPrice: null,
+        barcode: null,
+        optionValues: [size],
+      })),
+    });
+
+    // Act
+    const columns = exportColumnsFor(['product_key', 'name', 'price', 'brand'], [sized]);
+
+    // Assert
+    expect(columns).toEqual(['product_key', 'name', 'price', 'brand', 'option1_name', 'option1_value', 'variant_sku']);
+  });
+
+  it('keeps the asked columns of single-variant products and packs as they are (D2260)', () => {
+    // Arrange
+    const pack = productOf({ type: 'pack', optionGroups: [{ name: 'Taille' }] });
+    const asked = ['product_key', 'name', 'price', 'brand'] as const;
+
+    // Act
+    const columns = exportColumnsFor(asked, [productOf(), pack]);
+
+    // Assert
+    expect(columns).toEqual(asked);
   });
 });

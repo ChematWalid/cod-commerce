@@ -1,4 +1,5 @@
 import {
+  EXPORT_HEADER,
   IMPORT_LIST_SEPARATOR,
   type ImportFieldKey,
   MAX_OPTION_GROUPS,
@@ -171,4 +172,30 @@ export function exportRowsOf(items: readonly ExportItem[]): ExportBatch {
 /** The cells of `row` for the asked columns, in their order. */
 export function projectRow(row: ExportRow, columns: readonly ImportFieldKey[]): ExportCell[] {
   return columns.map((column) => row[column]);
+}
+
+/** The columns that tell a product's variant rows apart: `variant_sku` and the option pairs it uses (D2260). */
+function variantKeyColumnsOf(product: ExportableProduct): ImportFieldKey[] {
+  if (product.type === PACK_TYPE) return [];
+  if (product.optionGroups.length === 0 && product.variants.length <= 1) return [];
+  const slots = Math.min(product.optionGroups.length, MAX_OPTION_GROUPS);
+  const pairs = Array.from({ length: slots }, (_, index) => {
+    const slot = String(index + 1);
+    return [`option${slot}_name`, `option${slot}_value`] as ImportFieldKey[];
+  });
+  return ['variant_sku', ...pairs.flat()];
+}
+
+/**
+ * The columns a file of `products` writes (D2260): the asked ones plus, for a product with variants, `variant_sku`
+ * and its option pairs, so a partial export's rows of one `product_key` can still be told apart on re-import (AC3).
+ * In export header order.
+ */
+export function exportColumnsFor(
+  asked: readonly ImportFieldKey[],
+  products: readonly ExportableProduct[],
+): ImportFieldKey[] {
+  const columns = new Set<ImportFieldKey>(asked);
+  for (const product of products) for (const column of variantKeyColumnsOf(product)) columns.add(column);
+  return EXPORT_HEADER.filter((key) => columns.has(key));
 }
