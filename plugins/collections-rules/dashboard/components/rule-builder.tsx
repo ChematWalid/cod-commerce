@@ -1,7 +1,7 @@
 import { COLLECTION_RULE_MAX_CONDITIONS, RULE_MATCHES, type RuleMatch } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Button } from '@vendure/dashboard';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { ADD_CONDITION_TEST_ID, COLLECTION_MATCH_ALL_TEST_ID, COLLECTION_MATCH_ANY_TEST_ID } from '../constants';
 import { conditionFieldsOf } from '../model/condition-fields';
 import { errorMessageIdOf } from '../model/list-view';
@@ -14,6 +14,7 @@ import {
   withMatch,
   withoutCondition,
 } from '../model/rule-draft';
+import { rowKeysFor, withoutRowKey } from '../model/row-keys';
 import { useRuleOptions } from '../rule-queries';
 import type { ScopedCardProps } from './card-props';
 import { ConditionRow } from './condition-row';
@@ -66,14 +67,33 @@ interface RuleRowsProps {
   readonly onChange: (rule: RuleDraft) => void;
 }
 
+const mintRowKey = (): string => crypto.randomUUID();
+
+/**
+ * The rows' keys, kept across renders: a row keeps its key when one before it is removed, so the word typed in its
+ * title input stays with it (see `row-keys`).
+ */
+function useRowKeys(count: number): { readonly keys: readonly string[]; readonly remove: (index: number) => void } {
+  const [stored, setStored] = useState<readonly string[]>([]);
+  const keys = rowKeysFor(stored, count, mintRowKey);
+  // Adjusting state while rendering (React's documented pattern): the minted keys are kept for the next render.
+  if (keys !== stored) setStored(keys);
+  return {
+    keys,
+    remove: (index) => {
+      setStored(withoutRowKey(keys, index));
+    },
+  };
+}
+
 /** The rows of the rule, each changing only itself. */
 function ConditionList({ rule, fields, options, disabled, onChange }: RuleRowsProps): ReactNode {
+  const rowKeys = useRowKeys(rule.conditions.length);
   return (
     <ul className="grid gap-3">
       {rule.conditions.map((condition, index) => (
         <ConditionRow
-          // Rows have no id of their own; their inputs are controlled, so a row's place is enough.
-          key={index}
+          key={rowKeys.keys[index]}
           condition={condition}
           fields={fields}
           options={options}
@@ -85,6 +105,7 @@ function ConditionList({ rule, fields, options, disabled, onChange }: RuleRowsPr
             onChange(withConditionChange(rule, index, conditionChange));
           }}
           onRemove={() => {
+            rowKeys.remove(index);
             onChange(withoutCondition(rule, index));
           }}
         />
