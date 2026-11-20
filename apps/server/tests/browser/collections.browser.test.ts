@@ -20,6 +20,7 @@ import {
   MODE_SWITCH_CONFIRM_TEST_ID,
   PREVIEW_COUNT_TEST_ID,
   PRODUCT_COLLECTIONS_BLOCK_TEST_ID,
+  PRODUCT_COLLECTIONS_HIDDEN_TEST_ID,
   PRODUCT_COLLECTIONS_SAVE_TEST_ID,
 } from '@cod/plugin-collections-rules';
 import { type Browser, chromium, type Locator, type Page } from 'playwright-core';
@@ -232,6 +233,37 @@ describe('collections pages for a member', () => {
 
       await expect(byTestId(page, CREATE_COLLECTION_TEST_ID).count()).resolves.toBe(0);
       await expect(byTestId(page, COLLECTION_LIST_TEST_ID).locator('text=collections.').count()).resolves.toBe(0);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  it('perstore member without the collections view key sees no Collections card in the product editor', async () => {
+    const browser = await chromium.launch();
+    try {
+      const owner = await (await browser.newContext()).newPage();
+      await loginAsDemoOwner(owner, DASHBOARD_URL);
+      const productId = await seed.createProduct(owner, { title: `Member block ${runId}` });
+      try {
+        const page = await (await browser.newContext()).newPage();
+        await loginAsOwner(page, DASHBOARD_URL, PER_STORE_MEMBER_EMAIL);
+        await setDisplayLanguage(page, 'en');
+
+        await open(page, `/stores/active/products/${productId}`);
+        await byTestId(page, EDITOR_TITLE_TEST_ID).waitFor();
+        const marker = byTestId(page, PRODUCT_COLLECTIONS_HIDDEN_TEST_ID);
+        await marker.waitFor({ state: 'attached' });
+
+        await expect(byTestId(page, PRODUCT_COLLECTIONS_BLOCK_TEST_ID).count()).resolves.toBe(0);
+        await expect(marker.locator('xpath=ancestor::*[@data-slot="card"][1]').isVisible()).resolves.toBe(false);
+        const collectionsCards = page
+          .locator('[data-slot="card"]')
+          .filter({ visible: true })
+          .filter({ has: page.locator('[data-slot="card-title"]', { hasText: /^Collections$/ }) });
+        await expect(collectionsCards.count()).resolves.toBe(0);
+      } finally {
+        await seed.deleteProduct(owner, productId);
+      }
     } finally {
       await browser.close();
     }

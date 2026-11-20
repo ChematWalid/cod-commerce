@@ -9,6 +9,7 @@ import {
   COLLECTIONS_QUERY_KEY,
   EDIT_COLLECTIONS_KEY,
   PRODUCT_COLLECTIONS_BLOCK_TEST_ID,
+  PRODUCT_COLLECTIONS_HIDDEN_TEST_ID,
   PRODUCT_COLLECTIONS_QUERY_KEY,
   PRODUCT_COLLECTIONS_SAVE_TEST_ID,
   VIEW_COLLECTIONS_KEY,
@@ -166,7 +167,8 @@ export function ProductCollectionsBlock(): ReactNode {
   const scope = useStoreScope(useActiveStore());
   const held = useHeldPermissions(scope);
   const params: { readonly productId?: string } = useParams({ strict: false });
-  if (!held.has(VIEW_COLLECTIONS_KEY)) return <span className={HIDDEN_BLOCK_CLASS} hidden />;
+  if (!held.has(VIEW_COLLECTIONS_KEY))
+    return <span className={HIDDEN_BLOCK_CLASS} data-testid={PRODUCT_COLLECTIONS_HIDDEN_TEST_ID} hidden />;
   return (
     <div data-testid={PRODUCT_COLLECTIONS_BLOCK_TEST_ID}>
       {params.productId === undefined ? (

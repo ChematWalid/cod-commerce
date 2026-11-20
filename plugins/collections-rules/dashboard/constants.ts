@@ -71,5 +71,7 @@ export const ADD_PRODUCTS_TEST_ID = 'collections-add-products';
 export const COLLECTION_VISIBLE_TEST_ID = 'collections-visible';
 export const COLLECTION_POSITION_TEST_ID = 'collections-position';
 export const PRODUCT_COLLECTIONS_BLOCK_TEST_ID = 'collections-product-block';
+/** The marker the block leaves for a caller without the collections view key; its card is hidden by CSS. */
+export const PRODUCT_COLLECTIONS_HIDDEN_TEST_ID = 'collections-product-block-hidden';
 export const ADD_CONDITION_TEST_ID = 'collections-add-condition';
 export const PRODUCT_COLLECTIONS_SAVE_TEST_ID = 'collections-product-block-save';
