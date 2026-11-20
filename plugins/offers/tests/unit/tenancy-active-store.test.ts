@@ -89,3 +89,33 @@ describe('TenancyActiveStore.isChannelOf (D2408)', () => {
     expect(paired).toBe(false);
   });
 });
+
+describe('TenancyActiveStore.isOwnChannelOf (D2448)', () => {
+  it.each([
+    ['an active store', activeSettings],
+    ['an archived store', { ...activeSettings, status: 'archived' }],
+  ] satisfies [string, Settings][])("accepts %s whose channel is the context's", async (_case, settings) => {
+    // Arrange
+    const stores = storesAnswering(settings);
+
+    // Act
+    const paired = await stores.isOwnChannelOf(ctx, scopeA);
+
+    // Assert
+    expect(paired).toBe(true);
+  });
+
+  it.each([
+    ['an unknown store', null],
+    ["a store whose channel is not the request's", { ...activeSettings, channelId: REQUEST_CHANNEL + 1 }],
+  ] satisfies [string, Settings][])('refuses %s', async (_case, settings) => {
+    // Arrange
+    const stores = storesAnswering(settings);
+
+    // Act
+    const paired = await stores.isOwnChannelOf(ctx, scopeA);
+
+    // Assert
+    expect(paired).toBe(false);
+  });
+});

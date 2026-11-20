@@ -4,12 +4,12 @@ import type { OfferUsageCounterPort } from '../domain/ports/offer-usage-counter.
 import type { OperationContext } from '../domain/ports/operation-context.port';
 import type { StoreScope } from '../domain/store-scope';
 import { parseOrderUsage } from './order-usage.schema';
-import { assertOnChannelOf } from './store-channel';
+import { assertOnOwnChannelOf } from './store-channel';
 
 /** What the usage use case reaches the counts through. */
 export interface OfferUsagePorts {
   readonly counter: OfferUsageCounterPort;
-  /** Checks every call's `ctx` is on `scope`'s store channel (D2448). */
+  /** Checks every call's `ctx` is on `scope`'s store channel, archived or not (D2448). */
   readonly stores: ActiveStorePort;
 }
 
@@ -24,7 +24,9 @@ export interface RecordedOrderUses {
  * and gives them back when the order is cancelled or rejected; P4.S3 moves them on a saved edit. Each count joins the
  * transaction `ctx` carries, so the uses commit or roll back with the order. Build the uses with `orderUsageOf` from
  * the token's `o` or the order's stored `appliedOffers` (D2445); business and store come from `scope` only, and a call
- * whose `ctx` is not on `scope`'s store channel is refused with `NoActiveStoreError` (D2448).
+ * whose `ctx` is not on `scope`'s store channel is refused with `NoActiveStoreError` (D2448). A job or worker must
+ * therefore call with a context on the order's store channel. An archived store's orders still record and give back
+ * their uses on that channel: an order in flight when its store was archived can still be cancelled or rejected.
  */
 export class OfferUsageService {
   constructor(private readonly ports: OfferUsagePorts) {}
@@ -35,10 +37,10 @@ export class OfferUsageService {
    * last use is the caller's decision.
    *
    * @throws {@link InvalidQuoteRequestError} when `uses` breaks the order usage bounds.
-   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s store channel.
+   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s store channel (an archived store's is accepted).
    */
   async recordOrderUses(ctx: OperationContext, scope: StoreScope, uses: OrderUsage): Promise<RecordedOrderUses> {
-    await assertOnChannelOf(this.ports.stores, ctx, scope);
+    await assertOnOwnChannelOf(this.ports.stores, ctx, scope);
     const { offerIds, codes } = parseOrderUsage(uses);
     const refusedOfferIds: string[] = [];
     for (const offerId of offerIds) {
@@ -55,10 +57,10 @@ export class OfferUsageService {
    * Gives one use of each offer and code of `uses` back; a count already at 0 stays there.
    *
    * @throws {@link InvalidQuoteRequestError} when `uses` breaks the order usage bounds.
-   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s store channel.
+   * @throws {@link NoActiveStoreError} when `ctx` is not on `scope`'s store channel (an archived store's is accepted).
    */
   async releaseOrderUses(ctx: OperationContext, scope: StoreScope, uses: OrderUsage): Promise<void> {
-    await assertOnChannelOf(this.ports.stores, ctx, scope);
+    await assertOnOwnChannelOf(this.ports.stores, ctx, scope);
     const { offerIds, codes } = parseOrderUsage(uses);
     for (const offerId of offerIds) await this.ports.counter.releaseOfferUse(ctx, scope, offerId);
     for (const code of codes) await this.ports.counter.releaseCodeUse(ctx, scope, code);

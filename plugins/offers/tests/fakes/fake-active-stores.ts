@@ -12,6 +12,7 @@ const sameStore = (left: StoreScope | undefined, right: StoreScope): boolean =>
 export class FakeActiveStores implements ActiveStorePort {
   private readonly channels = new Map<OperationContext, StoreScope>();
   private readonly tenants = new Map<OperationContext, StoreScope>();
+  private readonly archived: StoreScope[] = [];
 
   /** A context on `scope`'s channel; `resolvedTenant: false` models a request the tenant guard did not resolve. */
   contextOf(scope: StoreScope, { resolvedTenant = true } = {}): OperationContext {
@@ -25,7 +26,17 @@ export class FakeActiveStores implements ActiveStorePort {
     return Promise.resolve(this.tenants.get(ctx));
   }
 
+  /** Archives `scope`'s store: its own channel is no longer an active store's channel. */
+  archive(scope: StoreScope): void {
+    this.archived.push(scope);
+  }
+
   isChannelOf(ctx: OperationContext, scope: StoreScope): Promise<boolean> {
+    const archived = this.archived.some((store) => sameStore(store, scope));
+    return Promise.resolve(!archived && sameStore(this.channels.get(ctx), scope));
+  }
+
+  isOwnChannelOf(ctx: OperationContext, scope: StoreScope): Promise<boolean> {
     return Promise.resolve(sameStore(this.channels.get(ctx), scope));
   }
 }

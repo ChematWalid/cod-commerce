@@ -14,4 +14,10 @@ export interface ActiveStorePort {
 
   /** Whether `ctx` is on the channel of `scope`'s store, which belongs to `scope`'s business and is not archived. */
   isChannelOf(ctx: OperationContext, scope: StoreScope): Promise<boolean>;
+
+  /**
+   * Whether `ctx` is on the channel of `scope`'s store, which belongs to `scope`'s business, archived or not: the
+   * order bookkeeping of D2447 still runs for the in-flight orders of a store archived after intake (D2448).
+   */
+  isOwnChannelOf(ctx: OperationContext, scope: StoreScope): Promise<boolean>;
 }

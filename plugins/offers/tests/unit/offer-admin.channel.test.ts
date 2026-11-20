@@ -62,27 +62,66 @@ describe('OfferAdminService channel guard (D2448)', () => {
     // Assert
     expect(listed.map((listed) => listed.id)).toEqual([offer.id]);
   });
-});
 
-describe('OfferUsageService channel guard (D2448)', () => {
-  it("refuses to record or release uses on a ctx of another store's channel", async () => {
+  it("refuses an archived store's own channel", async () => {
     // Arrange
-    const tables = new InMemoryOfferTables();
-    const stores = new FakeActiveStores();
-    const offer = anActiveOffer({ method: 'codes' });
-    tables.offerRows.push({ ...scopeA, value: { ...offer, usageCount: 1 } });
-    tables.codeRows.push({ ...scopeA, value: aCode(offer.id, 'INFLU10', { usageCount: 1 }) });
-    const service = new OfferUsageService({ counter: tables.usage, stores });
-    const uses = orderUsageOf([{ offerId: offer.id, code: 'INFLU10' }]);
-    const ctxA2 = stores.contextOf(scopeA2);
+    const { service, stores, ctxA } = await setUpGuardedAdmin();
+    stores.archive(scopeA);
 
     // Act
-    const recording = await service.recordOrderUses(ctxA2, scopeA, uses).catch((error: unknown) => error);
-    const releasing = await service.releaseOrderUses(ctxA2, scopeA, uses).catch((error: unknown) => error);
+    const listing = await service.list(ctxA, scopeA).catch((error: unknown) => error);
+
+    // Assert
+    expect(listing).toBeInstanceOf(NoActiveStoreError);
+  });
+});
+
+/** The usage service over store A1 holding one use of a code offer and of its code `INFLU10`. */
+function setUpGuardedUsage() {
+  const tables = new InMemoryOfferTables();
+  const stores = new FakeActiveStores();
+  const offer = anActiveOffer({ method: 'codes' });
+  tables.offerRows.push({ ...scopeA, value: { ...offer, usageCount: 1 } });
+  tables.codeRows.push({ ...scopeA, value: aCode(offer.id, 'INFLU10', { usageCount: 1 }) });
+  const service = new OfferUsageService({ counter: tables.usage, stores });
+  const uses = orderUsageOf([{ offerId: offer.id, code: 'INFLU10' }]);
+  return { tables, stores, service, uses };
+}
+
+describe('OfferUsageService channel guard (D2448)', () => {
+  it.each([
+    ['store A2', scopeA2],
+    ['business B', scopeB],
+  ])("refuses to record or release uses on a ctx of %s's channel", async (_name, foreignScope) => {
+    // Arrange
+    const { tables, stores, service, uses } = setUpGuardedUsage();
+    const ctx = stores.contextOf(foreignScope);
+
+    // Act
+    const recording = await service.recordOrderUses(ctx, scopeA, uses).catch((error: unknown) => error);
+    const releasing = await service.releaseOrderUses(ctx, scopeA, uses).catch((error: unknown) => error);
 
     // Assert
     expect(recording).toBeInstanceOf(NoActiveStoreError);
     expect(releasing).toBeInstanceOf(NoActiveStoreError);
+    expect(tables.offerRows[0]?.value.usageCount).toBe(1);
+    expect(tables.codeRows[0]?.value.usageCount).toBe(1);
+  });
+
+  it("gives back and records the uses of an archived store's order on its own channel", async () => {
+    // Arrange
+    const { tables, stores, service, uses } = setUpGuardedUsage();
+    const ctx = stores.contextOf(scopeA);
+    stores.archive(scopeA);
+
+    // Act
+    await service.releaseOrderUses(ctx, scopeA, uses);
+    const afterRelease = [tables.offerRows[0]?.value.usageCount, tables.codeRows[0]?.value.usageCount];
+    const recorded = await service.recordOrderUses(ctx, scopeA, uses);
+
+    // Assert
+    expect(afterRelease).toEqual([0, 0]);
+    expect(recorded).toEqual({ refusedOfferIds: [], refusedCodes: [] });
     expect(tables.offerRows[0]?.value.usageCount).toBe(1);
     expect(tables.codeRows[0]?.value.usageCount).toBe(1);
   });

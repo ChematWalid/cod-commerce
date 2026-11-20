@@ -37,6 +37,7 @@ class RacingOfferRepository extends InMemoryOfferRepository {
 export const EVERY_CHANNEL: ActiveStorePort = {
   activeStoreOf: () => Promise.resolve(undefined),
   isChannelOf: () => Promise.resolve(true),
+  isOwnChannelOf: () => Promise.resolve(true),
 };
 
 /**
