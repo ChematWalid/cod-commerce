@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { utcDayKey, utcHourKey } from '../../domain/utc-time-keys';
+import { msUntilNextUtcHour, utcDayKey, utcHourKey } from '../../domain/utc-time-keys';
 
 describe('UTC time keys', () => {
   it('a day key is the UTC calendar day, zero padded', () => {
@@ -22,5 +22,17 @@ describe('UTC time keys', () => {
 
     // Assert
     expect(key).toBe('2026112007');
+  });
+
+  it('the time left in the UTC hour runs to the next hour boundary', () => {
+    // Arrange
+    const quarterPast = Date.UTC(2026, 10, 20, 7, 15);
+    const onTheHour = Date.UTC(2026, 10, 20, 8, 0);
+
+    // Act
+    const left = [msUntilNextUtcHour(quarterPast), msUntilNextUtcHour(onTheHour)];
+
+    // Assert: a time on the boundary waits a whole hour, so it never runs at once
+    expect(left).toEqual([45 * 60_000, 60 * 60_000]);
   });
 });

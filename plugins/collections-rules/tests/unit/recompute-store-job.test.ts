@@ -21,7 +21,7 @@ type Processor = (data: unknown) => Promise<void>;
 
 /** Records what is queued, and the processor the job defines. */
 class RecordingQueues {
-  readonly added: { queue: QueueName; data: { jobId: string } }[] = [];
+  readonly added: { queue: QueueName; data: { jobId: string; delayMs?: number } }[] = [];
   readonly requeued: { queue: QueueName; data: unknown; delayMs: number }[] = [];
   processor: Processor | undefined;
 
@@ -29,7 +29,7 @@ class RecordingQueues {
     this.processor = process;
   }
 
-  add(queue: QueueName, data: { jobId: string }): Promise<void> {
+  add(queue: QueueName, data: { jobId: string; delayMs?: number }): Promise<void> {
     this.added.push({ queue, data });
     return Promise.resolve();
   }
@@ -77,6 +77,7 @@ describe('PlatformStoreReconcileQueue job ids (ADR 0013 amendment)', () => {
       `crs-${scopeA.storeId}-v${String(NORMAL_FORM_VERSION)}`,
     ]);
     expect(queues.added.map((entry) => entry.queue)).toEqual(['catalog-reconcile', 'catalog-reconcile']);
+    expect(queues.added.map((entry) => entry.data.delayMs)).toEqual([undefined, undefined]);
   });
 
   it('a nightly reconcile has one id per store and UTC day', async () => {
@@ -114,6 +115,27 @@ describe('PlatformStoreReconcileQueue job ids (ADR 0013 amendment)', () => {
     ]);
   });
 
+  it('a failed-delivery reconcile starts at the next UTC hour, after every failure of its hour', async () => {
+    // Arrange
+    const queue = reconcileQueue();
+    const [earlyInTheHour, laterInTheHour, nextHour] = [
+      Date.UTC(2026, 10, 20, 14, 5),
+      Date.UTC(2026, 10, 20, 14, 50),
+      Date.UTC(2026, 10, 20, 15),
+    ];
+
+    // Act
+    clock.now = () => earlyInTheHour;
+    await queue.enqueue(scopeA, 'delivery');
+    clock.now = () => laterInTheHour;
+    await queue.enqueue(scopeA, 'delivery');
+
+    // Assert: both share one job, which starts at the next hour, after the later failure
+    const [first, second] = queues.added.map((entry) => entry.data);
+    expect(second?.jobId).toBe(first?.jobId);
+    expect(earlyInTheHour + (first?.delayMs ?? 0)).toBe(nextHour);
+  });
+
   it('a save reconcile gets a new id each time', async () => {
     // Arrange
     const queue = reconcileQueue();
@@ -126,6 +148,7 @@ describe('PlatformStoreReconcileQueue job ids (ADR 0013 amendment)', () => {
     const [first, second] = jobIds();
     expect(first).toMatch(new RegExp(`^crs-${scopeA.storeId}-\\d+$`));
     expect(second).not.toBe(first);
+    expect(queues.added.map((entry) => entry.data.delayMs)).toEqual([undefined, undefined]);
   });
 });
 

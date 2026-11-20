@@ -25,7 +25,7 @@ import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { ReconcileReason, StoreReconcileQueuePort } from '../domain/ports/store-reconcile.port';
 import type { StoreScope } from '../domain/store-scope';
-import { utcDayKey, utcHourKey } from '../domain/utc-time-keys';
+import { msUntilNextUtcHour, utcDayKey, utcHourKey } from '../domain/utc-time-keys';
 import { StoreChannelContexts } from './store-channel-context';
 
 /** The queue of the store reconcile job `collections.recompute-store` (D2336, ADR 0013 amendment). */
@@ -50,8 +50,9 @@ const jobDataSchema = z.object({
 /**
  * {@link StoreReconcileQueuePort} on the platform's durable queues. A bootstrap or nightly reconcile has one id per
  * store and version or UTC day, so a repeat is ignored. Failed deliveries of one store share one id per UTC hour: a
- * systemic failure during an import would otherwise queue one whole-store walk per product, and one run reads the
- * latest rules and facts once it holds the store lock. A save always queues a new run, since the store may have
+ * systemic failure during an import would otherwise queue one whole-store walk per product. That job starts at the
+ * next UTC hour, after every failure its id merges, and reads the latest rules and facts once it holds the store
+ * lock, so no failure of the hour is left without a run. A save always queues a new run, since the store may have
  * changed after a started one read it.
  */
 @Injectable()
@@ -67,6 +68,7 @@ export class PlatformStoreReconcileQueue implements StoreReconcileQueuePort {
       jobId: durableJobId(DURABLE_JOB_KINDS.collectionsReconcile, scope.storeId, this.runKeyOf(reason)),
       businessId: scope.businessId,
       storeId: scope.storeId,
+      ...(reason === 'delivery' ? { delayMs: msUntilNextUtcHour(this.clock.now()) } : {}),
     };
     return this.queues.add(RECONCILE_QUEUE, data);
   }
