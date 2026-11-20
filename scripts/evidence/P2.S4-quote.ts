@@ -16,6 +16,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import type {
   OfferAdminService as OfferAdmin,
+  OfferUsageService as OfferUsage,
   OperationContext,
   PricingService as Pricing,
   ShippingQuoteRegistrar,
@@ -240,14 +241,10 @@ async function seedOffers(admin: OfferAdmin, a1: Store, b: Store): Promise<Offer
   return { quantity, notStarted, ended, welcome, usedUp, order10, save1000, b: bOffer };
 }
 
-/** The code's uses reach its limit: P3.S4 counts uses at intake, so before it the script sets the column itself. */
-async function useUp(app: App, store: Store, code: string): Promise<void> {
-  const connection = app.get(vendure.TransactionalConnection);
-  const rows: unknown = await connection.rawConnection.query(
-    'UPDATE "offers_code" SET "usageCount" = "usageLimit" WHERE "storeId" = $1 AND "code" = $2 RETURNING "id"',
-    [store.scope.storeId, code],
-  );
-  check(`${code} used up`, Array.isArray(rows) && JSON.stringify(rows).includes('id'), rows);
+/** The code's one allowed use is taken, through the use case P3.S4 records an order's uses with (D2447). */
+async function useUp(usage: OfferUsage, store: Store, code: string): Promise<void> {
+  const recorded = await usage.recordOrderUses(store.ctx, store.scope, { offerIds: [], codes: [code] });
+  check(`${code} used up`, recorded.refusedCodes.length === 0, recorded);
 }
 
 const QUOTE_CALL = 'PricingService.quoteForScope(ctx, scope, request)';
@@ -286,7 +283,7 @@ async function run(app: App): Promise<void> {
       Promise.resolve({ resolved: true, baseFee: input.stopdesk ? DESK_FEE : HOME_FEE, overweightFee: 0, speed: null }),
   });
   const ids = await seedOffers(app.get(offers.OfferAdminService), a1, b);
-  await useUp(app, a1, 'USEDUP15');
+  await useUp(app.get(offers.OfferUsageService), a1, 'USEDUP15');
   const pricing = app.get(offers.PricingService);
   await quotes(pricing, a1, ids);
   await verifications(app, pricing, a1, a2);

@@ -13,6 +13,7 @@ import {
   newShippingQuoteRegistry,
 } from '../application/default-sources';
 import { type OfferAdminPorts, OfferAdminService } from '../application/offer-admin.service';
+import { type OfferUsagePorts, OfferUsageService } from '../application/offer-usage.service';
 import { PricingService } from '../application/pricing.service';
 import { PricingSnapshotLoader, type PricingSnapshotPorts } from '../application/pricing-snapshot.loader';
 import { QuoteSigner, randomQuoteNonce } from '../application/quote-signer';
@@ -28,6 +29,7 @@ import {
   OFFER_KIND_REGISTRY,
   OFFER_REPOSITORY,
   OFFER_USAGE,
+  OFFER_USAGE_COUNTER,
   OFFER_USAGE_REGISTRAR,
   PRICING_LOGGER,
   PRICING_SNAPSHOT_SOURCE,
@@ -52,6 +54,7 @@ import { SYSTEM_CLOCK } from './system-clock';
 import { TenancyActiveStore } from './tenancy-active-store.adapter';
 import { TypeOrmOfferCodeRepository } from './typeorm-offer-code.repository';
 import { TypeOrmOfferRepository } from './typeorm-offer.repository';
+import { TypeOrmOfferUsageCounter } from './typeorm-offer-usage.counter';
 import { VendureVariantGate } from './variant-gate';
 import { VENDURE_PRICING_LOGGER } from './vendure-pricing.logger';
 
@@ -70,8 +73,8 @@ export const OFFERS_REGISTRARS = [
   OFFER_USAGE_REGISTRAR,
 ] as const;
 
-/** The use cases other plugins, tests and the evidence script inject by class (D2408, D2431). */
-export const OFFERS_USE_CASES = [PricingService, OfferAdminService] as const;
+/** The use cases other plugins, tests and the evidence script inject by class (D2408, D2431, D2447). */
+export const OFFERS_USE_CASES = [PricingService, OfferAdminService, OfferUsageService] as const;
 
 /** The seams (D2423): the variant gate, the unit-price chain and the four one-source registries. */
 const SEAM_PROVIDERS: Provider[] = [
@@ -116,6 +119,11 @@ const PORT_PROVIDERS: Provider[] = [
       new TypeOrmOfferCodeRepository(repositories, transaction),
     inject: [TenantRepositoryFactory, TenantTransaction],
   },
+  {
+    provide: OFFER_USAGE_COUNTER,
+    useFactory: (repositories: TenantRepositoryFactory) => new TypeOrmOfferUsageCounter(repositories),
+    inject: [TenantRepositoryFactory],
+  },
 ];
 
 /**
@@ -156,6 +164,10 @@ const OFFER_ADMIN_PORT_TOKENS = {
   kinds: OFFER_KIND_REGISTRY,
 } as const satisfies Record<keyof OfferAdminPorts, symbol>;
 
+const OFFER_USAGE_PORT_TOKENS = {
+  counter: OFFER_USAGE_COUNTER,
+} as const satisfies Record<keyof OfferUsagePorts, symbol>;
+
 /**
  * The use cases: the snapshot loader behind `PRICING_SNAPSHOT_SOURCE` (D2424; P3.S3 rebinds the token to a cache
  * wrapping the loader), the quote signer, the pricing service and the offer admin (D2408, D2431).
@@ -179,6 +191,7 @@ const USE_CASE_PROVIDERS: Provider[] = [
     inject: [ACTIVE_STORE, PRICING_SNAPSHOT_SOURCE, QuoteSigner, OFFER_KIND_REGISTRY],
   },
   fromPorts(OfferAdminService, OFFER_ADMIN_PORT_TOKENS),
+  fromPorts(OfferUsageService, OFFER_USAGE_PORT_TOKENS),
 ];
 
 /** Wires the offers: seams, port adapters and use cases. */

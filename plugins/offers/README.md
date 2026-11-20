@@ -12,7 +12,7 @@ The plugin follows `plugins/_template` (CLAUDE.md §3a.1):
 | Folder            | Holds                                                                                   |
 | ----------------- | --------------------------------------------------------------------------------------- |
 | `domain/`         | the pure engine (`domain/engine/*`), one adapter per offer kind (`domain/kinds/*`), ports |
-| `application/`    | `PricingService`, `OfferAdminService` and the registrar seams                           |
+| `application/`    | `PricingService`, `OfferAdminService`, `OfferUsageService` and the registrar seams      |
 | `infrastructure/` | TypeORM entities and repositories, the variant gate, Vendure adapters                   |
 | `tests/`          | unit tests (no DB), contract tests and integration tests                                |
 

@@ -7,6 +7,7 @@ export const OFFER_CODE_REPOSITORY: unique symbol = Symbol('OffersOfferCodeRepos
 export const ID_GENERATOR: unique symbol = Symbol('OffersIdGenerator');
 export const CLOCK: unique symbol = Symbol('OffersClock');
 export const PRICING_LOGGER: unique symbol = Symbol('OffersPricingLogger');
+export const OFFER_USAGE_COUNTER: unique symbol = Symbol('OffersOfferUsageCounter');
 
 /** Which store a request prices: the resolved tenant's active store on its own channel (D2408). */
 export const ACTIVE_STORE: unique symbol = Symbol('OffersActiveStore');

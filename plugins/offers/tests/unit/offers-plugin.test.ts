@@ -7,6 +7,7 @@ import {
   OFFER_USAGE_REGISTRAR,
   OfferAdminService,
   OffersPlugin,
+  OfferUsageService,
   PricingService,
   SHIPPING_QUOTE_REGISTRAR,
   UNIT_PRICE_RESOLVER_REGISTRAR,
@@ -50,7 +51,7 @@ describe('OffersPlugin', () => {
     );
   });
 
-  it('exports the pricing and offer admin use cases (D2408, D2431)', () => {
+  it('exports the pricing, offer admin and offer usage use cases (D2408, D2431, D2447)', () => {
     // Arrange
     const plugin = OffersPlugin;
 
@@ -58,6 +59,6 @@ describe('OffersPlugin', () => {
     const exported = Reflect.getMetadata(EXPORTS_KEY, plugin) as readonly unknown[];
 
     // Assert
-    expect(exported).toEqual(expect.arrayContaining([PricingService, OfferAdminService]));
+    expect(exported).toEqual(expect.arrayContaining([PricingService, OfferAdminService, OfferUsageService]));
   });
 });

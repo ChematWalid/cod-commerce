@@ -2,16 +2,18 @@ import type { StoreId } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { NoActiveStoreError } from '../../domain/errors';
 import type { OfferCodeRepositoryPort, OfferRepositoryPort } from '../../domain/ports/offer-repository.port';
+import type { OfferUsageCounterPort } from '../../domain/ports/offer-usage-counter.port';
 import type { OperationContext } from '../../domain/ports/operation-context.port';
 import type { StoreScope } from '../../domain/store-scope';
 import { at } from '../support/builders';
 import { aCode, anActiveOffer, anOfferRecord, scopeA, scopeA2, scopeB } from '../support/offer-records';
 import { rejectionOf } from '../support/rejection';
 
-/** Both offer repositories over empty tables (codes hang off offers) and the context their calls run in. */
+/** Both offer repositories and the usage counter over empty tables (codes hang off offers) and the call context. */
 export interface OfferHarness {
   readonly offers: OfferRepositoryPort;
   readonly codes: OfferCodeRepositoryPort;
+  readonly usage: OfferUsageCounterPort;
   readonly ctx: OperationContext;
 }
 

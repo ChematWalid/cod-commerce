@@ -1,6 +1,7 @@
 import { asOperationContext } from '../../domain/ports/operation-context.port';
 import { describeOfferCodeRepositoryContract } from '../contract/offer-code-repository.contract';
 import { describeOfferRepositoryContract, type MakeOfferHarness } from '../contract/offer-repository.contract';
+import { describeOfferUsageCounterContract } from '../contract/offer-usage-counter.contract';
 import { InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
 import { withRoundTrips } from '../fakes/round-trip';
 
@@ -9,6 +10,7 @@ const harness: MakeOfferHarness = () => {
   return Promise.resolve({
     offers: withRoundTrips(tables.offers),
     codes: withRoundTrips(tables.codes),
+    usage: withRoundTrips(tables.usage),
     ctx: asOperationContext({}),
   });
 };
@@ -18,3 +20,4 @@ const harness: MakeOfferHarness = () => {
 // left pending across another awaited call, or two started together and awaited in turn.
 describeOfferRepositoryContract('InMemoryOfferRepository', harness);
 describeOfferCodeRepositoryContract('InMemoryOfferCodeRepository', harness);
+describeOfferUsageCounterContract('InMemoryOfferUsageCounter', harness);

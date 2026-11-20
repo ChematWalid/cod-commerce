@@ -15,6 +15,7 @@ export type {
   UnpricedOrderChange,
 } from './application/order-change';
 export { OfferAdminService } from './application/offer-admin.service';
+export { OfferUsageService, type RecordedOrderUses } from './application/offer-usage.service';
 export type { OfferRecord, StoredCode } from './domain/offer-record';
 export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';
 export type { TokenUse } from './domain/engine/priced-quote';

@@ -24,9 +24,11 @@ import { OFFERS_ENTITIES } from '../../infrastructure/offers-entities';
 import { SnowflakeOfferIdGenerator } from '../../infrastructure/snowflake-id.generator';
 import { TypeOrmOfferCodeRepository } from '../../infrastructure/typeorm-offer-code.repository';
 import { TypeOrmOfferRepository } from '../../infrastructure/typeorm-offer.repository';
+import { TypeOrmOfferUsageCounter } from '../../infrastructure/typeorm-offer-usage.counter';
 import { OffersPlugin } from '../../offers.plugin';
 import { describeOfferCodeRepositoryContract } from '../contract/offer-code-repository.contract';
 import { describeOfferRepositoryContract, type MakeOfferHarness } from '../contract/offer-repository.contract';
+import { describeOfferUsageCounterContract } from '../contract/offer-usage-counter.contract';
 import { anOfferRecord, newId, scopeA, scopeA2 } from '../support/offer-records';
 import { aQuoteKeyRing } from '../support/quote-keys';
 import { rejectionOf } from '../support/rejection';
@@ -78,12 +80,14 @@ const harness: MakeOfferHarness = async () => {
   return {
     offers: new TypeOrmOfferRepository({ repositories: factory, transaction, ids, logger: silentLogger }),
     codes: new TypeOrmOfferCodeRepository(factory, transaction),
+    usage: new TypeOrmOfferUsageCounter(factory),
     ctx,
   };
 };
 
 describeOfferRepositoryContract('TypeOrmOfferRepository', harness);
 describeOfferCodeRepositoryContract('TypeOrmOfferCodeRepository', harness);
+describeOfferUsageCounterContract('TypeOrmOfferUsageCounter', harness);
 
 async function indexDefinitions(table: string): Promise<string> {
   const rows = await rawConnection().query<{ indexdef: string }[]>(

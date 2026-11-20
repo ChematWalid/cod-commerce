@@ -7,6 +7,7 @@ import type {
   OfferListFilter,
   OfferRepositoryPort,
 } from '../../domain/ports/offer-repository.port';
+import type { OfferUsageCounterPort } from '../../domain/ports/offer-usage-counter.port';
 import type { OperationContext } from '../../domain/ports/operation-context.port';
 import type { StoreScope } from '../../domain/store-scope';
 
@@ -106,14 +107,64 @@ export class InMemoryOfferCodeRepository implements OfferCodeRepositoryPort {
   }
 }
 
+/** The use counts in memory; it passes the usage counter contract (D2447). */
+export class InMemoryOfferUsageCounter implements OfferUsageCounterPort {
+  constructor(private readonly tables: InMemoryOfferTables) {}
+
+  recordOfferUse(_ctx: OperationContext, scope: StoreScope, offerId: string): Promise<boolean> {
+    return Promise.resolve(this.tables.countOffer(scope, offerId, 1));
+  }
+
+  recordCodeUse(_ctx: OperationContext, scope: StoreScope, code: string): Promise<boolean> {
+    return Promise.resolve(this.tables.countCode(scope, code, 1));
+  }
+
+  releaseOfferUse(_ctx: OperationContext, scope: StoreScope, offerId: string): Promise<boolean> {
+    return Promise.resolve(this.tables.countOffer(scope, offerId, -1));
+  }
+
+  releaseCodeUse(_ctx: OperationContext, scope: StoreScope, code: string): Promise<boolean> {
+    return Promise.resolve(this.tables.countCode(scope, code, -1));
+  }
+}
+
+/** A count moved by `step` when it stays within 0 and the limit; `undefined` when it would leave them. */
+function moved(count: number, limit: number | null, step: 1 | -1): number | undefined {
+  const next = count + step;
+  if (next < 0 || (limit !== null && next > limit)) return undefined;
+  return next;
+}
+
 /** The offers tables in memory, shared by both fakes so deleting an offer drops its codes, as the cascade does. */
 export class InMemoryOfferTables {
   offerRows: Owned<OfferRecord>[] = [];
   codeRows: Owned<StoredCode>[] = [];
   readonly offers = new InMemoryOfferRepository(this);
   readonly codes = new InMemoryOfferCodeRepository(this);
+  readonly usage = new InMemoryOfferUsageCounter(this);
 
   offerOf(scope: StoreScope, id: string): OfferRecord | undefined {
     return this.offerRows.find((row) => owns(scope, row) && row.value.id === id)?.value;
+  }
+
+  /** Moves the offer's use count by `step` within 0 and its total limit; `false` when it cannot. */
+  countOffer(scope: StoreScope, offerId: string, step: 1 | -1): boolean {
+    const index = this.offerRows.findIndex((row) => owns(scope, row) && row.value.id === offerId);
+    const row = this.offerRows[index];
+    const next = row === undefined ? undefined : moved(row.value.usageCount, row.value.totalUsageLimit, step);
+    if (row === undefined || next === undefined) return false;
+    this.offerRows[index] = { ...row, value: { ...row.value, usageCount: next } };
+    return true;
+  }
+
+  /** Moves the code's use count by `step` within 0 and its limit; `false` when it cannot. */
+  countCode(scope: StoreScope, code: string, step: 1 | -1): boolean {
+    const text = normaliseCode(code);
+    const index = this.codeRows.findIndex((row) => owns(scope, row) && row.value.code === text);
+    const row = this.codeRows[index];
+    const next = row === undefined ? undefined : moved(row.value.usageCount, row.value.usageLimit, step);
+    if (row === undefined || next === undefined) return false;
+    this.codeRows[index] = { ...row, value: { ...row.value, usageCount: next } };
+    return true;
   }
 }
