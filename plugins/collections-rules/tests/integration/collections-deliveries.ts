@@ -59,26 +59,36 @@ export function settledDeliveriesOf(
   });
 }
 
+/** The stores a hand-made delivery names: on its `outbox_delivery` row and in its payload. */
+export interface DeliveryStores {
+  readonly rowStoreId?: string | null;
+  readonly payloadStoreId?: string;
+}
+
 let nextOutboxId = 1_600_000_000_000_000_001n;
 
 /**
  * Runs the consumer's handler for a hand-made `product.changed` of `business`'s store in its own committed
  * transaction, the way the delivery runner does: a redelivery or a late, stale event. It bypasses the runner, whose
  * class the outbox plugin does not export; the runner's own skip of a settled delivery is tested in that plugin.
+ * `stores` sets the delivery row's store (null allowed) and the payload's store apart, both `business`'s first store
+ * by default: a hand-made cross-tenant delivery.
  */
 export async function deliverDirectly(
   kit: CollectionsKit,
   business: BusinessFixture,
   payload: { readonly productId: string; readonly change: string },
+  stores: DeliveryStores = {},
 ): Promise<void> {
-  const storeId = business.stores[0].id;
+  const storeId = stores.payloadStoreId ?? business.stores[0].id;
+  const rowStoreId = stores.rowStoreId === undefined ? storeId : stores.rowStoreId;
   const outboxId = String(nextOutboxId);
   nextOutboxId += 1n;
   const delivery: OutboxDelivery = {
     outboxId,
     createdAt: new Date().toISOString(),
     businessId: business.businessId,
-    storeId,
+    storeId: rowStoreId,
     topic: 'product.changed',
     aggregateId: payload.productId,
     payload: { ...payload, storeId },
@@ -105,25 +115,35 @@ export async function holdStoreLock(kit: CollectionsKit, storeId: string): Promi
   return runner;
 }
 
-/** True when some session waits on an advisory lock: a membership writer queued behind a held store lock. */
-export async function someoneWaitsOnAdvisoryLock(kit: CollectionsKit): Promise<boolean> {
-  const waiting = await kit.query<{ readonly pid: number }>(
-    "SELECT pid FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND wait_event = 'advisory'",
-  );
+/**
+ * The keys of a session waiting, not yet granted, on the store lock of `storeId`: `pg_locks` splits the 64-bit
+ * advisory key into `classid` (high half) and `objid` (low half), with `objsubid = 1`.
+ */
+const STORE_LOCK_WAITERS_SQL = `
+  SELECT l.pid FROM pg_locks l,
+    (SELECT hashtextextended('collections-store:' || $1, 0) AS k) AS store_key
+  WHERE l.locktype = 'advisory' AND NOT l.granted AND l.objsubid = 1
+    AND l.classid::bigint = ((store_key.k >> 32) & 4294967295)
+    AND l.objid::bigint = (store_key.k & 4294967295)`;
+
+/** True when some session waits on the store lock of `storeId`: a membership writer queued behind a held save. */
+export async function someoneWaitsOnStoreLock(kit: CollectionsKit, storeId: string): Promise<boolean> {
+  const waiting = await kit.query<{ readonly pid: number }>(STORE_LOCK_WAITERS_SQL, [storeId]);
   return waiting.length > 0;
 }
 
 /**
- * Waits until the product's `count`-th delivery either waits on a held store lock or, when nothing makes it wait,
- * is done; only then may the test release the lock.
+ * Waits until the product's `count`-th delivery either waits on the held store lock of `storeId` or, when nothing
+ * makes it wait, is done; only then may the test release the lock.
  */
 export async function untilDeliveryWaitsOrSettles(
   kit: CollectionsKit,
+  storeId: string,
   rawProductId: string,
   count: number,
 ): Promise<void> {
   await until(async () => {
-    if (await someoneWaitsOnAdvisoryLock(kit)) return true;
+    if (await someoneWaitsOnStoreLock(kit, storeId)) return true;
     const rows = await membershipDeliveriesOf(kit, rawProductId);
     return rows.length >= count && rows.every((row) => row.status === 'done') ? true : undefined;
   });

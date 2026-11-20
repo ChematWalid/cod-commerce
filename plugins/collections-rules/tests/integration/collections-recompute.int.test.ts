@@ -176,11 +176,12 @@ describe('late, repeated and concurrent work ends with the latest facts (Review 
 
     // Act: a save holding the store lock switches the rule to promo; the product edit to promo commits meanwhile,
     // so its delivery must wait on the lock and read the saved rule, not the old one.
-    const save = await holdStoreLock(suite.kit, suite.fixtures.a.stores[0].id);
+    const storeId = suite.fixtures.a.stores[0].id;
+    const save = await holdStoreLock(suite.kit, storeId);
     try {
       await save.query(COPY_RULE, [rawId(promoRuled.id), rawId(id)]);
       await updateRuleProduct(suite.kit, product, { tagIds: [promoTag] });
-      await untilDeliveryWaitsOrSettles(suite.kit, rawId(product), 2);
+      await untilDeliveryWaitsOrSettles(suite.kit, storeId, rawId(product), 2);
       await save.commitTransaction();
     } finally {
       if (save.isTransactionActive) await save.rollbackTransaction();
