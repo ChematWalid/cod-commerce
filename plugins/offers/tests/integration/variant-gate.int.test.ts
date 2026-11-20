@@ -16,6 +16,7 @@ import {
   type TwoBusinesses,
   withPartitionedSchemas,
 } from '@cod/testing';
+import type { UpdateProductVariantInput } from '@vendure/common/lib/generated-types';
 import { ProductService, ProductVariantService, type RequestContext, RequestContextService } from '@vendure/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toCoreId } from '../../domain/core-id';
@@ -84,6 +85,20 @@ async function aVariantIn(store: StoreFixture, enabled = true): Promise<{ produc
   return { productId: String(product.id), variantId: String(variant.id) };
 }
 
+/**
+ * A variant id as Vendure's entity holds it, the integer of its SERIAL column. `ProductVariantService.update` patches the
+ * loaded entity with the input id, and TypeORM takes a string `"12"` for a new row: it INSERTs without the `sku` and
+ * fails (CI run 44686430717), as the catalog's own `engineIdOf` avoids.
+ */
+const engineId = (id: string): number => Number(id);
+
+/** Sets `fields` on a variant of `store` through Vendure, as the catalog's editor does. */
+async function editVariant(store: StoreFixture, variantId: string, fields: Omit<UpdateProductVariantInput, 'id'>) {
+  await server.app
+    .get(ProductVariantService)
+    .update(await storeContext(store), [{ id: engineId(variantId), ...fields }]);
+}
+
 /** What the gate of `business`'s `store` accepts among `variantIds`. */
 async function gateOf(business: BusinessFixture, store: StoreFixture, variantIds: readonly string[]) {
   const ctx = asOperationContext(await storeContext(store));
@@ -147,9 +162,7 @@ describe('VendureVariantGate (D2423)', () => {
     // Arrange
     const { a } = fixtures;
     const disabled = await aVariantIn(a.stores[0]);
-    await server.app
-      .get(ProductVariantService)
-      .update(await storeContext(a.stores[0]), [{ id: disabled.variantId, enabled: false }]);
+    await editVariant(a.stores[0], disabled.variantId, { enabled: false });
 
     // Act
     const accepted = await gateOf(a, a.stores[0], [disabled.variantId]);
@@ -162,9 +175,7 @@ describe('VendureVariantGate (D2423)', () => {
     // Arrange
     const { a } = fixtures;
     const hidden = await aVariantIn(a.stores[0]);
-    await server.app
-      .get(ProductVariantService)
-      .update(await storeContext(a.stores[0]), [{ id: hidden.variantId, customFields: { isHidden: true } }]);
+    await editVariant(a.stores[0], hidden.variantId, { customFields: { isHidden: true } });
 
     // Act
     const accepted = await gateOf(a, a.stores[0], [hidden.variantId]);
