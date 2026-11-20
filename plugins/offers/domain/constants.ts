@@ -3,8 +3,11 @@ import {
   MAX_ORDER_DISCOUNTS_APPLIED,
   MAX_QUOTE_ADDONS,
   MAX_QUOTE_LINES,
+  type AddonPlacement,
   type CombinationClass,
   type OfferMethod,
+  type OfferTargetRole,
+  type PricingChannel,
 } from '@cod/shared';
 
 /** The method of offers a typed code activates; only they hold codes (D2403, D2449). */
@@ -81,3 +84,29 @@ export const MAX_ORDER_HELD_OFFERS =
 
 /** The order statuses a post-order add-on may still be appended in (D2508): before the order is confirmed. */
 export const ADDON_EDITABLE_ORDER_STATUSES: ReadonlySet<string> = new Set(['pending', 'unconfirmed']);
+
+/**
+ * The id of the draft a preview prices (D2516). Not a decimal id, so it never names a stored offer; the synthetic
+ * product and variant ids below are not decimal either, so they never name a real one.
+ */
+export const PREVIEW_OFFER_ID = 'preview-offer';
+
+/** The code that activates a draft activated by codes in its preview (D2516); stored codes are upper case. */
+export const PREVIEW_CODE = 'PREVIEW';
+
+/** The channel a preview prices on when the draft allows every channel (D2516). */
+export const PREVIEW_DEFAULT_CHANNEL: PricingChannel = 'storefront';
+
+/** Where a preview offers add-ons when the draft's kind offers none (D2516). */
+export const PREVIEW_ADDON_PLACEMENT: AddonPlacement = 'order_form';
+
+/** The product and variant of a synthetic preview line of each role, when the draft has no target of that role. */
+export const PREVIEW_ITEM_IDS: Readonly<Record<OfferTargetRole, { productId: string; variantId: string }>> = {
+  buy: { productId: 'preview-buy-product', variantId: 'preview-buy-variant' },
+  get: { productId: 'preview-get-product', variantId: 'preview-get-variant' },
+  addon: { productId: 'preview-addon-product', variantId: 'preview-addon-variant' },
+};
+
+/** Pieces of the add-on a preview accepts, and of a get line when its kind does not say (D2516). */
+export const PREVIEW_ADDON_PIECES = 1;
+export const PREVIEW_GET_PIECES = 1;

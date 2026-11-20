@@ -257,6 +257,6 @@ describe('bxgyCalculator: registry hooks', () => {
     const carts = bxgyCalculator.previewCarts?.(config);
 
     // Assert
-    expect(carts).toEqual([{ pieces: 5, withGet: true, withAddon: false }]);
+    expect(carts).toEqual([{ pieces: 5, withGet: true, getPieces: 2, withAddon: false }]);
   });
 });

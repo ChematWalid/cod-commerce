@@ -5,9 +5,14 @@ import { describe, expect, it } from 'vitest';
 import {
   BUYER_HISTORY_REGISTRAR,
   COLLECTION_MEMBERSHIP_REGISTRAR,
+  OFFER_APP_TYPE_REGISTRAR,
+  OFFER_PERFORMANCE_SOURCE_REGISTRAR,
   OFFER_USAGE_REGISTRAR,
   OfferAdminService,
+  OfferAppTypeService,
+  OfferPreviewService,
   OffersPlugin,
+  OfferStatsService,
   OfferUsageService,
   ORDER_ADDON_TARGET_REGISTRAR,
   OrderAddonService,
@@ -76,5 +81,24 @@ describe('OffersPlugin', () => {
     // Assert
     expect(imports).toEqual(expect.arrayContaining([PlatformOutboxPlugin]));
     expect(exported).toEqual(expect.arrayContaining([OrderAddonService, ORDER_ADDON_TARGET_REGISTRAR]));
+  });
+
+  it('exports the stats, app type and preview use cases and their registrars (D2514-D2516)', () => {
+    // Arrange
+    const plugin = OffersPlugin;
+
+    // Act
+    const exported = Reflect.getMetadata(EXPORTS_KEY, plugin) as readonly unknown[];
+
+    // Assert
+    expect(exported).toEqual(
+      expect.arrayContaining([
+        OfferStatsService,
+        OfferAppTypeService,
+        OfferPreviewService,
+        OFFER_PERFORMANCE_SOURCE_REGISTRAR,
+        OFFER_APP_TYPE_REGISTRAR,
+      ]),
+    );
   });
 });

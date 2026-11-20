@@ -115,10 +115,15 @@ function bxgyTargetRules(config: BxgyConfig): TargetRules {
   return { allowed: ['buy', 'get'], required };
 }
 
-/** One cart of `buy + get` pieces, with a get line when the gift comes from the get targets (D2516). */
-const bxgyPreviewCarts = (config: BxgyConfig): readonly PreviewCart[] => [
-  { pieces: config.buyQuantity + config.getQuantity, withGet: config.getFrom === 'targets', withAddon: false },
-];
+/**
+ * One cart of `buy + get` pieces (D2516); when the gift comes from the get targets, `get` of them on a get line
+ * (D2534).
+ */
+function bxgyPreviewCarts(config: BxgyConfig): readonly PreviewCart[] {
+  const pieces = config.buyQuantity + config.getQuantity;
+  if (config.getFrom === 'same') return [{ pieces, withGet: false, withAddon: false }];
+  return [{ pieces, withGet: true, getPieces: config.getQuantity, withAddon: false }];
+}
 
 /** The `bxgy` kind: buy N, get M gifted, as gift lines split off the matched lines (D2503, D2504). */
 export const bxgyCalculator: OfferKindCalculator<BxgyConfig> = {

@@ -9,13 +9,17 @@ import type { Provider } from '@nestjs/common';
 import {
   newBuyerHistoryRegistry,
   newCollectionMembershipRegistry,
+  newOfferPerformanceRegistry,
   newOfferUsageRegistry,
   newOrderAddonTargetRegistry,
   newShippingQuoteRegistry,
 } from '../application/default-sources';
 import { type OfferAdminPorts, OfferAdminService } from '../application/offer-admin.service';
+import { OfferAppTypeService } from '../application/offer-app-type.service';
 import { type OfferCodesPorts, OfferCodesService } from '../application/offer-codes.service';
 import { type OfferLifecyclePorts, OfferLifecycleService } from '../application/offer-lifecycle.service';
+import { type OfferPreviewPorts, OfferPreviewService } from '../application/offer-preview.service';
+import { type OfferStatsPorts, OfferStatsService } from '../application/offer-stats.service';
 import { type OfferUsagePorts, OfferUsageService } from '../application/offer-usage.service';
 import { OrderAddonService } from '../application/order-addon.service';
 import { PricingService } from '../application/pricing.service';
@@ -29,9 +33,12 @@ import {
   COLLECTION_MEMBERSHIP,
   COLLECTION_MEMBERSHIP_REGISTRAR,
   ID_GENERATOR,
+  OFFER_APP_TYPE_REGISTRAR,
   OFFER_CODE_REPOSITORY,
   OFFER_EVENTS,
   OFFER_KIND_REGISTRY,
+  OFFER_PERFORMANCE_SOURCE,
+  OFFER_PERFORMANCE_SOURCE_REGISTRAR,
   OFFER_REPOSITORY,
   OFFER_USAGE,
   OFFER_USAGE_COUNTER,
@@ -87,9 +94,11 @@ export const OFFERS_REGISTRARS = [
   BUYER_HISTORY_REGISTRAR,
   OFFER_USAGE_REGISTRAR,
   ORDER_ADDON_TARGET_REGISTRAR,
+  OFFER_PERFORMANCE_SOURCE_REGISTRAR,
+  OFFER_APP_TYPE_REGISTRAR,
 ] as const;
 
-/** The use cases other plugins, tests and the evidence script inject by class (D2408, D2431, D2447, D2510). */
+/** The use cases other plugins, tests and the evidence script inject by class (D2408, D2431, D2447, D2510, D2514-D2516). */
 export const OFFERS_USE_CASES = [
   PricingService,
   OfferAdminService,
@@ -97,9 +106,12 @@ export const OFFERS_USE_CASES = [
   OfferCodesService,
   OfferUsageService,
   OrderAddonService,
+  OfferStatsService,
+  OfferAppTypeService,
+  OfferPreviewService,
 ] as const;
 
-/** The seams (D2423, D2508): the variant gate, the unit-price chain and the five one-source registries. */
+/** The seams (D2423, D2508, D2514): the variant gate, the unit-price chain and the six one-source registries. */
 const SEAM_PROVIDERS: Provider[] = [
   VendureVariantGate,
   { provide: VARIANT_GATE, useExisting: VendureVariantGate },
@@ -114,6 +126,7 @@ const SEAM_PROVIDERS: Provider[] = [
   ...seam(BUYER_HISTORY, BUYER_HISTORY_REGISTRAR, newBuyerHistoryRegistry),
   ...seam(OFFER_USAGE, OFFER_USAGE_REGISTRAR, newOfferUsageRegistry),
   ...seam(ORDER_ADDON_TARGET, ORDER_ADDON_TARGET_REGISTRAR, newOrderAddonTargetRegistry),
+  ...seam(OFFER_PERFORMANCE_SOURCE, OFFER_PERFORMANCE_SOURCE_REGISTRAR, newOfferPerformanceRegistry),
 ];
 
 /**
@@ -209,6 +222,17 @@ const OFFER_ADMIN_PORT_TOKENS = {
   variants: PRODUCT_VARIANTS,
 } as const satisfies Record<keyof OfferAdminPorts, symbol>;
 
+const OFFER_STATS_PORT_TOKENS = {
+  stores: ACTIVE_STORE,
+  performance: OFFER_PERFORMANCE_SOURCE,
+} as const satisfies Record<keyof OfferStatsPorts, symbol>;
+
+const OFFER_PREVIEW_PORT_TOKENS = {
+  stores: ACTIVE_STORE,
+  kinds: OFFER_KIND_REGISTRY,
+  clock: CLOCK,
+} as const satisfies Record<keyof OfferPreviewPorts, symbol>;
+
 const OFFER_USAGE_PORT_TOKENS = {
   counter: OFFER_USAGE_COUNTER,
   stores: ACTIVE_STORE,
@@ -217,7 +241,7 @@ const OFFER_USAGE_PORT_TOKENS = {
 /**
  * The use cases: the snapshot loader behind `PRICING_SNAPSHOT_SOURCE` (D2424; P3.S3 rebinds the token to a cache
  * wrapping the loader), the quote signer, the pricing service, the offer admin, lifecycle, codes and usage (D2408,
- * D2431, D2447, D2510, D2512) and the post-order add-on (D2508).
+ * D2431, D2447, D2510, D2512), the post-order add-on (D2508), and the stats, app types and preview (D2514-D2516).
  */
 const USE_CASE_PROVIDERS: Provider[] = [
   fromPorts(PricingSnapshotLoader, SNAPSHOT_PORT_TOKENS),
@@ -241,6 +265,10 @@ const USE_CASE_PROVIDERS: Provider[] = [
   fromPorts(OfferLifecycleService, OFFER_LIFECYCLE_PORT_TOKENS),
   fromPorts(OfferCodesService, OFFER_CODES_PORT_TOKENS),
   fromPorts(OfferUsageService, OFFER_USAGE_PORT_TOKENS),
+  fromPorts(OfferStatsService, OFFER_STATS_PORT_TOKENS),
+  fromPorts(OfferPreviewService, OFFER_PREVIEW_PORT_TOKENS),
+  OfferAppTypeService,
+  { provide: OFFER_APP_TYPE_REGISTRAR, useExisting: OfferAppTypeService },
   {
     provide: OrderAddonService,
     useFactory: (

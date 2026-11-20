@@ -2,6 +2,7 @@ import { FIRST_ORDER_COUNT } from '../domain/constants';
 import type { BuyerHistory } from '../domain/ports/buyer-history.port';
 import type { CollectionMembership } from '../domain/ports/collection-membership.port';
 import { OrderAddonUnavailableError } from '../domain/errors';
+import type { OfferPerformanceSource } from '../domain/ports/offer-performance.port';
 import type { OfferUsageCounts } from '../domain/ports/offer-usage.port';
 import type { OrderAddonTarget } from '../domain/ports/order-addon-target.port';
 import type { ShippingQuoteSource } from '../domain/ports/shipping-quote.port';
@@ -28,6 +29,9 @@ const UNREGISTERED_ORDER_ADDON_TARGET: OrderAddonTarget = {
   appendLine: () => Promise.reject(new OrderAddonUnavailableError()),
 };
 
+/** No order exists before P3.S4 registers its order source, so every offer's stats are zeros (D2514). */
+const NO_ORDER_FACTS: OfferPerformanceSource = { factsOf: () => Promise.resolve([]) };
+
 /** The collection membership seam, answering no memberships until P2.S3 registers. */
 export const newCollectionMembershipRegistry = (): SingleSourceRegistry<CollectionMembership> =>
   new SingleSourceRegistry('collection membership source', NO_COLLECTION_MEMBERSHIP);
@@ -47,3 +51,7 @@ export const newOfferUsageRegistry = (): SingleSourceRegistry<OfferUsageCounts> 
 /** The order source of post-order add-ons, refusing every call until P3.S4 registers. */
 export const newOrderAddonTargetRegistry = (): SingleSourceRegistry<OrderAddonTarget> =>
   new SingleSourceRegistry('order add-on target', UNREGISTERED_ORDER_ADDON_TARGET);
+
+/** The order facts of the offer stats, answering no order until P3.S4 registers (D2514). */
+export const newOfferPerformanceRegistry = (): SingleSourceRegistry<OfferPerformanceSource> =>
+  new SingleSourceRegistry('offer performance source', NO_ORDER_FACTS);

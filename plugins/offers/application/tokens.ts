@@ -48,3 +48,10 @@ export const RANDOM_CODE_SOURCE: unique symbol = Symbol('OffersRandomCodeSource'
 
 /** The variants of a store's product, read on the store's channel (D2513). */
 export const PRODUCT_VARIANTS: unique symbol = Symbol('OffersProductVariants');
+
+/** The orders the offer stats read (D2514), registered by P3.S4; same registry behind both tokens. */
+export const OFFER_PERFORMANCE_SOURCE: unique symbol = Symbol('OffersOfferPerformanceSource');
+export const OFFER_PERFORMANCE_SOURCE_REGISTRAR: unique symbol = Symbol('OffersOfferPerformanceSourceRegistrar');
+
+/** Where an app registers its own card of the create dialog (D2515): the `OfferAppTypeService` itself. */
+export const OFFER_APP_TYPE_REGISTRAR: unique symbol = Symbol('OffersOfferAppTypeRegistrar');

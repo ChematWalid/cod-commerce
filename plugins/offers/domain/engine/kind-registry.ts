@@ -39,10 +39,16 @@ export interface ParsedKindConfig {
 
 /** One synthetic cart the admin preview prices for a kind (D2516): its pieces and the extra lines it holds. */
 export interface PreviewCart {
+  /** Every piece of the cart, a get line's included. */
   readonly pieces: number;
   readonly withGet: boolean;
+  /** How many of `pieces` the get line holds when `withGet` (`PREVIEW_GET_PIECES` when unset, D2534). */
+  readonly getPieces?: number;
   readonly withAddon: boolean;
 }
+
+/** The cart a kind without a `previewCarts` hook is previewed on: one piece, no get line and no add-on (D2516). */
+export const DEFAULT_PREVIEW_CARTS: readonly PreviewCart[] = [{ pieces: 1, withGet: false, withAddon: false }];
 
 /**
  * One offer kind (D2404, §3a.7): its combination class, pipeline stage, config schema and effect. A new kind is a

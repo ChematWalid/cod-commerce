@@ -19,6 +19,9 @@ export { OfferLifecycleService } from './application/offer-lifecycle.service';
 export { OfferCodesService } from './application/offer-codes.service';
 export { OfferUsageService, type RecordedOrderUses } from './application/offer-usage.service';
 export { OrderAddonService, type OrderAddonInput } from './application/order-addon.service';
+export { OfferStatsService } from './application/offer-stats.service';
+export { OfferAppTypeService, type OfferAppTypeRegistrar } from './application/offer-app-type.service';
+export { OfferPreviewService } from './application/offer-preview.service';
 export type { OfferRecord, OfferSummaryRecord, StoredCode } from './domain/offer-record';
 export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';
 export type { TokenAddon, TokenUse } from './domain/engine/priced-quote';
@@ -29,6 +32,8 @@ export { asOperationContext } from './domain/ports/operation-context.port';
 export {
   BUYER_HISTORY_REGISTRAR,
   COLLECTION_MEMBERSHIP_REGISTRAR,
+  OFFER_APP_TYPE_REGISTRAR,
+  OFFER_PERFORMANCE_SOURCE_REGISTRAR,
   OFFER_USAGE_REGISTRAR,
   ORDER_ADDON_TARGET_REGISTRAR,
   SHIPPING_QUOTE_REGISTRAR,
@@ -61,3 +66,5 @@ export type {
   OrderAddonTargetRegistrar,
   PricedAddonLine,
 } from './domain/ports/order-addon-target.port';
+export type { OfferPerformanceRegistrar, OfferPerformanceSource } from './domain/ports/offer-performance.port';
+export type { OfferOrderFact, OfferOrderState, OfferOrderUse } from './domain/performance';
