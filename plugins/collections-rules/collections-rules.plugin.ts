@@ -11,13 +11,17 @@ import { CollectionsResolver } from './api/collections.resolver';
 import { CollectionsTranslations } from './api/collections-translations';
 import { MembershipActions, MembershipUseCases } from './api/membership-actions';
 import { MembershipResolver } from './api/membership.resolver';
+import { CollectionsThrottle } from './api/preview-throttle';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
+import { RulesActions, RulesUseCases } from './api/rules-actions';
+import { RulesController } from './api/rules.controller';
+import { RulesResolver } from './api/rules.resolver';
 import { collectionsRulesAdminApiSchema } from './api/schema';
 import { COLLECTIONS_PROVIDERS } from './infrastructure/collections.providers';
 import { COLLECTIONS_ENTITIES } from './infrastructure/collections-entities';
 
-/** Every REST controller; literal routes are declared before `:id` (D2315). */
-export const COLLECTIONS_REST_CONTROLLERS = [CollectionsController];
+/** Every REST controller; literal routes are declared before `:id` (D2315), so the rule builder's come first. */
+export const COLLECTIONS_REST_CONTROLLERS = [RulesController, CollectionsController];
 
 /**
  * Store collections (P2.S3): a Vendure `Collection` in the store channel for identity and texts, with our rule,
@@ -43,11 +47,14 @@ export const COLLECTIONS_REST_CONTROLLERS = [CollectionsController];
     CollectionsActions,
     MembershipUseCases,
     MembershipActions,
+    CollectionsThrottle,
+    RulesUseCases,
+    RulesActions,
     CollectionsTranslations,
   ],
   adminApiExtensions: {
     schema: collectionsRulesAdminApiSchema,
-    resolvers: [CollectionsResolver, MembershipResolver],
+    resolvers: [CollectionsResolver, MembershipResolver, RulesResolver],
   },
   controllers: COLLECTIONS_REST_CONTROLLERS,
   dashboard: './dashboard/index.tsx',

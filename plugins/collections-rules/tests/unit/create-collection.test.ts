@@ -139,13 +139,22 @@ describe('CreateCollectionService.create', () => {
     },
   );
 
-  it('refuses an automatic collection with rule-invalid until rule saves land (Task 7)', async () => {
+  it('creates an automatic collection with the products its rule matches as members (D2312)', async () => {
+    // Arrange
+    world.facts.add(scopeA, '1', '2');
+    world.facts.add(scopeB, '3');
+
     // Act
-    const created = service.create(ctx, scopeA, command({ mode: 'automatic', rule: priceRule(1, 2) }));
+    const view = await service.create(ctx, scopeA, command({ mode: 'automatic', rule: priceRule(500, 1_500) }));
 
     // Assert
-    await expect(created).rejects.toMatchObject({ code: COLLECTIONS_ERROR_CODES.RULE_INVALID });
-    expect(world.steps).toEqual([]);
+    expect(view).toMatchObject({ mode: 'automatic', rule: priceRule(500, 1_500), productCount: 2 });
+    const members = await world.tables.members.membersOf(ctx, scopeA, view.id);
+    expect(members).toEqual([
+      { productId: '2', position: 0 },
+      { productId: '1', position: 0 },
+    ]);
+    expect(world.events.published.map((event) => event.change)).toEqual(['created', 'membership']);
   });
 
   it('keeps the sanitised description and reads a blank result as no description', async () => {

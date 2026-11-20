@@ -6,8 +6,12 @@ import { CreateCollectionService } from '../application/create-collection.servic
 import { DeleteCollectionService } from '../application/delete-collection.service';
 import { GetCollectionService } from '../application/get-collection.service';
 import { ListCollectionsService } from '../application/list-collections.service';
+import { PreviewMatchesService } from '../application/preview-matches.service';
 import { ProductCollectionsService } from '../application/product-collections.service';
 import { ProductLinksService } from '../application/product-links.service';
+import { ProductSearchService } from '../application/product-search.service';
+import { RecomputeMembershipService } from '../application/recompute-membership.service';
+import { RuleOptionsService } from '../application/rule-options.service';
 import { SetCollectionProductsService } from '../application/set-collection-products.service';
 import { SlugAvailabilityService } from '../application/slug-availability.service';
 import {
@@ -106,5 +110,9 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   },
   useCase(SlugAvailabilityService),
   useCase(ProductLinksService),
+  useCase(RecomputeMembershipService),
+  useCase(PreviewMatchesService),
+  useCase(RuleOptionsService),
+  useCase(ProductSearchService),
   CollectionsMembershipSource,
 ];

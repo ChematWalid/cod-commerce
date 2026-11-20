@@ -154,6 +154,24 @@ export const storeCollectionSlugQuerySchema = z.preprocess(
   ),
 );
 
+/**
+ * "Find a product to add" (D2321): a title text and a page; it may come as a REST query string, and a blank search is
+ * no search.
+ */
+export const storeCollectionProductSearchQuerySchema = z
+  .preprocess(
+    withoutUnsetFields,
+    z.object(
+      {
+        search: z.string(issue).trim().max(COLLECTION_TITLE_MAX, issue).refine(isCleanLine, issue).optional(),
+        skip: queryPageNumberSchema(0, INT_COLUMN_MAX).default(0),
+        take: queryPageNumberSchema(1, COLLECTION_LIST_MAX_TAKE).default(COLLECTION_LIST_PAGE_SIZE),
+      },
+      issue,
+    ),
+  )
+  .transform(({ search, ...query }) => (search === undefined || search === '' ? query : { ...query, search }));
+
 export type CreateStoreCollectionInput = z.input<typeof createStoreCollectionInputSchema>;
 export type CreateStoreCollectionCommand = z.output<typeof createStoreCollectionInputSchema>;
 export type UpdateStoreCollectionInput = z.input<typeof updateStoreCollectionInputSchema>;
@@ -164,3 +182,4 @@ export type PreviewStoreCollectionCommand = z.output<typeof previewStoreCollecti
 export type StoreCollectionListQuery = z.output<typeof storeCollectionListQuerySchema>;
 export type StoreCollectionProductsQuery = z.output<typeof storeCollectionProductsQuerySchema>;
 export type StoreCollectionSlugQuery = z.output<typeof storeCollectionSlugQuerySchema>;
+export type StoreCollectionProductSearchQuery = z.output<typeof storeCollectionProductSearchQuerySchema>;

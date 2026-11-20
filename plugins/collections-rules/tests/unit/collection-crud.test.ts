@@ -7,7 +7,7 @@ import { ListCollectionsService } from '../../application/list-collections.servi
 import { UpdateCollectionService } from '../../application/update-collection.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { FakeCollectionWorld } from '../fakes/collection-ports';
-import { newCoreId, priceRule, scopeA, scopeA2 } from '../support/builders';
+import { newCoreId, scopeA, scopeA2 } from '../support/builders';
 
 const ctx = asOperationContext({});
 const MALFORMED_IDS = ['abc', '-1', '1.5', '99999999999999999999', ''];
@@ -96,20 +96,6 @@ describe('UpdateCollectionService.update', () => {
     expect(view.position).toBe(3);
     expect(world.vendure.updated).toEqual([]);
     expect(world.events.published.map((event) => event.change)).toEqual(['created', 'updated']);
-  });
-
-  it('refuses a switch to automatic with rule-invalid until rule saves land (Task 7)', async () => {
-    // Arrange
-    const created = await create();
-
-    // Act
-    const update = new UpdateCollectionService(world.ports).update(ctx, scopeA, created.id, {
-      mode: 'automatic',
-      rule: priceRule(1, 2),
-    });
-
-    // Assert
-    await expect(update).rejects.toMatchObject({ code: COLLECTIONS_ERROR_CODES.RULE_INVALID });
   });
 });
 

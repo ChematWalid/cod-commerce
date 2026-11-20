@@ -1,13 +1,14 @@
-import type { UpdateStoreCollectionCommand } from '@cod/shared';
+import { type CollectionRule, NORMAL_FORM_VERSION, type UpdateStoreCollectionCommand } from '@cod/shared';
 import { type CollectionDefinition, switchMode } from '../domain/collection';
 import { writableCollectionId } from '../domain/core-id';
-import { CollectionNotFoundError, InvalidCollectionRuleError } from '../domain/errors';
+import { CollectionNotFoundError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { CollectionMeta, CollectionTexts, VendureCollectionPatch } from '../domain/ports/vendure-collections.port';
 import type { StoreScope } from '../domain/store-scope';
 import { checkedImageId, cleanDescription, refuseTakenSlug } from './collection-checks';
 import type { CollectionPorts } from './collection-ports';
 import { type StoreCollectionView, viewOf } from './collection-view';
+import { RecomputeMembershipService } from './recompute-membership.service';
 
 /** What an update reads before it writes: the store's definition and its Vendure texts. */
 interface Current {
@@ -15,14 +16,37 @@ interface Current {
   readonly meta: CollectionMeta;
 }
 
+/** The definition after a mode or rule save, and whether its members must be rebuilt from its rule (D2312). */
+interface SavedMode {
+  readonly definition: CollectionDefinition;
+  readonly recompute: boolean;
+}
+
 const TEXT_FIELDS = ['title', 'slug', 'description'] as const;
 
 /**
+ * The rule a save leaves: the one sent, else the stored one for an automatic collection; a manual collection keeps
+ * none, so a rule sent for it is refused by `switchMode`.
+ */
+function ruleAfter(
+  definition: CollectionDefinition,
+  mode: CollectionDefinition['mode'],
+  command: UpdateStoreCollectionCommand,
+): CollectionRule | null {
+  if (command.rule !== undefined) return command.rule;
+  return mode === 'automatic' ? definition.rule : null;
+}
+
+/**
  * "Edit a collection" of the caller's active store: any field, an absent one unchanged (D2300). Runs under the store
- * lock (D2334), since a mode switch rewrites the members, and publishes `collection.changed` (D2335).
+ * lock (D2334), since a mode or rule save rewrites the members (D2302, D2312), and publishes `collection.changed`
+ * (D2335): `updated`, then `membership` when the rule's matches were rebuilt.
  */
 export class UpdateCollectionService {
-  constructor(private readonly ports: CollectionPorts) {}
+  constructor(
+    private readonly ports: CollectionPorts,
+    private readonly recompute = new RecomputeMembershipService(ports),
+  ) {}
 
   async update(
     ctx: OperationContext,
@@ -31,22 +55,22 @@ export class UpdateCollectionService {
     command: UpdateStoreCollectionCommand,
   ): Promise<StoreCollectionView> {
     const collectionId = writableCollectionId(rawId);
-    // Rule saves recompute membership (D2312); until that lands no collection takes a rule.
-    if (command.mode === 'automatic' || command.rule !== undefined) throw new InvalidCollectionRuleError();
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       await this.ports.lock.lockStore(tx, scope.storeId);
       const current = await this.currentOf(tx, scope, collectionId);
       const patch = await this.patchOf(tx, current, command);
       // A position or mode edit leaves Vendure's collection as it is: no write, no Vendure `updated` event.
       if (Object.keys(patch).length > 0) await this.ports.vendure.update(tx, collectionId, patch);
-      const definition = await this.switchedMode(tx, scope, current.definition, command);
+      const { definition, recompute } = await this.switchedMode(tx, scope, current.definition, command);
       const saved = {
         ...definition,
         visible: command.visible ?? definition.visible,
         position: command.position ?? definition.position,
+        ...(recompute ? { matchVersion: NORMAL_FORM_VERSION } : {}),
       };
       await this.ports.definitions.update(tx, scope, saved);
       await this.ports.events.publish(tx, scope, collectionId, 'updated');
+      if (recompute) await this.recompute.forStore(tx, scope, saved);
       return viewOf(this.ports, tx, scope, saved);
     });
   }
@@ -88,19 +112,22 @@ export class UpdateCollectionService {
     };
   }
 
-  /** The definition after a mode switch (D2302): automatic → manual keeps the members in order as the manual list. */
+  /**
+   * The definition after a save of its mode or rule (D2302): automatic → manual keeps the members in order as the
+   * manual list, a switch to automatic or a new rule asks for a recompute, the same rule keeps the members.
+   */
   private async switchedMode(
     ctx: OperationContext,
     scope: StoreScope,
     definition: CollectionDefinition,
     command: UpdateStoreCollectionCommand,
-  ): Promise<CollectionDefinition> {
-    if (command.mode === undefined || command.mode === definition.mode) return definition;
+  ): Promise<SavedMode> {
+    if (command.mode === undefined && command.rule === undefined) return { definition, recompute: false };
+    const mode = command.mode ?? definition.mode;
     const members = await this.ports.members.membersOf(ctx, scope, definition.collectionId);
-    const switched = switchMode(definition, command.mode, null, members);
-    if (switched.members !== 'recompute') {
-      await this.ports.members.replaceMembers(ctx, scope, definition.collectionId, switched.members);
-    }
-    return switched.definition;
+    const switched = switchMode(definition, mode, ruleAfter(definition, mode, command), members);
+    if (switched.members === 'recompute') return { definition: switched.definition, recompute: true };
+    await this.ports.members.replaceMembers(ctx, scope, definition.collectionId, switched.members);
+    return { definition: switched.definition, recompute: false };
   }
 }

@@ -106,16 +106,15 @@ describe('collections CRUD over GraphQL', () => {
     expect(found.items.map((item) => item.id)).toEqual([later.id]);
   });
 
-  it('refuses a taken slug of the store and an automatic collection until rules land', async () => {
+  it('refuses a taken slug of the store and an automatic collection without a rule', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
     await createCollection(suite.kit, { slug: 'taken-slug' });
-    const rule = { version: 1, match: 'all', conditions: [{ field: 'on_sale', operator: 'is', value: true }] };
 
     // Act
     const codes = await Promise.all([
       codeOf(createCollection(suite.kit, { slug: 'taken-slug' })),
-      codeOf(createCollection(suite.kit, { mode: 'automatic', rule })),
+      codeOf(createCollection(suite.kit, { mode: 'automatic' })),
     ]);
 
     // Assert

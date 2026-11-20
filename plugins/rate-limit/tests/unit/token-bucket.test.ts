@@ -27,6 +27,8 @@ describe('RATE_LIMIT_POLICIES', () => {
       'team-resend-actor': [30, 3600],
       'catalog-media-business': [1000, 3600],
       'catalog-media-actor': [120, 3600],
+      'collections-preview-actor': [30, 60],
+      'collections-rule-options-actor': [30, 60],
     });
   });
 

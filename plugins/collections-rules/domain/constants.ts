@@ -6,3 +6,6 @@ export const FIRST_MANUAL_POSITION = 0;
 
 /** The smallest core id (product, collection) Vendure issues: its int ids start at 1, so 0 names nothing. */
 export const MIN_CORE_ID = 1;
+
+/** Products read per keyset page when a rule is matched over a whole store: the facts reader's batch (D2308, D2312). */
+export const STORE_WALK_PAGE_SIZE = 100;

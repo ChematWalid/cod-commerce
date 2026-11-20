@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COLLECTION_LIST_MAX_TAKE,
   COLLECTION_LIST_PAGE_SIZE,
   COLLECTION_MAX_MANUAL_PRODUCTS,
   SLUG_MAX,
+  storeCollectionProductSearchQuerySchema,
   storeCollectionProductsQuerySchema,
   storeCollectionSlugQuerySchema,
 } from '../../src/index';
@@ -51,6 +53,24 @@ describe('storeCollectionSlugQuerySchema', () => {
   it('refuses a blank, over-long or unclean slug', () => {
     for (const slug of ['', '   ', 'x'.repeat(SLUG_MAX + 1), 'a\u0000b', '‮ab']) {
       expect(storeCollectionSlugQuerySchema.safeParse({ slug }).success).toBe(false);
+    }
+  });
+});
+
+describe('storeCollectionProductSearchQuerySchema', () => {
+  it('trims the search, reads a REST query string and drops a blank search', () => {
+    // Act
+    const parsed = storeCollectionProductSearchQuerySchema.parse({ search: '  shoe ', skip: '20', take: '5' });
+    const blank = storeCollectionProductSearchQuerySchema.parse({ search: '   ' });
+
+    // Assert
+    expect(parsed).toEqual({ search: 'shoe', skip: 20, take: 5 });
+    expect(blank).toEqual({ skip: 0, take: COLLECTION_LIST_PAGE_SIZE });
+  });
+
+  it('refuses a page past the list cap and an unclean search', () => {
+    for (const query of [{ take: COLLECTION_LIST_MAX_TAKE + 1 }, { take: 0 }, { search: 'a\u0000b' }]) {
+      expect(storeCollectionProductSearchQuerySchema.safeParse(query).success).toBe(false);
     }
   });
 });

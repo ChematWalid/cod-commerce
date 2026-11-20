@@ -24,6 +24,13 @@ const EDIT = { title: 'Taken over', visible: false };
 /** A slug no store of the sweep uses; the answer must be about the caller's store only. */
 const SWEEP_SLUG = 'sweep-slug';
 
+/** A rule every product matches (any price), so a preview lists the caller's whole store and nothing else. */
+const MATCH_ALL_RULE = {
+  version: 1,
+  match: 'all',
+  conditions: [{ field: 'price', operator: 'between', min: 0, max: null }],
+};
+
 /** Every Admin API operation the plugin's resolvers declare. */
 export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   {
@@ -117,6 +124,36 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
       setStoreProductCollections(productId: $productId, collectionIds: $collectionIds) { manual { id } automatic { id } }
     }`,
     variables: (ids) => ({ productId: ids.productId, collectionIds: [] }),
+  },
+  {
+    operation: 'storeCollectionRuleOptions',
+    access: 'catalog.collections.view',
+    foreign: 'own-only',
+    byId: false,
+    document: `query { storeCollectionRuleOptions { brands { id name } tags { id name } options { name values } } }`,
+    variables: () => ({}),
+  },
+  {
+    operation: 'storeCollectionProductSearch',
+    access: 'catalog.collections.edit',
+    foreign: 'own-only',
+    byId: false,
+    idField: 'productId',
+    document: `query ($options: StoreCollectionProductSearchInput) {
+      storeCollectionProductSearch(options: $options) { totalItems items { productId title } }
+    }`,
+    variables: () => ({ options: { take: 100 } }),
+  },
+  {
+    operation: 'previewStoreCollectionMatches',
+    access: 'catalog.collections.view',
+    foreign: 'own-only',
+    byId: false,
+    idField: 'productId',
+    document: `query ($input: StoreCollectionPreviewInput!) {
+      previewStoreCollectionMatches(input: $input) { totalItems items { productId title } }
+    }`,
+    variables: () => ({ input: { rule: MATCH_ALL_RULE } }),
   },
 ];
 
@@ -213,5 +250,32 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     byId: true,
     url: (ids) => `/catalog/collections/${ids.collectionId}/products`,
     body: () => ({ productIds: [] }),
+  },
+  {
+    method: 'POST',
+    route: '/catalog/collections/preview',
+    access: 'catalog.collections.view',
+    foreign: 'own-only',
+    byId: false,
+    idField: 'productId',
+    url: () => '/catalog/collections/preview',
+    body: () => ({ rule: MATCH_ALL_RULE }),
+  },
+  {
+    method: 'GET',
+    route: '/catalog/collections/rule-options',
+    access: 'catalog.collections.view',
+    foreign: 'own-only',
+    byId: false,
+    url: () => '/catalog/collections/rule-options',
+  },
+  {
+    method: 'GET',
+    route: '/catalog/collections/product-search',
+    access: 'catalog.collections.edit',
+    foreign: 'own-only',
+    byId: false,
+    idField: 'productId',
+    url: () => '/catalog/collections/product-search?take=100',
   },
 ];
