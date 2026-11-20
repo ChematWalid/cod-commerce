@@ -55,6 +55,7 @@ describe('PricingService held uses (D2445)', () => {
     // Act
     const result = await service.repriceOrder(ctx, {
       current: aRequest(1, { codes: CODES }),
+      storedTotal: 4_410,
       next: aRequest(2, { codes: CODES }),
       orderUsage: orderUsageOf(intake.o),
     });
@@ -77,6 +78,7 @@ describe('PricingService held uses (D2445)', () => {
     // Act
     const result = await service.repriceOrder(ctx, {
       current: aRequest(1),
+      storedTotal: 4_900,
       next: aRequest(2),
       orderUsage: orderUsageOf(intake.o),
     });
@@ -101,6 +103,7 @@ describe('PricingService held uses (D2445)', () => {
     // Act
     const result = await service.repriceOrder(ctx, {
       current: aRequest(2),
+      storedTotal: 9_800,
       next: aRequest(3),
       orderUsage: orderUsageOf(intake.o),
     });

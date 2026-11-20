@@ -527,6 +527,7 @@ async function reprice(pricing: Pricing, a1: Store, ids: OfferIds): Promise<void
   const input = {
     current: request([line(catalog.red, 1)]),
     next: request([line(catalog.red, 2)]),
+    storedTotal: 5_700,
     orderUsage: { offerIds: [], codes: [] },
   };
   const result = await pricing.repriceOrderForScope(a1.ctx, a1.scope, input);
@@ -534,6 +535,7 @@ async function reprice(pricing: Pricing, a1: Store, ids: OfferIds): Promise<void
     'reprice',
     result.available &&
       result.delta === 3_920 &&
+      result.drift === 0 &&
       result.before.total === 5_700 &&
       result.after.total === 9_620 &&
       result.after.quoteToken === null &&

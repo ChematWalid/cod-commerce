@@ -35,6 +35,7 @@ describe('PricingService.repriceOrder guards', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone: BUYER_PHONE }),
+        storedTotal: 8_820,
         next: aRequest(3, { phone: BUYER_PHONE }),
         orderUsage: { offerIds: [offer.id], codes: [] },
       });
@@ -55,6 +56,7 @@ describe('PricingService.repriceOrder guards', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone: BUYER_PHONE }),
+        storedTotal: 9_800,
         next: aRequest(3, { phone: BUYER_PHONE }),
         orderUsage: { offerIds: [], codes: [] },
       });
@@ -75,6 +77,7 @@ describe('PricingService.repriceOrder guards', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone: BUYER_PHONE }),
+        storedTotal: 8_820,
         next: aRequest(3, { phone: BUYER_PHONE }),
         orderUsage: { offerIds: [offer.id], codes: [], buyerOrdersBefore: 0 },
       });
@@ -94,6 +97,7 @@ describe('PricingService.repriceOrder guards', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone: BUYER_PHONE }),
+        storedTotal: 9_800,
         next: aRequest(3, { phone: BUYER_PHONE }),
         orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: 0 },
       });
@@ -114,6 +118,7 @@ describe('PricingService.repriceOrder guards', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: aRequest(2, { phone: BUYER_PHONE }),
+      storedTotal: 8_820,
       next: aRequest(3, { phone: BUYER_PHONE }),
       orderUsage: { offerIds: [offer.id], codes: [], buyerOrdersBefore: null },
     });
@@ -136,6 +141,7 @@ describe('PricingService.repriceOrder guards', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone: BUYER_PHONE }),
+        storedTotal: 8_820,
         next: aRequest(3, { phone: OTHER_PHONE }),
         orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: 0 },
       });
@@ -154,6 +160,7 @@ describe('PricingService.repriceOrder guards', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone: OTHER_PHONE }),
+        storedTotal: 9_800,
         next: aRequest(3, { phone: OTHER_PHONE }),
         orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: 5 },
       });
@@ -176,6 +183,7 @@ describe('PricingService.repriceOrder guards', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: aRequest(2, { phone: BUYER_PHONE }),
+      storedTotal: 9_800,
       next: aRequest(3, nextPhone === undefined ? {} : { phone: nextPhone }),
       orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: recorded },
     });
@@ -194,6 +202,7 @@ describe('PricingService.repriceOrder guards', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: aRequest(2, { phone: BUYER_PHONE }),
+      storedTotal: 8_820,
       next: aRequest(2, { phone: OTHER_PHONE }),
       orderUsage: { offerIds: [offer.id], codes: [] },
     });
@@ -217,6 +226,7 @@ describe('PricingService.repriceOrder guards', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: aRequest(1),
+      storedTotal: 4_900,
       next: aRequest(2),
       orderUsage: { offerIds: [offer.id], codes: [] },
     });
@@ -247,6 +257,7 @@ describe('PricingService.repriceOrder guards', () => {
     // Act
     const repricing = service.repriceOrder(stores.contextOf(scopeA), {
       current,
+      storedTotal: 4_900,
       next: aRequest(2),
       orderUsage: orderUsage as OrderUsage,
     });

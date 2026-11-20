@@ -5,15 +5,15 @@
 export { OffersPlugin, type OffersPluginOptions } from './offers.plugin';
 
 // The use cases (D2408, D2431): inject them by class.
-export {
-  type OrderFieldLine,
-  type OrderFields,
-  type PricedOrderChange,
-  PricingService,
-  type RepriceInput,
-  type RepriceResult,
-  type UnpricedOrderChange,
-} from './application/pricing.service';
+export { PricingService } from './application/pricing.service';
+export type {
+  OrderFieldLine,
+  OrderFields,
+  PricedOrderChange,
+  RepriceInput,
+  RepriceResult,
+  UnpricedOrderChange,
+} from './application/order-change';
 export { OfferAdminService } from './application/offer-admin.service';
 export type { OfferRecord, StoredCode } from './domain/offer-record';
 export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';

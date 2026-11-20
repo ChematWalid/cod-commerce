@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { InvalidQuoteRequestError } from '../../domain/errors';
 import { aCode, anActiveOffer, scopeA } from '../support/offer-records';
 import { aRequest, PRODUCT_1_TARGET, setUpPricing } from '../support/pricing-service';
 import { payloadOf } from '../support/quote-token';
@@ -29,6 +30,7 @@ describe('PricingService.repriceOrder', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: aRequest(1),
+      storedTotal: 4_900,
       next: aRequest(2),
       orderUsage: NOTHING_HELD,
     });
@@ -38,6 +40,47 @@ describe('PricingService.repriceOrder', () => {
     expect(result.before.total).toBe(4_900);
     expect(result.after.total).toBe(8_820);
     expect(result.available && result.delta).toBe(3_920);
+  });
+
+  it("measures delta from the order's stored total, not from today's price of its unchanged cart", async () => {
+    // Arrange: the order was placed at 5,000 a piece; the list price is 4,900 today.
+    const { service, stores } = setUpPricing();
+    const storedTotal = 5_000;
+
+    // Act: only the destination changes.
+    const result = await service.repriceOrder(stores.contextOf(scopeA), {
+      current: aRequest(1),
+      next: aRequest(1, { destination: { provinceCode: '31', stopdesk: true } }),
+      storedTotal,
+      orderUsage: NOTHING_HELD,
+    });
+
+    // Assert
+    expect(result.before.total).toBe(4_900);
+    expect(result.available && result.delta).toBe(-100);
+    expect(result.available && result.drift).toBe(-100);
+    expect(result.available && result.orderFields.lines[0]?.quotedUnitPrice).toBe(4_900);
+  });
+
+  it.each<[string, unknown]>([
+    ['a negative total', -1],
+    ['a total that is not whole', 4_900.5],
+    ['a total that is not a number', '4900'],
+    ['no total at all', undefined],
+  ])('refuses a stored total with %s as InvalidQuoteRequestError', async (_, storedTotal) => {
+    // Arrange
+    const { service, stores } = setUpPricing();
+
+    // Act
+    const repricing = service.repriceOrder(stores.contextOf(scopeA), {
+      current: aRequest(1),
+      next: aRequest(2),
+      storedTotal: storedTotal as number,
+      orderUsage: NOTHING_HELD,
+    });
+
+    // Assert
+    await expect(repricing).rejects.toBeInstanceOf(InvalidQuoteRequestError);
   });
 
   it('returns order fields whose discounts JSON matches the d entries of a quote of the changed cart', async () => {
@@ -60,6 +103,7 @@ describe('PricingService.repriceOrder', () => {
     // Act
     const result = await service.repriceOrder(ctx, {
       current: aRequest(1),
+      storedTotal: 4_410,
       next: aRequest(2),
       orderUsage: NOTHING_HELD,
     });
@@ -82,6 +126,7 @@ describe('PricingService.repriceOrder', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: withUnavailableLine(1),
+      storedTotal: 4_900,
       next: aRequest(1),
       orderUsage: NOTHING_HELD,
     });
@@ -99,6 +144,7 @@ describe('PricingService.repriceOrder', () => {
     // Act
     const result = await service.repriceOrder(stores.contextOf(scopeA), {
       current: aRequest(1),
+      storedTotal: 4_900,
       next: withUnavailableLine(3),
       orderUsage: NOTHING_HELD,
     });
@@ -124,6 +170,7 @@ describe('PricingService.repriceOrder', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2),
+        storedTotal: 8_820,
         next: aRequest(3),
         orderUsage: { offerIds: [offer.id], codes: [] },
       });
@@ -146,6 +193,7 @@ describe('PricingService.repriceOrder', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { codes }),
+        storedTotal: 8_820,
         next: aRequest(3, { codes }),
         orderUsage: { offerIds: [offer.id], codes },
       });
@@ -166,6 +214,7 @@ describe('PricingService.repriceOrder', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2, { phone }),
+        storedTotal: 8_820,
         next: aRequest(3, { phone }),
         orderUsage: { offerIds: [offer.id], codes: [] },
       });
@@ -186,6 +235,7 @@ describe('PricingService.repriceOrder', () => {
       // Act
       const result = await service.repriceOrder(stores.contextOf(scopeA), {
         current: aRequest(2),
+        storedTotal: 9_800,
         next: aRequest(3),
         orderUsage: { offerIds: [], codes: [] },
       });

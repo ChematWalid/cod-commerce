@@ -1,4 +1,4 @@
-import { invalidQuoteRequest, isSnowflake, MAX_CODE_INPUT_LENGTH, MAX_QUOTE_CODES } from '@cod/shared';
+import { invalidQuoteRequest, isSnowflake, MAX_CODE_INPUT_LENGTH, MAX_QUOTE_CODES, MONEY_MAX_DZD } from '@cod/shared';
 import { z } from 'zod';
 import { MAX_ORDER_HELD_OFFERS } from '../domain/constants';
 import type { OrderUsage } from '../domain/engine/order-usage';
@@ -30,6 +30,24 @@ const orderUsageSchema = z.object(
  */
 export function parseOrderUsage(raw: unknown): OrderUsage {
   const parsed = orderUsageSchema.safeParse(raw);
+  if (!parsed.success) throw new InvalidQuoteRequestError();
+  return parsed.data;
+}
+
+/** An order total as the order stores it: whole DZD in the money range. */
+const storedTotalSchema = z
+  .number(invalidQuoteRequest)
+  .int(invalidQuoteRequest)
+  .nonnegative(invalidQuoteRequest)
+  .max(MONEY_MAX_DZD, invalidQuoteRequest);
+
+/**
+ * The total the order stores now, checked before a delta is measured from it (D2446).
+ *
+ * @throws {@link InvalidQuoteRequestError} when it is not whole DZD in the money range.
+ */
+export function parseStoredTotal(raw: unknown): number {
+  const parsed = storedTotalSchema.safeParse(raw);
   if (!parsed.success) throw new InvalidQuoteRequestError();
   return parsed.data;
 }

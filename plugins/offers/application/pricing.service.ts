@@ -3,16 +3,17 @@ import type { PricingCart } from '../domain/cart';
 import { MS_PER_SECOND } from '../domain/constants';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import { mergeLines } from '../domain/engine/merge-lines';
-import { type OrderRelease, type OrderUsage, releaseOrderUsage } from '../domain/engine/order-usage';
+import { type OrderRelease, releaseOrderUsage } from '../domain/engine/order-usage';
 import { priceCart } from '../domain/engine/pipeline';
-import type { PricedQuote, TokenUse } from '../domain/engine/priced-quote';
+import type { PricedQuote } from '../domain/engine/priced-quote';
 import { InvalidQuoteRequestError, NoActiveStoreError } from '../domain/errors';
 import type { ActiveStorePort } from '../domain/ports/active-store.port';
 import type { OperationContext } from '../domain/ports/operation-context.port';
 import type { PricingSnapshotSource } from '../domain/ports/pricing-snapshot-source.port';
 import type { StoreScope } from '../domain/store-scope';
 import type { QuoteVerification } from '../domain/token/quote-token';
-import { parseOrderUsage } from './order-usage.schema';
+import type { OrderFields, RepriceInput, RepriceResult } from './order-change';
+import { parseOrderUsage, parseStoredTotal } from './order-usage.schema';
 import type { QuoteSigner, TokenCart } from './quote-signer';
 
 /** What the pricing use case is built from. */
@@ -23,78 +24,6 @@ export interface PricingServiceDeps {
   readonly signer: QuoteSigner;
   readonly kinds: OfferKindRegistry;
 }
-
-/** An order change to price (D2427): the order's cart as it is and as it would be. */
-export interface RepriceInput {
-  readonly current: QuoteRequestInput;
-  readonly next: QuoteRequestInput;
-  /**
-   * The offers and codes the order already holds. The stored usage counts include this order's own uses, so both carts
-   * are priced with them given back; without it an order that took an offer's last use would lose the offer on edit.
-   * The caller builds it with `orderUsageOf` from the order's stored `appliedOffers` (the intake token's `o`, then
-   * `OrderFields.appliedOffers` after each saved change, D2445), never from a request body: lines' `offerIds` and
-   * `quoteDiscounts` miss the code of a line offer and every delivery offer. The buyer's own uses and order count are given back only for a cart that keeps the phone of
-   * `current`, the order as stored; `buyerOrdersBefore`, the buyer's order count the order recorded when it was
-   * created (null or omitted when it recorded none), keeps a buyer's first order first after the buyer orders again
-   * (D2442).
-   */
-  readonly orderUsage: OrderUsage;
-}
-
-/** One order line as the order stores it (ADR 0004 `quotedUnitPrice`). */
-export interface OrderFieldLine {
-  readonly variantId: string;
-  readonly quotedUnitPrice: number;
-  readonly originalPrice: number;
-  readonly offerIds: readonly string[];
-}
-
-/** The order custom fields of the changed cart (ADR 0004); P4.S3 writes them, the pricing service never does. */
-export interface OrderFields {
-  readonly lines: readonly OrderFieldLine[];
-  /** JSON of the token's order discounts `d`. */
-  readonly quoteDiscounts: string;
-  readonly quotedShipping: number;
-  /**
-   * Every offer the changed cart applied, with the code that activated it (D2445): what the order holds, to store and
-   * to rebuild the next edit's `orderUsage` from (`orderUsageOf`).
-   */
-  readonly appliedOffers: readonly TokenUse[];
-  /**
-   * The buyer's orders before this one, to store on the order in place of the count it holds (D2442): the recorded
-   * count while the changed cart keeps the order's phone, the new phone's own count when the edit changes it, null
-   * without a phone. A count belongs to one phone, so P4.S3 overwrites the stored one on every saved change.
-   */
-  readonly buyerOrdersBefore: number | null;
-}
-
-/**
- * An order change whose carts are both fully priced: the change of total and the new cart's order fields (D2427). Its
- * quotes carry no token (`quoteToken` and `expiresAt` null): they are priced with the order's uses given back, so a
- * token would carry a released limit to a new checkout.
- */
-export interface PricedOrderChange {
-  readonly available: true;
-  readonly before: Quote;
-  readonly after: Quote;
-  readonly delta: number;
-  readonly orderFields: OrderFields;
-}
-
-/**
- * An order change with a variant the gate refuses in either cart: no delta and no order fields, since both would
- * silently leave the refused line out (D2425: never commit over a partial cart).
- */
-export interface UnpricedOrderChange {
-  readonly available: false;
-  readonly before: Quote;
-  readonly after: Quote;
-  /** The refused variants of both carts, each once. */
-  readonly unavailableVariantIds: readonly string[];
-}
-
-/** Both quotes of an order change, priced only when every line of both carts is available (D2425, D2427). */
-export type RepriceResult = PricedOrderChange | UnpricedOrderChange;
 
 /** The engine's pricing of a cart and the variants the gate refused in it. */
 interface EvaluatedCart {
@@ -225,6 +154,7 @@ export class PricingService {
 
   private async reprice(ctx: OperationContext, scope: StoreScope, input: RepriceInput): Promise<RepriceResult> {
     const usage = parseOrderUsage(input.orderUsage);
+    const storedTotal = parseStoredTotal(input.storedTotal);
     const current = parseRequest(input.current);
     const next = parseRequest(input.next);
     const ownBuyer = (next.phone ?? null) === (current.phone ?? null);
@@ -239,7 +169,8 @@ export class PricingService {
       available: true,
       before: beforeQuote,
       after: afterQuote,
-      delta: afterQuote.total - beforeQuote.total,
+      delta: afterQuote.total - storedTotal,
+      drift: beforeQuote.total - storedTotal,
       orderFields: orderFieldsOf(after),
     };
   }
