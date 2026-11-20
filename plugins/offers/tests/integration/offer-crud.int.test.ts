@@ -1,3 +1,4 @@
+import { ProductVariantService } from '@vendure/core';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OfferAdminService } from '../../application/offer-admin.service';
@@ -6,7 +7,9 @@ import {
   NoActiveStoreError,
   OfferNotDeletableError,
   OfferNotFoundError,
+  UnknownOfferTargetsError,
 } from '../../domain/errors';
+import { toRequestContext } from '../../infrastructure/request-scope';
 import { aVariantIn, offersTestEnvironment, scopeOf, storeContext, twoPieceOfferOn } from './offers-kit';
 
 /** One snowflake worker id per offers integration file (D2433). */
@@ -122,5 +125,42 @@ describe('OfferAdminService on a real database (D2431, D2440)', () => {
       expect(onVariant.map((listed) => listed.id)).toEqual([offer.id]);
       expect(onVariant[0]).toMatchObject({ title: offer.title, version: 1 });
     }
+  });
+
+  it('refuses targets outside the active store on create, update and publish (D2537)', async () => {
+    // Arrange
+    const { a, b } = fixtures;
+    const admin = server.app.get(OfferAdminService);
+    const scope = scopeOf(a, a.stores[0]);
+    const ctx = await storeContext(server, a.stores[0]);
+    const own = await aVariantIn(server, a.stores[0]);
+    const otherStore = await aVariantIn(server, a.stores[1]);
+    const otherBusiness = await aVariantIn(server, b.stores[0]);
+    const draft = await admin.createDraft(ctx, scope, twoPieceOfferOn(own.variantId));
+    const refusedOf = (error: unknown) => error;
+
+    // Act
+    const refusals = [
+      await admin.createDraft(ctx, scope, twoPieceOfferOn(otherBusiness.variantId)).catch(refusedOf),
+      await admin
+        .createDraft(ctx, scope, {
+          ...twoPieceOfferOn(own.variantId),
+          targets: [{ refType: 'product', refId: otherStore.productId }],
+        })
+        .catch(refusedOf),
+      await admin
+        .update(ctx, scope, draft.id, { targets: [{ refType: 'variant', refId: otherStore.variantId }] })
+        .catch(refusedOf),
+    ];
+    await server.app.get(ProductVariantService).softDelete(toRequestContext(ctx), own.variantId);
+    const publishing = await admin.publish(ctx, scope, draft.id).catch(refusedOf);
+
+    // Assert
+    for (const refusal of [...refusals, publishing]) expect(refusal).toBeInstanceOf(UnknownOfferTargetsError);
+    const onTheseVariants = (await admin.list(ctx, scope)).items.filter((listed) =>
+      listed.targets.some((target) => [otherStore.variantId, otherBusiness.variantId].includes(target.refId)),
+    );
+    expect(onTheseVariants).toEqual([]);
+    await expect(admin.get(ctx, scope, draft.id)).resolves.toMatchObject({ status: 'draft', version: 1 });
   });
 });

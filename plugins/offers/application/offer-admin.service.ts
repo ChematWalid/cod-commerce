@@ -33,10 +33,12 @@ import type { OperationContext } from '../domain/ports/operation-context.port';
 import type { ProductVariantsPort } from '../domain/ports/product-variants.port';
 import { assertNoPublishProblems } from '../domain/publish-check';
 import type { StoreScope } from '../domain/store-scope';
+import { addedTargets } from '../domain/target-refs';
 import { loadOffer, saveOffer } from './offer-access';
 import { type OfferCodesPorts, OfferCodesService } from './offer-codes.service';
 import { type OfferLifecyclePorts, OfferLifecycleService } from './offer-lifecycle.service';
 import { assertOnChannelOf } from './store-channel';
+import { assertTargetsInStore } from './target-check';
 
 /** Everything the admin use case reaches the outside through: the lifecycle's and the codes' ports, and variants. */
 export interface OfferAdminPorts extends OfferLifecyclePorts, OfferCodesPorts {
@@ -88,10 +90,12 @@ export class OfferAdminService {
    * @throws {@link InvalidOfferConfigError} when the input or the kind's configuration is invalid.
    * @throws {@link UnknownOfferKindError} when no calculator handles the kind.
    * @throws {@link InvalidOfferTargetsError} when a target has a role the kind does not allow (D2501).
+   * @throws {@link UnknownOfferTargetsError} when a target is no variant or product of the store (D2537).
    */
   async createDraft(ctx: OperationContext, scope: StoreScope, input: OfferInput): Promise<OfferRecord> {
     await assertOnChannelOf(this.ports.stores, ctx, scope);
     const { command, config } = this.parse(input);
+    await assertTargetsInStore(this.ports.targets, ctx, scope, command.targets);
     const offer = draftOf({ id: this.ports.ids.next(), command, config, now: this.ports.clock.now() });
     await this.ports.offers.create(ctx, scope, offer);
     return offer;
@@ -110,6 +114,8 @@ export class OfferAdminService {
    *
    * @throws {@link InvalidOfferTransitionError} when the offer is archived.
    * @throws {@link InvalidOfferTargetsError} when a target has a role the edited kind does not allow (D2501).
+   * @throws {@link UnknownOfferTargetsError} when a target the edit adds is no variant or product of the store; the
+   * stored ones are checked again at publish and resume (D2537).
    * @throws {@link OfferPublishInvalidError} when the edit leaves an active or paused offer incomplete (D2510).
    * @throws {@link CodeMethodRequiredError} when the patch makes a code offer that has codes automatic (D2449).
    * @throws {@link OfferConflictError} when another write changed the offer after it was read, or after the caller
@@ -124,6 +130,7 @@ export class OfferAdminService {
     const now = this.ports.clock.now();
     const edited = editedOffer(current, command, config, now);
     if (LIVE_STATUSES.has(current.status)) assertNoPublishProblems(edited, rules, now);
+    await assertTargetsInStore(this.ports.targets, ctx, scope, addedTargets(current.targets, edited.targets));
     await this.assertCodesKeepTheirMethod(ctx, scope, current, edited);
     await saveOffer(this.ports, ctx, scope, { offer: edited, readVersion: current.version });
     return edited;

@@ -27,10 +27,10 @@ export interface OffersTarget {
  * - `not-found`: `offers.offer-not-found` (REST 404);
  * - `own-only`: a successful answer about its own store only (the list filtered by the target's product);
  * - `no-read`: a successful answer computed from the input alone (the preview, D2516), or one that names no id;
- * - `dangling`: a create that keeps the target's variant id as a plain reference (D2536). It writes a row in the
- *   caller's store, so the server matrix sends it only on the refused channels; the plugin sweep covers it.
+ * - `unknown-target`: a create refused with `offers.unknown-targets` (REST 422): the target's variant is no row of
+ *   the caller's store, so no offer is written (D2537, superseding D2536's dangling reference).
  */
-export type OffersForeign = 'null' | 'not-found' | 'own-only' | 'no-read' | 'dangling';
+export type OffersForeign = 'null' | 'not-found' | 'own-only' | 'no-read' | 'unknown-target';
 
 /** One Admin API operation. */
 export interface OffersOperation {
@@ -70,6 +70,7 @@ export const ownOfferIdsOf = (business: BusinessWorld): string[] => {
 };
 
 export const OFFER_NOT_FOUND = PRICING_ERROR_CODES.OFFER_NOT_FOUND;
+export const UNKNOWN_TARGETS = PRICING_ERROR_CODES.UNKNOWN_TARGETS;
 
 /** A quantity draft activated by codes on the target's variant: what a create or a preview sends. */
 const offerNaming = (target: OffersTarget): Record<string, unknown> => ({
@@ -128,7 +129,7 @@ const OFFER_OPERATIONS: readonly OffersOperation[] = [
   {
     name: 'createOffer',
     entity: 'offer',
-    foreign: 'dangling',
+    foreign: 'unknown-target',
     document: 'mutation ($input: CreateOfferInput!) { createOffer(input: $input) { id targets { refId } } }',
     variables: (t) => ({ input: offerNaming(t) }),
   },
@@ -218,7 +219,14 @@ const OFFER_ROUTES: readonly OffersRoute[] = [
   },
   { method: 'GET', route: '/offers/:id', entity: 'offer', foreign: 'not-found', path: offerPath() },
   { method: 'GET', route: '/offers/:id/stats', entity: 'offer', foreign: 'not-found', path: offerPath('/stats') },
-  { method: 'POST', route: '/offers', entity: 'offer', foreign: 'dangling', path: () => '/offers', body: offerNaming },
+  {
+    method: 'POST',
+    route: '/offers',
+    entity: 'offer',
+    foreign: 'unknown-target',
+    path: () => '/offers',
+    body: offerNaming,
+  },
   {
     method: 'PATCH',
     route: '/offers/:id',

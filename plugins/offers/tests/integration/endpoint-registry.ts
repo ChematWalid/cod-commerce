@@ -84,7 +84,7 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   {
     operation: 'createOffer',
     access: create,
-    foreign: 'dangling',
+    foreign: 'unknown-target',
     byId: false,
     idField: 'variantId',
     document: 'mutation ($input: CreateOfferInput!) { createOffer(input: $input) { id targets { refId } } }',

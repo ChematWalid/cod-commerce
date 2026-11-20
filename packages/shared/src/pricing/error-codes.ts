@@ -11,6 +11,7 @@ export const PRICING_ERROR_CODES = {
   OFFER_CONFLICT: 'offers.offer-conflict',
   CODE_METHOD_REQUIRED: 'offers.code-method-required',
   INVALID_TARGETS: 'offers.invalid-targets',
+  UNKNOWN_TARGETS: 'offers.unknown-targets',
   PUBLISH_INVALID: 'offers.publish-invalid',
   OFFER_NOT_DELETABLE: 'offers.offer-not-deletable',
   ORDER_ADDON_UNAVAILABLE: 'offers.order-addon-unavailable',

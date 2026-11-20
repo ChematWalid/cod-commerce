@@ -10,6 +10,7 @@ import type { OperationContext } from '../../domain/ports/operation-context.port
 import type { StoreScope } from '../../domain/store-scope';
 import type { RandomCodeSource } from '../../domain/ports/random-code-source.port';
 import { FakeProductVariants } from '../fakes/fake-product-variants';
+import { FakeTargetCatalog } from '../fakes/fake-target-catalog';
 import { InMemoryOfferRepository, InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
 import { ScriptedCodeSource } from '../fakes/scripted-code-source';
 import { T0 } from './builders';
@@ -58,7 +59,8 @@ export interface OfferAdminSetUp {
 /**
  * The admin, lifecycle and codes services over the same empty in-memory tables, whose clock reads `now()` of the
  * returned setter; `race(write)` runs `write` just before the next save. `stores` answers the channel guard (D2448);
- * `calculators` default to the built-in kinds; `variants` holds each store's product variants (D2513).
+ * `calculators` default to the built-in kinds; `variants` holds each store's product variants (D2513);
+ * `targets` the catalog rows a target may name, every id until a test stocks a store (D2537).
  */
 export function setUpOfferAdmin({
   stores = EVERY_CHANNEL,
@@ -68,6 +70,7 @@ export function setUpOfferAdmin({
   const tables = new InMemoryOfferTables();
   const offers = new RacingOfferRepository(tables);
   const variants = new FakeProductVariants();
+  const targets = new FakeTargetCatalog();
   let now = T0;
   const ports = {
     offers,
@@ -78,13 +81,24 @@ export function setUpOfferAdmin({
     stores,
     random,
     variants,
+    targets,
   };
   const service = new OfferAdminService(ports);
   const lifecycle = new OfferLifecycleService(ports);
   const codeBook = new OfferCodesService(ports);
   const race = (write: () => Promise<unknown>) => (offers.queued = write);
   const { kinds } = ports;
-  return { service, lifecycle, codeBook, tables, variants, kinds, race, setNow: (instant: Date) => (now = instant) };
+  return {
+    service,
+    lifecycle,
+    codeBook,
+    tables,
+    variants,
+    targets,
+    kinds,
+    race,
+    setNow: (instant: Date) => (now = instant),
+  };
 }
 
 /** A valid quantity offer input: 10 % off from two pieces of variant 11. */

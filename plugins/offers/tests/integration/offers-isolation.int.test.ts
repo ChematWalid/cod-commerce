@@ -1,3 +1,4 @@
+import type { OfferInput } from '@cod/shared';
 import { createTwoBusinesses, PLUGIN_TEST_INITIAL_DATA, type TwoBusinesses } from '@cod/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OfferAdminService } from '../../application/offer-admin.service';
@@ -9,7 +10,6 @@ import {
   aVariantIn,
   LIST_PRICE,
   offersTestEnvironment,
-  productDiscountOn,
   scopeOf,
   storeContext,
 } from './offers-kit';
@@ -17,6 +17,18 @@ import {
 /** One snowflake worker id per offers integration file (D2433). */
 const SNOWFLAKE_WORKER_ID = 994;
 const HALF_OFF = 50;
+
+/**
+ * Half off every product of the store that holds it: an offer of another store or business cannot name A's variant
+ * (D2537), so the cross-store cases use one that would match any line, A's included, if the snapshot leaked it.
+ */
+const storeWideHalfOff = (method: 'automatic' | 'codes' = 'automatic') =>
+  ({
+    kind: 'product_discount',
+    method,
+    title: 'Store-wide discount',
+    config: { valueType: 'percent', value: HALF_OFF, appliesTo: 'all' },
+  }) satisfies OfferInput;
 
 const { server, adminClient } = offersTestEnvironment(SNOWFLAKE_WORKER_ID, 'test-offers-isolation');
 
@@ -47,8 +59,8 @@ describe('offers isolation between businesses and stores (ADR 0002)', () => {
   it('never applies an offer of business B to a quote of business A', async () => {
     // Arrange
     const { b } = fixtures;
-    const { variantId, quoteOnce } = await quoteInA1();
-    await anActiveOfferIn(server, scopeOf(b, b.stores[0]), b.stores[0], productDiscountOn(variantId, HALF_OFF));
+    const { quoteOnce } = await quoteInA1();
+    await anActiveOfferIn(server, scopeOf(b, b.stores[0]), b.stores[0], storeWideHalfOff());
 
     // Act
     const quote = await quoteOnce();
@@ -61,8 +73,8 @@ describe('offers isolation between businesses and stores (ADR 0002)', () => {
   it('never applies an offer of store A2 to store A1', async () => {
     // Arrange
     const { a } = fixtures;
-    const { variantId, quoteOnce } = await quoteInA1();
-    await anActiveOfferIn(server, scopeOf(a, a.stores[1]), a.stores[1], productDiscountOn(variantId, HALF_OFF));
+    const { quoteOnce } = await quoteInA1();
+    await anActiveOfferIn(server, scopeOf(a, a.stores[1]), a.stores[1], storeWideHalfOff());
 
     // Act
     const quote = await quoteOnce();
@@ -75,9 +87,9 @@ describe('offers isolation between businesses and stores (ADR 0002)', () => {
   it('rejects a code of another business as not found', async () => {
     // Arrange
     const { b } = fixtures;
-    const { variantId, quoteOnce } = await quoteInA1(['iso-b-10']);
+    const { quoteOnce } = await quoteInA1(['iso-b-10']);
     const scopeB = scopeOf(b, b.stores[0]);
-    const offer = await anActiveOfferIn(server, scopeB, b.stores[0], productDiscountOn(variantId, HALF_OFF, 'codes'));
+    const offer = await anActiveOfferIn(server, scopeB, b.stores[0], storeWideHalfOff('codes'));
     await server.app
       .get(OfferAdminService)
       .addCodes(await storeContext(server, b.stores[0]), scopeB, offer.id, [{ code: 'ISO-B-10' }]);
@@ -147,7 +159,8 @@ describe('offers isolation between businesses and stores (ADR 0002)', () => {
     const { a, b } = fixtures;
     const store = a.stores[0];
     const { variantId } = await aVariantIn(server, store);
-    const addonOfB = await anActiveOfferIn(server, scopeOf(b, b.stores[0]), b.stores[0], addonOfferOn(variantId));
+    const ofB = await aVariantIn(server, b.stores[0]);
+    const addonOfB = await anActiveOfferIn(server, scopeOf(b, b.stores[0]), b.stores[0], addonOfferOn(ofB.variantId));
     const request = aRequestFor(variantId, 1, { addons: [{ offerId: addonOfB.id, variantId, quantity: 1 }] });
 
     // Act

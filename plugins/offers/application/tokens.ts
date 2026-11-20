@@ -49,6 +49,9 @@ export const RANDOM_CODE_SOURCE: unique symbol = Symbol('OffersRandomCodeSource'
 /** The variants of a store's product, read on the store's channel (D2513). */
 export const PRODUCT_VARIANTS: unique symbol = Symbol('OffersProductVariants');
 
+/** The variants and products an offer target may name, read on the store's channel (D2537). */
+export const OFFER_TARGET_CATALOG: unique symbol = Symbol('OffersOfferTargetCatalog');
+
 /** The orders the offer stats read (D2514), registered by P3.S4; same registry behind both tokens. */
 export const OFFER_PERFORMANCE_SOURCE: unique symbol = Symbol('OffersOfferPerformanceSource');
 export const OFFER_PERFORMANCE_SOURCE_REGISTRAR: unique symbol = Symbol('OffersOfferPerformanceSourceRegistrar');

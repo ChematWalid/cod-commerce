@@ -5,15 +5,19 @@ import { duplicateOf, type OfferRecord } from '../domain/offer-record';
 import type { Clock } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { OperationContext } from '../domain/ports/operation-context.port';
+import type { OfferTargetCatalog } from '../domain/ports/target-catalog.port';
 import { assertPublishable } from '../domain/publish-check';
 import type { StoreScope } from '../domain/store-scope';
 import { loadOffer, type OfferAccessPorts, saveOffer } from './offer-access';
+import { assertTargetsInStore } from './target-check';
 
 /** What the lifecycle use case reaches the outside through. */
 export interface OfferLifecyclePorts extends OfferAccessPorts {
   readonly ids: IdGeneratorPort;
   readonly clock: Clock;
   readonly kinds: OfferKindRegistry;
+  /** The store's variants and products, which every target must name (D2537). */
+  readonly targets: OfferTargetCatalog;
 }
 
 /**
@@ -30,6 +34,7 @@ export class OfferLifecycleService {
    * @throws {@link InvalidOfferTransitionError} when the offer is not a draft.
    * @throws {@link OfferPublishInvalidError} listing every missing part (title, targets, dates).
    * @throws {@link InvalidOfferConfigError} when its config no longer passes its kind's schema.
+   * @throws {@link UnknownOfferTargetsError} when a target is no longer a variant or product of the store (D2537).
    */
   publish(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<OfferRecord> {
     return this.goLive(ctx, scope, rawId, 'publish');
@@ -45,6 +50,7 @@ export class OfferLifecycleService {
    *
    * @throws {@link InvalidOfferTransitionError} when the offer is not paused.
    * @throws {@link OfferPublishInvalidError} listing every missing part.
+   * @throws {@link UnknownOfferTargetsError} when a target is no longer a variant or product of the store (D2537).
    */
   resume(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<OfferRecord> {
     return this.goLive(ctx, scope, rawId, 'resume');
@@ -75,13 +81,17 @@ export class OfferLifecycleService {
     return moved;
   }
 
-  /** A move into `active`: the plan gate, the move's own source check, then every publish check, then the save. */
+  /**
+   * A move into `active`: the plan gate, the move's own source check, every publish check, the targets still in the
+   * store (D2537), then the save.
+   */
   private async goLive(ctx: OperationContext, scope: StoreScope, rawId: string, move: OfferMove): Promise<OfferRecord> {
     const current = await loadOffer(this.ports, ctx, scope, rawId);
     await requireFeature(FEATURE_KEYS.ActiveOffers, scope);
     const now = this.ports.clock.now();
     const moved = withMove(current, move, now);
     assertPublishable(moved, this.ports.kinds, now);
+    await assertTargetsInStore(this.ports.targets, ctx, scope, moved.targets);
     await saveOffer(this.ports, ctx, scope, { offer: moved, readVersion: current.version });
     return moved;
   }

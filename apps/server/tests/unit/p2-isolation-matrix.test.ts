@@ -227,6 +227,18 @@ describe('P2 isolation matrix', () => {
     expect(onRest).toBe(onGraphql);
   });
 
+  it.each([
+    ['offers.createOffer.foreign-id', { kind: 'code', code: 'offers.unknown-targets' }],
+    ['offers.post-/offers.foreign-id', { kind: 'status', status: 422, code: 'offers.unknown-targets' }],
+  ])("refuses %s naming the other business's variant (D2537)", (id, expected) => {
+    // Act
+    const cell = OFFERS_SWEEP_CASES.find((testCase) => testCase.id === id);
+
+    // Assert
+    expect(cell?.expect).toEqual(expected);
+    expect(cell?.access).toBe('write');
+  });
+
   it('gives every cell a unique id', () => {
     // Arrange
     const ids = P2_ISOLATION_CASES.map((testCase) => testCase.id);

@@ -20,6 +20,7 @@ const SNOWFLAKE_WORKER_ID = 976;
 const suite = offersApiSuite(SNOWFLAKE_WORKER_ID, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const NOT_FOUND = PRICING_ERROR_CODES.OFFER_NOT_FOUND;
 const NOT_FOUND_STATUS = 404;
+const REST_STATUS: Readonly<Record<string, number>> = { 'not-found': NOT_FOUND_STATUS, 'unknown-target': 422 };
 const FORBIDDEN = 'FORBIDDEN';
 const FORBIDDEN_STATUS = 403;
 const OK_STATUS = 200;
@@ -61,18 +62,18 @@ async function callRoute(entry: RouteEntry, ids: TargetIds): Promise<Outcome & {
 }
 
 /** Outcomes that answer the caller successfully: an error must never pass as isolation. */
-const SUCCEEDS: ReadonlySet<string> = new Set(['own-only', 'no-read', 'dangling']);
+const SUCCEEDS: ReadonlySet<string> = new Set(['own-only', 'no-read']);
 
 /**
  * The caller's outcome must not hold the target's row: null, not found, an answer about its own store only, one read
- * from the input alone, or a create keeping the target's variant id as a dangling reference (D2536).
+ * from the input alone, or a create refused because the target's variant is no row of the caller's store (D2537).
  */
 function expectForeign(entry: OperationEntry | RouteEntry, outcome: Outcome, ids: TargetIds): void {
   if (SUCCEEDS.has(entry.foreign)) expect(outcome.code).toBeUndefined();
   if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
   if (entry.foreign === 'not-found') expect(outcome.code).toBe(NOT_FOUND);
   if (entry.foreign === 'own-only') expect(outcome.text).not.toContain(`"${ids[idFieldOf(entry)]}"`);
-  if (entry.foreign === 'dangling') expect(outcome.text).toContain(`"refId":"${ids[idFieldOf(entry)]}"`);
+  if (entry.foreign === 'unknown-target') expect(outcome.code).toBe(PRICING_ERROR_CODES.UNKNOWN_TARGETS);
   for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
 }
 
@@ -131,7 +132,7 @@ describe('offers isolation sweep (two businesses)', () => {
 
       // Assert
       expectForeign(entry, outcome, target());
-      if (entry.foreign === 'not-found') expect(outcome.status).toBe(NOT_FOUND_STATUS);
+      if (entry.foreign in REST_STATUS) expect(outcome.status).toBe(REST_STATUS[entry.foreign]);
     });
 
     it("never lists the other business's offer, even filtered by its product", async () => {

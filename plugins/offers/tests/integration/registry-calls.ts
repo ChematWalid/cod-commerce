@@ -18,10 +18,10 @@ export type TargetIdField = keyof TargetIds;
  * - `not-found`: `offers.offer-not-found` (REST 404);
  * - `own-only`: a successful answer about its own store only, never holding the target's id;
  * - `no-read`: a successful answer computed from the input alone, reading no row (app types, preview, D2516);
- * - `dangling`: a successful create in the caller's store that keeps the target's variant id as a plain reference,
- *   never checked against the target's store and never reading its row (D2536).
+ * - `unknown-target`: a create refused with `offers.unknown-targets` (REST 422): the target's variant is no row of
+ *   the caller's store, so no offer is written (D2537, superseding D2536's dangling reference).
  */
-export type ForeignOutcome = 'null' | 'not-found' | 'own-only' | 'no-read' | 'dangling';
+export type ForeignOutcome = 'null' | 'not-found' | 'own-only' | 'no-read' | 'unknown-target';
 
 /** One Admin API operation of the plugin, with a call aimed at a target's ids. */
 export interface OperationEntry {

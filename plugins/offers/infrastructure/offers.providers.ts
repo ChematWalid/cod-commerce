@@ -40,6 +40,7 @@ import {
   OFFER_PERFORMANCE_SOURCE,
   OFFER_PERFORMANCE_SOURCE_REGISTRAR,
   OFFER_REPOSITORY,
+  OFFER_TARGET_CATALOG,
   OFFER_USAGE,
   OFFER_USAGE_COUNTER,
   OFFER_USAGE_REGISTRAR,
@@ -77,6 +78,7 @@ import { TypeOrmOfferCodeRepository } from './typeorm-offer-code.repository';
 import { TypeOrmOfferRepository } from './typeorm-offer.repository';
 import { TypeOrmOfferUsageCounter } from './typeorm-offer-usage.counter';
 import { VendureProductVariants } from './vendure-product-variants';
+import { VendureOfferTargetCatalog } from './vendure-target-catalog';
 import { VendureVariantGate } from './variant-gate';
 import { VENDURE_PRICING_LOGGER } from './vendure-pricing.logger';
 
@@ -131,12 +133,13 @@ const SEAM_PROVIDERS: Provider[] = [
 
 /**
  * The adapters behind the offers' ports: repositories, ids, clock, logger, kinds, events, the active store, the random
- * source of generated codes and the product variants.
+ * source of generated codes, the product variants and the catalog rows targets name (D2537).
  */
 const PORT_PROVIDERS: Provider[] = [
   { provide: OFFER_EVENTS, useClass: OutboxOfferEvents },
   { provide: RANDOM_CODE_SOURCE, useClass: CryptoCodeSource },
   { provide: PRODUCT_VARIANTS, useClass: VendureProductVariants },
+  { provide: OFFER_TARGET_CATALOG, useClass: VendureOfferTargetCatalog },
   { provide: CLOCK, useValue: SYSTEM_CLOCK },
   { provide: PRICING_LOGGER, useValue: VENDURE_PRICING_LOGGER },
   { provide: OFFER_KIND_REGISTRY, useFactory: () => new OfferKindRegistry(BUILT_IN_OFFER_KINDS) },
@@ -205,6 +208,7 @@ const OFFER_LIFECYCLE_PORT_TOKENS = {
   clock: CLOCK,
   kinds: OFFER_KIND_REGISTRY,
   stores: ACTIVE_STORE,
+  targets: OFFER_TARGET_CATALOG,
 } as const satisfies Record<keyof OfferLifecyclePorts, symbol>;
 
 const OFFER_CODES_PORT_TOKENS = {

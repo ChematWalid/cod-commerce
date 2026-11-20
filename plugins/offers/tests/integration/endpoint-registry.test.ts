@@ -57,7 +57,7 @@ describe('the offers endpoint registry', () => {
     expect(appTypes).toBeLessThan(byId);
   });
 
-  it('aims every create and preview at the variant it sends, creates as dangling references (D2536)', () => {
+  it('aims every create and preview at the variant it sends, refuses a create naming a variant outside the store (D2537)', () => {
     // Act
     const sendsAVariant = [
       ...OPERATION_REGISTRY.filter((entry) => SENDS_A_VARIANT.includes(operationKey(entry))),
@@ -67,9 +67,9 @@ describe('the offers endpoint registry', () => {
     // Assert
     expect(sendsAVariant).toEqual([
       { id: 'variantId', foreign: 'no-read' },
-      { id: 'variantId', foreign: 'dangling' },
+      { id: 'variantId', foreign: 'unknown-target' },
       { id: 'variantId', foreign: 'no-read' },
-      { id: 'variantId', foreign: 'dangling' },
+      { id: 'variantId', foreign: 'unknown-target' },
     ]);
   });
 

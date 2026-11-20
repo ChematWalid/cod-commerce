@@ -56,6 +56,14 @@ describe('the offers error mapping (D2520)', () => {
     expect(status).toBeLessThan(HttpStatus.INTERNAL_SERVER_ERROR);
   });
 
+  it('answers 422 for a target that is no row of the store (D2537)', () => {
+    // Act
+    const status = restStatusOf(new CodedError('offers.unknown-targets'));
+
+    // Assert
+    expect(status).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+  });
+
   it('answers the documented statuses of the admin refusals', () => {
     // Act
     const statuses = [

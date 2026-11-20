@@ -9,6 +9,7 @@ import {
   type OffersTarget,
   offersTargetOf,
   ownOfferIdsOf,
+  UNKNOWN_TARGETS,
 } from '../offers-operations';
 import type { BusinessWorld } from '../world-types';
 import { MALFORMED_IDS } from './catalog-sweep';
@@ -25,6 +26,7 @@ type Channel = NonNullable<MatrixRequest['channel']>;
 
 const FORBIDDEN = 403;
 const NOT_FOUND = 404;
+const UNPROCESSABLE = 422;
 
 /** The second store of `business`: its member reaches the first store only. */
 const otherStore = (business: BusinessWorld): Channel => ({
@@ -70,14 +72,16 @@ const OWN_ONLY: Expectation = { kind: 'own', mustInclude: () => [] };
 const operationForeign = (op: OffersOperation): Expectation => {
   if (op.foreign === 'null') return { kind: 'null', field: op.name };
   if (op.foreign === 'not-found') return { kind: 'code', code: OFFER_NOT_FOUND };
+  if (op.foreign === 'unknown-target') return { kind: 'code', code: UNKNOWN_TARGETS };
   return OWN_ONLY;
 };
 
-const routeForeign = (route: OffersRoute): Expectation =>
-  route.foreign === 'not-found' ? { kind: 'status', status: NOT_FOUND, code: OFFER_NOT_FOUND } : OWN_ONLY;
-
-/** A create keeps B's variant id as a dangling reference in A's store (D2536): it is sent on the refused cells only. */
-const writesNoRow = (entry: { readonly foreign: OffersOperation['foreign'] }): boolean => entry.foreign !== 'dangling';
+/** What a route answers for an id that is not one of the caller's store. */
+const routeForeign = (route: OffersRoute): Expectation => {
+  if (route.foreign === 'not-found') return { kind: 'status', status: NOT_FOUND, code: OFFER_NOT_FOUND };
+  if (route.foreign === 'unknown-target') return { kind: 'status', status: UNPROCESSABLE, code: UNKNOWN_TARGETS };
+  return OWN_ONLY;
+};
 const byOfferId = (entry: { readonly foreign: OffersOperation['foreign'] }): boolean =>
   entry.foreign === 'null' || entry.foreign === 'not-found';
 
@@ -138,7 +142,7 @@ function ownLists(): IsolationCase[] {
 
 /** A's owner on its own store naming B's offer, code, product or variant (both directions). */
 function foreignIds(): IsolationCase[] {
-  const ops = OFFERS_OPERATIONS.filter(writesNoRow).map((op): IsolationCase => ({
+  const ops = OFFERS_OPERATIONS.map((op): IsolationCase => ({
     id: `offers.${op.name}.foreign-id`,
     entity: op.entity,
     endpoint: op.name,
@@ -148,7 +152,7 @@ function foreignIds(): IsolationCase[] {
     expect: operationForeign(op),
     reverse: true,
   }));
-  const routes = OFFERS_ROUTES.filter(writesNoRow).map((route): IsolationCase => ({
+  const routes = OFFERS_ROUTES.map((route): IsolationCase => ({
     id: `${routeId(route)}.foreign-id`,
     entity: route.entity,
     endpoint: routeName(route),

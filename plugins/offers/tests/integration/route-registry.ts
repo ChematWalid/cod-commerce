@@ -43,7 +43,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     method: 'POST',
     route: '/offers',
     access: create,
-    foreign: 'dangling',
+    foreign: 'unknown-target',
     idField: 'variantId',
     url: () => '/offers',
     body: offerNaming,

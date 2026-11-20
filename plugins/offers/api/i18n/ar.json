@@ -11,6 +11,7 @@
     "offers-offer-conflict": "تم تعديل هذا العرض في نفس الوقت. أعد تحميله ثم حاول مرة أخرى.",
     "offers-code-method-required": "الرموز متاحة فقط للعروض التي تفعل بالرمز.",
     "offers-invalid-targets": "هذا النوع من العروض لا يقبل أحد هذه المنتجات.",
+    "offers-unknown-targets": "أحد هذه المنتجات غير موجود في هذا المتجر.",
     "offers-publish-invalid": "هذا العرض غير جاهز للنشر بعد.",
     "offers-offer-not-deletable": "يمكن حذف المسودة فقط. قم بأرشفة هذا العرض بدلا من ذلك.",
     "offers-order-addon-unavailable": "لا يمكن إضافة منتجات إضافية إلى الطلبات حاليا.",

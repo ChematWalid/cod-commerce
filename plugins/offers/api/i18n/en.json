@@ -11,6 +11,7 @@
     "offers-offer-conflict": "This offer was changed at the same time. Reload it and try again.",
     "offers-code-method-required": "Only an offer activated by codes can have codes.",
     "offers-invalid-targets": "This kind of offer cannot have one of these products.",
+    "offers-unknown-targets": "One of these products is not in this store.",
     "offers-publish-invalid": "This offer is not ready to publish.",
     "offers-offer-not-deletable": "Only a draft can be deleted. Archive this offer instead.",
     "offers-order-addon-unavailable": "Add-ons cannot be added to orders yet.",

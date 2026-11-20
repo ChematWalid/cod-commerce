@@ -24,6 +24,17 @@ export class InvalidOfferTargetsError extends DomainError {
   }
 }
 
+/**
+ * A target names no variant or product of the offer's store (D2537): another store's or business's, deleted or
+ * unknown. The message never repeats the ids.
+ */
+export class UnknownOfferTargetsError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.UNKNOWN_TARGETS;
+  constructor() {
+    super('One of these targets is not in this store');
+  }
+}
+
 /** No calculator of the kind registry handles that kind (D2404). */
 export class UnknownOfferKindError extends DomainError {
   readonly code = PRICING_ERROR_CODES.UNKNOWN_KIND;
