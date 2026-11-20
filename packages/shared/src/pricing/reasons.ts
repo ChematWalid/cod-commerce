@@ -39,6 +39,13 @@ export const QUOTE_VERIFY_FAILURES = [
   'cart_mismatch',
 ] as const;
 
+/**
+ * Why a requested add-on was dropped from a quote (D2506): no such add-on offer here, its conditions not met, or its
+ * variant refused by the store's variant gate. A dropped add-on never makes the quote unavailable.
+ */
+export const ADDON_REJECT_REASONS = ['not_offered', 'not_eligible', 'unavailable'] as const;
+
 export type SkipReason = (typeof SKIP_REASONS)[number];
 export type CodeRejectReason = (typeof CODE_REJECT_REASONS)[number];
 export type QuoteVerifyFailure = (typeof QUOTE_VERIFY_FAILURES)[number];
+export type AddonRejectReason = (typeof ADDON_REJECT_REASONS)[number];

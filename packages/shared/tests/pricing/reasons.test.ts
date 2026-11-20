@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ADDON_PLACEMENTS,
+  ADDON_REJECT_REASONS,
   AUDIENCES,
   CODE_REJECT_REASONS,
   COMBINATION_CLASSES,
   DELIVERY_METHODS,
   OFFER_METHODS,
+  OFFER_APP_GOALS,
   OFFER_STATUSES,
+  OFFER_TARGET_ROLES,
   ORDER_PRICING_MODES,
   PRICING_CHANNELS,
   PRICING_ERROR_CODES,
@@ -24,11 +28,19 @@ const LISTS = {
   OFFER_STATUSES,
   COMBINATION_CLASSES,
   ORDER_PRICING_MODES,
+  OFFER_TARGET_ROLES,
+  ADDON_PLACEMENTS,
+  OFFER_APP_GOALS,
 };
 
 describe('pricing reason lists', () => {
   it.each(Object.entries(LISTS))('keeps reason lists free of duplicates: %s', (_name, values) => {
     expect(new Set(values).size).toBe(values.length);
+  });
+
+  it('keeps add-on reject reasons free of duplicates', () => {
+    expect(ADDON_REJECT_REASONS).toEqual(['not_offered', 'not_eligible', 'unavailable']);
+    expect(new Set(ADDON_REJECT_REASONS).size).toBe(ADDON_REJECT_REASONS.length);
   });
 
   it('lists every skip reason of the brief', () => {
@@ -54,5 +66,19 @@ describe('pricing reason lists', () => {
 
     expect(new Set(codes).size).toBe(codes.length);
     expect(codes).toContain('pricing.invalid-request');
+  });
+
+  it('gives the offers admin and post-order add-on refusals their own codes', () => {
+    expect(Object.values(PRICING_ERROR_CODES)).toEqual(
+      expect.arrayContaining([
+        'offers.invalid-targets',
+        'offers.publish-invalid',
+        'offers.offer-not-deletable',
+        'offers.order-addon-unavailable',
+        'offers.order-not-editable',
+        'offers.order-not-found',
+        'offers.addon-not-offered',
+      ]),
+    );
   });
 });

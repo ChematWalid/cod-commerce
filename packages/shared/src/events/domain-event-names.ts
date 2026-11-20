@@ -12,6 +12,7 @@ export const DOMAIN_EVENT_NAMES = {
   DeviceTrusted: 'device.trusted',
   SalaryPaid: 'salary.paid',
   ProductChanged: 'product.changed',
+  OfferApplied: 'offer.applied',
 } as const;
 
 /** One of the {@link DOMAIN_EVENT_NAMES} values. */

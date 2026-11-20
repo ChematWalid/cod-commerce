@@ -58,10 +58,12 @@ const tokenCartOf = (request: QuoteRequest): TokenCart => ({
 /** The quote without the engine's token parts (`tokenLines`, `tokenDiscounts`, `tokenUses`, `phoneUsed`). */
 function publicQuoteOf(priced: PricedQuote): Omit<Quote, 'quoteToken' | 'expiresAt'> {
   const { currency, lines, discounts, subtotal, discountTotal, delivery, total, savings, nudge } = priced;
-  const { applied, skipped, rejectedCodes, suggestions, available, orderPricingMode, unavailableVariantIds } = priced;
+  const { applied, skipped, rejectedCodes, rejectedAddons, suggestions, available } = priced;
+  const { orderPricingMode, unavailableVariantIds } = priced;
   return {
     ...{ currency, lines, discounts, subtotal, discountTotal, delivery, total, savings, nudge },
-    ...{ applied, skipped, rejectedCodes, suggestions, available, orderPricingMode, unavailableVariantIds },
+    ...{ applied, skipped, rejectedCodes, rejectedAddons, suggestions, available, orderPricingMode },
+    unavailableVariantIds,
   };
 }
 

@@ -8,3 +8,5 @@ export * from './quote-request';
 export * from './quote';
 export * from './offer-model';
 export * from './kinds';
+export * from './offer-admin';
+export * from './offer-applied';

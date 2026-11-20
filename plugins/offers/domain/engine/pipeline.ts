@@ -84,6 +84,7 @@ export function priceCart(input: PriceCartInput): PricedQuote {
     applied: [...settled.applied],
     skipped: [...settled.refusals.skipped],
     rejectedCodes: [...codeRejections, ...settled.refusals.rejectedCodes],
+    rejectedAddons: [],
     suggestions: suggestionsOf({ entries: eligible, lines: settled.lines, delivery, waived: settled.waived }),
     available: true,
     orderPricingMode: QUOTE_PRICING_MODE,

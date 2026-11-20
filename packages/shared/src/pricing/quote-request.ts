@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { phoneE164Schema } from '../auth/schemas';
+import { isSnowflake } from '../ids/snowflake';
 import { WILAYA_CODES } from '../wilayas/wilayas';
 import { PRICING_CHANNELS } from './channels';
 import { hasBidiControl, hasControlCharacter, hasLoneSurrogate } from '../text/control-characters';
 import {
   ALGERIA_COUNTRY_CODE,
+  MAX_ADDON_PIECES,
   MAX_CODE_INPUT_LENGTH,
   MAX_LINE_QUANTITY,
   MAX_PHONE_INPUT_LENGTH,
+  MAX_QUOTE_ADDONS,
   MAX_QUOTE_CODES,
   MAX_QUOTE_LINES,
   TOWN_ONS_MAX_LENGTH,
@@ -33,6 +36,27 @@ const quoteLineInputSchema = z.object(
   },
   invalidQuoteRequest,
 );
+
+/**
+ * An add-on the buyer accepted (D2506): the offer that offers it (a snowflake row id) and the variant, priced by the
+ * engine like a line. Its quantity is capped by the offer's own per-order cap too.
+ */
+const quoteAddonInputSchema = z.object(
+  {
+    offerId: z.string(invalidQuoteRequest).refine(isSnowflake, invalidQuoteRequest),
+    variantId: pricingIdSchema,
+    quantity: z
+      .number(invalidQuoteRequest)
+      .int(invalidQuoteRequest)
+      .min(1, invalidQuoteRequest)
+      .max(MAX_ADDON_PIECES, invalidQuoteRequest),
+  },
+  invalidQuoteRequest,
+);
+
+/** One entry per offer and variant, so the cart hash has one spelling of a cart's add-ons. */
+const hasDistinctAddons = (addons: readonly { offerId: string; variantId: string }[]): boolean =>
+  new Set(addons.map(({ offerId, variantId }) => `${offerId}:${variantId}`)).size === addons.length;
 
 const destinationSchema = z.object(
   {
@@ -96,6 +120,11 @@ export const quoteRequestSchema = z.object(
     destination: destinationSchema.nullish(),
     phone: quotePhoneSchema.nullish(),
     codes: z.array(codeInputSchema, invalidQuoteRequest).max(MAX_QUOTE_CODES, invalidQuoteRequest).optional(),
+    addons: z
+      .array(quoteAddonInputSchema, invalidQuoteRequest)
+      .max(MAX_QUOTE_ADDONS, invalidQuoteRequest)
+      .refine(hasDistinctAddons, invalidQuoteRequest)
+      .default([]),
   },
   invalidQuoteRequest,
 );
@@ -107,3 +136,4 @@ export type QuoteRequest = z.output<typeof quoteRequestSchema>;
 export type QuoteCart = QuoteRequest;
 export type QuoteLineInput = QuoteRequest['lines'][number];
 export type QuoteDestination = NonNullable<QuoteRequest['destination']>;
+export type QuoteAddonInput = QuoteRequest['addons'][number];
