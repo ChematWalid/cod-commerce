@@ -99,6 +99,28 @@ function check(name: string, condition: boolean, value: unknown): void {
   if (!condition) throw new Error(`P2.S4-quote: ${name} does not hold for ${JSON.stringify(value)}`);
 }
 
+/** The offers a signed token says the order holds (D2445): `o` of its payload, each with the code that activated it. */
+interface TokenClaims {
+  readonly t: number;
+  readonly o: readonly { readonly offerId: string; readonly code?: string }[];
+}
+
+/** The payload of a `qt1` token, read without checking the signature (the service verifies; this only shows it). */
+function claimsOf(token: string): TokenClaims {
+  const payload = TOKEN.exec(token)?.[1];
+  if (payload === undefined) throw new Error('P2.S4-quote: not a qt1 token');
+  return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as TokenClaims;
+}
+
+/** True when a signed quote's token carries `o` naming every offer the quote applied, with its code. */
+function tokenHoldsApplied(quote: Quote): boolean {
+  if (quote.quoteToken === null) return true;
+  const { o } = claimsOf(quote.quoteToken);
+  if (!Array.isArray(o)) return false;
+  const held = new Set(o.map((use) => `${use.offerId}:${use.code ?? ''}`));
+  return quote.applied.every((offer) => held.has(`${offer.offerId}:${offer.code ?? ''}`));
+}
+
 /** A token keeps its prefix and payload (what it commits to) and loses its signature. */
 function redacted(value: unknown): unknown {
   if (typeof value === 'string') return value.replace(TOKEN, 'qt1.$1.[REDACTED]');
@@ -286,7 +308,7 @@ async function run(app: App): Promise<void> {
   await useUp(app.get(offers.OfferUsageService), a1, 'USEDUP15');
   const pricing = app.get(offers.PricingService);
   await quotes(pricing, a1, ids);
-  await verifications(app, pricing, a1, a2);
+  await verifications(app, pricing, a1, a2, ids);
   await reprice(pricing, a1, ids);
   const isolation = request([line(catalog.codesVariant, 1)], { codes: ['bonly20'] });
   const leaked = await pricing.quoteForScope(a1.ctx, a1.scope, isolation);
@@ -296,6 +318,7 @@ async function run(app: App): Promise<void> {
     leaked,
   );
   check('no B offer in A', !JSON.stringify(leaked).includes(ids.b), leaked);
+  check('isolation token o', tokenHoldsApplied(leaked), leaked);
   write({
     name: 'isolation-b-code-in-a',
     title: "Business B's code in store A1: not found",
@@ -318,6 +341,7 @@ async function quoteCase(
 ): Promise<Quote> {
   const quote = await pricing.quoteForScope(store.ctx, store.scope, spec.input);
   check(spec.name, expect(quote), quote);
+  check(`${spec.name} token o`, tokenHoldsApplied(quote), quote);
   write({ ...spec, call: QUOTE_CALL, store, output: quote });
   return quote;
 }
@@ -354,7 +378,13 @@ async function quotes(pricing: Pricing, a1: Store, ids: OfferIds): Promise<void>
         'One red and one blue variant of the same product count as 2 pieces (D2410): 10 % off each unit, 8,820 + 800.',
       input: request([line(catalog.red, 1), line(catalog.blue, 1)]),
     },
-    (q) => q.subtotal === 8_820 && q.total === 9_620 && q.savings === 980 && q.applied[0]?.offerId === ids.quantity,
+    (q) =>
+      q.subtotal === 8_820 &&
+      q.total === 9_620 &&
+      q.savings === 980 &&
+      q.applied[0]?.offerId === ids.quantity &&
+      q.quoteToken !== null &&
+      claimsOf(q.quoteToken).o.some((use) => use.offerId === ids.quantity && use.code === undefined),
   );
   await quoteCase(
     pricing,
@@ -404,14 +434,17 @@ async function quotes(pricing: Pricing, a1: Store, ids: OfferIds): Promise<void>
       title: 'Discount codes: valid, duplicate, not found, used up',
       about:
         '` welcome10 ` is normalised to `WELCOME10` and applies (D2406); the same code again is `duplicate`; `NOPE99` is ' +
-        '`not_found`; `usedup15` has reached its usage limit (its count was set to the limit by the script: P3.S4 ' +
-        'counts uses) and is `code_limit` (AC4).',
+        '`not_found`; `usedup15` has reached its usage limit of 1 (the script recorded one order use of it through ' +
+        '`OfferUsageService.recordOrderUses`, the use case P3.S4 calls, D2447) and is `code_limit` (AC4). The token ' +
+        'payload `o` names the applied offer with its code (D2445).',
       input: request([line(catalog.codesVariant, 1)], { codes: [' welcome10 ', 'WELCOME10', 'NOPE99', 'usedup15'] }),
     },
     (q) => {
       const reasons = Object.fromEntries(q.rejectedCodes.map((r) => [r.code, r.reason]));
       return (
         q.applied.some((o) => o.offerId === ids.welcome && o.code === 'WELCOME10') &&
+        q.quoteToken !== null &&
+        claimsOf(q.quoteToken).o.some((use) => use.offerId === ids.welcome && use.code === 'WELCOME10') &&
         reasons['WELCOME10'] === 'duplicate' &&
         reasons['NOPE99'] === 'not_found' &&
         reasons['USEDUP15'] === 'code_limit'
@@ -464,7 +497,7 @@ function tamperedTotal(token: string): string {
   return `${prefix}.${forged}.${signature}`;
 }
 
-async function verifications(app: App, pricing: Pricing, a1: Store, a2: Store): Promise<void> {
+async function verifications(app: App, pricing: Pricing, a1: Store, a2: Store, ids: OfferIds): Promise<void> {
   const { catalog } = world;
   const cart = request([line(catalog.red, 1), line(catalog.blue, 1)]);
   const quote = await pricing.quoteForScope(a1.ctx, a1.scope, cart);
@@ -482,7 +515,7 @@ async function verifications(app: App, pricing: Pricing, a1: Store, a2: Store): 
     'The 2-piece token, verified with its own cart: ok',
     'The token of `quote-2-pieces-home` (total 9,620), checked in the store that signed it with the same cart (AC7).',
   );
-  check('round trip', ok.ok && ok.payload.t === 9_620, ok);
+  check('round trip', ok.ok && ok.payload.t === 9_620 && ok.payload.o.some((u) => u.offerId === ids.quantity), ok);
   const tampered = await verify(
     a1,
     tamperedTotal(token),
@@ -532,19 +565,27 @@ async function reprice(pricing: Pricing, a1: Store, ids: OfferIds): Promise<void
     'reprice',
     result.available &&
       result.delta === 3_920 &&
+      result.delta === result.after.total - input.storedTotal &&
       result.drift === 0 &&
       result.before.total === 5_700 &&
       result.after.total === 9_620 &&
+      result.before.quoteToken === null &&
       result.after.quoteToken === null &&
-      result.orderFields.lines[0]?.offerIds.includes(ids.quantity) === true,
+      result.orderFields.lines.length === 1 &&
+      result.orderFields.lines[0]?.quotedUnitPrice === 4_410 &&
+      result.orderFields.lines[0].offerIds.includes(ids.quantity) &&
+      result.orderFields.appliedOffers.some((use) => use.offerId === ids.quantity && use.code === undefined),
     result,
   );
   write({
     name: 'reprice-1-to-2',
     title: 'An order of one piece changed to two: delta 3,920',
     about:
-      'The order change of D2427: before 5,700, after 9,620 (the 2-piece tier applies), delta 3,920, and the order ' +
-      'fields P4.S3 will store (`quotedUnitPrice` 4,410). Nothing is written; neither quote carries a token.',
+      'The order change of D2427: the order stores a total of 5,700 (`storedTotal`); its cart re-priced today is still ' +
+      '5,700 (`drift` 0, D2446), the changed cart is 9,620 (the 2-piece tier applies), so `delta` is 3,920 from the ' +
+      'stored total. `orderFields` are what P4.S3 will store: one line at `quotedUnitPrice` 4,410 and the quantity offer ' +
+      'in `appliedOffers` (D2445). The order holds no offer yet (`orderUsage` empty). Nothing is written; neither quote ' +
+      'carries a token.',
     call: REPRICE_CALL,
     store: a1,
     input,

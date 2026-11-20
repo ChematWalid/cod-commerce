@@ -9,7 +9,7 @@ The token of `quote-2-pieces-home` (total 9,620), checked in the store that sign
 
 ```json
 {
-  "token": "qt1.eyJhIjpbXSwiYiI6IjI0OTQzNTA3NDg1OTExNDQ5NiIsImQiOltdLCJleHAiOjE3OTUxNjA0OTQsImgiOiJjMDM1N2UwNDhiZDZkMzZlMGQ5MDJkM2MyYTFhNjVlZjQ5ZTQ5ZTg2ZWEyY2E2M2E5ZTIyZmNiNDI4NzJkY2RjIiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6WyIyNDk0MzUyMzAzMjkzODA4NjQiXSwib3JpZ2luYWxQcmljZSI6NDkwMCwicXR5IjoxLCJ1bml0UHJpY2UiOjQ0MTAsInZhcmlhbnRJZCI6IjE3In0seyJvZmZlcklkcyI6WyIyNDk0MzUyMzAzMjkzODA4NjQiXSwib3JpZ2luYWxQcmljZSI6NDkwMCwicXR5IjoxLCJ1bml0UHJpY2UiOjQ0MTAsInZhcmlhbnRJZCI6IjE4In1dLCJuIjoiR3QzOXdFT0pfWlVoYUlzQSIsInAiOjAsInMiOiIyNDk0MzUwNzUwNjg4Mjk2OTYiLCJzaCI6ODAwLCJ0Ijo5NjIwLCJ2IjoxfQ.[REDACTED]",
+  "token": "qt1.eyJhIjpbXSwiYiI6IjI0OTQ5OTQxNDkxMjA0OTE1MiIsImQiOltdLCJleHAiOjE3OTUxNzU4ODcsImgiOiJjMDM1N2UwNDhiZDZkMzZlMGQ5MDJkM2MyYTFhNjVlZjQ5ZTQ5ZTg2ZWEyY2E2M2E5ZTIyZmNiNDI4NzJkY2RjIiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6WyIyNDk0OTk3OTQ5MDM0MDg2NDAiXSwib3JpZ2luYWxQcmljZSI6NDkwMCwicXR5IjoxLCJ1bml0UHJpY2UiOjQ0MTAsInZhcmlhbnRJZCI6IjE3In0seyJvZmZlcklkcyI6WyIyNDk0OTk3OTQ5MDM0MDg2NDAiXSwib3JpZ2luYWxQcmljZSI6NDkwMCwicXR5IjoxLCJ1bml0UHJpY2UiOjQ0MTAsInZhcmlhbnRJZCI6IjE4In1dLCJuIjoiSk9KNGgzRDhTSUVIZ2RPQiIsIm8iOlt7Im9mZmVySWQiOiIyNDk0OTk3OTQ5MDM0MDg2NDAifV0sInAiOjAsInMiOiIyNDk0OTk0MTk2MDEyODEwMjQiLCJzaCI6ODAwLCJ0Ijo5NjIwLCJ2IjoxfQ.[REDACTED]",
   "cart": {
     "channel": "storefront",
     "lines": [
@@ -42,7 +42,7 @@ The token of `quote-2-pieces-home` (total 9,620), checked in the store that sign
     "s": "<STORE_A1>",
     "h": "c0357e048bd6d36e0d902d3c2a1a65ef49e49e86ea2ca63a9e22fcb42872dcdc",
     "p": 0,
-    "exp": 1795160494,
+    "exp": 1795175887,
     "t": 9620,
     "sh": 800,
     "l": [
@@ -66,8 +66,13 @@ The token of `quote-2-pieces-home` (total 9,620), checked in the store that sign
       }
     ],
     "d": [],
+    "o": [
+      {
+        "offerId": "<OFFER_QUANTITY>"
+      }
+    ],
     "a": [],
-    "n": "Gt39wEOJ_ZUhaIsA"
+    "n": "JOJ4h3D8SIEHgdOB"
   }
 }
 ```

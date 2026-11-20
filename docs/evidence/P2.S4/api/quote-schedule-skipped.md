@@ -71,7 +71,7 @@ Two published automatic offers on this product: one starts next week, one ended 
   "available": true,
   "orderPricingMode": "quote",
   "unavailableVariantIds": [],
-  "quoteToken": "qt1.eyJhIjpbXSwiYiI6IjI0OTQzNTA3NDg1OTExNDQ5NiIsImQiOltdLCJleHAiOjE3OTUxNjA0OTMsImgiOiJiNTc0ZWY2MTZjNGQzY2M3M2JhZmY5MDRmZmQwYmRjYzVmOWE1NTQ5MDQ1OTYyMWZmYWIwZGNkNjE3ODk4MDAyIiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6W10sIm9yaWdpbmFsUHJpY2UiOjMwMDAsInF0eSI6MSwidW5pdFByaWNlIjozMDAwLCJ2YXJpYW50SWQiOiIxOSJ9XSwibiI6Inp6M1lVdmpBdjhHd1Y2RVoiLCJwIjowLCJzIjoiMjQ5NDM1MDc1MDY4ODI5Njk2Iiwic2giOjgwMCwidCI6MzgwMCwidiI6MX0.[REDACTED]",
-  "expiresAt": "2026-11-20T07:41:33.000Z"
+  "quoteToken": "qt1.eyJhIjpbXSwiYiI6IjI0OTQ5OTQxNDkxMjA0OTE1MiIsImQiOltdLCJleHAiOjE3OTUxNzU4ODcsImgiOiJiNTc0ZWY2MTZjNGQzY2M3M2JhZmY5MDRmZmQwYmRjYzVmOWE1NTQ5MDQ1OTYyMWZmYWIwZGNkNjE3ODk4MDAyIiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6W10sIm9yaWdpbmFsUHJpY2UiOjMwMDAsInF0eSI6MSwidW5pdFByaWNlIjozMDAwLCJ2YXJpYW50SWQiOiIxOSJ9XSwibiI6Ik5mOXRkbjZHMk43UmoyeksiLCJvIjpbXSwicCI6MCwicyI6IjI0OTQ5OTQxOTYwMTI4MTAyNCIsInNoIjo4MDAsInQiOjM4MDAsInYiOjF9.[REDACTED]",
+  "expiresAt": "2026-11-20T11:58:07.000Z"
 }
 ```

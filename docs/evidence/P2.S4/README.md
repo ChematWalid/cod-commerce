@@ -9,7 +9,7 @@ and codes through `OfferAdminService`, registers a synthetic fee table (home 800
 `SHIPPING_QUOTE_REGISTRAR` and calls the scoped `PricingService` core on each store's own channel (D2408). There is no
 pricing HTTP route before P3.S3, so each transcript shows the in-process call, its input and its output: no status line,
 no headers. Image built from a tree with no uncommitted change outside the evidence folders and browser tests, last
-image-relevant commit `71336866e1ebf07f0cc3e8498ee4f971ca5fe10f`. No screenshots: P2.S4 has no screen.
+image-relevant commit `49899161aca6041348dd22d5b8b8c945bb60f7a8`. No screenshots: P2.S4 has no screen.
 
 Offers of store A1: a quantity offer on the 4,900 product (2 pieces 10 % off, 3 pieces 15 % off with free delivery; the
 15 % is the fixture assumption of the research's elided figure), two product discounts outside their schedule, two code

@@ -1,6 +1,6 @@
 # An order of one piece changed to two: delta 3,920
 
-The order change of D2427: before 5,700, after 9,620 (the 2-piece tier applies), delta 3,920, and the order fields P4.S3 will store (`quotedUnitPrice` 4,410). Nothing is written; neither quote carries a token.
+The order change of D2427: the order stores a total of 5,700 (`storedTotal`); its cart re-priced today is still 5,700 (`drift` 0, D2446), the changed cart is 9,620 (the 2-piece tier applies), so `delta` is 3,920 from the stored total. `orderFields` are what P4.S3 will store: one line at `quotedUnitPrice` 4,410 and the quantity offer in `appliedOffers` (D2445). The order holds no offer yet (`orderUsage` empty). Nothing is written; neither quote carries a token.
 
 - Call: `PricingService.repriceOrderForScope(ctx, scope, input)` (in process, no HTTP route before P3.S3)
 - Store: A1 (business A, store `demo`)
@@ -35,6 +35,7 @@ The order change of D2427: before 5,700, after 9,620 (the 2-piece tier applies),
       "stopdesk": false
     }
   },
+  "storedTotal": 5700,
   "orderUsage": {
     "offerIds": [],
     "codes": []
@@ -155,6 +156,7 @@ The order change of D2427: before 5,700, after 9,620 (the 2-piece tier applies),
     "expiresAt": null
   },
   "delta": 3920,
+  "drift": 0,
   "orderFields": {
     "lines": [
       {
@@ -168,6 +170,11 @@ The order change of D2427: before 5,700, after 9,620 (the 2-piece tier applies),
     ],
     "quoteDiscounts": "[]",
     "quotedShipping": 800,
+    "appliedOffers": [
+      {
+        "offerId": "<OFFER_QUANTITY>"
+      }
+    ],
     "buyerOrdersBefore": null
   }
 }

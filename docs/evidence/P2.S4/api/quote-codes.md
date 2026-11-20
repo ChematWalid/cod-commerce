@@ -1,6 +1,6 @@
 # Discount codes: valid, duplicate, not found, used up
 
-` welcome10 ` is normalised to `WELCOME10` and applies (D2406); the same code again is `duplicate`; `NOPE99` is `not_found`; `usedup15` has reached its usage limit (its count was set to the limit by the script: P3.S4 counts uses) and is `code_limit` (AC4).
+` welcome10 ` is normalised to `WELCOME10` and applies (D2406); the same code again is `duplicate`; `NOPE99` is `not_found`; `usedup15` has reached its usage limit of 1 (the script recorded one order use of it through `OfferUsageService.recordOrderUses`, the use case P3.S4 calls, D2447) and is `code_limit` (AC4). The token payload `o` names the applied offer with its code (D2445).
 
 - Call: `PricingService.quoteForScope(ctx, scope, request)` (in process, no HTTP route before P3.S3)
 - Store: A1 (business A, store `demo`)
@@ -94,7 +94,7 @@
   "available": true,
   "orderPricingMode": "quote",
   "unavailableVariantIds": [],
-  "quoteToken": "qt1.eyJhIjpbXSwiYiI6IjI0OTQzNTA3NDg1OTExNDQ5NiIsImQiOltdLCJleHAiOjE3OTUxNjA0OTMsImgiOiI5ZjgwNjIyMmRjNzU2NDk3MGFjZTU1NDY0ODRlYjk2NzRhZTc3YzRkN2RmNTMwZDk1NzQ2OTg4Njg1NDMxYzU5Iiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6WyIyNDk0MzUyMzA4NTM2Njg4NjQiXSwib3JpZ2luYWxQcmljZSI6MjUwMCwicXR5IjoxLCJ1bml0UHJpY2UiOjIyNTAsInZhcmlhbnRJZCI6IjIwIn1dLCJuIjoieXNhODJrUFhCTnlBVGMzUiIsInAiOjAsInMiOiIyNDk0MzUwNzUwNjg4Mjk2OTYiLCJzaCI6ODAwLCJ0IjozMDUwLCJ2IjoxfQ.[REDACTED]",
-  "expiresAt": "2026-11-20T07:41:33.000Z"
+  "quoteToken": "qt1.eyJhIjpbXSwiYiI6IjI0OTQ5OTQxNDkxMjA0OTE1MiIsImQiOltdLCJleHAiOjE3OTUxNzU4ODcsImgiOiI5ZjgwNjIyMmRjNzU2NDk3MGFjZTU1NDY0ODRlYjk2NzRhZTc3YzRkN2RmNTMwZDk1NzQ2OTg4Njg1NDMxYzU5Iiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6WyIyNDk0OTk3OTYxMjgxNDU0MDgiXSwib3JpZ2luYWxQcmljZSI6MjUwMCwicXR5IjoxLCJ1bml0UHJpY2UiOjIyNTAsInZhcmlhbnRJZCI6IjIwIn1dLCJuIjoiWm5YN1Y0QnVBX1MzelZ0MSIsIm8iOlt7ImNvZGUiOiJXRUxDT01FMTAiLCJvZmZlcklkIjoiMjQ5NDk5Nzk2MTI4MTQ1NDA4In1dLCJwIjowLCJzIjoiMjQ5NDk5NDE5NjAxMjgxMDI0Iiwic2giOjgwMCwidCI6MzA1MCwidiI6MX0.[REDACTED]",
+  "expiresAt": "2026-11-20T11:58:07.000Z"
 }
 ```
