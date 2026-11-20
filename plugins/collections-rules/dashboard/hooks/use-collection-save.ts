@@ -32,6 +32,8 @@ export interface CollectionSaveTarget {
   readonly scope: StoreScope | null;
   /** The form as last saved: an update sends only what differs from it. */
   readonly saved: CollectionForm | null;
+  /** Whether the caller holds the edit key: without it a save never sends the product list (D2314). */
+  readonly canSetProducts: boolean;
   readonly onInvalid: (errors: CollectionFormErrors) => void;
   /** An update was stored; `sent` is the form that went out, which may differ from the one shown now. */
   readonly onSaved: (collection: StoreCollectionDto, sent: CollectionForm) => void;
@@ -82,7 +84,7 @@ function useAfterSave(target: CollectionSaveTarget) {
 export function useCollectionSave(target: CollectionSaveTarget) {
   const { i18n } = useLingui();
   const afterSave = useAfterSave(target);
-  const base = { collectionId: target.collectionId, saved: target.saved };
+  const base = { collectionId: target.collectionId, saved: target.saved, canSetProducts: target.canSetProducts };
   return useMutation({
     mutationFn: (form: CollectionForm) =>
       submitCollection(form, (valid) => saveCollection(writesOf(target.scope), base, valid)),

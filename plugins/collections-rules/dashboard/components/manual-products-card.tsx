@@ -35,22 +35,21 @@ function ModeSwitch({ form, disabled, onChange }: ScopedCardProps): ReactNode {
   );
 }
 
-/** The hand-ordered list: reorder by drag or arrow keys, remove, and add from the store's products. */
-function ManualList(props: ScopedCardProps): ReactNode {
+/** Add products: a store product search that needs the edit key (D2314), so it is off without it. */
+function AddProducts(props: ScopedCardProps & { readonly locked: boolean }): ReactNode {
   const { i18n } = useLingui();
   const [adding, setAdding] = useState(false);
   const change = (products: readonly ManualProduct[]): void => {
     props.onChange({ products });
   };
   return (
-    <div className="grid gap-3">
-      <ProductRows products={props.form.products} editable={!props.disabled} onReorder={change} />
+    <>
       <div>
         <Button
           type="button"
           variant="outline"
           data-testid={ADD_PRODUCTS_TEST_ID}
-          disabled={props.disabled || props.scope === null}
+          disabled={props.locked || props.scope === null}
           onClick={() => {
             setAdding(true);
           }}
@@ -73,6 +72,27 @@ function ManualList(props: ScopedCardProps): ReactNode {
           }}
         />
       )}
+    </>
+  );
+}
+
+/** The hand-ordered list: reorder by drag or arrow keys, remove, and add; read-only without the edit key (D2314). */
+function ManualList(props: ScopedCardProps): ReactNode {
+  const { i18n } = useLingui();
+  const locked = props.disabled || !props.canEditProducts;
+  return (
+    <div className="grid gap-3">
+      {!props.disabled && !props.canEditProducts && (
+        <p className="text-muted-foreground text-sm">{i18n._('collections.products-need-edit')}</p>
+      )}
+      <ProductRows
+        products={props.form.products}
+        editable={!locked}
+        onReorder={(products) => {
+          props.onChange({ products });
+        }}
+      />
+      <AddProducts {...props} locked={locked} />
     </div>
   );
 }

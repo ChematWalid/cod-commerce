@@ -7,6 +7,8 @@ export interface CardProps {
   readonly errors: CollectionFormErrors;
   /** True when the caller may not save (no edit or create key): the card is read-only. */
   readonly disabled: boolean;
+  /** False for a create-only caller: the product list needs the edit key (D2314), so it stays read-only. */
+  readonly canEditProducts: boolean;
   readonly onChange: (change: Partial<CollectionForm>) => void;
 }
 

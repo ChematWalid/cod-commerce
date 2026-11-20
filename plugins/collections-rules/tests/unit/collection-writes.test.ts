@@ -44,11 +44,11 @@ describe('collection save writes', () => {
     const writes = stubWrites(() => Promise.reject(REFUSAL));
 
     // Act
-    const first = await saveCollection(writes, { collectionId: null, saved: null }, form);
+    const first = await saveCollection(writes, { collectionId: null, saved: null, canSetProducts: true }, form);
     writes.setProducts.mockResolvedValue({ ...CREATED, productCount: 2 });
     const retry = await saveCollection(
       writes,
-      { collectionId: CREATED.id, saved: collectionFormOf(CREATED, []) },
+      { collectionId: CREATED.id, saved: collectionFormOf(CREATED, []), canSetProducts: true },
       form,
     );
 
@@ -67,7 +67,7 @@ describe('collection save writes', () => {
     writes.create.mockRejectedValue(REFUSAL);
 
     // Act
-    const saving = saveCollection(writes, { collectionId: null, saved: null }, form);
+    const saving = saveCollection(writes, { collectionId: null, saved: null, canSetProducts: true }, form);
 
     // Assert
     await expect(saving).rejects.toBe(REFUSAL);
@@ -80,11 +80,25 @@ describe('collection save writes', () => {
     const writes = stubWrites(() => Promise.resolve(CREATED));
 
     // Act
-    const answer = await saveCollection(writes, { collectionId: CREATED.id, saved }, saved);
+    const answer = await saveCollection(writes, { collectionId: CREATED.id, saved, canSetProducts: true }, saved);
 
     // Assert
     expect(answer).toBeNull();
     expect(writes.update).not.toHaveBeenCalled();
+    expect(writes.setProducts).not.toHaveBeenCalled();
+  });
+
+  it('a caller without the edit key creates the collection alone and sends no product list', async () => {
+    // Arrange
+    const form: CollectionForm = { ...emptyCollectionForm(), title: 'Summer', products: [product('1')] };
+    const writes = stubWrites(() => Promise.resolve(CREATED));
+
+    // Act
+    const answer = await saveCollection(writes, { collectionId: null, saved: null, canSetProducts: false }, form);
+
+    // Assert
+    expect(answer).toEqual({ kind: 'saved', collection: CREATED });
+    expect(writes.create).toHaveBeenCalledTimes(1);
     expect(writes.setProducts).not.toHaveBeenCalled();
   });
 });

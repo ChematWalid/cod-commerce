@@ -232,6 +232,10 @@ msgid "collections.automatic-hint"
 msgstr "Products that meet the conditions are added automatically."
 
 #. js-lingui-explicit-id
+msgid "collections.products-need-edit"
+msgstr "Adding or ordering products needs the permission to edit collections."
+
+#. js-lingui-explicit-id
 msgid "collections.add-products"
 msgstr "Add products"
 

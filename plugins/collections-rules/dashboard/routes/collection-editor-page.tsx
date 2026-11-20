@@ -66,13 +66,14 @@ function useFreshMembers(state: EditorState, members: readonly ManualProduct[]):
 }
 
 /** The save of the editor's form, with what each answer changes in the editor's state. */
-function useEditorSave(props: EditorProps, state: EditorState) {
+function useEditorSave(props: EditorProps, state: EditorState, canSetProducts: boolean) {
   return useCollectionSave({
     collectionId: props.collection?.id ?? state.createdId,
     opensCreated: props.collection === null,
     storeAlias: props.store?.id ?? ACTIVE_STORE_ALIAS,
     scope: props.scope,
     saved: state.saved,
+    canSetProducts,
     onInvalid: state.setErrors,
     onSaved: (collection, sent) => {
       state.setSaved(formsAfterSave(collection, sent, sent).saved);
@@ -92,7 +93,8 @@ function useEditorController(props: EditorProps) {
   const state = useEditorState(props);
   useFreshMembers(state, props.members);
   const held = useHeldPermissions(props.scope);
-  const save = useEditorSave(props, state);
+  const canEditProducts = held.has(EDIT_COLLECTIONS_KEY);
+  const save = useEditorSave(props, state, canEditProducts);
   const submit = (): void => {
     state.setConfirming(false);
     save.mutate(state.form);
@@ -111,7 +113,11 @@ function useEditorController(props: EditorProps) {
     held,
     collectionId: props.collection?.id ?? state.createdId,
     canSave: held.has(props.collection === null ? CREATE_COLLECTIONS_KEY : EDIT_COLLECTIONS_KEY),
+    canEditProducts,
     pending: save.isPending,
+    change: (change: Partial<CollectionForm>): void => {
+      state.setForm((form) => ({ ...form, ...change }));
+    },
     submit,
     onSave,
   };
@@ -147,9 +153,8 @@ function EditorPage(props: EditorProps): ReactNode {
         form={state.form}
         errors={state.errors}
         disabled={!editor.canSave}
-        onChange={(change) => {
-          state.setForm((form) => ({ ...form, ...change }));
-        }}
+        canEditProducts={editor.canEditProducts}
+        onChange={editor.change}
         scope={props.scope}
         collectionId={editor.collectionId}
         held={editor.held}

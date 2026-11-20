@@ -12,6 +12,11 @@ export interface CollectionWrites {
 export interface CollectionSaveBase {
   readonly collectionId: string | null;
   readonly saved: CollectionForm | null;
+  /**
+   * Whether the caller holds the edit key that setting the products needs (D2314). A create-only caller's save sends
+   * the create alone, so it is never answered with a refused product list it cannot retry.
+   */
+  readonly canSetProducts: boolean;
 }
 
 /**
@@ -23,9 +28,13 @@ export type CollectionSaveAnswer =
   | { readonly kind: 'created-without-products'; readonly collection: StoreCollectionDto; readonly error: unknown };
 
 /** A new collection, then its hand-ordered products when it is manual and has some. */
-async function createWith(writes: CollectionWrites, form: CollectionForm): Promise<CollectionSaveAnswer> {
+async function createWith(
+  writes: CollectionWrites,
+  form: CollectionForm,
+  canSetProducts: boolean,
+): Promise<CollectionSaveAnswer> {
   const created = await writes.create(createInputOf(form));
-  const productIds = productIdsToSet(null, form);
+  const productIds = canSetProducts ? productIdsToSet(null, form) : null;
   if (productIds === null) return { kind: 'saved', collection: created };
   try {
     return { kind: 'saved', collection: await writes.setProducts(created.id, productIds) };
@@ -40,11 +49,11 @@ async function createWith(writes: CollectionWrites, form: CollectionForm): Promi
  */
 async function updateWith(
   writes: CollectionWrites,
-  base: { readonly collectionId: string; readonly saved: CollectionForm },
+  base: { readonly collectionId: string; readonly saved: CollectionForm; readonly canSetProducts: boolean },
   form: CollectionForm,
 ): Promise<CollectionSaveAnswer | null> {
   const input = updateInputOf(base.saved, form);
-  const productIds = productIdsToSet(base.saved, form);
+  const productIds = base.canSetProducts ? productIdsToSet(base.saved, form) : null;
   if (isEmptyUpdate(input) && productIds === null) return null;
   const updated = isEmptyUpdate(input) ? null : await writes.update(base.collectionId, input);
   if (productIds === null) return updated === null ? null : { kind: 'saved', collection: updated };
@@ -57,7 +66,7 @@ export function saveCollection(
   base: CollectionSaveBase,
   form: CollectionForm,
 ): Promise<CollectionSaveAnswer | null> {
-  const { collectionId, saved } = base;
-  if (collectionId === null || saved === null) return createWith(writes, form);
-  return updateWith(writes, { collectionId, saved }, form);
+  const { collectionId, saved, canSetProducts } = base;
+  if (collectionId === null || saved === null) return createWith(writes, form, canSetProducts);
+  return updateWith(writes, { collectionId, saved, canSetProducts }, form);
 }
