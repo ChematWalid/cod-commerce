@@ -10,8 +10,12 @@ export const DELETE_OFFERS_KEY: PermissionKey = 'offers.delete';
 export const OFFERS_QUERY_KEY = ['offers', 'list'] as const;
 export const APP_TYPES_QUERY_KEY = ['offers', 'app-types'] as const;
 export const EFFECTIVE_PERMISSIONS_QUERY_KEY = ['offers', 'effective-permissions'] as const;
+export const OFFER_QUERY_KEY = ['offers', 'offer'] as const;
+export const PREVIEW_QUERY_KEY = ['offers', 'preview'] as const;
+export const TARGET_PRODUCTS_QUERY_KEY = ['offers', 'target-products'] as const;
+export const TARGET_PRODUCT_QUERY_KEY = ['offers', 'target-product'] as const;
 
-/** The offer pages below `/stores/<store>/` (D2523): the list is the shell leaf, the editor routes are Task 13's. */
+/** The offer pages below `/stores/<store>/` (D2523): the list is the shell leaf, the editor routes sit beside it. */
 export const OFFERS_PATH = 'offers';
 export const NEW_OFFER_PATH = 'offers/new';
 export const offerPathOf = (offerId: string): string => `${OFFERS_PATH}/${offerId}`;
@@ -25,6 +29,19 @@ export const KIND_CHIPS_TEST_ID = 'offers-kind-chips';
 export const CREATE_OFFER_TEST_ID = 'offers-create-offer';
 export const CREATE_DIALOG_TEST_ID = 'offers-create-dialog';
 export const APP_TYPE_CARD_TEST_ID = 'offers-app-type-card';
+export const OFFER_EDITOR_TEST_ID = 'offers-offer-editor';
+export const ARABIC_PREVIEW_TEST_ID = 'offers-arabic-preview';
+export const EDITOR_SAVE_TEST_ID = 'offers-editor-save';
+export const EDITOR_PUBLISH_TEST_ID = 'offers-editor-publish';
+export const EDITOR_DISCARD_TEST_ID = 'offers-editor-discard';
+
+/** How long the editor waits after the last change before it asks for a new preview (D2516). */
+export const PREVIEW_DEBOUNCE_MS = 300;
+/** Products a target search lists at once. */
+export const TARGET_SEARCH_TAKE = 10;
+/** Algeria's offset from UTC: the country keeps UTC+1 all year, so offer dates are typed and shown in it. */
+export const ALGERIA_UTC_OFFSET = '+01:00';
+export const ALGERIA_UTC_OFFSET_MS = 60 * 60 * 1000;
 
 /** What a table cell shows when it has nothing to show. */
 export const EMPTY_VALUE = '—';

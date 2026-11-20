@@ -410,3 +410,271 @@ msgstr "هذا الطلب لم يعد موجودًا."
 #. js-lingui-explicit-id
 msgid "offers.addon-not-offered"
 msgstr "هذا المنتج الإضافي غير متاح لهذا الطلب."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-new-heading"
+msgstr "عرض جديد"
+
+#. js-lingui-explicit-id
+msgid "offers.block-name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "offers.block-kind"
+msgstr "إعدادات العرض"
+
+#. js-lingui-explicit-id
+msgid "offers.block-method"
+msgstr "طريقة الحصول على العرض"
+
+#. js-lingui-explicit-id
+msgid "offers.block-audience"
+msgstr "لمن هذا العرض"
+
+#. js-lingui-explicit-id
+msgid "offers.block-channels"
+msgstr "أين يظهر"
+
+#. js-lingui-explicit-id
+msgid "offers.block-dates"
+msgstr "المدة والحدود"
+
+#. js-lingui-explicit-id
+msgid "offers.block-combines"
+msgstr "يُجمع مع"
+
+#. js-lingui-explicit-id
+msgid "offers.block-preview"
+msgstr "معاينة استمارة الطلب"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-name"
+msgstr "اسم العرض"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-name-hint"
+msgstr "هذا الاسم يظهر لك ولفريقك فقط."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-headline"
+msgstr "العنوان بالعربية"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-headline-hint"
+msgstr "النص الذي يقرؤه المشتري فوق العرض في استمارة الطلب."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-targets"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-method"
+msgstr "الطريقة"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-method-automatic"
+msgstr "تلقائي: يُطبَّق وحده"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-method-codes"
+msgstr "برمز: يكتب المشتري رمزًا"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-audience"
+msgstr "المشترون"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-audience-everyone"
+msgstr "الجميع"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-audience-first"
+msgstr "الطلب الأول فقط"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-audience-returning"
+msgstr "من سبق لهم الطلب"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channels"
+msgstr "القنوات"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channel-storefront"
+msgstr "المتجر الإلكتروني"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channel-landing-page"
+msgstr "صفحات الهبوط"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channel-order-form-app"
+msgstr "استمارة الطلب المدمجة"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channel-dashboard"
+msgstr "الطلبات المُدخلة من لوحة التحكم"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channel-app"
+msgstr "تطبيق الهاتف"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-channels-hint"
+msgstr "تحديد الكل يعني كل القنوات، بما فيها القنوات الجديدة."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-start"
+msgstr "يبدأ"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-start-on-publish"
+msgstr "عند النشر"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-start-on-date"
+msgstr "في تاريخ محدد"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-starts-at"
+msgstr "تاريخ البدء"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-ends-at"
+msgstr "تاريخ الانتهاء (اختياري)"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-dates-hint"
+msgstr "التواريخ بتوقيت الجزائر (UTC+1)."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-total-uses"
+msgstr "عدد مرات الاستعمال الكلي (اختياري)"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-per-buyer"
+msgstr "عدد مرات الاستعمال لكل مشترٍ (اختياري)"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-limit-hint"
+msgstr "اتركه فارغًا لعدم التحديد."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-combines"
+msgstr "يمكن تطبيق هذا العرض مع"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-combines-order"
+msgstr "تخفيضات الطلب"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-combines-product"
+msgstr "تخفيضات المنتجات"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-combines-delivery"
+msgstr "عروض التوصيل"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-discard"
+msgstr "تجاهل التغييرات"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-save-draft"
+msgstr "حفظ كمسودة"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-publish"
+msgstr "نشر"
+
+#. js-lingui-explicit-id
+msgid "offers.editor-saved"
+msgstr "تم حفظ العرض."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-published"
+msgstr "تم نشر العرض."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-fix-errors"
+msgstr "صحّح الحقول المشار إليها أولًا."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-unknown-type"
+msgstr "هذا النوع من العروض غير متاح."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-error-title"
+msgstr "أدخل اسمًا للعرض."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-error-targets"
+msgstr "اختر المنتجات التي يشملها العرض."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-error-dates"
+msgstr "راجع التواريخ: يجب أن يكون الانتهاء بعد البدء وألا يكون في الماضي."
+
+#. js-lingui-explicit-id
+msgid "offers.editor-error-limit"
+msgstr "الحدود أعداد صحيحة تبدأ من 1."
+
+#. js-lingui-explicit-id
+msgid "offers.target-search"
+msgstr "ابحث عن المنتجات بالاسم"
+
+#. js-lingui-explicit-id
+msgid "offers.target-add"
+msgstr "إضافة"
+
+#. js-lingui-explicit-id
+msgid "offers.target-remove"
+msgstr "إزالة"
+
+#. js-lingui-explicit-id
+msgid "offers.target-variants"
+msgstr "الأصناف"
+
+#. js-lingui-explicit-id
+msgid "offers.target-variant"
+msgstr "الصنف {id}"
+
+#. js-lingui-explicit-id
+msgid "offers.target-missing"
+msgstr "المنتج لم يعد في هذا المتجر"
+
+#. js-lingui-explicit-id
+msgid "offers.targets-none"
+msgstr "لم تختر أي منتج بعد."
+
+#. js-lingui-explicit-id
+msgid "offers.targets-no-match"
+msgstr "لا يوجد منتج بهذا الاسم."
+
+#. js-lingui-explicit-id
+msgid "offers.target-collections"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "offers.target-collections-soon"
+msgstr "اختيار المجموعات قريبًا."
+
+#. js-lingui-explicit-id
+msgid "offers.preview-hint"
+msgstr "الأسعار محسوبة من الخادم بسعر المنتج، كما سيراها المشتري."
+
+#. js-lingui-explicit-id
+msgid "offers.preview-waiting"
+msgstr "تظهر المعاينة عندما يصبح العرض قابلًا للتسعير."
+
+#. js-lingui-explicit-id
+msgid "offers.warning-tier-total-not-divisible"
+msgstr "مجموع إحدى الشرائح لا يقبل القسمة على عدد قطعها: تُقرَّب أسعار القطع."
+
+#. js-lingui-explicit-id
+msgid "offers.warning-other"
+msgstr "راجع إعدادات هذا العرض قبل النشر."
