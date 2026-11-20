@@ -4,8 +4,9 @@ import { ownChannel, type IsolationCase } from '../matrix';
 import { packBody, packTargetOf, PACKS_ENDPOINTS, SAVE_PACK_DOCUMENT } from '../packs-operations';
 
 /**
- * The pack cells (plugins/catalog-packs, P2.S2): every endpoint's sweep (B's pack by id, B's store token, a
- * store-restricted member on the store it may not reach), plus A's own pack saved with B's components, which must be
+ * The pack cells (plugins/catalog-packs, P2.S2): every endpoint's sweep (B's pack by id, A's owner on A's second
+ * store naming A's first-store pack (D2280), B's store token, a store-restricted member on the store it may not
+ * reach), plus A's own pack saved with B's components, which must be
  * refused as not found and leave A's pack as it was.
  */
 const SAVE_WITH_FOREIGN_COMPONENTS: IsolationCase = {

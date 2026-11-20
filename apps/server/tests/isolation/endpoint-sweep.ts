@@ -4,8 +4,9 @@ import type { BusinessWorld } from './world-types';
 
 /**
  * The generated cells of a plugin's endpoint list (P2.S2 packs and import, after the catalog's `catalog-sweep.ts`):
- * the victim's rows named by id (both directions), the victim's store token, and a store-restricted member on the
- * store it may not reach (D2132). A new endpoint is covered by adding it to its list.
+ * the victim's rows named by id (both directions), the owner's second store naming its first store's rows (D2280),
+ * the victim's store token, and a store-restricted member on the store it may not reach (D2132). A new endpoint is
+ * covered by adding it to its list.
  */
 
 type Channel = NonNullable<MatrixRequest['channel']>;
@@ -77,56 +78,83 @@ const routeId = (prefix: string, route: { readonly method: string; readonly rout
 
 const accessOf = (document: string): 'read by id' | 'write' => (document.startsWith('query') ? 'read by id' : 'write');
 
-function foreignCells<T>(endpoints: SweptEndpoints<T>): IsolationCase[] {
-  const { prefix, targetOf, restTargetOf } = endpoints;
-  const ops = endpoints.operations.flatMap((op): IsolationCase[] =>
-    op.foreign === undefined
-      ? []
-      : [
-          {
-            id: `${prefix}.${op.name}.foreign-id`,
-            entity: op.entity,
-            endpoint: op.name,
-            access: accessOf(op.document),
-            title: `A's owner calls ${op.name} naming B's ${op.entity}: B's rows stay out of reach`,
-            request: (a, b) =>
-              operationRequest(op.document, op.variables(targetOf(b)), { caller: a.owner, channel: ownChannel(a) }),
-            expect: op.foreign,
-            reverse: true,
-          },
-        ],
-  );
-  const routes = endpoints.routes.flatMap((route): IsolationCase[] =>
-    route.foreign === undefined
-      ? []
-      : [
-          {
-            id: `${routeId(prefix, route)}.foreign-id`,
-            entity: route.entity,
-            endpoint: routeName(route),
-            access: route.method === 'GET' ? 'read by id' : 'write',
-            title: `A's owner calls ${routeName(route)} naming B's ${route.entity}: B's rows stay out of reach`,
-            request: (a, b) => routeRequest(route, restTargetOf(b), { caller: a.owner, channel: ownChannel(a) }),
-            expect: route.foreign,
-            reverse: true,
-          },
-        ],
-  );
-  return [...ops, ...routes];
-}
-
-/** Who calls on which store in a refused cell, and whose rows the call names. */
+/** Who calls on which store in a cell, and whose rows the call names. */
 interface Reach {
   readonly caller: Caller;
   readonly channel: Channel;
   readonly target: BusinessWorld;
 }
 
-/** A refused cell: its id suffix, who calls in the title, and how the attacker reaches. */
+/** A cell family: its id suffix, the title of each cell, and how the attacker reaches. */
 interface Refusal {
   readonly suffix: string;
   readonly who: string;
   readonly reach: (a: BusinessWorld, b: BusinessWorld) => Reach;
+}
+
+/** A cell family that names rows by id and expects each endpoint's `foreign` answer (not found). */
+interface NotFoundFamily extends Refusal {
+  readonly whose: string;
+}
+
+const NOT_FOUND_FAMILIES: readonly NotFoundFamily[] = [
+  {
+    suffix: 'foreign-id',
+    who: "A's owner",
+    whose: "B's",
+    reach: (a, b) => ({ caller: a.owner, channel: ownChannel(a), target: b }),
+  },
+  {
+    // D2280: the owner reaches both stores, so only each read's store filter keeps store 1's rows from store 2.
+    suffix: 'owner-other-store',
+    who: "A's owner with A's second store token",
+    whose: "A's first-store",
+    reach: (a) => ({ caller: a.owner, channel: otherStore(a), target: a }),
+  },
+];
+
+/** Every endpoint that names a row, called as `family` says: each answers its `foreign` expectation. */
+function notFoundCells<T>(endpoints: SweptEndpoints<T>, family: NotFoundFamily): IsolationCase[] {
+  const { prefix, targetOf, restTargetOf } = endpoints;
+  const titleOf = (endpoint: string, entity: string): string =>
+    `${family.who} calls ${endpoint} naming ${family.whose} ${entity}: those rows stay out of reach`;
+  const ops = endpoints.operations.flatMap((op): IsolationCase[] => {
+    const { foreign } = op;
+    if (foreign === undefined) return [];
+    const cell: IsolationCase = {
+      id: `${prefix}.${op.name}.${family.suffix}`,
+      entity: op.entity,
+      endpoint: op.name,
+      access: accessOf(op.document),
+      title: titleOf(op.name, op.entity),
+      request: (a, b) => {
+        const { caller, channel, target } = family.reach(a, b);
+        return operationRequest(op.document, op.variables(targetOf(target)), { caller, channel });
+      },
+      expect: foreign,
+      reverse: true,
+    };
+    return [cell];
+  });
+  const routes = endpoints.routes.flatMap((route): IsolationCase[] => {
+    const { foreign } = route;
+    if (foreign === undefined) return [];
+    const cell: IsolationCase = {
+      id: `${routeId(prefix, route)}.${family.suffix}`,
+      entity: route.entity,
+      endpoint: routeName(route),
+      access: route.method === 'GET' ? 'read by id' : 'write',
+      title: titleOf(routeName(route), route.entity),
+      request: (a, b) => {
+        const { caller, channel, target } = family.reach(a, b);
+        return routeRequest(route, restTargetOf(target), { caller, channel });
+      },
+      expect: foreign,
+      reverse: true,
+    };
+    return [cell];
+  });
+  return [...ops, ...routes];
 }
 
 const REFUSALS: readonly Refusal[] = [
@@ -176,5 +204,8 @@ function refusedCells<T>(endpoints: SweptEndpoints<T>, refusal: Refusal): Isolat
 
 /** Every generated cell of `endpoints`. */
 export function sweepCases<T>(endpoints: SweptEndpoints<T>): IsolationCase[] {
-  return [...foreignCells(endpoints), ...REFUSALS.flatMap((refusal) => refusedCells(endpoints, refusal))];
+  return [
+    ...NOT_FOUND_FAMILIES.flatMap((family) => notFoundCells(endpoints, family)),
+    ...REFUSALS.flatMap((refusal) => refusedCells(endpoints, refusal)),
+  ];
 }

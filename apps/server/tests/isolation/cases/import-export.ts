@@ -7,7 +7,8 @@ import type { BusinessWorld } from '../world-types';
 
 /**
  * The bulk edit, export, import and link import cells (plugins/catalog-import, P2.S2): every endpoint's sweep (B's
- * jobs and products by id, B's store token, a store-restricted member on the store it may not reach), plus bulk
+ * jobs and products by id, A's owner on A's second store naming A's first-store rows (D2280), B's store token, a
+ * store-restricted member on the store it may not reach), plus bulk
  * edits of A's own product naming B's brand or tag, refused as a whole before anything is written (D2213).
  */
 const TAXONOMY_NOT_FOUND = CATALOG_IMPORT_ERROR_CODES.TAXONOMY_NOT_FOUND;
