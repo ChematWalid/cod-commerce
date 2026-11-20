@@ -1,4 +1,5 @@
 import type { DeliveryMethod, PricingChannel, QuoteDestination } from '@cod/shared';
+import { GIFT_KEY_SEPARATOR } from './constants';
 
 /** The buyer of a quote, server-side only: the phone in E.164, never in a response (D2418). */
 export interface BuyerRef {
@@ -18,9 +19,18 @@ export interface PricedLine {
   readonly collectionIds: readonly string[];
 }
 
-/** A priced line with the unit price line offers have reached so far (D2411). */
+/**
+ * A priced line with the unit price line offers have reached so far (D2411). `giftOf` marks a gift line a buy-x-get-y
+ * offer split off a matched line (D2504): no later line offer reads it.
+ */
 export interface RunningLine extends PricedLine {
   readonly unitPrice: number;
+  readonly giftOf?: string;
+}
+
+/** The key of the gift line `offerId` splits off the lines of `variantId` (D2504): `<variantId>:gift:<offerId>`. */
+export function giftLineKey(variantId: string, offerId: string): string {
+  return `${variantId}${GIFT_KEY_SEPARATOR}${offerId}`;
 }
 
 /** Where the order goes; `null` before the buyer chooses. */

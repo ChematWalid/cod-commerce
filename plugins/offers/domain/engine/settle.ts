@@ -2,8 +2,8 @@ import type { AppliedOffer, OrderDiscount } from '@cod/shared';
 import type { RunningLine } from '../cart';
 import type { Offer } from '../offer';
 import { deliveryFeeOf } from './delivery';
-import { applyLineOutcome, type LineDiscounts } from './line-stage';
-import type { DeliveryContext, DeliveryOutcome, LineOutcome, OfferOutcome, OrderOutcome } from './outcome';
+import { applyGiftOutcome, applyLineOutcome, type LineDiscounts } from './line-stage';
+import type { DeliveryContext, DeliveryOutcome, GiftOutcome, LineOutcome, OfferOutcome, OrderOutcome } from './outcome';
 import { baseOf, kindInputOf, type Candidate } from './pricing-state';
 import { mergeRefusals, refusalOf, zeroEffectRefusal, type Refusals } from './refusals';
 
@@ -49,6 +49,13 @@ const applyLine: Applier<LineOutcome> = (state, { offer }, outcome, delivery) =>
   };
 };
 
+/** Gifted units split off their lines into gift lines at the gift price (D2504); worth what the buyer no longer pays. */
+const applyGift: Applier<GiftOutcome> = (state, { offer }, outcome) => {
+  const source = { offerId: offer.id, kind: offer.kind };
+  const applied = applyGiftOutcome({ lines: state.lines, lineDiscounts: state.lineDiscounts, outcome, source });
+  return { state: { ...state, lines: applied.lines, lineDiscounts: applied.lineDiscounts }, amount: applied.saving };
+};
+
 /** An order discount, at most what the subtotal still has after earlier order discounts (Review Focus 3). */
 const applyOrder: Applier<OrderOutcome> = (state, { offer, code }, outcome) => {
   const given = state.orderDiscounts.reduce((sum, discount) => sum + discount.amount, 0);
@@ -67,6 +74,7 @@ const applyDelivery: Applier<DeliveryOutcome> = (state, _candidate, outcome) => 
 /** One applier per effect kind of the engine's outcome type (not per offer kind, §3a.7). */
 const APPLIERS: { readonly [K in Effect['kind']]: Applier<Extract<Effect, { kind: K }>> } = {
   line: applyLine,
+  gift: applyGift,
   order: applyOrder,
   delivery: applyDelivery,
 };
@@ -92,7 +100,7 @@ function settleOne(state: SettledState, candidate: Candidate, delivery: Delivery
 }
 
 /**
- * Applies the accepted candidates in stage order (quantity, product discount, order, delivery; D2412), each
+ * Applies the accepted candidates in stage order (quantity, bxgy, product discount, order, delivery; D2412), each
  * re-evaluated on the running state: line offers stack on earlier line prices, order and delivery thresholds read
  * the subtotal after line offers. A candidate that no longer applies is refused with its reason.
  */

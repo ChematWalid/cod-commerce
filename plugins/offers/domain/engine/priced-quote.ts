@@ -7,6 +7,8 @@ export interface TokenLine {
   readonly unitPrice: number;
   readonly originalPrice: number;
   readonly offerIds: readonly string[];
+  /** On a gift line: the buy-x-get-y offer that gifted it (D2504); its variant may then appear twice in `l`. */
+  readonly g?: string;
 }
 
 /** One order-level discount as the quote token signs it (ADR 0004 `d`); `code` when a code activated it. */

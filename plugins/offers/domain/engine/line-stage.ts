@@ -1,6 +1,6 @@
 import type { LineDiscount, QuoteLine } from '@cod/shared';
-import type { RunningLine } from '../cart';
-import type { LineOutcome } from './outcome';
+import { giftLineKey, type RunningLine } from '../cart';
+import type { GiftOutcome, LineOutcome } from './outcome';
 import type { TokenLine } from './priced-quote';
 
 /** The discounts each line got, by line key, in the order they applied. */
@@ -44,7 +44,84 @@ export function applyLineOutcome({ lines, lineDiscounts, outcome, source }: Line
   };
 }
 
-/** The quote lines: `totalPrice = unitPrice × quantity` always (D2409). */
+/** What `applyGiftOutcome` reads. */
+export interface GiftOutcomeInput {
+  readonly lines: readonly RunningLine[];
+  readonly lineDiscounts: LineDiscounts;
+  readonly outcome: GiftOutcome;
+  /** The offer the gift is reported under. */
+  readonly source: Omit<LineDiscount, 'amount'>;
+}
+
+/** One matched line split into what stays paid (none when every unit is gifted) and its gift line. */
+interface SplitLine {
+  readonly paid: RunningLine | null;
+  readonly gift: RunningLine;
+  readonly saving: number;
+}
+
+/**
+ * `discounts` of a line of `from` units rescaled to `to` units: each was taken per unit over the whole line (D2411),
+ * so the per-unit amount is exact.
+ */
+const rescaled = (discounts: readonly LineDiscount[], from: number, to: number): LineDiscount[] =>
+  discounts.map((discount) => ({ ...discount, amount: (discount.amount / from) * to }));
+
+/** `line` with `units` split off as a gift line at the outcome's gift price, never above the running unit price. */
+function splitLine(line: RunningLine, units: number, input: GiftOutcomeInput): SplitLine {
+  const giftPrice = Math.min(Math.max(input.outcome.unitPrices.get(line.key) ?? 0, 0), line.unitPrice);
+  const gift: RunningLine = {
+    ...line,
+    key: giftLineKey(line.variantId, input.source.offerId),
+    quantity: units,
+    unitPrice: giftPrice,
+    giftOf: input.source.offerId,
+  };
+  const paid = units === line.quantity ? null : { ...line, quantity: line.quantity - units };
+  return { paid, gift, saving: (line.unitPrice - giftPrice) * units };
+}
+
+/** The discounts of a split line: the earlier ones shared by unit between both parts, the gift's own on the gift. */
+function splitDiscounts(
+  discounts: Map<string, readonly LineDiscount[]>,
+  line: RunningLine,
+  split: SplitLine,
+  input: GiftOutcomeInput,
+): void {
+  const earlier = discounts.get(line.key) ?? [];
+  const own = split.saving > 0 ? [{ ...input.source, amount: split.saving }] : [];
+  discounts.set(split.gift.key, [...rescaled(earlier, line.quantity, split.gift.quantity), ...own]);
+  if (split.paid === null) discounts.delete(line.key);
+  else discounts.set(line.key, rescaled(earlier, line.quantity, split.paid.quantity));
+}
+
+/**
+ * Splits the outcome's gifted units off their lines into gift lines (D2504): each gift line keeps the source line's
+ * product, variant and original price, at the gift unit price; the paid part keeps its key and running price, and a
+ * line whose every unit is gifted leaves the cart. Gift lines follow the other lines, so `totalPrice = unitPrice ×
+ * quantity` holds on every line.
+ */
+export function applyGiftOutcome(input: GiftOutcomeInput): AppliedLineOutcome {
+  const discounts = new Map(input.lineDiscounts);
+  const paid: RunningLine[] = [];
+  const gifts: RunningLine[] = [];
+  let saving = 0;
+  for (const line of input.lines) {
+    const units = Math.min(input.outcome.gifts.get(line.key) ?? 0, line.quantity);
+    if (units <= 0) {
+      paid.push(line);
+      continue;
+    }
+    const split = splitLine(line, units, input);
+    splitDiscounts(discounts, line, split, input);
+    if (split.paid !== null) paid.push(split.paid);
+    gifts.push(split.gift);
+    saving += split.saving;
+  }
+  return { lines: [...paid, ...gifts], lineDiscounts: discounts, saving };
+}
+
+/** The quote lines: `totalPrice = unitPrice × quantity` always (D2409); a gift line names its offer (D2504). */
 export function quoteLinesOf(lines: readonly RunningLine[], lineDiscounts: LineDiscounts): QuoteLine[] {
   return lines.map((line) => ({
     key: line.key,
@@ -55,10 +132,11 @@ export function quoteLinesOf(lines: readonly RunningLine[], lineDiscounts: LineD
     unitPrice: line.unitPrice,
     totalPrice: line.unitPrice * line.quantity,
     discounts: [...(lineDiscounts.get(line.key) ?? [])],
+    ...(line.giftOf === undefined ? {} : { giftOf: line.giftOf }),
   }));
 }
 
-/** The lines as the token signs them (ADR 0004 `l`). */
+/** The lines as the token signs them (ADR 0004 `l`); a gift line carries its offer as `g` (D2504). */
 export function tokenLinesOf(lines: readonly QuoteLine[]): TokenLine[] {
   return lines.map((line) => ({
     variantId: line.variantId,
@@ -66,5 +144,6 @@ export function tokenLinesOf(lines: readonly QuoteLine[]): TokenLine[] {
     unitPrice: line.unitPrice,
     originalPrice: line.originalPrice,
     offerIds: line.discounts.map((discount) => discount.offerId),
+    ...(line.giftOf === undefined ? {} : { g: line.giftOf }),
   }));
 }

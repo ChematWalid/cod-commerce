@@ -51,5 +51,16 @@ export interface DeliveryOutcome {
   readonly value: number;
 }
 
+/**
+ * Units gifted off matched lines (D2504): `gifts` holds the units split off each line, by line key, and `unitPrices`
+ * the price of one gifted unit of that line; `value` is what the buyer no longer pays for them.
+ */
+export interface GiftOutcome {
+  readonly kind: 'gift';
+  readonly gifts: ReadonlyMap<string, number>;
+  readonly unitPrices: ReadonlyMap<string, number>;
+  readonly value: number;
+}
+
 /** What one offer does to a cart. */
-export type OfferOutcome = SkipOutcome | LineOutcome | OrderOutcome | DeliveryOutcome;
+export type OfferOutcome = SkipOutcome | LineOutcome | OrderOutcome | DeliveryOutcome | GiftOutcome;

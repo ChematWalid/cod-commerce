@@ -3,7 +3,7 @@ import { CODES_METHOD } from '../constants';
 import type { Offer } from '../offer';
 import { checkEligibility } from './eligibility';
 import type { OfferKindRegistry } from './kind-registry';
-import type { LineOutcome, OfferOutcome } from './outcome';
+import type { OfferOutcome } from './outcome';
 import { kindInputOf, type Candidate, type OfferEntry, type PricingContext } from './pricing-state';
 import { mergeRefusals, NO_REFUSALS, refusalOf, zeroEffectRefusal, type Refusals } from './refusals';
 
@@ -43,9 +43,25 @@ export function entriesOf(
   });
 }
 
-/** Keys of the lines a line outcome takes something off. */
-const discountedLineKeysOf = (outcome: LineOutcome): string[] =>
-  [...outcome.unitDiscounts].filter(([, perUnit]) => perUnit > 0).map(([key]) => key);
+type Effect = Exclude<OfferOutcome, { kind: 'skip' }>;
+
+/** Keys of the lines a positive per-line amount names. */
+const positiveKeysOf = (amounts: ReadonlyMap<string, number>): string[] =>
+  [...amounts].filter(([, amount]) => amount > 0).map(([key]) => key);
+
+/**
+ * Keys of the lines an effect counts on, by effect kind (§3a.7): the lines a line outcome takes something off, the
+ * source lines a gift splits units off (D2504), none for order and delivery outcomes.
+ */
+const LINE_KEYS_BY_EFFECT: { readonly [K in Effect['kind']]: (outcome: Extract<Effect, { kind: K }>) => string[] } = {
+  line: (outcome) => positiveKeysOf(outcome.unitDiscounts),
+  gift: (outcome) => positiveKeysOf(outcome.gifts),
+  order: () => [],
+  delivery: () => [],
+};
+
+const lineKeysOf = (outcome: Effect): string[] =>
+  (LINE_KEYS_BY_EFFECT[outcome.kind] as (outcome: Effect) => string[])(outcome);
 
 const isWorthless = (outcome: OfferOutcome): boolean => outcome.kind !== 'skip' && outcome.value === 0;
 
@@ -61,7 +77,7 @@ function verdictOf(entry: OfferEntry, lines: readonly RunningLine[], context: Pr
   if (reason !== null) return { eligible, candidate: null, refusals: refusalOf(entry, reason) };
   if (outcome.kind === 'skip') return { eligible, candidate: null, refusals: refusalOf(entry, outcome.reason) };
   if (outcome.value === 0) return { eligible, candidate: null, refusals: zeroEffectRefusal(entry, outcome.kind) };
-  const lineKeys = outcome.kind === 'line' ? discountedLineKeysOf(outcome) : [];
+  const lineKeys = lineKeysOf(outcome);
   const candidate = { ...entry, combinationClass: entry.calculator.combinationClass, value: outcome.value, lineKeys };
   return { eligible, candidate, refusals: NO_REFUSALS };
 }

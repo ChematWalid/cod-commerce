@@ -44,12 +44,15 @@ export function refusalOf(entry: RefusedEntry, reason: SkipReason): Refusals {
   return { ...NO_REFUSALS, rejectedCodes: [{ code: entry.code, reason: CODE_REJECT_BY_SKIP[reason] }] };
 }
 
+/** Effects that are worth nothing only when the offer names no line of the cart (D2417, D2504). */
+const LINE_EFFECTS: ReadonlySet<OfferOutcome['kind']> = new Set<OfferOutcome['kind']>(['line', 'gift']);
+
 /**
  * The refusal of an offer whose effect is worth nothing: silent for an automatic offer (D2417), but a typed code whose
- * line offer names no line of the cart is rejected `no_matching_items`. A zero order or delivery effect (an empty
- * subtotal, a delivery not chosen yet) stays silent: the code is not wrong.
+ * line or gift offer names no line of the cart is rejected `no_matching_items`. A zero order or delivery effect (an
+ * empty subtotal, a delivery not chosen yet) stays silent: the code is not wrong.
  */
 export function zeroEffectRefusal(entry: RefusedEntry, outcomeKind: OfferOutcome['kind']): Refusals {
-  if (entry.code === null || outcomeKind !== 'line') return NO_REFUSALS;
+  if (entry.code === null || !LINE_EFFECTS.has(outcomeKind)) return NO_REFUSALS;
   return { ...NO_REFUSALS, rejectedCodes: [{ code: entry.code, reason: 'no_matching_items' }] };
 }

@@ -12,6 +12,7 @@ import {
   ISSUED_AT,
   NONCE,
   payloadOf,
+  tampered,
   PHONE,
   RING_K1,
 } from '../../support/quote-token';
@@ -180,6 +181,38 @@ describe('verifyQuoteToken: key rotation', () => {
 
     // Act
     const result = verifyQuoteToken(aVerifyInput(token, { ring: withoutK1 }));
+
+    // Assert
+    expect(result).toEqual({ ok: false, reason: 'bad_signature' });
+  });
+});
+
+describe('signQuote: gift lines', () => {
+  const GIFT_LINES = [
+    { variantId: '7', qty: 2, unitPrice: 4_900, originalPrice: 4_900, offerIds: [] },
+    { variantId: '7', qty: 1, unitPrice: 0, originalPrice: 4_900, offerIds: ['7005'], g: '7005' },
+  ];
+
+  it('round-trips a gift line entry', () => {
+    // Arrange
+    const body = aBody({ t: 9_800, l: GIFT_LINES, o: [{ offerId: '7005' }] });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(aToken(body)));
+
+    // Assert
+    expect(result.ok && result.payload.l).toEqual(GIFT_LINES);
+  });
+
+  it('fails a token whose gift offer was changed as a bad signature', () => {
+    // Arrange
+    const token = tampered(aToken(aBody({ t: 9_800, l: GIFT_LINES })), (payload) => {
+      const gift = payload.l[1];
+      if (gift !== undefined) gift.g = '7006';
+    });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(token));
 
     // Assert
     expect(result).toEqual({ ok: false, reason: 'bad_signature' });

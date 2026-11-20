@@ -1,10 +1,13 @@
-import type { OfferTarget, ProductDiscountScope, TargetRefType } from '@cod/shared';
+import type { OfferTarget, OfferTargetRole, ProductDiscountScope, TargetRefType } from '@cod/shared';
 import type { PricedLine } from '../cart';
 import { BUY_ROLES } from '../constants';
 import type { Offer } from '../offer';
 
 /** Whether a target of `refType` names `line`. */
 type TargetMatcher = (line: PricedLine, refId: string) => boolean;
+
+/** A line an offer may read: a priced line, or a running one that may be a gift line (D2504). */
+type TargetableLine = PricedLine & { readonly giftOf?: string };
 
 /**
  * One matcher per target type (§3a.7): a collection target matches a line of a product in that collection.
@@ -21,16 +24,39 @@ const MATCHERS: ReadonlyMap<string, TargetMatcher> = new Map<TargetRefType, Targ
 const namesLine = (line: PricedLine) => (target: Readonly<OfferTarget>) =>
   MATCHERS.get(target.refType)?.(line, target.refId) ?? false;
 
+/** The lines no offer has gifted: a gift line carries no later line offer (D2504). */
+const paidLines = <Line extends TargetableLine>(lines: readonly Line[]): readonly Line[] =>
+  lines.filter((line) => line.giftOf === undefined);
+
+/** The lines the offer's targets of one of `roles` name, gift lines left out, in cart order. */
+function linesNamedBy<Line extends TargetableLine>(
+  offer: Offer,
+  lines: readonly Line[],
+  roles: ReadonlySet<string>,
+): readonly Line[] {
+  const targets = offer.targets.filter((target) => roles.has(target.role));
+  return paidLines(lines).filter((line) => targets.some(namesLine(line)));
+}
+
 /**
  * The lines the offer's buy targets name, in cart order (D2410). `coverage: 'all'` (a product discount on every
- * product) matches every line whatever the targets; the kind adapter decides it from its parsed config.
+ * product) matches every line whatever the targets; the kind adapter decides it from its parsed config. Gift lines
+ * never match (D2504).
  */
-export function matchingLines<Line extends PricedLine>(
+export function matchingLines<Line extends TargetableLine>(
   offer: Offer,
   lines: readonly Line[],
   coverage: ProductDiscountScope = 'targets',
 ): readonly Line[] {
-  if (coverage === 'all') return lines;
-  const buyTargets = offer.targets.filter((target) => BUY_ROLES.has(target.role));
-  return lines.filter((line) => buyTargets.some(namesLine(line)));
+  if (coverage === 'all') return paidLines(lines);
+  return linesNamedBy(offer, lines, BUY_ROLES);
+}
+
+/** The lines the offer's targets of `role` name, gift lines left out, in cart order (a bxgy reads its `get` lines). */
+export function matchingLinesByRole<Line extends TargetableLine>(
+  offer: Offer,
+  lines: readonly Line[],
+  role: OfferTargetRole,
+): readonly Line[] {
+  return linesNamedBy(offer, lines, new Set([role]));
 }

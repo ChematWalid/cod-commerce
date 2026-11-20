@@ -33,6 +33,7 @@ const quotePayloadSchema = z.object({
       unitPrice: wholeDzd,
       originalPrice: wholeDzd,
       offerIds: z.array(decimalId),
+      g: decimalId.optional(),
     }),
   ),
   d: z.array(z.object({ amount: wholeDzd, offerId: decimalId, code: z.string().optional() })),
