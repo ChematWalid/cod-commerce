@@ -27,6 +27,8 @@ const HTML_ESCAPES: Readonly<Record<string, string>> = {
 /** Spaces a price may group its thousands with: ASCII, no-break and narrow no-break. */
 const PRICE_SPACES = /[\s\u00a0\u202f]/g;
 const DIGITS_IN_GROUP = 3;
+/** A structured amount as schema.org and Open Graph write it: digits, a dot as the decimal separator, no grouping. */
+const STRUCTURED_AMOUNT = /^\d+(?:\.\d+)?$/;
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -102,7 +104,17 @@ function priceOf(stated: StatedPrice | undefined): number | undefined {
   const inDinars =
     currency === undefined ||
     (typeof currency === 'string' && currency.trim().toUpperCase() === PLATFORM_CURRENCY_CODE);
-  return inDinars ? parsePrice(stated.amount) : undefined;
+  return inDinars ? parsePrice(structuredAmountOf(stated.amount) ?? stated.amount) : undefined;
+}
+
+/**
+ * A JSON-LD or meta amount read as structured data (D2274): `1500.000` is 1 500, never 1 500 000. Undefined when the
+ * page wrote it as free text (`1 500,00 DA`), which the locale reading of {@link parsePrice} then takes.
+ */
+function structuredAmountOf(amount: unknown): number | undefined {
+  if (typeof amount !== 'string') return undefined;
+  const digits = amount.replace(PRICE_SPACES, '');
+  return STRUCTURED_AMOUNT.test(digits) ? Number(digits) : undefined;
 }
 
 /** The decimal separator of a price's digits: the later of `.` and `,`, unless it only groups thousands. */

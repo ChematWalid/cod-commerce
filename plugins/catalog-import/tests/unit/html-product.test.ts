@@ -97,6 +97,28 @@ describe('readHtmlProduct (D2214)', () => {
     expect(metaInDinar.price).toBe(25);
   });
 
+  it('a structured price is read as schema.org writes it: the dot is decimal, never a thousands group', () => {
+    // Arrange
+    const ldPriced = (price: string | number): string =>
+      pageWith(
+        `<script type="application/ld+json">${JSON.stringify({
+          '@type': 'Product',
+          name: 'Priced',
+          offers: { price, priceCurrency: 'DZD' },
+        })}</script>`,
+      );
+    const metaPriced = (amount: string): string =>
+      pageWith(`<meta property="product:price:amount" content="${amount}">`);
+
+    // Act and Assert
+    expect(readHtmlProduct(ldPriced('1500.000'), PAGE_URL).price).toBe(1500);
+    expect(readHtmlProduct(ldPriced('12.500'), PAGE_URL).price).toBe(13);
+    expect(readHtmlProduct(ldPriced('0.990'), PAGE_URL).price).toBe(1);
+    expect(readHtmlProduct(ldPriced(' 2500 '), PAGE_URL).price).toBe(2500);
+    expect(readHtmlProduct(ldPriced(1500.5), PAGE_URL).price).toBe(1501);
+    expect(readHtmlProduct(metaPriced('1500.000'), PAGE_URL).price).toBe(1500);
+  });
+
   it('reads the price from product:price:amount when there is no JSON-LD', () => {
     // Act
     const product = readHtmlProduct(pageWith('<meta property="product:price:amount" content="1 500,00 DA">'), PAGE_URL);

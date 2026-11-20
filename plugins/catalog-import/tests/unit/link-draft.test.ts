@@ -1,4 +1,4 @@
-import { DESCRIPTION_MAX, PRODUCT_TITLE_MAX } from '@cod/shared';
+import { DESCRIPTION_MAX, PRODUCT_TITLE_MAX, productInputSchema } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import type { HtmlProduct } from '../../domain/html-product';
 import { linkDraftOf } from '../../domain/link-draft';
@@ -22,6 +22,29 @@ describe('linkDraftOf (D2272)', () => {
 
     // Assert
     expect(draft.create.product.title).toHaveLength(PRODUCT_TITLE_MAX);
+  });
+
+  it('never splits a character at the title maximum: an emoji across it is dropped whole', () => {
+    // Arrange: the emoji's two UTF-16 units sit at positions 254 and 255
+    const title = `${'a'.repeat(PRODUCT_TITLE_MAX - 1)}\u{1F600} more`;
+
+    // Act
+    const draft = linkDraftOf(pageOf({ title }), LINK);
+
+    // Assert
+    expect(draft.create.product.title).toBe('a'.repeat(PRODUCT_TITLE_MAX - 1));
+    expect(productInputSchema.safeParse(draft.create.product).success).toBe(true);
+  });
+
+  it('never splits a character at the description maximum', () => {
+    // Arrange
+    const description = `${'a'.repeat(DESCRIPTION_MAX - 1)}\u{1F600}`;
+
+    // Act
+    const draft = linkDraftOf(pageOf({ title: 'T', description }), LINK);
+
+    // Assert
+    expect(draft.create.product.description).toBe('a'.repeat(DESCRIPTION_MAX - 1));
   });
 
   it('prices a Draft 0 when the page states no price, as an always-draft product with no variants', () => {
