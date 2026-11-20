@@ -2,7 +2,7 @@ import type { CollectionDefinition } from '../collection';
 import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context';
 
-/** A page of a store's definitions; `collectionIds` narrows it to those collections (the list's search). */
+/** A page of a store's definitions; `collectionIds` narrows it to those collections (those the list can show). */
 export interface DefinitionListRequest {
   readonly skip: number;
   readonly take: number;

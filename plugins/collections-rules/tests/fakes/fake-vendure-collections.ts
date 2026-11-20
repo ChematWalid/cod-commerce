@@ -48,7 +48,8 @@ export class FakeVendureCollections implements VendureCollectionsPort {
   }
 
   delete(_ctx: OperationContext, collectionId: string): Promise<void> {
-    this.rows.delete(collectionId);
+    // Vendure's CollectionService.delete throws for a collection that is not in the channel.
+    if (!this.rows.delete(collectionId)) return Promise.reject(new Error('no such Vendure collection'));
     return Promise.resolve();
   }
 

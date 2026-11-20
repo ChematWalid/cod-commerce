@@ -77,6 +77,22 @@ describe('CreateCollectionService.create', () => {
     expect(world.vendure.rows.size).toBe(0);
   });
 
+  it('accepts the 500th collection of a store and refuses the one after it', async () => {
+    // Arrange
+    for (let index = 0; index < COLLECTIONS_PER_STORE_MAX - 1; index += 1) {
+      await world.tables.definitions.insert(ctx, scopeA, definitionOf(scopeA));
+    }
+
+    // Act
+    const last = await service.create(ctx, scopeA, command({ slug: 'last' }));
+    const extra = service.create(ctx, scopeA, command({ slug: 'extra' }));
+
+    // Assert
+    expect(last.slug).toBe('last');
+    await expect(extra).rejects.toMatchObject({ code: COLLECTIONS_ERROR_CODES.TOO_MANY_COLLECTIONS });
+    expect(await world.tables.definitions.countInStore(ctx, scopeA)).toBe(COLLECTIONS_PER_STORE_MAX);
+  });
+
   it("counts only the caller's store toward the cap", async () => {
     // Arrange
     for (let index = 0; index < COLLECTIONS_PER_STORE_MAX; index += 1) {

@@ -142,6 +142,20 @@ describe('DeleteCollectionService.delete', () => {
     await expect(deleted).rejects.toMatchObject({ code: COLLECTIONS_ERROR_CODES.NOT_FOUND });
     expect(world.vendure.rows.has(created.id)).toBe(true);
   });
+
+  it('removes a definition whose Vendure collection already left the store and frees its place', async () => {
+    // Arrange
+    const created = await create();
+    world.vendure.rows.delete(created.id);
+
+    // Act
+    await new DeleteCollectionService(world.ports).delete(ctx, scopeA, created.id);
+
+    // Assert
+    expect(await world.tables.definitions.findByCollectionId(ctx, scopeA, created.id)).toBeUndefined();
+    expect(await world.tables.definitions.countInStore(ctx, scopeA)).toBe(0);
+    expect(world.events.published.at(-1)).toEqual({ scope: scopeA, collectionId: created.id, change: 'deleted' });
+  });
 });
 
 describe('reading collections', () => {
@@ -194,6 +208,22 @@ describe('reading collections', () => {
     // Assert
     expect(page.items.map((item) => item.id)).toEqual([kept.id]);
     expect(page.totalItems).toBe(page.items.length);
+  });
+
+  it('reports the same total on every page when the missing Vendure collection sits on another page', async () => {
+    // Arrange
+    const kept = await create({ title: 'Kept', slug: 'kept', position: 1 });
+    const orphan = await create({ title: 'Orphan', slug: 'orphan', position: 2 });
+    const last = await create({ title: 'Last', slug: 'last', position: 3 });
+    world.vendure.rows.delete(orphan.id);
+    const list = new ListCollectionsService(world.ports);
+
+    // Act
+    const pages = await Promise.all([0, 1, 2].map((skip) => list.list(ctx, scopeA, { skip, take: 1 })));
+
+    // Assert
+    expect(pages.map((page) => page.items.map((item) => item.id))).toEqual([[kept.id], [last.id], []]);
+    expect(pages.map((page) => page.totalItems)).toEqual([2, 2, 2]);
   });
 
   it("finds a collection of the store and nothing for the other store's or a malformed id", async () => {
