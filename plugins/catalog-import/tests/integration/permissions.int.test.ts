@@ -24,7 +24,10 @@ describe('catalog-import handlers refuse a role that lacks their key', () => {
   beforeAll(async () => {
     const { a } = suite.fixtures;
     const store = a.stores[0].id;
+    await suite.kit.asOwner(a);
+    const product = await suite.kit.createProduct();
     ids = {
+      productId: product.id,
       importId: await suite.kit.plantJob({
         table: 'catalog_import_job',
         businessId: a.businessId,
@@ -39,10 +42,6 @@ describe('catalog-import handlers refuse a role that lacks their key', () => {
       }),
     };
   });
-
-  if (OPERATION_REGISTRY.length + ROUTE_REGISTRY.length === 0) {
-    it.todo('every handler is FORBIDDEN without its key (cells arrive with the first endpoint, Task 7)');
-  }
 
   it.each(OPERATION_REGISTRY)('$operation is FORBIDDEN for a member with no role', async (entry) => {
     // Arrange

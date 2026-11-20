@@ -1,4 +1,4 @@
-import { CATALOG_IMPORT_ERROR_CODES, DomainError } from '@cod/shared';
+import { CATALOG_ERROR_CODES, CATALOG_IMPORT_ERROR_CODES, DomainError } from '@cod/shared';
 
 const C = CATALOG_IMPORT_ERROR_CODES;
 
@@ -31,5 +31,37 @@ export class JobStateError extends DomainError {
   readonly code = C.JOB_STATE;
   constructor() {
     super('The job is not in a state that allows this');
+  }
+}
+
+/** A bulk price change whose result is below 0 or above the money maximum: that product's error (D2213). */
+export class PriceOutOfRangeError extends DomainError {
+  readonly code = C.PRICE_OUT_OF_RANGE;
+  constructor() {
+    super('The new price is out of range');
+  }
+}
+
+/** A brand or tag id of no brand or tag of the store, foreign ones included: same answer for both (D2213). */
+export class TaxonomyNotFoundError extends DomainError {
+  readonly code = C.TAXONOMY_NOT_FOUND;
+  constructor() {
+    super('Brand or tag not found');
+  }
+}
+
+/** Collections cannot be bulk-edited until P2.S3 (D2213, D2221). */
+export class CollectionsUnavailableError extends DomainError {
+  readonly code = C.COLLECTIONS_UNAVAILABLE;
+  constructor() {
+    super('Collections are not available yet');
+  }
+}
+
+/** A product of no product of the store: foreign, deleted and malformed ids answer the same (D2213). */
+export class ProductNotFoundError extends DomainError {
+  readonly code = CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND;
+  constructor() {
+    super('Product not found');
   }
 }

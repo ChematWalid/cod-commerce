@@ -1,0 +1,8 @@
+{
+  "error": {
+    "catalog-import-invalid-input": "Some of the details are not valid.",
+    "catalog-import-taxonomy-not-found": "A brand or tag was not found in this store.",
+    "catalog-import-collections-unavailable": "Collections cannot be changed in bulk yet.",
+    "catalog-import-internal": "The request could not be completed."
+  }
+}

@@ -41,6 +41,34 @@ export interface ImportForeignModules {
 
 let plantedIds = 900_000_000_000;
 
+/** The product fields the bulk-edit tests read back. */
+export const PRODUCT_FIELDS = 'id status price brandId tagIds variants { id price }';
+const CREATE_PRODUCT = `mutation ($input: CreateCatalogProductInput!) {
+  createCatalogProduct(input: $input) { product { ${PRODUCT_FIELDS} } }
+}`;
+const PRODUCT = `query ($id: ID!) { catalogProduct(id: $id) { ${PRODUCT_FIELDS} } }`;
+
+/** A product as the bulk-edit tests read it. */
+export interface ProductResult {
+  readonly id: string;
+  readonly status: string;
+  readonly price: number;
+  readonly brandId: string | null;
+  readonly tagIds: string[];
+  readonly variants: { id: string; price: number }[];
+}
+
+/** One activity row as the bulk-edit tests read it. */
+export interface ActivityRow {
+  readonly businessId: string;
+  readonly storeId: string | null;
+  readonly action: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly actorAdministratorId: number | null;
+  readonly diff: { changedFields?: string[] };
+}
+
 /** The catalog-import kit: the generic store kit plus the raw seeds the job tests arrange with. */
 export class ImportKit extends StoreKit {
   /** Inserts a job row as the worker or an earlier request would have left it, and returns its id. */
@@ -57,6 +85,42 @@ export class ImportKit extends StoreKit {
       [id, job.businessId, job.storeId, job.status],
     );
     return id;
+  }
+
+  /** Creates a product as the signed-in caller (active, price 1 000 unless given) and returns it. */
+  async createProduct(input: Record<string, unknown> = {}): Promise<ProductResult> {
+    const { createCatalogProduct } = await this.gql<{ createCatalogProduct: { product: ProductResult } }>(
+      CREATE_PRODUCT,
+      { input: { title: 'Synthetic product', status: 'active', price: 1000, ...input } },
+    );
+    return createCatalogProduct.product;
+  }
+
+  /** The product `id` as the signed-in caller reads it, or null. */
+  async product(id: string): Promise<ProductResult | null> {
+    const { catalogProduct } = await this.gql<{ catalogProduct: ProductResult | null }>(PRODUCT, { id });
+    return catalogProduct;
+  }
+
+  /** Creates a brand or a tag of the signed-in caller's store and returns its id. */
+  async createTaxonomy(kind: 'Brand' | 'Tag', name: string): Promise<string> {
+    const operation = `createCatalog${kind}`;
+    const answer = await this.gql<Record<string, { id: string }>>(
+      `mutation ($input: Catalog${kind}Input!) { ${operation}(input: $input) { id } }`,
+      { input: { name } },
+    );
+    const created = answer[operation];
+    if (created === undefined) throw new Error(`no ${kind} created`);
+    return created.id;
+  }
+
+  /** The activity rows of one entity id, oldest first, read past every tenant filter. */
+  activityOf(entityId: string): Promise<ActivityRow[]> {
+    return this.query<ActivityRow>(
+      `SELECT "businessId", "storeId", "action", "entityType", "entityId", "actorAdministratorId", "diff"
+       FROM activity_log WHERE "entityId" = $1 ORDER BY id`,
+      [entityId],
+    );
   }
 
   /** The status and error code of a planted row, read past every tenant filter. */

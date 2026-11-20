@@ -21,22 +21,24 @@
     "@cod/plugin-catalog": "workspace:*",
     "@cod/plugin-platform-flags": "workspace:*",
     "@cod/plugin-platform-jobs": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/plugin-rbac": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
+    "@nestjs/graphql": "14.0.3",
     "@vendure/core": "3.8.1",
-    "typeorm": "0.3.31"
+    "graphql-tag": "2.12.7",
+    "typeorm": "0.3.31",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
     "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
-    "@cod/plugin-rate-limit": "workspace:*",
-    "@cod/plugin-rbac": "workspace:*",
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",
     "@vendure/testing": "3.8.1",
-    "graphql-tag": "2.12.7",
     "typescript": "5.9.3",
     "vitest": "5.1.0"
   }

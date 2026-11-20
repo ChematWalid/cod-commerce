@@ -56,10 +56,21 @@ async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Out
   }
 }
 
-function expectForeign(entry: { foreign?: string; notFound: string }, outcome: Outcome): void {
+/** The per-product errors of a `reported` answer (D2213). */
+const reportedErrorsOf = (data: unknown): unknown[] =>
+  ((data as { results?: { error?: unknown }[] } | null)?.results ?? []).map((result) => result.error);
+
+function expectForeign(entry: { foreign: string; notFound: string }, outcome: Outcome): void {
   if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
+  else if (entry.foreign === 'reported') expect(reportedErrorsOf(outcome.data)).toEqual([entry.notFound]);
   else expect(outcome.code).toBe(entry.notFound);
   for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
+}
+
+/** The status of B's target product, read as B's owner. */
+async function statusOfB(productId: string): Promise<string | undefined> {
+  await suite.kit.asOwner(suite.fixtures.b);
+  return (await suite.kit.product(productId))?.status;
 }
 
 describe('catalog-import isolation sweep (two businesses)', () => {
@@ -68,7 +79,10 @@ describe('catalog-import isolation sweep (two businesses)', () => {
   beforeAll(async () => {
     const { b } = suite.fixtures;
     const store = b.stores[0].id;
+    await suite.kit.asOwner(b);
+    const product = await suite.kit.createProduct();
     idsOfB = {
+      productId: product.id,
       importId: await suite.kit.plantJob({
         table: 'catalog_import_job',
         businessId: b.businessId,
@@ -93,23 +107,59 @@ describe('catalog-import isolation sweep (two businesses)', () => {
 
     // Assert
     expectForeign(entry, outcome);
+    expect(await statusOfB(idsOfB.productId)).toBe('active');
   });
 
-  it.each(ROUTE_REGISTRY)("$method $route as A against B's ids answers 404", async (entry: RouteEntry) => {
-    // Arrange
-    await suite.kit.asOwner(suite.fixtures.a);
+  it.each(ROUTE_REGISTRY.filter((entry) => entry.foreign === 'reported'))(
+    "$method $route as A against B's product ids reports them not found and leaves B unchanged",
+    async (entry: RouteEntry) => {
+      // Arrange
+      await suite.kit.asOwner(suite.fixtures.a);
 
-    // Act
-    const answer = await suite.kit.rest(entry.method, entry.url(idsOfB), entry.body?.(idsOfB));
+      // Act
+      const answer = await suite.kit.rest(entry.method, entry.url(idsOfB), entry.body?.(idsOfB));
 
-    // Assert
-    expect(answer.status).toBe(404);
-    expectForeign(entry, {
-      code: (answer.body as { code?: string } | null)?.code,
-      data: answer.body,
-      text: answer.text,
-    });
-  });
+      // Assert
+      expect(answer.status).toBe(200);
+      expectForeign(entry, { code: undefined, data: answer.body, text: answer.text });
+      expect(await statusOfB(idsOfB.productId)).toBe('active');
+    },
+  );
+
+  it.each(OPERATION_REGISTRY.filter((entry) => entry.foreign === 'reported'))(
+    "$operation as A on A's own product changes it (positive control)",
+    async (entry) => {
+      // Arrange
+      await suite.kit.asOwner(suite.fixtures.a);
+      const own = await suite.kit.createProduct();
+
+      // Act
+      const outcome = await callOperation(entry, { ...idsOfB, productId: own.id });
+
+      // Assert
+      expect(reportedErrorsOf(outcome.data)).toEqual([null]);
+      expect((await suite.kit.product(own.id))?.status).toBe('draft');
+    },
+  );
+
+  it.each(ROUTE_REGISTRY.filter((entry) => entry.foreign === 'not-found'))(
+    "$method $route as A against B's ids answers 404",
+    async (entry: RouteEntry) => {
+      // Arrange
+      await suite.kit.asOwner(suite.fixtures.a);
+
+      // Act
+      const answer = await suite.kit.rest(entry.method, entry.url(idsOfB), entry.body?.(idsOfB));
+
+      // Assert
+      expect(answer.status).toBe(404);
+      expectForeign(entry, {
+        code: (answer.body as { code?: string } | null)?.code,
+        data: answer.body,
+        text: answer.text,
+      });
+    },
+  );
 
   it.each(
     OPERATION_REGISTRY.length === 0

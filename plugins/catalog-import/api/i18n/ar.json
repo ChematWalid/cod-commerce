@@ -1,0 +1,8 @@
+{
+  "error": {
+    "catalog-import-invalid-input": "بعض البيانات غير صالحة.",
+    "catalog-import-taxonomy-not-found": "لم يتم العثور على علامة تجارية أو وسم في هذا المتجر.",
+    "catalog-import-collections-unavailable": "لا يمكن تعديل المجموعات دفعة واحدة بعد.",
+    "catalog-import-internal": "تعذر إكمال الطلب."
+  }
+}

@@ -3,11 +3,22 @@ import { BusinessSemaphore, PlatformQueues } from '@cod/plugin-platform-jobs';
 import { TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import { Logger } from '@vendure/core';
+import { BulkEditService } from '../application/bulk-edit.service';
 import type { CatalogProductsPort } from '../application/ports/catalog-products.port';
 import type { JobRepositoryPort, JobScanPort } from '../application/ports/job-repository.port';
 import type { ImportLogger } from '../application/ports/logger.port';
 import type { ObjectStorage } from '../application/ports/object-storage.port';
-import { CATALOG_PRODUCTS, IMPORT_LOGGER, JOB_REPOSITORY, JOB_SCAN, OBJECT_STORAGE } from '../application/tokens';
+import type { ProductActivityPort } from '../application/ports/product-activity.port';
+import type { UnitOfWorkPort } from '../application/ports/unit-of-work.port';
+import {
+  CATALOG_PRODUCTS,
+  IMPORT_LOGGER,
+  JOB_REPOSITORY,
+  JOB_SCAN,
+  OBJECT_STORAGE,
+  PRODUCT_ACTIVITY,
+  UNIT_OF_WORK,
+} from '../application/tokens';
 import { CatalogProductsAdapter } from './catalog-products.adapter';
 import { ImportJobsReconcileSource } from './import-jobs.reconcile-source';
 import { ImportsExportsQueue } from './imports-exports.queue';
@@ -18,7 +29,9 @@ import { JobStoreContext } from './job-store-context';
 import { MemoryObjectStorage } from './memory-object-storage';
 import { type CatalogImportPluginOptions, requireCatalogImportOptions, type S3StorageOptions } from './plugin-options';
 import { PostgresJobScan } from './postgres-job-scan';
+import { ProductActivityAdapter } from './product-activity.adapter';
 import { S3ObjectStorage } from './s3-object-storage';
+import { TenantUnitOfWork } from './tenant-unit-of-work';
 import { TypeOrmJobRepository } from './typeorm-job.repository';
 
 const LOG_CONTEXT = 'CatalogImport';
@@ -69,6 +82,14 @@ export const CATALOG_IMPORT_PROVIDERS: Provider[] = [
   },
   { provide: JOB_SCAN, useClass: PostgresJobScan },
   { provide: IMPORT_LOGGER, useValue: importLogger },
+  { provide: UNIT_OF_WORK, useClass: TenantUnitOfWork },
+  { provide: PRODUCT_ACTIVITY, useClass: ProductActivityAdapter },
+  {
+    provide: BulkEditService,
+    useFactory: (catalog: CatalogProductsPort, units: UnitOfWorkPort, activity: ProductActivityPort) =>
+      new BulkEditService({ catalog, units, activity }),
+    inject: [CATALOG_PRODUCTS, UNIT_OF_WORK, PRODUCT_ACTIVITY],
+  },
   {
     provide: JobStoreContext,
     useFactory: (catalog: CatalogProductsPort, logger: ImportLogger) => new JobStoreContext({ catalog, logger }),
