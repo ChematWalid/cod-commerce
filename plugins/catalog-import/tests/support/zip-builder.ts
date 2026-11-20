@@ -3,6 +3,8 @@ export interface ZipEntrySpec {
   readonly name: string;
   readonly compressed: number;
   readonly uncompressed: number;
+  /** Bytes of (zero) data after the entry's local header, so a test can push later headers past a reader's window. */
+  readonly stored?: number;
 }
 
 const CENTRAL_SIGNATURE = 0x02014b50;
@@ -37,9 +39,9 @@ function endRecord(options: { entries: number; size: number; offset: number }): 
 }
 
 /** A local file header of `name`: what the first bytes of a real zip look like. */
-function localRecord(name: string): Uint8Array {
+function localRecord(name: string, stored = 0): Uint8Array {
   const encoded = ascii.encode(name);
-  const record = new Uint8Array(LOCAL_RECORD_BYTES + encoded.length);
+  const record = new Uint8Array(LOCAL_RECORD_BYTES + encoded.length + stored);
   const view = new DataView(record.buffer);
   view.setUint32(0, LOCAL_SIGNATURE, true);
   view.setUint16(26, encoded.length, true);
@@ -62,7 +64,7 @@ const concat = (parts: readonly Uint8Array[]): Uint8Array => {
  * The sizes are what the directory claims, so a test can describe a bomb without building one.
  */
 export function zipOf(entries: readonly ZipEntrySpec[]): Uint8Array {
-  const locals = concat(entries.map((entry) => localRecord(entry.name)));
+  const locals = concat(entries.map((entry) => localRecord(entry.name, entry.stored)));
   const central = concat(entries.map(centralRecord));
   return concat([locals, central, endRecord({ entries: entries.length, size: central.length, offset: locals.length })]);
 }

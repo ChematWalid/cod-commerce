@@ -21,7 +21,8 @@ const CENTRAL_RECORD_BYTES = 46;
 const MAX_COMMENT_BYTES = 0xffff;
 /** A size field holding this means the real size is in a ZIP64 record: never needed by a 10 MiB xlsx. */
 const ZIP64_MARKER = 0xffffffff;
-const WORKBOOK_PART = 'xl/workbook.xml';
+/** The parts every OOXML workbook holds; a zip missing one is not a workbook (D2253). */
+const WORKBOOK_PARTS = ['[Content_Types].xml', 'xl/workbook.xml'] as const;
 /** Field offsets of the end-of-central-directory record (APPNOTE 4.3.16). */
 const END_FIELDS = { count: 10, size: 12, offset: 16 } as const;
 /** Field offsets of a central directory record (APPNOTE 4.3.12). */
@@ -91,13 +92,14 @@ function refusalOf(entries: readonly ZipEntry[]): ZipRefusal | undefined {
   const total = entries.reduce((sum, entry) => sum + entry.uncompressedSize, 0);
   if (total > IMPORT_MAX_UNCOMPRESSED_BYTES) return 'too-large';
   if (entries.some(ratioTooHigh)) return 'ratio';
-  return entries.some((entry) => entry.name === WORKBOOK_PART) ? undefined : 'no-workbook';
+  const isWorkbook = WORKBOOK_PARTS.every((part) => entries.some((entry) => entry.name === part));
+  return isWorkbook ? undefined : 'no-workbook';
 }
 
 /**
  * Checks a zip's central directory before exceljs reads it (D2222): at most {@link IMPORT_MAX_ZIP_ENTRIES} entries,
  * {@link IMPORT_MAX_UNCOMPRESSED_BYTES} uncompressed in all, no entry above {@link IMPORT_MAX_ZIP_RATIO}:1, and an
- * `xl/workbook.xml`. Only the sizes the directory claims are read, so a deflate bomb is refused without inflating it;
+ * `xl/workbook.xml` and a `[Content_Types].xml` (D2253: the sniff accepts any zip). Only the sizes the directory claims are read, so a deflate bomb is refused without inflating it;
  * the reader still caps what it inflates, since a directory can lie.
  */
 export function inspectZip(bytes: Uint8Array): ZipVerdict {

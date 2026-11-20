@@ -8,22 +8,11 @@ const ascii = new TextEncoder();
 const ZIP_LOCAL_SIGNATURE = [...ascii.encode('PK\u0003\u0004')];
 /** The UTF-8 byte order mark Excel writes before a CSV. */
 const UTF8_BOM = [...ascii.encode('\uFEFF')];
-const CONTENT_TYPES_PART = ascii.encode('[Content_Types].xml');
 const NUL = 0x00;
 const MARKUP_START = /^\s*</;
 
 const startsWith = (bytes: Uint8Array, prefix: readonly number[]): boolean =>
   prefix.every((byte, index) => bytes[index] === byte);
-
-const matchesAt = (haystack: Uint8Array, needle: Uint8Array, at: number): boolean =>
-  needle.every((byte, offset) => haystack[at + offset] === byte);
-
-function contains(haystack: Uint8Array, needle: Uint8Array): boolean {
-  for (let at = 0; at + needle.length <= haystack.length; at += 1) {
-    if (matchesAt(haystack, needle, at)) return true;
-  }
-  return false;
-}
 
 /** Decodes strict UTF-8; a character cut by the end of the head is not an error (`stream`). */
 function utf8Text(bytes: Uint8Array): string | null {
@@ -44,12 +33,13 @@ function sniffText(head: Uint8Array): SniffedFormat | null {
 }
 
 /**
- * What the first bytes of an uploaded object are (D2208): `xlsx` for a zip holding `[Content_Types].xml`, `csv` for
- * strict UTF-8 text (BOM allowed) without a NUL byte that does not start like markup, else `null`. Only the first
- * {@link SNIFF_HEAD_BYTES} are read; the zip's directory is checked later by `inspectZip` (D2222).
+ * What the first bytes of an uploaded object are (D2208): `xlsx` for any zip, `csv` for strict UTF-8 text (BOM
+ * allowed) without a NUL byte that does not start like markup, else `null`. Only the first {@link SNIFF_HEAD_BYTES}
+ * are read. A zip is only a candidate: its parts can sit anywhere in the file (exceljs's streaming writer and Google
+ * Sheets put `[Content_Types].xml` last), so `inspectZip` decides from the central directory (D2222, D2253).
  */
 export function sniffSpreadsheet(head: Uint8Array): SniffedFormat | null {
   const bytes = head.subarray(0, SNIFF_HEAD_BYTES);
-  if (startsWith(bytes, ZIP_LOCAL_SIGNATURE)) return contains(bytes, CONTENT_TYPES_PART) ? 'xlsx' : null;
+  if (startsWith(bytes, ZIP_LOCAL_SIGNATURE)) return 'xlsx';
   return sniffText(bytes);
 }

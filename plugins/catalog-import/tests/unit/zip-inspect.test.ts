@@ -51,6 +51,28 @@ describe('inspectZip (D2222)', () => {
     expect(inspectZip(noWorkbook)).toEqual({ ok: false, reason: 'no-workbook' });
   });
 
+  it.each([
+    ['a zip without [Content_Types].xml', XLSX_ENTRIES.filter((entry) => entry.name !== '[Content_Types].xml')],
+    [
+      'a Word document',
+      [
+        { name: '[Content_Types].xml', compressed: 400, uncompressed: 1_200 },
+        { name: 'word/document.xml', compressed: 10, uncompressed: 20 },
+      ],
+    ],
+  ])('%s is not a workbook (D2253)', (_name, entries) => {
+    // Act and Assert
+    expect(inspectZip(zipOf(entries))).toEqual({ ok: false, reason: 'no-workbook' });
+  });
+
+  it('a workbook whose content types are the last entry is accepted', () => {
+    // Arrange
+    const contentTypesLast = [...XLSX_ENTRIES.slice(1), ...XLSX_ENTRIES.slice(0, 1)];
+
+    // Act and Assert
+    expect(inspectZip(zipOf(contentTypesLast))).toMatchObject({ ok: true });
+  });
+
   it('a ratio above 100:1 refused', () => {
     // Arrange
     const dense = zipOf([...XLSX_ENTRIES, { name: 'xl/sharedStrings.xml', compressed: 1_000, uncompressed: 100_001 }]);

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SNIFF_HEAD_BYTES } from '../../domain/constants';
 import { sniffSpreadsheet } from '../../domain/file-sniff';
 import { XLSX_ENTRIES, zipOf } from '../support/zip-builder';
 
@@ -11,12 +12,25 @@ describe('sniffSpreadsheet (D2208)', () => {
     expect(sniffSpreadsheet(zipOf(XLSX_ENTRIES))).toBe('xlsx');
   });
 
-  it('zip without content types is null', () => {
+  it('xlsx whose content types come after a sheet larger than the head is xlsx', () => {
+    // Arrange: exceljs's streaming writer and Google Sheets write [Content_Types].xml last
+    const sheetBytes = SNIFF_HEAD_BYTES * 2;
+    const late = zipOf([
+      { name: 'xl/worksheets/sheet1.xml', compressed: sheetBytes, uncompressed: sheetBytes * 6, stored: sheetBytes },
+      { name: 'xl/workbook.xml', compressed: 300, uncompressed: 900 },
+      { name: '[Content_Types].xml', compressed: 400, uncompressed: 1_200 },
+    ]);
+
+    // Act and Assert
+    expect(sniffSpreadsheet(late)).toBe('xlsx');
+  });
+
+  it('any zip is an xlsx candidate; inspectZip decides from its directory (D2253)', () => {
     // Arrange
     const zip = zipOf([{ name: 'word/document.xml', compressed: 10, uncompressed: 20 }]);
 
     // Act and Assert
-    expect(sniffSpreadsheet(zip)).toBeNull();
+    expect(sniffSpreadsheet(zip)).toBe('xlsx');
   });
 
   it('HTML is null', () => {
