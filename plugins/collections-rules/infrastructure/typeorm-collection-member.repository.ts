@@ -5,7 +5,7 @@ import { FIRST_MANUAL_POSITION } from '../domain/constants';
 import { CollectionRowConflictError } from '../domain/collection-row-conflict.error';
 import { CollectionNotFoundError } from '../domain/errors';
 import { canonicalCoreId, canonicalCoreIds, distinctPlacements, writableCollectionId } from '../domain/core-id';
-import { canonicalProductId, membershipDiff, type MemberRow } from '../domain/membership';
+import { canonicalProductId, isEmptyDiff, membershipDiff, type MemberRow } from '../domain/membership';
 import type {
   CollectionMemberRepositoryPort,
   MemberPageRequest,
@@ -84,7 +84,7 @@ export class TypeOrmCollectionMemberRepository implements CollectionMemberReposi
     scope: StoreScope,
     collectionId: string,
     rows: readonly MemberRow[],
-  ): Promise<void> {
+  ): Promise<boolean> {
     const canonical = writableCollectionId(collectionId);
     const tenant = requestScope(ctx, scope);
     const current = await this.membersOf(ctx, scope, canonical);
@@ -99,6 +99,7 @@ export class TypeOrmCollectionMemberRepository implements CollectionMemberReposi
     for (const added of diff.insert) {
       await this.insert(tenant, scope, { collectionId: canonical, position: added.position }, added.productId);
     }
+    return !isEmptyDiff(diff);
   }
 
   async setProductIn(

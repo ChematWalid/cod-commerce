@@ -78,6 +78,10 @@ export function appendManual(current: readonly MemberRow[], productId: string): 
   return [...current, { productId: canonicalId, position: last + 1 }];
 }
 
+/** True when the diff writes nothing: the members already are what was asked. */
+export const isEmptyDiff = (diff: MembershipDiff): boolean =>
+  diff.insert.length === 0 && diff.update.length === 0 && diff.remove.length === 0;
+
 /**
  * What to insert, move and remove so that `current` becomes `next`, comparing canonical ids. Inserted and moved rows
  * carry the canonical id; removed ids are the stored ones. Refuses a `next` that names one product twice.

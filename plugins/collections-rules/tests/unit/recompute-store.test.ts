@@ -1,4 +1,4 @@
-import type { BusinessId } from '@cod/shared';
+import { type BusinessId, NORMAL_FORM_VERSION } from '@cod/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { RecomputeMembershipService } from '../../application/recompute-membership.service';
 import { RecomputeStoreService } from '../../application/recompute-store.service';
@@ -99,6 +99,50 @@ describe('RecomputeStoreService (D2336)', () => {
 
     // Assert
     expect(await memberIds(scopeA, definition.collectionId)).toEqual(['7']);
+  });
+});
+
+describe('RecomputeStoreService publishes only what changed (D2335)', () => {
+  it('a reconcile of an up-to-date store publishes nothing', async () => {
+    // Arrange
+    world.facts.put(scopeA, facts({ productId: '7', tagIds: [PROMO_TAG] }));
+    await promoCollection(scopeA, ['7'], NORMAL_FORM_VERSION);
+    world.events.published.length = 0;
+
+    // Act
+    await new RecomputeStoreService(world.ports, recompute).run(ctx, scopeA);
+
+    // Assert
+    expect(world.events.published).toEqual([]);
+  });
+
+  it('a repaired collection publishes membership once', async () => {
+    // Arrange
+    world.facts.put(scopeA, facts({ productId: '7', tagIds: [PROMO_TAG] }));
+    const repaired = await promoCollection(scopeA, ['8'], NORMAL_FORM_VERSION);
+    await promoCollection(scopeA, ['7'], NORMAL_FORM_VERSION);
+    world.events.published.length = 0;
+
+    // Act
+    await new RecomputeStoreService(world.ports, recompute).run(ctx, scopeA);
+
+    // Assert
+    expect(world.events.published).toEqual([
+      { scope: scopeA, collectionId: repaired.collectionId, change: 'membership' },
+    ]);
+  });
+
+  it('a collection built with an older normal form publishes membership even with the same members', async () => {
+    // Arrange
+    world.facts.put(scopeA, facts({ productId: '7', tagIds: [PROMO_TAG] }));
+    const stale = await promoCollection(scopeA, ['7'], NORMAL_FORM_VERSION - 1);
+    world.events.published.length = 0;
+
+    // Act
+    await new RecomputeStoreService(world.ports, recompute).run(ctx, scopeA);
+
+    // Assert
+    expect(world.events.published).toEqual([{ scope: scopeA, collectionId: stale.collectionId, change: 'membership' }]);
   });
 });
 

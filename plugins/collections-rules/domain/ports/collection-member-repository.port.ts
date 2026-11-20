@@ -39,13 +39,16 @@ export interface CollectionMemberRepositoryPort {
     collectionId: string,
     page: MemberPageRequest,
   ): Promise<readonly MemberRow[]>;
-  /** Makes the collection's members exactly `rows`, writing only the difference (`membershipDiff`). */
+  /**
+   * Makes the collection's members exactly `rows`, writing only the difference (`membershipDiff`). Answers whether
+   * anything was inserted, moved or removed.
+   */
   replaceMembers(
     ctx: OperationContext,
     scope: StoreScope,
     collectionId: string,
     rows: readonly MemberRow[],
-  ): Promise<void>;
+  ): Promise<boolean>;
   /**
    * Adds one product to the `in` collections it is not yet in and removes it from the `out` ones. A collection named in
    * both ends in it: `in` wins, at its `in` position.

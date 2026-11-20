@@ -26,7 +26,8 @@ export class RecomputeMembershipService {
 
   /**
    * Rebuilds one automatic collection over every product of the store (keyset pages, D2308) and records the normal
-   * form version it was built with (D2336). A manual definition is answered unchanged.
+   * form version it was built with (D2336). Publishes `membership` only when a member row or the version changed, so
+   * a reconcile of an up-to-date store reports nothing. A manual definition is answered unchanged.
    */
   async forStore(
     ctx: OperationContext,
@@ -38,10 +39,11 @@ export class RecomputeMembershipService {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       await this.ports.lock.lockStore(tx, scope.storeId);
       const matched = await storeMatches(this.ports.facts, tx, scope, rule);
-      await this.ports.members.replaceMembers(tx, scope, definition.collectionId, ruleMembers(matched));
+      const wrote = await this.ports.members.replaceMembers(tx, scope, definition.collectionId, ruleMembers(matched));
       const current = { ...definition, matchVersion: NORMAL_FORM_VERSION };
-      if (definition.matchVersion !== NORMAL_FORM_VERSION) await this.ports.definitions.update(tx, scope, current);
-      await this.ports.events.publish(tx, scope, definition.collectionId, 'membership');
+      const rebuiltVersion = definition.matchVersion !== NORMAL_FORM_VERSION;
+      if (rebuiltVersion) await this.ports.definitions.update(tx, scope, current);
+      if (wrote || rebuiltVersion) await this.ports.events.publish(tx, scope, definition.collectionId, 'membership');
       return current;
     });
   }

@@ -3,7 +3,7 @@ import type { CollectionDefinition } from '../../domain/collection';
 import { CollectionRowConflictError } from '../../domain/collection-row-conflict.error';
 import { CollectionNotFoundError } from '../../domain/errors';
 import { canonicalCoreIds, distinctPlacements, writableCollectionId } from '../../domain/core-id';
-import { canonicalProductId, membershipDiff, type MemberRow } from '../../domain/membership';
+import { canonicalProductId, isEmptyDiff, membershipDiff, type MemberRow } from '../../domain/membership';
 import type {
   CollectionDefinitionRepositoryPort,
   DefinitionListRequest,
@@ -197,15 +197,13 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
     scope: StoreScope,
     collectionId: string,
     rows: readonly MemberRow[],
-  ): Promise<void> {
+  ): Promise<boolean> {
     // Settled later, like a database call: a refusal rejects the promise instead of throwing at the call.
-    return Promise.resolve().then(() => {
-      this.replaceNow(scope, writableCollectionId(collectionId), rows);
-    });
+    return Promise.resolve().then(() => this.replaceNow(scope, writableCollectionId(collectionId), rows));
   }
 
   /** Like the table, only an inserted row meets the FK. */
-  private replaceNow(scope: StoreScope, collectionId: string, rows: readonly MemberRow[]): void {
+  private replaceNow(scope: StoreScope, collectionId: string, rows: readonly MemberRow[]): boolean {
     const current = this.rowsOf(scope, collectionId);
     const diff = membershipDiff(current, rows);
     const removed = new Set(diff.remove);
@@ -218,6 +216,7 @@ class InMemoryMembers implements CollectionMemberRepositoryPort {
       if (row !== undefined) this.tables.memberRows[index] = { ...row, position: moved.position };
     }
     for (const added of diff.insert) this.add(scope, collectionId, added);
+    return !isEmptyDiff(diff);
   }
 
   setProductIn(

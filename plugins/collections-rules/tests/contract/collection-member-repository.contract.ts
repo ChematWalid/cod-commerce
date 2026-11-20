@@ -34,6 +34,22 @@ export function describeCollectionMemberRepositoryContract(name: string, make: M
       ]);
     });
 
+    it('replaceMembers answers whether it wrote anything', async () => {
+      // Arrange
+      const harness = await make();
+      const collectionId = await collectionIn(harness, scopeA);
+      const [first, second] = [newCoreId(), newCoreId()];
+
+      // Act
+      const filled = await harness.repos.members.replaceMembers(harness.ctx, scopeA, collectionId, [at(first, 0)]);
+      const same = await harness.repos.members.replaceMembers(harness.ctx, scopeA, collectionId, [at(first, 0)]);
+      const moved = await harness.repos.members.replaceMembers(harness.ctx, scopeA, collectionId, [at(first, 1)]);
+      const swapped = await harness.repos.members.replaceMembers(harness.ctx, scopeA, collectionId, [at(second, 1)]);
+
+      // Assert
+      expect([filled, same, moved, swapped]).toEqual([true, false, true, true]);
+    });
+
     it('replaceMembers writes only the diff', async () => {
       // Arrange
       const harness = await make();
