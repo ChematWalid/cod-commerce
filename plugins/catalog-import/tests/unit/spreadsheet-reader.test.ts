@@ -13,6 +13,7 @@ const READ_CAP = IMPORT_MAX_ROWS + IMPORT_HEADER_WINDOW_ROWS + 1;
 const limits = (change: Partial<ReadLimits> = {}): ReadLimits => ({
   maxRows: READ_CAP,
   deadlineAt: Date.now() + 60_000,
+  now: Date.now,
   ...change,
 });
 
@@ -86,6 +87,14 @@ describe('CsvSpreadsheetReader (D2209, D2222)', () => {
     await expect(csv.read(bytesOf('name,price\r\nA,1\r\n'), limits({ deadlineAt: 0 }))).rejects.toBeInstanceOf(
       FileTypeError,
     );
+  });
+
+  it('the deadline is read on the clock that set it, not the wall clock', async () => {
+    // Arrange: an injected clock already past the deadline; the wall clock is long before it
+    const late = limits({ deadlineAt: Date.now() + 60_000, now: () => Date.now() + 120_000 });
+
+    // Act and Assert
+    await expect(csv.read(bytesOf('name,price\r\nA,1\r\n'), late)).rejects.toBeInstanceOf(FileTypeError);
   });
 
   it('bytes that are not UTF-8 are refused', async () => {

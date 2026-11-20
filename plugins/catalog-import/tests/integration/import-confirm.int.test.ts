@@ -16,18 +16,23 @@ import type {
 import type { CatalogProductsPort } from '../../application/ports/catalog-products.port';
 import type { ImportJobStore } from '../../application/ports/import-job.port';
 import type { ImportRowStore } from '../../application/ports/import-row.port';
+import type { ObjectStorage } from '../../application/ports/object-storage.port';
 import type { UnitOfWorkPort } from '../../application/ports/unit-of-work.port';
 import { ImportReportService } from '../../application/import-report.service';
+import { PreviewImportService } from '../../application/preview-import.service';
 import { RunImportJobService } from '../../application/run-import-job.service';
 import {
   CATALOG_IMPORT,
   CATALOG_PRODUCTS,
   IMPORT_JOBS,
   IMPORT_ROWS,
+  OBJECT_STORAGE,
   PRODUCT_ACTIVITY,
   PRODUCT_ORIGIN_WRITES,
+  SPREADSHEET_FORMATS,
   UNIT_OF_WORK,
 } from '../../application/tokens';
+import { JobStateError } from '../../domain/errors';
 import { jobDataOf } from '../../domain/job-kinds';
 import { errorReportKey } from '../../domain/object-keys';
 import { ImportsExportsJobRegistry } from '../../infrastructure/job-registry';
@@ -86,6 +91,32 @@ async function confirmingWithoutQueue(prefix: string) {
   await suite.kit.app.get<ImportJobStore>(IMPORT_JOBS).beginConfirm(ctx, scope, importId, by);
   return { importId, scope, ctx };
 }
+
+/** The preview use case on the app's ports, its file read running `whileReading` first (a concurrent request). */
+function racedPreview(whileReading: () => Promise<unknown>): PreviewImportService {
+  const app = suite.kit.app;
+  const storage = app.get<ObjectStorage>(OBJECT_STORAGE);
+  return new PreviewImportService({
+    jobs: app.get<ImportJobStore>(IMPORT_JOBS),
+    rows: app.get<ImportRowStore>(IMPORT_ROWS),
+    catalog: app.get<CatalogImportPort>(CATALOG_IMPORT),
+    units: app.get<UnitOfWorkPort>(UNIT_OF_WORK),
+    formats: app.get(SPREADSHEET_FORMATS),
+    storage: {
+      read: async (key, rule) => {
+        await whileReading();
+        return storage.read(key, rule);
+      },
+    },
+  });
+}
+
+const rowIdsOf = async (importId: string): Promise<string[]> =>
+  (
+    await suite.kit.query<{ id: string }>('SELECT "id" FROM catalog_import_row WHERE "jobId" = $1 ORDER BY "id"', [
+      importId,
+    ])
+  ).map((row) => row.id);
 
 /** Products of the signed-in store whose title starts with `prefix`. */
 async function countOf(prefix: string): Promise<number> {
@@ -167,6 +198,23 @@ describe('confirming an import (D2210, Review Focus 4 and 6)', () => {
     // Assert
     expect(failure.codes).toEqual(['FORBIDDEN']);
     expect((await client.status(importId)).status).toBe('previewed');
+  });
+
+  it('a preview overtaken by a confirm answers job-state and keeps the confirmed rows (D2265)', async () => {
+    // Arrange: a preview reads the previewed job, then a confirm commits its move while the preview reads the file
+    const { importId, scope, ctx } = await confirmingWithoutQueue('RACE');
+    await suite.kit.query('UPDATE catalog_import_job SET "status" = $1 WHERE "id" = $2', ['previewed', importId]);
+    const jobs = suite.kit.app.get<ImportJobStore>(IMPORT_JOBS);
+    const confirmedRows = await rowIdsOf(importId);
+    const confirm = () => jobs.beginConfirm(ctx, scope, importId, { actorAdministratorId: 1, at: new Date() });
+
+    // Act
+    const previewing = racedPreview(confirm).preview(ctx, scope, { importId, canEdit: true });
+
+    // Assert
+    await expect(previewing).rejects.toBeInstanceOf(JobStateError);
+    expect((await jobs.byId(ctx, scope, importId))?.status).toBe('confirming');
+    expect(await rowIdsOf(importId)).toEqual(confirmedRows);
   });
 
   it('two concurrent confirms: exactly one job runs, the other answers 409 job-state', async () => {

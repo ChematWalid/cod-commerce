@@ -3,8 +3,9 @@ import ExcelJS from 'exceljs';
 import type { ReadLimits, SheetRow, SheetRows, SpreadsheetReader } from '../application/ports/spreadsheet-format.port';
 import { FileTypeError } from '../domain/errors';
 import { inspectZip } from '../domain/zip-inspect';
+import { localHeadersMatch } from '../domain/zip-local-headers';
 import { SheetCollector } from './sheet-limits';
-import { assertNoDtd } from './xml-guard';
+import { assertSafeParts } from './xml-guard';
 
 /** What exceljs puts in a cell: a scalar, or an object for formulas, rich text, links and errors. */
 type CellValue = ExcelJS.CellValue;
@@ -50,16 +51,20 @@ async function readFirstSheet(workbook: ExcelJS.stream.xlsx.WorkbookReader, coll
 const isParseFailure = (error: unknown): boolean => error instanceof Error && !(error instanceof FileTypeError);
 
 /**
- * The xlsx reader of the format registry (D2209, D2222): the zip's central directory checked first (`inspectZip`:
- * entries, sizes, ratio, workbook parts), XML parts with a DTD or entity refused (`assertNoDtd`), then exceljs's
+ * The xlsx reader of the format registry (D2209, D2222, D2266): the zip's central directory checked first
+ * (`inspectZip`: entries, sizes, ratio, workbook parts), then its local records matched to it one to one
+ * (`localHeadersMatch`: exceljs reads the local records, not the directory), every part inflated within its claimed
+ * size and XML parts with a DTD or entity refused (`assertSafeParts`), then exceljs's
  * streaming `WorkbookReader` reads the first worksheet's cached values, with the row, column, cell and deadline limits
  * of {@link SheetCollector}.
  */
 export class XlsxSpreadsheetReader implements SpreadsheetReader {
   async read(bytes: Uint8Array, limits: ReadLimits): Promise<SheetRows> {
     const verdict = inspectZip(bytes);
-    if (!verdict.ok) throw new FileTypeError();
-    assertNoDtd(bytes, verdict.entries);
+    if (!verdict.ok || !localHeadersMatch(bytes, verdict.entries, verdict.directoryOffset)) {
+      throw new FileTypeError();
+    }
+    assertSafeParts(bytes, verdict.entries);
     const collector = new SheetCollector(limits);
     const workbook = new ExcelJS.stream.xlsx.WorkbookReader(Readable.from([Buffer.from(bytes)]), {
       worksheets: 'emit',

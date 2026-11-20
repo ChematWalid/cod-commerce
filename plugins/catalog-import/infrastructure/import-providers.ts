@@ -78,8 +78,9 @@ export const IMPORT_PROVIDERS: Provider[] = [
       storage: ObjectStorage,
       queue: ImportsExportsQueue,
       formats: Formats,
-    ) => new ConfirmImportService({ jobs, rows, storage, queue, formats }),
-    inject: [IMPORT_JOBS, IMPORT_ROWS, OBJECT_STORAGE, ImportsExportsQueue, SPREADSHEET_FORMATS],
+      units: UnitOfWorkPort,
+    ) => new ConfirmImportService({ jobs, rows, storage, queue, formats, units }),
+    inject: [IMPORT_JOBS, IMPORT_ROWS, OBJECT_STORAGE, ImportsExportsQueue, SPREADSHEET_FORMATS, UNIT_OF_WORK],
   },
   {
     provide: ImportStatusService,

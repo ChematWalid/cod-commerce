@@ -86,8 +86,11 @@ export interface ImportJobStore {
   byId(ctx: OperationContext, scope: StoreScope, id: string): Promise<ImportJobRecord | undefined>;
   /** `awaiting_upload`/`analyzed` → `analyzed`. */
   markAnalyzed(ctx: OperationContext, scope: StoreScope, id: string, analyzed: AnalyzedImport): Promise<void>;
-  /** `analyzed`/`previewed` → `previewed`. */
-  markPreviewed(ctx: OperationContext, scope: StoreScope, id: string, previewed: PreviewedImport): Promise<void>;
+  /**
+   * Atomically `analyzed`/`previewed` → `previewed`; false when the row was in neither (a confirm moved it). Run first
+   * in the preview's transaction, its conditional update locks the row until the rows are stored (D2265).
+   */
+  markPreviewed(ctx: OperationContext, scope: StoreScope, id: string, previewed: PreviewedImport): Promise<boolean>;
   /** Atomically `previewed` → `confirming` with the confirming actor; false when the row was not `previewed`. */
   beginConfirm(ctx: OperationContext, scope: StoreScope, id: string, by: ConfirmingActor): Promise<boolean>;
   /** `confirming` (or a retried `running`) → `running`. */

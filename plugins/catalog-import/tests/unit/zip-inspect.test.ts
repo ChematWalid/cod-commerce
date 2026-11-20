@@ -18,6 +18,7 @@ describe('inspectZip (D2222)', () => {
         method: 0,
         localHeaderOffset: 0,
       })),
+      directoryOffset: expect.any(Number) as number,
     });
   });
 

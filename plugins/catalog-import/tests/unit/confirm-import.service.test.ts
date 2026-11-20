@@ -25,6 +25,7 @@ const serviceOf = (world: FakeImportWorld): ConfirmImportService =>
     storage: world.storage,
     formats: world.formats,
     queue: world.queue,
+    units: world.units,
   });
 
 describe('ConfirmImportService (D2207, D2210, Review Focus 4)', () => {
@@ -36,6 +37,22 @@ describe('ConfirmImportService (D2207, D2210, Review Focus 4)', () => {
     const confirming = serviceOf(world).confirm(world.ctx, SCOPE, CREATE_ONLY, id);
 
     // Assert
+    await expect(confirming).rejects.toBeInstanceOf(ConfirmNeedsEditError);
+    expect(world.jobs.get(id)?.status).toBe('previewed');
+    expect(world.enqueued).toEqual([]);
+  });
+
+  it('update rows a concurrent preview commits before the move are seen: a create-only confirm is refused (D2265)', async () => {
+    // Arrange: the actor read a preview of creates; an owner's preview of an update commits before the confirm moves
+    const { world, id } = worldWith();
+    world.beforeMove = () => {
+      world.rows.set(id, [plannedRow({ action: 'update', productId: '7' })]);
+    };
+
+    // Act
+    const confirming = serviceOf(world).confirm(world.ctx, SCOPE, CREATE_ONLY, id);
+
+    // Assert: the move rolled back, nothing queued
     await expect(confirming).rejects.toBeInstanceOf(ConfirmNeedsEditError);
     expect(world.jobs.get(id)?.status).toBe('previewed');
     expect(world.enqueued).toEqual([]);

@@ -35,12 +35,16 @@ function weightConflictsOf(rows: readonly ValidatedRow[]): Set<number> {
   );
 }
 
-/** The rows grouped by product key, in order of first appearance; a row without a key is its own group. */
+/**
+ * The rows grouped by product key, compared as SKUs are (`skuKey`: `new1` and `NEW1` are one product, D2267), in order
+ * of first appearance; a row without a key is its own group. A group is keyed by its first row's cell, which every
+ * row of it is stored with, so the worker groups the rows alike.
+ */
 export function groupRows(rows: readonly ValidatedRow[]): RowGroup[] {
   const byKey = new Map<string, ValidatedRow[]>();
   for (const row of rows) {
     // A trimmed cell never starts with a space, so a keyless row's own group cannot meet a real key.
-    const key = row.values.productKey === undefined ? ` ${String(row.rowNumber)}` : `=${row.values.productKey}`;
+    const key = row.values.productKey === undefined ? ` ${String(row.rowNumber)}` : `=${skuKey(row.values.productKey)}`;
     byKey.set(key, [...(byKey.get(key) ?? []), row]);
   }
   return [...byKey.values()].map((grouped) => ({
@@ -102,8 +106,14 @@ function matrixErrorsOf(group: RowGroup, errors: Map<number, CatalogImportRowErr
   }
 }
 
+/** The variants a group's rows name by SKU, and the rows refused for naming another product's or several. */
+interface GroupVariants {
+  readonly variantIds: ReadonlyMap<number, string>;
+  readonly rowErrors: Map<number, CatalogImportRowError>;
+}
+
 /** Each row's variant of `productId` by its SKU; a SKU of another product, or of several, refuses the row. */
-function variantsOf(group: RowGroup, productId: string | undefined, lookups: PlanLookups) {
+function variantsOf(group: RowGroup, productId: string | undefined, lookups: PlanLookups): GroupVariants {
   const variantIds = new Map<number, string>();
   const rowErrors = new Map<number, CatalogImportRowError>();
   for (const row of group.rows) {

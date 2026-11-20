@@ -2,7 +2,7 @@ import { IMPORT_PREVIEW_PAGE_MAX, type ImportPreviewQuery } from '@cod/shared';
 import { type ColumnMap, type ColumnOverride, hasRequiredFields, mapColumns } from '../domain/column-mapper';
 import { IMPORT_SKU_LOOKUP_BATCH } from '../domain/constants';
 import { JobStateError, NoHeaderError } from '../domain/errors';
-import type { SkuLookup } from '../domain/plan-lookups';
+import type { PlanLookups, SkuLookup } from '../domain/plan-lookups';
 import { type PlannedRow, planRows, productIdsToLookUp, skusToLookUp, taxonomyKey } from '../domain/row-plan';
 import { validateRow } from '../domain/row-validate';
 import type { ValidatedRow } from '../domain/import-row';
@@ -81,8 +81,10 @@ export class PreviewImportService {
     const summary = summaryOf(planned);
     const previewed = { mapping, mappingHash: mappingHashOf(mapping), preview: summary, at: this.now() };
     await this.deps.units.run(ctx, scope, async (tx) => {
+      // The move first: it locks the job row, so a confirm waits for these rows, and a job a confirm moved while the
+      // file was read keeps the rows it was confirmed with (D2265).
+      if (!(await this.deps.jobs.markPreviewed(tx, scope, job.id, previewed))) throw new JobStateError();
       await this.deps.rows.replace(tx, scope, job.id, planned);
-      await this.deps.jobs.markPreviewed(tx, scope, job.id, previewed);
     });
     return this.pageOf(ctx, scope, {
       job: { ...job, preview: summary },
@@ -130,7 +132,7 @@ export class PreviewImportService {
     ctx: OperationContext,
     scope: StoreScope,
     request: { readonly rows: readonly ValidatedRow[]; readonly canEdit: boolean },
-  ) {
+  ): Promise<PlanLookups> {
     const skus = new Map<string, SkuLookup>();
     for (const batch of chunksOf(skusToLookUp(request.rows), IMPORT_SKU_LOOKUP_BATCH)) {
       for (const [sku, match] of await this.deps.catalog.findBySkus(ctx, scope, batch)) skus.set(sku, match);

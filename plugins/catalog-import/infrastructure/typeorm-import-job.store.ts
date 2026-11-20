@@ -90,9 +90,14 @@ export class TypeOrmImportJobStore implements ImportJobStore {
     });
   }
 
-  async markPreviewed(ctx: OperationContext, scope: StoreScope, id: string, previewed: PreviewedImport): Promise<void> {
+  async markPreviewed(
+    ctx: OperationContext,
+    scope: StoreScope,
+    id: string,
+    previewed: PreviewedImport,
+  ): Promise<boolean> {
     const summary: StoredImportSummary = { preview: previewed.preview };
-    await this.move(ctx, scope, {
+    const moved = await this.move(ctx, scope, {
       id,
       from: ['analyzed', 'previewed'],
       patch: {
@@ -103,6 +108,7 @@ export class TypeOrmImportJobStore implements ImportJobStore {
         updatedAt: previewed.at,
       },
     });
+    return moved === 1;
   }
 
   async beginConfirm(ctx: OperationContext, scope: StoreScope, id: string, by: ConfirmingActor): Promise<boolean> {

@@ -13,9 +13,10 @@ export interface ZipEntry {
 /** Why a zip is refused before any parser sees it (D2222). */
 export type ZipRefusal = 'not-a-zip' | 'too-many-entries' | 'too-large' | 'ratio' | 'no-workbook';
 
-/** The verdict of {@link inspectZip}. */
+/** The verdict of {@link inspectZip}: the entries, and where the directory starts (the local records end there). */
 export type ZipVerdict =
-  { readonly ok: true; readonly entries: readonly ZipEntry[] } | { readonly ok: false; readonly reason: ZipRefusal };
+  | { readonly ok: true; readonly entries: readonly ZipEntry[]; readonly directoryOffset: number }
+  | { readonly ok: false; readonly reason: ZipRefusal };
 
 const END_SIGNATURE = 0x06054b50;
 const CENTRAL_SIGNATURE = 0x02014b50;
@@ -106,13 +107,16 @@ function refusalOf(entries: readonly ZipEntry[]): ZipRefusal | undefined {
 /**
  * Checks a zip's central directory before exceljs reads it (D2222): at most {@link IMPORT_MAX_ZIP_ENTRIES} entries,
  * {@link IMPORT_MAX_UNCOMPRESSED_BYTES} uncompressed in all, no entry above {@link IMPORT_MAX_ZIP_RATIO}:1, and an
- * `xl/workbook.xml` and a `[Content_Types].xml` (D2253: the sniff accepts any zip). Only the sizes the directory claims are read, so a deflate bomb is refused without inflating it;
- * the reader still caps what it inflates, since a directory can lie.
+ * `xl/workbook.xml` and a `[Content_Types].xml` (D2253: the sniff accepts any zip). Only the sizes the directory
+ * claims are read, so a deflate bomb is refused without inflating it. A directory can lie: `localHeadersMatch` then
+ * checks that the local records a streaming reader sees are these entries, and the reader inflates each part within
+ * its claimed size (D2266).
  */
 export function inspectZip(bytes: Uint8Array): ZipVerdict {
   const directory = bytes.length < END_RECORD_BYTES ? undefined : directoryOf(bytes);
   const entries = directory === undefined ? undefined : entriesOf(bytes, directory);
-  if (entries === undefined) return { ok: false, reason: 'not-a-zip' };
+  if (directory === undefined || entries === undefined) return { ok: false, reason: 'not-a-zip' };
   const reason = refusalOf(entries);
-  return reason === undefined ? { ok: true, entries } : { ok: false, reason };
+  if (reason !== undefined) return { ok: false, reason };
+  return { ok: true, entries, directoryOffset: directory.offset };
 }

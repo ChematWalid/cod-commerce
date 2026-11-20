@@ -8,8 +8,11 @@ const LOCAL_RECORD_BYTES = 30;
 const LOCAL_FIELDS = { nameLength: 26, extraLength: 28 } as const;
 const STORED = 0;
 const DEFLATED = 8;
-/** The parts exceljs parses as XML. */
-const XML_PART = /\.(xml|rels)$/i;
+/**
+ * The parts exceljs may parse as XML: it matches `xl/worksheets/sheet<n>.xml` anywhere in a name, so `.xml` or
+ * `.rels` anywhere in the name counts, not only at its end (D2266).
+ */
+const XML_PART = /\.(xml|rels)/i;
 /** A document type declaration or an entity definition: the door to entity expansion (D2222). */
 const DTD_MARKUP = /<!(DOCTYPE|ENTITY)/i;
 const NUL = /\0/g;
@@ -36,6 +39,8 @@ function storedDataOf(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
  */
 function partBytesOf(bytes: Uint8Array, entry: ZipEntry): Buffer {
   const data = storedDataOf(bytes, entry);
+  // An entry with no data (a folder) inflates to nothing: there is no stream to check.
+  if (data.length === 0) return Buffer.alloc(0);
   if (entry.method === STORED) return Buffer.from(data);
   if (entry.method !== DEFLATED) throw new FileTypeError();
   try {
@@ -48,15 +53,17 @@ function partBytesOf(bytes: Uint8Array, entry: ZipEntry): Buffer {
 }
 
 /**
- * Refuses a workbook whose XML parts declare a document type or an entity (D2222), in UTF-8 or UTF-16, before exceljs
- * parses any of them; every XML part is inflated within the size its directory entry claims.
+ * Checks every part of a workbook before exceljs parses any (D2222, D2266): each part, whatever its name, is inflated
+ * within the size its directory entry claims (so the directory's size and ratio caps hold for what exceljs inflates),
+ * and an XML part declaring a document type or an entity, in UTF-8 or UTF-16, is refused. Run after
+ * `localHeadersMatch`, so the parts checked are the ones exceljs reads.
  *
  * @throws {@link FileTypeError} for a DTD, an entity, a part larger than claimed or an unreadable entry
  */
-export function assertNoDtd(bytes: Uint8Array, entries: readonly ZipEntry[]): void {
+export function assertSafeParts(bytes: Uint8Array, entries: readonly ZipEntry[]): void {
   for (const entry of entries) {
+    const part = partBytesOf(bytes, entry);
     if (!XML_PART.test(entry.name)) continue;
-    const text = partBytesOf(bytes, entry).toString('latin1').replace(NUL, '');
-    if (DTD_MARKUP.test(text)) throw new FileTypeError();
+    if (DTD_MARKUP.test(part.toString('latin1').replace(NUL, ''))) throw new FileTypeError();
   }
 }

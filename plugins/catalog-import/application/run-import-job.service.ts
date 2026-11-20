@@ -25,12 +25,16 @@ export interface RunImportJobDeps {
   readonly now?: () => Date;
 }
 
-/** The rows of one product, in row order: one product key, or a row without one. */
-function groupsOf(rows: readonly StoredImportRow[]): StoredImportRow[][] {
-  const groups = new Map<string, StoredImportRow[]>();
+/** The rows of one product: never empty. */
+type StoredGroupRows = readonly [StoredImportRow, ...StoredImportRow[]];
+
+/** The rows of one product, in row order: one product key (as the preview stored it), or a row without one. */
+function groupsOf(rows: readonly StoredImportRow[]): StoredGroupRows[] {
+  const groups = new Map<string, StoredGroupRows>();
   for (const row of rows) {
     const key = row.productKey === null ? ` ${String(row.rowNumber)}` : `=${row.productKey}`;
-    groups.set(key, [...(groups.get(key) ?? []), row]);
+    const group = groups.get(key);
+    groups.set(key, group === undefined ? [row] : [...group, row]);
   }
   return [...groups.values()];
 }
@@ -84,7 +88,6 @@ export class RunImportJobService {
 
   private async applyIn(tx: OperationContext, scope: StoreScope, group: ImportGroup): Promise<void> {
     const [first] = group.rows;
-    if (first === undefined) return;
     if (first.action === 'create') await this.create(tx, scope, group);
     else await this.update(tx, scope, { ...group, productId: first.productId ?? '' });
   }
@@ -142,5 +145,5 @@ export class RunImportJobService {
 /** One product group of a job's pending rows. */
 interface ImportGroup {
   readonly jobId: string;
-  readonly rows: readonly StoredImportRow[];
+  readonly rows: StoredGroupRows;
 }

@@ -219,6 +219,43 @@ describe('planRows (D2209, Review Focus 3)', () => {
     expect(planned[1]?.messages).toEqual([E.DUPLICATE_IN_FILE]);
   });
 
+  it('two groups whose keys name the same product: the later group is a duplicate in the file (D2267)', () => {
+    // Arrange: `id:42` and product 42's SKU, and the same SKU in another case
+    const rows = rowsOf(
+      { product_key: 'id:42', name: 'A', price: '1' },
+      { product_key: 'SKU-42', name: 'B', price: '2' },
+      { product_key: 'sku-42', name: 'C', price: '3' },
+    );
+    const found = lookups({ productIds: new Set(['42']), skus: new Map([['SKU-42', one('42')]]) });
+
+    // Act
+    const planned = planRows(rows, found);
+
+    // Assert
+    expect(planned.map((row) => [row.action, row.messages])).toEqual([
+      ['update', []],
+      ['error', [E.DUPLICATE_IN_FILE]],
+      ['error', [E.DUPLICATE_IN_FILE]],
+    ]);
+  });
+
+  it('product keys differing only in case are one product (D2267)', () => {
+    // Act
+    const planned = planRows(
+      rowsOf(
+        { product_key: 'new1', name: 'Shirt', price: '1', option1_name: 'Size', option1_value: 'S' },
+        { product_key: 'NEW1', name: 'Shirt', price: '1', option1_name: 'Size', option1_value: 'M' },
+      ),
+      lookups(),
+    );
+
+    // Assert: one create group, stored under its first row's key so the worker groups them alike
+    expect(planned.map((row) => [row.action, row.productKey])).toEqual([
+      ['create', 'new1'],
+      ['create', 'new1'],
+    ]);
+  });
+
   it('an invalid row stays an error with its own reasons', () => {
     // Act
     const planned = planRows(rowsOf({ name: 'A', price: '-1', product_key: 'K' }), lookups());

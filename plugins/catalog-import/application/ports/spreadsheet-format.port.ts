@@ -17,10 +17,14 @@ export interface SheetRows {
   readonly truncated: boolean;
 }
 
-/** How far a reader may go (D2222): at most `maxRows` rows, and no row after `deadlineAt` (epoch ms). */
+/**
+ * How far a reader may go (D2222): at most `maxRows` rows, and no row after `deadlineAt` (epoch ms) as read on `now`,
+ * the clock that set it.
+ */
 export interface ReadLimits {
   readonly maxRows: number;
   readonly deadlineAt: number;
+  readonly now: () => number;
 }
 
 /**

@@ -62,7 +62,7 @@ export async function readSource(
   if (sniffSpreadsheet(bytes) !== job.format) throw new FileTypeError();
   const clock = deps.clock ?? Date.now;
   const reader = deps.formats.get(job.format).reader;
-  return reader.read(bytes, { maxRows: IMPORT_READ_ROWS, deadlineAt: clock() + IMPORT_PARSE_DEADLINE_MS });
+  return reader.read(bytes, { maxRows: IMPORT_READ_ROWS, deadlineAt: clock() + IMPORT_PARSE_DEADLINE_MS, now: clock });
 }
 
 const isBlank = (row: SheetRow): boolean => row.cells.every((cell) => cell.trim() === '');

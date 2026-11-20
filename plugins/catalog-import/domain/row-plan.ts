@@ -69,8 +69,15 @@ const errorRow = (
   variantId: null,
 });
 
+/** A row's brand and tag ids, and a warning per name the store does not know. */
+interface RowTaxonomy {
+  readonly warnings: readonly CatalogImportRowReason[];
+  readonly brandId: string | undefined;
+  readonly tagIds: readonly string[] | undefined;
+}
+
 /** The brand and tag ids of a row's names; an unknown name warns and is left out (D2209). */
-function taxonomyOf(values: ImportRowValues, lookups: PlanLookups) {
+function taxonomyOf(values: ImportRowValues, lookups: PlanLookups): RowTaxonomy {
   const warnings: CatalogImportRowReason[] = [];
   const brandId = values.brand === undefined ? undefined : lookups.brands.get(taxonomyKey(values.brand));
   if (values.brand !== undefined && brandId === undefined) warnings.push(W.UNKNOWN_TAXONOMY);
@@ -125,10 +132,19 @@ function duplicateSkuRows(rows: readonly ValidatedRow[]): ReadonlySet<number> {
   return duplicates;
 }
 
+/** A group updating a product an earlier group of the file already updates is a duplicate in the file (D2267). */
+function onceEach(target: GroupTarget, targeted: Set<string>): GroupTarget {
+  if (target.kind !== 'update') return target;
+  if (targeted.has(target.productId)) return { kind: 'error', reason: E.DUPLICATE_IN_FILE };
+  targeted.add(target.productId);
+  return target;
+}
+
 /**
  * Plans what confirm does with each row (D2209, D2210), in file order: rows are grouped by `product_key`; a group's
  * product key (`id:<n>` in the store, or a SKU naming one product) or else its variant SKUs pick the product it
- * updates; a group naming none creates one. A row is an error with its reasons when it is invalid, repeats an earlier
+ * updates; a group naming none creates one; a later group naming a product an earlier one updates is a duplicate
+ * (D2267). A row is an error with its reasons when it is invalid, repeats an earlier
  * variant SKU or option combination, names an ambiguous SKU or an `id:<n>` of no product of the store (one reason,
  * whatever the id's owner), names a variant SKU of another product, updates without edit permission, or creates
  * without a price. Unknown brand or tag names and a weight differing from the group's first warn.
@@ -141,8 +157,9 @@ export function planRows(rows: readonly ValidatedRow[], lookups: PlanLookups): P
     if (row.errors.length > 0) planned.set(row.rowNumber, errorRow(row, key, row.errors));
     else if (duplicates.has(row.rowNumber)) planned.set(row.rowNumber, errorRow(row, key, [E.DUPLICATE_IN_FILE]));
   }
+  const targeted = new Set<string>();
   for (const group of groupRows(rows.filter((row) => !planned.has(row.rowNumber)))) {
-    const target = targetOfGroup(group, lookups);
+    const target = onceEach(targetOfGroup(group, lookups), targeted);
     for (const row of group.rows) planned.set(row.rowNumber, plannedOf(group, row, lookups, target));
   }
   return rows.map((row) => planned.get(row.rowNumber) as PlannedRow);

@@ -74,6 +74,19 @@ export interface ImportTargetProduct {
   readonly variants: readonly ImportTargetVariant[];
 }
 
+/** The rows of one product group: never empty (D2210). */
+export type GroupRows = readonly [PlannedRow, ...PlannedRow[]];
+
+/** The product fields of a new product, as {@link ImportCreate} holds them beside its option groups. */
+type CreateFields = Omit<ImportCreate['product'], 'optionGroups'>;
+/** The product's own SKU and barcode a create takes. */
+type OwnValues = Pick<ImportCreate['product'], 'sku' | 'barcode'>;
+/** The variant changes of an update group and the rows it could not place. */
+interface PlacedVariants {
+  readonly variants: readonly ImportVariantChange[];
+  readonly refused: ReadonlyMap<number, CatalogImportRowError>;
+}
+
 /** An update and the rows it could not place, each with its reason. */
 export interface PlacedUpdate {
   readonly update: ImportUpdate;
@@ -92,7 +105,7 @@ function productSkuOf(row: PlannedRow): string | undefined {
 }
 
 /** Each option group of the rows with its distinct values, in first-seen order. */
-function optionGroupsOf(rows: readonly PlannedRow[]): { name: string; values: string[] }[] {
+function optionGroupsOf(rows: readonly PlannedRow[]): ImportCreate['product']['optionGroups'] {
   const first = rows[0]?.values.options ?? [];
   return first.map((option, slot) => {
     const values = new Map<string, string>();
@@ -117,9 +130,8 @@ const variantValuesOf = (row: PlannedRow): ImportVariantValues => ({
  * when absent, brand, tags, weight of the first row holding one), the product key as the product SKU; with options,
  * the option groups of every row and each row's own variant values; without, the row's SKU, price and barcode.
  */
-export function createOf(rows: readonly PlannedRow[]): ImportCreate {
+export function createOf(rows: GroupRows): ImportCreate {
   const [first] = rows;
-  if (first === undefined) throw new Error('A create group holds at least one row');
   const optionGroups = optionGroupsOf(rows);
   const hasOptions = optionGroups.length > 0;
   return {
@@ -129,7 +141,7 @@ export function createOf(rows: readonly PlannedRow[]): ImportCreate {
 }
 
 /** The product fields a create group takes from its first row (the weight from the first row holding one). */
-function productFieldsOf(first: PlannedRow, rows: readonly PlannedRow[]) {
+function productFieldsOf(first: PlannedRow, rows: readonly PlannedRow[]): Omit<CreateFields, keyof OwnValues> {
   const { values } = first;
   return {
     title: values.name ?? '',
@@ -144,7 +156,7 @@ function productFieldsOf(first: PlannedRow, rows: readonly PlannedRow[]) {
 }
 
 /** The product's own SKU and barcode: the key's SKU; without options, the one variant's SKU and barcode. */
-function ownValuesOf(first: PlannedRow, hasOptions: boolean) {
+function ownValuesOf(first: PlannedRow, hasOptions: boolean): OwnValues {
   if (hasOptions) return entry('sku', productSkuOf(first));
   return {
     ...entry('sku', productSkuOf(first) ?? first.values.variantSku),
@@ -176,7 +188,7 @@ const variantChangeOf = (row: PlannedRow, variant: ImportTargetVariant): ImportV
 });
 
 /** The variant changes of the rows; a row naming no live variant, or one an earlier row took, is refused. */
-function placeVariants(rows: readonly PlannedRow[], target: ImportTargetProduct) {
+function placeVariants(rows: readonly PlannedRow[], target: ImportTargetProduct): PlacedVariants {
   const variants: ImportVariantChange[] = [];
   const refused = new Map<number, CatalogImportRowError>();
   const taken = new Set<string>();
@@ -193,22 +205,23 @@ function placeVariants(rows: readonly PlannedRow[], target: ImportTargetProduct)
 }
 
 /**
- * The update an update group makes on `target` as it is now (D2209, D2210): the first row's product fields (name,
- * description, status, brand, tags; the first weight; the price only for a product without options, whose one
- * variant carries it), and each row's variant values on the variant it names, re-resolved against the live variants
- * (a row whose variant is gone is refused with `row-variant-not-found`).
+ * The update an update group makes on `target` as it is now (D2209, D2210): each row's variant values on the variant it
+ * names, re-resolved against the live variants (a row whose variant is gone is refused with `row-variant-not-found`),
+ * and the product fields of the first row placed (name, description, status, brand, tags; the first weight of a placed
+ * row; the price only for a product without options, whose one variant carries it). A refused row changes nothing.
  */
 export function updateOf(rows: readonly PlannedRow[], target: ImportTargetProduct): PlacedUpdate {
-  const [first] = rows;
-  if (first === undefined) throw new Error('An update group holds at least one row');
-  const { values } = first;
   const { variants, refused } = placeVariants(rows, target);
+  const placed = rows.filter((row) => !refused.has(row.rowNumber));
+  const [first] = placed;
+  if (first === undefined) return { update: { variants: [] }, refused };
+  const { values } = first;
   return {
     update: {
       ...entry('title', values.name),
       ...entry('description', values.description),
       ...entry('status', values.status),
-      ...entry('weight', rows.find((row) => row.values.weight !== undefined)?.values.weight),
+      ...entry('weight', placed.find((row) => row.values.weight !== undefined)?.values.weight),
       ...entry('price', target.hasOptions ? undefined : values.price),
       ...entry('brandId', first.brandId),
       ...entry('tagIds', first.tagIds),

@@ -18,7 +18,7 @@ export class SheetCollector {
    * @throws {@link FileTypeError} past the deadline, or for a row breaking a column or cell limit
    */
   add(row: SheetRow): boolean {
-    if (Date.now() > this.limits.deadlineAt) throw new FileTypeError();
+    if (this.limits.now() > this.limits.deadlineAt) throw new FileTypeError();
     if (row.cells.length > IMPORT_MAX_COLUMNS) throw new FileTypeError();
     if (row.cells.some((cell) => cell.length > IMPORT_MAX_CELL_CHARS)) throw new FileTypeError();
     if (this.rows.length >= this.limits.maxRows) {
