@@ -162,6 +162,19 @@ describe('CollectionProductsService.list', () => {
     expect(page).toMatchObject({ items: [{ productId: '2' }], totalItems: 3 });
   });
 
+  it('answers not-found for a collection whose Vendure collection left the store', async () => {
+    // Arrange
+    const collectionId = await manualCollection(world, scopeA);
+    await setProducts(collectionId, ['1']);
+    world.vendure.rows.delete(collectionId);
+
+    // Act
+    const list = new CollectionProductsService(world.ports).list(ctx, scopeA, collectionId, ALL);
+
+    // Assert
+    await expect(list).rejects.toMatchObject({ code: C.NOT_FOUND });
+  });
+
   it('answers not-found for a collection the store does not have', async () => {
     // Act
     const list = new CollectionProductsService(world.ports).list(ctx, scopeA, '424242', ALL);

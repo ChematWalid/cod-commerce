@@ -165,6 +165,18 @@ describe('CollectionsMembershipSource', () => {
     expect(none).toEqual([]);
   });
 
+  it('answers no product for a collection whose Vendure collection left the store', async () => {
+    // Arrange
+    const automatic = await automaticCollection(world, scopeA, ['2', '1']);
+    world.vendure.rows.delete(automatic);
+
+    // Act
+    const members = await source.productIdsInCollection(catalogCtx, scopeA, toCoreId(automatic));
+
+    // Assert
+    expect(members).toEqual([]);
+  });
+
   it('removes a deleted product from every collection of the store under the lock', async () => {
     // Arrange
     const manual = await manualCollection(world, scopeA);

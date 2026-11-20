@@ -30,7 +30,10 @@ export interface CollectionMembershipSource {
     collectionIds: readonly CoreId[],
   ): Promise<void>;
 
-  /** The manual collections of `productId` in the scope's store, in the order they were given. */
+  /**
+   * The manual collections of `productId` in the scope's store, by collection position: no per-product order is kept
+   * once collection rules are on, so the order given to `replaceProductCollections` is not returned.
+   */
   collectionIdsOf(ctx: OperationContext, scope: StoreScope, productId: CoreId): Promise<readonly CoreId[]>;
 
   /** Every product of the scope's store in `collectionId`, manual or matched by a rule, for the list filter. */

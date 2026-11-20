@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { codeOf, createCollection, rawId } from './collections-api';
 import { collectionsSuite } from './collections-kit';
 import {
+  COLLECTION_PRODUCTS,
   collectionsOfProduct,
   createProduct,
   makeAutomatic,
@@ -64,6 +65,25 @@ describe('manual collections (D2318, D2309)', () => {
       rawId(p1),
       rawId(p3),
     ]);
+  });
+
+  it('a second page holds exactly the next product in set order, counted against every member', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const { id } = await createCollection(suite.kit);
+    await suite.kit.gql(SET_COLLECTION_PRODUCTS, { id, productIds: [p3, p1, p2] });
+
+    // Act
+    const { storeCollectionProducts } = await suite.kit.gql<{
+      storeCollectionProducts: { totalItems: number; items: { productId: string }[] };
+    }>(COLLECTION_PRODUCTS, { id, options: { skip: 1, take: 1 } });
+    const rest = await suite.kit.rest('GET', `/catalog/collections/${rawId(id)}/products?skip=1&take=1`);
+
+    // Assert
+    expect(storeCollectionProducts.items.map((item) => item.productId)).toEqual([p1]);
+    expect(storeCollectionProducts.totalItems).toBe(3);
+    expect(rest).toMatchObject({ status: 200, body: { totalItems: 3, items: [{ productId: rawId(p1) }] } });
+    expect((rest.body as { items: unknown[] }).items).toHaveLength(1);
   });
 
   it('product editor additions append', async () => {

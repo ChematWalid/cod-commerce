@@ -73,10 +73,14 @@ export class ProductLinksService {
     return this.refsOf(ctx, await this.definitionsAmong(ctx, scope, ids));
   }
 
-  /** The products of a collection of the store, manual or matched; none for a malformed or foreign id. */
+  /**
+   * The products of a collection of the store, manual or matched; none for a malformed or foreign id, or for a
+   * collection whose Vendure collection left the store.
+   */
   async productIdsIn(ctx: OperationContext, scope: StoreScope, collectionId: string): Promise<string[]> {
     const canonical = canonicalCoreId(collectionId);
     if (canonical === undefined) return [];
+    if ((await this.liveDefinitionsAmong(ctx, scope, [canonical])).length === 0) return [];
     return (await this.ports.members.membersOf(ctx, scope, canonical)).map((member) => member.productId);
   }
 

@@ -24,7 +24,7 @@ export interface ProductPageRequest {
 export class CollectionProductsService {
   constructor(private readonly ports: CollectionPorts) {}
 
-  /** @throws {CollectionNotFoundError} when the store has no such collection. */
+  /** @throws {CollectionNotFoundError} when the store has no such collection, or its Vendure collection left the store. */
   async list(
     ctx: OperationContext,
     scope: StoreScope,
@@ -34,6 +34,9 @@ export class CollectionProductsService {
     const collectionId = writableCollectionId(rawId);
     const definition = await this.ports.definitions.findByCollectionId(ctx, scope, collectionId);
     if (definition === undefined) throw new CollectionNotFoundError();
+    // Same answer as `storeCollection` and the writes: a definition whose Vendure collection left the store is gone.
+    const live = await this.ports.vendure.findMany(ctx, [collectionId]);
+    if (!live.has(collectionId)) throw new CollectionNotFoundError();
     const members = await this.ports.members.membersPage(ctx, scope, collectionId, page);
     const totalItems = (await this.ports.members.countsOf(ctx, scope, [collectionId])).get(collectionId) ?? 0;
     const pageIds = members.map((member) => member.productId);
