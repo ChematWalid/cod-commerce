@@ -1,5 +1,5 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
-import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
+import { COLLECTION_PRODUCT_SEARCH_MAX, COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { codeOf, rawId } from './collections-api';
 import { collectionsSuite } from './collections-kit';
@@ -84,5 +84,20 @@ describe('the product search of the manual collection editor (D2321)', () => {
 
     // Assert
     expect(code).toBe(COLLECTIONS_ERROR_CODES.INVALID_INPUT);
+  });
+
+  it('refuses a search longer than the catalog reads with invalid-input on both surfaces', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const tooLong = 'x'.repeat(COLLECTION_PRODUCT_SEARCH_MAX + 1);
+
+    // Act
+    const code = await codeOf(search({ search: tooLong }));
+    const rest = await suite.kit.rest('GET', `/catalog/collections/product-search?search=${tooLong}`);
+
+    // Assert
+    expect(code).toBe(COLLECTIONS_ERROR_CODES.INVALID_INPUT);
+    expect(rest.status).toBe(400);
+    expect(rest.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.INVALID_INPUT });
   });
 });

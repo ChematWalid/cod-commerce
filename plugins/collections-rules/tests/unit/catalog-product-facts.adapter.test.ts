@@ -1,4 +1,5 @@
 import { CATALOG_FACTS_MAX_IDS, type CatalogProductFacts, type CatalogProductFactsReader } from '@cod/plugin-catalog';
+import { COLLECTION_PRODUCT_SEARCH_MAX } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { InvalidCollectionInputError } from '../../domain/errors';
 import { asOperationContext } from '../../domain/ports/operation-context';
@@ -58,5 +59,25 @@ describe('CatalogProductFactsAdapter', () => {
 
     // Assert
     await expect(page).rejects.toBeInstanceOf(InvalidCollectionInputError);
+  });
+
+  it('refuses an over-long search with a collections error before the catalog reads it', async () => {
+    // Arrange
+    let pageCalls = 0;
+    const reader = {
+      pageIds: () => {
+        pageCalls += 1;
+        return Promise.resolve({ ids: [], next: null });
+      },
+    } as unknown as CatalogProductFactsReader;
+    const adapter = new CatalogProductFactsAdapter(reader);
+    const search = ` ${'x'.repeat(COLLECTION_PRODUCT_SEARCH_MAX + 1)} `;
+
+    // Act
+    const page = adapter.pageIds(asOperationContext({}), scopeA, { after: null, take: 10, search });
+
+    // Assert
+    await expect(page).rejects.toBeInstanceOf(InvalidCollectionInputError);
+    expect(pageCalls).toBe(0);
   });
 });

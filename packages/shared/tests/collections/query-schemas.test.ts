@@ -3,6 +3,8 @@ import {
   COLLECTION_LIST_MAX_TAKE,
   COLLECTION_LIST_PAGE_SIZE,
   COLLECTION_MAX_MANUAL_PRODUCTS,
+  COLLECTION_PRODUCT_SEARCH_MAX,
+  PRODUCT_SEARCH_MAX,
   SLUG_MAX,
   storeCollectionProductSearchQuerySchema,
   storeCollectionProductsQuerySchema,
@@ -72,5 +74,20 @@ describe('storeCollectionProductSearchQuerySchema', () => {
     for (const query of [{ take: COLLECTION_LIST_MAX_TAKE + 1 }, { take: 0 }, { search: 'a\u0000b' }]) {
       expect(storeCollectionProductSearchQuerySchema.safeParse(query).success).toBe(false);
     }
+  });
+
+  it('caps the search at what the catalog search reads, so no catalog refusal reaches the caller', () => {
+    // Act
+    const longest = storeCollectionProductSearchQuerySchema.safeParse({
+      search: 'x'.repeat(COLLECTION_PRODUCT_SEARCH_MAX),
+    });
+    const tooLong = storeCollectionProductSearchQuerySchema.safeParse({
+      search: 'x'.repeat(COLLECTION_PRODUCT_SEARCH_MAX + 1),
+    });
+
+    // Assert
+    expect(COLLECTION_PRODUCT_SEARCH_MAX).toBe(PRODUCT_SEARCH_MAX);
+    expect(longest.success).toBe(true);
+    expect(tooLong.success).toBe(false);
   });
 });

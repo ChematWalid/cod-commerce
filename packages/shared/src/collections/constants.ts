@@ -1,3 +1,5 @@
+import { PRODUCT_SEARCH_MAX } from '../catalog/constants';
+
 /** How a collection gets its products: picked and ordered by hand, or matched by a rule (D2302). */
 export const COLLECTION_MODES = ['manual', 'automatic'] as const;
 export type CollectionMode = (typeof COLLECTION_MODES)[number];
@@ -39,6 +41,9 @@ export const COLLECTIONS_PER_STORE_MAX = 500;
 export const COLLECTION_POSITION_MAX = 9_999;
 export const COLLECTION_PREVIEW_MAX_TAKE = 50;
 export const COLLECTION_SYNC_MAX_PRODUCTS = 2_000;
+
+/** The product search of the manual editor reads the catalog's title search, so it takes no longer text (D2321). */
+export const COLLECTION_PRODUCT_SEARCH_MAX = PRODUCT_SEARCH_MAX;
 
 /** Page sizes of the admin collection list. */
 export const COLLECTION_LIST_PAGE_SIZE = 20;

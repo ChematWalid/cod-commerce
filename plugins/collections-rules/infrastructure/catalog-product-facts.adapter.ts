@@ -4,6 +4,7 @@ import {
   CatalogProductFactsReader,
   toCoreId,
 } from '@cod/plugin-catalog';
+import { COLLECTION_PRODUCT_SEARCH_MAX } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { canonicalCoreId, canonicalCoreIds } from '../domain/core-id';
 import { InvalidCollectionInputError } from '../domain/errors';
@@ -50,6 +51,11 @@ function cursorOf(after: string): string {
   return canonical;
 }
 
+/** A search the catalog would refuse is refused here, as the cursor is, so no catalog error crosses the boundary. */
+function refuseLongSearch(search: string | undefined): void {
+  if ((search?.trim().length ?? 0) > COLLECTION_PRODUCT_SEARCH_MAX) throw new InvalidCollectionInputError();
+}
+
 function byNewest(left: ProductFacts, right: ProductFacts): number {
   const [leftId, rightId] = [BigInt(left.productId), BigInt(right.productId)];
   if (leftId === rightId) return 0;
@@ -93,6 +99,7 @@ export class CatalogProductFactsAdapter implements ProductFactsPort {
   }
 
   async pageIds(ctx: OperationContext, scope: StoreScope, page: ProductIdPageRequest): Promise<ProductIdPage> {
+    refuseLongSearch(page.search);
     const after = page.after === null ? null : toCoreId(cursorOf(page.after));
     const { ids, next } = await this.reader.pageIds(toRequestContext(ctx), scope, { ...page, after });
     return { ids, next };

@@ -9,6 +9,7 @@ import {
   COLLECTION_MODES,
   COLLECTION_POSITION_MAX,
   COLLECTION_PREVIEW_MAX_TAKE,
+  COLLECTION_PRODUCT_SEARCH_MAX,
   COLLECTION_TITLE_MAX,
   COLLECTIONS_PER_STORE_MAX,
 } from './constants';
@@ -163,7 +164,7 @@ export const storeCollectionProductSearchQuerySchema = z
     withoutUnsetFields,
     z.object(
       {
-        search: z.string(issue).trim().max(COLLECTION_TITLE_MAX, issue).refine(isCleanLine, issue).optional(),
+        search: z.string(issue).trim().max(COLLECTION_PRODUCT_SEARCH_MAX, issue).refine(isCleanLine, issue).optional(),
         skip: queryPageNumberSchema(0, INT_COLUMN_MAX).default(0),
         take: queryPageNumberSchema(1, COLLECTION_LIST_MAX_TAKE).default(COLLECTION_LIST_PAGE_SIZE),
       },
