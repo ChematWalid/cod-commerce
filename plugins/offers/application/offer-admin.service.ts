@@ -2,12 +2,12 @@ import {
   isSnowflake,
   type OfferCommand,
   type OfferInput,
-  type OfferMethod,
   offerInputSchema,
   type OfferStatus,
   type Snowflake,
 } from '@cod/shared';
 import { type CodeInput, parseCodes } from '../domain/code-text';
+import { CODES_METHOD } from '../domain/constants';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import {
   CodeMethodRequiredError,
@@ -39,9 +39,6 @@ export interface OfferAdminPorts {
   /** Checks every call's `ctx` is on `scope`'s store channel (D2448). */
   readonly stores: ActiveStorePort;
 }
-
-/** The method of offers a typed code activates; only they hold codes (D2403, D2449). */
-const CODES_METHOD: OfferMethod = 'codes';
 
 /** A validated offer command and its configuration parsed by the kind's schema (D2404). */
 interface ParsedOffer {

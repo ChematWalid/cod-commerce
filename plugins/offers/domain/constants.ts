@@ -3,7 +3,11 @@ import {
   MAX_ORDER_DISCOUNTS_APPLIED,
   MAX_QUOTE_LINES,
   type CombinationClass,
+  type OfferMethod,
 } from '@cod/shared';
+
+/** The method of offers a typed code activates; only they hold codes (D2403, D2449). */
+export const CODES_METHOD: OfferMethod = 'codes';
 
 /** Orders a buyer has before their first one: a `first` audience offer is for a buyer with this many (D2418). */
 export const FIRST_ORDER_COUNT = 0;

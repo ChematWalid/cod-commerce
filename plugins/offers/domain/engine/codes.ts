@@ -1,4 +1,5 @@
 import type { RejectedCode } from '@cod/shared';
+import { CODES_METHOD } from '../constants';
 import type { Offer } from '../offer';
 import type { PricingSnapshot } from '../snapshot';
 
@@ -33,7 +34,7 @@ const checkCode: CodeCheck = (code, snapshot, activated) => {
   if (entry === undefined) return 'not_found';
   const offer = activeOfferOf(entry.offerId, snapshot);
   if (offer === undefined) return 'inactive';
-  if (offer.method !== 'codes') return 'not_found';
+  if (offer.method !== CODES_METHOD) return 'not_found';
   if (entry.usageLimit !== null && entry.usageCount >= entry.usageLimit) return 'code_limit';
   return activated.has(entry.offerId) ? 'duplicate' : null;
 };

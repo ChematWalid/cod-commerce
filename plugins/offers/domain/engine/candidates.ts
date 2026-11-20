@@ -1,4 +1,5 @@
 import type { RunningLine } from '../cart';
+import { CODES_METHOD } from '../constants';
 import type { Offer } from '../offer';
 import { checkEligibility } from './eligibility';
 import type { OfferKindRegistry } from './kind-registry';
@@ -37,7 +38,7 @@ export function entriesOf(
     const calculator = registry.get(offer.kind);
     const code = activated.get(offer.id) ?? null;
     if (calculator === undefined || offer.status !== 'active') return [];
-    if (offer.method === 'codes' && code === null) return [];
+    if (offer.method === CODES_METHOD && code === null) return [];
     return [{ offer, calculator, config: registry.parseConfig(offer.kind, offer.config), code }];
   });
 }
