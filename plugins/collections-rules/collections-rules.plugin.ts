@@ -1,4 +1,5 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
@@ -31,7 +32,8 @@ export const COLLECTIONS_REST_CONTROLLERS = [RulesController, CollectionsControl
 @VendurePlugin({
   // `requirePermission` applies `@TenantScoped()`, whose guard resolves through tenancy's exports; membership follows
   // `product.changed` through the outbox (D2312), the store reconcile runs on the `catalog-effects` pool (D2336), the
-  // preview is throttled (D2338) and product facts come from the catalog's extension points (D2308, D2309).
+  // preview is throttled (D2338) and product facts come from the catalog's extension points (D2308, D2309); the
+  // membership is registered on the offers' seam (D2341).
   imports: [
     PluginCommonModule,
     TenancyPlugin,
@@ -39,6 +41,7 @@ export const COLLECTIONS_REST_CONTROLLERS = [RulesController, CollectionsControl
     PlatformJobsPlugin,
     RateLimitPlugin,
     CatalogPlugin,
+    OffersPlugin,
   ],
   entities: COLLECTIONS_ENTITIES,
   configuration: (config) => {

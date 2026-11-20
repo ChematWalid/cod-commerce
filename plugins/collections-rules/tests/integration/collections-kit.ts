@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
@@ -25,6 +26,7 @@ import type { SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { CollectionsRulesPlugin } from '../../collections-rules.plugin';
+import { aTestQuoteKeyRing } from '../support/quote-keys';
 
 export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 
@@ -50,7 +52,8 @@ export interface CollectionsForeignModules {
 
 /**
  * A Vendure test server with collections-rules and what it needs: tenancy, the outbox `product.changed` and
- * `collection.changed` go through, the jobs pool of the reconcile (D2336), the throttle (D2338) and the catalog.
+ * `collection.changed` go through, the jobs pool of the reconcile (D2336), the throttle (D2338), the catalog and the
+ * offers, whose collection targets read the membership (D2341).
  */
 export function createCollectionsTestEnvironment(
   snowflakeWorkerId: number,
@@ -65,6 +68,8 @@ export function createCollectionsTestEnvironment(
       PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: APP_ENV }),
       ...foreign.plugins,
       CatalogPlugin,
+      // Collections register their membership on the offers' seam (D2341), so the offers come first.
+      OffersPlugin.init({ quoteKeys: aTestQuoteKeyRing() }),
       CollectionsRulesPlugin,
     ],
     db: loadPluginTestDbConfig(process.env),

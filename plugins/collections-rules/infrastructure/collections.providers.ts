@@ -43,6 +43,7 @@ import { OutboxCollectionEvents } from './collection-events';
 import { CollectionsMembershipSource } from './collections-membership.source';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
 import { CollectionsMembershipConsumer } from './membership.consumer';
+import { OffersCollectionMembershipSource } from './offers-collection-membership.source';
 import { PgCollectionsLock } from './pg-collections-lock';
 import { MatchVersionCheck } from './reconcile.task';
 import { PlatformStoreReconcileQueue, RecomputeStoreJob } from './recompute-store.job';
@@ -172,6 +173,8 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   CatalogVisibleProducts,
   CatalogCollectionsReadService,
   useCase(CollectionMembershipQueries),
+  // The offers' collection targets read the same membership (D2341).
+  OffersCollectionMembershipSource,
 ];
 
 /** What the plugin module exports to other plugins, through `index.ts` (D2316, D2317). */

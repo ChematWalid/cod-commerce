@@ -34,6 +34,10 @@ its `infrastructure/`, its root `*.plugin.ts` file and its `tests/` (rule `colle
   hold tens of thousands of ids): an order path prefers `isMember` or `collectionIdsOfProducts`;
 - `asCollectionsOperationContext` to pass a Vendure `RequestContext` to both.
 
+The offers need no import: `OffersCollectionMembershipSource` registers `collectionIdsOfProducts` on the offers'
+`COLLECTION_MEMBERSHIP_REGISTRAR` on bootstrap (D2341), so this plugin imports `OffersPlugin` and comes after it in
+`buildPlugins`; a test server of this plugin boots the offers too (`OffersPlugin.init` with synthetic quote keys).
+
 Membership is **eventually consistent** with product edits: a tag, price or option change reaches automatic
 collections through the outbox (`product.changed`, seconds of lag), and the nightly reconcile repairs what a failed
 delivery missed (D2336). Drafts, hidden and sold-out products are members (D2306); visibility applies when products
