@@ -1,3 +1,4 @@
+import type { GatedLine, UnitPriceResolver, UnitPriceResolverRegistrar } from '@cod/plugin-offers';
 import type { RequestContext } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { PackPricesService } from '../../application/pack-prices.service';
@@ -6,6 +7,15 @@ import { aPackRecord, aProduct } from '../support/builders';
 import { packWorld, SCOPE_A, SCOPE_B } from '../fakes/pack-world';
 
 const CTX = {} as RequestContext;
+
+/** The offers' registrar as the resolver sees it, recording what registers. */
+class RecordingRegistrar implements UnitPriceResolverRegistrar {
+  readonly registered: UnitPriceResolver[] = [];
+
+  register(resolver: UnitPriceResolver): void {
+    this.registered.push(resolver);
+  }
+}
 
 function arranged() {
   const world = packWorld();
@@ -16,10 +26,35 @@ function arranged() {
     aProduct({ id: '20', type: 'pack', price: 1 }),
   );
   world.packs.put(SCOPE_A, aPackRecord('20'));
-  return { ...world, resolver: new PackUnitPriceResolver(new PackPricesService(world.ports)) };
+  const registrar = new RecordingRegistrar();
+  return { ...world, registrar, resolver: new PackUnitPriceResolver(new PackPricesService(world.ports), registrar) };
 }
 
-describe('PackUnitPriceResolver (D2204)', () => {
+describe('PackUnitPriceResolver (D2204, D2276)', () => {
+  it('registers itself once with the offers unit price registrar on bootstrap', () => {
+    // Arrange
+    const { registrar, resolver } = arranged();
+
+    // Act
+    resolver.onApplicationBootstrap();
+
+    // Assert
+    expect(registrar.registered).toEqual([resolver]);
+  });
+
+  it("answers the offers' UnitPriceResolver port under the key pack", async () => {
+    // Arrange: typed as the offers' port, as their registry calls it
+    const { resolver } = arranged();
+    const port: UnitPriceResolver = resolver;
+
+    // Act
+    const prices = await port.resolve(CTX, SCOPE_A, [{ productId: '20', variantId: '2001' } as GatedLine]);
+
+    // Assert
+    expect(port.key).toBe('pack');
+    expect(prices.get('2001')).toMatchObject({ unitPrice: 3150, source: 'pack' });
+  });
+
   it('returns price, original price and weight per pack variant', async () => {
     // Arrange
     const { resolver } = arranged();

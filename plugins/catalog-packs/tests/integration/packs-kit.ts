@@ -1,10 +1,12 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import type { PartitionedTableSchema } from '@cod/shared';
+import { parseQuoteKeys, quoteKeyRing, type QuoteKeyRing } from '@cod/shared/quote-keys';
 import {
   createStoreTestEnvironment,
   createTwoBusinesses,
@@ -20,6 +22,19 @@ import { CatalogPacksPlugin } from '../../index';
 export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 /** Worker id of every pack test server (D2216): each file has its own database, so a repeat is harmless. */
 export const PACKS_WORKER_ID = 1016;
+
+/**
+ * The quote keys of the offers the packs register with (D2276), read from `QUOTE_HMAC_*` like the server does: CI
+ * sets them, a local run takes them from `apps/server/.env` (the P2.S4 gotcha). No key is made up here.
+ */
+function quoteKeysFromEnv(): QuoteKeyRing {
+  const keys = process.env['QUOTE_HMAC_KEYS'];
+  const activeKid = process.env['QUOTE_HMAC_ACTIVE_KID'];
+  if (keys === undefined || activeKid === undefined) {
+    throw new Error('the pack tests need QUOTE_HMAC_KEYS and QUOTE_HMAC_ACTIVE_KID (see .env.example)');
+  }
+  return quoteKeyRing(parseQuoteKeys(keys), activeKid);
+}
 
 /** The product fields the pack tests read back. */
 export const PRODUCT_FIELDS = `id type status price weight optionGroups { name values { name } } variants { id price optionValues }`;
@@ -111,7 +126,7 @@ export interface PacksSuite {
   fixtures: TwoBusinesses;
 }
 
-/** Boots a pack test server for the file (catalog and packs on the outbox), makes A and B, stops it after the file. */
+/** Boots a pack test server for the file (catalog, offers and packs on the outbox), makes A and B, stops it after the file. */
 export function packsSuite(foreign: PacksForeignModules): PacksSuite {
   const { server, adminClient } = createStoreTestEnvironment({
     plugins: [
@@ -122,6 +137,8 @@ export function packsSuite(foreign: PacksForeignModules): PacksSuite {
       PlatformOutboxPlugin,
       ...foreign.plugins,
       CatalogPlugin,
+      // The pack resolver registers with the offers' unit price registrar on bootstrap (D2276).
+      OffersPlugin.init({ quoteKeys: quoteKeysFromEnv() }),
       CatalogPacksPlugin,
     ],
     partitionedSchemas: [...OUTBOX_SCHEMAS, ...foreign.partitionedSchemas],

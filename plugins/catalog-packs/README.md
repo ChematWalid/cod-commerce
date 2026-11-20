@@ -16,7 +16,7 @@ explicit-scope facade `CatalogProductCommands` (D2201, D2227), never through the
 - Stored values (D2203): a save writes price, weight and matrix only when they change; the outbox consumer recomputes
   the packs holding a changed product in the store-channel context `CatalogProductCommands.storeContext` builds. A
   component deleted, set to draft or losing the shared value marks the pack `stale` (last price kept).
-- `PackUnitPriceResolver` (D2204) prices pack variants live for P2.S4's pipeline; it is exported, not registered.
+- `PackUnitPriceResolver` (D2204, D2276) prices pack variants live for the offers' pricing pipeline; it registers itself on `UNIT_PRICE_RESOLVER_REGISTRAR` from `@cod/plugin-offers` on bootstrap, so `CatalogPacksPlugin` imports `OffersPlugin` and comes after it in `buildPlugins`.
 
 Tests: `pnpm --filter @cod/plugin-catalog-packs test` (unit, fakes) and `test:integration` (CI part
 `catalog-packs`, worker id 1016, kit on `@cod/testing`'s `StoreKit`, D2216).

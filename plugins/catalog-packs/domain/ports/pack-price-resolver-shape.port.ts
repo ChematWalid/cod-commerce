@@ -1,6 +1,7 @@
-import type { StoreScope } from '../store-scope';
-
-/** A line a pricing pipeline asks a unit price for. */
+/**
+ * A line a pricing pipeline asks a unit price for. The offers' `UnitPriceResolver` port (D2441) is implemented in
+ * `infrastructure/` only (rule `offers-entry-infra-only`), so the inner layers keep these framework-free shapes (D2276).
+ */
 export interface PriceLine {
   readonly productId: string;
   readonly variantId: string;
@@ -13,14 +14,4 @@ export interface PackUnitPrice {
   readonly originalPrice: number;
   readonly source: 'pack';
   readonly weightGrams: number;
-}
-
-/**
- * The structural mirror of P2.S4's draft `UnitPriceResolver` (D2204): P2.S4 defines the port and registers the pack
- * resolver; whichever merges second wires the line. `Ctx` is the framework context the pipeline passes.
- */
-export interface PackPriceResolverShape<Ctx> {
-  readonly key: 'pack';
-  /** Unit prices by variant id; a line of no live pack of the scope is left out. */
-  resolve(ctx: Ctx, scope: StoreScope, lines: readonly PriceLine[]): Promise<ReadonlyMap<string, PackUnitPrice>>;
 }

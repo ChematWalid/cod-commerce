@@ -2,11 +2,7 @@
 // from its infrastructure/, its root *.plugin.ts file or its tests/; of the apps only apps/server does.
 export { CatalogPacksPlugin } from './catalog-packs.plugin';
 export { PackUnitPriceResolver } from './infrastructure/pack-unit-price.resolver';
-export type {
-  PackPriceResolverShape,
-  PackUnitPrice,
-  PriceLine as PackPriceLine,
-} from './domain/ports/pack-price-resolver-shape.port';
+export type { PackUnitPrice, PriceLine as PackPriceLine } from './domain/ports/pack-price-resolver-shape.port';
 export { packPrice, type PricedComponent } from './domain/pack-price';
 export { packWeight, type WeighedComponent } from './domain/pack-weight';
 export { sharedOptionMatrix, type ComponentOptions, type SharedMatrix } from './domain/shared-option';

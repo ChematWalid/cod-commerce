@@ -1,4 +1,5 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { OutboxConsumerRegistry, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
@@ -23,13 +24,14 @@ export const CATALOG_PACKS_REST_CONTROLLERS = [PacksController];
 /**
  * Pack (bundle) products of a store (D2200, D2202): the components, pricing, discount, variant and weight modes of a
  * catalog product of type `pack`, its computed price and weight written through catalog's explicit-scope facade
- * (D2201, D2203), the `catalog-packs-recompute` outbox consumer, and the pack `UnitPriceResolver` for P2.S4 (D2204,
- * exported, not registered), and the pack block of catalog's product editor (`dashboard/`). This module only wires the layers.
+ * (D2201, D2203), the `catalog-packs-recompute` outbox consumer, the pack `UnitPriceResolver` registered with the offers (D2204,
+ * D2276), and the pack block of catalog's product editor (`dashboard/`). This module only wires the layers.
  */
 @VendurePlugin({
   // Catalog exports the facade the adapters write through; the outbox carries `product.changed` to the consumer;
-  // `requirePermission` resolves through tenancy; the rate limiter serves the preview budget (D2217).
-  imports: [PluginCommonModule, TenancyPlugin, PlatformOutboxPlugin, RateLimitPlugin, CatalogPlugin],
+  // `requirePermission` resolves through tenancy; the rate limiter serves the preview budget (D2217); the offers
+  // export the unit price registrar the pack resolver registers with (D2276).
+  imports: [PluginCommonModule, TenancyPlugin, PlatformOutboxPlugin, RateLimitPlugin, CatalogPlugin, OffersPlugin],
   entities: CATALOG_PACKS_ENTITIES,
   providers: [...PACK_PROVIDERS, PackUseCases, PackActions, PackThrottle, PacksTranslations],
   exports: [PackUnitPriceResolver],
