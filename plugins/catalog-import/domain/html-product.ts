@@ -1,6 +1,6 @@
 import { IMPORT_MAX_IMAGE_URLS, IMPORT_MAX_URL_CHARS, MONEY_MAX_DZD, PLATFORM_CURRENCY_CODE } from '@cod/shared';
-import { type HTMLElement, parse } from 'node-html-parser';
 import { type LdNode, productNodeOf } from './json-ld';
+import { type PageParts, readPageParts } from './page-parts';
 
 /**
  * What a product page tells about its product (D2214): plain text, a description already HTML-escaped (so catalog's
@@ -42,16 +42,27 @@ function plainText(value: unknown): string | undefined {
 
 const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character] ?? '');
 
-/** The decoded `content` of the first `<meta>` whose `property` or `name` is one of `keys`. */
-function metaContents(root: HTMLElement, key: string): string[] {
-  return root
-    .querySelectorAll('meta')
-    .filter((meta) => (meta.getAttribute('property') ?? meta.getAttribute('name'))?.toLowerCase() === key)
-    .map((meta) => meta.getAttribute('content') ?? '');
-}
+const TITLE_KEY = 'og:title';
+const DESCRIPTION_KEYS = ['og:description', 'description'] as const;
+const IMAGE_KEY = 'og:image';
+const PRICE_AMOUNT_KEYS = ['product:price:amount', 'og:price:amount'] as const;
+const PRICE_CURRENCY_KEYS = ['product:price:currency', 'og:price:currency'] as const;
+/** Every `<meta>` key a product is read from; the page scan keeps no other. */
+const META_KEYS: ReadonlySet<string> = new Set([
+  TITLE_KEY,
+  ...DESCRIPTION_KEYS,
+  IMAGE_KEY,
+  ...PRICE_AMOUNT_KEYS,
+  ...PRICE_CURRENCY_KEYS,
+]);
 
-const firstMeta = (root: HTMLElement, ...keys: string[]): string | undefined =>
-  keys.map((key) => plainText(metaContents(root, key)[0])).find((value) => value !== undefined);
+/** The `content` of every `<meta>` whose `property` or `name` is `key`, in page order. */
+const metaContents = (page: PageParts, key: string): string[] =>
+  page.metas.filter((meta) => meta.key === key).map((meta) => meta.content);
+
+/** The first non-empty content among the metas named `keys`, tried in order. */
+const firstMeta = (page: PageParts, ...keys: string[]): string | undefined =>
+  keys.map((key) => plainText(metaContents(page, key)[0])).find((value) => value !== undefined);
 
 /** An absolute `http(s)` link of at most 2 048 characters, resolved against the page; any other scheme is dropped. */
 function imageUrlOf(value: unknown, pageUrl: string): string | undefined {
@@ -66,8 +77,8 @@ function ldImages(image: unknown): unknown[] {
   return items.map((item) => (isRecord(item) ? item['url'] : item));
 }
 
-function imageUrlsOf(root: HTMLElement, product: LdNode | undefined, pageUrl: string) {
-  const candidates = [...metaContents(root, 'og:image'), ...ldImages(product?.['image'])];
+function imageUrlsOf(page: PageParts, product: LdNode | undefined, pageUrl: string) {
+  const candidates = [...metaContents(page, IMAGE_KEY), ...ldImages(product?.['image'])];
   const urls = candidates.map((value) => imageUrlOf(value, pageUrl)).filter((url) => url !== undefined);
   return [...new Set(urls)].slice(0, IMPORT_MAX_IMAGE_URLS);
 }
@@ -88,10 +99,10 @@ function ldPrice(product: LdNode | undefined): StatedPrice | undefined {
 }
 
 /** The `product:price:*` (or `og:price:*`) meta price and its currency. */
-function metaPrice(root: HTMLElement): StatedPrice | undefined {
-  const amount = firstMeta(root, 'product:price:amount', 'og:price:amount');
+function metaPrice(page: PageParts): StatedPrice | undefined {
+  const amount = firstMeta(page, ...PRICE_AMOUNT_KEYS);
   if (amount === undefined) return undefined;
-  return { amount, currency: firstMeta(root, 'product:price:currency', 'og:price:currency') };
+  return { amount, currency: firstMeta(page, ...PRICE_CURRENCY_KEYS) };
 }
 
 /**
@@ -140,16 +151,29 @@ export function parsePrice(value: unknown): number | undefined {
 }
 
 /**
- * The span from a price's first digit to its last: a currency word around it (`د.ج`, `DA.`) and its dots never read
- * as a separator.
+ * One number as free text writes it: digit groups joined by single grouping or decimal separators. A currency word
+ * around it (`د.ج`, `DA.`) is never part of it, so its dots never read as a separator.
  */
-const NUMBER_SPAN = /\d(?:.*\d)?/s;
+const NUMBER_RUN = /\d+(?:[.,\s\u00a0\u202f]\d+)*/g;
+/** A space inside a number that does not start a group of exactly three digits (`1500 3`): not one number. */
+const LOOSE_SPACE_GROUP = /[\s\u00a0\u202f](?!\d{3}(?:\D|$))/;
 
+/** The text's one number, or undefined when it holds none, several, or one with a loose space group. */
+function onlyNumberOf(text: string): string | undefined {
+  const runs = text.match(NUMBER_RUN);
+  const run = runs?.length === 1 ? runs[0] : undefined;
+  return run === undefined || LOOSE_SPACE_GROUP.test(run) ? undefined : run;
+}
+
+/**
+ * The amount of a free-text price (D2275): unknown unless the text holds exactly one number, so `1500 DA au lieu de
+ * 2000 DA` or `2 500 DA / 3 pièces` is never two numbers glued together, and a range or minus sign is unknown.
+ */
 function amountOfText(value: unknown): number | undefined {
   if (typeof value !== 'string' || value.includes('-')) return undefined;
-  const span = NUMBER_SPAN.exec(value)?.[0];
-  if (span === undefined) return undefined;
-  const digits = span.replace(PRICE_SPACES, '').replace(/[^\d.,]/g, '');
+  const run = onlyNumberOf(value);
+  if (run === undefined) return undefined;
+  const digits = run.replace(PRICE_SPACES, '');
   const separator = decimalSeparatorOf(digits);
   const [whole = '', fraction = ''] = separator === undefined ? [digits] : digits.split(separator);
   const amount = Number(`${whole.replace(/[.,]/g, '')}.${fraction.replace(/[.,]/g, '') || '0'}`);
@@ -159,24 +183,24 @@ function amountOfText(value: unknown): number | undefined {
 /**
  * Reads a product page (D2214): the title from `og:title`, JSON-LD `name` or `<title>`; the description from
  * `og:description`, `description` or JSON-LD, escaped; images from `og:image` and JSON-LD; the price from the JSON-LD
- * offer or the `product:price:amount` meta, unknown when stated in another currency. Nothing of the page is ever run or kept as markup.
+ * offer or the `product:price:amount` meta, unknown when stated in another currency. The page is read by one linear
+ * scan (D2275); nothing of it is ever run or kept as markup.
  */
 export function readHtmlProduct(html: string, pageUrl: string): HtmlProduct {
-  const root = parse(html);
-  const product = productNodeOf(root.querySelectorAll('script[type="application/ld+json"]').map((s) => s.rawText));
-  const price = priceOf(ldPrice(product) ?? metaPrice(root));
+  const page = readPageParts(html, META_KEYS);
+  const product = productNodeOf(page.ldBlocks);
+  const price = priceOf(ldPrice(product) ?? metaPrice(page));
   return {
-    ...textOf(root, product),
+    ...textOf(page, product),
     ...(price === undefined ? {} : { price }),
-    imageUrls: imageUrlsOf(root, product, pageUrl),
+    imageUrls: imageUrlsOf(page, product, pageUrl),
   };
 }
 
 /** The page's title and escaped description, each from the first source that has one. */
-function textOf(root: HTMLElement, product: LdNode | undefined): Pick<HtmlProduct, 'title' | 'description'> {
-  const title =
-    firstMeta(root, 'og:title') ?? plainText(product?.['name']) ?? plainText(root.querySelector('title')?.text);
-  const description = firstMeta(root, 'og:description', 'description') ?? plainText(product?.['description']);
+function textOf(page: PageParts, product: LdNode | undefined): Pick<HtmlProduct, 'title' | 'description'> {
+  const title = firstMeta(page, TITLE_KEY) ?? plainText(product?.['name']) ?? plainText(page.title);
+  const description = firstMeta(page, ...DESCRIPTION_KEYS) ?? plainText(product?.['description']);
   return {
     ...(title === undefined ? {} : { title }),
     ...(description === undefined ? {} : { description: escapeHtml(description) }),

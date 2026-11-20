@@ -71,6 +71,26 @@ describe('readHtmlProduct (D2214)', () => {
     expect(parsePrice('1.500,00 DA.')).toBe(1500);
   });
 
+  it('free text with a second number is unknown, never the two glued together (D2275)', () => {
+    // Act and Assert
+    expect(parsePrice('1500 DA au lieu de 2000 DA')).toBeUndefined();
+    expect(parsePrice('2 500 DA / 3 pièces')).toBeUndefined();
+    expect(parsePrice('2500/3')).toBeUndefined();
+    expect(parsePrice('1500 3')).toBeUndefined();
+    expect(parsePrice('Prix : 2 500 DA')).toBe(2500);
+  });
+
+  it('a meta amount written as two prices is unknown (D2275)', () => {
+    // Act
+    const product = readHtmlProduct(
+      pageWith('<meta property="product:price:amount" content="1500 DA au lieu de 2000 DA">'),
+      PAGE_URL,
+    );
+
+    // Assert
+    expect(product.price).toBeUndefined();
+  });
+
   it('a price in another currency than DZD is unknown', () => {
     // Arrange
     const ldIn = (priceCurrency?: string): string =>

@@ -69,6 +69,10 @@ export const IMPORT_REPORT_HEADER = ['row', 'reasons', 'product_key', 'name', 'v
 export const LINK_FETCH_TIMEOUT_MS = 5_000;
 /** Most bytes of a page a link import receives; the rest is never read (D2214). */
 export const LINK_MAX_BYTES = 2 * 1_024 * 1_024;
+/** Most wanted `<meta>` tags a page is read for; later ones are ignored, so a page of repeated metas stays cheap (D2275). */
+export const PAGE_MAX_METAS = 256;
+/** Most JSON-LD blocks a page is read for (D2275). */
+export const PAGE_MAX_LD_BLOCKS = 32;
 /** Most redirects a link import follows; each target is vetted again (D2214). */
 export const LINK_MAX_REDIRECTS = 3;
 /** The ports a link may name: plain HTTP and HTTPS only (D2214); tests inject another policy. */
