@@ -40,6 +40,8 @@ export class FakeBulkEditWorld implements CatalogProductsPort, UnitOfWorkPort, P
   /** Product ids whose `setStatus` fails with a fault of the server. */
   readonly faultOn = new Set<string>();
   taxonomyReads = 0;
+  /** The product calls in order, as `<call>:<productId>`. */
+  readonly calls: string[] = [];
 
   constructor(
     readonly products: Map<string, EditableProduct>,
@@ -59,10 +61,17 @@ export class FakeBulkEditWorld implements CatalogProductsPort, UnitOfWorkPort, P
   }
 
   byId(_ctx: OperationContext, _scope: StoreScope, productId: string): Promise<EditableProduct | undefined> {
+    this.calls.push(`byId:${productId}`);
     return Promise.resolve(this.products.get(productId));
   }
 
+  lockForEdit(_ctx: OperationContext, _scope: StoreScope, productId: string): Promise<void> {
+    this.calls.push(`lock:${productId}`);
+    return Promise.resolve();
+  }
+
   update(ctx: OperationContext, _scope: StoreScope, productId: string, patch: ProductEditPatch): Promise<void> {
+    this.calls.push(`update:${productId}`);
     if (this.refuseUpdateOf.has(productId)) return Promise.reject(new FakeCatalogRefusal());
     txOf(ctx).pending.push({ kind: 'update', productId, patch });
     return Promise.resolve();

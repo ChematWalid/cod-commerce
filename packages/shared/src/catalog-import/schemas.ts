@@ -83,13 +83,24 @@ const priceChangeSchema = z.discriminatedUnion(
   invalidImportInput,
 );
 
+/**
+ * An optional field whose explicit `null` reads as absent: the GraphQL input fields are nullable and null has no
+ * meaning there (D2255). Not for `brandId`, where null clears the brand.
+ */
+function absentWhenNull<T extends z.ZodType>(schema: T) {
+  return schema
+    .nullable()
+    .transform((value) => value ?? undefined)
+    .optional();
+}
+
 const bulkChangesSchema = catalogObject({
-  status: z.enum(PRODUCT_STATUSES, invalidImportInput).optional(),
+  status: absentWhenNull(z.enum(PRODUCT_STATUSES, invalidImportInput)),
   brandId: catalogRefIdSchema.nullish(),
-  addTagIds: dedupedIdListSchema(1, MAX_PRODUCT_TAGS).optional(),
-  removeTagIds: dedupedIdListSchema(1, MAX_PRODUCT_TAGS).optional(),
-  collectionIds: catalogRefIdListSchema(MAX_PRODUCT_COLLECTIONS).optional(),
-  price: priceChangeSchema.optional(),
+  addTagIds: absentWhenNull(dedupedIdListSchema(1, MAX_PRODUCT_TAGS)),
+  removeTagIds: absentWhenNull(dedupedIdListSchema(1, MAX_PRODUCT_TAGS)),
+  collectionIds: absentWhenNull(catalogRefIdListSchema(MAX_PRODUCT_COLLECTIONS)),
+  price: absentWhenNull(priceChangeSchema),
 })
   .refine(
     (changes) => Object.values(changes as Record<string, unknown>).some((value) => value !== undefined),
@@ -99,13 +110,16 @@ const bulkChangesSchema = catalogObject({
 
 /**
  * "Bulk edit" of selected products (D2213): 1 to 500 ids (repeats dropped) and at least one change; `brandId: null`
- * clears the brand. `collectionIds` is accepted by shape and refused by the service until P2.S3. `dryRun` answers
- * the same summary and writes nothing.
+ * clears the brand, any other `null` reads as absent. `collectionIds` is accepted by shape and refused by the service
+ * until P2.S3. `dryRun` runs the edit and rolls it back, so it answers the same summary and commits nothing (D2255).
  */
 export const bulkEditInputSchema = catalogObject({
   productIds: dedupedIdListSchema(1, BULK_EDIT_MAX_PRODUCTS),
   changes: bulkChangesSchema,
-  dryRun: z.boolean(invalidImportInput).default(false),
+  dryRun: z
+    .boolean(invalidImportInput)
+    .nullish()
+    .transform((value) => value ?? false),
 });
 
 export type BulkEditInput = z.input<typeof bulkEditInputSchema>;

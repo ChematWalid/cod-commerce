@@ -31,6 +31,13 @@ export interface CatalogProductsPort {
   /** The product `productId` of the scope's store as a bulk edit reads it, or `undefined` (foreign, deleted, malformed). */
   byId(ctx: OperationContext, scope: StoreScope, productId: string): Promise<EditableProduct | undefined>;
 
+  /**
+   * Holds the product's save lock, catalog's own (D2242), until the transaction of `ctx` ends, so a read after it plans
+   * from the committed result of any concurrent edit (D2255).
+   * @throws a `catalog.product-not-found` domain error for a malformed id
+   */
+  lockForEdit(ctx: OperationContext, scope: StoreScope, productId: string): Promise<void>;
+
   /** "Edit a product" with the fields of `patch`, under catalog's rules (a pack's price is refused, D2227). */
   update(ctx: OperationContext, scope: StoreScope, productId: string, patch: ProductEditPatch): Promise<void>;
 

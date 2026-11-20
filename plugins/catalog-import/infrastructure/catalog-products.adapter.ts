@@ -43,6 +43,11 @@ export class CatalogProductsAdapter implements CatalogProductsPort {
     return view === undefined ? undefined : editableOf(view);
   }
 
+  /** Catalog's pack-save lock with no component: the product's exclusive save lock alone (D2255). */
+  async lockForEdit(ctx: OperationContext, scope: StoreScope, productId: string): Promise<void> {
+    await this.commands.lockForPackSave(toRequestContext(ctx), scope, { packProductId: productId, componentIds: [] });
+  }
+
   async update(ctx: OperationContext, scope: StoreScope, productId: string, patch: ProductEditPatch): Promise<void> {
     await this.commands.update(toRequestContext(ctx), scope, productId, patchCommandOf(patch));
   }

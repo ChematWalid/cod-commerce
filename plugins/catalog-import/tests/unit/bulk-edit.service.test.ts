@@ -184,6 +184,38 @@ describe('bulk edit use case (D2213)', () => {
     expect(dry).toEqual(real);
   });
 
+  it('dryRun reports a catalog refusal as the real run would, and writes nothing', async () => {
+    // Arrange: catalog refuses the price of product 2 (as it does a pack's, D2227)
+    world.refuseUpdateOf.add('2');
+    const changes = { status: 'draft', price: { mode: 'fixed', value: 1500 } } as const;
+
+    // Act
+    const dry = await service.edit(ctx, SCOPE, actor, command(['1', '2'], changes, true));
+
+    // Assert
+    expect(dry).toEqual([
+      { productId: '1', ok: true, changedFields: ['status', 'price'], error: null },
+      { productId: '2', ok: false, changedFields: [], error: CATALOG_ERROR_CODES.INVALID_INPUT },
+    ]);
+    expect(world.committed).toEqual([]);
+  });
+
+  it("takes the product's lock before the read it plans from", async () => {
+    // Act
+    await service.edit(ctx, SCOPE, actor, command(['1'], { price: { mode: 'amount', value: 500 } }));
+
+    // Assert
+    expect(world.calls).toEqual(['byId:1', 'lock:1', 'byId:1', 'update:1']);
+  });
+
+  it('takes no lock on a foreign or deleted product', async () => {
+    // Act
+    await service.edit(ctx, SCOPE, actor, command(['404'], { status: 'draft' }));
+
+    // Assert
+    expect(world.calls).toEqual(['byId:404']);
+  });
+
   it('applies a percent change once to a product named twice', async () => {
     // Act
     const results = await service.edit(

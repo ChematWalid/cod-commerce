@@ -1,5 +1,5 @@
 import { type BulkEditChangedField, type BulkEditCommand, catalogRefIdKey, DomainError } from '@cod/shared';
-import { type BulkChanges, distinctProductIds, planProductEdit } from '../domain/bulk-edit-plan';
+import { type BulkChanges, distinctProductIds, type EditableProduct, planProductEdit } from '../domain/bulk-edit-plan';
 import { CollectionsUnavailableError, ProductNotFoundError, TaxonomyNotFoundError } from '../domain/errors';
 import type { StoreScope } from '../domain/store-scope';
 import type { CatalogProductsPort, TaxonomyRef } from './ports/catalog-products.port';
@@ -22,6 +22,13 @@ export interface BulkEditDeps {
   readonly activity: ProductActivityPort;
 }
 
+/** Thrown at the end of a dry run's unit so its writes roll back; carries what the real run would change. */
+class DryRunRollback extends Error {
+  constructor(readonly changedFields: readonly BulkEditChangedField[]) {
+    super('bulk edit dry run');
+  }
+}
+
 /** The store's id of each id given, compared as the boundary parses them; one unknown id refuses them all. */
 function resolveIds(refs: readonly TaxonomyRef[], ids: readonly string[]): string[] {
   const byKey = new Map(refs.map((ref) => [catalogRefIdKey(ref.id), ref.id]));
@@ -37,8 +44,9 @@ function resolveIds(refs: readonly TaxonomyRef[], ids: readonly string[]): strin
  * unknown one refuses the whole request before anything is written. Then each product runs in its own unit of work:
  * read, plan, status, patch, activity row, so the row commits with the write. A refusal of one product (not found,
  * price out of range, a catalog validation error) is that product's error and the others still change; a fault of
- * the server is rethrown. Tag changes are read-modify-write: two concurrent edits of one product's tags are last
- * writer wins. `dryRun` plans the same way and writes nothing.
+ * the server is rethrown. The product is read again under catalog's save lock before it is planned, so concurrent
+ * relative price or tag changes of one product both apply (D2255). `dryRun` runs the same writes and then rolls the
+ * unit back, so catalog's own refusals show and nothing commits (D2255).
  */
 export class BulkEditService {
   constructor(private readonly deps: BulkEditDeps) {}
@@ -86,6 +94,9 @@ export class BulkEditService {
       const changedFields = await this.deps.units.run(ctx, scope, (tx) => this.apply(tx, scope, edit));
       return { productId: edit.productId, ok: true, changedFields, error: null };
     } catch (error: unknown) {
+      if (error instanceof DryRunRollback) {
+        return { productId: edit.productId, ok: true, changedFields: error.changedFields, error: null };
+      }
       if (!(error instanceof DomainError)) throw error;
       return { productId: edit.productId, ok: false, changedFields: [], error: error.code };
     }
@@ -97,14 +108,27 @@ export class BulkEditService {
     { productId, changes, actor, dryRun }: ProductEdit,
   ): Promise<readonly BulkEditChangedField[]> {
     const { catalog, activity } = this.deps;
-    const product = await catalog.byId(tx, scope, productId);
-    if (product === undefined) throw new ProductNotFoundError();
+    const product = await this.lockedProduct(tx, scope, productId);
     const plan = planProductEdit(product, changes);
-    if (dryRun || plan.changedFields.length === 0) return plan.changedFields;
+    if (plan.changedFields.length === 0) return plan.changedFields;
     if (plan.status !== undefined) await catalog.setStatus(tx, scope, productId, plan.status);
     if (plan.patch !== undefined) await catalog.update(tx, scope, productId, plan.patch);
     await activity.recordBulkEdit(tx, { scope, productId: product.id, changedFields: plan.changedFields, actor });
+    if (dryRun) throw new DryRunRollback(plan.changedFields);
     return plan.changedFields;
+  }
+
+  /**
+   * The product as committed once its save lock is held. It is read first so a foreign or deleted id takes no lock
+   * on another store's product, then read again under the lock.
+   */
+  private async lockedProduct(tx: OperationContext, scope: StoreScope, productId: string): Promise<EditableProduct> {
+    const { catalog } = this.deps;
+    if ((await catalog.byId(tx, scope, productId)) === undefined) throw new ProductNotFoundError();
+    await catalog.lockForEdit(tx, scope, productId);
+    const product = await catalog.byId(tx, scope, productId);
+    if (product === undefined) throw new ProductNotFoundError();
+    return product;
   }
 }
 

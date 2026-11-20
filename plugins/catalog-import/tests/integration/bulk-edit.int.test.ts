@@ -3,37 +3,12 @@ import { RateLimiter } from '@cod/plugin-rate-limit';
 import { ACTIVITY_ACTIONS, ACTIVITY_ENTITY_TYPES, CATALOG_ERROR_CODES, CATALOG_IMPORT_ERROR_CODES } from '@cod/shared';
 import { failureOf, rawTestId } from '@cod/testing';
 import { describe, expect, it } from 'vitest';
-import { BULK_EDIT_RESULT_FIELDS } from './endpoint-registry';
-import { importSuite, type ProductResult } from './import-kit';
+import { bulkEditClient } from './bulk-edit-kit';
+import { importSuite } from './import-kit';
 
 const suite = importSuite({ plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
-const BULK_EDIT = `mutation ($input: CatalogBulkEditInput!) {
-  bulkEditCatalogProducts(input: $input) { ${BULK_EDIT_RESULT_FIELDS} }
-}`;
+const { bulkEdit, productsOfA, statusOf } = bulkEditClient(suite);
 const ACTOR_BUDGET = 120;
-
-/** One product's line of a bulk-edit answer. */
-interface BulkResult {
-  readonly productId: string;
-  readonly ok: boolean;
-  readonly changedFields: string[];
-  readonly error: string | null;
-}
-
-async function bulkEdit(input: Record<string, unknown>): Promise<BulkResult[]> {
-  const answer = await suite.kit.gql<{ bulkEditCatalogProducts: { results: BulkResult[] } }>(BULK_EDIT, { input });
-  return answer.bulkEditCatalogProducts.results;
-}
-
-/** As A's owner, `count` active products priced 1 000. */
-async function productsOfA(count: number, input: Record<string, unknown> = {}): Promise<ProductResult[]> {
-  await suite.kit.asOwner(suite.fixtures.a);
-  const products: ProductResult[] = [];
-  for (let index = 0; index < count; index += 1) products.push(await suite.kit.createProduct(input));
-  return products;
-}
-
-const statusOf = async (id: string): Promise<string | undefined> => (await suite.kit.product(id))?.status;
 
 describe('bulk edit (AC4, D2213)', () => {
   it('sets Draft on 3 products and records one activity row each with changedFields', async () => {
@@ -198,22 +173,6 @@ describe('bulk edit (AC4, D2213)', () => {
     expect(results[0]).toMatchObject({ ok: false, error: CATALOG_ERROR_CODES.INVALID_INPUT });
     expect(await statusOf(pack.id)).toBe('active');
     expect(await suite.kit.activityOf(rawTestId(pack.id))).toEqual([]);
-  });
-
-  it('dryRun changes nothing and returns the same summary', async () => {
-    // Arrange
-    const [product] = await productsOfA(1);
-    if (product === undefined) throw new Error('no product');
-    const changes = { status: 'draft', price: { mode: 'percent', value: 10 } };
-
-    // Act
-    const dry = await bulkEdit({ productIds: [product.id], changes, dryRun: true });
-    const untouched = await suite.kit.product(product.id);
-    const real = await bulkEdit({ productIds: [product.id], changes });
-
-    // Assert
-    expect(untouched).toMatchObject({ status: 'active', price: 1000 });
-    expect(dry).toEqual(real);
   });
 
   it('collectionIds answers collections-unavailable', async () => {

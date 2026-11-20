@@ -148,6 +148,27 @@ describe('bulkEditInputSchema (D2213)', () => {
 
     expect(parsed.changes).toEqual({ brandId: null, addTagIds: ['3'], removeTagIds: ['4'] });
   });
+  it('reads an explicit null as absent everywhere but the brand, as the nullable GraphQL fields allow', () => {
+    // Act
+    const parsed = bulkEditInputSchema.parse({
+      productIds: ['1'],
+      changes: { status: null, addTagIds: null, removeTagIds: null, collectionIds: null, price: null, brandId: null },
+      dryRun: null,
+    });
+    const onlyNulls = bulkEditInputSchema.safeParse({ productIds: ['1'], changes: { status: null, price: null } });
+
+    // Assert
+    expect(parsed.dryRun).toBe(false);
+    expect(parsed.changes).toStrictEqual({
+      status: undefined,
+      addTagIds: undefined,
+      removeTagIds: undefined,
+      collectionIds: undefined,
+      price: undefined,
+      brandId: null,
+    });
+    expect(onlyNulls.success).toBe(false);
+  });
 });
 
 describe('productBulkEditDiffSchema', () => {
