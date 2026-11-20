@@ -14,6 +14,9 @@ export const ACTIVE_STORE: unique symbol = Symbol('OffersActiveStore');
 /** The kinds of offer the engine prices (D2404), one registry for the admin use case and the pricing service. */
 export const OFFER_KIND_REGISTRY: unique symbol = Symbol('OffersOfferKindRegistry');
 
+/** What the pricing service reads each quote's snapshot from (D2424): the loader, or P3.S3's cache wrapping it. */
+export const PRICING_SNAPSHOT_SOURCE: unique symbol = Symbol('OffersPricingSnapshotSource');
+
 /** The store-channel variant gate every unit price starts from (D2423). */
 export const VARIANT_GATE: unique symbol = Symbol('OffersVariantGate');
 

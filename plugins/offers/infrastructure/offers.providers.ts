@@ -30,6 +30,7 @@ import {
   OFFER_USAGE,
   OFFER_USAGE_REGISTRAR,
   PRICING_LOGGER,
+  PRICING_SNAPSHOT_SOURCE,
   QUOTE_KEY_RING,
   SHIPPING_QUOTE,
   SHIPPING_QUOTE_REGISTRAR,
@@ -44,6 +45,7 @@ import type { ActiveStorePort } from '../domain/ports/active-store.port';
 import type { Clock } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { PricingLogger } from '../domain/ports/pricing-logger.port';
+import type { PricingSnapshotSource } from '../domain/ports/pricing-snapshot-source.port';
 import type { VariantGate } from '../domain/ports/variant-gate.port';
 import { SnowflakeOfferIdGenerator } from './snowflake-id.generator';
 import { SYSTEM_CLOCK } from './system-clock';
@@ -154,9 +156,13 @@ const OFFER_ADMIN_PORT_TOKENS = {
   kinds: OFFER_KIND_REGISTRY,
 } as const satisfies Record<keyof OfferAdminPorts, symbol>;
 
-/** The use cases: the snapshot loader, the quote signer, the pricing service and the offer admin (D2408, D2431). */
+/**
+ * The use cases: the snapshot loader behind `PRICING_SNAPSHOT_SOURCE` (D2424; P3.S3 rebinds the token to a cache
+ * wrapping the loader), the quote signer, the pricing service and the offer admin (D2408, D2431).
+ */
 const USE_CASE_PROVIDERS: Provider[] = [
   fromPorts(PricingSnapshotLoader, SNAPSHOT_PORT_TOKENS),
+  { provide: PRICING_SNAPSHOT_SOURCE, useExisting: PricingSnapshotLoader },
   {
     provide: QuoteSigner,
     useFactory: (ring: QuoteKeyRing, clock: Clock) => new QuoteSigner({ ring, clock, nonce: randomQuoteNonce }),
@@ -166,11 +172,11 @@ const USE_CASE_PROVIDERS: Provider[] = [
     provide: PricingService,
     useFactory: (
       stores: ActiveStorePort,
-      loader: PricingSnapshotLoader,
+      snapshots: PricingSnapshotSource,
       signer: QuoteSigner,
       kinds: OfferKindRegistry,
-    ) => new PricingService({ stores, loader, signer, kinds }),
-    inject: [ACTIVE_STORE, PricingSnapshotLoader, QuoteSigner, OFFER_KIND_REGISTRY],
+    ) => new PricingService({ stores, snapshots, signer, kinds }),
+    inject: [ACTIVE_STORE, PRICING_SNAPSHOT_SOURCE, QuoteSigner, OFFER_KIND_REGISTRY],
   },
   fromPorts(OfferAdminService, OFFER_ADMIN_PORT_TOKENS),
 ];

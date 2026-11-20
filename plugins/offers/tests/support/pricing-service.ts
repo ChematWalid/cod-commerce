@@ -65,8 +65,21 @@ export function setUpPricing() {
     clock,
   });
   const signer = new QuoteSigner({ ring: aQuoteKeyRing(['k1'], 'k1'), clock, nonce: () => FIXED_NONCE });
-  const service = new PricingService({ stores, loader, signer, kinds });
+  const service = new PricingService({ stores, snapshots: loader, signer, kinds });
   const seed = (scope: StoreScope, ...offers: OfferRecord[]) =>
     tables.offerRows.push(...offers.map((value) => ({ ...scope, value })));
-  return { service, tables, stores, logger, shipping, usage, buyers, seed, setNow: (instant: Date) => (now = instant) };
+  return {
+    service,
+    tables,
+    stores,
+    logger,
+    shipping,
+    usage,
+    buyers,
+    seed,
+    loader,
+    signer,
+    kinds,
+    setNow: (instant: Date) => (now = instant),
+  };
 }

@@ -5,7 +5,8 @@ import {
   newOfferUsageRegistry,
   newShippingQuoteRegistry,
 } from '../../application/default-sources';
-import { PricingSnapshotLoader, type SnapshotRequest } from '../../application/pricing-snapshot.loader';
+import { PricingSnapshotLoader } from '../../application/pricing-snapshot.loader';
+import type { SnapshotRequest } from '../../domain/ports/pricing-snapshot-source.port';
 import { UnitPriceRegistry } from '../../application/unit-price.registry';
 import { OfferKindRegistry } from '../../domain/engine/kind-registry';
 import { BUILT_IN_OFFER_KINDS } from '../../domain/kinds';

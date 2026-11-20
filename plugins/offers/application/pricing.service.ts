@@ -9,16 +9,17 @@ import type { PricedQuote } from '../domain/engine/priced-quote';
 import { InvalidQuoteRequestError, NoActiveStoreError } from '../domain/errors';
 import type { ActiveStorePort } from '../domain/ports/active-store.port';
 import type { OperationContext } from '../domain/ports/operation-context.port';
+import type { PricingSnapshotSource } from '../domain/ports/pricing-snapshot-source.port';
 import type { StoreScope } from '../domain/store-scope';
 import type { QuoteVerification } from '../domain/token/quote-token';
 import { parseOrderUsage } from './order-usage.schema';
-import type { PricingSnapshotLoader } from './pricing-snapshot.loader';
 import type { QuoteSigner, TokenCart } from './quote-signer';
 
 /** What the pricing use case is built from. */
 export interface PricingServiceDeps {
   readonly stores: ActiveStorePort;
-  readonly loader: PricingSnapshotLoader;
+  /** The snapshot each cart is priced from (D2424): the store loader, or a cache in front of it. */
+  readonly snapshots: PricingSnapshotSource;
   readonly signer: QuoteSigner;
   readonly kinds: OfferKindRegistry;
 }
@@ -259,7 +260,7 @@ export class PricingService {
     const buyer = phone === null ? null : { phone };
     const codes = request.codes ?? [];
     const lines = mergeLines(request.lines);
-    const loaded = await this.deps.loader.load(ctx, scope, { lines, destination, buyer, codes });
+    const loaded = await this.deps.snapshots.load(ctx, scope, { lines, destination, buyer, codes });
     const cart: PricingCart = { channel: request.channel, lines: loaded.lines, destination, buyer, codes };
     const snapshot = release === null ? loaded.snapshot : releaseOrderUsage(loaded.snapshot, release);
     const priced = priceCart({ registry: this.deps.kinds, snapshot, cart });

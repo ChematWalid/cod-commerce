@@ -1,4 +1,4 @@
-import type { BuyerRef, PricedLine, PricingDestination } from '../domain/cart';
+import type { BuyerRef, PricedLine } from '../domain/cart';
 import { type CoreId, parseCoreId } from '../domain/core-id';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import type { MergeableLine } from '../domain/engine/merge-lines';
@@ -10,6 +10,7 @@ import type { OfferCodeRepositoryPort, OfferRepositoryPort } from '../domain/por
 import type { OfferUsageCounts } from '../domain/ports/offer-usage.port';
 import type { OperationContext } from '../domain/ports/operation-context.port';
 import type { PricingLogger } from '../domain/ports/pricing-logger.port';
+import type { LoadedCart, PricingSnapshotSource, SnapshotRequest } from '../domain/ports/pricing-snapshot-source.port';
 import type { ShippingQuoteSource } from '../domain/ports/shipping-quote.port';
 import type { ResolvedUnitPrice, UnitPriceSource } from '../domain/ports/unit-price-resolver.port';
 import type { CodeEntry, PricingSnapshot, ShippingQuoteResult } from '../domain/snapshot';
@@ -30,21 +31,6 @@ export interface PricingSnapshotPorts {
   readonly clock: Clock;
 }
 
-/** The cart a snapshot is loaded for: lines already merged by variant (D2428), destination, buyer and codes. */
-export interface SnapshotRequest {
-  readonly lines: readonly MergeableLine[];
-  readonly destination: PricingDestination;
-  readonly buyer: BuyerRef | null;
-  readonly codes: readonly string[];
-}
-
-/** The snapshot, the lines the gate accepted at their unit price and the variants it refused (D2425). */
-export interface LoadedCart {
-  readonly snapshot: PricingSnapshot;
-  readonly lines: readonly PricedLine[];
-  readonly unavailableVariantIds: readonly string[];
-}
-
 /** No fee table answers without a destination: delivery stays unresolved, at 0 (D2423). */
 const NO_DESTINATION_SHIPPING: ShippingQuoteResult = { resolved: false, baseFee: 0, overweightFee: 0, speed: null };
 
@@ -57,9 +43,9 @@ const coreIdsOf = (lines: readonly MergeableLine[]): CoreId[] =>
 /**
  * Loads what one quote reads before the pure engine runs (D2424): the gated unit prices, collection memberships, the
  * store's active offers of a known kind, the submitted codes, the shipping quote and the buyer's history. Nothing is
- * cached yet (P3.S3 adds a cache behind this port).
+ * cached here: it answers the {@link PricingSnapshotSource} port, and P3.S3 wraps it with a caching adapter.
  */
-export class PricingSnapshotLoader {
+export class PricingSnapshotLoader implements PricingSnapshotSource {
   /** Offers already reported for an unknown kind, so each is logged once per process, not on every quote. */
   private readonly reportedUnknownKinds = new Set<string>();
 
