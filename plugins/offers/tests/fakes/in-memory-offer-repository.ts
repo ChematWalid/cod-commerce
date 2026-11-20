@@ -83,7 +83,11 @@ export class InMemoryOfferRepository implements OfferRepositoryPort {
   }
 
   activeOf(_ctx: OperationContext, scope: StoreScope): Promise<readonly OfferRecord[]> {
-    return Promise.resolve(this.offersOf(scope).filter((offer) => offer.status === 'active'));
+    return Promise.resolve(
+      this.offersOf(scope)
+        .filter((offer) => offer.status === 'active')
+        .sort(newestFirst),
+    );
   }
 
   private offersOf(scope: StoreScope): OfferRecord[] {

@@ -62,7 +62,7 @@ describe('OfferCodesService on a real database (D2406, D2512, D2528)', () => {
     expect(listedInB.map((code) => [code.offerId, code.code])).toEqual([[b.first, SHARED_CODE]]);
   });
 
-  it('generates codes all or none and counts them per offer', async () => {
+  it('generates codes and counts them per offer', async () => {
     // Arrange
     const admin = server.app.get(OfferAdminService);
     const codes = server.app.get(OfferCodesService);

@@ -104,8 +104,12 @@ export class TypeOrmOfferRepository implements OfferRepositoryPort {
   }
 
   async activeOf(ctx: OperationContext, scope: StoreScope): Promise<readonly OfferRecord[]> {
-    // Never paged: the pricing snapshot must see every active offer, not the first page of the admin list.
-    const rows = await this.offers.find(requestScope(ctx, scope), { where: { ...inStore(scope), status: 'active' } });
+    // Never paged: the pricing snapshot must see every active offer, not the first page of the admin list. A fixed
+    // order keeps the quote's entry-ordered fields (suggestions, skipped) the same from one call to the next.
+    const rows = await this.offers.find(requestScope(ctx, scope), {
+      where: { ...inStore(scope), status: 'active' },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
     return this.withTargets(ctx, scope, rows);
   }
 

@@ -69,7 +69,24 @@ export function describeOfferListContract(name: string, make: MakeOfferHarness):
       expect(active).toHaveLength(count);
     });
 
-    it('counts codes only in the scope store', async () => {
+    it('activeOf returns active offers newest first so a quote keeps one order', async () => {
+      // Arrange
+      const { offers, ctx } = await make();
+      const [oldest, middle, newest] = [
+        anActiveOffer({ createdAt: at(1) }),
+        anActiveOffer({ createdAt: at(2) }),
+        anActiveOffer({ createdAt: at(3) }),
+      ];
+      for (const offer of [middle, oldest, newest]) await offers.create(ctx, scopeA, offer);
+
+      // Act
+      const active = await offers.activeOf(ctx, scopeA);
+
+      // Assert
+      expect(active.map((offer) => offer.id)).toEqual([newest.id, middle.id, oldest.id]);
+    });
+
+    it("counts codes only in the scope's store", async () => {
       // Arrange
       const { offers, codes, ctx } = await make();
       const [a, other, a2] = [anOfferRecord(), anOfferRecord(), anOfferRecord()];
