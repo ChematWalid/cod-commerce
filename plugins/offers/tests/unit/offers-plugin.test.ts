@@ -1,4 +1,5 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { describe, expect, it } from 'vitest';
 import {
@@ -8,6 +9,8 @@ import {
   OfferAdminService,
   OffersPlugin,
   OfferUsageService,
+  ORDER_ADDON_TARGET_REGISTRAR,
+  OrderAddonService,
   PricingService,
   SHIPPING_QUOTE_REGISTRAR,
   UNIT_PRICE_RESOLVER_REGISTRAR,
@@ -60,5 +63,18 @@ describe('OffersPlugin', () => {
 
     // Assert
     expect(exported).toEqual(expect.arrayContaining([PricingService, OfferAdminService, OfferUsageService]));
+  });
+
+  it('imports the platform outbox and exports the order add-on service and its order source registrar (D2508)', () => {
+    // Arrange
+    const plugin = OffersPlugin;
+
+    // Act
+    const imports = Reflect.getMetadata(IMPORTS_KEY, plugin) as readonly unknown[];
+    const exported = Reflect.getMetadata(EXPORTS_KEY, plugin) as readonly unknown[];
+
+    // Assert
+    expect(imports).toEqual(expect.arrayContaining([PlatformOutboxPlugin]));
+    expect(exported).toEqual(expect.arrayContaining([OrderAddonService, ORDER_ADDON_TARGET_REGISTRAR]));
   });
 });

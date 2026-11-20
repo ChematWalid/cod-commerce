@@ -16,6 +16,7 @@ export type {
 } from './application/order-change';
 export { OfferAdminService } from './application/offer-admin.service';
 export { OfferUsageService, type RecordedOrderUses } from './application/offer-usage.service';
+export { OrderAddonService, type OrderAddonInput } from './application/order-addon.service';
 export type { OfferRecord, StoredCode } from './domain/offer-record';
 export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';
 export type { TokenAddon, TokenUse } from './domain/engine/priced-quote';
@@ -27,6 +28,7 @@ export {
   BUYER_HISTORY_REGISTRAR,
   COLLECTION_MEMBERSHIP_REGISTRAR,
   OFFER_USAGE_REGISTRAR,
+  ORDER_ADDON_TARGET_REGISTRAR,
   SHIPPING_QUOTE_REGISTRAR,
   UNIT_PRICE_RESOLVER_REGISTRAR,
 } from './application/tokens';
@@ -51,3 +53,9 @@ export type {
 } from './domain/ports/shipping-quote.port';
 export type { BuyerHistory, BuyerHistoryRegistrar } from './domain/ports/buyer-history.port';
 export type { OfferUsageCounts, OfferUsageRegistrar } from './domain/ports/offer-usage.port';
+export type {
+  AddonOrder,
+  OrderAddonTarget,
+  OrderAddonTargetRegistrar,
+  PricedAddonLine,
+} from './domain/ports/order-addon-target.port';

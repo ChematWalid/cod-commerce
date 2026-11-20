@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@cod/plugin-catalog": "workspace:*",
+    "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
@@ -29,7 +30,6 @@
   "devDependencies": {
     "@cod/config": "workspace:*",
     "@cod/plugin-platform-jobs": "workspace:*",
-    "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
     "@cod/testing": "workspace:*",

@@ -631,6 +631,9 @@ importers:
       '@cod/plugin-catalog':
         specifier: workspace:*
         version: link:../catalog
+      '@cod/plugin-platform-outbox':
+        specifier: workspace:*
+        version: link:../platform-outbox
       '@cod/plugin-tenancy':
         specifier: workspace:*
         version: link:../tenancy
@@ -659,9 +662,6 @@ importers:
       '@cod/plugin-platform-jobs':
         specifier: workspace:*
         version: link:../platform-jobs
-      '@cod/plugin-platform-outbox':
-        specifier: workspace:*
-        version: link:../platform-outbox
       '@cod/plugin-platform-partitions':
         specifier: workspace:*
         version: link:../platform-partitions

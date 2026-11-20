@@ -1,4 +1,5 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import type { QuoteKeyRing } from '@cod/shared/quote-keys';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
@@ -14,10 +15,11 @@ export interface OffersPluginOptions {
 
 /**
  * The pricing and offer engine of a store (ADR 0004, D2400): offers, discount codes and signed quotes. It imports
- * tenancy, whose guard scopes every call, and the catalog, whose variants it prices. This module only wires the layers.
+ * tenancy, whose guard scopes every call, the catalog, whose variants it prices, and the platform outbox, which carries
+ * its `offer.applied` events (D2509). This module only wires the layers.
  */
 @VendurePlugin({
-  imports: [PluginCommonModule, TenancyPlugin, CatalogPlugin],
+  imports: [PluginCommonModule, TenancyPlugin, CatalogPlugin, PlatformOutboxPlugin],
   entities: OFFERS_ENTITIES,
   providers: [
     { provide: QUOTE_KEY_RING, useFactory: (): QuoteKeyRing => OffersPlugin.requireOptions().quoteKeys },

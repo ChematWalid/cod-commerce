@@ -78,3 +78,6 @@ export const MAX_ORDER_HELD_OFFERS =
   MAX_ORDER_DISCOUNTS_APPLIED +
   MAX_DELIVERY_OFFERS_APPLIED +
   MAX_QUOTE_ADDONS;
+
+/** The order statuses a post-order add-on may still be appended in (D2508): before the order is confirmed. */
+export const ADDON_EDITABLE_ORDER_STATUSES: ReadonlySet<string> = new Set(['pending', 'unconfirmed']);

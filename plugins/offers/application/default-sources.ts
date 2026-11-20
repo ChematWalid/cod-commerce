@@ -1,7 +1,9 @@
 import { FIRST_ORDER_COUNT } from '../domain/constants';
 import type { BuyerHistory } from '../domain/ports/buyer-history.port';
 import type { CollectionMembership } from '../domain/ports/collection-membership.port';
+import { OrderAddonUnavailableError } from '../domain/errors';
 import type { OfferUsageCounts } from '../domain/ports/offer-usage.port';
+import type { OrderAddonTarget } from '../domain/ports/order-addon-target.port';
 import type { ShippingQuoteSource } from '../domain/ports/shipping-quote.port';
 import { UNRESOLVED_SHIPPING } from '../domain/snapshot';
 import { SingleSourceRegistry } from './single-source.registry';
@@ -20,6 +22,12 @@ const NO_BUYER_HISTORY: BuyerHistory = { orderCountOf: () => Promise.resolve(FIR
 /** No offer was used before P3.S4 counts uses (D2418). */
 const NO_OFFER_USAGE: OfferUsageCounts = { perBuyer: () => Promise.resolve(new Map<string, number>()) };
 
+/** No order exists before P3.S4 registers its order source, so no add-on can be appended (D2508). */
+const UNREGISTERED_ORDER_ADDON_TARGET: OrderAddonTarget = {
+  orderOf: () => Promise.reject(new OrderAddonUnavailableError()),
+  appendLine: () => Promise.reject(new OrderAddonUnavailableError()),
+};
+
 /** The collection membership seam, answering no memberships until P2.S3 registers. */
 export const newCollectionMembershipRegistry = (): SingleSourceRegistry<CollectionMembership> =>
   new SingleSourceRegistry('collection membership source', NO_COLLECTION_MEMBERSHIP);
@@ -35,3 +43,7 @@ export const newBuyerHistoryRegistry = (): SingleSourceRegistry<BuyerHistory> =>
 /** The per-buyer offer usage seam, counting no uses until P3.S4 registers. */
 export const newOfferUsageRegistry = (): SingleSourceRegistry<OfferUsageCounts> =>
   new SingleSourceRegistry('offer usage source', NO_OFFER_USAGE);
+
+/** The order source of post-order add-ons, refusing every call until P3.S4 registers. */
+export const newOrderAddonTargetRegistry = (): SingleSourceRegistry<OrderAddonTarget> =>
+  new SingleSourceRegistry('order add-on target', UNREGISTERED_ORDER_ADDON_TARGET);

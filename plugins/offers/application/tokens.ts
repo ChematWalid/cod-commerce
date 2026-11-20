@@ -35,3 +35,10 @@ export const BUYER_HISTORY: unique symbol = Symbol('OffersBuyerHistory');
 export const BUYER_HISTORY_REGISTRAR: unique symbol = Symbol('OffersBuyerHistoryRegistrar');
 export const OFFER_USAGE: unique symbol = Symbol('OffersOfferUsage');
 export const OFFER_USAGE_REGISTRAR: unique symbol = Symbol('OffersOfferUsageRegistrar');
+
+/** The orders a post-order add-on is appended to (D2508), registered by P3.S4; same registry behind both tokens. */
+export const ORDER_ADDON_TARGET: unique symbol = Symbol('OffersOrderAddonTarget');
+export const ORDER_ADDON_TARGET_REGISTRAR: unique symbol = Symbol('OffersOrderAddonTargetRegistrar');
+
+/** Where the offers publish their domain events (D2509): the platform outbox. */
+export const OFFER_EVENTS: unique symbol = Symbol('OffersOfferEvents');

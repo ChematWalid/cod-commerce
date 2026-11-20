@@ -111,3 +111,35 @@ export class InvalidUnitPriceError extends Error {
     this.name = 'InvalidUnitPriceError';
   }
 }
+
+/** No order source is registered yet (D2508): orders arrive in P3.S4, so no add-on can be appended before. */
+export class OrderAddonUnavailableError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ORDER_ADDON_UNAVAILABLE;
+  constructor() {
+    super('Add-ons cannot be added to orders yet');
+  }
+}
+
+/** No order with that id in the store (D2508); a foreign or malformed id answers the same. */
+export class OrderNotFoundForAddonError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ORDER_NOT_FOUND;
+  constructor() {
+    super('No such order');
+  }
+}
+
+/** The order is past the statuses an add-on may still be appended in (D2508). */
+export class OrderNotEditableError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ORDER_NOT_EDITABLE;
+  constructor() {
+    super('This order can no longer take an add-on');
+  }
+}
+
+/** The store offers no such thank-you add-on for this order (D2508); the message never repeats the ids. */
+export class AddonNotOfferedError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ADDON_NOT_OFFERED;
+  constructor() {
+    super('This add-on is not offered for this order');
+  }
+}
