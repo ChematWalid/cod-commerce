@@ -79,10 +79,10 @@ function giftOutcome(config: BxgyConfig, plan: GiftPlan): GiftOutcome {
     unitPrices.set(line.key, price);
     value += (line.unitPrice - price) * units;
   }
-  return { kind: 'gift', gifts, unitPrices, value };
+  return { kind: 'gift', gifts, unitPrices, value, namesLine: true };
 }
 
-const NO_GIFT: GiftOutcome = { kind: 'gift', gifts: new Map(), unitPrices: new Map(), value: 0 };
+const NO_GIFT: GiftOutcome = { kind: 'gift', gifts: new Map(), unitPrices: new Map(), value: 0, namesLine: false };
 
 /**
  * A buy-x-get-y offer (D2503, D2504): silent when it names no line, skipped `no_tier_reached` below its first gift,

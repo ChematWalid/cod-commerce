@@ -60,6 +60,8 @@ export interface GiftOutcome {
   readonly gifts: ReadonlyMap<string, number>;
   readonly unitPrices: ReadonlyMap<string, number>;
   readonly value: number;
+  /** Whether the cart holds a buy line of the offer: an earned gift whose get item is missing still names one (D2530). */
+  readonly namesLine: boolean;
 }
 
 /** What one offer does to a cart. */

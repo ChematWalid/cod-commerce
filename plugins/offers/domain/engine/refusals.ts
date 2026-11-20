@@ -44,15 +44,30 @@ export function refusalOf(entry: RefusedEntry, reason: SkipReason): Refusals {
   return { ...NO_REFUSALS, rejectedCodes: [{ code: entry.code, reason: CODE_REJECT_BY_SKIP[reason] }] };
 }
 
-/** Effects that are worth nothing only when the offer names no line of the cart (D2417, D2504). */
-const LINE_EFFECTS: ReadonlySet<OfferOutcome['kind']> = new Set<OfferOutcome['kind']>(['line', 'gift']);
+/**
+ * Whether a worthless outcome names no line of the cart, by outcome kind (§3a.7): a zero line outcome touches no
+ * line, a gift names none only without a buy line (D2530); order, delivery and skip outcomes never count.
+ */
+const NAMES_NO_LINE: {
+  readonly [K in OfferOutcome['kind']]: (outcome: Extract<OfferOutcome, { kind: K }>) => boolean;
+} = {
+  line: () => true,
+  gift: (outcome) => !outcome.namesLine,
+  order: () => false,
+  delivery: () => false,
+  skip: () => false,
+};
+
+const namesNoLine = (outcome: OfferOutcome): boolean =>
+  (NAMES_NO_LINE[outcome.kind] as (outcome: OfferOutcome) => boolean)(outcome);
 
 /**
  * The refusal of an offer whose effect is worth nothing: silent for an automatic offer (D2417), but a typed code whose
  * line or gift offer names no line of the cart is rejected `no_matching_items`. A zero order or delivery effect (an
- * empty subtotal, a delivery not chosen yet) stays silent: the code is not wrong.
+ * empty subtotal, a delivery not chosen yet) stays silent, and so does an earned gift whose get item is not in the
+ * cart yet (D2530): the code is not wrong.
  */
-export function zeroEffectRefusal(entry: RefusedEntry, outcomeKind: OfferOutcome['kind']): Refusals {
-  if (entry.code === null || !LINE_EFFECTS.has(outcomeKind)) return NO_REFUSALS;
+export function zeroEffectRefusal(entry: RefusedEntry, outcome: OfferOutcome): Refusals {
+  if (entry.code === null || !namesNoLine(outcome)) return NO_REFUSALS;
   return { ...NO_REFUSALS, rejectedCodes: [{ code: entry.code, reason: 'no_matching_items' }] };
 }

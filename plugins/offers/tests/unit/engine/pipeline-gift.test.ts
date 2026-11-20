@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aLine } from '../../support/builders';
-import { aBxgyOffer, BXGY_ID, lineOf, shapeOf } from '../../support/bxgy';
+import { aBxgyOffer, BUY_P1_GET_P2, BXGY_ID, lineOf, shapeOf } from '../../support/bxgy';
 import { aProductDiscount, aQuantityOffer, HOME_800, quoteOf } from '../../support/pipeline';
 
 const GIFT_KEY = `11:gift:${BXGY_ID}`;
@@ -97,5 +97,19 @@ describe('priceCart: gift lines', () => {
 
     // Assert
     expect(quote.rejectedCodes).toEqual([{ code: 'GIFT3', reason: 'no_matching_items' }]);
+  });
+
+  it('keeps the code of an earned gift whose get item is not in the cart yet and suggests the gift', () => {
+    // Arrange
+    const offer = aBxgyOffer({ getFrom: 'targets' }, { method: 'codes', targets: BUY_P1_GET_P2 });
+    const codes = new Map([['GIFT3', { offerId: BXGY_ID, usageLimit: null, usageCount: 0 }]]);
+    const cart = { lines: [aLine({ quantity: 2 })], codes: ['GIFT3'] };
+
+    // Act
+    const quote = quoteOf({ offers: [offer], codes }, cart);
+
+    // Assert
+    expect(quote.rejectedCodes).toEqual([]);
+    expect(quote.suggestions).toEqual([{ type: 'gift', offerId: BXGY_ID, units: 1 }]);
   });
 });

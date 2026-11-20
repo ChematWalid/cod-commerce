@@ -76,7 +76,7 @@ function verdictOf(entry: OfferEntry, lines: readonly RunningLine[], context: Pr
   if (entry.code === null && isWorthless(outcome)) return { eligible, candidate: null, refusals: NO_REFUSALS };
   if (reason !== null) return { eligible, candidate: null, refusals: refusalOf(entry, reason) };
   if (outcome.kind === 'skip') return { eligible, candidate: null, refusals: refusalOf(entry, outcome.reason) };
-  if (outcome.value === 0) return { eligible, candidate: null, refusals: zeroEffectRefusal(entry, outcome.kind) };
+  if (outcome.value === 0) return { eligible, candidate: null, refusals: zeroEffectRefusal(entry, outcome) };
   const lineKeys = lineKeysOf(outcome);
   const candidate = { ...entry, combinationClass: entry.calculator.combinationClass, value: outcome.value, lineKeys };
   return { eligible, candidate, refusals: NO_REFUSALS };

@@ -96,7 +96,7 @@ function settleOne(state: SettledState, candidate: Candidate, delivery: Delivery
   const applier = APPLIERS[outcome.kind] as Applier<Effect>;
   const { state: next, amount } = applier(state, candidate, outcome, delivery);
   if (amount > 0) return withApplied(next, candidate, amount);
-  return { ...next, refusals: mergeRefusals(next.refusals, zeroEffectRefusal(candidate, outcome.kind)) };
+  return { ...next, refusals: mergeRefusals(next.refusals, zeroEffectRefusal(candidate, outcome)) };
 }
 
 /**
