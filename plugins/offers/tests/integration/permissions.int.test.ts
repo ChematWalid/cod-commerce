@@ -26,6 +26,19 @@ async function codesOf(entry: OperationEntry, ids: TargetIds): Promise<readonly 
   return (await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)))).codes;
 }
 
+interface ClientErrorShape {
+  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
+}
+
+/** The error codes of one registry operation, none when it succeeds; the call is made once. */
+function codesOrNoneOf(entry: OperationEntry, ids: TargetIds): Promise<readonly string[]> {
+  return suite.kit.client.query(gql(entry.document), entry.variables(ids)).then(
+    () => [],
+    (error: unknown) =>
+      ((error as ClientErrorShape).response?.errors ?? []).map((item) => item.extensions?.code ?? 'NO_CODE'),
+  );
+}
+
 /** Every offer key but the one a handler requires: a role that can do everything else. */
 const allKeysBut = (access: PermissionKey): PermissionKey[] => OFFER_KEYS.filter((key) => key !== access);
 
@@ -175,5 +188,51 @@ describe('offers handlers refuse a role that lacks their key', () => {
 
     // Assert
     expect(offer).toEqual({ id: ids.offerId });
+  });
+});
+
+describe('offers handlers let a role holding exactly their key through (positive controls)', () => {
+  let ids: TargetIds;
+
+  beforeAll(async () => {
+    const { a } = suite.fixtures;
+    ids = await aDraftWithACode(suite, a, a.stores[0], 'OPEN10');
+  });
+
+  it('serves a member holding only offers.view the guarded offer', async () => {
+    // Arrange
+    await suite.kit.signInAsMember(suite.fixtures.a, [view]);
+
+    // Act
+    const { offer } = await suite.kit.gql<{ offer: { id: string } | null }>(
+      'query ($id: String!) { offer(id: $id) { id } }',
+      { id: ids.offerId },
+    );
+
+    // Assert
+    expect(offer).toEqual({ id: ids.offerId });
+  });
+
+  // A later cell may meet the draft published or deleted by an earlier one: any answer but FORBIDDEN passes the guard.
+  it.each(OPERATION_REGISTRY)('$operation is not FORBIDDEN for a role holding only $access', async (entry) => {
+    // Arrange
+    await suite.kit.signInAsMember(suite.fixtures.a, [entry.access]);
+
+    // Act
+    const codes = await codesOrNoneOf(entry, ids);
+
+    // Assert
+    expect(codes).not.toContain(FORBIDDEN);
+  });
+
+  it.each(ROUTE_REGISTRY)('$method $route does not answer 403 for a role holding only $access', async (entry) => {
+    // Arrange
+    await suite.kit.signInAsMember(suite.fixtures.a, [entry.access]);
+
+    // Act
+    const answer = await suite.kit.rest(entry.method, entry.url(ids), entry.body?.(ids));
+
+    // Assert
+    expect(answer.status).not.toBe(FORBIDDEN_STATUS);
   });
 });

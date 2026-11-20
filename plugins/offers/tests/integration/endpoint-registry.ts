@@ -67,7 +67,7 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   {
     operation: 'offerAppTypes',
     access: view,
-    foreign: 'own-only',
+    foreign: 'no-read',
     byId: false,
     document: 'query { offerAppTypes { id } }',
     variables: () => ({}),
@@ -75,17 +75,19 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   {
     operation: 'previewOffer',
     access: view,
-    foreign: 'own-only',
+    foreign: 'no-read',
     byId: false,
+    idField: 'variantId',
     document: 'query ($input: OfferPreviewInput!) { previewOffer(input: $input) { warnings } }',
     variables: (ids) => ({ input: { offer: offerNaming(ids) } }),
   },
   {
     operation: 'createOffer',
     access: create,
-    foreign: 'own-only',
+    foreign: 'dangling',
     byId: false,
-    document: 'mutation ($input: CreateOfferInput!) { createOffer(input: $input) { id } }',
+    idField: 'variantId',
+    document: 'mutation ($input: CreateOfferInput!) { createOffer(input: $input) { id targets { refId } } }',
     variables: (ids) => ({ input: offerNaming(ids) }),
   },
   {

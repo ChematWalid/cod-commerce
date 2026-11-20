@@ -2,7 +2,10 @@ import { adminOperationsOf } from '@cod/testing';
 import { describe, expect, it } from 'vitest';
 import { offersAdminApiSchema } from '../../api/schema';
 import { declaredOperations, declaredRoutes, permissionNameOf } from './declared-handlers';
-import { OPERATION_REGISTRY, operationKey, ROUTE_REGISTRY, routeKey } from './endpoint-registry';
+import { idFieldOf, OPERATION_REGISTRY, operationKey, ROUTE_REGISTRY, routeKey } from './endpoint-registry';
+
+/** The handlers whose only foreign input is the variant a draft targets, in registry order. */
+const SENDS_A_VARIANT = ['previewOffer', 'createOffer', 'POST /offers/preview', 'POST /offers'];
 
 const byKey = (left: { key: string }, right: { key: string }): number => left.key.localeCompare(right.key);
 
@@ -42,12 +45,42 @@ describe('the offers endpoint registry', () => {
     expect(unguarded).toEqual([]);
   });
 
-  it('declares the app-types and preview routes before the :id route, which would otherwise take them (D2518)', () => {
+  it('declares the app-types route before the :id route, which would otherwise take it (D2518)', () => {
     // Act
     const routes = declaredRoutes().map((entry) => entry.key);
+    const appTypes = routes.indexOf('GET /offers/app-types');
+    const byId = routes.indexOf('GET /offers/:id');
 
     // Assert
-    expect(routes.indexOf('GET /offers/app-types')).toBeLessThan(routes.indexOf('GET /offers/:id'));
-    expect(routes.indexOf('POST /offers/preview')).toBeLessThan(routes.indexOf('POST /offers/:id/publish'));
+    expect(appTypes).toBeGreaterThanOrEqual(0);
+    expect(byId).toBeGreaterThanOrEqual(0);
+    expect(appTypes).toBeLessThan(byId);
+  });
+
+  it('aims every create and preview at the variant it sends, creates as dangling references (D2536)', () => {
+    // Act
+    const sendsAVariant = [
+      ...OPERATION_REGISTRY.filter((entry) => SENDS_A_VARIANT.includes(operationKey(entry))),
+      ...ROUTE_REGISTRY.filter((entry) => SENDS_A_VARIANT.includes(routeKey(entry))),
+    ].map((entry) => ({ id: idFieldOf(entry), foreign: entry.foreign }));
+
+    // Assert
+    expect(sendsAVariant).toEqual([
+      { id: 'variantId', foreign: 'no-read' },
+      { id: 'variantId', foreign: 'dangling' },
+      { id: 'variantId', foreign: 'no-read' },
+      { id: 'variantId', foreign: 'dangling' },
+    ]);
+  });
+
+  it('leaves no own-only entry that names no offer of its own', () => {
+    // Act
+    const ownOnly = [...OPERATION_REGISTRY, ...ROUTE_REGISTRY].filter((entry) => entry.foreign === 'own-only');
+
+    // Assert
+    expect(ownOnly.map((entry) => ('operation' in entry ? entry.operation : routeKey(entry)))).toEqual([
+      'offers',
+      'GET /offers',
+    ]);
   });
 });

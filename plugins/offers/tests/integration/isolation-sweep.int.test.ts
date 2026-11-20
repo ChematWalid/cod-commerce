@@ -11,6 +11,7 @@ import {
   ROUTE_REGISTRY,
   type TargetIds,
 } from './endpoint-registry';
+import { OFFER_PERMISSIONS } from '../../api/permissions';
 import { aDraftWithACode, offersApiSuite } from './offers-api-kit';
 
 /** One snowflake worker id per offers integration file (D2433, D2525). */
@@ -21,6 +22,7 @@ const NOT_FOUND = PRICING_ERROR_CODES.OFFER_NOT_FOUND;
 const NOT_FOUND_STATUS = 404;
 const FORBIDDEN = 'FORBIDDEN';
 const FORBIDDEN_STATUS = 403;
+const OK_STATUS = 200;
 const MALFORMED_IDS = ['abc', '-1', '1.5', '99999999999999999999', ''];
 /** Text no answer may carry: SQL, entity names, stack frames (D2520). */
 const LEAKS = [/select /i, /QueryFailedError/, /Offer\w*Entity/, /EntityNotFound/, /\.ts:\d+:\d+/];
@@ -55,19 +57,42 @@ async function callRoute(entry: RouteEntry, ids: TargetIds): Promise<Outcome & {
   const answer = await suite.kit.rest(entry.method, entry.url(ids), entry.body?.(ids));
   const code = (answer.body as { code?: string } | null)?.code;
   const text = JSON.stringify(answer.body);
-  return { status: answer.status, code: answer.status < 400 ? undefined : code, data: answer.body, text };
+  return { status: answer.status, code: answer.status < 400 ? undefined : (code ?? NO_CODE), data: answer.body, text };
 }
 
-/** The caller's outcome must not hold the target's row: null, not found, or an answer about its own store only. */
+/** Outcomes that answer the caller successfully: an error must never pass as isolation. */
+const SUCCEEDS: ReadonlySet<string> = new Set(['own-only', 'no-read', 'dangling']);
+
+/**
+ * The caller's outcome must not hold the target's row: null, not found, an answer about its own store only, one read
+ * from the input alone, or a create keeping the target's variant id as a dangling reference (D2536).
+ */
 function expectForeign(entry: OperationEntry | RouteEntry, outcome: Outcome, ids: TargetIds): void {
+  if (SUCCEEDS.has(entry.foreign)) expect(outcome.code).toBeUndefined();
   if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
   if (entry.foreign === 'not-found') expect(outcome.code).toBe(NOT_FOUND);
   if (entry.foreign === 'own-only') expect(outcome.text).not.toContain(`"${ids[idFieldOf(entry)]}"`);
+  if (entry.foreign === 'dangling') expect(outcome.text).toContain(`"refId":"${ids[idFieldOf(entry)]}"`);
   for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
 }
 
+const OFFER_BY_ID = OPERATION_REGISTRY.find((entry) => entry.operation === 'offer') as OperationEntry;
 const byIdRoutes = ROUTE_REGISTRY.filter((entry) => entry.route.includes(':id'));
 const OFFER_STATE = 'query ($id: String!) { offer(id: $id) { id status title version codeCount } }';
+const CODES_STATE = 'query ($offerId: String!) { offerCodes(offerId: $offerId) { code } }';
+
+/** The offer's row and its code list as its owner reads them: code writes never bump the offer's version. */
+async function stateOf(offerId: string): Promise<unknown> {
+  const { offer } = await suite.kit.gql<{ offer: unknown }>(OFFER_STATE, { id: offerId });
+  const { offerCodes } = await suite.kit.gql<{ offerCodes: { code: string }[] }>(CODES_STATE, { offerId });
+  return { offer, codes: offerCodes.map((entry) => entry.code) };
+}
+
+/** A draft as `aDraftWithACode` made it, untouched. */
+const untouched = (offerId: string, code: string): unknown => ({
+  offer: { id: offerId, status: 'draft', title: ORIGINAL_TITLE, version: 1, codeCount: 1 },
+  codes: [code],
+});
 
 describe('offers isolation sweep (two businesses)', () => {
   const idsOf = new Map<BusinessFixture, TargetIds>();
@@ -126,9 +151,9 @@ describe('offers isolation sweep (two businesses)', () => {
 
   it.each(
     OPERATION_REGISTRY.filter((entry) => entry.byId).flatMap((entry) =>
-      MALFORMED_IDS.map((id) => [entry.operation, id, entry] as const),
+      MALFORMED_IDS.map((id) => [entry.operation, entry.foreign, id, entry] as const),
     ),
-  )('%s answers not found for the malformed id "%s"', async (_operation, id, entry) => {
+  )('%s answers %s for the malformed id "%s"', async (_operation, _foreign, id, entry) => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
     const ids = idsOf.get(suite.fixtures.b) as TargetIds;
@@ -179,24 +204,26 @@ describe('offers isolation sweep (two businesses)', () => {
   it.each([
     ['A', () => suite.fixtures.a],
     ['B', () => suite.fixtures.b],
-  ] as const)("leaves %s's offer and code unchanged after the other business's calls", async (_name, business) => {
+  ] as const)("leaves %s's offer and its codes unchanged after the other business's calls", async (_name, business) => {
     // Arrange
     await suite.kit.asOwner(business());
     const ids = idsOf.get(business()) as TargetIds;
 
     // Act
-    const { offer } = await suite.kit.gql<{ offer: unknown }>(OFFER_STATE, { id: ids.offerId });
+    const state = await stateOf(ids.offerId);
 
     // Assert
-    expect(offer).toEqual({ id: ids.offerId, status: 'draft', title: ORIGINAL_TITLE, version: 1, codeCount: 1 });
+    expect(state).toEqual(untouched(ids.offerId, SHARED_CODE));
   });
 
   describe("A's other store (store isolation inside one business)", () => {
     let inFirst: TargetIds;
+    let inSecond: TargetIds;
 
     beforeAll(async () => {
       const { a } = suite.fixtures;
       inFirst = await aDraftWithACode(suite, a, a.stores[0], 'FIRST10');
+      inSecond = await aDraftWithACode(suite, a, a.stores[1], 'SECOND10');
     });
 
     it.each(OPERATION_REGISTRY.filter((entry) => entry.byId))(
@@ -229,14 +256,28 @@ describe('offers isolation sweep (two businesses)', () => {
       },
     );
 
+    it("serves a member restricted to A's first store that store's offers (positive control)", async () => {
+      // Arrange
+      const { a } = suite.fixtures;
+      await suite.kit.signInAsMember(a, [OFFER_PERMISSIONS.view], [a.stores[0]]);
+
+      // Act
+      const outcome = await callOperation(OFFER_BY_ID, inFirst);
+      const rest = await suite.kit.rest('GET', '/offers');
+
+      // Assert
+      expect(outcome).toMatchObject({ code: undefined, data: { id: inFirst.offerId } });
+      expect(rest.status).toBe(OK_STATUS);
+    });
+
     it("refuses a member restricted to A's first store on the second store's offers", async () => {
       // Arrange
       const { a } = suite.fixtures;
-      await suite.kit.signInAsMember(a, ['offers.view'], [a.stores[0]]);
+      await suite.kit.signInAsMember(a, [OFFER_PERMISSIONS.view], [a.stores[0]]);
       suite.kit.client.setChannelToken(a.stores[1].channelToken);
 
       // Act
-      const outcome = await callOperation(OPERATION_REGISTRY[0] as OperationEntry, inFirst);
+      const outcome = await callOperation(OFFER_BY_ID, inSecond);
       const rest = await suite.kit.rest('GET', '/offers');
 
       // Assert
@@ -244,15 +285,15 @@ describe('offers isolation sweep (two businesses)', () => {
       expect(rest.status).toBe(FORBIDDEN_STATUS);
     });
 
-    it("leaves the first store's offer unchanged after those calls", async () => {
+    it("leaves the first store's offer and its codes unchanged after those calls", async () => {
       // Arrange
       await suite.kit.asOwner(suite.fixtures.a);
 
       // Act
-      const { offer } = await suite.kit.gql<{ offer: unknown }>(OFFER_STATE, { id: inFirst.offerId });
+      const state = await stateOf(inFirst.offerId);
 
       // Assert
-      expect(offer).toEqual({ id: inFirst.offerId, status: 'draft', title: ORIGINAL_TITLE, version: 1, codeCount: 1 });
+      expect(state).toEqual(untouched(inFirst.offerId, 'FIRST10'));
     });
   });
 });

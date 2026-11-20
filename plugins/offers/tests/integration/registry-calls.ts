@@ -13,10 +13,15 @@ export interface TargetIds {
 export type TargetIdField = keyof TargetIds;
 
 /**
- * What another business's caller gets when it names the target's ids: `null` (a read of none), `not-found`
- * (`offers.offer-not-found` or 404), or `own-only` (an answer about its own store only).
+ * What another business's caller gets when it names the target's ids:
+ * - `null`: a read of none;
+ * - `not-found`: `offers.offer-not-found` (REST 404);
+ * - `own-only`: a successful answer about its own store only, never holding the target's id;
+ * - `no-read`: a successful answer computed from the input alone, reading no row (app types, preview, D2516);
+ * - `dangling`: a successful create in the caller's store that keeps the target's variant id as a plain reference,
+ *   never checked against the target's store and never reading its row (D2536).
  */
-export type ForeignOutcome = 'null' | 'not-found' | 'own-only';
+export type ForeignOutcome = 'null' | 'not-found' | 'own-only' | 'no-read' | 'dangling';
 
 /** One Admin API operation of the plugin, with a call aimed at a target's ids. */
 export interface OperationEntry {
