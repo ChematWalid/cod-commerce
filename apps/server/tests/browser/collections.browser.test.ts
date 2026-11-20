@@ -31,6 +31,7 @@ import { assertNoPageError, loginAsDemoOwner, loginAsOwner, setDisplayLanguage }
 import { byTestId } from './store-switcher-fixtures';
 
 const PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
+const COLLECTIONS_VIEWER_EMAIL = 'collectionsview@demo.example.test';
 const LIST_PATH = '/stores/active/collections';
 const NEW_PATH = `${LIST_PATH}/new`;
 const EDITED_COLLECTION_URL = /\/stores\/[^/]+\/collections\/(\d+)$/;
@@ -47,6 +48,14 @@ const tick = (within: Page | Locator, name: string) => within.getByRole('checkbo
 async function addCondition(page: Page): Promise<void> {
   await byTestId(page, ADD_CONDITION_TEST_ID).click();
 }
+
+/** Moves a condition row to the field the select names `name`. */
+async function chooseField(page: Page, index: number, name: string): Promise<void> {
+  await conditionRow(page, index).getByRole('combobox', { name: 'Field' }).click();
+  await page.getByRole('option', { name, exact: true }).click();
+}
+
+const titleWordInput = (page: Page, index: number) => conditionRow(page, index).getByLabel('Word in the title');
 
 /** Turns the editor's collection automatic. */
 async function makeAutomatic(page: Page): Promise<void> {
@@ -207,6 +216,22 @@ describe('collections pages', () => {
       .toEqual([expect.stringContaining(`Block product renamed ${runId}`)]);
   });
 
+  it('removing the first title row keeps the word typed in the second row with it', async () => {
+    await open(page, NEW_PATH);
+    await makeAutomatic(page);
+    await addCondition(page);
+    await chooseField(page, 0, 'Title');
+    await addCondition(page);
+    await chooseField(page, 1, 'Title');
+    await titleWordInput(page, 0).fill('shoe');
+    await titleWordInput(page, 1).fill('boot');
+
+    await conditionRow(page, 0).getByRole('button', { name: 'Remove', exact: true }).click();
+
+    await expect.poll(() => byTestId(page, CONDITION_ROW_TEST_ID).count()).toBe(1);
+    await expect(titleWordInput(page, 0).inputValue()).resolves.toBe('boot');
+  });
+
   it('Arabic: dir=rtl and no raw message id', async () => {
     await setDisplayLanguage(page, 'ar');
     await open(page, NEW_PATH);
@@ -221,18 +246,21 @@ describe('collections pages', () => {
 });
 
 describe('collections pages for a member', () => {
-  it('perstore member without create sees no Create button', async () => {
+  it('a member who can see collections but not create them sees the list and no Create button', async () => {
     const browser = await chromium.launch();
     try {
       const page = await (await browser.newContext()).newPage();
-      await loginAsOwner(page, DASHBOARD_URL, PER_STORE_MEMBER_EMAIL);
+      await loginAsOwner(page, DASHBOARD_URL, COLLECTIONS_VIEWER_EMAIL);
       await setDisplayLanguage(page, 'en');
 
       await open(page, LIST_PATH);
+      const list = byTestId(page, COLLECTION_LIST_TEST_ID);
+      await list.waitFor();
       await page.waitForLoadState('networkidle');
 
+      await expect(list.isVisible()).resolves.toBe(true);
       await expect(byTestId(page, CREATE_COLLECTION_TEST_ID).count()).resolves.toBe(0);
-      await expect(byTestId(page, COLLECTION_LIST_TEST_ID).locator('text=collections.').count()).resolves.toBe(0);
+      await expect(list.innerText()).resolves.not.toMatch(/collections\.[a-z]/);
     } finally {
       await browser.close();
     }

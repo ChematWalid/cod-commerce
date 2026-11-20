@@ -33,6 +33,8 @@ export const DEMO_NO_VIEW_MEMBER_EMAIL = 'noview@demo.example.test';
 export const DEMO_SETTINGS_VIEWER_EMAIL = 'settingsview@demo.example.test';
 /** Can view products on the first store only, and is a member of the second store without that key. */
 export const DEMO_PER_STORE_MEMBER_EMAIL = 'perstore@demo.example.test';
+/** Can see products and collections, and create neither, so a hidden Create button is proven gated on its own key. */
+export const DEMO_COLLECTIONS_VIEWER_EMAIL = 'collectionsview@demo.example.test';
 
 const DEMO_MEMBERS: readonly DemoMember[] = [
   {
@@ -70,6 +72,13 @@ const DEMO_MEMBERS: readonly DemoMember[] = [
     grants: ['catalog.products.view'],
     storeAccess: 'selected',
     bareOnSecondStore: true,
+  },
+  {
+    emailAddress: DEMO_COLLECTIONS_VIEWER_EMAIL,
+    firstName: 'CollectionsView',
+    roleName: 'Demo collections viewer',
+    grants: ['catalog.products.view', 'catalog.collections.view'],
+    storeAccess: 'all',
   },
 ];
 
