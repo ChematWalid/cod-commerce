@@ -6,14 +6,16 @@ import {
 } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import { FullWidthPageBlock, Page, PageLayout, PageTitle } from '@vendure/dashboard';
+import { useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useState } from 'react';
 import { ConfirmStep } from '../components/confirm-step';
 import { ImportSteps } from '../components/import-steps';
 import { MappingStep } from '../components/mapping-step';
 import { PreviewStep } from '../components/preview-step';
 import { UploadStep } from '../components/upload-step';
-import { CATALOG_IMPORT_PAGE_TEST_ID, CREATE_PRODUCTS_KEY } from '../constants';
+import { CATALOG_IMPORT_PAGE_TEST_ID, CREATE_PRODUCTS_KEY, IMPORT_PREVIEW_QUERY_KEY } from '../constants';
 import {
+  type ColumnMapping,
   initialWizard,
   previousStep,
   withAnalyzed,
@@ -28,11 +30,16 @@ import type { CatalogImportDto, ImportPreviewDto } from '../queries';
 const IMPORT_PAGE_ID = 'catalog-import-page';
 const IMPORT_BLOCK_ID = 'catalog-import-wizard';
 
-/** The wizard's state and what the server answered along the way. */
+/**
+ * The wizard's state, what the server answered along the way and the mapping last sent (kept for Back). A new preview
+ * drops the cached preview pages, which were planned with the earlier mapping.
+ */
 function useWizard() {
+  const queryClient = useQueryClient();
   const [state, setState] = useState<WizardState>(initialWizard);
   const [analyzed, setAnalyzed] = useState<CatalogImportDto | null>(null);
   const [preview, setPreview] = useState<ImportPreviewDto | null>(null);
+  const [mapping, setMapping] = useState<readonly ColumnMapping[] | null>(null);
   const back = (): void => {
     setState((current) => previousStep(current) ?? current);
   };
@@ -40,13 +47,17 @@ function useWizard() {
     state,
     analyzed,
     preview,
+    mapping,
     back,
     onAnalyzed: (job: CatalogImportDto) => {
       setAnalyzed(job);
+      setMapping(null);
       setState((current) => withAnalyzed(current, job.importId));
     },
-    onPreviewed: (answer: ImportPreviewDto) => {
+    onPreviewed: (answer: ImportPreviewDto, sent: readonly ColumnMapping[]) => {
+      queryClient.removeQueries({ queryKey: IMPORT_PREVIEW_QUERY_KEY });
       setPreview(answer);
+      setMapping(sent);
       setState(withPreviewed);
     },
     onReviewed: () => {
@@ -72,6 +83,7 @@ function StepPanel({ scope, wizard }: { readonly scope: StoreScope | null; reado
         scope={scope}
         importId={importId}
         columns={analyzed.columns}
+        sent={wizard.mapping}
         onBack={wizard.back}
         onPreviewed={wizard.onPreviewed}
       />

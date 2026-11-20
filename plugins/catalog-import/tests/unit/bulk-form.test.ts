@@ -6,7 +6,7 @@ import {
   bulkRequestOf,
   CLEAR_BRAND,
   emptyBulkForm,
-  nextBulkPhase,
+  phaseAfterAnswer,
 } from '../../dashboard/model/bulk-form';
 
 const ids = ['11', '12'];
@@ -45,16 +45,52 @@ describe('bulk edit form', () => {
 
     // Act
     const first = bulkRequestOf(form, ids, 'edit');
-    const reviewed = nextBulkPhase('edit');
+    if (!first.ok) throw new Error('the form must be valid');
+    const reviewed = phaseAfterAnswer(first.input, first) ?? 'edit';
     const second = bulkRequestOf(form, ids, reviewed);
-    const done = nextBulkPhase(reviewed);
+    if (!second.ok) throw new Error('the form must be valid');
+    const done = phaseAfterAnswer(second.input, second);
 
     // Assert
-    expect(first.ok && first.input.dryRun).toBe(true);
+    expect(first.input.dryRun).toBe(true);
     expect(reviewed).toBe('reviewed');
-    expect(second.ok && second.input.dryRun).toBe(false);
-    expect(second.ok && second.input.productIds).toEqual(ids);
+    expect(second.input.dryRun).toBe(false);
+    expect(second.input.productIds).toEqual(ids);
     expect(done).toBe('applied');
-    expect(nextBulkPhase('applied')).toBe('applied');
+  });
+
+  it('an answer for an older form does not unlock apply', () => {
+    // Arrange: a dry run of "status draft" is in flight when the merchant also sets a fixed price
+    const sent = bulkRequestOf({ ...emptyBulkForm(), status: 'draft' }, ids, 'edit');
+    const changed = bulkRequestOf(
+      { ...emptyBulkForm(), status: 'draft', priceMode: 'fixed', priceValue: '0' },
+      ids,
+      'edit',
+    );
+    const same = bulkRequestOf({ ...emptyBulkForm(), status: 'draft' }, ids, 'edit');
+    if (!sent.ok) throw new Error('the sent form must be valid');
+
+    // Act
+    const stale = phaseAfterAnswer(sent.input, changed);
+    const invalidNow = phaseAfterAnswer(sent.input, bulkRequestOf(emptyBulkForm(), ids, 'edit'));
+    const current = phaseAfterAnswer(sent.input, same);
+
+    // Assert
+    expect(stale).toBeNull();
+    expect(invalidNow).toBeNull();
+    expect(current).toBe('reviewed');
+  });
+
+  it('an apply answer always ends in applied, since the products were written', () => {
+    // Arrange
+    const form: BulkForm = { ...emptyBulkForm(), status: 'draft' };
+    const applied = bulkRequestOf(form, ids, 'reviewed');
+    if (!applied.ok) throw new Error('the applied form must be valid');
+
+    // Act
+    const phase = phaseAfterAnswer(applied.input, bulkRequestOf({ ...form, status: 'active' }, ids, 'edit'));
+
+    // Assert
+    expect(phase).toBe('applied');
   });
 });

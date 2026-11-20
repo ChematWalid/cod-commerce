@@ -88,5 +88,16 @@ export function bulkRequestOf(form: BulkForm, productIds: readonly string[], pha
   return { ok: true, input: { productIds: [...productIds], changes, dryRun: phase === 'edit' } };
 }
 
-/** The phase after a successful request: a dry run leads to the review, an apply ends the dialog's work. */
-export const nextBulkPhase = (phase: BulkPhase): BulkPhase => (phase === 'edit' ? 'reviewed' : 'applied');
+/** Whether two requests ask the same change of the same products (the dry-run flag aside). */
+const sameEdit = (left: BulkEditInput, right: BulkEditInput): boolean =>
+  JSON.stringify([left.productIds, left.changes]) === JSON.stringify([right.productIds, right.changes]);
+
+/**
+ * The phase a successful answer to `sent` leads to, given the request the form makes now; `null` when the answer is
+ * for an older form and must be ignored. A dry run unlocks apply only for the form it ran on (D2213); an apply always
+ * ends the dialog's work, since the products were written.
+ */
+export function phaseAfterAnswer(sent: BulkEditInput, current: BulkRequest): BulkPhase | null {
+  if (!sent.dryRun) return 'applied';
+  return current.ok && sameEdit(sent, current.input) ? 'reviewed' : null;
+}

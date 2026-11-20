@@ -88,7 +88,7 @@ export function PreviewStep(props: PreviewStepProps): ReactNode {
   const { i18n } = useLingui();
   const [skip, setSkip] = useState(0);
   const page = useImportPreview(props.scope, props.importId, skip);
-  const shown = page.data ?? props.first;
+  const shown = skip === 0 ? props.first : (page.data ?? props.first);
   return (
     <div className="grid gap-4">
       <ImportSummaryView summary={shown.summary ?? props.first.summary} />

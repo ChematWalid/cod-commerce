@@ -131,11 +131,11 @@ export function useImportJob(scope: StoreScope | null, importId: string | null) 
   });
 }
 
-/** One page of the import's planned rows. */
+/** One page of the import's planned rows; page 0 is not read, since the preview mutation answered it. */
 export function useImportPreview(scope: StoreScope | null, importId: string, skip: number) {
   const page = { id: importId, skip, take: PREVIEW_PAGE_SIZE };
-  return useQuery(
-    storeQuery(
+  return useQuery({
+    ...storeQuery(
       IMPORT_PREVIEW_QUERY_KEY,
       scope,
       async () =>
@@ -143,7 +143,8 @@ export function useImportPreview(scope: StoreScope | null, importId: string, ski
           .catalogImportPreview,
       page,
     ),
-  );
+    enabled: skip > 0,
+  });
 }
 
 /** The export job, read again until it is done or failed; not read while `exportId` is null. */

@@ -137,7 +137,7 @@ export function ExportDialog({ scope, entity, onClose }: ExportDialogProps): Rea
         <ExportChoices
           form={form}
           selected={entity.selectedIds.length}
-          disabled={job !== undefined}
+          disabled={job !== undefined || start.isPending}
           onChange={setForm}
         />
         {!request.ok && <p className="text-muted-foreground text-sm">{i18n._(request.messageId)}</p>}

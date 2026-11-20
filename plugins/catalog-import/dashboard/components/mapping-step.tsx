@@ -42,8 +42,10 @@ interface MappingStepProps {
   readonly scope: StoreScope | null;
   readonly importId: string;
   readonly columns: readonly ImportColumn[];
+  /** The mapping last sent for this import, kept when the merchant comes back from the preview; else the server's guess. */
+  readonly sent: readonly ColumnMapping[] | null;
   readonly onBack: () => void;
-  readonly onPreviewed: (preview: ImportPreviewDto) => void;
+  readonly onPreviewed: (preview: ImportPreviewDto, mapping: readonly ColumnMapping[]) => void;
 }
 
 /** The field choices, translated, the first one ignoring the column. */
@@ -123,10 +125,12 @@ function MappingTable(props: {
 export function MappingStep(props: MappingStepProps): ReactNode {
   const { i18n } = useLingui();
   const onFailure = useFailureToast();
-  const [mapping, setMapping] = useState<readonly ColumnMapping[]>(() => mappingOf(props.columns));
+  const [mapping, setMapping] = useState<readonly ColumnMapping[]>(() => props.sent ?? mappingOf(props.columns));
   const preview = useMutation({
-    mutationFn: () => previewImport(props.scope, props.importId, mapping),
-    onSuccess: props.onPreviewed,
+    mutationFn: (sent: readonly ColumnMapping[]) => previewImport(props.scope, props.importId, sent),
+    onSuccess: (answer, sent) => {
+      props.onPreviewed(answer, sent);
+    },
     onError: onFailure,
   });
   return (
@@ -140,7 +144,7 @@ export function MappingStep(props: MappingStepProps): ReactNode {
           data-testid={IMPORT_MAPPING_NEXT_TEST_ID}
           disabled={preview.isPending}
           onClick={() => {
-            preview.mutate();
+            preview.mutate(mapping);
           }}
         >
           {i18n._('catalog-import.mapping-next')}

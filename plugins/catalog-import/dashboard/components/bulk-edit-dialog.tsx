@@ -2,10 +2,17 @@ import type { StoreScope } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import { useMutation } from '@tanstack/react-query';
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@vendure/dashboard';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { BULK_DIALOG_TEST_ID, BULK_SUBMIT_TEST_ID } from '../constants';
 import { useFailureToast, useProductsChanged } from '../hooks/use-catalog-import';
-import { type BulkForm, type BulkPhase, bulkRequestOf, emptyBulkForm, nextBulkPhase } from '../model/bulk-form';
+import {
+  type BulkEditInput,
+  type BulkForm,
+  type BulkPhase,
+  bulkRequestOf,
+  emptyBulkForm,
+  phaseAfterAnswer,
+} from '../model/bulk-form';
 import { bulkEditProducts, type BulkEditProductResultDto } from '../queries';
 import { BulkFields } from './bulk-fields';
 import { BulkResult } from './bulk-result';
@@ -22,7 +29,10 @@ const SUBMIT_LABEL_IDS = {
   applied: 'catalog-import.close',
 } as const satisfies Record<BulkPhase, string>;
 
-/** The form, the phase and the last answer; a changed form needs a new dry run. */
+/**
+ * The form, the phase and the last answer; a changed form needs a new dry run. The form is locked while a request runs,
+ * and an answer for an older form is ignored, so apply only ever writes a form whose dry run the merchant saw (D2213).
+ */
 function useBulkEdit(props: BulkEditDialogProps) {
   const onFailure = useFailureToast();
   const productsChanged = useProductsChanged();
@@ -30,24 +40,29 @@ function useBulkEdit(props: BulkEditDialogProps) {
   const [phase, setPhase] = useState<BulkPhase>('edit');
   const [results, setResults] = useState<readonly BulkEditProductResultDto[] | null>(null);
   const request = bulkRequestOf(form, props.productIds, phase);
+  const latest = useRef(request);
+  latest.current = request;
   const send = useMutation({
-    mutationFn: async () => {
-      if (!request.ok) throw new Error(request.messageId);
-      return bulkEditProducts(props.scope, request.input);
-    },
-    onSuccess: async (answer) => {
+    mutationFn: async (input: BulkEditInput) => bulkEditProducts(props.scope, input),
+    onSuccess: async (answer, sent) => {
+      const next = phaseAfterAnswer(sent, latest.current);
+      if (next === null) return;
       setResults(answer);
-      setPhase(nextBulkPhase(phase));
-      if (phase === 'reviewed') await productsChanged();
+      setPhase(next);
+      if (!sent.dryRun) await productsChanged();
     },
     onError: onFailure,
   });
   const onChange = (change: Partial<BulkForm>): void => {
+    if (send.isPending) return;
     setForm((current) => ({ ...current, ...change }));
     setPhase('edit');
     setResults(null);
   };
-  return { form, phase, results, request, send, onChange };
+  const submit = (): void => {
+    if (request.ok) send.mutate(request.input);
+  };
+  return { form, phase, results, request, send, submit, onChange };
 }
 
 type BulkEdit = ReturnType<typeof useBulkEdit>;
@@ -69,7 +84,7 @@ function BulkFooter({ bulk, onClose }: { readonly bulk: BulkEdit; readonly onClo
         disabled={!applied && (!bulk.request.ok || bulk.send.isPending)}
         onClick={() => {
           if (applied) onClose();
-          else bulk.send.mutate();
+          else bulk.submit();
         }}
       >
         {i18n._(SUBMIT_LABEL_IDS[bulk.phase])}
@@ -96,7 +111,12 @@ export function BulkEditDialog(props: BulkEditDialogProps): ReactNode {
         <DialogHeader>
           <DialogTitle>{i18n._('catalog-import.bulk-title', { count: props.productIds.length })}</DialogTitle>
         </DialogHeader>
-        <BulkFields scope={props.scope} form={bulk.form} disabled={bulk.phase === 'applied'} onChange={bulk.onChange} />
+        <BulkFields
+          scope={props.scope}
+          form={bulk.form}
+          disabled={bulk.phase === 'applied' || bulk.send.isPending}
+          onChange={bulk.onChange}
+        />
         {!bulk.request.ok && bulk.phase !== 'applied' && (
           <p className="text-muted-foreground text-sm">{i18n._(bulk.request.messageId)}</p>
         )}
