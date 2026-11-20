@@ -7,7 +7,7 @@ out/
 .turbo/
 coverage/
 *.log
-.eslintcache
+.eslintcache*
 
 # Dashboard build output, the GraphQL types its Vite plugin generates, and browser-test artefacts
 apps/server/dist/dashboard/
