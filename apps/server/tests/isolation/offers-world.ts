@@ -5,7 +5,10 @@ import { RequestContextService } from '@vendure/core';
 import { catalogOf, restIdOf } from './catalog-world';
 import type { BusinessWorld, WorldStore } from './world-types';
 
-/** What each seeded offer takes off every unit (D2409 percent); different, so a leak names its owner in the amounts. */
+/**
+ * What each seeded offer takes off every unit (D2409 percent). The automatic and code offers differ so their amounts
+ * cannot be confused; both businesses seed the same percents, so a cross-business leak is detected by offer id.
+ */
 const AUTOMATIC_PERCENT = 10;
 const CODE_PERCENT = 20;
 
