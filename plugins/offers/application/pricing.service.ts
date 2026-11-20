@@ -5,7 +5,7 @@ import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import { mergeLines } from '../domain/engine/merge-lines';
 import { type OrderRelease, type OrderUsage, releaseOrderUsage } from '../domain/engine/order-usage';
 import { priceCart } from '../domain/engine/pipeline';
-import type { PricedQuote } from '../domain/engine/priced-quote';
+import type { PricedQuote, TokenUse } from '../domain/engine/priced-quote';
 import { InvalidQuoteRequestError, NoActiveStoreError } from '../domain/errors';
 import type { ActiveStorePort } from '../domain/ports/active-store.port';
 import type { OperationContext } from '../domain/ports/operation-context.port';
@@ -31,8 +31,9 @@ export interface RepriceInput {
   /**
    * The offers and codes the order already holds. The stored usage counts include this order's own uses, so both carts
    * are priced with them given back; without it an order that took an offer's last use would lose the offer on edit.
-   * The caller builds it from the stored order (its lines' `offerIds` and the codes of its `quoteDiscounts`), never
-   * from a request body. The buyer's own uses and order count are given back only for a cart that keeps the phone of
+   * The caller builds it with `orderUsageOf` from the order's stored `appliedOffers` (the intake token's `o`, then
+   * `OrderFields.appliedOffers` after each saved change, D2445), never from a request body: lines' `offerIds` and
+   * `quoteDiscounts` miss the code of a line offer and every delivery offer. The buyer's own uses and order count are given back only for a cart that keeps the phone of
    * `current`, the order as stored; `buyerOrdersBefore`, the buyer's order count the order recorded when it was
    * created (null or omitted when it recorded none), keeps a buyer's first order first after the buyer orders again
    * (D2442).
@@ -54,6 +55,11 @@ export interface OrderFields {
   /** JSON of the token's order discounts `d`. */
   readonly quoteDiscounts: string;
   readonly quotedShipping: number;
+  /**
+   * Every offer the changed cart applied, with the code that activated it (D2445): what the order holds, to store and
+   * to rebuild the next edit's `orderUsage` from (`orderUsageOf`).
+   */
+  readonly appliedOffers: readonly TokenUse[];
   /**
    * The buyer's orders before this one, to store on the order in place of the count it holds (D2442): the recorded
    * count while the changed cart keeps the order's phone, the new phone's own count when the edit changes it, null
@@ -119,7 +125,7 @@ const tokenCartOf = (request: QuoteRequest): TokenCart => ({
   phone: request.phone ?? null,
 });
 
-/** The quote without the engine's token parts (`tokenLines`, `tokenDiscounts`, `phoneUsed`), field by field. */
+/** The quote without the engine's token parts (`tokenLines`, `tokenDiscounts`, `tokenUses`, `phoneUsed`). */
 function publicQuoteOf(priced: PricedQuote): Omit<Quote, 'quoteToken' | 'expiresAt'> {
   const { currency, lines, discounts, subtotal, discountTotal, delivery, total, savings, nudge } = priced;
   const { applied, skipped, rejectedCodes, suggestions, available, orderPricingMode, unavailableVariantIds } = priced;
@@ -146,6 +152,7 @@ function orderFieldsOf({ priced, buyerOrdersBefore }: EvaluatedCart): OrderField
     })),
     quoteDiscounts: JSON.stringify(priced.tokenDiscounts),
     quotedShipping: priced.delivery.price,
+    appliedOffers: [...priced.tokenUses],
     buyerOrdersBefore,
   };
 }

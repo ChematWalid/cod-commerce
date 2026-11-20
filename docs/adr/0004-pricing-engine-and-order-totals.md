@@ -50,7 +50,7 @@ Option 3, with 3a and P0.
 **Quote token** `qt1.<payload>.<sig>`
 - `payload` = base64url (no padding) of canonical JSON (sorted keys, no whitespace): `{ v: 1, kid, b: businessId, s: storeId, h, exp, t, sh, l, d, a, n }`.
   - `h` = SHA-256 (hex) of the canonical cart: lines sorted by `variantId` as `variantId:qty`, destination (`provinceCode`, `townOns`, `stopdesk`), sorted codes, and the phone hash if any applied offer's eligibility used the phone.
-  - `t` = total, `sh` = shipping price, `l` = lines `[{ variantId, qty, unitPrice, originalPrice, offerIds }]`, `d` = order-level discounts `[{ amount, offerId | code }]`, `a` = add-ons `[{ variantId, qty, unitPrice, parentVariantId }]`. All whole DZD integers.
+  - `t` = total, `sh` = shipping price, `l` = lines `[{ variantId, qty, unitPrice, originalPrice, offerIds }]`, `d` = order-level discounts `[{ amount, offerId | code }]`, `o` = every applied offer `[{ offerId, code? }]`, stored on the order as `appliedOffers` so an edit gives back exactly the uses the order holds (D2445), `a` = add-ons `[{ variantId, qty, unitPrice, parentVariantId }]`. All whole DZD integers.
   - `exp` = issue time + 15 min (epoch seconds); `n` = 96-bit random nonce.
 - `sig` = base64url HMAC-SHA256 over the ASCII bytes `qt1.<payload>` with the platform key named by `kid`.
 - **Key rotation**: keys live in a versioned secret `QUOTE_HMAC_KEYS = { kid: key }` with `QUOTE_HMAC_ACTIVE_KID`. Rotation: add the new key, switch the active `kid`, keep verifying the old `kid` for 30 min (2 × token lifetime), then remove it. Verification with an unknown `kid` fails like a bad signature.

@@ -1,6 +1,7 @@
 import type { Offer } from '../offer';
 import type { CodeEntry, PricingSnapshot } from '../snapshot';
 import { normaliseCode } from './codes';
+import type { TokenUse } from './priced-quote';
 
 /** The uses an existing order already holds: the offers applied to it and the codes it was placed with (D2427). */
 export interface OrderUsage {
@@ -13,6 +14,18 @@ export interface OrderUsage {
    * current phone: the caller stores `OrderFields.buyerOrdersBefore` after every saved change.
    */
   readonly buyerOrdersBefore?: number | null;
+}
+
+/**
+ * The uses an order holds, from the applied offers it stores (`OrderFields.appliedOffers`, or the intake token's `o`,
+ * D2445): every applied offer once, and the code of each one a code activated.
+ */
+export function orderUsageOf(applied: readonly TokenUse[], buyerOrdersBefore?: number | null): OrderUsage {
+  return {
+    offerIds: [...new Set(applied.map((use) => use.offerId))],
+    codes: applied.flatMap((use) => (use.code === undefined ? [] : [use.code])),
+    ...(buyerOrdersBefore === undefined ? {} : { buyerOrdersBefore }),
+  };
 }
 
 /**

@@ -36,6 +36,7 @@ const quotePayloadSchema = z.object({
     }),
   ),
   d: z.array(z.object({ amount: wholeDzd, offerId: decimalId, code: z.string().optional() })),
+  o: z.array(z.object({ offerId: decimalId, code: z.string().optional() })),
   a: z.array(
     z.object({
       variantId: decimalId,
@@ -49,7 +50,8 @@ const quotePayloadSchema = z.object({
 
 /**
  * The signed payload of a quote token (ADR 0004, D2421): business `b`, store `s`, cart hash `h`, phone flag `p`,
- * total `t`, delivery price `sh`, lines `l`, order discounts `d`, add-ons `a` (empty until P2.S5), expiry `exp`
+ * total `t`, delivery price `sh`, lines `l`, order discounts `d`, applied offers with their codes `o` (D2445), add-ons
+ * `a` (empty until P2.S5), expiry `exp`
  * (epoch seconds) and nonce `n`. Ids are decimal strings, since snowflakes exceed 2^53; money is whole DZD.
  */
 export type QuotePayload = z.infer<typeof quotePayloadSchema>;

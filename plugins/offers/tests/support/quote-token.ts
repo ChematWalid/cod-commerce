@@ -41,6 +41,7 @@ export const aBody = (overrides: Partial<QuotePayloadBody> = {}): QuotePayloadBo
   sh: 0,
   l: [{ variantId: '7', qty: 2, unitPrice: 4_410, originalPrice: 4_900, offerIds: ['7001'] }],
   d: [],
+  o: [{ offerId: '7001' }],
   a: [],
   ...overrides,
 });

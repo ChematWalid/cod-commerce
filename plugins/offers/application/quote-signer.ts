@@ -52,6 +52,7 @@ export class QuoteSigner {
       sh: priced.delivery.price,
       l: priced.tokenLines.map((line) => ({ ...line, offerIds: [...line.offerIds] })),
       d: [...priced.tokenDiscounts],
+      o: [...priced.tokenUses],
       a: [],
     };
     return signQuote({ ring: this.deps.ring, payload, issuedAt: this.epochSeconds(), nonce: this.deps.nonce() });

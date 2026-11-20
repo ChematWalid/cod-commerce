@@ -1,4 +1,10 @@
-import { ORDER_PRICING_MODES, PLATFORM_CURRENCY_CODE, type OrderDiscount, type RejectedCode } from '@cod/shared';
+import {
+  type AppliedOffer,
+  ORDER_PRICING_MODES,
+  PLATFORM_CURRENCY_CODE,
+  type OrderDiscount,
+  type RejectedCode,
+} from '@cod/shared';
 import type { PricingCart, RunningLine } from '../cart';
 import type { PricingSnapshot } from '../snapshot';
 import { assessOffers, entriesOf } from './candidates';
@@ -10,7 +16,7 @@ import type { OfferKindRegistry } from './kind-registry';
 import type { DeliveryContext } from './outcome';
 import { quoteLinesOf, tokenLinesOf } from './line-stage';
 import { mergeLines } from './merge-lines';
-import type { PricedQuote, TokenDiscount } from './priced-quote';
+import type { PricedQuote, TokenDiscount, TokenUse } from './priced-quote';
 import { runningLinesOf, type OfferEntry } from './pricing-state';
 import { mergeRefusals, refusalOf } from './refusals';
 import { settle, type SettledState } from './settle';
@@ -53,6 +59,10 @@ function priceOffers({ registry, snapshot, cart }: PriceCartInput): PricedOffers
 const tokenDiscountsOf = (discounts: readonly OrderDiscount[]): TokenDiscount[] =>
   discounts.map(({ amount, offerId, code }) => ({ amount, offerId, ...(code === undefined ? {} : { code }) }));
 
+/** Every applied offer with its code, as the token signs them (ADR 0004 `o`, D2445). */
+const tokenUsesOf = (applied: readonly AppliedOffer[]): TokenUse[] =>
+  applied.map(({ offerId, code }) => ({ offerId, ...(code === undefined ? {} : { code }) }));
+
 /**
  * Prices a cart (ADR 0004, D2412): offers by stage, then delivery → totals → nudge and suggestions. Pure: everything
  * it reads is in the input. Every line is available here; the service marks unavailable variants (D2425).
@@ -80,6 +90,7 @@ export function priceCart(input: PriceCartInput): PricedQuote {
     unavailableVariantIds: [],
     tokenLines: tokenLinesOf(quoteLines),
     tokenDiscounts: tokenDiscountsOf(discounts),
+    tokenUses: tokenUsesOf(settled.applied),
     phoneUsed: settled.phoneUsed,
   };
 }

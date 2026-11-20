@@ -16,7 +16,8 @@ export {
 } from './application/pricing.service';
 export { OfferAdminService } from './application/offer-admin.service';
 export type { OfferRecord, StoredCode } from './domain/offer-record';
-export type { OrderUsage } from './domain/engine/order-usage';
+export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';
+export type { TokenUse } from './domain/engine/priced-quote';
 export type { QuotePayload, QuoteRejectReason, QuoteVerification } from './domain/token/quote-token';
 export { asOperationContext } from './domain/ports/operation-context.port';
 
