@@ -1,4 +1,5 @@
 import type { RejectedCode } from '@cod/shared';
+import type { Offer } from '../offer';
 import type { PricingSnapshot } from '../snapshot';
 
 /** The codes a cart activated and the ones it could not use, before any offer is evaluated. */
@@ -19,23 +20,29 @@ type CodeCheck = (
   activated: ReadonlyMap<string, string>,
 ) => RejectedCode['reason'] | null;
 
-/** Whether the code's offer is priced now: only active offers enter the snapshot (D2419). */
-const isOfferActive = (offerId: string, snapshot: PricingSnapshot): boolean =>
-  snapshot.offers.some((offer) => offer.id === offerId && offer.status === 'active');
+/** The code's offer when it is priced now: only active offers enter the snapshot (D2419). */
+const activeOfferOf = (offerId: string, snapshot: PricingSnapshot): Offer | undefined =>
+  snapshot.offers.find((offer) => offer.id === offerId && offer.status === 'active');
 
-/** Why the store refuses `code` before its offer is evaluated, or `null` when it activates its offer. */
+/**
+ * Why the store refuses `code` before its offer is evaluated, or `null` when it activates its offer. A code of an
+ * automatic offer activates nothing (D2449): it is `not_found`, so it is never recorded as a code use.
+ */
 const checkCode: CodeCheck = (code, snapshot, activated) => {
   const entry = snapshot.codes.get(code);
   if (entry === undefined) return 'not_found';
-  if (!isOfferActive(entry.offerId, snapshot)) return 'inactive';
+  const offer = activeOfferOf(entry.offerId, snapshot);
+  if (offer === undefined) return 'inactive';
+  if (offer.method !== 'codes') return 'not_found';
   if (entry.usageLimit !== null && entry.usageCount >= entry.usageLimit) return 'code_limit';
   return activated.has(entry.offerId) ? 'duplicate' : null;
 };
 
 /**
  * Reads the typed codes in order (D2406, D2417): each is normalised; a repeat, or a second code of an offer already
- * activated, is a `duplicate`; an unknown one `not_found`; one of an offer not active `inactive`; one past its own
- * limit `code_limit`. The rest activate their offer, whose eligibility and effect the pipeline then checks.
+ * activated, is a `duplicate`; an unknown one, or one of an automatic offer, `not_found`; one of an offer not active
+ * `inactive`; one past its own limit `code_limit`. The rest activate their offer, whose eligibility and effect the
+ * pipeline then checks.
  */
 export function resolveCodes(codes: readonly string[], snapshot: PricingSnapshot): CodeResolution {
   const activated = new Map<string, string>();

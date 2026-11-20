@@ -32,6 +32,14 @@ export class CodeTakenError extends DomainError {
   }
 }
 
+/** Codes belong to offers activated by codes (D2449): none on an automatic offer, none left when one turns automatic. */
+export class CodeMethodRequiredError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.CODE_METHOD_REQUIRED;
+  constructor() {
+    super('Only an offer activated by codes can have codes');
+  }
+}
+
 /** The offer cannot move from its status to the asked one. */
 export class InvalidOfferTransitionError extends DomainError {
   readonly code = PRICING_ERROR_CODES.INVALID_TRANSITION;

@@ -43,6 +43,22 @@ describe('discount codes', () => {
     expect(resolution.activated.size).toBe(0);
   });
 
+  it('rejects a code of an automatic offer as not_found and never records it on the offer (D2449)', () => {
+    // Arrange
+    const automatic = aProductDiscount({ method: 'automatic' });
+    const atLimit = new Map([['INFLU10', { ...INFLU10, usageLimit: 1, usageCount: 1 }]]);
+
+    // Act
+    const typed = quoteOf({ offers: [automatic], codes: codes() }, { codes: ['INFLU10'] });
+    const pastLimit = quoteOf({ offers: [automatic], codes: atLimit }, { codes: ['INFLU10'] });
+
+    // Assert
+    for (const quote of [typed, pastLimit]) {
+      expect(quote.rejectedCodes).toEqual([{ code: 'INFLU10', reason: 'not_found' }]);
+      expect(quote.applied).toEqual([{ offerId: '7002', kind: 'product_discount', amount: 490 }]);
+    }
+  });
+
   it('rejects a code past its own limit as code_limit', () => {
     // Arrange
     const used = codes({ INFLU10: { offerId: '7002', usageLimit: 5, usageCount: 5 } });

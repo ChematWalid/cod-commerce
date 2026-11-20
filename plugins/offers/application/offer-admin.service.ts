@@ -2,13 +2,19 @@ import {
   isSnowflake,
   type OfferCommand,
   type OfferInput,
+  type OfferMethod,
   offerInputSchema,
   type OfferStatus,
   type Snowflake,
 } from '@cod/shared';
 import { type CodeInput, parseCodes } from '../domain/code-text';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
-import { InvalidOfferConfigError, OfferConflictError, OfferNotFoundError } from '../domain/errors';
+import {
+  CodeMethodRequiredError,
+  InvalidOfferConfigError,
+  OfferConflictError,
+  OfferNotFoundError,
+} from '../domain/errors';
 import { assertEditable, withStatus } from '../domain/offer-lifecycle';
 import { draftOf, editedOffer, inputOf, type OfferRecord, type StoredCode } from '../domain/offer-record';
 import type { ActiveStorePort } from '../domain/ports/active-store.port';
@@ -33,6 +39,9 @@ export interface OfferAdminPorts {
   /** Checks every call's `ctx` is on `scope`'s store channel (D2448). */
   readonly stores: ActiveStorePort;
 }
+
+/** The method of offers a typed code activates; only they hold codes (D2403, D2449). */
+const CODES_METHOD: OfferMethod = 'codes';
 
 /** A validated offer command and its configuration parsed by the kind's schema (D2404). */
 interface ParsedOffer {
@@ -68,6 +77,7 @@ export class OfferAdminService {
    * the stored value, as an absent one does.
    *
    * @throws {@link InvalidOfferTransitionError} when the offer is archived.
+   * @throws {@link CodeMethodRequiredError} when the patch makes a code offer that has codes automatic (D2449).
    * @throws {@link OfferConflictError} when another write changed the offer after it was read.
    */
   async update(
@@ -80,6 +90,7 @@ export class OfferAdminService {
     assertEditable(current);
     const { command, config } = this.parse({ ...inputOf(current), ...definedKeysOf(patch) });
     const edited = editedOffer(current, command, config, this.ports.clock.now());
+    await this.assertCodesKeepTheirMethod(ctx, scope, current, edited);
     await this.save(ctx, scope, edited, current.version);
     return edited;
   }
@@ -122,6 +133,7 @@ export class OfferAdminService {
    * Adds codes to the offer, normalised (D2406), all or none.
    *
    * @throws {@link InvalidOfferConfigError} for a malformed code; {@link CodeTakenError} for one the store has.
+   * @throws {@link CodeMethodRequiredError} when the offer is not activated by codes (D2449).
    */
   async addCodes(
     ctx: OperationContext,
@@ -131,6 +143,7 @@ export class OfferAdminService {
   ): Promise<readonly StoredCode[]> {
     const offer = await this.get(ctx, scope, rawOfferId);
     assertEditable(offer);
+    if (offer.method !== CODES_METHOD) throw new CodeMethodRequiredError();
     const createdAt = this.ports.clock.now();
     const codes = parseCodes(inputs).map(({ code, usageLimit }) => ({
       id: this.ports.ids.next(),
@@ -153,6 +166,18 @@ export class OfferAdminService {
     const offer = await this.get(ctx, scope, rawOfferId);
     assertEditable(offer);
     return this.ports.codes.remove(ctx, scope, offer.id, code);
+  }
+
+  /** Refuses an edit that would leave codes on an automatic offer, where the engine would ignore them (D2449). */
+  private async assertCodesKeepTheirMethod(
+    ctx: OperationContext,
+    scope: StoreScope,
+    current: OfferRecord,
+    edited: OfferRecord,
+  ): Promise<void> {
+    if (current.method !== CODES_METHOD || edited.method === CODES_METHOD) return;
+    const codes = await this.ports.codes.listOf(ctx, scope, current.id);
+    if (codes.length > 0) throw new CodeMethodRequiredError();
   }
 
   private parse(input: unknown): ParsedOffer {

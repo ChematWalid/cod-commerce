@@ -9,6 +9,7 @@ export const PRICING_ERROR_CODES = {
   CODE_TAKEN: 'offers.code-taken',
   INVALID_TRANSITION: 'offers.invalid-transition',
   OFFER_CONFLICT: 'offers.offer-conflict',
+  CODE_METHOD_REQUIRED: 'offers.code-method-required',
 } as const;
 
 /** One of the {@link PRICING_ERROR_CODES} values. */
