@@ -47,7 +47,8 @@ export const CATALOG_IMPORT_REST_CONTROLLERS = [
 /**
  * Bulk edit, export and import of a store's products, link import and the AI hooks (D2200): the private object
  * storage (D2208), the job tables and the `imports-exports` queue with its kind registry (D2212). Products are only
- * written through catalog's explicit-scope facade (D2201). This module only wires the layers.
+ * written through catalog's explicit-scope facade (D2201); the import wizard, export dialog and bulk edit are its
+ * dashboard (`dashboard/`). This module only wires the layers.
  */
 @VendurePlugin({
   // Catalog exports the facade; platform-jobs the queues, semaphore and reconciler; the flags gate the AI hooks
@@ -70,6 +71,7 @@ export const CATALOG_IMPORT_REST_CONTROLLERS = [
     resolvers: [BulkEditResolver, ExportResolver, ImportResolver, LinkImportResolver],
   },
   controllers: CATALOG_IMPORT_REST_CONTROLLERS,
+  dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 export class CatalogImportPlugin implements OnModuleInit, NestModule {

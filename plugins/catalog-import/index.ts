@@ -20,3 +20,25 @@ export type {
 } from './application/ports/job-repository.port';
 export type { ImportsExportsJobData } from './domain/imports-exports-job';
 export type { StoreScope as ImportStoreScope } from './domain/store-scope';
+// The dashboard's test ids, for the browser spec and the evidence script (framework-free, `dashboard-shared-is-pure`).
+export {
+  BULK_DIALOG_TEST_ID,
+  BULK_EDIT_ACTION_TEST_ID,
+  BULK_RESULT_TEST_ID,
+  BULK_STATUS_TEST_ID,
+  BULK_SUBMIT_TEST_ID,
+  CATALOG_IMPORT_PAGE_TEST_ID,
+  EXPORT_ACTION_TEST_ID,
+  EXPORT_DIALOG_TEST_ID,
+  EXPORT_DOWNLOAD_TEST_ID,
+  EXPORT_SUBMIT_TEST_ID,
+  IMPORT_ACTION_TEST_ID,
+  IMPORT_CONFIRM_TEST_ID,
+  IMPORT_CREATED_TEST_ID,
+  IMPORT_FILE_INPUT_TEST_ID,
+  IMPORT_MAPPING_NEXT_TEST_ID,
+  IMPORT_PREVIEW_NEXT_TEST_ID,
+  IMPORT_RESULT_TEST_ID,
+  IMPORT_SUMMARY_TEST_ID,
+  IMPORT_UPLOAD_TEST_ID,
+} from './dashboard/constants';
