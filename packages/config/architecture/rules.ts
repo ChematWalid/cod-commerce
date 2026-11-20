@@ -22,6 +22,9 @@ const AUTH_INVITATIONS_ENTRY = '^plugins/auth/invitations[.]ts$';
 /** The catalog entry point that exposes the catalog module and its services to other plugins and apps (D2104). */
 const CATALOG_ENTRY = '^plugins/catalog/index[.]ts$';
 
+/** The offers entry point that exposes the pricing module and its services to other plugins and apps (D2402). */
+const OFFERS_ENTRY = '^plugins/offers/index[.]ts$';
+
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
@@ -79,7 +82,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the offers entry (D2402), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -93,6 +96,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         RBAC_MEMBER_ACCESS_ENTRY,
         AUTH_INVITATIONS_ENTRY,
         CATALOG_ENTRY,
+        OFFERS_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -207,6 +211,30 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
       ],
     },
     to: { path: CATALOG_ENTRY },
+  },
+  {
+    name: 'offers-entry-infra-only',
+    comment:
+      "The offers entry exports Nest services and the offers module: outside offers only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2402). Frontend apps never import it: they are API clients and must not bundle server services (ADR 0017).",
+    severity: 'error',
+    from: {
+      pathNot: [
+        '^plugins/[^/]+/infrastructure/',
+        '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
+        '^plugins/[^/]+/tests/',
+        '^plugins/offers/',
+        '^apps/server/',
+      ],
+    },
+    to: { path: OFFERS_ENTRY },
+  },
+  {
+    name: 'catalog-no-offers',
+    comment:
+      'The offers depend on the catalog, never the other way round: no catalog file, adapters and tests included, imports the offers (D2402). offers-entry-infra-only alone would allow catalog/infrastructure/, and no-circular fires only on a real cycle.',
+    severity: 'error',
+    from: { path: '^plugins/catalog/' },
+    to: { path: ['^plugins/offers/', '^@cod/plugin-offers(/|$)'] },
   },
   {
     name: 'apps-no-plugin-internals',

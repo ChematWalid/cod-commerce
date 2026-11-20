@@ -2,6 +2,7 @@ import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
@@ -15,6 +16,7 @@ import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { parseInternalKeys } from '@cod/shared/internal-auth';
+import { parseQuoteKeys, quoteKeyRing } from '@cod/shared/quote-keys';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -147,11 +149,18 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
   });
 
 /**
- * RBAC, auth, catalog and Team, in this order: Team builds on the services of the others (D206) and registers its
- * order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137).
+ * RBAC, auth, catalog, offers and Team, in this order: Team builds on the services of the others (D206) and registers
+ * its order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137); the offers
+ * import the catalog module and configure right after it (D2402).
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
-  return [RbacPlugin, authPlugin(env), CatalogPlugin, TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL })];
+  return [
+    RbacPlugin,
+    authPlugin(env),
+    CatalogPlugin,
+    OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
+    TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
+  ];
 }
 
 /**
