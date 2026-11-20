@@ -12,6 +12,7 @@ import type { CollectionMembership } from '../../domain/ports/collection-members
 import { asOperationContext } from '../../domain/ports/operation-context.port';
 import { aLine, anOffer } from '../support/builders';
 import { scopeA } from '../support/offer-records';
+import { UNRESOLVED_SHIPPING } from '../../domain/snapshot';
 
 const ctx = asOperationContext({});
 const buyer = { phone: '+213555123456' };
@@ -75,6 +76,7 @@ describe('SingleSourceRegistry', () => {
 
     // Assert
     expect(quote).toEqual({ resolved: false, baseFee: 0, overweightFee: 0, speed: null });
+    expect(quote).toBe(UNRESOLVED_SHIPPING);
   });
 
   it('counts no orders by default', async () => {

@@ -1,7 +1,7 @@
 import type { OfferEligibility } from '@cod/shared';
 import type { PricedLine, PricingCart } from '../../domain/cart';
 import type { Offer } from '../../domain/offer';
-import type { PricingSnapshot, ShippingQuoteResult } from '../../domain/snapshot';
+import { type PricingSnapshot, UNRESOLVED_SHIPPING } from '../../domain/snapshot';
 
 /** A fixed instant the builders date offers and snapshots from. */
 export const T0 = new Date(Date.UTC(2026, 10, 14, 9, 0, 0));
@@ -66,7 +66,7 @@ export function aCart(overrides: Partial<PricingCart> = {}): PricingCart {
 }
 
 /** A shipping quote the fee table did not resolve (the default before P3.S1, D2423). */
-export const UNRESOLVED_SHIPPING: ShippingQuoteResult = { resolved: false, baseFee: 0, overweightFee: 0, speed: null };
+export { UNRESOLVED_SHIPPING };
 
 /** A snapshot at {@link T0} with no offer, code, usage or buyer history. */
 export function aSnapshot(overrides: Partial<PricingSnapshot> = {}): PricingSnapshot {

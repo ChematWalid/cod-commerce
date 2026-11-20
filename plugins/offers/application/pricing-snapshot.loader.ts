@@ -13,7 +13,12 @@ import type { PricingLogger } from '../domain/ports/pricing-logger.port';
 import type { LoadedCart, PricingSnapshotSource, SnapshotRequest } from '../domain/ports/pricing-snapshot-source.port';
 import type { ShippingQuoteSource } from '../domain/ports/shipping-quote.port';
 import type { ResolvedUnitPrice, UnitPriceSource } from '../domain/ports/unit-price-resolver.port';
-import type { CodeEntry, PricingSnapshot, ShippingQuoteResult } from '../domain/snapshot';
+import {
+  type CodeEntry,
+  type PricingSnapshot,
+  type ShippingQuoteResult,
+  UNRESOLVED_SHIPPING,
+} from '../domain/snapshot';
 import type { StoreScope } from '../domain/store-scope';
 import type { SourceHolder } from './single-source.registry';
 
@@ -30,9 +35,6 @@ export interface PricingSnapshotPorts {
   readonly logger: PricingLogger;
   readonly clock: Clock;
 }
-
-/** No fee table answers without a destination: delivery stays unresolved, at 0 (D2423). */
-const NO_DESTINATION_SHIPPING: ShippingQuoteResult = { resolved: false, baseFee: 0, overweightFee: 0, speed: null };
 
 /** A buyer without a phone has no history: audience and per-buyer offers are skipped (D2418, D2435). */
 const NO_BUYER_USAGE: ReadonlyMap<string, number> = new Map();
@@ -140,7 +142,7 @@ export class PricingSnapshotLoader implements PricingSnapshotSource {
     { destination, lines }: SnapshotRequest,
     prices: ReadonlyMap<string, ResolvedUnitPrice>,
   ): Promise<ShippingQuoteResult> {
-    if (destination === null) return Promise.resolve(NO_DESTINATION_SHIPPING);
+    if (destination === null) return Promise.resolve(UNRESOLVED_SHIPPING);
     const items = lines.flatMap((line) => {
       const price = prices.get(line.variantId);
       if (price === undefined) return [];

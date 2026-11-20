@@ -8,6 +8,12 @@ export interface ShippingQuoteResult {
   readonly speed: string | null;
 }
 
+/**
+ * The one unresolved delivery, fees 0 (D2423): what the shipping seam answers before P3.S1 registers a fee table, and
+ * what a quote without a destination gets.
+ */
+export const UNRESOLVED_SHIPPING: ShippingQuoteResult = { resolved: false, baseFee: 0, overweightFee: 0, speed: null };
+
 /** A stored discount code of the store, by its normalised text (D2406). */
 export interface CodeEntry {
   readonly offerId: string;

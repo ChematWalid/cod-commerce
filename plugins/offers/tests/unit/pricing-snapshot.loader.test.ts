@@ -7,6 +7,7 @@ import {
 } from '../../application/default-sources';
 import { PricingSnapshotLoader } from '../../application/pricing-snapshot.loader';
 import type { SnapshotRequest } from '../../domain/ports/pricing-snapshot-source.port';
+import { UNRESOLVED_SHIPPING } from '../../domain/snapshot';
 import { UnitPriceRegistry } from '../../application/unit-price.registry';
 import { OfferKindRegistry } from '../../domain/engine/kind-registry';
 import { BUILT_IN_OFFER_KINDS } from '../../domain/kinds';
@@ -136,7 +137,7 @@ describe('PricingSnapshotLoader', () => {
 
     // Assert
     expect(asked).toEqual([]);
-    expect(loaded.snapshot.shipping.resolved).toBe(false);
+    expect(loaded.snapshot.shipping).toBe(UNRESOLVED_SHIPPING);
   });
 
   it('quotes delivery for the gated lines only', async () => {
