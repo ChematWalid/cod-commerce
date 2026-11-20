@@ -1,5 +1,5 @@
 import { COLLECTIONS_ERROR_CODES, type CollectionRule, NORMAL_FORM_VERSION } from '@cod/shared';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreateCollectionService } from '../../application/create-collection.service';
 import { UpdateCollectionService } from '../../application/update-collection.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
@@ -96,6 +96,28 @@ describe('rule saves recompute membership (D2302, D2312)', () => {
     // Assert
     expect(world.facts.pageRequests).toEqual([]);
     expect(await memberIds(id)).toEqual(['2', '1']);
+  });
+
+  it('a save that resends the same mode and rule reads and writes no member row', async () => {
+    // Arrange
+    const automatic = await collection(PROMO_RULE);
+    const manual = await collection();
+    await world.tables.members.replaceMembers(ctx, scopeA, manual, [{ productId: '3', position: 0 }]);
+    const reads = vi.spyOn(world.ports.members, 'membersOf');
+    const writes = vi.spyOn(world.ports.members, 'replaceMembers');
+
+    // Act
+    await update.update(ctx, scopeA, automatic, { mode: 'automatic', rule: PROMO_RULE, title: 'Same rule' });
+    await update.update(ctx, scopeA, manual, { mode: 'manual', visible: false });
+    const readCount = reads.mock.calls.length;
+    const writeCount = writes.mock.calls.length;
+    reads.mockRestore();
+    writes.mockRestore();
+
+    // Assert
+    expect({ readCount, writeCount }).toEqual({ readCount: 0, writeCount: 0 });
+    expect(await memberIds(automatic)).toEqual(['2', '1']);
+    expect(await memberIds(manual)).toEqual(['3']);
   });
 
   it('refuses a switch to automatic without a rule and a rule on a manual collection', async () => {

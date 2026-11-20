@@ -90,7 +90,7 @@ describe('switchMode', () => {
 
     // Assert
     expect(switched.definition).toEqual(definition());
-    expect(switched.members).toEqual(current);
+    expect(switched.members).toBe('keep');
   });
 
   it('asks for a recompute when the rule is unchanged but the members were built with an older normal form', () => {
@@ -113,7 +113,7 @@ describe('switchMode', () => {
     const switched = switchMode(manual, 'manual', null, current);
 
     // Assert
-    expect(switched.members).toEqual(current);
+    expect(switched.members).toBe('keep');
   });
 
   it('refuses an automatic collection without rule and a manual one with a rule', () => {

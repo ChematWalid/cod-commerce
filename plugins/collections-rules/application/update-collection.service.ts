@@ -1,5 +1,5 @@
 import { type CollectionRule, NORMAL_FORM_VERSION, type UpdateStoreCollectionCommand } from '@cod/shared';
-import { type CollectionDefinition, switchMode } from '../domain/collection';
+import { type CollectionDefinition, needsCurrentMembers, switchMode } from '../domain/collection';
 import { writableCollectionId } from '../domain/core-id';
 import { CollectionNotFoundError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -114,7 +114,8 @@ export class UpdateCollectionService {
 
   /**
    * The definition after a save of its mode or rule (D2302): automatic → manual keeps the members in order as the
-   * manual list, a switch to automatic or a new rule asks for a recompute, the same rule keeps the members.
+   * manual list, a switch to automatic or a new rule asks for a recompute, the same rule or manual → manual keeps the
+   * members without reading or rewriting a row, so a resent mode does not hold the store lock over every member.
    */
   private async switchedMode(
     ctx: OperationContext,
@@ -124,10 +125,14 @@ export class UpdateCollectionService {
   ): Promise<SavedMode> {
     if (command.mode === undefined && command.rule === undefined) return { definition, recompute: false };
     const mode = command.mode ?? definition.mode;
-    const members = await this.ports.members.membersOf(ctx, scope, definition.collectionId);
+    const members = needsCurrentMembers(definition, mode)
+      ? await this.ports.members.membersOf(ctx, scope, definition.collectionId)
+      : [];
     const switched = switchMode(definition, mode, ruleAfter(definition, mode, command), members);
     if (switched.members === 'recompute') return { definition: switched.definition, recompute: true };
-    await this.ports.members.replaceMembers(ctx, scope, definition.collectionId, switched.members);
+    if (switched.members !== 'keep') {
+      await this.ports.members.replaceMembers(ctx, scope, definition.collectionId, switched.members);
+    }
     return { definition: switched.definition, recompute: false };
   }
 }

@@ -19,11 +19,18 @@ export interface CollectionDefinition {
   readonly position: number;
 }
 
-/** A definition after a mode or rule change, and its members: kept, or to be recomputed from the rule. */
+/**
+ * A definition after a mode or rule change, and its members: kept as stored (`keep`, no row to read or write), to be
+ * recomputed from the rule, or the new manual list of an automatic → manual switch.
+ */
 export interface ModeSwitch {
   readonly definition: CollectionDefinition;
-  readonly members: readonly MemberRow[] | 'recompute';
+  readonly members: readonly MemberRow[] | 'keep' | 'recompute';
 }
+
+/** Only an automatic → manual switch turns the current members into a new list; every other save keeps or rebuilds them. */
+export const needsCurrentMembers = (definition: CollectionDefinition, mode: CollectionMode): boolean =>
+  definition.mode === 'automatic' && mode === 'manual';
 
 /** Members in their current order: by position, then newest product first, as the lists show them (D2318). */
 const inCurrentOrder = (members: readonly MemberRow[]): string[] =>
@@ -61,7 +68,7 @@ const isUpToDate = (definition: CollectionDefinition, rule: CollectionRule): boo
  * Sets a collection's mode and rule (D2302). Automatic → manual keeps the current members in their current order as
  * the manual list (refused above the manual cap); a switch to automatic, a new rule, or members built with an older
  * normal form ask for a recompute; an automatic collection saved with its current rule keeps its members; manual
- * stays manual with its members. An automatic collection needs a rule and a manual one takes none.
+ * stays manual with its members. `currentMembers` is read only for automatic → manual ({@link needsCurrentMembers}). An automatic collection needs a rule and a manual one takes none.
  */
 export function switchMode(
   definition: CollectionDefinition,
@@ -74,13 +81,13 @@ export function switchMode(
       throw new InvalidCollectionRuleError();
     }
     if (isUpToDate(definition, rule)) {
-      return { definition, members: [...currentMembers] };
+      return { definition, members: 'keep' };
     }
     return { definition: { ...definition, mode, rule }, members: 'recompute' };
   }
   if (rule !== null) {
     throw new InvalidCollectionInputError();
   }
-  const members = definition.mode === 'manual' ? [...currentMembers] : manualMembers(inCurrentOrder(currentMembers));
+  const members = needsCurrentMembers(definition, mode) ? manualMembers(inCurrentOrder(currentMembers)) : 'keep';
   return { definition: { ...definition, mode, rule: null }, members };
 }
