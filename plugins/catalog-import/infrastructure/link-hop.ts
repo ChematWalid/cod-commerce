@@ -3,6 +3,7 @@ import { request as httpsRequest } from 'node:https';
 import { isIP, type LookupFunction } from 'node:net';
 import { LinkRefusedError, LinkUnreachableError } from '../domain/errors';
 import type { VettedLink } from '../domain/ssrf';
+import { decodePage } from './page-charset';
 
 /** Every address a host name resolves to, each already vetted public (D2214); refusing rejects. */
 export interface AddressSource {
@@ -59,13 +60,13 @@ function vettedLookup(settings: HopSettings): LookupFunction {
   };
 }
 
-/** Reads at most `maxBytes` of a 2xx HTML answer, then stops receiving. */
+/** Reads at most `maxBytes` of a 2xx HTML answer, then stops receiving; decodes it in the page's charset. */
 function readPage(response: IncomingMessage, settings: HopSettings, request: ClientRequest): Promise<HopResult> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let received = 0;
     const done = (): void => {
-      resolve({ kind: 'page', html: Buffer.concat(chunks).toString('utf8') });
+      resolve({ kind: 'page', html: decodePage(Buffer.concat(chunks), response.headers['content-type']) });
     };
     response.on('data', (chunk: Buffer) => {
       const room = settings.maxBytes - received;

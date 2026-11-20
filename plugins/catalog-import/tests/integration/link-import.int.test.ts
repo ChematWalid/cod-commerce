@@ -12,7 +12,8 @@ import { importSuite } from './import-kit';
 
 const suite = importSuite({ plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const C = CATALOG_IMPORT_ERROR_CODES;
-const SCRAPE_ACTOR_BUDGET = 60;
+/** A bound on the spend loop only: the policy's own capacity decides when it stops. */
+const MAX_SPEND = 10_000;
 const STAFF = 'link-import-test';
 const VIEW = 'catalog.products.view';
 const CREATE = 'catalog.products.create';
@@ -101,6 +102,18 @@ describe('link import and the AI hooks (D2214, D2215)', () => {
     expect(read.catalogLinkImport).toEqual(answer);
   });
 
+  it('a page with no price makes a Draft priced 0', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const answer = await createLink(LINK_FIXTURE_URLS.noPrice);
+    const product = await suite.kit.product(answer.productId);
+
+    // Assert
+    expect(product).toMatchObject({ status: 'draft', price: 0 });
+  });
+
   it('an activity row records the link import', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
@@ -119,7 +132,9 @@ describe('link import and the AI hooks (D2214, D2215)', () => {
     });
   });
 
-  it('a private URL answers link-refused and creates nothing', async () => {
+  it('a refused link answers link-refused on both surfaces, never echoes the address, and creates nothing', async () => {
+    // The fixture scraper refuses every host but its own; the guard itself is proved by ssrf.test.ts and
+    // http-link-scraper.test.ts. This proves the API mapping and that a refusal writes nothing.
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
     const before = { jobs: await countOf('catalog_import_job'), origins: await countOf('catalog_product_origin') };
@@ -219,8 +234,9 @@ describe('link import and the AI hooks (D2214, D2215)', () => {
         [b.owner.email],
       );
       const limiter = suite.kit.app.get(RateLimiter);
-      for (let spent = 0; spent < SCRAPE_ACTOR_BUDGET; spent += 1) {
-        await limiter.consume('catalog-scrape-actor', `${b.businessId}:${String(owner?.userId)}`);
+      const key = `${b.businessId}:${String(owner?.userId)}`;
+      for (let spent = 0; spent < MAX_SPEND; spent += 1) {
+        if (!(await limiter.consume('catalog-scrape-actor', key)).allowed) break;
       }
 
       // Act

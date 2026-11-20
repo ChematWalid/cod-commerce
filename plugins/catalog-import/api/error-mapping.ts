@@ -26,8 +26,10 @@ export const INTERNAL_MESSAGE = 'The request could not be completed';
 const INTERNAL_MESSAGE_KEY = 'error.catalog-import-internal';
 
 /**
- * The HTTP status of every code the catalog-import API answers a request with. Catalog's own refusals of one product
- * are that product's result, never a request error (D2213); each later task adds the codes it answers.
+ * The HTTP status of every code the catalog-import API answers a request with. In a spreadsheet import or bulk edit,
+ * catalog's own refusals of one product are that product's result, never a request error (D2213). The link import's
+ * create and polish call catalog's facade at request level, so the catalog refusals they can receive are mapped here
+ * (D2272); their messages are catalog's own translations.
  */
 const STATUS_OF_CODE: ReadonlyMap<string, HttpStatus> = new Map([
   [C.INVALID_INPUT, HttpStatus.BAD_REQUEST],
@@ -43,6 +45,7 @@ const STATUS_OF_CODE: ReadonlyMap<string, HttpStatus> = new Map([
   [C.LINK_UNREACHABLE, HttpStatus.BAD_GATEWAY],
   [C.AI_DISABLED, HttpStatus.CONFLICT],
   [CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND],
+  [CATALOG_ERROR_CODES.INVALID_INPUT, HttpStatus.BAD_REQUEST],
 ]);
 
 /** The `api/i18n` key of a code. i18next reads dots as nesting, so the dot becomes a dash. */

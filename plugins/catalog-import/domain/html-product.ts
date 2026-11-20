@@ -1,4 +1,4 @@
-import { IMPORT_MAX_IMAGE_URLS, IMPORT_MAX_URL_CHARS, MONEY_MAX_DZD } from '@cod/shared';
+import { IMPORT_MAX_IMAGE_URLS, IMPORT_MAX_URL_CHARS, MONEY_MAX_DZD, PLATFORM_CURRENCY_CODE } from '@cod/shared';
 import { type HTMLElement, parse } from 'node-html-parser';
 import { type LdNode, productNodeOf } from './json-ld';
 
@@ -70,11 +70,39 @@ function imageUrlsOf(root: HTMLElement, product: LdNode | undefined, pageUrl: st
   return [...new Set(urls)].slice(0, IMPORT_MAX_IMAGE_URLS);
 }
 
-/** The price of the first JSON-LD offer (`price`, else `lowPrice`). */
-function ldPrice(product: LdNode | undefined): unknown {
+/** A price as a page states it: the amount and, when the page says, its currency code. */
+interface StatedPrice {
+  readonly amount: unknown;
+  readonly currency?: unknown;
+}
+
+/** The price of the first JSON-LD offer (`price`, else `lowPrice`) and its `priceCurrency`. */
+function ldPrice(product: LdNode | undefined): StatedPrice | undefined {
   const offers = product?.['offers'];
   const offer: unknown = Array.isArray(offers) ? (offers as unknown[])[0] : offers;
-  return isRecord(offer) ? (offer['price'] ?? offer['lowPrice']) : undefined;
+  if (!isRecord(offer)) return undefined;
+  const amount = offer['price'] ?? offer['lowPrice'];
+  return amount === undefined ? undefined : { amount, currency: offer['priceCurrency'] };
+}
+
+/** The `product:price:*` (or `og:price:*`) meta price and its currency. */
+function metaPrice(root: HTMLElement): StatedPrice | undefined {
+  const amount = firstMeta(root, 'product:price:amount', 'og:price:amount');
+  if (amount === undefined) return undefined;
+  return { amount, currency: firstMeta(root, 'product:price:currency', 'og:price:currency') };
+}
+
+/**
+ * The page's price in whole DZD (D2272): a price stated in another currency is unknown, never stored as dinars.
+ * A price with no currency is read as DZD.
+ */
+function priceOf(stated: StatedPrice | undefined): number | undefined {
+  if (stated === undefined) return undefined;
+  const { currency } = stated;
+  const inDinars =
+    currency === undefined ||
+    (typeof currency === 'string' && currency.trim().toUpperCase() === PLATFORM_CURRENCY_CODE);
+  return inDinars ? parsePrice(stated.amount) : undefined;
 }
 
 /** The decimal separator of a price's digits: the later of `.` and `,`, unless it only groups thousands. */
@@ -99,10 +127,17 @@ export function parsePrice(value: unknown): number | undefined {
   return rounded > MONEY_MAX_DZD ? undefined : rounded;
 }
 
+/**
+ * The span from a price's first digit to its last: a currency word around it (`د.ج`, `DA.`) and its dots never read
+ * as a separator.
+ */
+const NUMBER_SPAN = /\d(?:.*\d)?/s;
+
 function amountOfText(value: unknown): number | undefined {
   if (typeof value !== 'string' || value.includes('-')) return undefined;
-  const digits = value.replace(PRICE_SPACES, '').replace(/[^\d.,]/g, '');
-  if (!/\d/.test(digits)) return undefined;
+  const span = NUMBER_SPAN.exec(value)?.[0];
+  if (span === undefined) return undefined;
+  const digits = span.replace(PRICE_SPACES, '').replace(/[^\d.,]/g, '');
   const separator = decimalSeparatorOf(digits);
   const [whole = '', fraction = ''] = separator === undefined ? [digits] : digits.split(separator);
   const amount = Number(`${whole.replace(/[.,]/g, '')}.${fraction.replace(/[.,]/g, '') || '0'}`);
@@ -112,12 +147,12 @@ function amountOfText(value: unknown): number | undefined {
 /**
  * Reads a product page (D2214): the title from `og:title`, JSON-LD `name` or `<title>`; the description from
  * `og:description`, `description` or JSON-LD, escaped; images from `og:image` and JSON-LD; the price from the JSON-LD
- * offer or the `product:price:amount` meta. Nothing of the page is ever run or kept as markup.
+ * offer or the `product:price:amount` meta, unknown when stated in another currency. Nothing of the page is ever run or kept as markup.
  */
 export function readHtmlProduct(html: string, pageUrl: string): HtmlProduct {
   const root = parse(html);
   const product = productNodeOf(root.querySelectorAll('script[type="application/ld+json"]').map((s) => s.rawText));
-  const price = parsePrice(ldPrice(product) ?? firstMeta(root, 'product:price:amount', 'og:price:amount'));
+  const price = priceOf(ldPrice(product) ?? metaPrice(root));
   return {
     ...textOf(root, product),
     ...(price === undefined ? {} : { price }),

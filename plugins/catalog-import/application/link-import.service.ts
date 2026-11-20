@@ -1,4 +1,5 @@
-import { isSnowflake, type LinkImportCommand } from '@cod/shared';
+import { type ImportJobStatus, isSnowflake, type LinkImportCommand } from '@cod/shared';
+import { LINK_IMPORT_STATUS } from '../domain/constants';
 import { JobNotFoundError } from '../domain/errors';
 import { linkDraftOf } from '../domain/link-draft';
 import type { StoreScope } from '../domain/store-scope';
@@ -13,7 +14,7 @@ import type { UnitOfWorkPort } from './ports/unit-of-work.port';
 /** A link import as both API surfaces answer it (`CatalogLinkImport`). */
 export interface LinkImportView {
   readonly importId: string;
-  readonly status: string;
+  readonly status: ImportJobStatus;
   readonly sourceUrl: string;
   readonly productId: string | null;
 }
@@ -70,7 +71,7 @@ export class LinkImportService {
       await this.deps.jobs.create(tx, scope, job);
       const imageCount = draft.imageUrls.length;
       await this.deps.activity.recordLinkImport(tx, { scope, importId: id, productId, imageCount, actor });
-      return { importId: id, status: 'done', sourceUrl: command.url, productId };
+      return { importId: id, status: LINK_IMPORT_STATUS, sourceUrl: command.url, productId };
     });
   }
 

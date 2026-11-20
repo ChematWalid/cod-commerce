@@ -3,7 +3,7 @@ import type { ImportJobKind } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { LinkImportRecord, LinkJobStore, NewLinkImport } from '../application/ports/link-job.port';
 import type { OperationContext } from '../application/ports/operation-context';
-import { PROGRESS_DONE } from '../domain/constants';
+import { LINK_IMPORT_STATUS, PROGRESS_DONE } from '../domain/constants';
 import type { StoreScope } from '../domain/store-scope';
 import { ImportJobEntity } from './import-job.entity';
 import { requestScope } from './request-context';
@@ -36,7 +36,7 @@ export class TypeOrmLinkJobStore implements LinkJobStore {
       id: job.id,
       storeId: scope.storeId,
       kind: LINK,
-      status: 'done',
+      status: LINK_IMPORT_STATUS,
       sourceUrl: job.sourceUrl,
       productId: Number(job.productId),
       rowCount: 1,

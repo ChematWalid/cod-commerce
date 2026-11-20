@@ -30,10 +30,13 @@ const systemResolver: HostResolver = {
   resolve: async (hostname) => (await lookup(hostname, { all: true, order: 'verbatim' })).map((entry) => entry.address),
 };
 
+/** The addresses `resolver` gives a name, refused unless every one is public (D2214); tests pass a stub resolver. */
+export const vettedAddressesOf = (resolver: HostResolver): AddressSource => ({
+  addressesOf: (hostname) => resolveVettedHost(hostname, resolver),
+});
+
 /** Production addresses: resolved by the system, refused unless every one is public (D2214). */
-export const VETTED_DNS_ADDRESSES: AddressSource = {
-  addressesOf: (hostname) => resolveVettedHost(hostname, systemResolver),
-};
+export const VETTED_DNS_ADDRESSES: AddressSource = vettedAddressesOf(systemResolver);
 
 /** One scrape: its current request (to destroy on timeout), whether it is waiting on DNS, and whether it timed out. */
 class LinkFetch {

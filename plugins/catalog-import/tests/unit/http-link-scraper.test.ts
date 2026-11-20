@@ -1,7 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { LINK_FETCH_TIMEOUT_MS, LINK_MAX_BYTES } from '../../domain/constants';
 import { LinkRefusedError, LinkUnreachableError } from '../../domain/errors';
-import { type AddressSource, HttpLinkScraper } from '../../infrastructure/http-link-scraper';
+import type { HostResolver } from '../../domain/ssrf';
+import { type AddressSource, HttpLinkScraper, vettedAddressesOf } from '../../infrastructure/http-link-scraper';
 import { HOST, html, LOOPBACK, page, redirect, StubServer } from '../support/stub-http-server';
 
 /** A scrape's failure, caught at once so a rejection never waits unhandled while another call runs. */
@@ -10,6 +11,9 @@ const failureOf = (scrape: Promise<unknown>): Promise<unknown> =>
     () => undefined,
     (error: unknown) => error,
   );
+
+/** A public address the stub stands in for: vetted as public, then reached on loopback. */
+const PUBLIC_ADDRESS = '93.184.216.34';
 
 const allowAll = (): AddressSource & { calls: string[] } => {
   const calls: string[] = [];
@@ -53,27 +57,34 @@ describe('HttpLinkScraper (D2214)', () => {
   });
 
   it('the lookup runs on every connection, including each redirect hop', async () => {
-    // Arrange: the name resolves to a public address first, then rebinds to a private one
+    // Arrange: through the production vetting, the name resolves public first, then rebinds to a private address
     stub.routes.set('/a', redirect('/b'));
     stub.routes.set('/b', html(page('Behind the rebinding')));
+    const answers: (readonly string[])[] = [[PUBLIC_ADDRESS], ['10.0.0.1']];
     const calls: string[] = [];
-    const rebinding: AddressSource = {
-      addressesOf: (hostname) => {
+    const rebindingDns: HostResolver = {
+      resolve: (hostname) => {
         calls.push(hostname);
-        return calls.length === 1 ? Promise.resolve([LOOPBACK]) : Promise.reject(new LinkRefusedError());
+        return Promise.resolve(answers[calls.length - 1] ?? []);
       },
+    };
+    const vetted = vettedAddressesOf(rebindingDns);
+    const throughStub: AddressSource = {
+      addressesOf: async (hostname) =>
+        (await vetted.addressesOf(hostname)).map((address) => (address === PUBLIC_ADDRESS ? LOOPBACK : address)),
     };
     const counting = allowAll();
     stub.routes.set('/c', redirect('/d'));
     stub.routes.set('/d', html(page('Two hops')));
 
     // Act
-    const refused = failureOf(scraperWith(rebinding).scrape(stub.url('/a')));
+    const refused = failureOf(scraperWith(throughStub).scrape(stub.url('/a')));
     const twoHops = await scraperWith(counting).scrape(stub.url('/c'));
 
     // Assert
     expect(await refused).toBeInstanceOf(LinkRefusedError);
     expect(calls).toEqual([HOST, HOST]);
+    expect(stub.seen.map((request) => request.url)).toContain('/a');
     expect(stub.seen.map((request) => request.url)).not.toContain('/b');
     expect(twoHops.title).toBe('Two hops');
     expect(counting.calls).toEqual([HOST, HOST]);
@@ -181,6 +192,20 @@ describe('HttpLinkScraper (D2214)', () => {
       }
       await proxy.stop();
     }
+  });
+
+  it('decodes a page in the charset it is served in', async () => {
+    // Arrange: "Robe d'été" in iso-8859-1
+    stub.routes.set('/latin', (_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/html; charset=iso-8859-1' });
+      response.end(Buffer.from(`<html><head><title>Robe d'\u00e9t\u00e9</title></head></html>`, 'latin1'));
+    });
+
+    // Act
+    const product = await scraperWith(allowAll()).scrape(stub.url('/latin'));
+
+    // Assert
+    expect(product.title).toBe("Robe d'été");
   });
 
   it('refuses non-HTML', async () => {

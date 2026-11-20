@@ -62,6 +62,41 @@ describe('readHtmlProduct (D2214)', () => {
     expect(parsePrice('99999999999999')).toBeUndefined();
   });
 
+  it('a currency word with a dot (د.ج, DA.) never reads as a decimal or grouping separator', () => {
+    // Act and Assert
+    expect(parsePrice('د.ج 2500')).toBe(2500);
+    expect(parsePrice('1 500,00 د.ج')).toBe(1500);
+    expect(parsePrice('2,500 د.ج')).toBe(2500);
+    expect(parsePrice('DA. 2500')).toBe(2500);
+    expect(parsePrice('1.500,00 DA.')).toBe(1500);
+  });
+
+  it('a price in another currency than DZD is unknown', () => {
+    // Arrange
+    const ldIn = (priceCurrency?: string): string =>
+      `<script type="application/ld+json">${JSON.stringify({
+        '@type': 'Product',
+        name: 'Priced',
+        offers: { price: '25.00', ...(priceCurrency === undefined ? {} : { priceCurrency }) },
+      })}</script>`;
+    const metaIn = (currency: string): string =>
+      `<meta property="product:price:amount" content="25.00"><meta property="product:price:currency" content="${currency}">`;
+
+    // Act
+    const inEuro = readHtmlProduct(pageWith(ldIn('EUR')), PAGE_URL);
+    const inDinar = readHtmlProduct(pageWith(ldIn('dzd')), PAGE_URL);
+    const unstated = readHtmlProduct(pageWith(ldIn()), PAGE_URL);
+    const metaInEuro = readHtmlProduct(pageWith(metaIn('EUR')), PAGE_URL);
+    const metaInDinar = readHtmlProduct(pageWith(metaIn('DZD')), PAGE_URL);
+
+    // Assert
+    expect(inEuro.price).toBeUndefined();
+    expect(inDinar.price).toBe(25);
+    expect(unstated.price).toBe(25);
+    expect(metaInEuro.price).toBeUndefined();
+    expect(metaInDinar.price).toBe(25);
+  });
+
   it('reads the price from product:price:amount when there is no JSON-LD', () => {
     // Act
     const product = readHtmlProduct(pageWith('<meta property="product:price:amount" content="1 500,00 DA">'), PAGE_URL);

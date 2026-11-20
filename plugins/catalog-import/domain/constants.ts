@@ -1,4 +1,4 @@
-import { IMPORT_MAX_BYTES, IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS } from '@cod/shared';
+import { IMPORT_MAX_BYTES, IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS, type ImportJobStatus } from '@cod/shared';
 
 /** The queue catalog-import defines and alone defines (D2212); P4.S2 registers order exports on it. */
 export const IMPORTS_EXPORTS_QUEUE = 'imports-exports' as const;
@@ -73,3 +73,5 @@ export const LINK_MAX_BYTES = 2 * 1_024 * 1_024;
 export const LINK_MAX_REDIRECTS = 3;
 /** The ports a link may name: plain HTTP and HTTPS only (D2214); tests inject another policy. */
 export const LINK_PORTS = [80, 443] as const;
+/** A link import is synchronous: its job row is written once, already done, with the product it made (D2214). */
+export const LINK_IMPORT_STATUS: ImportJobStatus = 'done';
