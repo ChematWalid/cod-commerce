@@ -1,6 +1,7 @@
 import {
   GENERATE_CODE_ROUNDS,
   type GenerateCodesCommand,
+  MAX_CODES_PER_OFFER,
   type GenerateCodesInput,
   generateCodesInputSchema,
 } from '@cod/shared';
@@ -44,7 +45,8 @@ export class OfferCodesService {
   /**
    * Adds codes to the offer, normalised (D2406), all or none.
    *
-   * @throws {@link InvalidOfferConfigError} for a malformed code; {@link CodeTakenError} for one the store has.
+   * @throws {@link InvalidOfferConfigError} for a malformed code, or past `MAX_CODES_PER_OFFER` codes (D2535(k)).
+   * @throws {@link CodeTakenError} for a code the store has.
    * @throws {@link CodeMethodRequiredError} when the offer is not activated by codes (D2449).
    * @throws {@link InvalidOfferTransitionError} when the offer is archived.
    */
@@ -75,7 +77,7 @@ export class OfferCodesService {
    * Generates `count` new codes behind `prefix`, each with `usageLimit` (D2512). A candidate the store already has, or
    * one drawn twice, is drawn again, for at most `GENERATE_CODE_ROUNDS` rounds.
    *
-   * @throws {@link InvalidOfferConfigError} for a bad count, prefix or limit.
+   * @throws {@link InvalidOfferConfigError} for a bad count, prefix or limit, or past `MAX_CODES_PER_OFFER` codes.
    * @throws {@link CodeMethodRequiredError} when the offer is not activated by codes (D2449).
    * @throws {@link CodeTakenError} when the rounds run out before `count` free codes were found.
    */
@@ -124,13 +126,23 @@ export class OfferCodesService {
     return kept;
   }
 
-  /** Stores `entries` as unused codes of `offer`, all or none. */
+  /**
+   * Refuses `adding` more codes when the offer would hold more than `MAX_CODES_PER_OFFER` (D2535(k)). Two concurrent
+   * adds may each pass and overshoot by at most one batch (`MAX_CODES_PER_ADD`): the cap bounds the list, not exactly.
+   */
+  private async assertRoomFor(ctx: OperationContext, scope: StoreScope, offer: OfferRecord, adding: number) {
+    const held = (await this.ports.codes.countByOffer(ctx, scope, [offer.id])).get(offer.id) ?? 0;
+    if (held + adding > MAX_CODES_PER_OFFER) throw new InvalidOfferConfigError();
+  }
+
+  /** Stores `entries` as unused codes of `offer`, all or none, within the offer's cap. */
   private async store(
     ctx: OperationContext,
     scope: StoreScope,
     offer: OfferRecord,
     entries: readonly CodeEntry[],
   ): Promise<readonly StoredCode[]> {
+    await this.assertRoomFor(ctx, scope, offer, entries.length);
     const createdAt = this.ports.clock.now();
     const codes = entries.map(({ code, usageLimit }) => ({
       id: this.ports.ids.next(),

@@ -4,7 +4,8 @@ import gql from 'graphql-tag';
  * The offers' Admin API (D2519). Every name starts with `Offer` so none collides with Vendure's own API. Offer and
  * code ids are snowflakes and target ids the stored decimal core ids, both `String` (D2535). The JSON-shaped fields
  * (`label`, `config`, `combinesWith`, `eligibility`, a preview's quote) are `JSON`, checked by the shared schemas.
- * Instants are ISO text on input and `DateTime` on output.
+ * Instants are ISO text on input and `DateTime` on output. A performance's DZD sums are `Float`: each order total fits
+ * a 32-bit `Int`, their sum over every order does not, and a `Float` holds whole DZD exactly up to 2^53 (D2535(j)).
  */
 export const offersAdminApiSchema = gql`
   enum OfferStatus {
@@ -27,8 +28,8 @@ export const offersAdminApiSchema = gql`
 
   type OfferPerformance {
     orders: Int!
-    deliveredRevenue: Int!
-    discountGiven: Int!
+    deliveredRevenue: Float!
+    discountGiven: Float!
   }
 
   type OfferView {

@@ -34,6 +34,11 @@ export const MAX_LINE_OFFERS_APPLIED = 4;
 export const MAX_ORDER_DISCOUNTS_APPLIED = MAX_QUOTE_CODES + 3;
 /** Most codes one admin add may carry, so one call never holds a transaction for an unbounded batch. */
 export const MAX_CODES_PER_ADD = 100;
+/**
+ * Most codes one offer may hold (D2535(k)), so the offer's code list, read whole by the admin, stays bounded. One code
+ * per influencer is the use case; a thousand covers it many times over.
+ */
+export const MAX_CODES_PER_OFFER = 1000;
 /** Longest code a buyer may type, before trimming and upper-casing. */
 export const MAX_CODE_INPUT_LENGTH = 64;
 /** Longest phone text a request may carry, before normalising. */

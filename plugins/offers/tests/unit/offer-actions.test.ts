@@ -157,4 +157,56 @@ describe('OfferActions (D2517-D2519)', () => {
     expect(preview.scenarios.length).toBeGreaterThan(0);
     expect(page.totalItems).toBe(0);
   });
+
+  it('stores a target sent with a null role as a buy target on create, preview and update', async () => {
+    // Arrange
+    const { actions } = setUpActions();
+    const nullRoleTargets = [{ role: null, refType: 'variant', refId: '11' }];
+
+    // Act
+    const created = await actions.create(ctx, { ...QUANTITY_INPUT, targets: nullRoleTargets });
+    const updated = await actions.update(ctx, created.id, { targets: nullRoleTargets });
+    const preview = await actions.preview(ctx, { offer: { ...QUANTITY_INPUT, targets: nullRoleTargets } });
+
+    // Assert
+    expect(created.targets).toEqual([{ role: 'buy', refType: 'variant', refId: '11' }]);
+    expect(updated.targets).toEqual([{ role: 'buy', refType: 'variant', refId: '11' }]);
+    expect(preview.scenarios.length).toBeGreaterThan(0);
+  });
+
+  it('keeps the stored value of a field that cannot be null when an update sends it null', async () => {
+    // Arrange
+    const { actions } = setUpActions();
+    const created = await actions.create(ctx, { ...QUANTITY_INPUT, method: 'codes', label: { en: 'Two for less' } });
+    const nulls = { kind: null, method: null, label: null, config: null, combinesWith: null, eligibility: null };
+
+    // Act
+    const updated = await actions.update(ctx, created.id, { ...nulls, title: 'Renamed', targets: null });
+
+    // Assert
+    expect(updated).toMatchObject({
+      title: 'Renamed',
+      kind: 'quantity',
+      method: 'codes',
+      label: { en: 'Two for less' },
+      config: created.config,
+      targets: created.targets,
+    });
+  });
+
+  it('clears a clearable field an update sends as null', async () => {
+    // Arrange
+    const { actions } = setUpActions();
+    const created = await actions.create(ctx, {
+      ...QUANTITY_INPUT,
+      totalUsageLimit: 5,
+      endsAt: '2027-01-01T00:00:00Z',
+    });
+
+    // Act
+    const updated = await actions.update(ctx, created.id, { totalUsageLimit: null, endsAt: null });
+
+    // Assert
+    expect(updated).toMatchObject({ totalUsageLimit: null, endsAt: null });
+  });
 });

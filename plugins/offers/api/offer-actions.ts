@@ -17,7 +17,7 @@ import { asOperationContext, type OperationContext } from '../domain/ports/opera
 import type { StoreScope } from '../domain/store-scope';
 import { type OfferCodeDto, type OfferPageDto, type OfferViewDto, toCodeDto, toOfferViewDto } from './offer-dto';
 import { OfferReadUseCases, OfferWriteUseCases } from './offer-use-cases';
-import { fieldOf, idArgOf, offerPatchOf, versionOf, withoutNullFields } from './request-body';
+import { fieldOf, idArgOf, offerInputOf, offerPatchOf, versionOf, withoutNullFields } from './request-body';
 import { scopeOf } from './store-scope-of';
 
 /** The caller's operation context and store, as every action reads them first. */
@@ -63,7 +63,7 @@ export class OfferActions {
   /** Creates a draft (D2431); an unset field takes its default. */
   async create(ctx: RequestContext, input: unknown): Promise<OfferViewDto> {
     const caller = callerOf(ctx);
-    const parsed = offerInputSchema.safeParse(withoutNullFields(input));
+    const parsed = offerInputSchema.safeParse(offerInputOf(input));
     if (!parsed.success) throw new InvalidOfferConfigError();
     return this.viewOf(caller, await this.writes.admin.createDraft(caller.op, caller.scope, parsed.data));
   }
@@ -158,7 +158,7 @@ export class OfferActions {
   /** A draft priced on the kind's preview carts, never stored (D2516). */
   preview(ctx: RequestContext, input: unknown): Promise<OfferPreview> {
     const caller = callerOf(ctx);
-    const request = { ...asObject(withoutNullFields(input)), offer: withoutNullFields(fieldOf(input, 'offer')) };
+    const request = { ...asObject(withoutNullFields(input)), offer: offerInputOf(fieldOf(input, 'offer')) };
     // The preview use case parses the whole input with its schema and answers the first issue's code.
     return this.reads.preview.preview(caller.op, caller.scope, request as OfferPreviewInput);
   }

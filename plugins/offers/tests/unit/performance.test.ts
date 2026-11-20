@@ -1,3 +1,4 @@
+import { INT_COLUMN_MAX } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { aggregatePerformance, type OfferOrderFact } from '../../domain/performance';
 
@@ -85,5 +86,25 @@ describe('aggregatePerformance (D2514)', () => {
     // Assert
     expect(performance.get(OFFER)).toEqual({ orders: 1, deliveredRevenue: 10_000, discountGiven: 300 });
     expect(performance.has(OTHER)).toBe(false);
+  });
+
+  it('sums two orders each at the largest stored total exactly, past the 32-bit range', () => {
+    // Arrange
+    const big = (orderId: string): OfferOrderFact => ({
+      orderId,
+      state: 'delivered',
+      total: INT_COLUMN_MAX,
+      offers: [{ offerId: OFFER, amount: INT_COLUMN_MAX }],
+    });
+
+    // Act
+    const performance = aggregatePerformance([big('9005'), big('9006')], [OFFER]);
+
+    // Assert
+    expect(performance.get(OFFER)).toEqual({
+      orders: 2,
+      deliveredRevenue: 2 * INT_COLUMN_MAX,
+      discountGiven: 2 * INT_COLUMN_MAX,
+    });
   });
 });
