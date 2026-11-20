@@ -84,6 +84,26 @@ describe('XlsxSpreadsheetReader against a zip whose two views differ (D2266)', (
     // Act and Assert
     await expect(new XlsxSpreadsheetReader().read(bytes, limits)).rejects.toBeInstanceOf(FileTypeError);
   });
+
+  it('a local record written after the central directory, before the end record, is refused', async () => {
+    // Arrange: a streaming unzipper still reads a local signature it meets after the directory
+    const smuggled = { name: 'xl/sharedStrings.xml', text: STRINGS_BOMB, afterDirectory: true };
+    const bytes = realZipOf([...workbookFilesOf(SHEET), smuggled]);
+
+    // Act and Assert
+    expect(inspectZip(bytes)).toEqual({ ok: false, reason: 'not-a-zip' });
+    await expect(new XlsxSpreadsheetReader().read(bytes, limits)).rejects.toBeInstanceOf(FileTypeError);
+  });
+
+  it('a local record hidden in directory space the records do not fill is refused', async () => {
+    // Arrange: the end record's directory size spans the smuggled record too
+    const smuggled = { name: 'xl/sharedStrings.xml', text: STRINGS_BOMB, afterDirectory: true };
+    const bytes = realZipOf([...workbookFilesOf(SHEET), smuggled], { directoryCoversTrailing: true });
+
+    // Act and Assert
+    expect(inspectZip(bytes)).toEqual({ ok: false, reason: 'not-a-zip' });
+    await expect(new XlsxSpreadsheetReader().read(bytes, limits)).rejects.toBeInstanceOf(FileTypeError);
+  });
 });
 
 describe('assertSafeParts (D2222, D2266)', () => {

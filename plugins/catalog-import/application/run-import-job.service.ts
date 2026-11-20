@@ -4,6 +4,7 @@ import { RowProductNotFoundError } from '../domain/errors';
 import { percentOf } from '../domain/export-target';
 import { createOf, imageUrlsOf, updateOf } from '../domain/import-writes';
 import { RUNNABLE_JOB_STATUSES } from '../domain/job-kinds';
+import { writeGroupKeyOf } from '../domain/row-groups';
 import type { PlannedRow } from '../domain/row-plan';
 import type { StoreScope } from '../domain/store-scope';
 import type { ImportReportService } from './import-report.service';
@@ -28,11 +29,11 @@ export interface RunImportJobDeps {
 /** The rows of one product: never empty. */
 type StoredGroupRows = readonly [StoredImportRow, ...StoredImportRow[]];
 
-/** The rows of one product, in row order: one product key (as the preview stored it), or a row without one. */
+/** The rows of one product, in row order, grouped as the preview planned them (`writeGroupKeyOf`, D2268). */
 function groupsOf(rows: readonly StoredImportRow[]): StoredGroupRows[] {
   const groups = new Map<string, StoredGroupRows>();
   for (const row of rows) {
-    const key = row.productKey === null ? ` ${String(row.rowNumber)}` : `=${row.productKey}`;
+    const key = writeGroupKeyOf(row);
     const group = groups.get(key);
     groups.set(key, group === undefined ? [row] : [...group, row]);
   }

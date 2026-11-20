@@ -124,4 +124,27 @@ describe('validateRow (D2209)', () => {
     // Assert
     expect(row.errors).toEqual([E.INVALID_VALUE]);
   });
+
+  it('an over-long value is refused and not kept, so an error row stores no oversized text (D2269)', () => {
+    // Act
+    const row = validateRow({
+      rowNumber: 2,
+      cells: { name: 'N'.repeat(10_000), price: '1', description: 'D'.repeat(100_000), brand: 'B'.repeat(10_000) },
+    });
+
+    // Assert
+    expect(row.errors).toEqual([E.INVALID_VALUE]);
+    expect(row.values).not.toHaveProperty('name');
+    expect(row.values).not.toHaveProperty('description');
+    expect(row.values).not.toHaveProperty('brand');
+  });
+
+  it('a tags cell breaking its limits is refused and not kept (D2269)', () => {
+    // Act
+    const row = validateRow({ rowNumber: 2, cells: { name: 'A', price: '1', tags: 'T'.repeat(10_000) } });
+
+    // Assert
+    expect(row.errors).toEqual([E.INVALID_VALUE]);
+    expect(row.values).not.toHaveProperty('tags');
+  });
 });

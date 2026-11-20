@@ -28,7 +28,7 @@ const ZIP64_MARKER = 0xffffffff;
 /** The parts every OOXML workbook holds; a zip missing one is not a workbook (D2253). */
 const WORKBOOK_PARTS = ['[Content_Types].xml', 'xl/workbook.xml'] as const;
 /** Field offsets of the end-of-central-directory record (APPNOTE 4.3.16). */
-const END_FIELDS = { count: 10, size: 12, offset: 16 } as const;
+const END_FIELDS = { countOnDisk: 8, count: 10, size: 12, offset: 16 } as const;
 /** Field offsets of a central directory record (APPNOTE 4.3.12). */
 const CENTRAL_FIELDS = {
   method: 10,
@@ -47,7 +47,11 @@ interface Directory {
   readonly offset: number;
 }
 
-/** The end-of-central-directory record, looked for backwards past a comment of at most 64 KiB. */
+/**
+ * The end-of-central-directory record, looked for backwards past a comment of at most 64 KiB. The directory must end
+ * exactly where the end record starts, with all its records on this disk: a streaming unzipper reads a local record it
+ * meets anywhere before the end record, so no byte may sit between the directory and the end record (D2266).
+ */
 function directoryOf(bytes: Uint8Array): Directory | undefined {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const lowest = Math.max(0, bytes.length - END_RECORD_BYTES - MAX_COMMENT_BYTES);
@@ -58,12 +62,13 @@ function directoryOf(bytes: Uint8Array): Directory | undefined {
       size: view.getUint32(at + END_FIELDS.size, true),
       offset: view.getUint32(at + END_FIELDS.offset, true),
     };
-    return directory.offset + directory.size <= at ? directory : undefined;
+    const sameDisk = view.getUint16(at + END_FIELDS.countOnDisk, true) === directory.count;
+    return sameDisk && directory.offset + directory.size === at ? directory : undefined;
   }
   return undefined;
 }
 
-/** The directory's records, or undefined when one is cut or unsigned. */
+/** The directory's records, or undefined when one is cut or unsigned, or they do not fill the directory exactly. */
 function entriesOf(bytes: Uint8Array, directory: Directory): ZipEntry[] | undefined {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const entries: ZipEntry[] = [];
@@ -86,7 +91,7 @@ function entriesOf(bytes: Uint8Array, directory: Directory): ZipEntry[] | undefi
     });
     at = nameStart + tail;
   }
-  return entries;
+  return at === directory.offset + directory.size ? entries : undefined;
 }
 
 const ratioTooHigh = (entry: ZipEntry): boolean => entry.uncompressedSize > entry.compressedSize * IMPORT_MAX_ZIP_RATIO;

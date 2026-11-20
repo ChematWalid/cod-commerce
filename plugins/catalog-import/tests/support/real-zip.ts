@@ -12,6 +12,14 @@ export interface ZipFile {
   readonly stored?: boolean;
   /** The uncompressed size both headers claim, instead of the real one. */
   readonly claimedSize?: number;
+  /** Its local record written after the central directory, before the end record (smuggled past the directory). */
+  readonly afterDirectory?: boolean;
+}
+
+/** How a test makes the end record lie about the central directory. */
+export interface ZipLayout {
+  /** The directory size the end record claims also spans the local records written after the directory. */
+  readonly directoryCoversTrailing?: boolean;
 }
 
 const LOCAL_SIGNATURE = 0x04034b50;
@@ -115,11 +123,11 @@ const concat = (parts: readonly Uint8Array[]): Uint8Array => {
  * A real, deflated zip of `files` that any unzip reads (CRC and local header offsets set), unless a file asks the
  * zip to lie about it.
  */
-export function realZipOf(files: readonly ZipFile[]): Uint8Array {
+export function realZipOf(files: readonly ZipFile[], layout: ZipLayout = {}): Uint8Array {
   const locals: Uint8Array[] = [];
   const packed: Packed[] = [];
   let offset = 0;
-  for (const file of files) {
+  for (const file of files.filter((candidate) => candidate.afterDirectory !== true)) {
     const entry = packedOf(file, offset);
     const local = concat([localRecord(entry), entry.data, descriptorOf(entry)]);
     locals.push(local);
@@ -128,14 +136,21 @@ export function realZipOf(files: readonly ZipFile[]): Uint8Array {
   }
   const listed = packed.filter(isListed);
   const central = concat(listed.map(centralRecord));
+  const trailing = files
+    .filter((file) => file.afterDirectory === true)
+    .map((file) => {
+      const entry = packedOf({ ...file, listedAs: null }, 0);
+      return concat([localRecord(entry), entry.data, descriptorOf(entry)]);
+    });
+  const trailingBytes = trailing.reduce((sum, part) => sum + part.length, 0);
   const end = new Uint8Array(END_RECORD_BYTES);
   const view = new DataView(end.buffer);
   view.setUint32(0, END_SIGNATURE, true);
   view.setUint16(8, listed.length, true);
   view.setUint16(10, listed.length, true);
-  view.setUint32(12, central.length, true);
+  view.setUint32(12, central.length + (layout.directoryCoversTrailing === true ? trailingBytes : 0), true);
   view.setUint32(16, offset, true);
-  return concat([...locals, central, end]);
+  return concat([...locals, central, ...trailing, end]);
 }
 
 const SHEET_NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';

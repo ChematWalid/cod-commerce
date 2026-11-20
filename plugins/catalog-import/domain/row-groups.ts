@@ -28,6 +28,26 @@ export type GroupTarget =
 /** How SKUs and option values of one file are compared with each other: trimmed, NFC, case folded. */
 export const skuKey = (value: string): string => value.normalize('NFC').trim().toLowerCase();
 
+/** What the worker groups a stored row by: its fields as the preview planned them. */
+export interface WriteGroupFields {
+  readonly rowNumber: number;
+  readonly productKey: string | null;
+  readonly action: string;
+  readonly productId: string | null;
+}
+
+/**
+ * The write group of a planned row (D2210, D2268): its product key as stored (every row of a key group is stored
+ * under the group's first cell); a row without a key updating a product shares one group with the other keyless rows
+ * updating it (they name different variants of it by SKU), so one write carries them and the first one's product
+ * fields win; any other keyless row is its own group. A key never starts with `#` or a space.
+ */
+export function writeGroupKeyOf(row: WriteGroupFields): string {
+  if (row.productKey !== null) return `=${row.productKey}`;
+  if (row.action === 'update' && row.productId !== null) return `#${row.productId}`;
+  return ` ${String(row.rowNumber)}`;
+}
+
 function weightConflictsOf(rows: readonly ValidatedRow[]): Set<number> {
   const first = rows.find((row) => row.values.weight !== undefined)?.values.weight;
   return new Set(

@@ -1,11 +1,12 @@
 import { IMPORT_HEADER_WINDOW_ROWS, IMPORT_MAX_CELL_CHARS, IMPORT_MAX_ROWS } from '@cod/shared';
+import { IMPORT_MAX_SHEET_CHARS } from '../../domain/constants';
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 import type { ReadLimits } from '../../application/ports/spreadsheet-format.port';
 import { FileTypeError } from '../../domain/errors';
 import { CsvSpreadsheetReader } from '../../infrastructure/csv-reader';
 import { XlsxSpreadsheetReader } from '../../infrastructure/xlsx-reader';
-import { sheetXml, xlsxOf } from '../support/real-zip';
+import { realZipOf, sheetXml, workbookFilesOf, xlsxOf } from '../support/real-zip';
 import { bytesOf } from '../support/scope';
 
 const BOM = '\uFEFF';
@@ -200,5 +201,56 @@ describe('XlsxSpreadsheetReader (D2209, D2222)', () => {
     // Assert
     expect(read.truncated).toBe(true);
     expect(read.rows).toHaveLength(READ_CAP);
+  });
+});
+
+/** Text of `length` letters that deflates poorly (a linear congruential sequence), so its part passes the ratio cap. */
+function noiseOf(length: number): string {
+  let seed = 7;
+  return Array.from({ length }, () => {
+    seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+    return String.fromCharCode(97 + (seed % 26));
+  }).join('');
+}
+
+/** A workbook whose every cell points at one shared string of `text`: a few bytes per cell in the sheet XML. */
+function sharedStringsXlsx(text: string, rows: number, columns: number): Uint8Array {
+  const ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  const body = Array.from({ length: rows }, (_, row) => {
+    const cells = Array.from({ length: columns }, (_, column) => {
+      const ref = `${String.fromCharCode(65 + column)}${String(row + 1)}`;
+      return `<c r="${ref}" t="s"><v>0</v></c>`;
+    });
+    return `<row r="${String(row + 1)}">${cells.join('')}</row>`;
+  }).join('');
+  const sheet = `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="${ns}"><sheetData>${body}</sheetData></worksheet>`;
+  const strings = `<?xml version="1.0" encoding="UTF-8"?><sst xmlns="${ns}" count="1" uniqueCount="1"><si><t>${text}</t></si></sst>`;
+  // The shared strings part comes before the sheet, as Excel writes it, so the streaming reader has it cached.
+  const parts = workbookFilesOf(sheet);
+  return realZipOf([...parts.slice(0, -1), { name: 'xl/sharedStrings.xml', text: strings }, ...parts.slice(-1)]);
+}
+
+describe('the characters a sheet may yield in all (D2269)', () => {
+  it('cells pointing at one long shared string past the budget are refused', async () => {
+    // Arrange: about 2 000 cells of one 10 000-character string, far past the budget, from a small file
+    const columns = 20;
+    const rows = Math.ceil(IMPORT_MAX_SHEET_CHARS / IMPORT_MAX_CELL_CHARS / columns) + 1;
+    const bytes = sharedStringsXlsx(noiseOf(IMPORT_MAX_CELL_CHARS), rows, columns);
+
+    // Act and Assert
+    expect(bytes.length).toBeLessThan(IMPORT_MAX_SHEET_CHARS / 10);
+    await expect(xlsx.read(bytes, limits())).rejects.toBeInstanceOf(FileTypeError);
+  });
+
+  it('the same cells under the budget are read', async () => {
+    // Arrange
+    const bytes = sharedStringsXlsx(noiseOf(100), 3, 2);
+
+    // Act
+    const sheet = await xlsx.read(bytes, limits());
+
+    // Assert
+    expect(sheet.rows).toHaveLength(3);
+    expect(sheet.rows[0]?.cells[1]).toHaveLength(100);
   });
 });

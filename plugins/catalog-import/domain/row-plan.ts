@@ -119,24 +119,57 @@ function plannedOf(group: RowGroup, row: ValidatedRow, lookups: PlanLookups, tar
   };
 }
 
-/** Rows whose variant SKU an earlier row of the file already used (Review Focus 3). */
+/** The group a row belongs to before grouping: its product key compared as SKUs are, or the row itself. */
+const ownerOf = (row: ValidatedRow): string =>
+  row.values.productKey === undefined ? ` ${String(row.rowNumber)}` : `=${skuKey(row.values.productKey)}`;
+
+/** The SKU a row's product key names, when the key is a SKU (not an `id:<n>`). */
+function keySkuOf(row: ValidatedRow): string | undefined {
+  const key = row.values.productKey === undefined ? undefined : parseProductKey(row.values.productKey);
+  return key?.kind === 'sku' ? skuKey(key.sku) : undefined;
+}
+
+/**
+ * Rows that reuse a SKU of the file (Review Focus 3, D2268): a variant SKU an earlier row already used as a variant
+ * SKU, or a variant SKU or SKU product key that an earlier row of another group used as either. A group's own key and
+ * its own variant SKUs do not count against each other; both would become SKUs of the products the file creates.
+ */
 function duplicateSkuRows(rows: readonly ValidatedRow[]): ReadonlySet<number> {
-  const seen = new Set<string>();
+  const owners = new Map<string, string>();
+  const variantSkus = new Set<string>();
   const duplicates = new Set<number>();
-  for (const { rowNumber, values } of rows) {
-    if (values.variantSku === undefined) continue;
-    const key = skuKey(values.variantSku);
-    if (seen.has(key)) duplicates.add(rowNumber);
-    seen.add(key);
+  for (const row of rows) {
+    const owner = ownerOf(row);
+    const keySku = keySkuOf(row);
+    const variantSku = row.values.variantSku === undefined ? undefined : skuKey(row.values.variantSku);
+    const own = [keySku, variantSku].filter((sku): sku is string => sku !== undefined);
+    const takenElsewhere = own.some((sku) => (owners.get(sku) ?? owner) !== owner);
+    if (takenElsewhere || (variantSku !== undefined && variantSkus.has(variantSku))) {
+      duplicates.add(row.rowNumber);
+      continue;
+    }
+    for (const sku of own) owners.set(sku, owner);
+    if (variantSku !== undefined) variantSkus.add(variantSku);
   }
   return duplicates;
 }
 
-/** A group updating a product an earlier group of the file already updates is a duplicate in the file (D2267). */
-function onceEach(target: GroupTarget, targeted: Set<string>): GroupTarget {
+/** Who updates each product of the file so far: a keyed group, or rows without a key (D2267, D2268). */
+type Targeted = Map<string, 'keyed' | 'keyless'>;
+
+/**
+ * A group updating a product an earlier group of the file already updates is a duplicate in the file (D2267), except
+ * rows without a key after other keyless rows of the same product: they name other variants of it by SKU (a repeated
+ * SKU is already refused) and are written with them as one group (D2268).
+ */
+function onceEach(group: RowGroup, target: GroupTarget, targeted: Targeted): GroupTarget {
   if (target.kind !== 'update') return target;
-  if (targeted.has(target.productId)) return { kind: 'error', reason: E.DUPLICATE_IN_FILE };
-  targeted.add(target.productId);
+  const by = group.key === null ? 'keyless' : 'keyed';
+  const earlier = targeted.get(target.productId);
+  if (earlier !== undefined && !(earlier === 'keyless' && by === 'keyless')) {
+    return { kind: 'error', reason: E.DUPLICATE_IN_FILE };
+  }
+  targeted.set(target.productId, by);
   return target;
 }
 
@@ -144,8 +177,8 @@ function onceEach(target: GroupTarget, targeted: Set<string>): GroupTarget {
  * Plans what confirm does with each row (D2209, D2210), in file order: rows are grouped by `product_key`; a group's
  * product key (`id:<n>` in the store, or a SKU naming one product) or else its variant SKUs pick the product it
  * updates; a group naming none creates one; a later group naming a product an earlier one updates is a duplicate
- * (D2267). A row is an error with its reasons when it is invalid, repeats an earlier
- * variant SKU or option combination, names an ambiguous SKU or an `id:<n>` of no product of the store (one reason,
+ * (D2267), except keyless rows naming other variants of a product other keyless rows update (D2268). A row is an error
+ * with its reasons when it is invalid, reuses a SKU of another row (D2268) or repeats an option combination, names an ambiguous SKU or an `id:<n>` of no product of the store (one reason,
  * whatever the id's owner), names a variant SKU of another product, updates without edit permission, or creates
  * without a price. Unknown brand or tag names and a weight differing from the group's first warn.
  */
@@ -157,9 +190,9 @@ export function planRows(rows: readonly ValidatedRow[], lookups: PlanLookups): P
     if (row.errors.length > 0) planned.set(row.rowNumber, errorRow(row, key, row.errors));
     else if (duplicates.has(row.rowNumber)) planned.set(row.rowNumber, errorRow(row, key, [E.DUPLICATE_IN_FILE]));
   }
-  const targeted = new Set<string>();
+  const targeted: Targeted = new Map();
   for (const group of groupRows(rows.filter((row) => !planned.has(row.rowNumber)))) {
-    const target = onceEach(targetOfGroup(group, lookups), targeted);
+    const target = onceEach(group, targetOfGroup(group, lookups), targeted);
     for (const row of group.rows) planned.set(row.rowNumber, plannedOf(group, row, lookups, target));
   }
   return rows.map((row) => planned.get(row.rowNumber) as PlannedRow);

@@ -1,4 +1,4 @@
-import { IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS } from '@cod/shared';
+import { IMPORT_MAX_BYTES, IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS } from '@cod/shared';
 
 /** The queue catalog-import defines and alone defines (D2212); P4.S2 registers order exports on it. */
 export const IMPORTS_EXPORTS_QUEUE = 'imports-exports' as const;
@@ -49,6 +49,11 @@ export const EXPORT_DOWNLOAD_BASE = 'products';
 
 /** Longest CSV record csv-parse accepts: every column at the cell cap (D2222). */
 export const IMPORT_MAX_RECORD_CHARS = IMPORT_MAX_COLUMNS * IMPORT_MAX_CELL_CHARS;
+/**
+ * Characters a reader may yield from one sheet, every cell counted (D2269): as many as the largest upload holds bytes,
+ * so a CSV never reaches it, while an xlsx whose cells repeat one shared string cannot multiply its text.
+ */
+export const IMPORT_MAX_SHEET_CHARS = IMPORT_MAX_BYTES;
 /** SKUs one `findBySkus` call looks up while previewing: one preview page's worth (D2209). */
 export const IMPORT_SKU_LOOKUP_BATCH = 200;
 /** The import worker writes its progress after this many rows (D2210). */

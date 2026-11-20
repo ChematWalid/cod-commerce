@@ -1,21 +1,25 @@
 import { IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS } from '@cod/shared';
 import type { ReadLimits, SheetRow, SheetRows } from '../application/ports/spreadsheet-format.port';
+import { IMPORT_MAX_SHEET_CHARS } from '../domain/constants';
 import { FileTypeError } from '../domain/errors';
 
 /**
  * Collects the rows a reader parses and enforces the per-row limits of D2222 as it goes: at most
  * {@link IMPORT_MAX_COLUMNS} columns and {@link IMPORT_MAX_CELL_CHARS} characters per cell, no row after the
- * cooperative deadline, and no more than `limits.maxRows` rows (one more marks the file as cut).
+ * cooperative deadline, no more than `limits.maxRows` rows (one more marks the file as cut), and no more than
+ * {@link IMPORT_MAX_SHEET_CHARS} characters in all (D2269: an xlsx cell naming a shared string costs a few bytes).
  */
 export class SheetCollector {
   private readonly rows: SheetRow[] = [];
   private truncated = false;
+  private characters = 0;
 
   constructor(private readonly limits: ReadLimits) {}
 
   /**
    * Adds a row; false once the reader should stop (the cap was passed).
-   * @throws {@link FileTypeError} past the deadline, or for a row breaking a column or cell limit
+   * @throws {@link FileTypeError} past the deadline, for a row breaking a column or cell limit, or past the
+   * character budget
    */
   add(row: SheetRow): boolean {
     if (this.limits.now() > this.limits.deadlineAt) throw new FileTypeError();
@@ -25,6 +29,8 @@ export class SheetCollector {
       this.truncated = true;
       return false;
     }
+    this.characters += row.cells.reduce((sum, cell) => sum + cell.length, 0);
+    if (this.characters > IMPORT_MAX_SHEET_CHARS) throw new FileTypeError();
     this.rows.push(row);
     return true;
   }

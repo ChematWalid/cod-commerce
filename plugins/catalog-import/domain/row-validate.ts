@@ -39,14 +39,18 @@ class RowReader {
 
   constructor(private readonly cells: RawImportRow['cells']) {}
 
-  /** The cell's text without the export's formula guard (D2256), trimmed; undefined when empty. */
+  /**
+   * The cell's text without the export's formula guard (D2256), trimmed; undefined when empty, or when longer than
+   * `max` (refused, and not kept, so an error row stores no oversized text, D2269).
+   */
   text(field: ImportFieldKey, max: number): string | undefined {
     const raw = this.cells[field];
     if (raw === undefined) return undefined;
     const value = unguardCell(raw.trim()).trim();
     if (value === '') return undefined;
-    if (value.length > max) this.errors.add(E.INVALID_VALUE);
-    return value;
+    if (value.length <= max) return value;
+    this.errors.add(E.INVALID_VALUE);
+    return undefined;
   }
 
   /** A whole number in `0..max`, or undefined when the cell is empty. */
@@ -79,8 +83,9 @@ class RowReader {
     const value = this.text(field, Number.MAX_SAFE_INTEGER);
     if (value === undefined) return undefined;
     const items = splitListCell(value).map((item) => unguardCell(item));
-    if (items.length > maxItems || items.some((item) => item.length > NAME_CELL_MAX)) this.errors.add(E.INVALID_VALUE);
-    return items;
+    if (items.length <= maxItems && items.every((item) => item.length <= NAME_CELL_MAX)) return items;
+    this.errors.add(E.INVALID_VALUE);
+    return undefined;
   }
 
   imageUrls(): readonly string[] {
