@@ -12,7 +12,7 @@ const C = COLLECTIONS_ERROR_CODES;
 const COLLECTION_BY_ID: ById = { field: 'collectionId', notFound: C.NOT_FOUND };
 const PRODUCT_BY_ID: ById = { field: 'productId', notFound: C.PRODUCT_NOT_FOUND };
 /** A slug no store of the world uses: the answer is about the caller's store only. */
-const SWEEP_SLUG = 'isolation-sweep-slug';
+export const SWEEP_SLUG = 'isolation-sweep-slug';
 /** A valid edit naming no other id, so only the target collection decides the answer. */
 const EDIT = { title: 'Taken over', visible: false };
 const CREATE = { title: 'Synthetic collection', slug: SWEEP_SLUG, visible: true, position: 0, mode: 'manual' };

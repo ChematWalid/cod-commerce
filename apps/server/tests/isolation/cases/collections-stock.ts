@@ -1,4 +1,5 @@
 import { catalogOf } from '../catalog-world';
+import { seededCollectionsFilter } from '../collections-world';
 import type { Caller, MatrixRequest } from '../http';
 import { type IsolationAccess, type IsolationCase, ownChannel } from '../matrix';
 import type { BusinessWorld } from '../world-types';
@@ -102,10 +103,17 @@ const STOCK_CASES: readonly IsolationCase[] = CALLERS.flatMap(({ role, of }) =>
   })),
 );
 
-const DEFAULT_LIST = 'query { collections(options: { take: 100 }) { totalItems items { id name slug } } }';
 /**
- * The default channel holds none of the seeded collections (D2333): the superadmin's stock list answers, and the leak
- * scanner finds none of either business's collection titles in it.
+ * The stock list of the default channel narrowed to the seeded collections' ids, so the census covers every one of them
+ * however many collections the default channel holds (no page can hide one). The options travel as a typed variable,
+ * so Vendure decodes the ids of its `IDOperators`.
+ */
+const DEFAULT_LIST = `query ($options: CollectionListOptions) {
+  collections(options: $options) { totalItems items { id name slug } }
+}`;
+/**
+ * The default channel holds none of the seeded collections (D2333): the superadmin's stock list of them answers
+ * `totalItems: 0`, and the leak scanner finds none of either business's collection titles in it.
  */
 const DEFAULT_CHANNEL_CASES: readonly IsolationCase[] = [
   {
@@ -113,14 +121,14 @@ const DEFAULT_CHANNEL_CASES: readonly IsolationCase[] = [
     entity: 'collection',
     endpoint: 'collections',
     access: 'list',
-    title: "The superadmin lists stock collections on the default channel: none of B's collections",
-    request: (_a, _b, world): MatrixRequest => ({
+    title: "The superadmin lists stock collections on the default channel: none of A's or B's collections",
+    request: (a, b, world): MatrixRequest => ({
       method: 'POST',
       path: '/admin-api',
       caller: world.superadmin,
-      body: { query: DEFAULT_LIST },
+      body: { query: DEFAULT_LIST, variables: seededCollectionsFilter([a, b]) },
     }),
-    expect: { kind: 'own', mustInclude: () => [] },
+    expect: { kind: 'own', mustInclude: () => ['"totalItems":0'] },
     reverse: true,
   },
 ];

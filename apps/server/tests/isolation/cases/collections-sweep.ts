@@ -2,9 +2,10 @@ import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { restTargetOf, targetOf } from '../catalog-operations';
 import { catalogOf, restIdOf } from '../catalog-world';
 import { COLLECTION_OPERATIONS, COLLECTION_ROUTES } from '../collections-operations';
-import { tagRule } from '../collections-world';
+import { brandRule, tagRule } from '../collections-world';
 import { type IsolationCase, ownerGraphql, ownerRest } from '../matrix';
 import type { BusinessWorld } from '../world-types';
+import { COLLECTION_SCOPING_CASES } from './collections-scoping';
 import { sweepCasesOf } from './endpoint-sweep';
 
 /**
@@ -31,13 +32,6 @@ const SET_PRODUCT_COLLECTIONS = `mutation ($productId: ID!, $collectionIds: [ID!
 const UPDATE = `mutation ($id: ID!, $input: UpdateStoreCollectionInput!) {
   updateStoreCollection(id: $id, input: $input) { id }
 }`;
-
-/** A rule naming one brand (D2303). */
-const brandRule = (brandId: string) => ({
-  version: 1,
-  match: 'all',
-  conditions: [{ field: 'brand', operator: 'is_any_of', values: [brandId] }],
-});
 
 /** A preview on A's store of a rule naming B's row: it must match none of A's products and leak none of B's. */
 function previewNaming(row: 'tag' | 'brand', rule: (b: BusinessWorld) => unknown): IsolationCase {
@@ -76,6 +70,15 @@ const NAMING_CASES: readonly IsolationCase[] = [
     access: 'list',
     title: "A's owner previews a rule naming A's tag: A's product matches (positive control)",
     request: (a) => ownerGraphql(a, PREVIEW, { input: { rule: tagRule(catalogOf(a).tag.id) } }),
+    expect: { kind: 'own', mustInclude: (a) => [catalogOf(a).product.title] },
+  },
+  {
+    id: 'collections.previewStoreCollectionMatches.own-brand',
+    entity: 'collection',
+    endpoint: 'previewStoreCollectionMatches',
+    access: 'list',
+    title: "A's owner previews a rule naming A's brand: A's product matches (positive control)",
+    request: (a) => ownerGraphql(a, PREVIEW, { input: { rule: brandRule(catalogOf(a).brand.id) } }),
     expect: { kind: 'own', mustInclude: (a) => [catalogOf(a).product.title] },
   },
   {
@@ -153,4 +156,5 @@ export const COLLECTION_SWEEP_CASES: readonly IsolationCase[] = [
     restTargetOf,
   }),
   ...NAMING_CASES,
+  ...COLLECTION_SCOPING_CASES,
 ];

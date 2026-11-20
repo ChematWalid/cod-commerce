@@ -71,12 +71,12 @@ export const CREATE_STORE_COLLECTION = `mutation ($input: CreateStoreCollectionI
   createStoreCollection(input: $input) { id title slug }
 }`;
 
+/** Sets the manual products of a collection, in order (D2318). */
 export const SET_STORE_COLLECTION_PRODUCTS = `mutation ($id: ID!, $productIds: [ID!]!) {
   setStoreCollectionProducts(id: $id, productIds: $productIds) { id productCount }
 }`;
 
 /** The catalog documents (P2.S1) the world's catalog is seeded with. */
-
 export const CREATE_CATALOG_BRAND = `mutation ($input: CatalogBrandInput!) {
   createCatalogBrand(input: $input) { id name }
 }`;

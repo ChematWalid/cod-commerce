@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CATALOG_ERROR_CODES } from '@cod/shared';
-import { type InternalSigningKey, parseInternalKeys } from '@cod/shared/internal-auth';
+import { parseInternalKeys } from '@cod/shared/internal-auth';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
 import {
   AssetServerPlugin,
@@ -14,6 +14,7 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
+import { itKeepsStoredRulesInTheirStore } from '../isolation/cases/collections-stored-rule';
 import { describeOffersIsolation } from '../isolation/cases/offers';
 import {
   CATALOG_SNAPSHOT_FIELDS,
@@ -28,6 +29,7 @@ import {
   collectionsOf,
   COLLECTIONS_SNAPSHOT_FIELDS,
   seedCollections,
+  seededCollectionsFilter,
 } from '../isolation/collections-world';
 import { errorCodesOf, IsolationHttp } from '../isolation/http';
 import { ownChannel } from '../isolation/matrix';
@@ -61,12 +63,17 @@ const CENSUS_WAIT_MS = 60_000;
 const CENSUS_POLL_MS = 500;
 /** What each owner's snapshot reads of its first store: the catalog and the collections (P2.S3). */
 const FIRST_STORE_FIELDS = `${CATALOG_SNAPSHOT_FIELDS} ${COLLECTIONS_SNAPSHOT_FIELDS}`;
-/** Text no answer may carry: SQL, entity names, stacks (D2136). */
-/** The default storefront's collection list: the Shop API is internal-only (D112), so the call is signed. */
-const SHOP_COLLECTIONS = JSON.stringify({ query: '{ collections(options: { take: 100 }) { items { name slug } } }' });
+/**
+ * The default storefront's collection list, narrowed to the seeded collections' ids so no page can hide one: the Shop
+ * API is internal-only (D112), so the call is signed.
+ */
+const SHOP_COLLECTIONS =
+  'query ($options: CollectionListOptions) { collections(options: $options) { totalItems items { name slug } } }';
+/** What the Shop API's collection list answers. */
 interface ShopCollections {
-  readonly data?: { readonly collections?: { readonly items?: unknown } };
+  readonly data?: { readonly collections?: { readonly totalItems?: unknown } };
 }
+/** Text no answer may carry: SQL, entity names, stacks (D2136). */
 const INTERNALS = [/\bselect\b.+\bfrom\b/i, /QueryFailedError/, /EntityNotFound/, /\bat .+\.(?:js|ts):\d+/];
 
 const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
@@ -199,9 +206,13 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(await otherStoreSnapshotOf(http, world.b, COLLECTIONS_SNAPSHOT_FIELDS)).toEqual(before.bOtherStore);
   });
 
+  itKeepsStoredRulesInTheirStore({ world: () => world, http, sql });
+
   it("lists none of either business's collections on the default storefront (D2333)", async () => {
-    const key = parseInternalKeys(env.INTERNAL_HMAC_KEYS)[0] as InternalSigningKey;
-    const call = { method: 'POST', path: '/shop-api', body: SHOP_COLLECTIONS };
+    const [key] = parseInternalKeys(env.INTERNAL_HMAC_KEYS);
+    if (key === undefined) throw new Error('INTERNAL_HMAC_KEYS holds no signing key: the Shop census needs one');
+    const body = JSON.stringify({ query: SHOP_COLLECTIONS, variables: seededCollectionsFilter([world.a, world.b]) });
+    const call = { method: 'POST', path: '/shop-api', body };
     const seeded = [world.a, world.b].flatMap((business) => [
       catalogOf(business).collection.name,
       catalogOf(business).collection.slug,
@@ -216,7 +227,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     });
 
     expect(answer.status).toBe(200);
-    expect(Array.isArray((JSON.parse(answer.body) as ShopCollections).data?.collections?.items)).toBe(true);
+    expect((JSON.parse(answer.body) as ShopCollections).data?.collections?.totalItems).toBe(0);
     expect(seeded.filter((value) => answer.body.includes(value))).toEqual([]);
   });
 

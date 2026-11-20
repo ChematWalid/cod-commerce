@@ -36,6 +36,13 @@ export const tagRule = (tagId: string) => ({
   conditions: [{ field: 'tag', operator: 'is_any_of', values: [tagId] }],
 });
 
+/** A stored rule (D2303) every product of the brand `brandId` matches. */
+export const brandRule = (brandId: string) => ({
+  version: 1,
+  match: 'all',
+  conditions: [{ field: 'brand', operator: 'is_any_of', values: [brandId] }],
+});
+
 /** The world's session on `store`. */
 const channelOf = (store: WorldStore) => ({ label: store.label, token: store.channelToken });
 
@@ -108,6 +115,22 @@ export function collectionsOf(business: BusinessWorld): CollectionsWorld {
     throw new Error(`no collections rows for business ${business.label}: seedCollections must run`);
   }
   return collections;
+}
+
+/** The Vendure ids (GraphQL form) of every collection seeded for `business`, on both of its stores. */
+export const seededCollectionIdsOf = (business: BusinessWorld): string[] => [
+  catalogOf(business).collection.id,
+  collectionsOf(business).automatic.id,
+  collectionsOf(business).otherStore.id,
+];
+
+/**
+ * The variables of a stock `collections(options: $options)` list narrowed to every collection seeded for `businesses`.
+ * The page holds them all (`take` = their count), which also keeps the Shop API's query complexity under its cap.
+ */
+export function seededCollectionsFilter(businesses: readonly BusinessWorld[]) {
+  const ids = businesses.flatMap(seededCollectionIdsOf);
+  return { options: { take: ids.length, filter: { id: { in: ids } } } };
 }
 
 /** Every value that identifies `collections`' rows, for the leak scanner (the manual one is the catalog's). */

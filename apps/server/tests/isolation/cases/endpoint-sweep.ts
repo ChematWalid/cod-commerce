@@ -38,7 +38,7 @@ const otherStore = (business: BusinessWorld): Channel => ({
 });
 
 /** An operation as `caller` on `channel`, naming `target`'s rows; an upload carries a one-pixel PNG. */
-function operationRequest(
+export function operationRequest(
   op: CatalogOperation,
   caller: Caller,
   channel: Channel,
@@ -50,7 +50,12 @@ function operationRequest(
 }
 
 /** A route as `caller` on `channel`, naming `target`'s rows. */
-const routeRequest = (route: CatalogRoute, caller: Caller, channel: Channel, target: CatalogTarget): MatrixRequest => ({
+export const routeRequest = (
+  route: CatalogRoute,
+  caller: Caller,
+  channel: Channel,
+  target: CatalogTarget,
+): MatrixRequest => ({
   method: route.method,
   path: route.path(target),
   caller,
@@ -58,12 +63,14 @@ const routeRequest = (route: CatalogRoute, caller: Caller, channel: Channel, tar
   body: route.body?.(),
 });
 
-const routeName = (route: CatalogRoute): string => `${route.method} ${route.route}`;
-const accessOf = (op: CatalogOperation): 'read by id' | 'write' =>
+/** A route as cell titles name it: `GET /catalog/collections/:id`. */
+export const routeName = (route: CatalogRoute): string => `${route.method} ${route.route}`;
+/** How the matrix files an operation: a query reads by id, a mutation writes. */
+export const accessOf = (op: CatalogOperation): 'read by id' | 'write' =>
   op.document.startsWith('query') ? 'read by id' : 'write';
 
 /** What an operation answers for an id that is no row of the caller's store. */
-const notFoundOf = (op: CatalogOperation): Expectation =>
+export const notFoundOf = (op: CatalogOperation): Expectation =>
   op.byId?.notFound === null || op.byId === undefined
     ? { kind: 'null', field: op.name }
     : { kind: 'code', code: op.byId.notFound };
