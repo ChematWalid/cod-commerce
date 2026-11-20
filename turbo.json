@@ -34,6 +34,7 @@
         "COOKIE_SECRET",
         "INTERNAL_HMAC_*",
         "TENANT_SECRET_*",
+        "QUOTE_HMAC_*",
         "PLATFORM_DEMO_HANDLERS",
         "AUTH_*",
         "SMTP_*",

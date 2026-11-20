@@ -13,6 +13,7 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
+import { describeOffersIsolation } from '../isolation/cases/offers';
 import {
   CATALOG_SNAPSHOT_FIELDS,
   CATALOG_WORLDS,
@@ -25,6 +26,7 @@ import { ownChannel } from '../isolation/matrix';
 import { CORRUPT_PNG, OVERSIZED_PNG, sourceKeyOf, storedState } from '../isolation/media-guard';
 import { type Outcome, runMatrix } from '../isolation/run';
 import { UPLOAD_CATALOG_MEDIA } from '../isolation/seed-operations';
+import { OFFERS_WORLDS, seedOffers } from '../isolation/offers-world';
 import { snapshotOf } from '../isolation/snapshot';
 import { P2_TENANT_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
 import { buildWorld, type World } from '../isolation/world';
@@ -61,7 +63,8 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * brands, tags, highlights, a collection and a media item in each store); then A reaches for B's catalog through every
  * catalog endpoint, by id, by list, by write, by naming B's rows in its own writes and with B's store token, and A's
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
- * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk.
+ * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
+ * (P2.S4), seeded in process, that A's quotes must never see.
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -102,6 +105,8 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     });
     CATALOG_WORLDS.set('A', await seedCatalog(http, world.superadmin, world.a));
     CATALOG_WORLDS.set('B', await seedCatalog(http, world.superadmin, world.b));
+    OFFERS_WORLDS.set('A', await seedOffers(server.app, world.a));
+    OFFERS_WORLDS.set('B', await seedOffers(server.app, world.b));
     before = {
       a: await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS),
       b: await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS),
@@ -123,7 +128,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it(
-    'seeds a row of each business in every P1 and catalog tenant table',
+    'seeds a row of each business in every P1, catalog and offers tenant table',
     async () => {
       // The outbox rows come from the webhooks' asynchronous processing, so the census waits for them.
       const emptyTables = async (): Promise<string[]> => {
@@ -184,6 +189,8 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(key).toMatch(new RegExp(`^b/${world.a.businessId}/s/${world.a.stores[0].id}/source/`));
     expect(existsSync(join(assetDir, `${ASSET_KEY_PREFIX}${key ?? ''}`))).toBe(true);
   });
+
+  describeOffersIsolation({ world: () => world, app: () => server.app });
 
   it.each([
     ['a PNG header with a corrupt body', CORRUPT_PNG],

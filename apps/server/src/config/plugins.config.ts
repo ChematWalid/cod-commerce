@@ -3,6 +3,7 @@ import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOpt
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
@@ -16,6 +17,7 @@ import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { parseInternalKeys } from '@cod/shared/internal-auth';
+import { parseQuoteKeys, quoteKeyRing } from '@cod/shared/quote-keys';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -148,15 +150,16 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
   });
 
 /**
- * RBAC, auth, catalog, collections and Team, in this order: Team builds on the services of the others (D206) and
- * registers its order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137);
- * collections import the catalog's module, so they come right after it (P2.S3).
+ * RBAC, auth, catalog, offers, collections and Team, in this order: Team builds on the services of the others (D206)
+ * and registers its order-manager check in the catalog module, so Catalog configures after Auth and before Team
+ * (D2137); the offers (D2402) and then the collections (P2.S3) import the catalog module and configure after it.
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
   return [
     RbacPlugin,
     authPlugin(env),
     CatalogPlugin,
+    OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
     CollectionsRulesPlugin,
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
   ];

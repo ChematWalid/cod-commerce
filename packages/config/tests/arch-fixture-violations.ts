@@ -12,6 +12,7 @@ const RBAC_MEMBER_ACCESS_ENTRY = 'plugins/rbac/member-access.ts';
 const AUTH_INVITATIONS_ENTRY = 'plugins/auth/invitations.ts';
 const CATALOG_ENTRY = 'plugins/catalog/index.ts';
 const COLLECTIONS_ENTRY = 'plugins/collections-rules/index.ts';
+const OFFERS_ENTRY = 'plugins/offers/index.ts';
 const ADAPTER = `${BAD}/infrastructure/adapter.ts`;
 const OWN_ENTRY = `${BAD}/index.ts`;
 /** Code parked where the permission and data access gates do not scan: production code must not import it. */
@@ -42,6 +43,12 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('catalog-entry-infra-only', 'application/uses-catalog-package.ts', CATALOG_ENTRY),
   violation('collections-entry-infra-only', 'api/uses-collections-package.ts', COLLECTIONS_ENTRY),
   violation('collections-entry-infra-only', 'application/uses-collections-package.ts', COLLECTIONS_ENTRY),
+  // Catalog never imports offers (D2402); the fixture lives in the catalog plugin, not in `bad`.
+  {
+    rule: 'catalog-no-offers',
+    from: 'plugins/catalog/infrastructure/uses-offers-package.ts',
+    to: OFFERS_ENTRY,
+  },
   violation('application-is-pure', 'application/uses-vendure-type.ts', '@vendure/core'),
   violation('application-no-concretes', 'application/district-pricing.service.ts', ADAPTER),
   violation('application-no-concretes', 'application/uses-infrastructure.ts', ADAPTER),
@@ -63,7 +70,14 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
     'infrastructure/uses-catalog-internals.ts',
     'plugins/catalog/domain/variant-rule.ts',
   ),
+  violation(
+    'no-cross-plugin-internals',
+    'infrastructure/uses-offers-internals.ts',
+    'plugins/offers/domain/offer-rule.ts',
+  ),
   violation('no-cross-plugin-internals', 'api/uses-rbac-entry-package.ts', RBAC_ENTRY),
+  violation('offers-entry-infra-only', 'api/uses-offers-package.ts', OFFERS_ENTRY),
+  violation('offers-entry-infra-only', 'application/uses-offers-package.ts', OFFERS_ENTRY),
   violation('no-cross-plugin-internals', 'api/uses-shell-api-package.ts', SHELL_API),
   violation('no-cross-plugin-internals', 'api/uses-shell-api.ts', SHELL_API),
   violation(

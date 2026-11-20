@@ -11,6 +11,10 @@
     "./internal-auth": {
       "@cod/source": "./src/internal-auth/index.ts",
       "default": "./dist/internal-auth/index.js"
+    },
+    "./quote-keys": {
+      "@cod/source": "./src/quote-keys/index.ts",
+      "default": "./dist/quote-keys/index.js"
     }
   },
   "scripts": {

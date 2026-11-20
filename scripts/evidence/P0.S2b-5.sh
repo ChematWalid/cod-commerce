@@ -34,6 +34,9 @@ export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBO
 export SMTP_TLS=none SMTP_USERNAME='' SMTP_PASSWORD=''
 export INTERNAL_HMAC_KEYS=k1:evidence-internal-hmac-key-synthetic-0000000001 INTERNAL_HMAC_ACTIVE_KID=k1
 export TENANT_SECRET_KEKS=k1:3a5c7e9f1b2d4f60718293a4b5c6d7e8f9a0b1c2d3e4f5061728394a5b6c7d8e TENANT_SECRET_ACTIVE_KID=k1
+: "${QUOTE_HMAC_KEYS:=k1:change-me-quote-hmac-00000000000000000000000000}"
+: "${QUOTE_HMAC_ACTIVE_KID:=k1}"
+export QUOTE_HMAC_KEYS QUOTE_HMAC_ACTIVE_KID
 export WORKER_ACTIVE_QUEUES=''
 # shellcheck source=lib/sign.sh
 . scripts/evidence/lib/sign.sh

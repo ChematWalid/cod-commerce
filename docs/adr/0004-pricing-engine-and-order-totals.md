@@ -50,7 +50,7 @@ Option 3, with 3a and P0.
 **Quote token** `qt1.<payload>.<sig>`
 - `payload` = base64url (no padding) of canonical JSON (sorted keys, no whitespace): `{ v: 1, kid, b: businessId, s: storeId, h, exp, t, sh, l, d, a, n }`.
   - `h` = SHA-256 (hex) of the canonical cart: lines sorted by `variantId` as `variantId:qty`, destination (`provinceCode`, `townOns`, `stopdesk`), sorted codes, and the phone hash if any applied offer's eligibility used the phone.
-  - `t` = total, `sh` = shipping price, `l` = lines `[{ variantId, qty, unitPrice, originalPrice, offerIds }]`, `d` = order-level discounts `[{ amount, offerId | code }]`, `a` = add-ons `[{ variantId, qty, unitPrice, parentVariantId }]`. All whole DZD integers.
+  - `t` = total, `sh` = shipping price, `l` = lines `[{ variantId, qty, unitPrice, originalPrice, offerIds }]`, `d` = order-level discounts `[{ amount, offerId | code }]`, `o` = every applied offer `[{ offerId, code? }]`, stored on the order as `appliedOffers` so an edit gives back exactly the uses the order holds (D2445), `a` = add-ons `[{ variantId, qty, unitPrice, parentVariantId }]`. All whole DZD integers.
   - `exp` = issue time + 15 min (epoch seconds); `n` = 96-bit random nonce.
 - `sig` = base64url HMAC-SHA256 over the ASCII bytes `qt1.<payload>` with the platform key named by `kid`.
 - **Key rotation**: keys live in a versioned secret `QUOTE_HMAC_KEYS = { kid: key }` with `QUOTE_HMAC_ACTIVE_KID`. Rotation: add the new key, switch the active `kid`, keep verifying the old `kid` for 30 min (2 × token lifetime), then remove it. Verification with an unknown `kid` fails like a bad signature.
@@ -74,7 +74,7 @@ Option 3, with 3a and P0.
 | Quote `subtotal` / `discountTotal` / `total` | `subtotal` = Σ `line.linePriceWithTax` (pre-proration); `discountTotal` = −Σ `order.discounts[].amountWithTax`; `t` = `order.totalWithTax`. Note: Vendure's `subTotalWithTax` is **after** order-level discounts (8 500), so it is not the quote subtotal. | `totalWithTax` 9 100 = 5 000 + 4 000 + 600 − 500 |
 | Order total check | Intake asserts `order.totalWithTax === t` after `ArrangingPayment` (where Vendure re-runs `applyPriceAdjustments`) and before adding the payment; otherwise the transaction rolls back and the mismatch alert fires. | the re-run on `ArrangingPayment` kept 9 100 (strategies are deterministic over the custom fields) |
 
-**Re-pricing after intake** (agent upsell P4.S3, edits): goes through `PricingService.reprice(order, change)`, which sets the same custom fields and lets Vendure recalculate. It never writes totals directly. A timeline audit diff is recorded.
+**Re-pricing after intake** (agent upsell P4.S3, edits): goes through `PricingService.reprice(order, change)`, which sets the same custom fields and lets Vendure recalculate. It never writes totals directly. A timeline audit diff is recorded. An edit re-prices every line of the changed cart at the current snapshot, untouched lines included, and its delta is measured from the order's stored total, with the part due to prices that moved since intake reported apart (D2446).
 
 ## Consequences
 

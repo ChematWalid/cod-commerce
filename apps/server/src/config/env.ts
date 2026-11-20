@@ -18,6 +18,7 @@ import {
 } from './deployed-env';
 import { demoEnvShape, rejectDemoHandlersInProduction } from './demo-env';
 import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
+import * as quoteKeys from './quote-keys-env';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
 import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
@@ -144,6 +145,7 @@ const baseSchema = z.object({
   INTERNAL_HMAC_ACTIVE_KID: z.string().optional(),
   ...demoEnvShape,
   ...tenantSecretsEnvShape,
+  ...quoteKeys.quoteKeysEnvShape,
   ...authEnvShape,
 });
 
@@ -189,6 +191,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
     ...internalKeysOf(env).map((key): [string, string] => ['INTERNAL_HMAC_KEYS', key.secret]),
     ...tenantSecretsSecretsOf(env),
+    ...quoteKeys.quoteKeysSecretsOf(env),
     ...authSecretsOf(env),
   ];
 }
@@ -198,6 +201,7 @@ function rejectPlaceholders(env: BaseEnv, context: z.RefinementCtx): void {
     return;
   }
   rejectWeakSecrets(secretsOf(env), context);
+  quoteKeys.rejectReusedQuoteSecrets(env, secretsOf(env), context);
   for (const [name, value] of secretsOf(env)) {
     if (value !== undefined && isPlaceholderSecret(value)) {
       context.addIssue({ code: 'custom', path: [name], message: PLACEHOLDER_MESSAGE });
@@ -247,6 +251,7 @@ const envSchema = baseSchema
   .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireKnownKekActiveKid)
+  .superRefine(quoteKeys.requireKnownQuoteActiveKid)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
   })

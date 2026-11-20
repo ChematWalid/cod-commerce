@@ -29,6 +29,8 @@ const TENANCY = '@cod/plugin-tenancy';
 const CATALOG = '@cod/plugin-catalog';
 /** Collections have a part of their own too: `others` stays near its budget (D2328). */
 const COLLECTIONS = '@cod/plugin-collections-rules';
+/** The offers have a part of their own too: five Vendure test-server suites would overrun `others` (D2433). */
+const OFFERS = '@cod/plugin-offers';
 /** The platform plugins of part `platform-1` (D118). */
 const PLATFORM_1 = [
   '@cod/plugin-platform-jobs',
@@ -41,11 +43,11 @@ const PLATFORM_2 = [
   '@cod/plugin-platform-webhooks',
   '@cod/plugin-platform-flags',
 ] as const;
-const othersExclusions = [SERVER, TENANCY, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2, CATALOG, COLLECTIONS]
+const othersExclusions = [SERVER, TENANCY, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2, CATALOG, COLLECTIONS, OFFERS]
   .map((name) => `--filter=!${name}`)
   .join(' ');
 
-/** The parts of the matrix, in order (D51, D69, D118, D2116, D2328). */
+/** The parts of the matrix, in order (D51, D69, D118, D2116, D2328, D2433). */
 export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'others', command: `pnpm test:integration ${othersExclusions}` },
   { part: 'server-e2e', command: unshardedCommand(SERVER) },
@@ -59,6 +61,7 @@ export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'platform-2', command: groupedCommand(PLATFORM_2) },
   { part: 'catalog', command: unshardedCommand(CATALOG) },
   { part: 'collections-rules', command: unshardedCommand(COLLECTIONS) },
+  { part: 'offers', command: unshardedCommand(OFFERS) },
 ];
 
 /** True when an unsharded `turbo` part runs `name`'s suite, alone or grouped with other packages. */
