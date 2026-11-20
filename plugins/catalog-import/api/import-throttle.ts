@@ -19,6 +19,15 @@ export class ImportThrottle {
     await this.spend('catalog-bulk-edit-business', businessId);
   }
 
+  /**
+   * Spends one export (up to 20 000 products read, D2211) of the business's shared budget.
+   *
+   * @throws RateLimitedError (429) past the business's export budget.
+   */
+  async spendExport(businessId: BusinessId): Promise<void> {
+    await this.spend('catalog-export-business', businessId);
+  }
+
   private async spend(policy: RateLimitPolicyName, key: string): Promise<void> {
     const decision = await this.limiter.consume(policy, key);
     if (!decision.allowed) throw new RateLimitedError(decision.retryAfterSeconds);

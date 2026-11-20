@@ -157,6 +157,7 @@ const RUNTIME_EXPORTS = [
   'importPreviewQuerySchema',
   'linkImportInputSchema',
   'productBulkEditDiffSchema',
+  'productExportDiffSchema',
   'CATALOG_IMPORT_ERROR_CODES',
   'CATALOG_IMPORT_ROW_ERRORS',
   'CATALOG_IMPORT_ROW_WARNINGS',

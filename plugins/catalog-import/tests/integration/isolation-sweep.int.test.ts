@@ -1,6 +1,6 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { IMPORTS_EXPORTS_JOB_KINDS, toBusinessId, toStoreId } from '@cod/shared';
-import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
+import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN, rawTestId } from '@cod/testing';
 import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { JOB_REPOSITORY, JOB_SCAN } from '../../application/tokens';
@@ -31,6 +31,7 @@ function openJob(data: ImportsExportsJobData): Promise<OpenedJob | undefined> {
 /** Text no answer may carry: SQL, table names, stacks, bucket names (D2136). */
 const LEAKS = [/select /i, /QueryFailedError/, /catalog_import/, /catalog_export/, /cod-private/, /EntityNotFound/];
 const NO_CODE = 'NO_CODE';
+const SYNTHETIC_TITLE_OF_B = 'Synthetic product of B';
 
 interface Outcome {
   readonly code: string | undefined;
@@ -60,10 +61,16 @@ async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Out
 const reportedErrorsOf = (data: unknown): unknown[] =>
   ((data as { results?: { error?: unknown }[] } | null)?.results ?? []).map((result) => result.error);
 
-function expectForeign(entry: { foreign: string; notFound: string }, outcome: Outcome): void {
+/** The ids of B's product as an answer could spell them: the GraphQL `ID` and the database id, quoted. */
+const productSpellingsOf = (ids: TargetIds): string[] => [`"${ids.productId}"`, `"${rawTestId(ids.productId)}"`];
+
+function expectForeign(entry: { foreign: string; notFound: string }, outcome: Outcome, ids: TargetIds): void {
   if (entry.foreign === 'null') expect(outcome).toMatchObject({ code: undefined, data: null });
   else if (entry.foreign === 'reported') expect(reportedErrorsOf(outcome.data)).toEqual([entry.notFound]);
-  else expect(outcome.code).toBe(entry.notFound);
+  else if (entry.foreign === 'own-only') {
+    expect(outcome.code).toBeUndefined();
+    for (const spelling of productSpellingsOf(ids)) expect(outcome.text).not.toContain(spelling);
+  } else expect(outcome.code).toBe(entry.notFound);
   for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
 }
 
@@ -80,7 +87,7 @@ describe('catalog-import isolation sweep (two businesses)', () => {
     const { b } = suite.fixtures;
     const store = b.stores[0].id;
     await suite.kit.asOwner(b);
-    const product = await suite.kit.createProduct();
+    const product = await suite.kit.createProduct({ title: SYNTHETIC_TITLE_OF_B });
     idsOfB = {
       productId: product.id,
       importId: await suite.kit.plantJob({
@@ -106,7 +113,7 @@ describe('catalog-import isolation sweep (two businesses)', () => {
     const outcome = await callOperation(entry, idsOfB);
 
     // Assert
-    expectForeign(entry, outcome);
+    expectForeign(entry, outcome, idsOfB);
     expect(await statusOfB(idsOfB.productId)).toBe('active');
   });
 
@@ -121,24 +128,23 @@ describe('catalog-import isolation sweep (two businesses)', () => {
 
       // Assert
       expect(answer.status).toBe(200);
-      expectForeign(entry, { code: undefined, data: answer.body, text: answer.text });
+      expectForeign(entry, { code: undefined, data: answer.body, text: answer.text }, idsOfB);
       expect(await statusOfB(idsOfB.productId)).toBe('active');
     },
   );
 
-  it.each(OPERATION_REGISTRY.filter((entry) => entry.foreign === 'reported'))(
-    "$operation as A on A's own product changes it (positive control)",
-    async (entry) => {
+  it.each(ROUTE_REGISTRY.filter((entry) => entry.foreign === 'own-only'))(
+    "$method $route as A against B's ids answers about A's store only",
+    async (entry: RouteEntry) => {
       // Arrange
       await suite.kit.asOwner(suite.fixtures.a);
-      const own = await suite.kit.createProduct();
 
       // Act
-      const outcome = await callOperation(entry, { ...idsOfB, productId: own.id });
+      const answer = await suite.kit.rest(entry.method, entry.url(idsOfB), entry.body?.(idsOfB));
 
       // Assert
-      expect(reportedErrorsOf(outcome.data)).toEqual([null]);
-      expect((await suite.kit.product(own.id))?.status).toBe('draft');
+      expect(answer.status).toBe(200);
+      expectForeign(entry, { code: undefined, data: answer.body, text: answer.text }, idsOfB);
     },
   );
 
@@ -153,11 +159,11 @@ describe('catalog-import isolation sweep (two businesses)', () => {
 
       // Assert
       expect(answer.status).toBe(404);
-      expectForeign(entry, {
-        code: (answer.body as { code?: string } | null)?.code,
-        data: answer.body,
-        text: answer.text,
-      });
+      expectForeign(
+        entry,
+        { code: (answer.body as { code?: string } | null)?.code, data: answer.body, text: answer.text },
+        idsOfB,
+      );
     },
   );
 

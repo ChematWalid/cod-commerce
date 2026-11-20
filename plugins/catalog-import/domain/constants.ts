@@ -37,3 +37,10 @@ export const ETAG_MAX_LENGTH = 128;
 export const CONTENT_TYPE_MAX_LENGTH = 128;
 /** Width of a stored mapping hash (sha-256 hex). */
 export const MAPPING_HASH_LENGTH = 64;
+
+/** Products an export reads at once; progress is written after each batch (D2211). */
+export const EXPORT_READ_BATCH = 25;
+/** Progress of a job, as a percentage. */
+export const PROGRESS_DONE = 100;
+/** The base name of an export's download, followed by `-<exportId>.<extension>` (D2208: no store or product text). */
+export const EXPORT_DOWNLOAD_BASE = 'products';

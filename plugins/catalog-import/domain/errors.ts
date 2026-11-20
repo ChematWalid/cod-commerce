@@ -65,3 +65,19 @@ export class ProductNotFoundError extends DomainError {
     super('Product not found');
   }
 }
+
+/** A job of no job of the store: another business's, another store's, a missing and a malformed id answer the same. */
+export class JobNotFoundError extends DomainError {
+  readonly code = C.JOB_NOT_FOUND;
+  constructor() {
+    super('Job not found');
+  }
+}
+
+/** An export whose filter finds more products than one file holds (D2211). */
+export class TooManyRowsError extends DomainError {
+  readonly code = C.TOO_MANY_ROWS;
+  constructor() {
+    super('Too many rows');
+  }
+}

@@ -28,6 +28,8 @@
     "@nestjs/common": "12.4.0",
     "@nestjs/graphql": "14.0.3",
     "@vendure/core": "3.8.1",
+    "csv-stringify": "6.9.0",
+    "exceljs": "4.4.0",
     "graphql-tag": "2.12.7",
     "typeorm": "0.3.31",
     "zod": "4.6.7"

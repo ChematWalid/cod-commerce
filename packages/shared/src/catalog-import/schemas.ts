@@ -14,6 +14,7 @@ import {
   BULK_EDIT_MAX_PRODUCTS,
   BULK_EDIT_PERCENT_MAX,
   BULK_EDIT_PERCENT_MIN,
+  EXPORT_SCOPES,
   EXPORT_SYNC_MAX_ROWS,
   IMPORT_CONTENT_TYPE_OF_FORMAT,
   IMPORT_CONTENT_TYPES,
@@ -135,6 +136,18 @@ export const productBulkEditDiffSchema = catalogObject({
 });
 
 export type ProductBulkEditDiff = z.output<typeof productBulkEditDiffSchema>;
+
+const countSchema = wholeNumber.min(0, invalidImportInput);
+
+/** The diff of one export's activity row (action `catalog.products.export`): what it wrote, never product data. */
+export const productExportDiffSchema = catalogObject({
+  scope: z.enum(EXPORT_SCOPES, invalidImportInput),
+  format: z.enum(IMPORT_FORMATS, invalidImportInput),
+  rowCount: countSchema,
+  skippedPacks: countSchema,
+});
+
+export type ProductExportDiff = z.output<typeof productExportDiffSchema>;
 
 const formatSchema = z.enum(IMPORT_FORMATS, invalidImportInput);
 

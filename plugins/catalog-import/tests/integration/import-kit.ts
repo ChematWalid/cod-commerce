@@ -78,7 +78,7 @@ export class ImportKit extends StoreKit {
     const kindColumns =
       job.table === 'catalog_import_job'
         ? { names: '"kind", "format"', values: "'spreadsheet', 'csv'" }
-        : { names: '"format", "scope"', values: "'csv', 'selected'" };
+        : { names: '"format", "scope", "query"', values: `'csv', 'selected', '{"productIds":[]}'::jsonb` };
     await this.query(
       `INSERT INTO "${job.table}" ("id", "businessId", "storeId", "status", ${kindColumns.names}, "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, ${kindColumns.values}, now(), now())`,

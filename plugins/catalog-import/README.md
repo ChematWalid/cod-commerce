@@ -5,9 +5,9 @@ Products are written only through catalog's explicit-scope facade `CatalogProduc
 
 | Layer | What lives there |
 |---|---|
-| `domain/` | object keys (`uploads/`, `exports/` + `tenantObjectKey`), `sniffSpreadsheet`, `inspectZip` (D2222), job kinds |
-| `application/` | ports (`ObjectStorage`, `CatalogProductsPort`, job repository and scan), `SpreadsheetFormatRegistry` |
-| `infrastructure/` | `S3ObjectStorage` / `MemoryObjectStorage`, the four tables, the `imports-exports` queue: kind registry, `JobStoreContext`, reconcile source |
+| `domain/` | object keys (`uploads/`, `exports/` + `tenantObjectKey`), `sniffSpreadsheet`, `inspectZip` (D2222), job kinds, export rows and the formula guard (D2209, D2256) |
+| `application/` | ports (`ObjectStorage`, `CatalogProductsPort`, `CatalogExportReadsPort`, job repository and scan), `SpreadsheetFormatRegistry`, bulk edit, export (now ≤ 500, job above, D2211, D2257) |
+| `infrastructure/` | `S3ObjectStorage` / `MemoryObjectStorage`, the four tables, the xlsx (exceljs) and CSV (csv-stringify, BOM) writers, the `imports-exports` queue: kind registry, `JobStoreContext`, reconcile source, the `product-export` handler |
 | `api/` | Tasks 7-10: bulk edit, export, import, link import |
 
 - Object storage (D2208): the private bucket `S3_BUCKET_PRIVATE` on Garage only, keys server-made. Presigned URLs are

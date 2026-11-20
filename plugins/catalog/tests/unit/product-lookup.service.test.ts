@@ -95,8 +95,8 @@ describe('ProductLookupService', () => {
     });
 
     // Assert
-    expect(page1).toEqual({ ids: [first.id, second.id], nextSkip: 2 });
-    expect(page2).toEqual({ ids: [third.id], nextSkip: null });
+    expect(page1).toEqual({ ids: [first.id, second.id], nextSkip: 2, total: 3 });
+    expect(page2).toEqual({ ids: [third.id], nextSkip: null, total: 3 });
   });
 
   it('caps a page at the catalog page size', async () => {
@@ -139,7 +139,7 @@ describe('ProductLookupService', () => {
     });
 
     // Assert
-    expect(page).toEqual({ ids: [], nextSkip: null });
+    expect(page).toEqual({ ids: [], nextSkip: null, total: 0 });
   });
 
   it("indexes the store's brands and tags by id and name, never another store's", async () => {

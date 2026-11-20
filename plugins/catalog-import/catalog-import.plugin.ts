@@ -9,6 +9,10 @@ import { ImportRequestActors } from './api/actor-of';
 import { BulkEditActions } from './api/bulk-edit-actions';
 import { BulkEditController } from './api/bulk-edit.controller';
 import { BulkEditResolver } from './api/bulk-edit.resolver';
+import { ExportActions } from './api/export-actions';
+import { ExportController } from './api/export.controller';
+import { ExportResolver } from './api/export.resolver';
+import { ImportExportCatalogController } from './api/import-export-catalog.controller';
 import { ImportThrottle } from './api/import-throttle';
 import { ImportTranslations } from './api/import-translations';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
@@ -26,7 +30,7 @@ import {
 import { CATALOG_IMPORT_PROVIDERS } from './infrastructure/providers';
 
 /** Every REST controller of the plugin. */
-export const CATALOG_IMPORT_REST_CONTROLLERS = [BulkEditController];
+export const CATALOG_IMPORT_REST_CONTROLLERS = [BulkEditController, ExportController, ImportExportCatalogController];
 
 /**
  * Bulk edit, export and import of a store's products, link import and the AI hooks (D2200): the private object
@@ -38,9 +42,16 @@ export const CATALOG_IMPORT_REST_CONTROLLERS = [BulkEditController];
   // (D2215); tenancy the tenant repositories and `requirePermission`; the rate limiter the budgets (D2217).
   imports: [PluginCommonModule, TenancyPlugin, PlatformJobsPlugin, PlatformFlagsPlugin, RateLimitPlugin, CatalogPlugin],
   entities: CATALOG_IMPORT_ENTITIES,
-  providers: [...CATALOG_IMPORT_PROVIDERS, BulkEditActions, ImportRequestActors, ImportThrottle, ImportTranslations],
+  providers: [
+    ...CATALOG_IMPORT_PROVIDERS,
+    BulkEditActions,
+    ExportActions,
+    ImportRequestActors,
+    ImportThrottle,
+    ImportTranslations,
+  ],
   exports: [IMPORTS_EXPORTS_JOB_REGISTRAR],
-  adminApiExtensions: { schema: importAdminApiSchema, resolvers: [BulkEditResolver] },
+  adminApiExtensions: { schema: importAdminApiSchema, resolvers: [BulkEditResolver, ExportResolver] },
   controllers: CATALOG_IMPORT_REST_CONTROLLERS,
   compatibility: '^3.8.0',
 })

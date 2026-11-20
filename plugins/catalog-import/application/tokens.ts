@@ -6,3 +6,7 @@ export const JOB_SCAN = Symbol('catalog-import.JobScan');
 export const IMPORT_LOGGER = Symbol('catalog-import.Logger');
 export const UNIT_OF_WORK = Symbol('catalog-import.UnitOfWork');
 export const PRODUCT_ACTIVITY = Symbol('catalog-import.ProductActivity');
+export const SPREADSHEET_FORMATS = Symbol('catalog-import.SpreadsheetFormats');
+export const CATALOG_EXPORT_READS = Symbol('catalog-import.CatalogExportReads');
+export const PRODUCT_ORIGINS = Symbol('catalog-import.ProductOrigins');
+export const EXPORT_JOBS = Symbol('catalog-import.ExportJobs');

@@ -48,4 +48,57 @@ export const importAdminApiSchema = gql`
   extend type Mutation {
     bulkEditCatalogProducts(input: CatalogBulkEditInput!): CatalogBulkEditResult!
   }
+
+  enum CatalogExportScope {
+    selected
+    filtered
+  }
+
+  enum CatalogSpreadsheetFormat {
+    xlsx
+    csv
+  }
+
+  "An export (D2211): selected product ids (at most 500), or every product the product list's query finds."
+  input CatalogExportInput {
+    scope: CatalogExportScope!
+    format: CatalogSpreadsheetFormat!
+    productIds: [ID!]
+    query: CatalogProductListInput
+    "Column keys of catalogImportFields; product_key, name and price are always written."
+    fields: [String!]
+  }
+
+  "An export job; downloadUrl is a fresh 5-minute link once status is done. Ids are snowflakes (String)."
+  type CatalogExport {
+    exportId: String!
+    status: String!
+    "Percentage of the products read so far."
+    progress: Int!
+    rowCount: Int!
+    skippedPacks: Int!
+    errorCode: String
+    downloadUrl: String
+  }
+
+  type CatalogImportField {
+    key: String!
+    required: Boolean!
+  }
+
+  type CatalogImportFormat {
+    format: String!
+    contentType: String!
+    extension: String!
+  }
+
+  extend type Mutation {
+    exportCatalogProducts(input: CatalogExportInput!): CatalogExport!
+  }
+
+  extend type Query {
+    catalogExport(id: String!): CatalogExport!
+    catalogImportFields: [CatalogImportField!]!
+    catalogImportFormats: [CatalogImportFormat!]!
+  }
 `;

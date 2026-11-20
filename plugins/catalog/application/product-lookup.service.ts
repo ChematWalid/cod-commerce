@@ -14,10 +14,14 @@ export interface ProductIdsPageRequest {
   readonly take: number;
 }
 
-/** Product ids ascending, each once, and where the next page starts (`null` after the last). */
+/**
+ * Product ids ascending, each once, where the next page starts (`null` after the last) and how many products the
+ * filter finds in all (an export counts before it pages, D2257).
+ */
 export interface ProductIdsPage {
   readonly ids: readonly CoreId[];
   readonly nextSkip: number | null;
+  readonly total: number;
 }
 
 /** A brand or a tag by id and name. */
@@ -32,7 +36,7 @@ export interface TaxonomyIndex {
   readonly tags: readonly NamedRef[];
 }
 
-const LAST_PAGE: ProductIdsPage = { ids: [], nextSkip: null };
+const LAST_PAGE: ProductIdsPage = { ids: [], nextSkip: null, total: 0 };
 
 /** Both Unicode forms of each SKU, so a case-only pre-filter (`contains`) still finds a stored NFC or NFD spelling. */
 const searchFormsOf = (skus: readonly string[]): readonly string[] => [
@@ -82,7 +86,7 @@ export class ProductLookupService {
       : CATALOG_MAX_PAGE_SIZE;
     const found = await this.ports.lookup.listIds(ctx, { ...criteria, sort: 'id-asc', skip, take });
     const nextSkip = skip + take < found.totalItems ? skip + take : null;
-    return { ids: [...new Set(found.ids)], nextSkip };
+    return { ids: [...new Set(found.ids)], nextSkip, total: found.totalItems };
   }
 
   /** Every brand and tag of the scope's store. */
