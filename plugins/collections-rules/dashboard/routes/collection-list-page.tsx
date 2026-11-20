@@ -12,7 +12,7 @@ import {
   PageLayout,
   PageTitle,
 } from '@vendure/dashboard';
-import { type ReactNode, useDeferredValue, useState } from 'react';
+import { type ReactNode, useDeferredValue, useEffect, useState } from 'react';
 import { CollectionTable } from '../components/collection-table';
 import { DeleteDialog } from '../components/delete-dialog';
 import { LtrRun } from '../components/ltr-run';
@@ -29,7 +29,7 @@ import type { StoreCollectionDto } from '../dto';
 import { useDeleteCollection } from '../hooks/use-delete-collection';
 import { useHeldPermissions } from '../hooks/use-held-permissions';
 import { useStoreScope } from '../hooks/use-store-scope';
-import { type CollectionRowAction, errorMessageIdOf, orderedCollections } from '../model/list-view';
+import { type CollectionRowAction, errorMessageIdOf, orderedCollections, pageWithin } from '../model/list-view';
 import type { StoreScope } from '../model/store-query';
 import { type CollectionListQuery, useStoreCollections } from '../queries';
 
@@ -94,6 +94,20 @@ function ListBody({ collections, searched, held, onCommand }: ListBodyProps): Re
   return <CollectionTable collections={orderedCollections(collections.data.items)} held={held} onCommand={onCommand} />;
 }
 
+/** A delete can empty the last page: the list then shows the new last page, not an empty "no collections" state. */
+function usePageWithinTotal(
+  total: number | undefined,
+  setQuery: (update: (shown: CollectionListQuery) => CollectionListQuery) => void,
+): void {
+  useEffect(() => {
+    if (total === undefined) return;
+    setQuery((shown) => {
+      const page = pageWithin(shown.page, total);
+      return page === shown.page ? shown : { ...shown, page };
+    });
+  }, [total, setQuery]);
+}
+
 /** The search, the table of the page asked for and the pager; a new search starts again at page 1. */
 function CollectionList(
   props: Omit<ListBodyProps, 'collections' | 'searched'> & { readonly scope: StoreScope | null },
@@ -102,6 +116,7 @@ function CollectionList(
   const [query, setQuery] = useState<CollectionListQuery>({ page: 1, search: '' });
   const deferred = useDeferredValue(query);
   const collections = useStoreCollections(props.scope, deferred);
+  usePageWithinTotal(collections.data?.totalItems, setQuery);
   return (
     <div className="grid gap-4" data-testid={COLLECTION_LIST_TEST_ID} data-store-id={props.scope?.storeId}>
       <Input
