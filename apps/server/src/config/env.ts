@@ -8,6 +8,7 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import { catalogImportDefaults, catalogImportEnvShape, requireCatalogImportSettings } from './catalog-import-env';
 import {
   hasReservedTld,
   isDeployed,
@@ -145,6 +146,7 @@ const baseSchema = z.object({
   ...demoEnvShape,
   ...tenantSecretsEnvShape,
   ...authEnvShape,
+  ...catalogImportEnvShape,
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
@@ -247,12 +249,14 @@ const envSchema = baseSchema
   .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireKnownKekActiveKid)
+  .superRefine(requireCatalogImportSettings)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
   })
   .transform((env) => ({
     ...env,
     ...authDefaults(env, isDeployed(env)),
+    ...catalogImportDefaults(env),
     PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
     DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
   }));

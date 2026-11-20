@@ -25,6 +25,9 @@ const CATALOG_ENTRY = '^plugins/catalog/index[.]ts$';
 /** The catalog-packs entry point that exposes its module and the pack price resolver (D2200, D2204). */
 const CATALOG_PACKS_ENTRY = '^plugins/catalog-packs/index[.]ts$';
 
+/** The catalog-import entry point that exposes its module and the imports-exports job registrar (D2200, D2212). */
+const CATALOG_IMPORT_ENTRY = '^plugins/catalog-import/index[.]ts$';
+
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
@@ -82,7 +85,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the catalog-packs entry (D2200), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the catalog-packs and catalog-import entries (D2200), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -97,6 +100,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         AUTH_INVITATIONS_ENTRY,
         CATALOG_ENTRY,
         CATALOG_PACKS_ENTRY,
+        CATALOG_IMPORT_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -227,6 +231,22 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
       ],
     },
     to: { path: CATALOG_PACKS_ENTRY },
+  },
+  {
+    name: 'catalog-import-entry-infra-only',
+    comment:
+      "The catalog-import entry exports Nest services, its module and the imports-exports job registrar: outside catalog-import only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2200, D2212, D2104 pattern). Frontend apps never import it (ADR 0017).",
+    severity: 'error',
+    from: {
+      pathNot: [
+        '^plugins/[^/]+/infrastructure/',
+        '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
+        '^plugins/[^/]+/tests/',
+        '^plugins/catalog-import/',
+        '^apps/server/',
+      ],
+    },
+    to: { path: CATALOG_IMPORT_ENTRY },
   },
   {
     name: 'apps-no-plugin-internals',

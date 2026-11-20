@@ -65,4 +65,10 @@ S3_ENDPOINT="http://127.0.0.1:${GARAGE_S3_HOST_PORT:-3900}" node scripts/check-o
     echo "CHECK FAILED: object storage PUT/GET/presigned/anonymous" >&2
     exit 1
   }
+# The dashboard's presigned uploads and downloads need bucket CORS for its origin (P2.S2, D2208).
+S3_ENDPOINT="http://127.0.0.1:${GARAGE_S3_HOST_PORT:-3900}" node scripts/garage-cors.mjs ||
+  {
+    echo "CHECK FAILED: garage bucket CORS for the dashboard origin" >&2
+    exit 1
+  }
 echo "DATA-SERVICES-OK"

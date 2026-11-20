@@ -29,6 +29,8 @@ const TENANCY = '@cod/plugin-tenancy';
 const CATALOG = '@cod/plugin-catalog';
 /** Catalog-packs has a part of its own for the same reason (D2216). */
 const CATALOG_PACKS = '@cod/plugin-catalog-packs';
+/** Catalog-import too (D2216). */
+const CATALOG_IMPORT = '@cod/plugin-catalog-import';
 /** The platform plugins of part `platform-1` (D118). */
 const PLATFORM_1 = [
   '@cod/plugin-platform-jobs',
@@ -41,7 +43,17 @@ const PLATFORM_2 = [
   '@cod/plugin-platform-webhooks',
   '@cod/plugin-platform-flags',
 ] as const;
-const othersExclusions = [SERVER, TENANCY, AUTH, RBAC, ...PLATFORM_1, ...PLATFORM_2, CATALOG, CATALOG_PACKS]
+const othersExclusions = [
+  SERVER,
+  TENANCY,
+  AUTH,
+  RBAC,
+  ...PLATFORM_1,
+  ...PLATFORM_2,
+  CATALOG,
+  CATALOG_PACKS,
+  CATALOG_IMPORT,
+]
   .map((name) => `--filter=!${name}`)
   .join(' ');
 
@@ -59,6 +71,7 @@ export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'platform-2', command: groupedCommand(PLATFORM_2) },
   { part: 'catalog', command: unshardedCommand(CATALOG) },
   { part: 'catalog-packs', command: unshardedCommand(CATALOG_PACKS) },
+  { part: 'catalog-import', command: unshardedCommand(CATALOG_IMPORT) },
 ];
 
 /** True when an unsharded `turbo` part runs `name`'s suite, alone or grouped with other packages. */

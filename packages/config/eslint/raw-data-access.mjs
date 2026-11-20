@@ -106,6 +106,9 @@ export const RAW_DATA_ACCESS_FILES = [
   'apps/server/src/roles/migrate.role.ts',
   // Runs only the advisory lock that serialises saves and recomputes of one pack product (P2.S2 Task 4 review, D2241).
   '**/plugins/catalog-packs/infrastructure/pg-pack-lock.ts',
+  // Reads job rows of both catalog-import job tables across businesses (ids, scope, status, actor, times; never a
+  // payload) for the worker and the job reconciler; every write goes through TenantRepository (P2.S2 Task 6, D2212).
+  '**/plugins/catalog-import/infrastructure/postgres-job-scan.ts',
 ];
 
 export const RAW_DATA_ACCESS_MESSAGE =
