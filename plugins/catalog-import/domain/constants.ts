@@ -1,3 +1,5 @@
+import { IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS } from '@cod/shared';
+
 /** The queue catalog-import defines and alone defines (D2212); P4.S2 registers order exports on it. */
 export const IMPORTS_EXPORTS_QUEUE = 'imports-exports' as const;
 
@@ -44,3 +46,16 @@ export const EXPORT_READ_BATCH = 25;
 export const PROGRESS_DONE = 100;
 /** The base name of an export's download, followed by `-<exportId>.<extension>` (D2208: no store or product text). */
 export const EXPORT_DOWNLOAD_BASE = 'products';
+
+/** Longest CSV record csv-parse accepts: every column at the cell cap (D2222). */
+export const IMPORT_MAX_RECORD_CHARS = IMPORT_MAX_COLUMNS * IMPORT_MAX_CELL_CHARS;
+/** SKUs one `findBySkus` call looks up while previewing: one preview page's worth (D2209). */
+export const IMPORT_SKU_LOOKUP_BATCH = 200;
+/** The import worker writes its progress after this many rows (D2210). */
+export const IMPORT_PROGRESS_EVERY_ROWS = 50;
+/** The base name of an import's error report download, followed by `-<importId>.csv` (D2208). */
+export const IMPORT_ERRORS_DOWNLOAD_BASE = 'import-errors';
+/** The format the per-row error report is written in (D2210). */
+export const IMPORT_REPORT_FORMAT = 'csv';
+/** The columns of the error report: the row's number, its reasons, then what identifies it (D2210). */
+export const IMPORT_REPORT_HEADER = ['row', 'reasons', 'product_key', 'name', 'variant_sku'] as const;

@@ -149,6 +149,15 @@ export const productExportDiffSchema = catalogObject({
 
 export type ProductExportDiff = z.output<typeof productExportDiffSchema>;
 
+/** The diff of one confirmed import's activity row (action `catalog.products.import`): its counts, never product data. */
+export const productImportDiffSchema = catalogObject({
+  created: countSchema,
+  updated: countSchema,
+  failed: countSchema,
+});
+
+export type ProductImportDiff = z.output<typeof productImportDiffSchema>;
+
 const formatSchema = z.enum(IMPORT_FORMATS, invalidImportInput);
 
 /** The chosen columns plus {@link EXPORT_KEPT_FIELDS}, in export header order whatever the order given (D2226). */

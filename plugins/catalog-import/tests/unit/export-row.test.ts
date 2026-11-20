@@ -177,4 +177,18 @@ describe('export rows (D2209)', () => {
     // Assert
     expect(columns).toEqual(asked);
   });
+  it('escapes a ; inside a tag name or an image link, and a SKU starting id: (D2261)', () => {
+    // Arrange
+    const product = productOf({ sku: 'id:7', tagNames: ['Summer; 2026'] });
+
+    // Act
+    const [row] = toExportRows(product, { imageUrls: ['https://img.example/a;v=2.jpg'] });
+
+    // Assert
+    expect(row).toMatchObject({
+      product_key: '\\id:7',
+      tags: 'Summer\\; 2026',
+      image_urls: 'https://img.example/a\\;v=2.jpg',
+    });
+  });
 });

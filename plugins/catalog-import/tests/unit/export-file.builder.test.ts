@@ -58,6 +58,7 @@ function builderOf(products: readonly ExportableProduct[]) {
             return Promise.resolve(new Uint8Array([1]));
           },
         },
+        reader: { read: () => Promise.reject(new Error('the export reads no file')) },
       }),
     },
   });

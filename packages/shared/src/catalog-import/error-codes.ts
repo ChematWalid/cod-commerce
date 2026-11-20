@@ -30,6 +30,8 @@ export const CATALOG_IMPORT_ROW_ERRORS = {
   INVALID_VALUE: 'catalog-import.row-invalid-value',
   TYPE_UNSUPPORTED: 'catalog-import.row-type-unsupported',
   IMAGE_URL: 'catalog-import.row-image-url',
+  /** An update row whose variant the product no longer has (its SKU, option values or single variant, D2210). */
+  VARIANT_NOT_FOUND: 'catalog-import.row-variant-not-found',
   PRODUCT_NOT_FOUND: CATALOG_IMPORT_ERROR_CODES.ROW_PRODUCT_NOT_FOUND,
   UPDATE_FORBIDDEN: CATALOG_IMPORT_ERROR_CODES.UPDATE_FORBIDDEN,
 } as const;

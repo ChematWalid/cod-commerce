@@ -15,6 +15,8 @@ describe('inspectZip (D2222)', () => {
         name,
         compressedSize: compressed,
         uncompressedSize: uncompressed,
+        method: 0,
+        localHeaderOffset: 0,
       })),
     });
   });

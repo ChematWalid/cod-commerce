@@ -13,6 +13,9 @@ import { ExportActions } from './api/export-actions';
 import { ExportController } from './api/export.controller';
 import { ExportResolver } from './api/export.resolver';
 import { ImportExportCatalogController } from './api/import-export-catalog.controller';
+import { ImportActions } from './api/import-actions';
+import { ImportController } from './api/import.controller';
+import { ImportResolver } from './api/import.resolver';
 import { ImportThrottle } from './api/import-throttle';
 import { ImportTranslations } from './api/import-translations';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
@@ -30,7 +33,12 @@ import {
 import { CATALOG_IMPORT_PROVIDERS } from './infrastructure/providers';
 
 /** Every REST controller of the plugin. */
-export const CATALOG_IMPORT_REST_CONTROLLERS = [BulkEditController, ExportController, ImportExportCatalogController];
+export const CATALOG_IMPORT_REST_CONTROLLERS = [
+  BulkEditController,
+  ExportController,
+  ImportExportCatalogController,
+  ImportController,
+];
 
 /**
  * Bulk edit, export and import of a store's products, link import and the AI hooks (D2200): the private object
@@ -46,12 +54,13 @@ export const CATALOG_IMPORT_REST_CONTROLLERS = [BulkEditController, ExportContro
     ...CATALOG_IMPORT_PROVIDERS,
     BulkEditActions,
     ExportActions,
+    ImportActions,
     ImportRequestActors,
     ImportThrottle,
     ImportTranslations,
   ],
   exports: [IMPORTS_EXPORTS_JOB_REGISTRAR],
-  adminApiExtensions: { schema: importAdminApiSchema, resolvers: [BulkEditResolver, ExportResolver] },
+  adminApiExtensions: { schema: importAdminApiSchema, resolvers: [BulkEditResolver, ExportResolver, ImportResolver] },
   controllers: CATALOG_IMPORT_REST_CONTROLLERS,
   compatibility: '^3.8.0',
 })

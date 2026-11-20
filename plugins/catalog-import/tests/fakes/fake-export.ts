@@ -77,6 +77,7 @@ export class FakeExportWorld {
       contentType: 'text/csv',
       extension: 'csv',
       writer: { write: () => Promise.resolve(new Uint8Array()) },
+      reader: { read: () => Promise.reject(new Error('the fake reads no file')) },
     }),
   };
 

@@ -28,6 +28,17 @@ export class ImportThrottle {
     await this.spend('catalog-export-business', businessId);
   }
 
+  /**
+   * Spends one import step that reads the file or writes the catalog: an upload, an analyze, a preview with its
+   * mapping, or a confirm (D2217). The actor's budget first, then the business's.
+   *
+   * @throws RateLimitedError (429) past the actor's or the business's import budget.
+   */
+  async spendImport(businessId: BusinessId, administratorKey: string): Promise<void> {
+    await this.spend('catalog-import-actor', `${businessId}:${administratorKey}`);
+    await this.spend('catalog-import-business', businessId);
+  }
+
   private async spend(policy: RateLimitPolicyName, key: string): Promise<void> {
     const decision = await this.limiter.consume(policy, key);
     if (!decision.allowed) throw new RateLimitedError(decision.retryAfterSeconds);

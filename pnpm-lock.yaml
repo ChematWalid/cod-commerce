@@ -618,6 +618,9 @@ importers:
       '@vendure/core':
         specifier: 3.8.1
         version: 3.8.1(ioredis@5.11.1)(pg@8.23.1)(sql.js@1.14.2)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(@types/node@24.19.2)(typescript@5.9.3))(typescript@5.9.3)
+      csv-parse:
+        specifier: 7.0.2
+        version: 7.0.2
       csv-stringify:
         specifier: 6.9.0
         version: 6.9.0

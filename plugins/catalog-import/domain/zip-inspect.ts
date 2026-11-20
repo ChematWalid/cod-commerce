@@ -5,6 +5,9 @@ export interface ZipEntry {
   readonly name: string;
   readonly compressedSize: number;
   readonly uncompressedSize: number;
+  /** The compression method (0 stored, 8 deflate) and where the entry's local header starts. */
+  readonly method: number;
+  readonly localHeaderOffset: number;
 }
 
 /** Why a zip is refused before any parser sees it (D2222). */
@@ -27,11 +30,13 @@ const WORKBOOK_PARTS = ['[Content_Types].xml', 'xl/workbook.xml'] as const;
 const END_FIELDS = { count: 10, size: 12, offset: 16 } as const;
 /** Field offsets of a central directory record (APPNOTE 4.3.12). */
 const CENTRAL_FIELDS = {
+  method: 10,
   compressed: 20,
   uncompressed: 24,
   nameLength: 28,
   extraLength: 30,
   commentLength: 32,
+  localHeaderOffset: 42,
 } as const;
 const names = new TextDecoder('utf-8');
 
@@ -75,6 +80,8 @@ function entriesOf(bytes: Uint8Array, directory: Directory): ZipEntry[] | undefi
       name: names.decode(bytes.subarray(nameStart, nameStart + nameLength)),
       compressedSize: view.getUint32(at + CENTRAL_FIELDS.compressed, true),
       uncompressedSize: view.getUint32(at + CENTRAL_FIELDS.uncompressed, true),
+      method: view.getUint16(at + CENTRAL_FIELDS.method, true),
+      localHeaderOffset: view.getUint32(at + CENTRAL_FIELDS.localHeaderOffset, true),
     });
     at = nameStart + tail;
   }

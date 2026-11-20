@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { SNIFF_HEAD_BYTES } from '../../domain/constants';
 import { sniffSpreadsheet } from '../../domain/file-sniff';
+import { CsvSpreadsheetWriter } from '../../infrastructure/csv-writer';
+import { XlsxSpreadsheetWriter } from '../../infrastructure/xlsx-writer';
 import { XLSX_ENTRIES, zipOf } from '../support/zip-builder';
 
 const utf8 = (text: string): Uint8Array => new TextEncoder().encode(text);
@@ -67,5 +69,23 @@ describe('sniffSpreadsheet (D2208)', () => {
   ])('%s is null', (_name, bytes) => {
     // Act and Assert
     expect(sniffSpreadsheet(bytes)).toBeNull();
+  });
+  it('a UTF-16 text file (Excel "Unicode text") is null', () => {
+    // Arrange: little-endian UTF-16 with its byte order mark holds a NUL after every ASCII letter
+    const utf16 = new Uint8Array([0xff, 0xfe, 0x6e, 0x00, 0x61, 0x00, 0x2c, 0x00]);
+
+    // Act and Assert
+    expect(sniffSpreadsheet(utf16)).toBeNull();
+  });
+
+  it('the files the export writers make sniff as their own format, so an export re-imports (AC3)', async () => {
+    // Arrange
+    const rows = [['Robe', 4500]] as const;
+    const csvFile = await new CsvSpreadsheetWriter().write(['name', 'price'], rows);
+    const xlsxFile = await new XlsxSpreadsheetWriter().write(['name', 'price'], rows);
+
+    // Act and Assert
+    expect(sniffSpreadsheet(csvFile)).toBe('csv');
+    expect(sniffSpreadsheet(xlsxFile)).toBe('xlsx');
   });
 });

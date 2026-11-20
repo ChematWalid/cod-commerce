@@ -81,3 +81,30 @@ export class TooManyRowsError extends DomainError {
     super('Too many rows');
   }
 }
+
+/** A file whose first rows hold no header naming a name and a price column (D2224). */
+export class NoHeaderError extends DomainError {
+  readonly code = C.NO_HEADER;
+  constructor() {
+    super('No header row found');
+  }
+}
+
+/**
+ * A confirm by an actor without `catalog.products.edit` of a preview holding update rows (D2207): the API answers it as
+ * FORBIDDEN, like a missing permission.
+ */
+export class ConfirmNeedsEditError extends DomainError {
+  readonly code = C.UPDATE_FORBIDDEN;
+  constructor() {
+    super('Confirming updates needs the edit permission');
+  }
+}
+
+/** An update row whose product is no longer one of the store's when the worker applies it (D2209, D2210). */
+export class RowProductNotFoundError extends DomainError {
+  readonly code = C.ROW_PRODUCT_NOT_FOUND;
+  constructor() {
+    super('The row names no product of the store');
+  }
+}

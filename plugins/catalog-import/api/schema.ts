@@ -2,7 +2,7 @@ import gql from 'graphql-tag';
 
 /**
  * The catalog-import Admin API (D2206): names prefixed `Catalog`. Product ids are Vendure's (`ID`); brand and tag ids
- * are our snowflakes (`String`), as in catalog's own schema. Each later task appends its operations.
+ * are our snowflakes (`String`), as in catalog's own schema. Each later task appends its operations; import from Task 9.
  */
 export const importAdminApiSchema = gql`
   enum CatalogBulkPriceMode {
@@ -100,5 +100,107 @@ export const importAdminApiSchema = gql`
     catalogExport(id: String!): CatalogExport!
     catalogImportFields: [CatalogImportField!]!
     catalogImportFormats: [CatalogImportFormat!]!
+  }
+
+  input CatalogImportUploadInput {
+    format: CatalogSpreadsheetFormat!
+    "The file's exact size in bytes; it is signed into the upload."
+    size: Int!
+    "The format's own content type (catalogImportFormats), never the browser's guess."
+    contentType: String!
+  }
+
+  type CatalogSignedHeader {
+    name: String!
+    value: String!
+  }
+
+  "A presigned PUT: send the file with exactly these headers before expiresAt."
+  type CatalogImportUpload {
+    importId: String!
+    uploadUrl: String!
+    method: String!
+    headers: [CatalogSignedHeader!]!
+    expiresAt: DateTime!
+  }
+
+  input CatalogImportAnalyzeInput {
+    importId: String!
+  }
+
+  "A column of the file: its header, the field it fills (null: ignored) and the warning id when ignored."
+  type CatalogImportColumn {
+    column: Int!
+    header: String!
+    field: String
+    warning: String
+  }
+
+  type CatalogImportSummary {
+    creates: Int!
+    updates: Int!
+    errors: Int!
+    warnings: Int!
+  }
+
+  type CatalogImportResult {
+    created: Int!
+    updated: Int!
+    failed: Int!
+  }
+
+  "A spreadsheet import (D2210); errorReportUrl is a fresh 5-minute link once done with failed rows."
+  type CatalogImport {
+    importId: String!
+    status: String!
+    format: String!
+    rowCount: Int!
+    progress: Int!
+    headerRow: Int
+    columns: [CatalogImportColumn!]!
+    summary: CatalogImportSummary
+    result: CatalogImportResult
+    errorCode: String
+    errorReportUrl: String
+  }
+
+  "One preview row: messages are message ids, never the cell text."
+  type CatalogImportPreviewRow {
+    rowNumber: Int!
+    action: String!
+    productKey: String
+    name: String
+    messages: [String!]!
+  }
+
+  type CatalogImportPreview {
+    importId: String!
+    totalItems: Int!
+    skip: Int!
+    take: Int!
+    items: [CatalogImportPreviewRow!]!
+    summary: CatalogImportSummary
+  }
+
+  input CatalogImportColumnMappingInput {
+    column: Int!
+    "A column key of catalogImportFields, or null to ignore the column."
+    field: String
+  }
+
+  input CatalogImportPreviewInput {
+    mapping: [CatalogImportColumnMappingInput!]
+  }
+
+  extend type Mutation {
+    createCatalogImportUpload(input: CatalogImportUploadInput!): CatalogImportUpload!
+    analyzeCatalogImport(input: CatalogImportAnalyzeInput!): CatalogImport!
+    previewCatalogImport(id: String!, input: CatalogImportPreviewInput): CatalogImportPreview!
+    confirmCatalogImport(id: String!): CatalogImport!
+  }
+
+  extend type Query {
+    catalogImport(id: String!): CatalogImport!
+    catalogImportPreview(id: String!, skip: Int, take: Int): CatalogImportPreview!
   }
 `;

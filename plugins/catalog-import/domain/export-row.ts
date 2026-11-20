@@ -1,11 +1,11 @@
 import {
   EXPORT_HEADER,
-  IMPORT_LIST_SEPARATOR,
   type ImportFieldKey,
   MAX_OPTION_GROUPS,
   type ProductStatus,
   type ProductType,
 } from '@cod/shared';
+import { joinListCell, productKeyCell } from './list-cell';
 
 /** One variant as an export reads it. */
 export interface ExportVariant {
@@ -67,11 +67,11 @@ const ID_KEY_PREFIX = 'id:';
 
 /**
  * The update key of a product (D2209): its SKU, or `id:<productId>` when it has none, so a SKU-less product
- * re-imports as an update in the same store.
+ * re-imports as an update in the same store; a SKU that itself starts with `id:` is escaped (D2261).
  */
 export function productKeyOf(product: Pick<ExportableProduct, 'id' | 'sku'>): string {
   const sku = product.sku?.trim() ?? '';
-  return sku === '' ? `${ID_KEY_PREFIX}${product.id}` : sku;
+  return sku === '' ? `${ID_KEY_PREFIX}${product.id}` : productKeyCell(sku);
 }
 
 /** The store's brand and tag names by id, built once per export. */
@@ -100,9 +100,6 @@ export function withTaxonomyNames(product: ExportableProduct, index: TaxonomyNam
   };
 }
 
-const listCell = (values: readonly string[]): string | null =>
-  values.length === 0 ? null : values.join(IMPORT_LIST_SEPARATOR);
-
 /** The `option<n>_name` / `option<n>_value` cells of one variant, for every option slot of the file. */
 function optionCells(product: ExportableProduct, variant: ExportVariant): Record<string, ExportCell> {
   const cells: Record<string, ExportCell> = {};
@@ -123,10 +120,10 @@ function productCells(product: NamedExportProduct, origin: OriginView | undefine
     type: product.type,
     weight: product.weight,
     brand: product.brandName,
-    tags: listCell(product.tagNames),
+    tags: joinListCell(product.tagNames),
     // Collections are ignored by the import until P2.S3 (D2209): the column stays empty.
     collections: null,
-    image_urls: listCell(origin?.imageUrls ?? []),
+    image_urls: joinListCell(origin?.imageUrls ?? []),
   };
 }
 

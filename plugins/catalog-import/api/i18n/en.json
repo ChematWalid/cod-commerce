@@ -4,7 +4,11 @@
     "catalog-import-taxonomy-not-found": "A brand or tag was not found in this store.",
     "catalog-import-collections-unavailable": "Collections cannot be changed in bulk yet.",
     "catalog-import-job-not-found": "This import or export was not found.",
-    "catalog-import-too-many-rows": "Too many products to export at once: narrow the filter.",
+    "catalog-import-too-many-rows": "Too many rows: an import reads at most 5 000 rows and an export at most 20 000 products; narrow the file or the filter.",
+    "catalog-import-file-type": "This file is not an xlsx or CSV spreadsheet of the declared type.",
+    "catalog-import-file-too-large": "The file is larger than declared or than 10 MB.",
+    "catalog-import-no-header": "No header row with a name and a price column was found in the first 10 rows.",
+    "catalog-import-job-state": "This import is not at a step that allows this; reload it.",
     "catalog-import-internal": "The request could not be completed."
   }
 }

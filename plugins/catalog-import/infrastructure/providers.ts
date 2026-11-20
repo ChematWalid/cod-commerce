@@ -40,6 +40,7 @@ import { spreadsheetFormats } from './spreadsheet-formats';
 import { TypeOrmExportJobStore } from './typeorm-export-job.store';
 import { TypeOrmProductOriginReads } from './typeorm-product-origin.reads';
 import { CatalogProductsAdapter } from './catalog-products.adapter';
+import { IMPORT_PROVIDERS } from './import-providers';
 import { ImportJobsReconcileSource } from './import-jobs.reconcile-source';
 import { ImportsExportsQueue } from './imports-exports.queue';
 import { IMPORTS_EXPORTS_JOB_REGISTRAR, registrarOf } from './job-registrar';
@@ -215,4 +216,5 @@ export const CATALOG_IMPORT_PROVIDERS: Provider[] = [
   },
   ImportsExportsQueue,
   ...EXPORT_PROVIDERS,
+  ...IMPORT_PROVIDERS,
 ];
