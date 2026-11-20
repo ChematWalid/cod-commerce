@@ -1,0 +1,412 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "offers.offers-title"
+msgstr "Offers"
+
+#. js-lingui-explicit-id
+msgid "offers.create-offer"
+msgstr "Create offer"
+
+#. js-lingui-explicit-id
+msgid "offers.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "offers.empty"
+msgstr "No offers yet. Create one to reward bigger orders."
+
+#. js-lingui-explicit-id
+msgid "offers.no-match"
+msgstr "No offer matches this filter."
+
+#. js-lingui-explicit-id
+msgid "offers.tab-all"
+msgstr "All"
+
+#. js-lingui-explicit-id
+msgid "offers.tab-active"
+msgstr "Active"
+
+#. js-lingui-explicit-id
+msgid "offers.tab-draft"
+msgstr "Drafts"
+
+#. js-lingui-explicit-id
+msgid "offers.tab-paused"
+msgstr "Paused"
+
+#. js-lingui-explicit-id
+msgid "offers.tab-archived"
+msgstr "Archived"
+
+#. js-lingui-explicit-id
+msgid "offers.status-active"
+msgstr "Active"
+
+#. js-lingui-explicit-id
+msgid "offers.status-draft"
+msgstr "Draft"
+
+#. js-lingui-explicit-id
+msgid "offers.status-paused"
+msgstr "Paused"
+
+#. js-lingui-explicit-id
+msgid "offers.status-archived"
+msgstr "Archived"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-filter"
+msgstr "Offer type"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-all"
+msgstr "All types"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-quantity"
+msgstr "Quantity offer"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-free-delivery"
+msgstr "Free delivery"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-product-discount"
+msgstr "Product discount"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-bxgy"
+msgstr "Buy X get Y"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-order-discount"
+msgstr "Order discount"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-addon"
+msgstr "Add-on"
+
+#. js-lingui-explicit-id
+msgid "offers.kind-other"
+msgstr "Other offer"
+
+#. js-lingui-explicit-id
+msgid "offers.method-automatic"
+msgstr "Automatic"
+
+#. js-lingui-explicit-id
+msgid "offers.method-codes"
+msgstr "Discount codes"
+
+#. js-lingui-explicit-id
+msgid "offers.code-count"
+msgstr "Codes: {count}"
+
+#. js-lingui-explicit-id
+msgid "offers.dates-always"
+msgstr "No dates"
+
+#. js-lingui-explicit-id
+msgid "offers.dates-no-end"
+msgstr "no end"
+
+#. js-lingui-explicit-id
+msgid "offers.currency"
+msgstr "DZD"
+
+#. js-lingui-explicit-id
+msgid "offers.column-title"
+msgstr "Offer"
+
+#. js-lingui-explicit-id
+msgid "offers.column-kind"
+msgstr "Type"
+
+#. js-lingui-explicit-id
+msgid "offers.column-method"
+msgstr "Activation"
+
+#. js-lingui-explicit-id
+msgid "offers.column-status"
+msgstr "Status"
+
+#. js-lingui-explicit-id
+msgid "offers.column-dates"
+msgstr "Dates"
+
+#. js-lingui-explicit-id
+msgid "offers.column-orders"
+msgstr "Orders"
+
+#. js-lingui-explicit-id
+msgid "offers.column-delivered-revenue"
+msgstr "Delivered revenue"
+
+#. js-lingui-explicit-id
+msgid "offers.column-discount-given"
+msgstr "Discount given"
+
+#. js-lingui-explicit-id
+msgid "offers.row-actions"
+msgstr "Offer actions"
+
+#. js-lingui-explicit-id
+msgid "offers.action-edit"
+msgstr "Edit"
+
+#. js-lingui-explicit-id
+msgid "offers.action-duplicate"
+msgstr "Duplicate"
+
+#. js-lingui-explicit-id
+msgid "offers.action-pause"
+msgstr "Pause"
+
+#. js-lingui-explicit-id
+msgid "offers.action-resume"
+msgstr "Resume"
+
+#. js-lingui-explicit-id
+msgid "offers.action-archive"
+msgstr "Archive"
+
+#. js-lingui-explicit-id
+msgid "offers.action-delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+msgid "offers.duplicate-done"
+msgstr "A draft copy of the offer was created."
+
+#. js-lingui-explicit-id
+msgid "offers.pause-done"
+msgstr "The offer is paused."
+
+#. js-lingui-explicit-id
+msgid "offers.resume-done"
+msgstr "The offer is active again."
+
+#. js-lingui-explicit-id
+msgid "offers.archive-done"
+msgstr "The offer is archived."
+
+#. js-lingui-explicit-id
+msgid "offers.delete-done"
+msgstr "The draft was deleted."
+
+#. js-lingui-explicit-id
+msgid "offers.archive-title"
+msgstr "Archive this offer?"
+
+#. js-lingui-explicit-id
+msgid "offers.archive-body"
+msgstr "\"{name}\" will stop applying to new orders and can no longer be edited. Its results are kept."
+
+#. js-lingui-explicit-id
+msgid "offers.delete-title"
+msgstr "Delete this draft?"
+
+#. js-lingui-explicit-id
+msgid "offers.delete-body"
+msgstr "The draft \"{name}\" will be deleted for good."
+
+#. js-lingui-explicit-id
+msgid "offers.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "offers.page-previous"
+msgstr "Previous"
+
+#. js-lingui-explicit-id
+msgid "offers.page-next"
+msgstr "Next"
+
+#. js-lingui-explicit-id
+msgid "offers.create-title"
+msgstr "Create an offer"
+
+#. js-lingui-explicit-id
+msgid "offers.create-description"
+msgstr "Start from what you want to achieve, or pick an offer type."
+
+#. js-lingui-explicit-id
+msgid "offers.create-by-goal"
+msgstr "By goal"
+
+#. js-lingui-explicit-id
+msgid "offers.create-all-kinds"
+msgstr "All types"
+
+#. js-lingui-explicit-id
+msgid "offers.recommended"
+msgstr "Recommended"
+
+#. js-lingui-explicit-id
+msgid "offers.goal-sell-more"
+msgstr "Sell more pieces per order"
+
+#. js-lingui-explicit-id
+msgid "offers.goal-delivery"
+msgstr "Lower the delivery cost"
+
+#. js-lingui-explicit-id
+msgid "offers.goal-stock"
+msgstr "Clear stock"
+
+#. js-lingui-explicit-id
+msgid "offers.goal-influencers"
+msgstr "Work with influencers"
+
+#. js-lingui-explicit-id
+msgid "offers.app-quantity"
+msgstr "Quantity offer"
+
+#. js-lingui-explicit-id
+msgid "offers.app-quantity-hint"
+msgstr "A lower price per piece when the buyer takes more."
+
+#. js-lingui-explicit-id
+msgid "offers.app-free-delivery"
+msgstr "Free delivery"
+
+#. js-lingui-explicit-id
+msgid "offers.app-free-delivery-hint"
+msgstr "Waive the delivery fee from a number of pieces or an amount."
+
+#. js-lingui-explicit-id
+msgid "offers.app-product-discount"
+msgstr "Product discount"
+
+#. js-lingui-explicit-id
+msgid "offers.app-product-discount-hint"
+msgstr "A percent or an amount off chosen products or all of them."
+
+#. js-lingui-explicit-id
+msgid "offers.app-discount-codes"
+msgstr "Discount codes"
+
+#. js-lingui-explicit-id
+msgid "offers.app-discount-codes-hint"
+msgstr "A discount the buyer unlocks by typing a code you share."
+
+#. js-lingui-explicit-id
+msgid "offers.app-bxgy"
+msgstr "Buy X get Y"
+
+#. js-lingui-explicit-id
+msgid "offers.app-bxgy-hint"
+msgstr "Give a free or reduced piece when the buyer takes enough."
+
+#. js-lingui-explicit-id
+msgid "offers.app-order-discount"
+msgstr "Order discount"
+
+#. js-lingui-explicit-id
+msgid "offers.app-order-discount-hint"
+msgstr "Take a percent or an amount off the whole order."
+
+#. js-lingui-explicit-id
+msgid "offers.app-addon"
+msgstr "Add-on"
+
+#. js-lingui-explicit-id
+msgid "offers.app-addon-hint"
+msgstr "Suggest an extra product at a special price on the order form."
+
+#. js-lingui-explicit-id
+msgid "offers.app-other"
+msgstr "Other offer"
+
+#. js-lingui-explicit-id
+msgid "offers.app-other-hint"
+msgstr "An offer type added by an app."
+
+#. js-lingui-explicit-id
+msgid "offers.error-generic"
+msgstr "Something went wrong. Try again."
+
+#. js-lingui-explicit-id
+msgid "offers.error-forbidden"
+msgstr "You do not have access to this action."
+
+#. js-lingui-explicit-id
+msgid "offers.error-store-switched"
+msgstr "The active store changed. Reload the page to continue."
+
+#. js-lingui-explicit-id
+msgid "pricing.invalid-request"
+msgstr "The request is not valid."
+
+#. js-lingui-explicit-id
+msgid "pricing.total-too-large"
+msgstr "The total is too large."
+
+#. js-lingui-explicit-id
+msgid "pricing.no-active-store"
+msgstr "No store is selected."
+
+#. js-lingui-explicit-id
+msgid "offers.offer-not-found"
+msgstr "This offer no longer exists."
+
+#. js-lingui-explicit-id
+msgid "offers.invalid-config"
+msgstr "Some offer settings are not valid."
+
+#. js-lingui-explicit-id
+msgid "offers.unknown-kind"
+msgstr "This offer type is not available."
+
+#. js-lingui-explicit-id
+msgid "offers.code-taken"
+msgstr "This code is already used in this store."
+
+#. js-lingui-explicit-id
+msgid "offers.invalid-transition"
+msgstr "This offer cannot move to that status."
+
+#. js-lingui-explicit-id
+msgid "offers.offer-conflict"
+msgstr "Someone else changed this offer. Reload it and try again."
+
+#. js-lingui-explicit-id
+msgid "offers.code-method-required"
+msgstr "Codes can only be added to an offer activated by codes."
+
+#. js-lingui-explicit-id
+msgid "offers.invalid-targets"
+msgstr "This offer type does not accept these products."
+
+#. js-lingui-explicit-id
+msgid "offers.unknown-targets"
+msgstr "Some chosen products are no longer in this store."
+
+#. js-lingui-explicit-id
+msgid "offers.publish-invalid"
+msgstr "The offer is not complete enough to publish."
+
+#. js-lingui-explicit-id
+msgid "offers.offer-not-deletable"
+msgstr "Only a draft can be deleted. Archive a published offer instead."
+
+#. js-lingui-explicit-id
+msgid "offers.order-addon-unavailable"
+msgstr "Add-ons cannot be added to orders yet."
+
+#. js-lingui-explicit-id
+msgid "offers.order-not-editable"
+msgstr "This order can no longer be changed."
+
+#. js-lingui-explicit-id
+msgid "offers.order-not-found"
+msgstr "This order no longer exists."
+
+#. js-lingui-explicit-id
+msgid "offers.addon-not-offered"
+msgstr "This add-on is not offered for this order."

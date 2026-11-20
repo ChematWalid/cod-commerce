@@ -21,9 +21,10 @@ import {
   UNIT_PRICE_RESOLVER_REGISTRAR,
 } from '../../index';
 
-/** Nest's module metadata key for `imports`, and Vendure's key for the compatibility range. */
+/** Nest's module metadata key for `imports`, and Vendure's keys for the compatibility range and the dashboard entry. */
 const IMPORTS_KEY = 'imports';
 const COMPATIBILITY_KEY = 'compatibility';
+const DASHBOARD_KEY = 'dashboard';
 const EXPORTS_KEY = 'exports';
 
 describe('OffersPlugin', () => {
@@ -38,6 +39,14 @@ describe('OffersPlugin', () => {
     // Assert
     expect(imports).toEqual(expect.arrayContaining([TenancyPlugin, CatalogPlugin]));
     expect(compatibility).toBe('^3.8.0');
+  });
+
+  it('declares its dashboard entry (D2523)', () => {
+    // Act
+    const dashboard: unknown = Reflect.getMetadata(DASHBOARD_KEY, OffersPlugin);
+
+    // Assert
+    expect(dashboard).toBe('./dashboard/index.tsx');
   });
 
   it('exports the five seam registrars other plugins register on (D2423)', () => {

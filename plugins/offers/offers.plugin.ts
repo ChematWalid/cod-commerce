@@ -45,6 +45,7 @@ export const OFFERS_REST_CONTROLLERS = [OfferReadController, OffersController];
   exports: [...OFFERS_USE_CASES, ...OFFERS_REGISTRARS],
   adminApiExtensions: { schema: offersAdminApiSchema, resolvers: [OffersResolver] },
   controllers: OFFERS_REST_CONTROLLERS,
+  dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 export class OffersPlugin implements NestModule {

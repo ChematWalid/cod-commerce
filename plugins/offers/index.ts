@@ -68,3 +68,17 @@ export type {
 } from './domain/ports/order-addon-target.port';
 export type { OfferPerformanceRegistrar, OfferPerformanceSource } from './domain/ports/offer-performance.port';
 export type { OfferOrderFact, OfferOrderState, OfferOrderUse } from './domain/performance';
+
+// The dashboard's route paths and test ids, for the browser spec and the evidence script (framework-free).
+export {
+  APP_TYPE_CARD_TEST_ID,
+  CREATE_DIALOG_TEST_ID,
+  CREATE_OFFER_TEST_ID,
+  KIND_CHIPS_TEST_ID,
+  NEW_OFFER_PATH,
+  OFFER_LIST_TEST_ID,
+  OFFER_ROW_TEST_ID,
+  OFFER_TABS_TEST_ID,
+  offerPathOf,
+  OFFERS_EMPTY_TEST_ID,
+} from './dashboard/constants';
