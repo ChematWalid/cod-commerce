@@ -3,6 +3,7 @@ import { rawTestId } from '@cod/testing';
 import { TransactionalConnection } from '@vendure/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  outboxSettled as settled,
   PACK,
   type PackResult,
   packInput,
@@ -53,13 +54,7 @@ async function packRowOf(productId: string): Promise<PackRow> {
 
 /** Waits until every event is relayed and every delivery has run, so no earlier recompute is still pending. */
 async function outboxSettled(): Promise<void> {
-  await until(async () => {
-    const [row] = await suite.kit.query<{ open: string }>(
-      `SELECT ((SELECT count(*) FROM outbox_event WHERE status = 'pending')
-             + (SELECT count(*) FROM outbox_delivery WHERE status IN ('pending', 'enqueued')))::text AS open`,
-    );
-    return row?.open === '0' ? true : undefined;
-  });
+  await settled(suite.kit);
 }
 
 async function packOf(productId: string): Promise<PackResult | null> {

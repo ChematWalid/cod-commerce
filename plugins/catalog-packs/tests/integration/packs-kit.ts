@@ -170,3 +170,14 @@ export async function until<T>(read: () => Promise<T | undefined>, timeoutMs = 3
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
+
+/** Waits until every event is relayed and every delivery has run, so no earlier recompute is still pending. */
+export async function outboxSettled(kit: PacksKit): Promise<void> {
+  await until(async () => {
+    const [row] = await kit.query<{ open: string }>(
+      `SELECT ((SELECT count(*) FROM outbox_event WHERE status = 'pending')
+             + (SELECT count(*) FROM outbox_delivery WHERE status IN ('pending', 'enqueued')))::text AS open`,
+    );
+    return row?.open === '0' ? true : undefined;
+  });
+}

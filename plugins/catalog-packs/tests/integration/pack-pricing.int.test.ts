@@ -1,11 +1,11 @@
 import { asOperationContext, PricingService, type StoreScope } from '@cod/plugin-offers';
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { type QuoteRequestInput, toBusinessId, toStoreId } from '@cod/shared';
-import type { BusinessFixture, StoreFixture } from '@cod/testing';
+import { type BusinessFixture, rawTestId, type StoreFixture } from '@cod/testing';
 import { RequestContextService } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import { PackUnitPriceResolver } from '../../index';
-import { packInput, packsSuite, SAVE_PACK } from './packs-kit';
+import { outboxSettled, packInput, packsSuite, SAVE_PACK } from './packs-kit';
 
 const suite = packsSuite({ plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 
@@ -34,20 +34,32 @@ const oneOf = (variantId: string): QuoteRequestInput => ({
   destination: { provinceCode: '16', stopdesk: false },
 });
 
-/** As `business`'s owner on its first store: a saved 10 % pack of a 1 500 and a 2 000 product; its variant id. */
+/** The stored price of `variantId`, which a quote must leave as it is. */
+async function storedPriceOf(variantId: string): Promise<number | undefined> {
+  const [row] = await suite.kit.query<{ price: number }>(
+    'SELECT price FROM product_variant_price WHERE "variantId" = $1',
+    [variantId],
+  );
+  return row?.price;
+}
+
+/** As `business`'s owner on its first store: a saved 10 % pack of a 1 500 and a 2 000 product; its row ids. */
 async function aSavedPackOf(business: BusinessFixture): Promise<{ productId: string; variantId: string }> {
   await suite.kit.asOwner(business);
   const shirt = await suite.kit.createProduct({ title: 'Shirt', price: 1500, weight: 300 });
   const trousers = await suite.kit.createProduct({ title: 'Trousers', price: 2000, weight: 500 });
   const pack = await suite.kit.createPackProduct();
   await suite.kit.gql(SAVE_PACK, { id: pack.id, input: packInput([shirt.id, trousers.id]) });
-  const variantId = (await suite.kit.product(pack.id))?.variants[0]?.id;
-  if (variantId === undefined) throw new Error('the pack has no variant');
+  const wireVariantId = (await suite.kit.product(pack.id))?.variants[0]?.id;
+  if (wireVariantId === undefined) throw new Error('the pack has no variant');
+  const variantId = rawTestId(wireVariantId);
+  // The saves' product.changed recomputes would write 3 150 back over the stale price if they ran after it.
+  await outboxSettled(suite.kit);
   await suite.kit.query('UPDATE product_variant_price SET price = $1 WHERE "variantId" = $2', [
     STALE_STORED_PRICE,
     variantId,
   ]);
-  return { productId: pack.id, variantId };
+  return { productId: rawTestId(pack.id), variantId };
 }
 
 describe('the pack resolver registered with the offers (D2204, D2276)', () => {
@@ -65,6 +77,7 @@ describe('the pack resolver registered with the offers (D2204, D2276)', () => {
     expect(quote.lines).toHaveLength(1);
     expect(quote.lines[0]).toMatchObject({ variantId, originalPrice: PACK_PRICE, unitPrice: PACK_PRICE });
     expect(quote.subtotal).toBe(PACK_PRICE);
+    expect(await storedPriceOf(variantId)).toBe(STALE_STORED_PRICE);
   });
 
   it('never prices a pack of business B for business A', async () => {
