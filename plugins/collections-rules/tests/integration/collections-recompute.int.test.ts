@@ -4,13 +4,14 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { SaveRecomputeService } from '../../application/save-recompute.service';
 import { STORE_RECONCILE_QUEUE } from '../../application/tokens';
 import type { StoreReconcileQueuePort } from '../../domain/ports/store-reconcile.port';
-import { createCollection, rawId, UPDATE_COLLECTION } from './collections-api';
+import { createCollection, rawId } from './collections-api';
 import {
   deliverDirectly,
   holdStoreLock,
   membershipDeliveriesOf,
   settledDeliveriesOf,
   untilEqual,
+  untilDeliveryWaitsOrSettles,
 } from './collections-deliveries';
 import { collectionsSuite } from './collections-kit';
 import { createProduct, productIdsOf } from './collections-products';
@@ -22,8 +23,9 @@ const DELETE_TAG = 'mutation ($id: String!) { deleteCatalogTag(id: $id) }';
 const DELETE_PRODUCT = 'mutation ($id: ID!) { deleteCatalogProduct(id: $id) }';
 const SET_PRODUCTS =
   'mutation ($id: ID!, $productIds: [ID!]!) { setStoreCollectionProducts(id: $id, productIds: $productIds) { id } }';
-/** Lets a blocked save reach the store lock before the test moves on. */
-const RACE_HEAD_START_MS = 300;
+const COPY_RULE =
+  'UPDATE collections_definition SET rule = (SELECT rule FROM collections_definition WHERE "collectionId" = $1) WHERE "collectionId" = $2';
+const DROP_MEMBER = 'DELETE FROM collections_member WHERE "collectionId" = $1 AND "productId" = $2';
 
 let promoTag: string;
 let plainTag: string;
@@ -108,7 +110,7 @@ describe('membership follows product changes (D2312, AC5)', () => {
 });
 
 describe('late, repeated and concurrent work ends with the latest facts (Review Focus 4, D2334)', () => {
-  it('a redelivered or stale event leaves membership unchanged', async () => {
+  it('a redelivered or stale event ends with membership built from the latest facts', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
     const { id } = await createCollection(suite.kit, {
@@ -120,6 +122,7 @@ describe('late, repeated and concurrent work ends with the latest facts (Review 
     await suite.kit.gql(DELETE_PRODUCT, { id: gone });
     await settle(gone, 2);
     const before = await membersOf(id);
+    await suite.kit.query(DROP_MEMBER, [rawId(id), rawId(kept)]);
 
     // Act
     for (const change of ['created', 'updated']) {
@@ -144,6 +147,7 @@ describe('late, repeated and concurrent work ends with the latest facts (Review 
     const product = await productOfA('Twice', [plainTag]);
     await updateRuleProduct(suite.kit, product, { tagIds: [promoTag] });
     await settle(product, 2);
+    await suite.kit.query(DROP_MEMBER, [rawId(id), rawId(product)]);
 
     // Act
     await Promise.all(
@@ -157,22 +161,31 @@ describe('late, repeated and concurrent work ends with the latest facts (Review 
   });
 
   it('a product edit during a rule save ends with the correct membership', async () => {
-    // Arrange
+    // Arrange: the collection matches plain and holds the plain product; a second one stores the promo rule.
     await suite.kit.asOwner(suite.fixtures.a);
     const { id } = await createCollection(suite.kit, {
       mode: 'automatic',
       rule: ruleOf('all', tagIs('is_any_of', plainTag)),
     });
+    const promoRuled = await createCollection(suite.kit, {
+      mode: 'automatic',
+      rule: ruleOf('all', tagIs('is_any_of', promoTag)),
+    });
     const product = await productOfA('Raced', [plainTag]);
-    const lock = await holdStoreLock(suite.kit, suite.fixtures.a.stores[0].id);
+    expect(await membersOf(id)).toContain(product);
 
-    // Act: the save waits on the lock while the product edit commits; then the lock is released.
-    const save = suite.kit.gql(UPDATE_COLLECTION, { id, input: { rule: ruleOf('all', tagIs('is_any_of', promoTag)) } });
-    await new Promise((resolve) => setTimeout(resolve, RACE_HEAD_START_MS));
-    await updateRuleProduct(suite.kit, product, { tagIds: [promoTag] });
-    await lock.commitTransaction();
-    await lock.release();
-    await save;
+    // Act: a save holding the store lock switches the rule to promo; the product edit to promo commits meanwhile,
+    // so its delivery must wait on the lock and read the saved rule, not the old one.
+    const save = await holdStoreLock(suite.kit, suite.fixtures.a.stores[0].id);
+    try {
+      await save.query(COPY_RULE, [rawId(promoRuled.id), rawId(id)]);
+      await updateRuleProduct(suite.kit, product, { tagIds: [promoTag] });
+      await untilDeliveryWaitsOrSettles(suite.kit, rawId(product), 2);
+      await save.commitTransaction();
+    } finally {
+      if (save.isTransactionActive) await save.rollbackTransaction();
+      await save.release();
+    }
     await settle(product, 2);
 
     // Assert

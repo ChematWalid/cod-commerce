@@ -5,10 +5,11 @@ import type { StoreLockPort } from '../domain/ports/store-lock.port';
 import { toRequestContext } from './request-scope';
 
 /**
- * Transaction-scoped, so it survives PgBouncer's transaction pooling. Store ids are global snowflakes, so the key
- * needs no business; the `collections-store:` prefix never meets catalog's `catalog-product:` keys (D2334).
+ * The store lock's SQL, `$1` being the store id. Transaction-scoped, so it survives PgBouncer's transaction pooling.
+ * Store ids are global snowflakes, so the key needs no business; the `collections-store:` prefix never meets
+ * catalog's `catalog-product:` keys (D2334).
  */
-const ADVISORY_LOCK_SQL = "SELECT pg_advisory_xact_lock(hashtextextended('collections-store:' || $1, 0))";
+export const STORE_LOCK_SQL = "SELECT pg_advisory_xact_lock(hashtextextended('collections-store:' || $1, 0))";
 
 /** A store lock asked for outside a transaction: it would be released at once and serialise nothing. */
 export class StoreLockOutsideTransactionError extends Error {
@@ -31,6 +32,6 @@ export class PgCollectionsLock implements StoreLockPort {
     // Any entity gives the repository of the context's query runner; `Collection` is the one this lock guards.
     const repository = this.connection.getRepository(toRequestContext(ctx), Collection);
     if (repository.queryRunner?.isTransactionActive !== true) throw new StoreLockOutsideTransactionError();
-    await repository.query(ADVISORY_LOCK_SQL, [storeId]);
+    await repository.query(STORE_LOCK_SQL, [storeId]);
   }
 }
