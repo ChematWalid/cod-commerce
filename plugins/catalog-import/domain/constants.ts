@@ -64,3 +64,12 @@ export const IMPORT_ERRORS_DOWNLOAD_BASE = 'import-errors';
 export const IMPORT_REPORT_FORMAT = 'csv';
 /** The columns of the error report: the row's number, its reasons, then what identifies it (D2210). */
 export const IMPORT_REPORT_HEADER = ['row', 'reasons', 'product_key', 'name', 'variant_sku'] as const;
+
+/** A link import's whole fetch, DNS and every redirect hop included, ends after this long (D2214). */
+export const LINK_FETCH_TIMEOUT_MS = 5_000;
+/** Most bytes of a page a link import receives; the rest is never read (D2214). */
+export const LINK_MAX_BYTES = 2 * 1_024 * 1_024;
+/** Most redirects a link import follows; each target is vetted again (D2214). */
+export const LINK_MAX_REDIRECTS = 3;
+/** The ports a link may name: plain HTTP and HTTPS only (D2214); tests inject another policy. */
+export const LINK_PORTS = [80, 443] as const;

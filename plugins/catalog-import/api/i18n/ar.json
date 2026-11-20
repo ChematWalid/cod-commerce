@@ -9,6 +9,10 @@
     "catalog-import-file-too-large": "الملف أكبر من الحجم المعلن أو من 10 ميغابايت.",
     "catalog-import-no-header": "لم يُعثر في الصفوف العشرة الأولى على صف عناوين يضم عمودي الاسم والسعر.",
     "catalog-import-job-state": "هذا الاستيراد ليس في مرحلة تسمح بذلك؛ أعد تحميله.",
+    "catalog-import-link-refused": "لا يمكن استيراد هذا الرابط. استخدم العنوان العام لصفحة منتج.",
+    "catalog-import-link-unreachable": "تعذر الوصول إلى صفحة هذا الرابط. حاول مرة أخرى لاحقًا.",
+    "catalog-import-ai-disabled": "ميزات الذكاء الاصطناعي متوقفة حاليًا. حاول مرة أخرى لاحقًا.",
+    "catalog-product-not-found": "لم يتم العثور على هذا المنتج في هذا المتجر.",
     "catalog-import-internal": "تعذر إكمال الطلب."
   }
 }

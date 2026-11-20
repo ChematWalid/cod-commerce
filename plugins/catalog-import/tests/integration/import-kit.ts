@@ -29,6 +29,8 @@ export interface PlantedJob {
   readonly businessId: string;
   readonly storeId: string;
   readonly status: string;
+  /** The kind of an import row: a spreadsheet (the default) or a link import (D2214). */
+  readonly kind?: 'spreadsheet' | 'link';
   /** A fixed id, for tests of id order; a fresh one otherwise. */
   readonly id?: string;
 }
@@ -77,7 +79,9 @@ export class ImportKit extends StoreKit {
     const id = job.id ?? String(plantedIds);
     const kindColumns =
       job.table === 'catalog_import_job'
-        ? { names: '"kind", "format"', values: "'spreadsheet', 'csv'" }
+        ? job.kind === 'link'
+          ? { names: '"kind", "sourceUrl"', values: "'link', 'https://shop.example.test/products/kaftan'" }
+          : { names: '"kind", "format"', values: "'spreadsheet', 'csv'" }
         : { names: '"format", "scope", "query"', values: `'csv', 'selected', '{"productIds":[]}'::jsonb` };
     await this.query(
       `INSERT INTO "${job.table}" ("id", "businessId", "storeId", "status", ${kindColumns.names}, "createdAt", "updatedAt")

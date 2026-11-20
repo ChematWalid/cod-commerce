@@ -10,6 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { EventBus } from '@vendure/core';
 import type { ExportActivity, ExportActivityPort } from '../application/ports/export-activity.port';
 import type { ImportActivity, ImportActivityPort } from '../application/ports/catalog-import.port';
+import type { LinkImportActivity, LinkImportActivityPort } from '../application/ports/link-job.port';
 import type { OperationContext } from '../application/ports/operation-context';
 import type { ProductActivityPort, ProductBulkEditActivity } from '../application/ports/product-activity.port';
 import { toRequestContext } from './request-context';
@@ -31,7 +32,9 @@ const importSummaryOf = (activity: ImportActivity): string =>
  * field names, counts and words are logged.
  */
 @Injectable()
-export class ProductActivityAdapter implements ProductActivityPort, ExportActivityPort, ImportActivityPort {
+export class ProductActivityAdapter
+  implements ProductActivityPort, ExportActivityPort, ImportActivityPort, LinkImportActivityPort
+{
   constructor(private readonly events: EventBus) {}
 
   async recordBulkEdit(ctx: OperationContext, activity: ProductBulkEditActivity): Promise<void> {
@@ -103,6 +106,28 @@ export class ProductActivityAdapter implements ProductActivityPort, ExportActivi
           diff,
           ip: null,
           userAgent: null,
+        },
+        { businessId: scope.businessId },
+      ),
+    );
+  }
+
+  /** The link import's row: the product it made and how many image links it stored, never the page's text. */
+  async recordLinkImport(ctx: OperationContext, activity: LinkImportActivity): Promise<void> {
+    const { scope, actor } = activity;
+    await this.events.publish(
+      new ActivityRecordEvent(
+        toRequestContext(ctx),
+        {
+          storeId: scope.storeId,
+          actorAdministratorId: actor.administratorId,
+          action: ACTIVITY_ACTIONS.CATALOG_PRODUCT_LINK_IMPORTED,
+          entityType: ACTIVITY_ENTITY_TYPES.CATALOG_JOB,
+          entityId: activity.importId,
+          summary: `Link import: product ${activity.productId}`,
+          diff: { productId: activity.productId, imageCount: activity.imageCount },
+          ip: actor.ip,
+          userAgent: actor.userAgent,
         },
         { businessId: scope.businessId },
       ),

@@ -2,6 +2,7 @@ import type { ImportCreate, ImportTargetProduct, ImportUpdate } from '../../doma
 import type { SkuLookup } from '../../domain/plan-lookups';
 import type { StoreScope } from '../../domain/store-scope';
 import type { TaxonomyRefs } from './catalog-products.port';
+import type { LinkedOrigin } from './link-job.port';
 import type { OperationContext } from './operation-context';
 
 /**
@@ -54,4 +55,6 @@ export interface ImportedOrigin {
 /** Writes `catalog_product_origin` rows of the scope's store, in the caller's transaction. */
 export interface ProductOriginWrites {
   recordImport(ctx: OperationContext, scope: StoreScope, origin: ImportedOrigin): Promise<void>;
+  /** A product a link import made: source `link`, flagged for image review, with the page's image links (D2214). */
+  recordLink(ctx: OperationContext, scope: StoreScope, origin: LinkedOrigin): Promise<void>;
 }

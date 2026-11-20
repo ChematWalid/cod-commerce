@@ -47,6 +47,7 @@ import { IMPORTS_EXPORTS_JOB_REGISTRAR, registrarOf } from './job-registrar';
 import { ImportsExportsJobRegistry } from './job-registry';
 import { ownRowSourceOf } from './job-row-sources';
 import { JobStoreContext } from './job-store-context';
+import { LINK_IMPORT_PROVIDERS } from './link-import-providers';
 import { MemoryObjectStorage } from './memory-object-storage';
 import { type CatalogImportPluginOptions, requireCatalogImportOptions, type S3StorageOptions } from './plugin-options';
 import { PostgresJobScan } from './postgres-job-scan';
@@ -217,4 +218,5 @@ export const CATALOG_IMPORT_PROVIDERS: Provider[] = [
   ImportsExportsQueue,
   ...EXPORT_PROVIDERS,
   ...IMPORT_PROVIDERS,
+  ...LINK_IMPORT_PROVIDERS,
 ];

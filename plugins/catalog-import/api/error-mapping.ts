@@ -1,5 +1,5 @@
 import { RateLimitedError, RateLimitedFilter } from '@cod/plugin-rate-limit';
-import { CATALOG_IMPORT_ERROR_CODES, DomainError } from '@cod/shared';
+import { CATALOG_ERROR_CODES, CATALOG_IMPORT_ERROR_CODES, DomainError } from '@cod/shared';
 import {
   type ArgumentsHost,
   Catch,
@@ -39,6 +39,10 @@ const STATUS_OF_CODE: ReadonlyMap<string, HttpStatus> = new Map([
   [C.FILE_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE],
   [C.NO_HEADER, HttpStatus.BAD_REQUEST],
   [C.JOB_STATE, HttpStatus.CONFLICT],
+  [C.LINK_REFUSED, HttpStatus.BAD_REQUEST],
+  [C.LINK_UNREACHABLE, HttpStatus.BAD_GATEWAY],
+  [C.AI_DISABLED, HttpStatus.CONFLICT],
+  [CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND],
 ]);
 
 /** The `api/i18n` key of a code. i18next reads dots as nesting, so the dot becomes a dash. */

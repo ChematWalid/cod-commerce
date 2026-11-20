@@ -108,3 +108,31 @@ export class RowProductNotFoundError extends DomainError {
     super('The row names no product of the store');
   }
 }
+
+/**
+ * A link the guard refuses (D2214): a scheme, port, userinfo or host it does not allow, a name that does not resolve,
+ * resolves to a private address or fails DNS, or a page that is not HTML. One answer for all, so it is no oracle of
+ * internal names; the address and the cause are never kept.
+ */
+export class LinkRefusedError extends DomainError {
+  readonly code = C.LINK_REFUSED;
+  constructor() {
+    super('Link refused');
+  }
+}
+
+/** A vetted link whose server could not be reached, answered too slowly or with an error status (D2214). */
+export class LinkUnreachableError extends DomainError {
+  readonly code = C.LINK_UNREACHABLE;
+  constructor() {
+    super('Link unreachable');
+  }
+}
+
+/** An AI hook while the `ai.enabled` kill switch is off (D2215). */
+export class AiDisabledError extends DomainError {
+  readonly code = C.AI_DISABLED;
+  constructor() {
+    super('AI features are turned off');
+  }
+}

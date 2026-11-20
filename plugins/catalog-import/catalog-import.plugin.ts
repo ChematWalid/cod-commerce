@@ -18,8 +18,11 @@ import { ImportController } from './api/import.controller';
 import { ImportResolver } from './api/import.resolver';
 import { ImportThrottle } from './api/import-throttle';
 import { ImportTranslations } from './api/import-translations';
+import { LinkImportActions } from './api/link-import-actions';
+import { LinkImportResolver } from './api/link-import.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
 import { importAdminApiSchema } from './api/schema';
+import { ScrapeController } from './api/scrape.controller';
 import { CATALOG_IMPORT_ENTITIES } from './infrastructure/catalog-import-entities';
 import { ImportJobsReconcileSource } from './infrastructure/import-jobs.reconcile-source';
 import { defineImportsExportsQueue } from './infrastructure/imports-exports.queue';
@@ -38,6 +41,7 @@ export const CATALOG_IMPORT_REST_CONTROLLERS = [
   ExportController,
   ImportExportCatalogController,
   ImportController,
+  ScrapeController,
 ];
 
 /**
@@ -58,9 +62,13 @@ export const CATALOG_IMPORT_REST_CONTROLLERS = [
     ImportRequestActors,
     ImportThrottle,
     ImportTranslations,
+    LinkImportActions,
   ],
   exports: [IMPORTS_EXPORTS_JOB_REGISTRAR],
-  adminApiExtensions: { schema: importAdminApiSchema, resolvers: [BulkEditResolver, ExportResolver, ImportResolver] },
+  adminApiExtensions: {
+    schema: importAdminApiSchema,
+    resolvers: [BulkEditResolver, ExportResolver, ImportResolver, LinkImportResolver],
+  },
   controllers: CATALOG_IMPORT_REST_CONTROLLERS,
   compatibility: '^3.8.0',
 })

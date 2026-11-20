@@ -36,7 +36,7 @@ describe('spreadsheet import access (D2207, D2217)', () => {
     await suite.kit.asOwner(a);
     const product = await suite.kit.createProduct({ title: 'Held by A', sku: 'ACC-1' });
     const { importId } = await client.upload({ format: 'csv', bytes: csvOf([['name', 'price']]) });
-    ids = { productId: product.id, importId, exportId: importId };
+    ids = { productId: product.id, importId, exportId: importId, linkImportId: importId };
   });
 
   it('a create-only member previews update rows as catalog-import.update-forbidden errors and confirm skips them', async () => {

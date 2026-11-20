@@ -39,6 +39,17 @@ export class ImportThrottle {
     await this.spend('catalog-import-business', businessId);
   }
 
+  /**
+   * Spends one link import or polish (D2217): a fetch of a page on the internet, or an AI call from P9.S7b. The
+   * actor's budget first, then the business's.
+   *
+   * @throws RateLimitedError (429) past the actor's or the business's scrape budget.
+   */
+  async spendScrape(businessId: BusinessId, administratorKey: string): Promise<void> {
+    await this.spend('catalog-scrape-actor', `${businessId}:${administratorKey}`);
+    await this.spend('catalog-scrape-business', businessId);
+  }
+
   private async spend(policy: RateLimitPolicyName, key: string): Promise<void> {
     const decision = await this.limiter.consume(policy, key);
     if (!decision.allowed) throw new RateLimitedError(decision.retryAfterSeconds);

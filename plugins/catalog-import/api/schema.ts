@@ -2,7 +2,7 @@ import gql from 'graphql-tag';
 
 /**
  * The catalog-import Admin API (D2206): names prefixed `Catalog`. Product ids are Vendure's (`ID`); brand and tag ids
- * are our snowflakes (`String`), as in catalog's own schema. Each later task appends its operations; import from Task 9.
+ * are our snowflakes (`String`), as in catalog's own schema. Each later task appends its operations; import from Task 9, link import from Task 10.
  */
 export const importAdminApiSchema = gql`
   enum CatalogBulkPriceMode {
@@ -202,5 +202,34 @@ export const importAdminApiSchema = gql`
   extend type Query {
     catalogImport(id: String!): CatalogImport!
     catalogImportPreview(id: String!, skip: Int, take: Int): CatalogImportPreview!
+  }
+
+  "One http(s) link of a product page, at most 2 048 characters; the server vets it (D2214)."
+  input CatalogLinkImportInput {
+    url: String!
+  }
+
+  "A link import (D2214): the Draft product it made, flagged for image review."
+  type CatalogLinkImport {
+    importId: String!
+    status: String!
+    sourceUrl: String!
+    productId: ID
+  }
+
+  "A product's text after the polish hook (D2215); nothing is saved."
+  type CatalogProductPolish {
+    productId: ID!
+    title: String!
+    description: String
+  }
+
+  extend type Mutation {
+    createCatalogLinkImport(input: CatalogLinkImportInput!): CatalogLinkImport!
+    polishCatalogProduct(id: ID!): CatalogProductPolish!
+  }
+
+  extend type Query {
+    catalogLinkImport(id: String!): CatalogLinkImport!
   }
 `;

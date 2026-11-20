@@ -102,6 +102,13 @@ describe('catalog-import isolation sweep (two businesses)', () => {
         storeId: store,
         status: 'queued',
       }),
+      linkImportId: await suite.kit.plantJob({
+        table: 'catalog_import_job',
+        kind: 'link',
+        businessId: b.businessId,
+        storeId: store,
+        status: 'done',
+      }),
     };
   });
 
@@ -201,6 +208,28 @@ describe('catalog-import isolation sweep (two businesses)', () => {
 
     // Assert
     expect(outcome.code).toBe(code);
+  });
+
+  it("reads A's own link job by REST and GraphQL (positive control of B's link job cells)", async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    const own = await suite.kit.plantJob({
+      table: 'catalog_import_job',
+      kind: 'link',
+      businessId: a.businessId,
+      storeId: a.stores[0].id,
+      status: 'done',
+    });
+    await suite.kit.asOwner(a);
+    const entry = OPERATION_REGISTRY.find((candidate) => candidate.operation === 'catalogLinkImport') as OperationEntry;
+
+    // Act
+    const outcome = await callOperation(entry, { ...idsOfB, linkImportId: own });
+    const answer = await suite.kit.rest('GET', `/catalog/scrape/import-jobs/${own}`);
+
+    // Assert
+    expect(outcome).toMatchObject({ code: undefined, data: { importId: own, status: 'done' } });
+    expect(answer).toMatchObject({ status: 200, body: { importId: own, status: 'done' } });
   });
 
   it.each([

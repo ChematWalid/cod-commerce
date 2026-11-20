@@ -32,6 +32,7 @@
     "csv-stringify": "6.9.0",
     "exceljs": "4.4.0",
     "graphql-tag": "2.12.7",
+    "node-html-parser": "9.0.6",
     "typeorm": "0.3.31",
     "zod": "4.6.7"
   },

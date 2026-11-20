@@ -9,6 +9,10 @@
     "catalog-import-file-too-large": "The file is larger than declared or than 10 MB.",
     "catalog-import-no-header": "No header row with a name and a price column was found in the first 10 rows.",
     "catalog-import-job-state": "This import is not at a step that allows this; reload it.",
+    "catalog-import-link-refused": "This link cannot be imported. Use the public web address of a product page.",
+    "catalog-import-link-unreachable": "The page of this link could not be reached. Try again later.",
+    "catalog-import-ai-disabled": "AI features are turned off for now. Try again later.",
+    "catalog-product-not-found": "This product was not found in this store.",
     "catalog-import-internal": "The request could not be completed."
   }
 }

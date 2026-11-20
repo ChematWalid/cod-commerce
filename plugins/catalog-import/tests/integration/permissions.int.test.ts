@@ -40,6 +40,13 @@ describe('catalog-import handlers refuse a role that lacks their key', () => {
         storeId: store,
         status: 'done',
       }),
+      linkImportId: await suite.kit.plantJob({
+        table: 'catalog_import_job',
+        kind: 'link',
+        businessId: a.businessId,
+        storeId: store,
+        status: 'done',
+      }),
     };
   });
 
