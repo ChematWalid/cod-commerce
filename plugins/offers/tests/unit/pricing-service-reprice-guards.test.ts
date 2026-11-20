@@ -20,6 +20,9 @@ const anAudienceOffer = (audience: 'first' | 'returning') =>
 /** A buyer history whose count already includes the order being repriced, as P3.S4's source will. */
 const ORDER_COUNT_WITH_THIS_ORDER = 1;
 
+/** The same buyer history once the buyer has placed a second order after the one being repriced. */
+const ORDER_COUNT_WITH_A_LATER_ORDER = 2;
+
 describe('PricingService.repriceOrder guards', () => {
   describe("of a buyer's first order", () => {
     it("keeps a first-order offer on an order that was the buyer's first", async () => {
@@ -61,6 +64,124 @@ describe('PricingService.repriceOrder guards', () => {
       expect(result.available && result.delta).toBe(4_900);
       expect(result.available && result.orderFields.lines[0]?.offerIds).toEqual([]);
     });
+
+    it("keeps a first-order offer on the buyer's first order after the buyer has ordered again", async () => {
+      // Arrange
+      const { service, stores, seed, buyers } = setUpPricing();
+      const offer = anAudienceOffer('first');
+      seed(scopeA, offer);
+      buyers.register({ orderCountOf: () => Promise.resolve(ORDER_COUNT_WITH_A_LATER_ORDER) });
+
+      // Act
+      const result = await service.repriceOrder(stores.contextOf(scopeA), {
+        current: aRequest(2, { phone: BUYER_PHONE }),
+        next: aRequest(3, { phone: BUYER_PHONE }),
+        orderUsage: { offerIds: [offer.id], codes: [], buyerOrdersBefore: 0 },
+      });
+
+      // Assert
+      expect(result.before.total).toBe(8_820);
+      expect(result.after.total).toBe(13_230);
+      expect(result.available && result.orderFields.lines[0]?.offerIds).toEqual([offer.id]);
+    });
+
+    it("never gives a returning-buyer offer to the buyer's first order after the buyer has ordered again", async () => {
+      // Arrange
+      const { service, stores, seed, buyers } = setUpPricing();
+      seed(scopeA, anAudienceOffer('returning'));
+      buyers.register({ orderCountOf: () => Promise.resolve(ORDER_COUNT_WITH_A_LATER_ORDER) });
+
+      // Act
+      const result = await service.repriceOrder(stores.contextOf(scopeA), {
+        current: aRequest(2, { phone: BUYER_PHONE }),
+        next: aRequest(3, { phone: BUYER_PHONE }),
+        orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: 0 },
+      });
+
+      // Assert
+      expect(result.before.total).toBe(9_800);
+      expect(result.after.total).toBe(14_700);
+    });
+  });
+
+  it("takes an order with no recorded count as the buyer's latest", async () => {
+    // Arrange
+    const { service, stores, seed, buyers } = setUpPricing();
+    const offer = anAudienceOffer('first');
+    seed(scopeA, offer);
+    buyers.register({ orderCountOf: () => Promise.resolve(ORDER_COUNT_WITH_THIS_ORDER) });
+
+    // Act
+    const result = await service.repriceOrder(stores.contextOf(scopeA), {
+      current: aRequest(2, { phone: BUYER_PHONE }),
+      next: aRequest(3, { phone: BUYER_PHONE }),
+      orderUsage: { offerIds: [offer.id], codes: [], buyerOrdersBefore: null },
+    });
+
+    // Assert
+    expect(result.available && result.orderFields.lines[0]?.offerIds).toEqual([offer.id]);
+  });
+
+  describe('of an order whose phone an edit changes', () => {
+    /** The moved-to phone has 5 orders of its own; the order is still stored under the old phone. */
+    const countsByPhone = (_ctx: unknown, _scope: unknown, buyer: { phone: string }) =>
+      Promise.resolve(buyer.phone.endsWith('999888') ? 5 : ORDER_COUNT_WITH_THIS_ORDER);
+
+    it("returns the moved-to buyer's orders before this one for the order to store", async () => {
+      // Arrange
+      const { service, stores, seed, buyers } = setUpPricing();
+      seed(scopeA, anAudienceOffer('first'));
+      buyers.register({ orderCountOf: countsByPhone });
+
+      // Act
+      const result = await service.repriceOrder(stores.contextOf(scopeA), {
+        current: aRequest(2, { phone: BUYER_PHONE }),
+        next: aRequest(3, { phone: OTHER_PHONE }),
+        orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: 0 },
+      });
+
+      // Assert
+      expect(result.after.total).toBe(14_700);
+      expect(result.available && result.orderFields.buyerOrdersBefore).toBe(5);
+    });
+
+    it('never gives a first-order offer on a later edit once the moved-to count is stored', async () => {
+      // Arrange
+      const { service, stores, seed, buyers } = setUpPricing();
+      seed(scopeA, anAudienceOffer('first'));
+      buyers.register({ orderCountOf: () => Promise.resolve(6) });
+
+      // Act
+      const result = await service.repriceOrder(stores.contextOf(scopeA), {
+        current: aRequest(2, { phone: OTHER_PHONE }),
+        next: aRequest(3, { phone: OTHER_PHONE }),
+        orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: 5 },
+      });
+
+      // Assert
+      expect(result.after.total).toBe(14_700);
+      expect(result.available && result.orderFields.buyerOrdersBefore).toBe(5);
+    });
+  });
+
+  it.each<[string, number | null | undefined, string | undefined, number | null]>([
+    ['the recorded count while the edit keeps the phone', 0, BUYER_PHONE, 0],
+    ['the count minus this order when none was recorded', undefined, BUYER_PHONE, 1],
+    ['no count when the changed cart has no phone', 0, undefined, null],
+  ])('returns %s for the order to store', async (_, recorded, nextPhone, expected) => {
+    // Arrange
+    const { service, stores, buyers } = setUpPricing();
+    buyers.register({ orderCountOf: () => Promise.resolve(ORDER_COUNT_WITH_A_LATER_ORDER) });
+
+    // Act
+    const result = await service.repriceOrder(stores.contextOf(scopeA), {
+      current: aRequest(2, { phone: BUYER_PHONE }),
+      next: aRequest(3, nextPhone === undefined ? {} : { phone: nextPhone }),
+      orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: recorded },
+    });
+
+    // Assert
+    expect(result.available && result.orderFields.buyerOrdersBefore).toBe(expected);
   });
 
   it("gives back a buyer's own use only while the changed cart keeps the order's phone", async () => {
@@ -115,6 +236,8 @@ describe('PricingService.repriceOrder guards', () => {
       'more offers than an order can hold',
       { offerIds: Array.from({ length: 500 }, (_, i) => String(1_300_000_000_000_000_000n + BigInt(i))), codes: [] },
     ],
+    ['orders before the order that are not a count', { offerIds: [], codes: [], buyerOrdersBefore: -1 }],
+    ['orders before the order that are not whole', { offerIds: [], codes: [], buyerOrdersBefore: 0.5 }],
     ['no usage at all', undefined],
   ])('refuses an order usage with %s as InvalidQuoteRequestError', async (_, orderUsage) => {
     // Arrange

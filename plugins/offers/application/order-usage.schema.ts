@@ -4,12 +4,17 @@ import { MAX_ORDER_HELD_OFFERS } from '../domain/constants';
 import type { OrderUsage } from '../domain/engine/order-usage';
 import { InvalidQuoteRequestError } from '../domain/errors';
 
-/** An order's held uses as the re-pricing caller states them: bounded like the order they were read from (D2427). */
 /** An offer id: a canonical snowflake, as the offer table stores it. */
 const offerIdSchema = z.string(invalidQuoteRequest).refine(isSnowflake, invalidQuoteRequest);
 
+/** An order's held uses as the re-pricing caller states them: bounded like the order they were read from (D2427). */
 const orderUsageSchema = z.object(
   {
+    buyerOrdersBefore: z
+      .number(invalidQuoteRequest)
+      .int(invalidQuoteRequest)
+      .nonnegative(invalidQuoteRequest)
+      .nullish(),
     offerIds: z.array(offerIdSchema, invalidQuoteRequest).max(MAX_ORDER_HELD_OFFERS, invalidQuoteRequest),
     codes: z
       .array(z.string(invalidQuoteRequest).max(MAX_CODE_INPUT_LENGTH, invalidQuoteRequest), invalidQuoteRequest)

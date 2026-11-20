@@ -9,7 +9,8 @@ import type { OperationContext } from './operation-context.port';
 export interface BuyerHistory {
   /**
    * Orders of the buyer (by E.164 phone) in the store, the repriced order included: re-pricing gives that one back
-   * (D2427), so a source must not leave it out itself.
+   * (D2427), so a source must not leave it out itself. P3.S4 also reads it at order creation, before the insert, and
+   * stores it on the order as `OrderUsage.buyerOrdersBefore` (D2442).
    */
   orderCountOf(ctx: OperationContext, scope: StoreScope, buyer: BuyerRef): Promise<number>;
 }

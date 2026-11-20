@@ -109,4 +109,37 @@ describe('releaseOrderUsage', () => {
     expect(released.perBuyerUsage.get('7001')).toBe(1);
     expect(released.buyerOrderCount).toBe(3);
   });
+
+  it("counts the buyer's orders as they stood before the order when the order states them", () => {
+    // Arrange
+    const snapshot = aSnapshot({ buyerOrderCount: 3 });
+
+    // Act
+    const released = releaseOrderUsage(snapshot, { offerIds: [], codes: [], buyerOrdersBefore: 0, ownBuyer: true });
+
+    // Assert
+    expect(released.buyerOrderCount).toBe(0);
+  });
+
+  it("takes the order as the buyer's latest when the order recorded no count", () => {
+    // Arrange
+    const snapshot = aSnapshot({ buyerOrderCount: 3 });
+
+    // Act
+    const released = releaseOrderUsage(snapshot, { offerIds: [], codes: [], buyerOrdersBefore: null, ownBuyer: true });
+
+    // Assert
+    expect(released.buyerOrderCount).toBe(2);
+  });
+
+  it("leaves another buyer's order count alone whatever the order states", () => {
+    // Arrange
+    const snapshot = aSnapshot({ buyerOrderCount: 3 });
+
+    // Act
+    const released = releaseOrderUsage(snapshot, { offerIds: [], codes: [], buyerOrdersBefore: 0, ownBuyer: false });
+
+    // Assert
+    expect(released.buyerOrderCount).toBe(3);
+  });
 });

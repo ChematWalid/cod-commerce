@@ -32,7 +32,9 @@ export interface RepriceInput {
    * are priced with them given back; without it an order that took an offer's last use would lose the offer on edit.
    * The caller builds it from the stored order (its lines' `offerIds` and the codes of its `quoteDiscounts`), never
    * from a request body. The buyer's own uses and order count are given back only for a cart that keeps the phone of
-   * `current`, the order as stored.
+   * `current`, the order as stored; `buyerOrdersBefore`, the buyer's order count the order recorded when it was
+   * created (null or omitted when it recorded none), keeps a buyer's first order first after the buyer orders again
+   * (D2442).
    */
   readonly orderUsage: OrderUsage;
 }
@@ -51,6 +53,12 @@ export interface OrderFields {
   /** JSON of the token's order discounts `d`. */
   readonly quoteDiscounts: string;
   readonly quotedShipping: number;
+  /**
+   * The buyer's orders before this one, to store on the order in place of the count it holds (D2442): the recorded
+   * count while the changed cart keeps the order's phone, the new phone's own count when the edit changes it, null
+   * without a phone. A count belongs to one phone, so P4.S3 overwrites the stored one on every saved change.
+   */
+  readonly buyerOrdersBefore: number | null;
 }
 
 /**
@@ -85,6 +93,8 @@ export type RepriceResult = PricedOrderChange | UnpricedOrderChange;
 interface EvaluatedCart {
   readonly priced: PricedQuote;
   readonly unavailableVariantIds: readonly string[];
+  /** The buyer's orders before the cart's order, as priced; null without a buyer. */
+  readonly buyerOrdersBefore: number | null;
 }
 
 /** The engine's pricing of a cart and the quote the buyer gets. */
@@ -125,7 +135,7 @@ function unsignedQuoteOf({ priced, unavailableVariantIds }: EvaluatedCart): Quot
   return { ...unsigned, available: false, unavailableVariantIds: [...unavailableVariantIds] };
 }
 
-function orderFieldsOf(priced: PricedQuote): OrderFields {
+function orderFieldsOf({ priced, buyerOrdersBefore }: EvaluatedCart): OrderFields {
   return {
     lines: priced.tokenLines.map(({ variantId, unitPrice, originalPrice, offerIds }) => ({
       variantId,
@@ -135,6 +145,7 @@ function orderFieldsOf(priced: PricedQuote): OrderFields {
     })),
     quoteDiscounts: JSON.stringify(priced.tokenDiscounts),
     quotedShipping: priced.delivery.price,
+    buyerOrdersBefore,
   };
 }
 
@@ -221,7 +232,7 @@ export class PricingService {
       before: beforeQuote,
       after: afterQuote,
       delta: afterQuote.total - beforeQuote.total,
-      orderFields: orderFieldsOf(after.priced),
+      orderFields: orderFieldsOf(after),
     };
   }
 
@@ -252,7 +263,7 @@ export class PricingService {
     const cart: PricingCart = { channel: request.channel, lines: loaded.lines, destination, buyer, codes };
     const snapshot = release === null ? loaded.snapshot : releaseOrderUsage(loaded.snapshot, release);
     const priced = priceCart({ registry: this.deps.kinds, snapshot, cart });
-    return { priced, unavailableVariantIds: loaded.unavailableVariantIds };
+    return { priced, unavailableVariantIds: loaded.unavailableVariantIds, buyerOrdersBefore: snapshot.buyerOrderCount };
   }
 
   private async activeStore(ctx: OperationContext): Promise<StoreScope> {
