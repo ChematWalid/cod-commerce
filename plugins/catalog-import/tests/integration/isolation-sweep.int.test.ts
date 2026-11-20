@@ -3,10 +3,12 @@ import { IMPORTS_EXPORTS_JOB_KINDS, toBusinessId, toStoreId } from '@cod/shared'
 import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { JOB_REPOSITORY } from '../../application/tokens';
-import type { JobRepositoryPort } from '../../application/ports/job-repository.port';
+import { JOB_REPOSITORY, JOB_SCAN } from '../../application/tokens';
+import type { JobRepositoryPort, JobRowSource, JobScanPort } from '../../application/ports/job-repository.port';
 import { JOB_ERROR_CODES } from '../../domain/constants';
-import { JobStoreContext } from '../../infrastructure/job-store-context';
+import type { ImportsExportsJobData } from '../../domain/imports-exports-job';
+import { ownRowSourceOf } from '../../infrastructure/job-row-sources';
+import { JobStoreContext, type OpenedJob } from '../../infrastructure/job-store-context';
 import {
   type OperationEntry,
   OPERATION_REGISTRY,
@@ -17,6 +19,15 @@ import {
 import { importSuite } from './import-kit';
 
 const suite = importSuite({ plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
+
+/** Opens a job as the worker does, through catalog-import's own row source of its kind (D2252). */
+function openJob(data: ImportsExportsJobData): Promise<OpenedJob | undefined> {
+  const scan = suite.kit.app.get<JobScanPort>(JOB_SCAN);
+  const jobs = suite.kit.app.get<JobRepositoryPort>(JOB_REPOSITORY);
+  const rows: JobRowSource | undefined = ownRowSourceOf(data.kind, { scan, jobs });
+  if (rows === undefined) throw new Error(`no row source for ${data.kind}`);
+  return suite.kit.app.get(JobStoreContext).open(data, rows, false);
+}
 /** Text no answer may carry: SQL, table names, stacks, bucket names (D2136). */
 const LEAKS = [/select /i, /QueryFailedError/, /catalog_import/, /catalog_export/, /cod-private/, /EntityNotFound/];
 const NO_CODE = 'NO_CODE';
@@ -148,7 +159,7 @@ describe('catalog-import isolation sweep (two businesses)', () => {
     });
 
     // Act
-    const opened = await suite.kit.app.get(JobStoreContext).open({
+    const opened = await openJob({
       jobId: `cex-${id}`,
       kind: IMPORTS_EXPORTS_JOB_KINDS.productExport,
       recordId: id,
@@ -169,7 +180,7 @@ describe('catalog-import isolation sweep (two businesses)', () => {
     const { b } = suite.fixtures;
 
     // Act
-    const opened = await suite.kit.app.get(JobStoreContext).open({
+    const opened = await openJob({
       jobId: `cim-${idsOfB.importId}`,
       kind: IMPORTS_EXPORTS_JOB_KINDS.productImport,
       recordId: idsOfB.importId,

@@ -78,6 +78,8 @@ export const CORE_ENV = {
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
+  // The https link host production needs beside the internal http endpoint (D2252).
+  S3_PUBLIC_ENDPOINT: 'https://files.example.test',
   S3_ACCESS_KEY: `GK${'a'.repeat(24)}`,
   S3_BUCKET_PRIVATE: 'cod-private',
 } as const;

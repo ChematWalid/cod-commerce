@@ -13,6 +13,7 @@ import { ImportJobsReconcileSource } from './import-jobs.reconcile-source';
 import { ImportsExportsQueue } from './imports-exports.queue';
 import { IMPORTS_EXPORTS_JOB_REGISTRAR, registrarOf } from './job-registrar';
 import { ImportsExportsJobRegistry } from './job-registry';
+import { ownRowSourceOf } from './job-row-sources';
 import { JobStoreContext } from './job-store-context';
 import { MemoryObjectStorage } from './memory-object-storage';
 import { type CatalogImportPluginOptions, requireCatalogImportOptions, type S3StorageOptions } from './plugin-options';
@@ -70,9 +71,8 @@ export const CATALOG_IMPORT_PROVIDERS: Provider[] = [
   { provide: IMPORT_LOGGER, useValue: importLogger },
   {
     provide: JobStoreContext,
-    useFactory: (scan: JobScanPort, jobs: JobRepositoryPort, catalog: CatalogProductsPort, logger: ImportLogger) =>
-      new JobStoreContext({ scan, jobs, catalog, logger }),
-    inject: [JOB_SCAN, JOB_REPOSITORY, CATALOG_PRODUCTS, IMPORT_LOGGER],
+    useFactory: (catalog: CatalogProductsPort, logger: ImportLogger) => new JobStoreContext({ catalog, logger }),
+    inject: [CATALOG_PRODUCTS, IMPORT_LOGGER],
   },
   {
     provide: ImportsExportsJobRegistry,
@@ -81,10 +81,18 @@ export const CATALOG_IMPORT_PROVIDERS: Provider[] = [
       semaphore: BusinessSemaphore,
       queues: PlatformQueues,
       stores: JobStoreContext,
+      scan: JobScanPort,
       jobs: JobRepositoryPort,
       logger: ImportLogger,
-    ) => new ImportsExportsJobRegistry({ semaphore, queues, stores, jobs, logger }),
-    inject: [BusinessSemaphore, PlatformQueues, JobStoreContext, JOB_REPOSITORY, IMPORT_LOGGER],
+    ) =>
+      new ImportsExportsJobRegistry({
+        semaphore,
+        queues,
+        stores,
+        ownRows: (kind) => ownRowSourceOf(kind, { scan, jobs }),
+        logger,
+      }),
+    inject: [BusinessSemaphore, PlatformQueues, JobStoreContext, JOB_SCAN, JOB_REPOSITORY, IMPORT_LOGGER],
   },
   {
     provide: IMPORTS_EXPORTS_JOB_REGISTRAR,

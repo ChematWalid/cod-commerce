@@ -1,14 +1,34 @@
 import { Readable } from 'node:stream';
 import { CATALOG_IMPORT_ERROR_CODES } from '@cod/shared';
-import { describe, expect, it } from 'vitest';
+import type { FactoryProvider } from '@nestjs/common';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { ObjectStorage } from '../../application/ports/object-storage.port';
+import { OBJECT_STORAGE } from '../../application/tokens';
+import { CatalogImportPlugin } from '../../catalog-import.plugin';
 import { exportFileKey, importSourceKey } from '../../domain/object-keys';
 import { MemoryObjectStorage } from '../../infrastructure/memory-object-storage';
+import { clearCatalogImportOptions } from '../../infrastructure/plugin-options';
+import { CATALOG_IMPORT_PROVIDERS } from '../../infrastructure/providers';
 import { bytesOf, SCOPE } from '../support/scope';
+
+/** What the `OBJECT_STORAGE` token resolves to, built by the plugin's own provider. */
+function objectStorageFromToken(): ObjectStorage {
+  const provider = CATALOG_IMPORT_PROVIDERS.find(
+    (candidate): candidate is FactoryProvider<ObjectStorage> =>
+      typeof candidate === 'object' && 'provide' in candidate && candidate.provide === OBJECT_STORAGE,
+  );
+  if (provider === undefined) throw new Error('no OBJECT_STORAGE provider');
+  return provider.useFactory() as ObjectStorage;
+}
 
 const NOW = new Date('2026-11-15T10:00:00.000Z');
 const C = CATALOG_IMPORT_ERROR_CODES;
 
 describe('MemoryObjectStorage (D2208)', () => {
+  afterEach(() => {
+    clearCatalogImportOptions();
+  });
+
   it('presign returns an opaque memory:// URL', async () => {
     // Arrange
     const storage = new MemoryObjectStorage(() => NOW);
@@ -34,8 +54,10 @@ describe('MemoryObjectStorage (D2208)', () => {
   });
 
   it('tests reach bytes only through the DI token', async () => {
-    // Arrange: the instance the token resolves to is the only way in and out
-    const storage = new MemoryObjectStorage(() => NOW);
+    // Arrange: memory storage configured, the instance the OBJECT_STORAGE provider builds is the only way in and out
+    CatalogImportPlugin.init({ objectStorage: { kind: 'memory' }, linkScraper: 'fixture', appEnv: 'test' });
+    const storage = objectStorageFromToken();
+    expect(storage).toBeInstanceOf(MemoryObjectStorage);
     const key = importSourceKey(SCOPE, '7301');
     await storage.write(key, bytesOf('name,price\n'), 'text/csv');
     const head = await storage.head(key);
@@ -82,6 +104,16 @@ describe('MemoryObjectStorage (D2208)', () => {
 
     // Assert
     expect(await storage.head(key)).toMatchObject({ size: 4 });
+  });
+
+  it('presignPut refuses a key outside uploads/', async () => {
+    // Arrange
+    const storage = new MemoryObjectStorage(() => NOW);
+
+    // Act and Assert
+    await expect(
+      storage.presignPut(exportFileKey(SCOPE, '7302'), { contentType: 'text/csv', size: 12, ttlSeconds: 600 }),
+    ).rejects.toMatchObject({ code: C.INVALID_INPUT });
   });
 
   it('presignGet refuses a key outside exports/', async () => {

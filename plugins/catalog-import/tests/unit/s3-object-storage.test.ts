@@ -182,6 +182,43 @@ describe('S3ObjectStorage (D2208)', () => {
     await expect(lying.read(key, { maxBytes: 4, ifMatch: '"e"' })).rejects.toMatchObject({ code: C.FILE_TOO_LARGE });
   });
 
+  it('read releases the body of an object it refuses above the cap', async () => {
+    // Arrange: an unread body would hold its pooled socket until it timed out
+    const refused = Readable.from([bytesOf('x')]);
+    const destroy = vi.spyOn(refused, 'destroy');
+    const { storage } = storageWith(() => ({ ContentLength: 11, Body: refused }));
+
+    // Act
+    const read = storage.read(importSourceKey(SCOPE, '7301'), { maxBytes: 10, ifMatch: '"e"' });
+
+    // Assert
+    await expect(read).rejects.toMatchObject({ code: C.FILE_TOO_LARGE });
+    expect(destroy).toHaveBeenCalled();
+  });
+
+  it('read releases a body whose length lied once it passes the cap', async () => {
+    // Arrange
+    const lying = Readable.from([bytesOf('abc'), bytesOf('def'), bytesOf('ghi')]);
+    const { storage } = storageWith(() => ({ ContentLength: 2, Body: lying }));
+
+    // Act
+    const read = storage.read(importSourceKey(SCOPE, '7301'), { maxBytes: 4, ifMatch: '"e"' });
+
+    // Assert
+    await expect(read).rejects.toMatchObject({ code: C.FILE_TOO_LARGE });
+    expect(lying.destroyed).toBe(true);
+  });
+
+  it('presignPut refuses a key outside uploads/', async () => {
+    // Arrange
+    const { storage } = storageWith();
+
+    // Act and Assert
+    await expect(
+      storage.presignPut(exportFileKey(SCOPE, '7302'), { contentType: 'text/csv', size: 12, ttlSeconds: 600 }),
+    ).rejects.toMatchObject({ code: C.INVALID_INPUT });
+  });
+
   it('a changed or missing object is a job-state refusal, and a missing head is null', async () => {
     // Arrange
     const failing = (name: string, status: number) => () => {

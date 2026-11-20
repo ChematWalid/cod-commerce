@@ -40,7 +40,10 @@ export interface ReadRule {
  * bucket only (`S3_BUCKET_PRIVATE` on Garage, never R2).
  */
 export interface ObjectStorage {
-  /** A presigned PUT of exactly `rule.size` bytes of `rule.contentType`, valid `rule.ttlSeconds`. */
+  /**
+   * A presigned PUT of exactly `rule.size` bytes of `rule.contentType`, valid `rule.ttlSeconds`.
+   * @throws InvalidImportInputError for a key outside `uploads/` (D2252)
+   */
   presignPut(key: ObjectKey, rule: PresignPutRule): Promise<PresignedRequest>;
   /**
    * A presigned GET that downloads as an attachment.

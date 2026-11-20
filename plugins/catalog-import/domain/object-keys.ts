@@ -50,3 +50,8 @@ export function errorReportKey(scope: StoreScope, jobId: string): ObjectKey {
 export function isExportKey(key: string): boolean {
   return key.startsWith(EXPORTS_PREFIX);
 }
+
+/** Whether `key` lies under `uploads/`, the only prefix a presigned upload may name (D2208). */
+export function isUploadKey(key: string): boolean {
+  return key.startsWith(UPLOADS_PREFIX);
+}

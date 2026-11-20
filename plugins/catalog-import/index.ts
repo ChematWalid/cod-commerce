@@ -12,5 +12,11 @@ export {
   type ImportsExportsJobHandler,
   type ImportsExportsJobRegistrar,
 } from './infrastructure/job-registrar';
+export type {
+  JobFailure as ImportsExportsJobFailure,
+  JobRowScope as ImportsExportsJobRowScope,
+  JobRowSource as ImportsExportsJobRowSource,
+  JobStatus as ImportsExportsJobStatus,
+} from './application/ports/job-repository.port';
 export type { ImportsExportsJobData } from './domain/imports-exports-job';
 export type { StoreScope as ImportStoreScope } from './domain/store-scope';

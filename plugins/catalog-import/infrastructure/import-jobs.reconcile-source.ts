@@ -9,7 +9,7 @@ import type {
 } from '../application/ports/job-repository.port';
 import type { ImportLogger } from '../application/ports/logger.port';
 import { IMPORTS_EXPORTS_QUEUE, JOB_ERROR_CODES, REQUEUE_STALE_MS, RUNNING_STALE_MS } from '../domain/constants';
-import { jobDataOf, REQUEUE_JOB_STATUSES, tableOfKind } from '../domain/job-kinds';
+import { jobDataOf, REQUEUE_JOB_STATUSES, RUNNING_JOB_STATUS, tableOfKind } from '../domain/job-kinds';
 import type { StoreScope } from '../domain/store-scope';
 
 /** What the source reads and writes through. */
@@ -19,12 +19,11 @@ export interface ImportJobsReconcileDeps {
   readonly logger: ImportLogger;
 }
 
-const RUNNING = 'running';
 /** The queue's attempts: a `running` row past its stale time counts as having used them all, so it ends failed. */
 const ALL_ATTEMPTS = QUEUES[IMPORTS_EXPORTS_QUEUE].attempts;
 
 function dueJobOf(row: DueJobRow): DueJob {
-  const running = row.status === RUNNING;
+  const running = row.status === RUNNING_JOB_STATUS;
   return {
     queue: IMPORTS_EXPORTS_QUEUE,
     data: jobDataOf(row),

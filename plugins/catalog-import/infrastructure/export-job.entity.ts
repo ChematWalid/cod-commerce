@@ -1,4 +1,5 @@
 import { TenantEntity } from '@cod/plugin-tenancy';
+import type { ExportJobStatus } from '@cod/shared';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 import { ERROR_CODE_MAX_LENGTH, JOB_WORD_MAX_LENGTH } from '../domain/constants';
 
@@ -11,7 +12,7 @@ export class ExportJobEntity extends TenantEntity {
   id!: string;
 
   @Column({ type: 'varchar', length: JOB_WORD_MAX_LENGTH })
-  status!: string;
+  status!: ExportJobStatus;
 
   /** `xlsx` or `csv`. */
   @Column({ type: 'varchar', length: JOB_WORD_MAX_LENGTH })

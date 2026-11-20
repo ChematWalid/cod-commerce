@@ -7,7 +7,7 @@ import {
   semaphoreRetryDelayMs,
 } from '@cod/plugin-platform-jobs';
 import { isSnowflake, toBusinessId } from '@cod/shared';
-import type { JobRepositoryPort } from '../application/ports/job-repository.port';
+import type { JobRowSource } from '../application/ports/job-repository.port';
 import type { ImportLogger } from '../application/ports/logger.port';
 import type { OperationContext } from '../application/ports/operation-context';
 import { IMPORTS_EXPORTS_BUSINESS_LIMIT, IMPORTS_EXPORTS_QUEUE, JOB_ERROR_CODES } from '../domain/constants';
@@ -32,42 +32,58 @@ export interface JobRegistryDeps {
   readonly semaphore: JobSemaphore;
   readonly queues: Pick<PlatformQueues, 'requeueWithDelay'>;
   readonly stores: Pick<JobStoreContext, 'open'>;
-  readonly jobs: Pick<JobRepositoryPort, 'markFailed'>;
+  /** The row source of a kind catalog-import stores itself, or undefined (D2252). */
+  readonly ownRows: (kind: string) => JobRowSource | undefined;
   readonly logger: ImportLogger;
   readonly random?: () => number;
   readonly now?: () => Date;
 }
 
+/** A kind's handler and the source of its rows. */
+interface Registration {
+  readonly handler: ImportsExportsHandler;
+  readonly rows: JobRowSource;
+}
+
 /**
  * The `imports-exports` queue's processor (D2212): one handler per `kind`, one job per business at a time
- * (`BusinessSemaphore`, limit 1; busy → re-queued 5-30 s later), each job opened from its row first. A handler that
- * fails on its last attempt leaves the row `failed` with a fixed code, then rethrows so BullMQ records it.
+ * (`BusinessSemaphore`, limit 1; busy → re-queued 5-30 s later), each job opened from its row first, through the
+ * kind's row source (D2252). A handler that fails on its last attempt leaves the row `failed` with a fixed code,
+ * then rethrows so BullMQ records it.
  */
 export class ImportsExportsJobRegistry {
-  private readonly handlers = new Map<string, ImportsExportsHandler>();
+  private readonly registrations = new Map<string, Registration>();
 
   constructor(private readonly deps: JobRegistryDeps) {}
 
   /**
-   * Adds the handler of `kind`.
-   * @throws Error when the kind already has one
+   * Adds the handler of `kind`, opened from `rows`; a kind catalog-import stores defaults to its own table.
+   * @throws Error when the kind already has a handler, or has no row source
    */
-  register(kind: string, handler: ImportsExportsHandler): void {
-    if (this.handlers.has(kind)) throw new Error(`The imports-exports kind "${kind}" already has a handler`);
-    this.handlers.set(kind, handler);
+  register(kind: string, handler: ImportsExportsHandler, rows?: JobRowSource): void {
+    if (this.registrations.has(kind)) throw new Error(`The imports-exports kind "${kind}" already has a handler`);
+    const source = rows ?? this.deps.ownRows(kind);
+    if (source === undefined) {
+      throw new Error(`The imports-exports kind "${kind}" needs a row source: catalog-import stores none of its rows`);
+    }
+    this.registrations.set(kind, { handler, rows: source });
   }
 
   /** Runs one job; the queue's processor. */
   async run(data: ImportsExportsJobData, attempt: JobAttempt): Promise<void> {
-    const handler = this.handlers.get(data.kind);
-    if (handler === undefined || !isSnowflake(data.businessId)) {
+    const registration = this.registrations.get(data.kind);
+    if (registration === undefined) {
       this.deps.logger.error(`Dropped an imports-exports job ${data.jobId}: no handler for its kind`);
+      return;
+    }
+    if (!isSnowflake(data.businessId)) {
+      this.deps.logger.error(`Dropped an imports-exports job ${data.jobId}: its payload business id is malformed`);
       return;
     }
     const key = { queue: IMPORTS_EXPORTS_QUEUE, businessId: toBusinessId(data.businessId) };
     try {
       await this.deps.semaphore.withBusinessSemaphore(key, IMPORTS_EXPORTS_BUSINESS_LIMIT, () =>
-        this.runOpened(data, attempt, handler),
+        this.runOpened(data, attempt, registration),
       );
     } catch (error: unknown) {
       if (!(error instanceof SemaphoreBusyError)) throw error;
@@ -76,23 +92,20 @@ export class ImportsExportsJobRegistry {
     }
   }
 
-  private async runOpened(
-    data: ImportsExportsJobData,
-    attempt: JobAttempt,
-    handler: ImportsExportsHandler,
-  ): Promise<void> {
-    const opened = await this.deps.stores.open(data);
+  private async runOpened(data: ImportsExportsJobData, attempt: JobAttempt, registration: Registration): Promise<void> {
+    const lastAttempt = isLastAttempt(attempt);
+    const opened = await this.deps.stores.open(data, registration.rows, lastAttempt);
     if (opened === undefined) return;
     try {
-      await handler(data, opened.ctx, opened.scope);
+      await registration.handler(data, opened.ctx, opened.scope);
     } catch (error: unknown) {
-      if (isLastAttempt(attempt)) await this.failRow(opened);
+      if (lastAttempt) await this.failRow(registration.rows, opened);
       throw error;
     }
   }
 
-  private async failRow(opened: OpenedJob): Promise<void> {
+  private async failRow(rows: JobRowSource, opened: OpenedJob): Promise<void> {
     const at = (this.deps.now ?? (() => new Date()))();
-    await this.deps.jobs.markFailed(opened.scope, opened.ref, { errorCode: JOB_ERROR_CODES.FAILED, at });
+    await rows.markFailed(opened.scope, opened.recordId, { errorCode: JOB_ERROR_CODES.FAILED, at });
   }
 }

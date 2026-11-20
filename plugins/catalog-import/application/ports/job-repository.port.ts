@@ -1,7 +1,7 @@
-import type { JobTable } from '../../domain/job-kinds';
+import type { JobStatus, JobTable } from '../../domain/job-kinds';
 import type { StoreScope } from '../../domain/store-scope';
 
-export type { JobTable };
+export type { JobStatus, JobTable };
 
 /** One job row: its table and snowflake id. */
 export interface JobRef {
@@ -13,7 +13,7 @@ export interface JobRef {
 export interface JobRowScope {
   readonly businessId: string;
   readonly storeId: string;
-  readonly status: string;
+  readonly status: JobStatus;
   readonly actorAdministratorId: number | null;
 }
 
@@ -23,7 +23,7 @@ export interface DueJobRow {
   readonly id: string;
   readonly businessId: string;
   readonly storeId: string;
-  readonly status: string;
+  readonly status: JobStatus;
   readonly updatedAt: Date;
 }
 
@@ -39,7 +39,7 @@ export interface DueJobQuery {
   readonly limit: number;
   readonly requeueBefore: Date;
   readonly failBefore: Date;
-  readonly requeueStatuses: readonly string[];
+  readonly requeueStatuses: readonly JobStatus[];
   readonly after?: DueJobCursor;
 }
 
@@ -59,6 +59,17 @@ export interface JobScanPort {
   rowScopeOf(ref: JobRef): Promise<JobRowScope | undefined>;
   /** Due rows of both tables, oldest first, at most `query.limit`. */
   dueJobs(query: DueJobQuery): Promise<readonly DueJobRow[]>;
+}
+
+/**
+ * Reads and fails the rows of one `imports-exports` kind (D2252). catalog-import's own kinds use its two tables; a
+ * plugin registering another kind brings one over its own table, so the worker always takes the scope from the row.
+ */
+export interface JobRowSource {
+  /** The row's scope, status and actor, or undefined when there is no such row (or the id is malformed). */
+  rowScopeOf(recordId: string): Promise<JobRowScope | undefined>;
+  /** Ends a row that is not done or failed yet as `failed` with `failure.errorCode`; another scope's row is left. */
+  markFailed(scope: StoreScope, recordId: string, failure: JobFailure): Promise<void>;
 }
 
 /** Tenant-scoped writes of the job state machine shared by every handler (ADR 0002). */

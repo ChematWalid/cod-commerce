@@ -34,6 +34,21 @@ describe('loadEnv catalog import (D2208, D2214)', () => {
     expect(env.S3_PUBLIC_ENDPOINT).toBe('https://files.example.com');
   });
 
+  it('production without S3_PUBLIC_ENDPOINT and an http S3_ENDPOINT is refused', () => {
+    // Arrange: the compose default passes S3_PUBLIC_ENDPOINT blank, and S3_ENDPOINT is the internal http Garage
+    const deployed = { ...PRODUCTION, S3_ENDPOINT: 'http://garage:3900' };
+
+    // Act
+    const blank = envFailure({ ...deployed, S3_PUBLIC_ENDPOINT: '' });
+    const unset = envFailure({ ...deployed, S3_PUBLIC_ENDPOINT: undefined });
+    const httpsFallback = loadEnv({ ...deployed, S3_ENDPOINT: 'https://files.example.com', S3_PUBLIC_ENDPOINT: '' });
+
+    // Assert
+    expect(issuePaths(blank)).toEqual(['S3_PUBLIC_ENDPOINT']);
+    expect(issuePaths(unset)).toEqual(['S3_PUBLIC_ENDPOINT']);
+    expect(httpsFallback.S3_PUBLIC_ENDPOINT).toBe('https://files.example.com');
+  });
+
   it('LINK_IMPORT_SCRAPER defaults to http and accepts fixture outside production', () => {
     // Act and Assert
     expect(loadEnv(TEST_ENV).LINK_IMPORT_SCRAPER).toBe('http');

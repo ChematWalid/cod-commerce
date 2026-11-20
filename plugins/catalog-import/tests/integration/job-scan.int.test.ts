@@ -51,6 +51,30 @@ describe('the job scan across businesses (D2212)', () => {
     expect(after.map((row) => row.id)).toEqual([lostImport, lostExport]);
   });
 
+  it('pages rows of one time by numeric id, even when the ids differ in digit count', async () => {
+    // Arrange: text order would put '10' before '9'
+    const { a } = suite.fixtures;
+    const inA = { businessId: a.businessId, storeId: a.stores[0].id };
+    const at = minutesAgo(50);
+    await planted({ table: 'catalog_import_job', ...inA, status: 'confirming', id: '9' }, at);
+    await planted({ table: 'catalog_import_job', ...inA, status: 'confirming', id: '10' }, at);
+    const scan = suite.kit.app.get<JobScanPort>(JOB_SCAN);
+    const query = {
+      limit: 1,
+      requeueBefore: minutesAgo(45),
+      failBefore: minutesAgo(45),
+      requeueStatuses: REQUEUE_JOB_STATUSES,
+    };
+
+    // Act
+    const [first] = await scan.dueJobs(query);
+    const second = first === undefined ? [] : await scan.dueJobs({ ...query, after: { ...first } });
+
+    // Assert
+    expect(first?.id).toBe('9');
+    expect(second.map((row) => row.id)).toEqual(['10']);
+  });
+
   it("reads a row's scope, status and actor by id, and nothing for a malformed or unknown id", async () => {
     // Arrange
     const { a } = suite.fixtures;

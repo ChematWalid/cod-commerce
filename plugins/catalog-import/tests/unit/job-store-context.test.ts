@@ -4,6 +4,8 @@ import type { CatalogProductsPort } from '../../application/ports/catalog-produc
 import { asOperationContext } from '../../application/ports/operation-context';
 import { JOB_ERROR_CODES } from '../../domain/constants';
 import type { ImportsExportsJobData } from '../../domain/imports-exports-job';
+import type { JobRowScope, JobRowSource } from '../../application/ports/job-repository.port';
+import { tableRowSource } from '../../infrastructure/job-row-sources';
 import { JobStoreContext } from '../../infrastructure/job-store-context';
 import { FakeJobs, type FakeJobRow, RecordingLogger } from '../fakes/fake-jobs';
 
@@ -34,26 +36,27 @@ function contextWith(storeContext: CatalogProductsPort['storeContext']) {
   const jobs = new FakeJobs([ROW]);
   const catalog = { storeContext: vi.fn(storeContext) };
   const logger = new RecordingLogger();
-  return { context: new JobStoreContext({ scan: jobs, jobs, catalog, logger }), jobs, catalog, logger };
+  const rows = tableRowSource('import', { scan: jobs, jobs });
+  return { context: new JobStoreContext({ catalog, logger }), rows, jobs, catalog, logger };
 }
 
 const STORE_CTX = asOperationContext({ channel: 'store-22' });
 
-describe('JobStoreContext (D2212)', () => {
+describe('JobStoreContext (D2212, D2252)', () => {
   it("the scope comes from the job row, never the payload's client data", async () => {
     // Arrange
-    const { context, catalog } = contextWith(() => Promise.resolve(STORE_CTX));
+    const { context, rows, catalog } = contextWith(() => Promise.resolve(STORE_CTX));
     const data = { ...dataOf(), actorAdministratorId: 99 } as ImportsExportsJobData;
 
     // Act
-    const opened = await context.open(data);
+    const opened = await context.open(data, rows, false);
 
     // Assert
     expect(catalog.storeContext).toHaveBeenCalledWith({ businessId: '11', storeId: '22' });
     expect(opened).toEqual({
       ctx: STORE_CTX,
       scope: { businessId: '11', storeId: '22' },
-      ref: { table: 'import', id: '7301' },
+      recordId: '7301',
       actorAdministratorId: 5,
     });
   });
@@ -63,10 +66,10 @@ describe('JobStoreContext (D2212)', () => {
     ['store', { storeId: '44' }],
   ])('a payload whose %s differs from the row fails the job', async (_field, overrides) => {
     // Arrange
-    const { context, jobs, catalog } = contextWith(() => Promise.resolve(STORE_CTX));
+    const { context, rows, jobs, catalog } = contextWith(() => Promise.resolve(STORE_CTX));
 
     // Act
-    const opened = await context.open(dataOf(overrides));
+    const opened = await context.open(dataOf(overrides), rows, false);
 
     // Assert
     expect(opened).toBeUndefined();
@@ -82,10 +85,10 @@ describe('JobStoreContext (D2212)', () => {
 
   it('an archived store fails the job', async () => {
     // Arrange
-    const { context, jobs } = contextWith(() => Promise.reject(new StoreGoneError('No such product')));
+    const { context, rows, jobs } = contextWith(() => Promise.reject(new StoreGoneError('No such product')));
 
     // Act
-    const opened = await context.open(dataOf());
+    const opened = await context.open(dataOf(), rows, false);
 
     // Assert
     expect(opened).toBeUndefined();
@@ -94,23 +97,58 @@ describe('JobStoreContext (D2212)', () => {
 
   it('a store context that fails for another reason is retried, nothing marked', async () => {
     // Arrange
-    const { context, jobs } = contextWith(() => Promise.reject(new Error('database down')));
+    const { context, rows, jobs } = contextWith(() => Promise.reject(new Error('database down')));
 
     // Act and Assert
-    await expect(context.open(dataOf())).rejects.toThrow('database down');
+    await expect(context.open(dataOf(), rows, false)).rejects.toThrow('database down');
     expect(jobs.failed).toEqual([]);
+  });
+
+  it('a store context failing on the last attempt fails the row, then rethrows', async () => {
+    // Arrange
+    const { context, rows, jobs } = contextWith(() => Promise.reject(new Error('database down')));
+
+    // Act and Assert
+    await expect(context.open(dataOf(), rows, true)).rejects.toThrow('database down');
+    expect(jobs.failed).toMatchObject([
+      { ref: { table: 'import', id: '7301' }, failure: { errorCode: JOB_ERROR_CODES.FAILED } },
+    ]);
+  });
+
+  it('opens a row another plugin stores through the row source it brought', async () => {
+    // Arrange
+    const { context } = contextWith(() => Promise.resolve(STORE_CTX));
+    const foreignRow: JobRowScope = { businessId: '11', storeId: '22', status: 'queued', actorAdministratorId: 8 };
+    const foreign: JobRowSource = {
+      rowScopeOf: vi.fn((recordId: string) => Promise.resolve(recordId === '7401' ? foreignRow : undefined)),
+      markFailed: vi.fn(() => Promise.resolve()),
+    };
+
+    // Act
+    const opened = await context.open(
+      dataOf({ kind: 'order-export', jobId: 'oex-7401', recordId: '7401' }),
+      foreign,
+      false,
+    );
+
+    // Assert
+    expect(opened).toEqual({
+      ctx: STORE_CTX,
+      scope: { businessId: '11', storeId: '22' },
+      recordId: '7401',
+      actorAdministratorId: 8,
+    });
   });
 
   it.each([
     ['no row of that id', dataOf({ recordId: '9999' })],
-    ['a kind no table holds', dataOf({ kind: 'order-export' })],
     ['a malformed record id', dataOf({ recordId: 'abc' })],
   ])('%s is logged and dropped', async (_name, data) => {
     // Arrange
-    const { context, jobs, catalog, logger } = contextWith(() => Promise.resolve(STORE_CTX));
+    const { context, rows, jobs, catalog, logger } = contextWith(() => Promise.resolve(STORE_CTX));
 
     // Act
-    const opened = await context.open(data);
+    const opened = await context.open(data, rows, false);
 
     // Assert
     expect(opened).toBeUndefined();
@@ -121,11 +159,11 @@ describe('JobStoreContext (D2212)', () => {
 
   it('a row already done or failed is dropped without a mark', async () => {
     // Arrange
-    const { context, jobs } = contextWith(() => Promise.resolve(STORE_CTX));
+    const { context, rows, jobs } = contextWith(() => Promise.resolve(STORE_CTX));
     jobs.rows = [{ ...ROW, status: 'done' }];
 
     // Act and Assert
-    expect(await context.open(dataOf())).toBeUndefined();
+    expect(await context.open(dataOf(), rows, false)).toBeUndefined();
     expect(jobs.failed).toEqual([]);
   });
 });

@@ -14,7 +14,7 @@ import type {
   PresignPutRule,
   ReadRule,
 } from '../application/ports/object-storage.port';
-import { attachmentDisposition, checkDownload } from '../domain/download-name';
+import { attachmentDisposition, checkDownload, checkUpload } from '../domain/download-name';
 import { FileTooLargeError, JobStateError } from '../domain/errors';
 import type { ObjectKey } from '../domain/object-keys';
 import { collectBytes } from './object-bytes';
@@ -44,6 +44,12 @@ interface S3ErrorShape {
 const statusOf = (error: unknown): number | undefined =>
   typeof error === 'object' && error !== null ? (error as S3ErrorShape).$metadata?.httpStatusCode : undefined;
 
+/** Frees a response body the adapter will not read, so its pooled socket goes back to the client at once. */
+function releaseBody(body: unknown): void {
+  const stream = body as { destroy?: () => void } | undefined;
+  stream?.destroy?.();
+}
+
 /** A changed (412) or gone (404) object is a job-state refusal; anything else is the store's fault and propagates. */
 function readErrorOf(error: unknown): unknown {
   const status = statusOf(error);
@@ -59,6 +65,7 @@ export class S3ObjectStorage implements ObjectStorage {
   }
 
   async presignPut(key: ObjectKey, rule: PresignPutRule): Promise<PresignedRequest> {
+    checkUpload(key);
     const command = new PutObjectCommand({
       Bucket: this.deps.bucket,
       Key: key,
@@ -104,8 +111,12 @@ export class S3ObjectStorage implements ObjectStorage {
     const object = await this.deps.client.send(command).catch((error: unknown) => {
       throw readErrorOf(error);
     });
-    if ((object.ContentLength ?? 0) > rule.maxBytes) throw new FileTooLargeError();
+    if ((object.ContentLength ?? 0) > rule.maxBytes) {
+      releaseBody(object.Body);
+      throw new FileTooLargeError();
+    }
     if (object.Body === undefined) throw new JobStateError();
+    // A body cut short by the cap is released by `for await`, which destroys the stream when the loop throws.
     return collectBytes(object.Body as AsyncIterable<Uint8Array>, rule.maxBytes);
   }
 

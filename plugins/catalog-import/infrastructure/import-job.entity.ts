@@ -1,5 +1,5 @@
 import { TenantEntity } from '@cod/plugin-tenancy';
-import { IMPORT_MAX_URL_CHARS } from '@cod/shared';
+import { IMPORT_MAX_URL_CHARS, type ImportJobStatus } from '@cod/shared';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 import {
   CONTENT_TYPE_MAX_LENGTH,
@@ -25,7 +25,7 @@ export class ImportJobEntity extends TenantEntity {
   kind!: string;
 
   @Column({ type: 'varchar', length: JOB_WORD_MAX_LENGTH })
-  status!: string;
+  status!: ImportJobStatus;
 
   /** `xlsx` or `csv`; none for a link import. */
   @Column({ type: 'varchar', length: JOB_WORD_MAX_LENGTH, nullable: true })

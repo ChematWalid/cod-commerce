@@ -1,4 +1,4 @@
-import { attachmentDisposition, checkDownload } from '../domain/download-name';
+import { attachmentDisposition, checkDownload, checkUpload } from '../domain/download-name';
 import { FileTooLargeError, JobStateError } from '../domain/errors';
 import type { ObjectKey } from '../domain/object-keys';
 import type {
@@ -37,13 +37,15 @@ export class MemoryObjectStorage implements ObjectStorage {
   constructor(private readonly now: () => Date = () => new Date()) {}
 
   presignPut(key: ObjectKey, rule: PresignPutRule): Promise<PresignedRequest> {
-    const expiresAt = this.expiry(rule.ttlSeconds);
-    const query = new URLSearchParams({ size: String(rule.size), type: rule.contentType });
-    return Promise.resolve({
-      url: `memory://${key}?${query.toString()}`,
-      method: 'PUT',
-      headers: { 'content-type': rule.contentType, 'content-length': String(rule.size) },
-      expiresAt,
+    return settled(() => {
+      checkUpload(key);
+      const query = new URLSearchParams({ size: String(rule.size), type: rule.contentType });
+      return {
+        url: `memory://${key}?${query.toString()}`,
+        method: 'PUT',
+        headers: { 'content-type': rule.contentType, 'content-length': String(rule.size) },
+        expiresAt: this.expiry(rule.ttlSeconds),
+      };
     });
   }
 

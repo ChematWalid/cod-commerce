@@ -29,6 +29,8 @@ export interface PlantedJob {
   readonly businessId: string;
   readonly storeId: string;
   readonly status: string;
+  /** A fixed id, for tests of id order; a fresh one otherwise. */
+  readonly id?: string;
 }
 
 /** What a catalog-import suite takes from rbac: only a test file may import its entry (rule `no-cross-plugin-internals`). */
@@ -44,7 +46,7 @@ export class ImportKit extends StoreKit {
   /** Inserts a job row as the worker or an earlier request would have left it, and returns its id. */
   async plantJob(job: PlantedJob): Promise<string> {
     plantedIds += 1;
-    const id = String(plantedIds);
+    const id = job.id ?? String(plantedIds);
     const kindColumns =
       job.table === 'catalog_import_job'
         ? { names: '"kind", "format"', values: "'spreadsheet', 'csv'" }

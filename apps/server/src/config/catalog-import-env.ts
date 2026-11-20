@@ -23,15 +23,25 @@ interface CatalogImportEnv {
   readonly LINK_IMPORT_SCRAPER: LinkScraperKind;
 }
 
-/** A production server signs only https links and never serves fixture pages as products. */
+const isHttps = (url: string): boolean => URL.canParse(url) && new URL(url).protocol === HTTPS_PROTOCOL;
+
+/**
+ * A production server signs only https links and never serves fixture pages as products. The link host checked is
+ * the one signed for, after the fallback: an unset `S3_PUBLIC_ENDPOINT` with the internal http `S3_ENDPOINT` fails
+ * boot instead of signing links no browser can reach (D2252).
+ */
 export function requireCatalogImportSettings(env: CatalogImportEnv, context: z.RefinementCtx): void {
   if (env.APP_ENV !== PRODUCTION) return;
-  const endpoint = env.S3_PUBLIC_ENDPOINT;
-  if (endpoint !== undefined && URL.canParse(endpoint) && new URL(endpoint).protocol !== HTTPS_PROTOCOL) {
+  const explicit = env.S3_PUBLIC_ENDPOINT;
+  if (explicit !== undefined && !URL.canParse(explicit)) return; // the URL rule reports it
+  if (!isHttps(explicit ?? env.S3_ENDPOINT)) {
     context.addIssue({
       code: 'custom',
       path: ['S3_PUBLIC_ENDPOINT'],
-      message: 'must be an https:// URL in production',
+      message:
+        explicit === undefined
+          ? 'is required in production unless S3_ENDPOINT is an https:// URL a browser reaches'
+          : 'must be an https:// URL in production',
     });
   }
   if (env.LINK_IMPORT_SCRAPER === 'fixture') {
