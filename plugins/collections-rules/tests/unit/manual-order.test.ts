@@ -62,8 +62,20 @@ describe('manual order', () => {
     const capped = withProducts(full, list('9001', '9002'));
 
     // Assert
-    expect(productIdsOf(added)).toEqual(['1', '2', '3']);
-    expect(capped).toHaveLength(COLLECTION_MAX_MANUAL_PRODUCTS);
-    expect(capped.at(-1)?.productId).toBe('9001');
+    expect(productIdsOf(added.products)).toEqual(['1', '2', '3']);
+    expect(added.dropped).toBe(0);
+    expect(capped.products).toHaveLength(COLLECTION_MAX_MANUAL_PRODUCTS);
+    expect(capped.products.at(-1)?.productId).toBe('9001');
+  });
+
+  it('reports the products the cap leaves out', () => {
+    // Arrange
+    const full = list(...Array.from({ length: COLLECTION_MAX_MANUAL_PRODUCTS - 1 }, (_, index) => String(index + 1)));
+
+    // Act
+    const capped = withProducts(full, list('1', '9001', '9002', '9003'));
+
+    // Assert
+    expect(capped.dropped).toBe(2);
   });
 });

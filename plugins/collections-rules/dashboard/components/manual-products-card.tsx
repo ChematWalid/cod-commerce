@@ -1,6 +1,6 @@
-import { COLLECTION_MODES } from '@cod/shared';
+import { COLLECTION_MODES, COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { useLingui } from '@lingui/react';
-import { Button } from '@vendure/dashboard';
+import { Button, toast } from '@vendure/dashboard';
 import { type ReactNode, useState } from 'react';
 import { ADD_PRODUCTS_TEST_ID, COLLECTION_MODE_TEST_ID } from '../constants';
 import { MODE_LABEL_IDS } from '../model/list-view';
@@ -63,7 +63,9 @@ function ManualList(props: ScopedCardProps): ReactNode {
           scope={props.scope}
           present={props.form.products}
           onConfirm={(added) => {
-            change(withProducts(props.form.products, added));
+            const next = withProducts(props.form.products, added);
+            change(next.products);
+            if (next.dropped > 0) toast.error(i18n._(COLLECTIONS_ERROR_CODES.TOO_MANY_PRODUCTS));
             setAdding(false);
           }}
           onClose={() => {

@@ -1,7 +1,7 @@
 import { ACTIVE_STORE_ALIAS, StoreScopedPage, type SwitchableStoreView } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import { useParams } from '@tanstack/react-router';
-import { ActionBarItem, Button, Page, PageActionBar, PageTitle } from '@vendure/dashboard';
+import { ActionBarItem, Button, Page, PageActionBar, PageTitle, toast } from '@vendure/dashboard';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { EditorBlocks } from '../components/editor-blocks';
 import { ModeSwitchConfirm } from '../components/mode-switch-confirm';
@@ -22,7 +22,8 @@ import {
   type CollectionFormErrors,
   collectionFormOf,
   emptyCollectionForm,
-  needsModeConfirmation,
+  formsAfterSave,
+  saveStepOf,
 } from '../model/editor-form';
 import { errorMessageIdOf } from '../model/list-view';
 import type { ManualProduct } from '../model/manual-order';
@@ -48,7 +49,9 @@ function useEditorState(props: EditorProps) {
   const [saved, setSaved] = useState<CollectionForm | null>(props.collection === null ? null : initial);
   const [errors, setErrors] = useState<CollectionFormErrors>({});
   const [confirming, setConfirming] = useState(false);
-  return { form, setForm, saved, setSaved, errors, setErrors, confirming, setConfirming };
+  /** A new collection created by a save whose products were refused: the editor goes on with it. */
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  return { form, setForm, saved, setSaved, errors, setErrors, confirming, setConfirming, createdId, setCreatedId };
 }
 
 type EditorState = ReturnType<typeof useEditorState>;
@@ -62,40 +65,64 @@ function useFreshMembers(state: EditorState, members: readonly ManualProduct[]):
   }, [members, setForm, setSaved]);
 }
 
-/** Everything the editor does: its state, what the caller may do, and the save with its question (D2339). */
-function useEditorController(props: EditorProps) {
-  const state = useEditorState(props);
-  useFreshMembers(state, props.members);
-  const held = useHeldPermissions(props.scope);
-  const save = useCollectionSave({
-    collectionId: props.collection?.id ?? null,
+/** The save of the editor's form, with what each answer changes in the editor's state. */
+function useEditorSave(props: EditorProps, state: EditorState) {
+  return useCollectionSave({
+    collectionId: props.collection?.id ?? state.createdId,
+    opensCreated: props.collection === null,
     storeAlias: props.store?.id ?? ACTIVE_STORE_ALIAS,
     scope: props.scope,
     saved: state.saved,
     onInvalid: state.setErrors,
-    onSaved: (collection) => {
-      const next = collectionFormOf(collection, state.form.products);
-      state.setForm(next);
-      state.setSaved(next);
+    onSaved: (collection, sent) => {
+      state.setSaved(formsAfterSave(collection, sent, sent).saved);
+      state.setForm((current) => formsAfterSave(collection, sent, current).form);
       state.setErrors({});
     },
+    onCreatedWithoutProducts: (collection) => {
+      state.setCreatedId(collection.id);
+      state.setSaved(collectionFormOf(collection, []));
+    },
   });
+}
+
+/** Everything the editor does: its state, what the caller may do, and the save with its question (D2339). */
+function useEditorController(props: EditorProps) {
+  const { i18n } = useLingui();
+  const state = useEditorState(props);
+  useFreshMembers(state, props.members);
+  const held = useHeldPermissions(props.scope);
+  const save = useEditorSave(props, state);
   const submit = (): void => {
     state.setConfirming(false);
     save.mutate(state.form);
   };
+  const onSave = (): void => {
+    const step = saveStepOf(state.saved, state.form);
+    if (step.kind === 'send') submit();
+    else if (step.kind === 'confirm') state.setConfirming(true);
+    else {
+      state.setErrors(step.errors);
+      toast.error(i18n._('collections.fix-errors'));
+    }
+  };
   return {
     state,
     held,
+    collectionId: props.collection?.id ?? state.createdId,
     canSave: held.has(props.collection === null ? CREATE_COLLECTIONS_KEY : EDIT_COLLECTIONS_KEY),
     pending: save.isPending,
     submit,
-    onSave: needsModeConfirmation(state.saved, state.form)
-      ? () => {
-          state.setConfirming(true);
-        }
-      : submit,
+    onSave,
   };
+}
+
+/** The collection's title as merchant text, isolated from the page's direction; a heading for a new one. */
+function EditorTitle({ collection }: { readonly collection: StoreCollectionDto | null }): ReactNode {
+  const { i18n } = useLingui();
+  return (
+    <PageTitle>{collection === null ? i18n._('collections.new-heading') : <bdi>{collection.title}</bdi>}</PageTitle>
+  );
 }
 
 function EditorPage(props: EditorProps): ReactNode {
@@ -104,7 +131,7 @@ function EditorPage(props: EditorProps): ReactNode {
   const { state } = editor;
   return (
     <Page pageId={COLLECTION_EDITOR_PAGE_ID}>
-      <PageTitle>{props.collection?.title ?? i18n._('collections.new-heading')}</PageTitle>
+      <EditorTitle collection={props.collection} />
       <PageActionBar>
         <ActionBarItem itemId={SAVE_ACTION_ID}>
           <Button
@@ -124,7 +151,7 @@ function EditorPage(props: EditorProps): ReactNode {
           state.setForm((form) => ({ ...form, ...change }));
         }}
         scope={props.scope}
-        collectionId={props.collection?.id ?? null}
+        collectionId={editor.collectionId}
         held={editor.held}
         savedImage={props.collection?.featuredAsset ?? null}
       />

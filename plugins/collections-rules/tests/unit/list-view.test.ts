@@ -1,7 +1,13 @@
-import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
+import { COLLECTION_LIST_PAGE_SIZE, COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { DELETE_COLLECTIONS_KEY } from '../../dashboard/constants';
-import { errorMessageIdOf, orderedCollections, rowActionsOf } from '../../dashboard/model/list-view';
+import {
+  errorMessageIdOf,
+  isolatedText,
+  orderedCollections,
+  pageWithin,
+  rowActionsOf,
+} from '../../dashboard/model/list-view';
 import { StoreSwitchedError } from '../../dashboard/model/store-bound-fetch';
 
 const row = (id: string, position: number) => ({ id, position });
@@ -44,5 +50,28 @@ describe('collection list view', () => {
       'collections.error-store-switched',
       'collections.error-generic',
     ]);
+  });
+
+  it('steps back to the last page when the total shrinks under the page shown', () => {
+    // Arrange
+    const onePageLeft = COLLECTION_LIST_PAGE_SIZE;
+
+    // Act
+    const afterDelete = pageWithin(2, onePageLeft);
+    const stillThere = pageWithin(2, onePageLeft + 1);
+    const nothingLeft = pageWithin(3, 0);
+
+    // Assert
+    expect(afterDelete).toBe(1);
+    expect(stillThere).toBe(2);
+    expect(nothingLeft).toBe(1);
+  });
+
+  it('isolates merchant text put inside a translated sentence', () => {
+    // Act
+    const name = isolatedText('Summer 2026!');
+
+    // Assert
+    expect(name).toBe('\u2068Summer 2026!\u2069');
   });
 });

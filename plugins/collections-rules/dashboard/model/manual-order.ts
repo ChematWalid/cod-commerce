@@ -27,14 +27,18 @@ export const moveBy = (rows: readonly ManualProduct[], index: number, delta: num
 export const withoutProduct = (rows: readonly ManualProduct[], productId: string): readonly ManualProduct[] =>
   rows.filter((row) => row.productId !== productId);
 
+/** A list after products were added, and how many the cap of D2322 left out. */
+export interface AddedProducts {
+  readonly products: readonly ManualProduct[];
+  readonly dropped: number;
+}
+
 /** The list with `added` appended in their order, never a product twice, up to the cap of D2322. */
-export function withProducts(
-  rows: readonly ManualProduct[],
-  added: readonly ManualProduct[],
-): readonly ManualProduct[] {
+export function withProducts(rows: readonly ManualProduct[], added: readonly ManualProduct[]): AddedProducts {
   const present = new Set(rows.map(({ productId }) => productId));
   const fresh = added.filter(({ productId }) => !present.has(productId));
-  return [...rows, ...fresh].slice(0, COLLECTION_MAX_MANUAL_PRODUCTS);
+  const products = [...rows, ...fresh].slice(0, COLLECTION_MAX_MANUAL_PRODUCTS);
+  return { products, dropped: rows.length + fresh.length - products.length };
 }
 
 export const productIdsOf = (rows: readonly ManualProduct[]): readonly string[] =>

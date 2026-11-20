@@ -1,4 +1,4 @@
-import { COLLECTIONS_ERROR_CODES, type CollectionMode } from '@cod/shared';
+import { COLLECTION_LIST_PAGE_SIZE, COLLECTIONS_ERROR_CODES, type CollectionMode } from '@cod/shared';
 import { DELETE_COLLECTIONS_KEY } from '../constants';
 import { isStoreSwitched } from './store-bound-fetch';
 
@@ -59,3 +59,18 @@ export function errorMessageIdOf(error: unknown): string {
 export function formatDzd(amount: number, language: string): string {
   return new Intl.NumberFormat(language === 'ar' ? 'ar-DZ' : 'en', { numberingSystem: 'latn' }).format(amount);
 }
+
+/** The page to show: `page`, or the last one when fewer rows are left than it needs (after a delete, say). */
+export function pageWithin(page: number, totalItems: number): number {
+  const pages = Math.max(1, Math.ceil(totalItems / COLLECTION_LIST_PAGE_SIZE));
+  return Math.min(page, pages);
+}
+
+const FIRST_STRONG_ISOLATE = '\u2068';
+const POP_DIRECTIONAL_ISOLATE = '\u2069';
+
+/**
+ * Merchant text set apart from the translated sentence around it, so a Latin title keeps its order inside an Arabic
+ * sentence. Titles never hold isolate controls themselves (D2144).
+ */
+export const isolatedText = (text: string): string => `${FIRST_STRONG_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`;

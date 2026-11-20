@@ -8,8 +8,10 @@ import {
   createInputOf,
   emptyCollectionForm,
   fieldErrorsOfCode,
+  formsAfterSave,
   needsModeConfirmation,
   productIdsToSet,
+  saveStepOf,
   updateInputOf,
 } from '../../dashboard/model/editor-form';
 import type { ManualProduct } from '../../dashboard/model/manual-order';
@@ -145,5 +147,36 @@ describe('collection editor form', () => {
     expect(reordered).toEqual(['2', '1']);
     expect(created).toEqual(['1', '2']);
     expect(automatic).toBeNull();
+  });
+
+  it('after a save, edits made while it was pending stay unsaved', () => {
+    // Arrange
+    const sent = collectionFormOf(SAVED_MANUAL, [product('1'), product('2')]);
+    const edited = { ...sent, title: 'Summer sale', products: [product('2'), product('1')] };
+
+    // Act
+    const untouched = formsAfterSave(SAVED_MANUAL, sent, sent);
+    const typedMeanwhile = formsAfterSave(SAVED_MANUAL, sent, edited);
+
+    // Assert
+    expect(untouched.form).toBe(untouched.saved);
+    expect(typedMeanwhile.form).toBe(edited);
+    expect(productIdsToSet(typedMeanwhile.saved, typedMeanwhile.form)).toEqual(['2', '1']);
+    expect(updateInputOf(typedMeanwhile.saved, typedMeanwhile.form)).toEqual({ title: 'Summer sale' });
+  });
+
+  it('a refused form is shown without asking to replace the hand-picked list', () => {
+    // Arrange
+    const saved = collectionFormOf(SAVED_MANUAL, [product('1')]);
+
+    // Act
+    const noRule = saveStepOf(saved, { ...saved, mode: 'automatic', rule: null });
+    const withRule = saveStepOf(saved, { ...saved, mode: 'automatic', rule: RULE });
+    const plain = saveStepOf(saved, { ...saved, title: 'Winter' });
+
+    // Assert
+    expect(noRule).toEqual({ kind: 'invalid', errors: { rule: COLLECTIONS_ERROR_CODES.RULE_INVALID } });
+    expect(withRule).toEqual({ kind: 'confirm' });
+    expect(plain).toEqual({ kind: 'send' });
   });
 });

@@ -139,6 +139,33 @@ export function productIdsToSet(saved: CollectionForm | null, form: CollectionFo
 export const needsModeConfirmation = (saved: CollectionForm | null, form: CollectionForm): boolean =>
   saved !== null && saved.mode === 'manual' && form.mode === 'automatic';
 
+/** What Save does with the form: show the refused fields, ask first (D2339), or send it. */
+export type SaveStep =
+  | { readonly kind: 'invalid'; readonly errors: CollectionFormErrors }
+  | { readonly kind: 'confirm' }
+  | { readonly kind: 'send' };
+
+/** The form is checked before the D2339 question: a form that cannot be saved never asks to replace the list. */
+export function saveStepOf(saved: CollectionForm | null, form: CollectionForm): SaveStep {
+  const errors = collectionFormErrors(form);
+  if (Object.keys(errors).length > 0) return { kind: 'invalid', errors };
+  return needsModeConfirmation(saved, form) ? { kind: 'confirm' } : { kind: 'send' };
+}
+
+/**
+ * The saved form and the shown one after a save of `sent`. The saved one is built from what was sent, so an edit made
+ * while the save was pending still differs from it and goes out with the next save; the shown form is replaced only
+ * when nothing was edited meanwhile.
+ */
+export function formsAfterSave(
+  collection: StoreCollectionDto,
+  sent: CollectionForm,
+  current: CollectionForm,
+): { readonly saved: CollectionForm; readonly form: CollectionForm } {
+  const saved = collectionFormOf(collection, sent.products);
+  return { saved, form: current === sent ? saved : current };
+}
+
 /** The field each server refusal belongs to, so it shows under that field. */
 const FIELD_OF_CODE: Readonly<Record<string, CollectionFormField>> = {
   [COLLECTIONS_ERROR_CODES.SLUG_TAKEN]: 'slug',

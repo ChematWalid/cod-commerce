@@ -11,6 +11,7 @@ import {
 } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import type { StoreCollectionDto } from '../dto';
+import { isolatedText } from '../model/list-view';
 
 interface DeleteDialogProps {
   readonly collection: StoreCollectionDto | null;
@@ -33,7 +34,7 @@ export function DeleteDialog({ collection, pending, onConfirm, onClose }: Delete
         <AlertDialogHeader>
           <AlertDialogTitle>{i18n._('collections.delete-heading')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {i18n._('collections.delete-body', { name: collection?.title ?? '' })}
+            {i18n._('collections.delete-body', { name: isolatedText(collection?.title ?? '') })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
