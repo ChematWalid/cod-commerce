@@ -111,6 +111,39 @@ describe('SavePackService (D2202, D2203)', () => {
     expect(packs.all(SCOPE_A)).toEqual([]);
   });
 
+  it("takes no lock for another business's pack product (D2279)", async () => {
+    // Arrange
+    const { catalog, lock, saving } = arranged();
+
+    // Act
+    const save = saving.save(CTX, SCOPE_B, { productId: '20', definition: aDefinition() });
+
+    // Assert
+    await expect(save).rejects.toThrow(PackNotFoundError);
+    expect(lock.acquired).toEqual([]);
+    expect(catalog.saveLocks).toEqual([]);
+  });
+
+  it("locks only the caller's store components, never another business's (D2279)", async () => {
+    // Arrange
+    const { catalog, saving } = arranged();
+    catalog.put(SCOPE_B, aProduct({ id: '30' }));
+    const definition = aDefinition({
+      components: [
+        { productId: '11', variantId: null, quantity: 1 },
+        { productId: '30', variantId: null, quantity: 1 },
+        { productId: '07', variantId: null, quantity: 1 },
+      ],
+    });
+
+    // Act
+    const save = saving.save(CTX, SCOPE_A, { productId: '20', definition });
+
+    // Assert
+    await expect(save).rejects.toThrow(ComponentNotFoundError);
+    expect(catalog.saveLocks).toEqual([{ packProductId: '20', componentIds: ['11'] }]);
+  });
+
   it('refuses a computed price beyond an int column', async () => {
     // Arrange
     const { catalog, saving } = arranged();

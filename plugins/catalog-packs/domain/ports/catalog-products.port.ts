@@ -18,7 +18,8 @@ export interface CatalogProductsPort {
   /**
    * Holds, until the transaction of `ctx` ends, the pack product for writing and each component for reading (D2242):
    * an edit, status change or delete of a component then commits only after the save, so the recompute it triggers
-   * finds the saved pack. Call it inside the save's transaction, after the pack lock, before reading any component.
+   * finds the saved pack. Call it inside the save's transaction, after the pack lock, before reading the components
+   * the pack is priced from; name only components already read in the scope's store, so no foreign id is locked.
    *
    * @throws {PackNotFoundError} for a malformed pack product id or a scope `ctx` does not run in.
    */

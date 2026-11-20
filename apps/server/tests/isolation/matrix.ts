@@ -1,7 +1,7 @@
 import type { MatrixRequest } from './http';
 import type { BusinessWorld, World } from './world-types';
 
-/** The tenant data the matrices cover (P1, then the P2 catalog, packs and import); each is a row of the evidence matrix. */
+/** The tenant data the matrices cover (P1, then the P2 catalog); each is a row of the evidence matrix. */
 export type IsolationEntity =
   | 'business'
   | 'store'
@@ -25,6 +25,7 @@ export type IsolationEntity =
   | 'product tag'
   | 'highlight'
   | 'media'
+  // P2.S2: packs and catalog import (D2278).
   | 'pack'
   | 'import job'
   | 'export job'

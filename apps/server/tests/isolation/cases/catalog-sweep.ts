@@ -7,10 +7,10 @@ import {
   restTargetOf,
   targetOf,
 } from '../catalog-operations';
+import { otherStore, routeName } from '../endpoint-sweep';
 import type { Caller, MatrixRequest } from '../http';
 import { type Expectation, type IsolationCase, ownChannel, victimChannel } from '../matrix';
 import { ONE_PIXEL_PNG } from '../seed-operations';
-import type { BusinessWorld } from '../world-types';
 
 /**
  * The catalog cells every endpoint gets (P2.S1, D2115): B's row by id (GraphQL and REST, both directions), the
@@ -38,12 +38,6 @@ const FRACTIONAL_ID = '1.5';
 const reachesCatalogAsSent = (op: CatalogOperation, id: string): boolean =>
   !(id === FRACTIONAL_ID && op.byId?.field === 'productId');
 
-/** The second store of `business`: its member reaches the first store only. */
-const otherStore = (business: BusinessWorld): Channel => ({
-  label: business.stores[1].label,
-  token: business.stores[1].channelToken,
-});
-
 /** An operation as `caller` on `channel`, naming `target`'s rows; an upload carries a one-pixel PNG. */
 function operationRequest(
   op: CatalogOperation,
@@ -65,7 +59,6 @@ const routeRequest = (route: CatalogRoute, caller: Caller, channel: Channel, tar
   body: route.body?.(),
 });
 
-const routeName = (route: CatalogRoute): string => `${route.method} ${route.route}`;
 const accessOf = (op: CatalogOperation): 'read by id' | 'write' =>
   op.document.startsWith('query') ? 'read by id' : 'write';
 

@@ -45,7 +45,7 @@ export interface SweptEndpoints<T> {
 }
 
 /** The second store of `business`: its member reaches the first store only. */
-const otherStore = (business: BusinessWorld): Channel => ({
+export const otherStore = (business: BusinessWorld): Channel => ({
   label: business.stores[1].label,
   token: business.stores[1].channelToken,
 });
@@ -68,6 +68,7 @@ function routeRequest<T>(route: SweptRoute<T>, target: T, who: { caller: Caller;
   };
 }
 
+/** A route as the matrix and the unit test name it: `METHOD /path`. */
 export const routeName = (route: { readonly method: string; readonly route: string }): string =>
   `${route.method} ${route.route}`;
 

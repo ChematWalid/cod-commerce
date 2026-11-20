@@ -1,5 +1,5 @@
 import { catalogOf } from './catalog-world';
-import { fieldOf, type IsolationHttp } from './http';
+import { dataOf, type Exchange, fieldOf, type IsolationHttp } from './http';
 import { ownChannel } from './matrix';
 import { CREATE_CATALOG_PRODUCT } from './seed-operations';
 import type { BusinessWorld } from './world-types';
@@ -172,7 +172,21 @@ export async function importSnapshotOf(http: IsolationHttp, business: BusinessWo
     linkId: rows.link.importId,
   };
   const exchange = await http.graphql(business.owner, SNAPSHOT, variables, ownChannel(business));
-  return exchange.body;
+  return importSnapshotFrom(exchange, business.label);
+}
+
+/**
+ * The data of a snapshot read, so a before/after comparison proves the rows unchanged: any GraphQL error throws (two
+ * failed reads would compare equal), and so does a read with no pack or an import no longer `previewed`.
+ * @throws Error naming business `label` when the read failed or is empty
+ */
+export function importSnapshotFrom(exchange: Exchange, label: string): Record<string, unknown> {
+  const data = dataOf(exchange);
+  const imported = data['catalogImport'] as { status?: string } | null | undefined;
+  if (data['catalogPack'] == null || imported?.status !== 'previewed') {
+    throw new Error(`import snapshot of business ${label} holds no pack or no previewed import`);
+  }
+  return data;
 }
 
 const EXPORT_LINK = 'query ($id: String!) { catalogExport(id: $id) { downloadUrl } }';

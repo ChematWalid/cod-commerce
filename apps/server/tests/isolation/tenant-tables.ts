@@ -66,11 +66,12 @@ export const CATALOG_IMPORT_TABLE_COUNTS = {
   catalog_product_origin: BY_BUSINESS('catalog_product_origin'),
 } as const;
 
-/** Every counted table: P1's, the catalog's, the offers', the packs' and the import's. */
+/** Every counted table: P1's, the catalog's and the offers'. */
 const ALL_TABLE_COUNTS = {
   ...TENANT_TABLE_COUNTS,
   ...CATALOG_TABLE_COUNTS,
   ...OFFERS_TABLE_COUNTS,
+  // P2.S2: the packs' and the import's.
   ...CATALOG_PACKS_TABLE_COUNTS,
   ...CATALOG_IMPORT_TABLE_COUNTS,
 };
@@ -80,7 +81,7 @@ export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
-/** The P1 tables, the catalog's, the offers', the packs' and the import's: the P2 world fills each. */
+/** The P1 tables, the catalog's and the offers': the P2 world fills each. */
 export const P2_TENANT_TABLES = Object.keys(ALL_TABLE_COUNTS) as TenantTable[];
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */

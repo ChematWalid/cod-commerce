@@ -22,7 +22,8 @@ export interface SavePackRequest {
  * components and writes the computed price, weight and variant matrix into the pack product through catalog (only
  * when they change), in one transaction under the pack's lock (D2241), so concurrent saves of one pack run one after
  * the other, and under catalog's locks on its components (D2242), so a component write cannot commit between this
- * save's read and its commit, unseen by the recompute it triggers. A draft component stores the pack `stale`.
+ * save's read and its commit, unseen by the recompute it triggers. A draft component stores the pack `stale`. The pack
+ * product and the components are read in the caller's store before any lock, so a foreign id locks nothing (D2279).
  */
 export class SavePackService {
   constructor(private readonly ports: PackPorts) {}
@@ -37,8 +38,9 @@ export class SavePackService {
     if (productId === undefined) throw new PackNotFoundError();
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       const { definition } = request;
+      await this.packProduct(tx, scope, productId);
+      const componentIds = await this.ownComponentIds(tx, scope, definition);
       await this.ports.lock.acquire(tx, productId);
-      const componentIds = definition.components.map((line) => line.productId);
       await this.ports.catalog.lockForSave(tx, scope, { packProductId: productId, componentIds });
       const product = await this.packProduct(tx, scope, productId);
       const { products, computed } = await pricePack(this.ports, tx, scope, { packProductId: productId, definition });
@@ -48,6 +50,24 @@ export class SavePackService {
       if (!isWritten(product, write)) await this.ports.catalog.writePackValues(tx, scope, write);
       return { pack, price: computed.price, weightGrams: computed.weightGrams };
     });
+  }
+
+  /**
+   * The component ids that are products of the scope's store. Ids are global and lock keys hold no business, so
+   * another store's (or a malformed) id is left out: it takes no lock on that product, and `pricePack` refuses it.
+   */
+  private async ownComponentIds(
+    ctx: OperationContext,
+    scope: StoreScope,
+    definition: PackDefinition,
+  ): Promise<string[]> {
+    const owned = await Promise.all(
+      definition.components.map(async ({ productId }) => {
+        const id = parseProductId(productId);
+        return id !== undefined && (await this.ports.catalog.byId(ctx, scope, id)) !== undefined;
+      }),
+    );
+    return definition.components.filter((_line, index) => owned[index]).map((line) => line.productId);
   }
 
   private async packProduct(ctx: OperationContext, scope: StoreScope, productId: string): Promise<ComponentProduct> {

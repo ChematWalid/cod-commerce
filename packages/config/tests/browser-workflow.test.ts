@@ -141,6 +141,13 @@ describe('browser.yml', () => {
     expect(read('scripts/check-presigned-put.mjs')).toContain('PRESIGNED-PUT-OK');
   });
 
+  it('signs the probe with the built adapter, so it covers the server signer (D2279)', () => {
+    expect(index('node scripts/check-presigned-put.mjs')).toBeGreaterThan(index('pnpm build'));
+    expect(read('scripts/check-presigned-put.mjs')).toContain(
+      'plugins/catalog-import/dist/infrastructure/garage-object-storage.js',
+    );
+  });
+
   it('stays inside the ADR 0001 time budget', () => {
     expect(job['timeout-minutes']).toBeLessThanOrEqual(10);
   });

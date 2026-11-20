@@ -34,8 +34,11 @@ const uploadBody = (): Record<string, unknown> => ({ format: 'csv', size: 64, co
 
 /** A success that reports each of the victim's products not found and writes nothing (D2213). */
 const REPORTED: Expectation = { kind: 'own', mustInclude: () => [PRODUCT_NOT_FOUND] };
-/** A success about the caller's own store only: an export of the victim's ids holds no row (D2258). */
-const EMPTY_EXPORT: Expectation = { kind: 'own', mustInclude: () => ['"rowCount":0'] };
+/**
+ * A success about the caller's own store only: an export of the victim's ids is written at once and holds no row
+ * (D2258). `done` pins the written file: a queued export also answers 0 rows, before any product is read.
+ */
+const EMPTY_EXPORT: Expectation = { kind: 'own', mustInclude: () => ['"status":"done"', '"rowCount":0'] };
 
 export const BULK_EDIT_DOCUMENT =
   'mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId ok error } } }';

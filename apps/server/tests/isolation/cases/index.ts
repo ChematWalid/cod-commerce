@@ -31,8 +31,9 @@ export const ISOLATION_CASES: readonly IsolationCase[] = [
 ];
 
 /**
- * Every cell of the P2 isolation matrix (P2.S1 catalog, D2115; P2.S2 packs, import and export). Kept apart from {@link ISOLATION_CASES}, which the P1
+ * Every cell of the P2 isolation matrix (P2.S1 catalog, D2115). Kept apart from {@link ISOLATION_CASES}, which the P1
  * suite runs unchanged (its `stock.products` cell stays FORBIDDEN, D2101).
+ * P2.S2 adds the packs, import and export cells (D2278).
  */
 export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...CATALOG_PRODUCT_CASES,

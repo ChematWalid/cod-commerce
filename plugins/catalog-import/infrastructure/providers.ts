@@ -1,4 +1,3 @@
-import { S3Client } from '@aws-sdk/client-s3';
 import { BusinessSemaphore, PlatformQueues } from '@cod/plugin-platform-jobs';
 import { SNOWFLAKE_ID_GENERATOR, type SnowflakeIdGeneratorPort, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
@@ -36,6 +35,7 @@ import {
 } from '../application/tokens';
 import { CatalogExportReadsAdapter } from './catalog-export-reads.adapter';
 import { ExportJobHandler } from './export-job.handler';
+import { garageObjectStorage } from './garage-object-storage';
 import { spreadsheetFormats } from './spreadsheet-formats';
 import { TypeOrmExportJobStore } from './typeorm-export-job.store';
 import { TypeOrmProductOriginReads } from './typeorm-product-origin.reads';
@@ -49,10 +49,9 @@ import { ownRowSourceOf } from './job-row-sources';
 import { JobStoreContext } from './job-store-context';
 import { LINK_IMPORT_PROVIDERS } from './link-import-providers';
 import { MemoryObjectStorage } from './memory-object-storage';
-import { type CatalogImportPluginOptions, requireCatalogImportOptions, type S3StorageOptions } from './plugin-options';
+import { type CatalogImportPluginOptions, requireCatalogImportOptions } from './plugin-options';
 import { PostgresJobScan } from './postgres-job-scan';
 import { ProductActivityAdapter } from './product-activity.adapter';
-import { S3ObjectStorage } from './s3-object-storage';
 import { TenantUnitOfWork } from './tenant-unit-of-work';
 import { TypeOrmJobRepository } from './typeorm-job.repository';
 
@@ -67,29 +66,11 @@ const importLogger: ImportLogger = {
   },
 };
 
-/**
- * A Garage client. Checksums only when required: the SDK's default CRC32 would be signed into a presigned PUT as the
- * checksum of an empty body, and the browser's upload would then fail it (D2250).
- */
-const s3ClientAt = (options: S3StorageOptions, endpoint: string): S3Client =>
-  new S3Client({
-    endpoint,
-    region: options.region,
-    forcePathStyle: options.forcePathStyle,
-    credentials: { accessKeyId: options.accessKeyId, secretAccessKey: options.secretAccessKey },
-    requestChecksumCalculation: 'WHEN_REQUIRED',
-    responseChecksumValidation: 'WHEN_REQUIRED',
-  });
-
 /** The object storage the options name (D2208). */
 export function objectStorageOf(options: CatalogImportPluginOptions): ObjectStorage {
   const storage = options.objectStorage;
   if (storage.kind === 'memory') return new MemoryObjectStorage();
-  return new S3ObjectStorage({
-    client: s3ClientAt(storage, storage.endpoint),
-    signingClient: s3ClientAt(storage, storage.publicEndpoint),
-    bucket: storage.bucket,
-  });
+  return garageObjectStorage(storage);
 }
 
 type Formats = SpreadsheetFormatRegistry<SpreadsheetFormatAdapter>;
