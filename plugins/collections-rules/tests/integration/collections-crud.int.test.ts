@@ -1,7 +1,7 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { COLLECTIONS_ERROR_CODES, COLLECTIONS_PER_STORE_MAX, toBusinessId, toStoreId } from '@cod/shared';
-import { CollectionService, RequestContextService } from '@vendure/core';
+import { ChannelService, Collection, CollectionService, RequestContextService } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import { OutboxCollectionEvents } from '../../infrastructure/collection-events';
@@ -10,6 +10,7 @@ import { definitionOf } from '../support/builders';
 import {
   COLLECTION,
   COLLECTIONS,
+  codeOf,
   type CollectionResult,
   createCollection,
   DELETE_COLLECTION,
@@ -21,18 +22,13 @@ import { collectionsSuite } from './collections-kit';
 
 const suite = collectionsSuite(1016, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 
-interface ErrorShape {
-  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
-}
-
-/** The error code a GraphQL call failed with. */
-async function codeOf(call: Promise<unknown>): Promise<string | undefined> {
-  try {
-    await call;
-    return undefined;
-  } catch (error: unknown) {
-    return (error as ErrorShape).response?.errors?.[0]?.extensions?.code;
-  }
+/** How many definitions a store holds. */
+async function definitionsInStore(storeId: string): Promise<number> {
+  const [row] = await suite.kit.query<{ count: string }>(
+    'SELECT count(*) AS count FROM collections_definition WHERE "storeId" = $1',
+    [storeId],
+  );
+  return Number(row?.count);
 }
 
 /** The kinds of `collection.changed` the outbox holds for a collection, oldest first. */
@@ -43,6 +39,17 @@ async function changesOf(collectionId: string): Promise<string[]> {
     [collectionId],
   );
   return rows.map((row) => row.change);
+}
+
+/** The rows a deleted collection may leave behind: Vendure's collection, its channel links and our definition. */
+async function rowsLeftOf(collectionId: string): Promise<Record<'collection' | 'channels' | 'definition', number>> {
+  const [row] = await suite.kit.query<{ collection: string; channels: string; definition: string }>(
+    `SELECT (SELECT count(*) FROM collection WHERE id = $1) AS collection,
+            (SELECT count(*) FROM collection_channels_channel WHERE "collectionId" = $1) AS channels,
+            (SELECT count(*) FROM collections_definition WHERE "collectionId" = $1) AS definition`,
+    [collectionId],
+  );
+  return { collection: Number(row?.collection), channels: Number(row?.channels), definition: Number(row?.definition) };
 }
 
 describe('collections CRUD over GraphQL', () => {
@@ -75,6 +82,7 @@ describe('collections CRUD over GraphQL', () => {
     });
     expect(read).toEqual(updated);
     expect(gone).toBeNull();
+    expect(await rowsLeftOf(rawId(created.id))).toEqual({ collection: 0, channels: 0, definition: 0 });
   });
 
   it('lists the store collections by position and searches their titles', async () => {
@@ -190,6 +198,7 @@ describe('collections CRUD over REST', () => {
     expect(patched.body).toMatchObject({ id, title: 'Winter Sale', slug: 'winter' });
     expect(listed.body).toMatchObject({ totalItems: 1, items: [{ id }] });
     expect(deleted.body).toEqual({ success: true });
+    expect(await rowsLeftOf(id)).toEqual({ collection: 0, channels: 0, definition: 0 });
     expect(gone.status).toBe(404);
     expect(gone.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.NOT_FOUND });
   });
@@ -215,6 +224,32 @@ describe('the store channel only (D2333)', () => {
     // Assert
     expect(inDefault).toBeUndefined();
     expect(channels.map((row) => row.token)).toEqual([a.stores[0].channelToken]);
+  });
+});
+
+describe('a collection that left the store channel outside our API', () => {
+  it('can still be deleted, which frees its place in the store', async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    await suite.kit.asOwner(a);
+    const created = await createCollection(suite.kit);
+    const app = suite.kit.app;
+    const ctx = await app.get(RequestContextService).create({ apiType: 'admin' });
+    const [channel] = await suite.kit.query<{ id: number }>('SELECT id FROM channel WHERE token = $1', [
+      a.stores[0].channelToken,
+    ]);
+    await app.get(ChannelService).removeFromChannels(ctx, Collection, rawId(created.id), [String(channel?.id)]);
+    const before = await definitionsInStore(a.stores[0].id);
+
+    // Act
+    const { deleteStoreCollection } = await suite.kit.gql<{ deleteStoreCollection: boolean }>(DELETE_COLLECTION, {
+      id: created.id,
+    });
+
+    // Assert
+    expect(deleteStoreCollection).toBe(true);
+    expect(await definitionsInStore(a.stores[0].id)).toBe(before - 1);
+    expect(await changesOf(rawId(created.id))).toEqual(['created', 'deleted']);
   });
 });
 

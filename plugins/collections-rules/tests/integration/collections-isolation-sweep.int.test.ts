@@ -3,7 +3,7 @@ import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN } from '@cod/testing';
 import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { COLLECTION, type CollectionResult, createCollection, rawId } from './collections-api';
+import { COLLECTION, type CollectionResult, createCollection, type GraphqlErrorShape, rawId } from './collections-api';
 import { collectionsSuite } from './collections-kit';
 import {
   type OperationEntry,
@@ -30,6 +30,15 @@ const LEAKS = [
   /\s+at /,
 ];
 const NO_CODE = 'NO_CODE';
+const UNKNOWN_CHANNEL = 'an unknown token';
+/** The channels A is not a member of; every handler, read or write, must refuse A there. */
+const WRONG_CHANNEL_TOKENS = {
+  "B's channel": (): string => suite.fixtures.b.stores[0].channelToken,
+  'the default channel': (): string => PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN,
+  [UNKNOWN_CHANNEL]: (): string => 'synthetic-unknown-channel-token',
+} as const;
+type WrongChannel = keyof typeof WRONG_CHANNEL_TOKENS;
+const WRONG_CHANNELS = Object.keys(WRONG_CHANNEL_TOKENS) as WrongChannel[];
 
 interface Outcome {
   readonly code: string | undefined;
@@ -37,22 +46,27 @@ interface Outcome {
   readonly text: string;
 }
 
-interface ClientErrorShape {
-  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
-}
-
 async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Outcome> {
   try {
     const data = await suite.kit.client.query<Record<string, unknown>>(gql(entry.document), entry.variables(ids));
     return { code: undefined, data: data[entry.operation], text: JSON.stringify(data) };
   } catch (error: unknown) {
-    const { response } = error as ClientErrorShape;
+    const { response } = error as GraphqlErrorShape;
     return {
       code: response?.errors?.[0]?.extensions?.code ?? NO_CODE,
       data: null,
       text: JSON.stringify(response ?? null),
     };
   }
+}
+
+/** How many definitions a store holds, read past the API so a refused write that slipped through shows. */
+async function definitionsInStore(storeId: string): Promise<number> {
+  const [row] = await suite.kit.query<{ count: string }>(
+    'SELECT count(*) AS count FROM collections_definition WHERE "storeId" = $1',
+    [storeId],
+  );
+  return Number(row?.count);
 }
 
 const fieldOf = (entry: { idField?: TargetIdField }): TargetIdField => entry.idField ?? 'collectionId';
@@ -137,42 +151,46 @@ describe('collections isolation sweep (two businesses)', () => {
     for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
   });
 
-  it.each([
-    ["B's channel", (): string => suite.fixtures.b.stores[0].channelToken, 'FORBIDDEN'],
-    ['the default channel', (): string => PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN, 'FORBIDDEN'],
-    ['an unknown token', (): string => 'synthetic-unknown-channel-token', 'CHANNEL_NOT_FOUND'],
-  ] as const)('refuses A on %s', async (_name, token, code) => {
+  it.each(
+    OPERATION_REGISTRY.flatMap((entry) => WRONG_CHANNELS.map((channel) => [entry.operation, channel, entry] as const)),
+  )('%s as A on %s is refused', async (_operation, channel, entry) => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
-    suite.kit.client.setChannelToken(token());
+    suite.kit.client.setChannelToken(WRONG_CHANNEL_TOKENS[channel]());
 
     // Act
-    const outcome = await callOperation(OPERATION_REGISTRY[0] as OperationEntry, idsOfB);
+    const outcome = await callOperation(entry, idsOfB);
 
     // Assert
-    expect(outcome.code).toBe(code);
+    expect(outcome.code).toBe(channel === UNKNOWN_CHANNEL ? 'CHANNEL_NOT_FOUND' : 'FORBIDDEN');
+    expect(outcome.text).not.toContain(`"${idsOfB.collectionId}"`);
+    for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
   });
 
-  it.each([
-    ["B's channel", (): string => suite.fixtures.b.stores[0].channelToken, 403, undefined],
-    ['the default channel', (): string => PLUGIN_TEST_DEFAULT_CHANNEL_TOKEN, 403, undefined],
-    ['an unknown token', (): string => 'synthetic-unknown-channel-token', 404, 'CHANNEL_NOT_FOUND'],
-  ] as const)('refuses A on %s over REST', async (_name, token, status, code) => {
+  it.each(
+    ROUTE_REGISTRY.flatMap((entry) =>
+      WRONG_CHANNELS.map((channel) => [entry.method, entry.route, channel, entry] as const),
+    ),
+  )('%s %s as A on %s is refused', async (_method, _route, channel, entry) => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
-    suite.kit.client.setChannelToken(token());
+    suite.kit.client.setChannelToken(WRONG_CHANNEL_TOKENS[channel]());
 
     // Act
-    const answer = await suite.kit.rest('GET', '/catalog/collections');
+    const outcome = await callRoute(entry, restIdsOfB);
 
     // Assert
-    expect(answer.status).toBe(status);
-    if (code !== undefined) expect(answer.body).toMatchObject({ code });
-    expect(answer.text).not.toContain(`"${restIdsOfB.collectionId}"`);
-    for (const leak of LEAKS) expect(answer.text).not.toMatch(leak);
+    if (channel === UNKNOWN_CHANNEL) {
+      expect(outcome.status).toBe(404);
+      expect(outcome.code).toBe('CHANNEL_NOT_FOUND');
+    } else {
+      expect(outcome.status).toBe(403);
+    }
+    expect(outcome.text).not.toContain(`"${restIdsOfB.collectionId}"`);
+    for (const leak of LEAKS) expect(outcome.text).not.toMatch(leak);
   });
 
-  it("leaves B's collection unchanged and serves it to B (positive control)", async () => {
+  it("leaves B's store unchanged and serves its collection to B (positive control)", async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.b);
 
@@ -180,8 +198,10 @@ describe('collections isolation sweep (two businesses)', () => {
     const { storeCollection } = await suite.kit.gql<{ storeCollection: CollectionResult | null }>(COLLECTION, {
       id: ofB.id,
     });
+    const inStoreOfB = await definitionsInStore(suite.fixtures.b.stores[0].id);
 
     // Assert
-    expect(storeCollection).toMatchObject({ id: ofB.id, title: 'B only', visible: true });
+    expect(storeCollection).toMatchObject({ id: ofB.id, title: 'B only', slug: 'b-only', visible: true, position: 0 });
+    expect(inStoreOfB).toBe(1);
   });
 });

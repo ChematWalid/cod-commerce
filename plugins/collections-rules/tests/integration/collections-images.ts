@@ -1,4 +1,4 @@
-import { CREATE_COLLECTION, UPDATE_COLLECTION } from './collections-api';
+import { CREATE_COLLECTION, type GraphqlErrorShape, UPDATE_COLLECTION } from './collections-api';
 import type { CollectionsKit } from './collections-kit';
 
 /** The catalog media upload (D2320: the collection editor picks its image through catalog's media ops). */
@@ -43,10 +43,6 @@ export interface ImageOutcome {
   readonly text: string;
 }
 
-interface ClientErrorShape {
-  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
-}
-
 async function viaGraphql(
   kit: CollectionsKit,
   document: string,
@@ -55,7 +51,7 @@ async function viaGraphql(
   try {
     return { code: undefined, text: JSON.stringify(await kit.gql(document, variables)) };
   } catch (error: unknown) {
-    const { response } = error as ClientErrorShape;
+    const { response } = error as GraphqlErrorShape;
     return { code: response?.errors?.[0]?.extensions?.code, text: JSON.stringify(response ?? null) };
   }
 }

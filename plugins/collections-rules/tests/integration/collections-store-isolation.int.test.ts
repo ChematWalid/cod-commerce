@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   COLLECTION,
   COLLECTIONS,
+  codeOf,
   type CollectionResult,
   createCollection,
   DELETE_COLLECTION,
@@ -13,20 +14,6 @@ import {
 import { collectionsSuite } from './collections-kit';
 
 const NOT_FOUND = COLLECTIONS_ERROR_CODES.NOT_FOUND;
-
-interface ErrorShape {
-  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
-}
-
-/** The error code a GraphQL call failed with; none when it succeeded. */
-async function codeOf(call: Promise<unknown>): Promise<string | undefined> {
-  try {
-    await call;
-    return undefined;
-  } catch (error: unknown) {
-    return (error as ErrorShape).response?.errors?.[0]?.extensions?.code;
-  }
-}
 
 const suite = collectionsSuite(1017, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 
