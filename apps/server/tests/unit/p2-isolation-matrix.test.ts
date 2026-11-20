@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
 import { CATALOG_OPERATIONS, CATALOG_ROUTES } from '../isolation/catalog-operations';
 import { CATALOG_WORLDS, type CatalogWorld } from '../isolation/catalog-world';
+import { OFFERS_OPERATIONS, OFFERS_ROUTES } from '../isolation/offers-operations';
+import { OFFERS_WORLDS, type OffersWorld, SHARED_CODE } from '../isolation/offers-rows';
 import { TEAM_WORLDS } from '../isolation/team-world';
 import { CATALOG_TABLE_COUNTS, OFFERS_TABLE_COUNTS } from '../isolation/tenant-tables';
 import type { BusinessWorld, World } from '../isolation/world-types';
@@ -20,9 +22,9 @@ const handlersOf = (type: Class): Handler[] =>
     .filter((name) => name !== 'constructor')
     .map((name) => (type.prototype as Record<string, Handler>)[name] as Handler);
 
-/** Every Admin API operation the catalog's resolvers declare (Nest's GraphQL metadata). */
-function declaredOperations(): string[] {
-  const extension = Reflect.getMetadata('adminApiExtensions', CatalogPlugin) as { resolvers: Class[] };
+/** Every Admin API operation the resolvers of `plugin` declare (Nest's GraphQL metadata). */
+function declaredOperations(plugin: Class): string[] {
+  const extension = Reflect.getMetadata('adminApiExtensions', plugin) as { resolvers: Class[] };
   return extension.resolvers.flatMap((resolver) =>
     handlersOf(resolver).flatMap((handler) => {
       const type = Reflect.getMetadata('graphql:resolver_type', handler) as string | undefined;
@@ -32,9 +34,9 @@ function declaredOperations(): string[] {
   );
 }
 
-/** Every REST route the catalog's controllers declare, as `METHOD /path`. */
-function declaredRoutes(): string[] {
-  const controllers = Reflect.getMetadata('controllers', CatalogPlugin) as Class[];
+/** Every REST route the controllers of `plugin` declare, as `METHOD /path`. */
+function declaredRoutes(plugin: Class): string[] {
+  const controllers = Reflect.getMetadata('controllers', plugin) as Class[];
   return controllers.flatMap((controller) => {
     const base = Reflect.getMetadata('path', controller) as string;
     return handlersOf(controller).flatMap((handler) => {
@@ -92,6 +94,19 @@ function catalogOf(label: 'A' | 'B'): CatalogWorld {
   };
 }
 
+function offersOf(label: 'A' | 'B'): OffersWorld {
+  const n = label === 'A' ? '1' : '2';
+  const id = (prefix: string): string => `${prefix}0000000000000000${n}`;
+  return {
+    automaticOfferId: id('17'),
+    codeOfferId: id('18'),
+    code: `ISO-${label}-${id('1')}`,
+    sharedCodeOfferId: id('19'),
+    sharedCode: SHARED_CODE,
+    variantId: `5${n}`,
+  };
+}
+
 /** The tables of the entities `plugin` registers (Vendure's `entities` plugin metadata). */
 function tablesOf(plugin: Class): string[] {
   const entities = Reflect.getMetadata('entities', plugin) as Class[];
@@ -105,6 +120,7 @@ describe('P2 isolation matrix', () => {
   beforeAll(() => {
     for (const label of ['A', 'B'] as const) {
       CATALOG_WORLDS.set(label, catalogOf(label));
+      OFFERS_WORLDS.set(label, offersOf(label));
       TEAM_WORLDS.set(label, {
         ownerMemberId: `14000000000000000${label === 'A' ? '1' : '2'}`,
         invited: { memberId: '15', email: 'i@example.test' },
@@ -115,6 +131,7 @@ describe('P2 isolation matrix', () => {
 
   afterAll(() => {
     CATALOG_WORLDS.clear();
+    OFFERS_WORLDS.clear();
     TEAM_WORLDS.clear();
   });
 
@@ -136,7 +153,7 @@ describe('P2 isolation matrix', () => {
 
   it('names every Admin API operation the catalog plugin declares', () => {
     // Arrange
-    const declared = declaredOperations();
+    const declared = declaredOperations(CatalogPlugin);
 
     // Act
     const covered = CATALOG_OPERATIONS.map((operation) => operation.name);
@@ -147,10 +164,32 @@ describe('P2 isolation matrix', () => {
 
   it('names every REST route the catalog plugin declares', () => {
     // Arrange
-    const declared = declaredRoutes();
+    const declared = declaredRoutes(CatalogPlugin);
 
     // Act
     const covered = CATALOG_ROUTES.map((route) => `${route.method} ${route.route}`);
+
+    // Assert
+    expect([...covered].sort()).toEqual([...declared].sort());
+  });
+
+  it('names every Admin API operation the offers plugin declares', () => {
+    // Arrange
+    const declared = declaredOperations(OffersPlugin);
+
+    // Act
+    const covered = OFFERS_OPERATIONS.map((operation) => operation.name);
+
+    // Assert
+    expect([...covered].sort()).toEqual([...declared].sort());
+  });
+
+  it('names every REST route the offers plugin declares', () => {
+    // Arrange
+    const declared = declaredRoutes(OffersPlugin);
+
+    // Act
+    const covered = OFFERS_ROUTES.map((route) => `${route.method} ${route.route}`);
 
     // Assert
     expect([...covered].sort()).toEqual([...declared].sort());
@@ -181,7 +220,7 @@ describe('P2 isolation matrix', () => {
 
       // Assert
       for (const request of requests) {
-        expect(request.path === '/admin-api' || request.path.startsWith('/catalog/')).toBe(true);
+        expect(['/admin-api', '/catalog/', '/offers'].some((prefix) => request.path.startsWith(prefix))).toBe(true);
         expect(JSON.stringify(request)).not.toContain('undefined');
       }
     },

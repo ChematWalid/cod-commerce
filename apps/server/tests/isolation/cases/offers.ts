@@ -1,5 +1,5 @@
 import type { INestApplicationContext } from '@nestjs/common';
-import { PricingService } from '@cod/plugin-offers';
+import { OfferAdminService, PricingService } from '@cod/plugin-offers';
 import type { Quote, QuoteRequestInput } from '@cod/shared';
 import { TransactionalConnection } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
@@ -7,10 +7,14 @@ import { offersOf, scopeOf, storeContextOf } from '../offers-world';
 import { OFFERS_TABLE_COUNTS } from '../tenant-tables';
 import type { BusinessWorld, World } from '../world-types';
 
-/** What the offers rows need from the controller: the seeded world and the booted server, read once they exist. */
+/**
+ * What the offers rows need from the controller: the seeded world, the booted server and B's offers rows as
+ * {@link offerRowsOf} read them before the matrix ran, each read once it exists.
+ */
 export interface OffersIsolationHarness {
   readonly world: () => World;
   readonly app: () => INestApplicationContext;
+  readonly victimRowsBeforeMatrix: () => Record<string, unknown>;
 }
 
 /** Algiers, home delivery: any destination works, no shipping source is registered before P3.S1 (D2423). */
@@ -31,8 +35,11 @@ const offerIdsOf = (quote: Quote): string[] => [
   ...quote.lines.flatMap((line) => line.discounts.map((discount) => discount.offerId)),
 ];
 
-/** `business`'s rows in every offers table, ordered by id: a quote of another business must leave them as they were. */
-async function offerRowsOf(app: INestApplicationContext, business: BusinessWorld): Promise<Record<string, unknown>> {
+/** `business`'s rows in every offers table, ordered by id: another business's calls must leave them as they were. */
+export async function offerRowsOf(
+  app: INestApplicationContext,
+  business: BusinessWorld,
+): Promise<Record<string, unknown>> {
   const sql = app.get(TransactionalConnection).rawConnection;
   const entries = await Promise.all(
     Object.keys(OFFERS_TABLE_COUNTS).map(async (table) => {
@@ -45,18 +52,23 @@ async function offerRowsOf(app: INestApplicationContext, business: BusinessWorld
   return Object.fromEntries(entries);
 }
 
+/** A quote of one piece of `business`'s variant on its first store, through the scoped pricing core (D2408). */
+async function quoteIn(app: INestApplicationContext, business: BusinessWorld, codes: string[] = []): Promise<Quote> {
+  const store = business.stores[0];
+  const pricing = app.get(PricingService);
+  return pricing.quoteForScope(await storeContextOf(app, store), scopeOf(business, store), requestFor(business, codes));
+}
+
 /**
- * The offers rows of the P2 isolation suite (P2.S4 Task 14): A quotes on its first store through the scoped pricing
- * core (D2408) while B has an automatic offer on every line and a code; none of B's offers, codes or tokens may work
- * in A, and A's quotes write nothing to B's rows.
+ * The offers rows of the P2 isolation suite (P2.S4 Task 14, P2.S5 Task 11): A quotes on its first store through the
+ * scoped pricing core (D2408) while B has an automatic offer on every line and a code; none of B's offers, codes or
+ * tokens may work in A, and A's quotes write nothing to B's rows. Both businesses hold `SAME10` (D2528), each applying
+ * its own offer; and B's rows are as they were before the HTTP matrix (`cases/offers-sweep.ts`) ran.
  */
-export function describeOffersIsolation({ world, app }: OffersIsolationHarness): void {
+export function describeOffersIsolation(harness: OffersIsolationHarness): void {
+  const { world, app } = harness;
   const pricing = () => app().get(PricingService);
-  const quoteInA = async (codes: string[] = []): Promise<Quote> => {
-    const { a } = world();
-    const store = a.stores[0];
-    return pricing().quoteForScope(await storeContextOf(app(), store), scopeOf(a, store), requestFor(a, codes));
-  };
+  const quoteInA = (codes: string[] = []): Promise<Quote> => quoteIn(app(), world().a, codes);
 
   describe('offers: a business prices only with its own offers', () => {
     it("quotes store A without B's offers", async () => {
@@ -103,6 +115,52 @@ export function describeOffersIsolation({ world, app }: OffersIsolationHarness):
       await quoteInA([offersOf(b).code]);
 
       expect(await offerRowsOf(app(), b)).toEqual(before);
+    });
+
+    it("leaves B's offers_* rows unchanged after A's calls", async () => {
+      const { b } = world();
+
+      const after = await offerRowsOf(app(), b);
+
+      expect(after).toEqual(harness.victimRowsBeforeMatrix());
+    });
+  });
+
+  describeSharedCode(harness);
+}
+
+/** The same code in two businesses (D2528): each applies its own offer, and either may add it while the other holds it. */
+function describeSharedCode({ world, app }: OffersIsolationHarness): void {
+  describe('offers: the same code in two businesses stays apart', () => {
+    it.each([
+      ['A', 'B'],
+      ['B', 'A'],
+    ] as const)("applies %s's SAME10 in its own store, not %s's offer", async (label, otherLabel) => {
+      const businessOf = (of: 'A' | 'B'): BusinessWorld => (of === 'A' ? world().a : world().b);
+      const own = businessOf(label);
+      const other = businessOf(otherLabel);
+      const { sharedCode, sharedCodeOfferId } = offersOf(own);
+
+      const quote = await quoteIn(app(), own, [sharedCode]);
+
+      expect(quote.rejectedCodes).toEqual([]);
+      expect(quote.applied.map((offer) => offer.offerId)).toContain(sharedCodeOfferId);
+      expect(offerIdsOf(quote)).not.toContain(offersOf(other).sharedCodeOfferId);
+    });
+
+    it('adds SAME10 in A while B holds it', async () => {
+      const { a, b } = world();
+      const { sharedCode, sharedCodeOfferId } = offersOf(a);
+      const store = a.stores[0];
+      const admin = app().get(OfferAdminService);
+      const ctx = await storeContextOf(app(), store);
+      const bRows = await offerRowsOf(app(), b);
+      await admin.removeCode(ctx, scopeOf(a, store), sharedCodeOfferId, sharedCode);
+
+      const added = await admin.addCodes(ctx, scopeOf(a, store), sharedCodeOfferId, [{ code: sharedCode }]);
+
+      expect(added.map((stored) => stored.code)).toEqual([sharedCode]);
+      expect(await offerRowsOf(app(), b)).toEqual(bRows);
     });
   });
 }

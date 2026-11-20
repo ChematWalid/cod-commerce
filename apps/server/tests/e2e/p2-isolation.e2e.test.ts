@@ -13,7 +13,7 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
-import { describeOffersIsolation } from '../isolation/cases/offers';
+import { describeOffersIsolation, offerRowsOf } from '../isolation/cases/offers';
 import {
   CATALOG_SNAPSHOT_FIELDS,
   CATALOG_WORLDS,
@@ -64,7 +64,8 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * catalog endpoint, by id, by list, by write, by naming B's rows in its own writes and with B's store token, and A's
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
  * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
- * (P2.S4), seeded in process, that A's quotes must never see.
+ * (P2.S4), seeded in process, that A's quotes must never see, and A reaches for B's offers and codes through every
+ * offers endpoint (P2.S5).
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -84,6 +85,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   let world: World;
   let outcomes: Map<string, Outcome>;
   let before: { a: unknown; b: unknown; aOtherStore: unknown; bOtherStore: unknown };
+  let bOfferRows: Record<string, unknown>;
 
   beforeAll(async () => {
     await server.init({ initialData: E2E_INITIAL_DATA, customerCount: 0 });
@@ -113,6 +115,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
       aOtherStore: await otherStoreSnapshotOf(http, world.a),
       bOtherStore: await otherStoreSnapshotOf(http, world.b),
     };
+    bOfferRows = await offerRowsOf(server.app, world.b);
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
     outcomes = new Map(
       ran.map((outcome) => [
@@ -190,7 +193,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(existsSync(join(assetDir, `${ASSET_KEY_PREFIX}${key ?? ''}`))).toBe(true);
   });
 
-  describeOffersIsolation({ world: () => world, app: () => server.app });
+  describeOffersIsolation({ world: () => world, app: () => server.app, victimRowsBeforeMatrix: () => bOfferRows });
 
   it.each([
     ['a PNG header with a corrupt body', CORRUPT_PNG],
