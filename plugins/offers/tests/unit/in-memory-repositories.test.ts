@@ -14,6 +14,7 @@ const harness: MakeOfferHarness = () => {
 };
 
 // The fakes the use-case tests run on must keep the same rules as the Postgres adapters (Task 10); they answer a
-// turn later, as Postgres does, so a rejection a test handles late fails here too.
+// turn later, as Postgres does, and fail on a refusal that had no handler when its round trip went out (D2443): one
+// left pending across another awaited call, or two started together and awaited in turn.
 describeOfferRepositoryContract('InMemoryOfferRepository', harness);
 describeOfferCodeRepositoryContract('InMemoryOfferCodeRepository', harness);
