@@ -25,8 +25,8 @@ export class RulesUseCases {
 const administratorKeyOf = (ctx: RequestContext): string => String(ctx.activeUserId);
 
 /**
- * The rule builder for both API surfaces (team pattern of {@link CollectionsActions}): store from the session, the
- * throttle spent before any store read (D2338), input parsed with the shared schema, run, shape.
+ * The rule builder for both API surfaces (team pattern of {@link CollectionsActions}): store from the session, input
+ * parsed with the shared schema, the throttle spent before any store read (D2338), run, shape.
  */
 @Injectable()
 export class RulesActions {
@@ -37,8 +37,9 @@ export class RulesActions {
 
   async preview(ctx: RequestContext, input: unknown): Promise<StoreCollectionProductListDto> {
     const scope = scopeOf(ctx);
-    await this.throttle.spendPreview(scope.businessId, administratorKeyOf(ctx));
+    // Parsed first: a half-typed rule reads nothing, so it spends none of the budget that caps store reads.
     const { rule, skip, take } = parseInput(previewStoreCollectionInputSchema, input);
+    await this.throttle.spendPreview(scope.businessId, administratorKeyOf(ctx));
     return this.useCases.preview.run(asOperationContext(ctx), scope, rule, { skip, take });
   }
 
