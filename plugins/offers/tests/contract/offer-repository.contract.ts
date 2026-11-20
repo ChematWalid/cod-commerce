@@ -6,6 +6,7 @@ import type { OperationContext } from '../../domain/ports/operation-context.port
 import type { StoreScope } from '../../domain/store-scope';
 import { at } from '../support/builders';
 import { aCode, anActiveOffer, anOfferRecord, scopeA, scopeA2, scopeB } from '../support/offer-records';
+import { rejectionOf } from '../support/rejection';
 
 /** Both offer repositories over empty tables (codes hang off offers) and the context their calls run in. */
 export interface OfferHarness {
@@ -205,12 +206,12 @@ export function describeOfferRepositoryContract(name: string, make: MakeOfferHar
       await offers.create(ctx, scopeA, offer);
 
       // Act
-      const offerWrite = offers.create(ctx, storeless, anOfferRecord());
-      const codeWrite = codes.add(ctx, storeless, [aCode(offer.id)]);
+      const offerWrite = await rejectionOf(offers.create(ctx, storeless, anOfferRecord()));
+      const codeWrite = await rejectionOf(codes.add(ctx, storeless, [aCode(offer.id)]));
 
       // Assert
-      await expect(offerWrite).rejects.toBeInstanceOf(NoActiveStoreError);
-      await expect(codeWrite).rejects.toBeInstanceOf(NoActiveStoreError);
+      expect(offerWrite).toBeInstanceOf(NoActiveStoreError);
+      expect(codeWrite).toBeInstanceOf(NoActiveStoreError);
     });
   });
 }

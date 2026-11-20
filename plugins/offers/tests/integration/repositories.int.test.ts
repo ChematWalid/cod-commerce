@@ -29,6 +29,7 @@ import { describeOfferCodeRepositoryContract } from '../contract/offer-code-repo
 import { describeOfferRepositoryContract, type MakeOfferHarness } from '../contract/offer-repository.contract';
 import { anOfferRecord, newId, scopeA, scopeA2 } from '../support/offer-records';
 import { aQuoteKeyRing } from '../support/quote-keys';
+import { rejectionOf } from '../support/rejection';
 
 const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 /** One snowflake worker id per offers integration file (D2433). */
@@ -124,17 +125,17 @@ it('refuses a store-less row and a child row of another store in Postgres itself
       [newId(), scopeA.businessId, storeId, offer.id, 'buy', 'variant', 12, 1],
     );
 
-  // Act
-  const storeless = insertCode(null);
-  const otherStore = insertCode(scopeA2.storeId);
-  const storelessTarget = insertTarget(null);
-  const otherStoreTarget = insertTarget(scopeA2.storeId);
+  // Act: the null store ids are the point; each refusal is awaited where it starts, so none is left unhandled.
+  const storeless = await rejectionOf(insertCode(null));
+  const otherStore = await rejectionOf(insertCode(scopeA2.storeId));
+  const storelessTarget = await rejectionOf(insertTarget(null));
+  const otherStoreTarget = await rejectionOf(insertTarget(scopeA2.storeId));
 
   // Assert
-  await expect(storeless).rejects.toThrow(/check constraint/);
-  await expect(otherStore).rejects.toThrow(/foreign key constraint/);
+  expect(storeless).toHaveProperty('message', expect.stringMatching(/check constraint/));
+  expect(otherStore).toHaveProperty('message', expect.stringMatching(/foreign key constraint/));
   await expect(insertCode(scopeA.storeId)).resolves.toBeDefined();
-  await expect(storelessTarget).rejects.toThrow(/check constraint/);
-  await expect(otherStoreTarget).rejects.toThrow(/foreign key constraint/);
+  expect(storelessTarget).toHaveProperty('message', expect.stringMatching(/check constraint/));
+  expect(otherStoreTarget).toHaveProperty('message', expect.stringMatching(/foreign key constraint/));
   await expect(insertTarget(scopeA.storeId)).resolves.toBeDefined();
 });

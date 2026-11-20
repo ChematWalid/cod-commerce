@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CodeTakenError, OfferNotFoundError } from '../../domain/errors';
 import { at } from '../support/builders';
 import { aCode, anOfferRecord, scopeA, scopeA2, scopeB } from '../support/offer-records';
+import { rejectionOf } from '../support/rejection';
 import type { MakeOfferHarness, OfferHarness } from './offer-repository.contract';
 
 /** A harness with one offer created in `scopeA`, `scopeA2` and `scopeB` each. */
@@ -23,12 +24,12 @@ export function describeOfferCodeRepositoryContract(name: string, make: MakeOffe
       await codes.add(ctx, scopeA, [aCode(a.id, 'INFLU10')]);
 
       // Act
-      const sameOffer = codes.add(ctx, scopeA, [aCode(a.id, 'INFLU10')]);
-      const inOneCall = codes.add(ctx, scopeA, [aCode(a.id, 'TWICE'), aCode(a.id, 'TWICE')]);
+      const sameOffer = await rejectionOf(codes.add(ctx, scopeA, [aCode(a.id, 'INFLU10')]));
+      const inOneCall = await rejectionOf(codes.add(ctx, scopeA, [aCode(a.id, 'TWICE'), aCode(a.id, 'TWICE')]));
 
       // Assert
-      await expect(sameOffer).rejects.toBeInstanceOf(CodeTakenError);
-      await expect(inOneCall).rejects.toBeInstanceOf(CodeTakenError);
+      expect(sameOffer).toBeInstanceOf(CodeTakenError);
+      expect(inOneCall).toBeInstanceOf(CodeTakenError);
       await expect(codes.listOf(ctx, scopeA, a.id)).resolves.toHaveLength(1);
     });
 
@@ -82,13 +83,13 @@ export function describeOfferCodeRepositoryContract(name: string, make: MakeOffe
       const { codes, offers, ctx, a, b } = await withOffers(make);
 
       // Act
-      const intoOtherStore = codes.add(ctx, scopeA2, [aCode(a.id, 'CROSS1')]);
-      const intoOtherBusiness = codes.add(ctx, scopeA, [aCode(b.id, 'CROSS2')]);
+      const intoOtherStore = await rejectionOf(codes.add(ctx, scopeA2, [aCode(a.id, 'CROSS1')]));
+      const intoOtherBusiness = await rejectionOf(codes.add(ctx, scopeA, [aCode(b.id, 'CROSS2')]));
       const retarget = await offers.update(ctx, scopeA2, { ...a, targets: [], version: a.version + 1 }, a.version);
 
       // Assert
-      await expect(intoOtherStore).rejects.toBeInstanceOf(OfferNotFoundError);
-      await expect(intoOtherBusiness).rejects.toBeInstanceOf(OfferNotFoundError);
+      expect(intoOtherStore).toBeInstanceOf(OfferNotFoundError);
+      expect(intoOtherBusiness).toBeInstanceOf(OfferNotFoundError);
       expect(retarget).toBe(false);
       await expect(offers.findById(ctx, scopeA, a.id)).resolves.toEqual(a);
       await expect(codes.findByCodes(ctx, scopeA2, ['CROSS1'])).resolves.toEqual([]);
