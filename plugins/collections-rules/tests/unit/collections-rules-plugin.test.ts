@@ -5,6 +5,10 @@ import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { COLLECTIONS_ERROR_CODES, DomainError } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
+import { CreateCollectionService } from '../../application/create-collection.service';
+import { RecomputeMembershipService } from '../../application/recompute-membership.service';
+import { UpdateCollectionService } from '../../application/update-collection.service';
+import { COLLECTIONS_PROVIDERS } from '../../infrastructure/collections.providers';
 import * as errors from '../../domain/errors';
 import { CollectionsRulesPlugin } from '../../index';
 
@@ -52,4 +56,17 @@ describe('collections domain errors', () => {
     // Assert
     expect(codes).toEqual(Object.values(COLLECTIONS_ERROR_CODES).sort());
   });
+
+  it.each([CreateCollectionService, UpdateCollectionService])(
+    '%o saves through the one registered recompute, so what Task 8 adds to it applies to saves too',
+    (service) => {
+      // Act
+      const provider = COLLECTIONS_PROVIDERS.find(
+        (candidate) => typeof candidate === 'object' && 'provide' in candidate && candidate.provide === service,
+      );
+
+      // Assert
+      expect(provider).toMatchObject({ inject: expect.arrayContaining([RecomputeMembershipService]) as unknown });
+    },
+  );
 });

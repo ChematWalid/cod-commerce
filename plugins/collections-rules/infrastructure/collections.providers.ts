@@ -63,6 +63,15 @@ const useCase = (type: new (ports: CollectionPorts) => object): Provider => ({
   inject: [COLLECTION_PORTS],
 });
 
+/** A use case that saves a collection and recomputes its members through the one registered recompute. */
+const savingUseCase = (
+  type: new (ports: CollectionPorts, recompute: RecomputeMembershipService) => object,
+): Provider => ({
+  provide: type,
+  useFactory: (ports: CollectionPorts, recompute: RecomputeMembershipService) => new type(ports, recompute),
+  inject: [COLLECTION_PORTS, RecomputeMembershipService],
+});
+
 /** Wires the persistence, the store lock, Vendure, the outbox and the catalog facts to their ports (D2300). */
 export const COLLECTIONS_PROVIDERS: Provider[] = [
   StockFiltersOff,
@@ -96,8 +105,9 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
       Object.fromEntries(PORT_ENTRIES.map(([key], index) => [key, adapters[index]])) as unknown as CollectionPorts,
     inject: PORT_ENTRIES.map(([, token]) => token),
   },
-  useCase(CreateCollectionService),
-  useCase(UpdateCollectionService),
+  // Saves recompute through the registered service, so a later wrapper of it (Task 8's large-store path) covers them.
+  savingUseCase(CreateCollectionService),
+  savingUseCase(UpdateCollectionService),
   useCase(DeleteCollectionService),
   useCase(ListCollectionsService),
   useCase(GetCollectionService),
