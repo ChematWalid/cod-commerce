@@ -52,7 +52,14 @@ export const ENUM_COLUMN_LENGTH = 16;
 export const LIST_PRICE_SOURCE = 'variant';
 
 /**
- * Most offers one order can hold (D2427): every line at its line-offer bound plus the order discounts. A re-pricing
- * order usage naming more did not come from a stored order.
+ * Most delivery-class offers one quote applies: the first waives the delivery fee, and any later one is worth nothing
+ * and is refused, never applied (D2414).
  */
-export const MAX_ORDER_HELD_OFFERS = MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED + MAX_ORDER_DISCOUNTS_APPLIED;
+export const MAX_DELIVERY_OFFERS_APPLIED = 1;
+
+/**
+ * Most offers one order can hold (D2427, D2445, D2451): every line at its line-offer bound, the order discounts and the
+ * one delivery waiver, as the token's `o` lists them. An order usage naming more did not come from a stored order.
+ */
+export const MAX_ORDER_HELD_OFFERS =
+  MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED + MAX_ORDER_DISCOUNTS_APPLIED + MAX_DELIVERY_OFFERS_APPLIED;

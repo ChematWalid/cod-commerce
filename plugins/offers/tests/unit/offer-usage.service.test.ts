@@ -1,3 +1,4 @@
+import { MAX_LINE_OFFERS_APPLIED, MAX_ORDER_DISCOUNTS_APPLIED, MAX_QUOTE_CODES, MAX_QUOTE_LINES } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { OfferUsageService } from '../../application/offer-usage.service';
 import { orderUsageOf } from '../../domain/engine/order-usage';
@@ -5,7 +6,7 @@ import { InvalidQuoteRequestError } from '../../domain/errors';
 import type { OrderUsage } from '../../domain/engine/order-usage';
 import { FakeActiveStores } from '../fakes/fake-active-stores';
 import { InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
-import { aCode, anActiveOffer, scopeA, scopeB } from '../support/offer-records';
+import { aCode, anActiveOffer, newId, scopeA, scopeB } from '../support/offer-records';
 
 const stores = new FakeActiveStores();
 const ctx = stores.contextOf(scopeA);
@@ -84,5 +85,25 @@ describe('OfferUsageService (D2447)', () => {
     // Assert
     await expect(recording).rejects.toBeInstanceOf(InvalidQuoteRequestError);
     await expect(releasing).rejects.toBeInstanceOf(InvalidQuoteRequestError);
+  });
+
+  it('accepts the uses of an order holding every line offer, order discount and the delivery waiver a quote applies', async () => {
+    // Arrange: the most distinct offers one quote applies (D2411), one free_delivery offer among them (D2445).
+    const { service } = setUpUsage();
+    const mostApplied = MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED + MAX_ORDER_DISCOUNTS_APPLIED + 1;
+    const applied = Array.from({ length: mostApplied }, (_unused, index) => ({
+      offerId: newId(),
+      ...(index < MAX_QUOTE_CODES ? { code: `CODE${String(index)}` } : {}),
+    }));
+    const uses = orderUsageOf(applied);
+
+    // Act
+    const recorded = await service.recordOrderUses(ctx, scopeA, uses);
+    const releasing = service.releaseOrderUses(ctx, scopeA, uses);
+
+    // Assert
+    expect(recorded.refusedOfferIds).toHaveLength(mostApplied);
+    expect(recorded.refusedCodes).toEqual(applied.flatMap((use) => use.code ?? []));
+    await expect(releasing).resolves.toBeUndefined();
   });
 });
