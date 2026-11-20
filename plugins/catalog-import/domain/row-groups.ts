@@ -1,4 +1,10 @@
-import { CATALOG_IMPORT_ROW_ERRORS, type CatalogImportRowError } from '@cod/shared';
+import {
+  CATALOG_IMPORT_ROW_ERRORS,
+  type CatalogImportRowError,
+  MAX_OPTION_GROUPS,
+  MAX_OPTION_VALUES,
+  MAX_VARIANTS,
+} from '@cod/shared';
 import type { ValidatedRow } from './import-row';
 import { parseProductKey } from './list-cell';
 import type { PlanLookups, SkuLookup } from './plan-lookups';
@@ -126,6 +132,41 @@ function matrixErrorsOf(group: RowGroup, errors: Map<number, CatalogImportRowErr
   }
 }
 
+/** How many distinct values each option slot of the rows holds (compared as SKUs are). */
+function valueCountsOf(rows: readonly ValidatedRow[]): number[] {
+  const slots = rows[0]?.values.options.length ?? 0;
+  return Array.from(
+    { length: slots },
+    (_, slot) => new Set(rows.map((row) => skuKey(row.values.options[slot]?.value ?? ''))).size,
+  );
+}
+
+/**
+ * Whether the rows name every combination of their option values, within the catalog's matrix caps (D2270). The
+ * catalog creates the whole cartesian product of the option groups, so a missing combination would be created at the
+ * first row's price without being in the file, and a matrix over the caps fails at confirm. The rows' combinations are
+ * already distinct and their option names alike ({@link matrixErrorsOf}), so a count equal to the product is full.
+ */
+function isFullMatrix(rows: readonly ValidatedRow[]): boolean {
+  const counts = valueCountsOf(rows);
+  if (counts.length > MAX_OPTION_GROUPS || counts.some((count) => count > MAX_OPTION_VALUES)) return false;
+  const combinations = counts.reduce((product, count) => product * count, 1);
+  return combinations <= MAX_VARIANTS && combinations === rows.length;
+}
+
+/**
+ * The refusals of a create group (D2270): a row without a price, then, unless the rows left name the full option
+ * matrix, every row left (`row-invalid-value`), so confirm creates exactly the rows the preview shows.
+ */
+function createErrorsOf(group: RowGroup, errors: Map<number, CatalogImportRowError>): void {
+  for (const row of group.rows) {
+    if (!errors.has(row.rowNumber) && row.values.price === undefined) errors.set(row.rowNumber, E.INVALID_VALUE);
+  }
+  const placed = group.rows.filter((row) => !errors.has(row.rowNumber));
+  if (isFullMatrix(placed)) return;
+  for (const row of placed) errors.set(row.rowNumber, E.INVALID_VALUE);
+}
+
 /** The variants a group's rows name by SKU, and the rows refused for naming another product's or several. */
 interface GroupVariants {
   readonly variantIds: ReadonlyMap<number, string>;
@@ -149,7 +190,7 @@ function variantsOf(group: RowGroup, productId: string | undefined, lookups: Pla
 /**
  * What a group does (D2209): an update of the product its key names (or, without a resolved key, the product its
  * first known variant SKU names), else a create in the active store. A key naming no product of the store, or
- * several, refuses the whole group.
+ * several, refuses the whole group; a create whose rows do not name its full option matrix refuses them all (D2270).
  */
 export function targetOfGroup(group: RowGroup, lookups: PlanLookups): GroupTarget {
   const fromKey = productOfKey(group, lookups);
@@ -157,6 +198,9 @@ export function targetOfGroup(group: RowGroup, lookups: PlanLookups): GroupTarge
   const productId = fromKey.kind === 'product' ? fromKey.productId : productOfVariants(group, lookups);
   const { variantIds, rowErrors } = variantsOf(group, productId, lookups);
   matrixErrorsOf(group, rowErrors);
-  if (productId === undefined) return { kind: 'create', rowErrors };
+  if (productId === undefined) {
+    createErrorsOf(group, rowErrors);
+    return { kind: 'create', rowErrors };
+  }
   return { kind: 'update', productId, variantIds, rowErrors };
 }

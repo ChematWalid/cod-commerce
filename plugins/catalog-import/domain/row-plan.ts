@@ -97,7 +97,6 @@ function refusalsOf(row: ValidatedRow, target: GroupTarget, lookups: PlanLookups
   const rowError = target.rowErrors.get(row.rowNumber);
   if (rowError !== undefined) return [rowError];
   if (target.kind === 'update' && !lookups.canUpdate) return [E.UPDATE_FORBIDDEN];
-  if (target.kind === 'create' && row.values.price === undefined) return [E.INVALID_VALUE];
   return [];
 }
 
@@ -180,7 +179,7 @@ function onceEach(group: RowGroup, target: GroupTarget, targeted: Targeted): Gro
  * (D2267), except keyless rows naming other variants of a product other keyless rows update (D2268). A row is an error
  * with its reasons when it is invalid, reuses a SKU of another row (D2268) or repeats an option combination, names an ambiguous SKU or an `id:<n>` of no product of the store (one reason,
  * whatever the id's owner), names a variant SKU of another product, updates without edit permission, or creates
- * without a price. Unknown brand or tag names and a weight differing from the group's first warn.
+ * without a price or into an option matrix its group's rows do not fill (D2270). Unknown brand or tag names and a weight differing from the group's first warn.
  */
 export function planRows(rows: readonly ValidatedRow[], lookups: PlanLookups): PlannedRow[] {
   const duplicates = duplicateSkuRows(rows);
