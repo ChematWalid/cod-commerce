@@ -4,6 +4,7 @@ import {
   COLLECTIONS_PER_STORE_MAX,
   DomainError,
 } from '@cod/shared';
+import { MIN_RETRY_AFTER_SECONDS } from './constants';
 
 /** No collection with that id in the active store; a foreign or malformed id answers the same. */
 export class CollectionNotFoundError extends DomainError {
@@ -77,10 +78,10 @@ export class CollectionNotManualError extends DomainError {
   }
 }
 
-/** Too many previews or rule-option reads by one member in the window (D2338). */
+/** Too many previews or rule-option reads by one member in the window (D2338); says when to come back. */
 export class CollectionsRateLimitedError extends DomainError {
   readonly code = COLLECTIONS_ERROR_CODES.RATE_LIMITED;
-  constructor() {
+  constructor(readonly retryAfterSeconds: number = MIN_RETRY_AFTER_SECONDS) {
     super('Too many requests, try again shortly');
   }
 }

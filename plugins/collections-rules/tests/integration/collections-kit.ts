@@ -36,6 +36,7 @@ export interface RestAnswer {
   readonly status: number;
   readonly body: unknown;
   readonly text: string;
+  readonly headers: Headers;
 }
 
 /**
@@ -115,7 +116,12 @@ export class CollectionsKit {
     const init = { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) };
     const response = await this.client.fetch(`${this.baseUrl()}${path}`, init);
     const text = await response.text();
-    return { status: response.status, body: text === '' ? null : (JSON.parse(text) as unknown), text };
+    return {
+      status: response.status,
+      body: text === '' ? null : (JSON.parse(text) as unknown),
+      text,
+      headers: response.headers,
+    };
   }
 }
 

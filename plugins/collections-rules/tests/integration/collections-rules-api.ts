@@ -1,4 +1,4 @@
-import type { CollectionsKit } from './collections-kit';
+import type { CollectionsKit, RestAnswer } from './collections-kit';
 
 /** The catalog's taxonomy and product writes the rule tests arrange a store with (all through the API). */
 const CREATE_BRAND = 'mutation ($input: CatalogBrandInput!) { createCatalogBrand(input: $input) { id } }';
@@ -120,4 +120,39 @@ export async function previewOf(
     { input: { rule, ...page } },
   );
   return previewStoreCollectionMatches;
+}
+
+/** The collections throttles refill one call every two seconds (30 a minute, D2338). */
+const REFILL_MS = 2_000;
+/** Calls sent past the budget, so a refill during a slow burst cannot hide the limit. */
+const OVERSHOOT = 10;
+const TOO_MANY_REQUESTS = 429;
+
+/** What a burst past a throttle budget answered. */
+export interface BudgetBurst {
+  /** The GraphQL codes of the burst, `undefined` for an answered call. */
+  readonly codes: readonly (string | undefined)[];
+  /** How many of the burst must have been refused, whatever refilled while it ran. */
+  readonly minimumRefused: number;
+  /** The first REST call refused after the burst, if any. */
+  readonly limited: RestAnswer | undefined;
+}
+
+/**
+ * Spends a fresh budget with `budget + OVERSHOOT` concurrent GraphQL calls, then calls REST until one is refused (at
+ * most `OVERSHOOT` tries): the refill of a loaded runner lowers `minimumRefused` instead of turning the test red.
+ */
+export async function burstPastBudget(
+  budget: number,
+  graphql: () => Promise<string | undefined>,
+  rest: () => Promise<RestAnswer>,
+): Promise<BudgetBurst> {
+  const started = Date.now();
+  const codes = await Promise.all(Array.from({ length: budget + OVERSHOOT }, graphql));
+  const minimumRefused = OVERSHOOT - Math.floor((Date.now() - started) / REFILL_MS);
+  for (let attempt = 0; attempt < OVERSHOOT; attempt += 1) {
+    const answer = await rest();
+    if (answer.status === TOO_MANY_REQUESTS) return { codes, minimumRefused, limited: answer };
+  }
+  return { codes, minimumRefused, limited: undefined };
 }

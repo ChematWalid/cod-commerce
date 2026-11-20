@@ -92,6 +92,24 @@ describe('the collections REST error mapping', () => {
     });
   });
 
+  it('tells a rate-limited REST caller when to retry with Retry-After', () => {
+    // Arrange
+    const headers = new Map<string, string>();
+    const res = {
+      setHeader: (name: string, value: string) => headers.set(name, value),
+      status: () => res,
+      json: () => undefined,
+    };
+    const req = { url: '/catalog/collections/preview' };
+    const host = { getType: () => 'http', switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }) };
+
+    // Act
+    new CollectionsRestErrorFilter().catch(new errors.CollectionsRateLimitedError(7), host as never);
+
+    // Assert
+    expect(headers.get('Retry-After')).toBe('7');
+  });
+
   it.each(COLLECTIONS_REST_CONTROLLERS.map((controller) => [controller.name, controller] as const))(
     '%s answers domain, over-limit and unknown-channel refusals with their own status',
     (_name, controller) => {

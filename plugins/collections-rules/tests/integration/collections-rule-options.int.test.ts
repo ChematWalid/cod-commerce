@@ -10,6 +10,7 @@ import {
   createTag,
   RULE_OPTIONS,
   type RuleOptionsResult,
+  burstPastBudget,
 } from './collections-rules-api';
 
 const suite = collectionsSuite(1018, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
@@ -86,16 +87,22 @@ describe('the condition builder options (D2321, AC3)', () => {
   it('refuses the read past the per-member budget: rate-limited, 429 on REST (D2338)', async () => {
     // Arrange: B's owner has read no option yet; the budget refills one call per two seconds.
     await suite.kit.asOwner(suite.fixtures.b);
-    const calls = Array.from({ length: RULE_OPTIONS_BUDGET + 2 }, () => codeOf(suite.kit.gql(RULE_OPTIONS)));
 
     // Act
-    const codes = await Promise.all(calls);
-    const rest = await suite.kit.rest('GET', '/catalog/collections/rule-options');
+    const burst = await burstPastBudget(
+      RULE_OPTIONS_BUDGET,
+      () => codeOf(suite.kit.gql(RULE_OPTIONS)),
+      () => suite.kit.rest('GET', '/catalog/collections/rule-options'),
+    );
 
     // Assert
-    expect(codes.filter((code) => code === undefined).length).toBeGreaterThanOrEqual(RULE_OPTIONS_BUDGET);
-    expect(codes).toContain(COLLECTIONS_ERROR_CODES.RATE_LIMITED);
-    expect(rest.status).toBe(TOO_MANY_REQUESTS);
-    expect(rest.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED });
+    const refused = burst.codes.filter((code) => code === COLLECTIONS_ERROR_CODES.RATE_LIMITED).length;
+    expect(burst.codes.filter((code) => code !== undefined && code !== COLLECTIONS_ERROR_CODES.RATE_LIMITED)).toEqual(
+      [],
+    );
+    expect(refused).toBeGreaterThanOrEqual(burst.minimumRefused);
+    expect(burst.limited?.status).toBe(TOO_MANY_REQUESTS);
+    expect(burst.limited?.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED });
+    expect(Number(burst.limited?.headers.get('Retry-After'))).toBeGreaterThan(0);
   });
 });

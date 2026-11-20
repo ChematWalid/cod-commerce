@@ -9,3 +9,6 @@ export const MIN_CORE_ID = 1;
 
 /** Products read per keyset page when a rule is matched over a whole store: the facts reader's batch (D2308, D2312). */
 export const STORE_WALK_PAGE_SIZE = 100;
+
+/** The retry delay a rate-limited refusal names when the limiter gave none: the soonest a caller may come back. */
+export const MIN_RETRY_AFTER_SECONDS = 1;

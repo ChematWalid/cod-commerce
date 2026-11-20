@@ -3,7 +3,15 @@ import { COLLECTIONS_ERROR_CODES } from '@cod/shared';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { codeOf, createCollection, rawId } from './collections-api';
 import { collectionsSuite } from './collections-kit';
-import { createRuleProduct, createTag, PREVIEW, previewOf, ruleOf, tagIs } from './collections-rules-api';
+import {
+  createRuleProduct,
+  createTag,
+  PREVIEW,
+  previewOf,
+  ruleOf,
+  tagIs,
+  burstPastBudget,
+} from './collections-rules-api';
 
 const suite = collectionsSuite(1017, { plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 /** The preview budget of one administrator per minute (D2338). */
@@ -103,16 +111,22 @@ describe('the live rule preview (D2331, AC4)', () => {
     // Arrange: B's owner has spent no preview yet; the budget refills one call per two seconds.
     await suite.kit.asOwner(suite.fixtures.b);
     const rule = ruleOf('all', tagIs('is_any_of', tagOfB));
-    const calls = Array.from({ length: PREVIEW_BUDGET + 2 }, () => codeOf(suite.kit.gql(PREVIEW, { input: { rule } })));
 
     // Act
-    const codes = await Promise.all(calls);
-    const rest = await suite.kit.rest('POST', '/catalog/collections/preview', { rule });
+    const burst = await burstPastBudget(
+      PREVIEW_BUDGET,
+      () => codeOf(suite.kit.gql(PREVIEW, { input: { rule } })),
+      () => suite.kit.rest('POST', '/catalog/collections/preview', { rule }),
+    );
 
     // Assert
-    expect(codes.filter((code) => code === undefined).length).toBeGreaterThanOrEqual(PREVIEW_BUDGET);
-    expect(codes).toContain(COLLECTIONS_ERROR_CODES.RATE_LIMITED);
-    expect(rest.status).toBe(TOO_MANY_REQUESTS);
-    expect(rest.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED });
+    const refused = burst.codes.filter((code) => code === COLLECTIONS_ERROR_CODES.RATE_LIMITED).length;
+    expect(burst.codes.filter((code) => code !== undefined && code !== COLLECTIONS_ERROR_CODES.RATE_LIMITED)).toEqual(
+      [],
+    );
+    expect(refused).toBeGreaterThanOrEqual(burst.minimumRefused);
+    expect(burst.limited?.status).toBe(TOO_MANY_REQUESTS);
+    expect(burst.limited?.body).toMatchObject({ code: COLLECTIONS_ERROR_CODES.RATE_LIMITED });
+    expect(Number(burst.limited?.headers.get('Retry-After'))).toBeGreaterThan(0);
   });
 });

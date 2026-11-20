@@ -21,7 +21,7 @@ import {
   parseContext,
 } from '@vendure/core';
 import { CorruptCollectionDefinitionError } from '../domain/corrupt-collection-definition.error';
-import { CollectionNotFoundError } from '../domain/errors';
+import { CollectionNotFoundError, CollectionsRateLimitedError } from '../domain/errors';
 
 const LOG_CONTEXT = 'CollectionsApi';
 const C = COLLECTIONS_ERROR_CODES;
@@ -56,6 +56,9 @@ export class CollectionsApiError extends I18nError {
   constructor(error: DomainError) {
     // Info: refusals of the caller's input, not faults of the server.
     super(messageKeyOf(error.code), {}, error.code, LogLevel.Info);
+    if (error instanceof CollectionsRateLimitedError) {
+      Object.assign(this.extensions, { retryAfterSeconds: error.retryAfterSeconds });
+    }
   }
 }
 
@@ -136,6 +139,7 @@ export class CollectionsRestErrorFilter implements ExceptionFilter<DomainError> 
     const status = restStatusOf(error);
     const internal = status === HttpStatus.INTERNAL_SERVER_ERROR;
     if (internal) Logger.error(`Domain error with no REST status: ${error.code}`, LOG_CONTEXT);
+    if (error instanceof CollectionsRateLimitedError) res.setHeader('Retry-After', String(error.retryAfterSeconds));
     res.status(status).json({
       statusCode: status,
       code: error.code,
