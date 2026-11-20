@@ -1,5 +1,5 @@
 import { catalogOf } from '../catalog-world';
-import { seededCollectionsFilter } from '../collections-world';
+import { collectionsOf, seededCollectionsFilter } from '../collections-world';
 import type { Caller, MatrixRequest } from '../http';
 import { type IsolationAccess, type IsolationCase, ownChannel } from '../matrix';
 import type { BusinessWorld } from '../world-types';
@@ -108,6 +108,8 @@ const STOCK_CASES: readonly IsolationCase[] = CALLERS.flatMap(({ role, of }) =>
  * however many collections the default channel holds (no page can hide one). The options travel as a typed variable,
  * so Vendure decodes the ids of its `IDOperators`.
  */
+/** A's collections on its first store: the catalog's manual one and the automatic one (the third is on store 2). */
+const FIRST_STORE_COLLECTIONS = 2;
 const DEFAULT_LIST = `query ($options: CollectionListOptions) {
   collections(options: $options) { totalItems items { id name slug } }
 }`;
@@ -129,6 +131,30 @@ const DEFAULT_CHANNEL_CASES: readonly IsolationCase[] = [
       body: { query: DEFAULT_LIST, variables: seededCollectionsFilter([a, b]) },
     }),
     expect: { kind: 'own', mustInclude: () => ['"totalItems":0'] },
+    reverse: true,
+  },
+  {
+    // The control: the same filter finds A's collections where they live, so 0 above means absent, not a dead filter.
+    id: 'collections.default-channel.admin-control',
+    entity: 'collection',
+    endpoint: 'collections',
+    access: 'list',
+    title: "The superadmin lists, with the same filter, stock collections on A's first store: A's two collections",
+    request: (a, _b, world): MatrixRequest => ({
+      method: 'POST',
+      path: '/admin-api',
+      caller: world.superadmin,
+      channel: ownChannel(a),
+      body: { query: DEFAULT_LIST, variables: seededCollectionsFilter([a]) },
+    }),
+    expect: {
+      kind: 'own',
+      mustInclude: (a) => [
+        `"totalItems":${String(FIRST_STORE_COLLECTIONS)}`,
+        `"id":"${catalogOf(a).collection.id}"`,
+        `"id":"${collectionsOf(a).automatic.id}"`,
+      ],
+    },
     reverse: true,
   },
 ];

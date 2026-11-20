@@ -4,16 +4,16 @@ import { catalogOf, restIdOf } from '../catalog-world';
 import { COLLECTION_OPERATIONS, COLLECTION_ROUTES, SWEEP_SLUG } from '../collections-operations';
 import { collectionsOf } from '../collections-world';
 import type { MatrixRequest } from '../http';
-import { type Expectation, type IsolationCase, ownChannel, ownerGraphql, ownerRest } from '../matrix';
+import { type Expectation, type IsolationCase, onChannel, ownChannel, ownerGraphql, ownerRest } from '../matrix';
 import type { BusinessWorld } from '../world-types';
 import { accessOf, notFoundOf, operationRequest, routeName, routeRequest } from './endpoint-sweep';
 
 /**
  * Store scoping inside one business (D2132) and the slug check's collection id (P2.S3, Task 10 review). The owner,
- * who may reach both stores, names a collection of the business's other store by id: every by-id endpoint answers
- * "not found" (404 over REST), so a lookup scoped by business but not by store fails here, through the real server
- * wiring; the snapshots of both stores catch a write that slips through. Then `collectionId` of the slug check: B's id
- * never frees A's taken slug, and a malformed id names nothing (D2136).
+ * who may reach both stores, names a collection or a product of the business's other store by id: every by-id endpoint
+ * answers "not found" (404 over REST), so a lookup scoped by business but not by store fails here, through the real
+ * server wiring; the snapshots of both stores catch a write that slips through. Then `collectionId` of the slug check:
+ * A's own id frees A's own slug (the control), B's id never does, and a malformed id names nothing (D2136).
  */
 
 type Channel = NonNullable<MatrixRequest['channel']>;
@@ -33,14 +33,16 @@ const secondStore = (business: BusinessWorld): Channel => ({
   token: business.stores[1].channelToken,
 });
 
-/** One store of A naming a collection of A's other store. */
+/** One store of A naming a collection or a product of A's other store. */
 interface StoreCrossing {
   /** The last part of the cell id. */
   readonly name: string;
   readonly what: string;
   readonly channel: (business: BusinessWorld) => Channel;
-  /** The named collection's id, GraphQL form. */
-  readonly collectionId: (business: BusinessWorld) => string;
+  /** Which by-id endpoints the crossing calls: those naming this target field. */
+  readonly field: 'collectionId' | 'productId';
+  /** The named row's id, GraphQL form. */
+  readonly id: (business: BusinessWorld) => string;
 }
 
 const CROSSINGS: readonly StoreCrossing[] = [
@@ -48,33 +50,45 @@ const CROSSINGS: readonly StoreCrossing[] = [
     name: 'second-store-collection',
     what: "its second store's collection on its first store",
     channel: ownChannel,
-    collectionId: (business) => collectionsOf(business).otherStore.id,
+    field: 'collectionId',
+    id: (business) => collectionsOf(business).otherStore.id,
   },
   {
     name: 'first-store-manual',
     what: "its first store's manual collection on its second store",
     channel: secondStore,
-    collectionId: (business) => catalogOf(business).collection.id,
+    field: 'collectionId',
+    id: (business) => catalogOf(business).collection.id,
   },
   {
     name: 'first-store-automatic',
     what: "its first store's automatic collection on its second store",
     channel: secondStore,
-    collectionId: (business) => collectionsOf(business).automatic.id,
+    field: 'collectionId',
+    id: (business) => collectionsOf(business).automatic.id,
+  },
+  {
+    // A product lookup scoped by business but not by store would answer, or write, the product's collections here.
+    name: 'first-store-product',
+    what: "its first store's product on its second store",
+    channel: secondStore,
+    field: 'productId',
+    id: (business) => catalogOf(business).product.id,
   },
 ];
 
-const namesCollection = (byId: { readonly field: string } | undefined): boolean => byId?.field === 'collectionId';
+const names = (crossing: StoreCrossing, byId: { readonly field: string } | undefined): boolean =>
+  byId?.field === crossing.field;
 
 function operationCrossings(crossing: StoreCrossing): IsolationCase[] {
-  return COLLECTION_OPERATIONS.filter((op) => namesCollection(op.byId)).map((op) => ({
+  return COLLECTION_OPERATIONS.filter((op) => names(crossing, op.byId)).map((op) => ({
     id: `collections.${op.name}.${crossing.name}`,
     entity: 'collection',
     endpoint: op.name,
     access: accessOf(op),
     title: `A's owner calls ${op.name} on ${crossing.what}: not found`,
     request: (a) =>
-      operationRequest(op, a.owner, crossing.channel(a), { ...targetOf(a), collectionId: crossing.collectionId(a) }),
+      operationRequest(op, a.owner, crossing.channel(a), { ...targetOf(a), [crossing.field]: crossing.id(a) }),
     expect: notFoundOf(op),
     reverse: true,
   }));
@@ -82,7 +96,7 @@ function operationCrossings(crossing: StoreCrossing): IsolationCase[] {
 
 function routeCrossings(crossing: StoreCrossing): IsolationCase[] {
   return COLLECTION_ROUTES.filter((route): route is CatalogRoute & { byId: NonNullable<CatalogRoute['byId']> } =>
-    namesCollection(route.byId),
+    names(crossing, route.byId),
   ).map((route) => ({
     id: `collections.${route.method.toLowerCase()}-${route.route}.${crossing.name}`,
     entity: 'collection',
@@ -92,7 +106,7 @@ function routeCrossings(crossing: StoreCrossing): IsolationCase[] {
     request: (a) =>
       routeRequest(route, a.owner, crossing.channel(a), {
         ...restTargetOf(a),
-        collectionId: restIdOf(crossing.collectionId(a)),
+        [crossing.field]: restIdOf(crossing.id(a)),
       }),
     expect: { kind: 'status', status: NOT_FOUND, code: route.byId.notFound },
     reverse: true,
@@ -138,7 +152,7 @@ const SLUG = `query ($slug: String!, $collectionId: ID) {
   storeCollectionSlugAvailability(slug: $slug, collectionId: $collectionId) { slug available }
 }`;
 const slugPath = (slug: string, collectionId: string): string =>
-  `/catalog/collections/slug-availability?slug=${slug}&collectionId=${encodeURIComponent(collectionId)}`;
+  `/catalog/collections/slug-availability?${new URLSearchParams({ slug, collectionId }).toString()}`;
 
 /** One slug check of the matrix, over GraphQL and REST. */
 interface SlugCheck {
@@ -149,10 +163,12 @@ interface SlugCheck {
   readonly available: boolean;
   readonly of: (a: BusinessWorld, b: BusinessWorld) => { slug: string; collectionId: string; restId: string };
   readonly graphqlExpect?: Expectation;
+  /** The store A checks on; A's first store by default. */
+  readonly channel?: (business: BusinessWorld) => Channel;
 }
 
 /** A slug check on A's store naming `collectionId`: answers `available`, and leaks nothing of B's. */
-function slugCells({ name, what, available, of, graphqlExpect }: SlugCheck): IsolationCase[] {
+function slugCells({ name, what, available, of, graphqlExpect, channel = ownChannel }: SlugCheck): IsolationCase[] {
   const expect = { kind: 'own', mustInclude: () => [`"available":${String(available)}`] } as const;
   const answer = `available=${String(available)}`;
   const shared = { entity: 'collection', access: 'read by id', reverse: true } as const;
@@ -164,7 +180,7 @@ function slugCells({ name, what, available, of, graphqlExpect }: SlugCheck): Iso
       title: `A's owner checks a slug ${what}: ${graphqlExpect === undefined ? answer : 'invalid input'}`,
       request: (a, b) => {
         const { slug, collectionId } = of(a, b);
-        return ownerGraphql(a, SLUG, { slug, collectionId });
+        return ownerGraphql(a, SLUG, { slug, collectionId }, channel(a));
       },
       expect: graphqlExpect ?? expect,
     },
@@ -175,14 +191,35 @@ function slugCells({ name, what, available, of, graphqlExpect }: SlugCheck): Iso
       title: `A's owner checks over REST a slug ${what}: ${answer}`,
       request: (a, b) => {
         const { slug, restId } = of(a, b);
-        return ownerRest(a, 'GET', slugPath(slug, restId));
+        return onChannel(ownerRest(a, 'GET', slugPath(slug, restId)), channel(a));
       },
       expect,
     },
   ];
 }
 
+/** A's own manual collection: its slug and id, in both forms. */
+const ownCollection = (a: BusinessWorld) => ({
+  slug: catalogOf(a).collection.slug,
+  collectionId: catalogOf(a).collection.id,
+  restId: restIdOf(catalogOf(a).collection.id),
+});
+
 const SLUG_CASES: readonly IsolationCase[] = [
+  // Controls: the check honours `collectionId` (A's own id frees A's own slug) and is scoped to the store it runs on.
+  ...slugCells({
+    name: 'own-collection-id',
+    what: 'its collection holds, naming that collection',
+    available: true,
+    of: ownCollection,
+  }),
+  ...slugCells({
+    name: 'other-store-own-collection-id',
+    what: "its first store's collection holds, naming it, on its second store",
+    available: true,
+    of: ownCollection,
+    channel: secondStore,
+  }),
   ...slugCells({
     name: 'foreign-collection-id',
     what: "its collection holds, naming B's collection",
