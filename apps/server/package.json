@@ -26,6 +26,7 @@
     "@cod/plugin-catalog-import": "workspace:*",
     "@cod/plugin-catalog-packs": "workspace:*",
     "@cod/plugin-merchant-shell": "workspace:*",
+    "@cod/plugin-offers": "workspace:*",
     "@cod/plugin-platform-flags": "workspace:*",
     "@cod/plugin-platform-health": "workspace:*",
     "@cod/plugin-platform-jobs": "workspace:*",

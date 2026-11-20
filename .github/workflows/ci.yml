@@ -81,6 +81,8 @@ jobs:
           INTERNAL_HMAC_KEYS: k1:change-me-internal-hmac-000000000000000000000
           TENANT_SECRET_KEKS: k1:0000000000000000000000000000000000000000000000000000000000000000
           TENANT_SECRET_ACTIVE_KID: k1
+          QUOTE_HMAC_KEYS: k1:change-me-quote-hmac-00000000000000000000000000
+          QUOTE_HMAC_ACTIVE_KID: k1
           SUPERADMIN_USERNAME: superadmin
           SUPERADMIN_PASSWORD: change-me-admin
         run: NODE_OPTIONS=--max-old-space-size=2048 pnpm --filter @cod/server build:dashboard
@@ -139,7 +141,7 @@ jobs:
       matrix:
         include:
           - part: others
-            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags --filter=!@cod/plugin-catalog --filter=!@cod/plugin-catalog-packs --filter=!@cod/plugin-catalog-import
+            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags --filter=!@cod/plugin-catalog --filter=!@cod/plugin-catalog-packs --filter=!@cod/plugin-catalog-import --filter=!@cod/plugin-offers
           - part: server-e2e
             command: pnpm exec turbo run test:integration --filter=@cod/server
           - part: tenancy-1
@@ -160,6 +162,8 @@ jobs:
             command: pnpm exec turbo run test:integration --concurrency=1 --filter=@cod/plugin-platform-secrets --filter=@cod/plugin-platform-webhooks --filter=@cod/plugin-platform-flags
           - part: catalog
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-catalog
+          - part: offers
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-offers
           - part: catalog-packs
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-catalog-packs
           - part: catalog-import
@@ -216,6 +220,8 @@ jobs:
       INTERNAL_HMAC_ACTIVE_KID: k1
       TENANT_SECRET_KEKS: k1:0000000000000000000000000000000000000000000000000000000000000000
       TENANT_SECRET_ACTIVE_KID: k1
+      QUOTE_HMAC_KEYS: k1:change-me-quote-hmac-00000000000000000000000000
+      QUOTE_HMAC_ACTIVE_KID: k1
       PLATFORM_DEMO_HANDLERS: 'true'
       SUPERADMIN_USERNAME: superadmin
       SUPERADMIN_PASSWORD: change-me-admin

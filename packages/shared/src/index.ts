@@ -34,3 +34,4 @@ export * from './text/control-characters';
 export * from './catalog';
 export * from './catalog-packs';
 export * from './catalog-import';
+export * from './pricing';

@@ -31,6 +31,8 @@ const CATALOG = '@cod/plugin-catalog';
 const CATALOG_PACKS = '@cod/plugin-catalog-packs';
 /** Catalog-import too (D2216). */
 const CATALOG_IMPORT = '@cod/plugin-catalog-import';
+/** The offers have a part of their own too: five Vendure test-server suites would overrun `others` (D2433). */
+const OFFERS = '@cod/plugin-offers';
 /** The platform plugins of part `platform-1` (D118). */
 const PLATFORM_1 = [
   '@cod/plugin-platform-jobs',
@@ -53,11 +55,12 @@ const othersExclusions = [
   CATALOG,
   CATALOG_PACKS,
   CATALOG_IMPORT,
+  OFFERS,
 ]
   .map((name) => `--filter=!${name}`)
   .join(' ');
 
-/** The parts of the matrix, in order (D51, D69, D118, D2116, D2216). */
+/** The parts of the matrix, in order (D51, D69, D118, D2116, D2216, D2433). */
 export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'others', command: `pnpm test:integration ${othersExclusions}` },
   { part: 'server-e2e', command: unshardedCommand(SERVER) },
@@ -70,6 +73,7 @@ export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'platform-1', command: groupedCommand(PLATFORM_1) },
   { part: 'platform-2', command: groupedCommand(PLATFORM_2) },
   { part: 'catalog', command: unshardedCommand(CATALOG) },
+  { part: 'offers', command: unshardedCommand(OFFERS) },
   { part: 'catalog-packs', command: unshardedCommand(CATALOG_PACKS) },
   { part: 'catalog-import', command: unshardedCommand(CATALOG_IMPORT) },
 ];

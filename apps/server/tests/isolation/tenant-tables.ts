@@ -42,15 +42,22 @@ export const CATALOG_TABLE_COUNTS = {
   catalog_media: BY_BUSINESS('catalog_media'),
 } as const;
 
-/** Every counted table, P1's and the catalog's. */
-const ALL_TABLE_COUNTS = { ...TENANT_TABLE_COUNTS, ...CATALOG_TABLE_COUNTS };
+/** The offers tables (P2.S4, D2405): the P2 world seeds an offer with a target and a code in each business. */
+export const OFFERS_TABLE_COUNTS = {
+  offers_offer: BY_BUSINESS('offers_offer'),
+  offers_offer_target: BY_BUSINESS('offers_offer_target'),
+  offers_code: BY_BUSINESS('offers_code'),
+} as const;
+
+/** Every counted table: P1's, the catalog's and the offers'. */
+const ALL_TABLE_COUNTS = { ...TENANT_TABLE_COUNTS, ...CATALOG_TABLE_COUNTS, ...OFFERS_TABLE_COUNTS };
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
 
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
-/** The P1 tables and the catalog's: the P2 world fills each. */
+/** The P1 tables, the catalog's and the offers': the P2 world fills each. */
 export const P2_TENANT_TABLES = Object.keys(ALL_TABLE_COUNTS) as TenantTable[];
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */

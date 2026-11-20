@@ -266,6 +266,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S4-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S1.md`, ADR 0004 (pricing/quote token and how quotes become Vendure order totals — the engine must produce exactly the per-line and shipping numbers that strategy needs), ADR 0003; `docs/roadmap/handoff/P2.S2.md` if merged (pack resolver).
 - `docs/research/data-model.md` "Offer" (entity, `config`, `combinesWith`, `eligibility`, limits, status, targets, performance) and "Storefront ordering protocol" steps 2–3 (shipping-quote shape; cart-quote request/response; quoteToken format `qt1.<base64url JSON {v,b,s,h,exp,t,sh,l,d,a}>.<HMAC>`, ~15 min).
 - `docs/research/second-pass.md` "Storefront order → delivered" step 1 and 4 (nudge "add one more piece to save 980 DA"; "Now: 1 piece · 2 pieces: DZD 8,820 (+3,920) · 3 pieces … Free delivery") and "Offers (7 kinds)" shared parts and kinds 1–4, 6.

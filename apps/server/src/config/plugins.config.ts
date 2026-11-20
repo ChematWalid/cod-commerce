@@ -4,6 +4,7 @@ import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CatalogImportPlugin } from '@cod/plugin-catalog-import';
 import { CatalogPacksPlugin } from '@cod/plugin-catalog-packs';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformHealthPlugin } from '@cod/plugin-platform-health';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
@@ -17,6 +18,7 @@ import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { parseInternalKeys } from '@cod/shared/internal-auth';
+import { parseQuoteKeys, quoteKeyRing } from '@cod/shared/quote-keys';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { HardenPlugin } from '@vendure/harden-plugin';
 import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
@@ -166,15 +168,17 @@ const catalogImportPlugin = (env: AppEnv): VendurePluginEntry =>
   });
 
 /**
- * RBAC, auth, catalog and Team, in this order: Team builds on the services of the others (D206) and registers its
- * order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137). The catalog
- * feature plugins come after Team and write through catalog's exported facade (D2200).
+ * RBAC, auth, catalog, offers and Team, in this order: Team builds on the services of the others (D206) and registers
+ * its order-manager check in the catalog module, so Catalog configures after Auth and before Team (D2137); the offers
+ * import the catalog module and configure right after it (D2402). The catalog feature plugins come after Team and
+ * write through catalog's exported facade (D2200).
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
   return [
     RbacPlugin,
     authPlugin(env),
     CatalogPlugin,
+    OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
     CatalogPacksPlugin,
     catalogImportPlugin(env),

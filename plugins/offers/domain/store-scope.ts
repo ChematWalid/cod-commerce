@@ -1,0 +1,9 @@
+import type { StoreId, TenantScope } from '@cod/shared';
+
+/**
+ * A business and one of its stores. Offers and codes belong to one store (D2405): every lookup names both, so an id
+ * of the business's other store answers "not found" like a foreign one.
+ */
+export interface StoreScope extends TenantScope {
+  readonly storeId: StoreId;
+}
