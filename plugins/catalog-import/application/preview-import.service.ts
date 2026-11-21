@@ -52,7 +52,7 @@ const chunksOf = <T>(items: readonly T[], size: number): T[][] =>
 /**
  * "Preview an import" (D2209, D2210): reads the analyzed file again, pinned to its ETag (a file re-put since is
  * `job-state`), maps its columns (the merchant's override wins, D2210), validates and plans every row against the
- * active store (SKUs looked up 200 at a time, `id:<n>` keys, brands and tags; update rows need
+ * active store (SKUs looked up 200 at a time, `id:<n>` keys, which of them are packs, brands and tags; update rows need
  * `catalog.products.edit`, D2207), and stores the rows with the mapping and its hash. Reading the stored preview is
  * paginated, at most 200 rows a page.
  */
@@ -137,9 +137,13 @@ export class PreviewImportService {
     for (const batch of chunksOf(skusToLookUp(request.rows), IMPORT_SKU_LOOKUP_BATCH)) {
       for (const [sku, match] of await this.deps.catalog.findBySkus(ctx, scope, batch)) skus.set(sku, match);
     }
+    const packIds = new Set<string>();
+    for (const match of skus.values()) if (match.kind === 'one' && match.isPack) packIds.add(match.productId);
     const productIds = new Set<string>();
     for (const id of productIdsToLookUp(request.rows)) {
-      if ((await this.deps.catalog.product(ctx, scope, id)) !== undefined) productIds.add(id);
+      const product = await this.deps.catalog.product(ctx, scope, id);
+      if (product !== undefined) productIds.add(id);
+      if (product?.isPack === true) packIds.add(id);
     }
     const taxonomy = await this.deps.catalog.taxonomyIndex(ctx, scope);
     const byName = (refs: readonly { id: string; name: string }[]) =>
@@ -147,6 +151,7 @@ export class PreviewImportService {
     return {
       skus,
       productIds,
+      packIds,
       brands: byName(taxonomy.brands),
       tags: byName(taxonomy.tags),
       canUpdate: request.canEdit,

@@ -71,6 +71,8 @@ export interface ImportTargetVariant {
 export interface ImportTargetProduct {
   readonly id: string;
   readonly hasOptions: boolean;
+  /** A pack is never a row's target (D2284): its computed values belong to catalog-packs. */
+  readonly isPack: boolean;
   readonly variants: readonly ImportTargetVariant[];
 }
 
@@ -162,6 +164,12 @@ function ownValuesOf(first: PlannedRow, hasOptions: boolean): OwnValues {
     ...entry('sku', productSkuOf(first) ?? first.values.variantSku),
     ...entry('barcode', first.values.barcode),
   };
+}
+
+/** Every SKU a create gives the store: the product's own and its variants', each once. */
+export function skusOfCreate(command: ImportCreate): string[] {
+  const variantSkus = command.variants.flatMap((variant) => (variant.sku === undefined ? [] : [variant.sku]));
+  return [...new Set([...(command.product.sku === undefined ? [] : [command.product.sku]), ...variantSkus])];
 }
 
 const sameValues = (left: readonly string[], right: readonly string[]): boolean =>

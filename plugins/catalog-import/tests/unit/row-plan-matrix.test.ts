@@ -14,6 +14,7 @@ function lookups(change: Partial<PlanLookups> = {}): PlanLookups {
   return {
     skus: new Map<string, SkuLookup>(),
     productIds: new Set<string>(),
+    packIds: new Set<string>(),
     brands: new Map(),
     tags: new Map(),
     canUpdate: true,
@@ -127,9 +128,9 @@ describe('planRows: the option matrix of a new product (D2270)', () => {
       rowsOf({ ...shirt('Red', 'S'), variant_sku: 'SHIRT-RS' }, { ...shirt('Blue', 'M'), variant_sku: 'SHIRT-BM' }),
       lookups({
         skus: new Map<string, SkuLookup>([
-          ['SHIRT', { kind: 'one', productId: '7', variantId: null }],
-          ['SHIRT-RS', { kind: 'one', productId: '7', variantId: '71' }],
-          ['SHIRT-BM', { kind: 'one', productId: '7', variantId: '74' }],
+          ['SHIRT', { kind: 'one', productId: '7', variantId: null, isPack: false }],
+          ['SHIRT-RS', { kind: 'one', productId: '7', variantId: '71', isPack: false }],
+          ['SHIRT-BM', { kind: 'one', productId: '7', variantId: '74', isPack: false }],
         ]),
       }),
     );

@@ -1,4 +1,10 @@
-import { IMPORT_MAX_BYTES, IMPORT_MAX_CELL_CHARS, IMPORT_MAX_COLUMNS, type ImportJobStatus } from '@cod/shared';
+import {
+  IMPORT_MAX_BYTES,
+  IMPORT_MAX_CELL_CHARS,
+  IMPORT_MAX_COLUMNS,
+  type ImportJobStatus,
+  type ProductType,
+} from '@cod/shared';
 
 /** The queue catalog-import defines and alone defines (D2212); P4.S2 registers order exports on it. */
 export const IMPORTS_EXPORTS_QUEUE = 'imports-exports' as const;
@@ -56,6 +62,8 @@ export const IMPORT_MAX_RECORD_CHARS = IMPORT_MAX_COLUMNS * IMPORT_MAX_CELL_CHAR
 export const IMPORT_MAX_SHEET_CHARS = IMPORT_MAX_BYTES;
 /** SKUs one `findBySkus` call looks up while previewing: one preview page's worth (D2209). */
 export const IMPORT_SKU_LOOKUP_BATCH = 200;
+/** The product type an import never writes: a pack's prices, matrix and weight are computed by catalog-packs (D2284). */
+export const PACK_PRODUCT_TYPE: ProductType = 'pack';
 /** The import worker writes its progress after this many rows (D2210). */
 export const IMPORT_PROGRESS_EVERY_ROWS = 50;
 /** The base name of an import's error report download, followed by `-<importId>.csv` (D2208). */

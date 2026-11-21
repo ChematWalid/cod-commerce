@@ -56,7 +56,7 @@ describe('import and export constants', () => {
     const codes = [...Object.values(CATALOG_IMPORT_ERROR_CODES), ...Object.values(CATALOG_IMPORT_ROW_REASONS)];
 
     for (const code of codes) expect(code).toMatch(/^catalog-import\.[a-z]+(-[a-z]+)*$/);
-    expect(new Set(Object.values(CATALOG_IMPORT_ERROR_CODES)).size).toBe(15);
+    expect(new Set(Object.values(CATALOG_IMPORT_ERROR_CODES)).size).toBe(16);
   });
 
   it('keeps row errors and warnings apart, both in the row reasons', () => {
@@ -66,6 +66,7 @@ describe('import and export constants', () => {
     expect(errors.filter((code) => warnings.includes(code))).toEqual([]);
     expect(Object.values(CATALOG_IMPORT_ROW_REASONS).sort()).toEqual([...errors, ...warnings].sort());
     expect(errors).toContain(CATALOG_IMPORT_ERROR_CODES.ROW_PRODUCT_NOT_FOUND);
+    expect(errors).toContain(CATALOG_IMPORT_ERROR_CODES.ROW_SKU_TAKEN);
     expect(errors).toContain(CATALOG_IMPORT_ERROR_CODES.UPDATE_FORBIDDEN);
   });
 });

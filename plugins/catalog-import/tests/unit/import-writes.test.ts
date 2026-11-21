@@ -8,6 +8,7 @@ const E = CATALOG_IMPORT_ROW_ERRORS;
 const shirt: ImportTargetProduct = {
   id: '7',
   hasOptions: true,
+  isPack: false,
   variants: [{ id: '71', sku: 'SHIRT-BLUE', optionValues: ['Blue'] }],
 };
 

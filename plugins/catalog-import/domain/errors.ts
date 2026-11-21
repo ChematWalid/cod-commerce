@@ -109,6 +109,14 @@ export class RowProductNotFoundError extends DomainError {
   }
 }
 
+/** A create group one of whose SKUs a product of the store took since the preview (D2285): the group is not created. */
+export class RowSkuTakenError extends DomainError {
+  readonly code = C.ROW_SKU_TAKEN;
+  constructor() {
+    super('A SKU of the row was taken since the preview');
+  }
+}
+
 /**
  * A link the guard refuses (D2214): a scheme, port, userinfo or host it does not allow, a name that does not resolve,
  * resolves to a private address or fails DNS, or a page that is not HTML. One answer for all, so it is no oracle of

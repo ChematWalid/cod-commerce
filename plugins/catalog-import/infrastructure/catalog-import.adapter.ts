@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import type { TaxonomyRefs } from '../application/ports/catalog-products.port';
 import type { CatalogImportPort } from '../application/ports/catalog-import.port';
 import type { OperationContext } from '../application/ports/operation-context';
+import { PACK_PRODUCT_TYPE } from '../domain/constants';
 import { InvalidImportInputError } from '../domain/errors';
 import type { ImportCreate, ImportTargetProduct, ImportUpdate } from '../domain/import-writes';
 import type { SkuLookup } from '../domain/plan-lookups';
@@ -14,6 +15,7 @@ import { toRequestContext } from './request-context';
 const targetOf = (view: ProductView): ImportTargetProduct => ({
   id: view.id,
   hasOptions: view.optionGroups.length > 0,
+  isPack: view.type === PACK_PRODUCT_TYPE,
   variants: view.variants.map((variant) => ({ id: variant.id, sku: variant.sku, optionValues: variant.optionValues })),
 });
 
@@ -61,7 +63,20 @@ export class CatalogImportAdapter implements CatalogImportPort {
     scope: StoreScope,
     skus: readonly string[],
   ): Promise<ReadonlyMap<string, SkuLookup>> {
-    return this.commands.findBySkus(toRequestContext(ctx), scope, skus);
+    const matches = await this.commands.findBySkus(toRequestContext(ctx), scope, skus);
+    return new Map(
+      [...matches].map(([sku, match]): [string, SkuLookup] => [
+        sku,
+        match.kind === 'one'
+          ? {
+              kind: 'one',
+              productId: match.productId,
+              variantId: match.variantId,
+              isPack: match.productType === PACK_PRODUCT_TYPE,
+            }
+          : match,
+      ]),
+    );
   }
 
   async product(ctx: OperationContext, scope: StoreScope, productId: string): Promise<ImportTargetProduct | undefined> {

@@ -190,12 +190,15 @@ function variantsOf(group: RowGroup, productId: string | undefined, lookups: Pla
 /**
  * What a group does (D2209): an update of the product its key names (or, without a resolved key, the product its
  * first known variant SKU names), else a create in the active store. A key naming no product of the store, or
- * several, refuses the whole group; a create whose rows do not name its full option matrix refuses them all (D2270).
+ * several, refuses the whole group, and so does one naming a pack, whose prices, matrix and weight catalog-packs
+ * computes (`row-type-unsupported`, D2284); a create whose rows do not name its full option matrix refuses them all
+ * (D2270).
  */
 export function targetOfGroup(group: RowGroup, lookups: PlanLookups): GroupTarget {
   const fromKey = productOfKey(group, lookups);
   if (fromKey.kind === 'refused') return { kind: 'error', reason: fromKey.reason };
   const productId = fromKey.kind === 'product' ? fromKey.productId : productOfVariants(group, lookups);
+  if (productId !== undefined && lookups.packIds.has(productId)) return { kind: 'error', reason: E.TYPE_UNSUPPORTED };
   const { variantIds, rowErrors } = variantsOf(group, productId, lookups);
   matrixErrorsOf(group, rowErrors);
   if (productId === undefined) {

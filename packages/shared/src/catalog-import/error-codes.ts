@@ -11,6 +11,7 @@ export const CATALOG_IMPORT_ERROR_CODES = {
   COLLECTIONS_UNAVAILABLE: 'catalog-import.collections-unavailable',
   TAXONOMY_NOT_FOUND: 'catalog-import.taxonomy-not-found',
   ROW_PRODUCT_NOT_FOUND: 'catalog-import.row-product-not-found',
+  ROW_SKU_TAKEN: 'catalog-import.row-sku-taken',
   PRICE_OUT_OF_RANGE: 'catalog-import.price-out-of-range',
   LINK_REFUSED: 'catalog-import.link-refused',
   LINK_UNREACHABLE: 'catalog-import.link-unreachable',
@@ -33,6 +34,8 @@ export const CATALOG_IMPORT_ROW_ERRORS = {
   /** An update row whose variant the product no longer has (its SKU, option values or single variant, D2210). */
   VARIANT_NOT_FOUND: 'catalog-import.row-variant-not-found',
   PRODUCT_NOT_FOUND: CATALOG_IMPORT_ERROR_CODES.ROW_PRODUCT_NOT_FOUND,
+  /** A create row whose SKU a product of the store took after the preview, another import's for one (D2285). */
+  SKU_TAKEN: CATALOG_IMPORT_ERROR_CODES.ROW_SKU_TAKEN,
   UPDATE_FORBIDDEN: CATALOG_IMPORT_ERROR_CODES.UPDATE_FORBIDDEN,
 } as const;
 

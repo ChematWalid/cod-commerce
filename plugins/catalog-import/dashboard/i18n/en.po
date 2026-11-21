@@ -472,6 +472,10 @@ msgid "catalog-import.row-product-not-found"
 msgstr "No product of this store has this key."
 
 #. js-lingui-explicit-id
+msgid "catalog-import.row-sku-taken"
+msgstr "A product of this store took this SKU after the preview."
+
+#. js-lingui-explicit-id
 msgid "catalog-import.price-out-of-range"
 msgstr "The new price is out of range."
 

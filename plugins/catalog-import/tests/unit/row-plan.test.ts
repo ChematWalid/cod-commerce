@@ -15,6 +15,7 @@ function lookups(change: Partial<PlanLookups> = {}): PlanLookups {
   return {
     skus: new Map<string, SkuLookup>(),
     productIds: new Set<string>(),
+    packIds: new Set<string>(),
     brands: new Map([['acme', '501']]),
     tags: new Map([['cotton', '601']]),
     canUpdate: true,
@@ -22,7 +23,12 @@ function lookups(change: Partial<PlanLookups> = {}): PlanLookups {
   };
 }
 
-const one = (productId: string, variantId: string | null = null): SkuLookup => ({ kind: 'one', productId, variantId });
+const one = (productId: string, variantId: string | null = null): SkuLookup => ({
+  kind: 'one',
+  productId,
+  variantId,
+  isPack: false,
+});
 
 describe('planRows (D2209, Review Focus 3)', () => {
   it('groups variant rows by product_key', () => {
