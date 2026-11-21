@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P2.S3.sh`. Data is synthetic
 (the demo seed plus the tags, brand, products and collections the script creates). Image built from a tree with no
-uncommitted change outside the evidence folders and browser tests, last image-relevant commit `1bea1ee577672baabe535a5234d228b46ec0ee8a`. Compose
+uncommitted change outside the evidence folders and browser tests, last image-relevant commit `435526594ff76adf7000230fe53e9094a3803975`. Compose
 project `cod-evidence`. Every transcript shows the GraphQL and the REST form of the operations it covers (D2314, D2315).
 
 ## API transcripts

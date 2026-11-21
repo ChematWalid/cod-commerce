@@ -18,6 +18,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"1d9-OeLzsDPCEi0bsQQzyV5rrhmmprM"
 
 {
   "data": {
@@ -28,7 +29,7 @@ content-type: application/json; charset=utf-8
           "name": "علامة الأدلة"
         },
         {
-          "id": "249741990978134016",
+          "id": "249806504977244160",
           "name": "علامة تجريبية"
         }
       ],
@@ -42,7 +43,7 @@ content-type: application/json; charset=utf-8
           "name": "ترويج الأدلة"
         },
         {
-          "id": "249741991183654912",
+          "id": "249806505094684672",
           "name": "جديد"
         }
       ],
@@ -77,11 +78,12 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"106-dS2W6ouv7cVXYTKSKEnE3+8dP6w"
 
 {
   "brands": [
     {
-      "id": "249741996653027328",
+      "id": "249806509788110848",
       "name": "Marque démo"
     }
   ],
@@ -91,7 +93,7 @@ content-type: application/json; charset=utf-8
       "name": "B evidence tag"
     },
     {
-      "id": "249741997026320384",
+      "id": "249806509913939968",
       "name": "Nouveau"
     }
   ],

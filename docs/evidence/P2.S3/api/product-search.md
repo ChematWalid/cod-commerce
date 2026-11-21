@@ -23,6 +23,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"306-8yr8Ercj6xGjx3meAhaGgAmK8Yk"
 
 {
   "data": {
@@ -92,6 +93,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2db-XW3lfO6htWP6eBq2d4PhGGcM4tE"
 
 {
   "totalItems": 8,
@@ -169,6 +171,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"a6-dUlbh8JM6UK+AHOAlWyvjeiJ6Lo"
 
 {
   "data": {

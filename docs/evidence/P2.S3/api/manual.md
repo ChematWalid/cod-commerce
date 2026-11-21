@@ -25,6 +25,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"54-YNz0tHu+iSr9pxW6vt353S8/Xsk"
 
 {
   "data": {
@@ -58,6 +59,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"141-h3A6nOCqzgQIOh6YQPqlB7qUm4s"
 
 {
   "data": {
@@ -106,6 +108,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"184-Rx503CLLQamkmY0F6CfUPZXP3Mc"
 
 {
   "title": "تخفيضات الصيف",
@@ -113,7 +116,7 @@ content-type: application/json; charset=utf-8
   "description": "مختارات الصيف بأسعار مخفضة",
   "featuredAsset": {
     "id": "1",
-    "preview": "http://127.0.0.1:23100/assets/b/249741973760516096/s/<STORE_DEMO>/preview/f8/f8687ba77a6fa478dfa0d1018e827075__preview.png"
+    "preview": "http://127.0.0.1:23100/assets/b/249806488732704768/s/<STORE_DEMO>/preview/7a/7a0f8f799fa729474e6c2776e16bc870__preview.png"
   },
   "id": "2",
   "mode": "manual",
@@ -133,6 +136,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"11b-wVKhF0M15YsfZr5LVMshVcxTqg0"
 
 {
   "items": [
@@ -180,6 +184,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"d8-vsjfoz1x0X6LXiXDrsMP0k5k0RE"
 
 {
   "errors": [
@@ -219,6 +224,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"9e-RLfIAmR1nGt4ii+3hh1LnlWtBUw"
 
 {
   "statusCode": 409,
@@ -250,6 +256,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"cf-ZvylRzJZRr5yzGNfd2bi+hrGfJs"
 
 {
   "errors": [
@@ -289,6 +296,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"95-BaOfCUanJDaXx6PahKVEY7hEZDU"
 
 {
   "statusCode": 404,

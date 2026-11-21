@@ -26,6 +26,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"115-GkjYVp/VBYB1iKx3DNgvLitlkLg"
 
 {
   "data": {
@@ -63,6 +64,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"ad-PuRdI1l4BbW2SpbycsjQvLrUM4U"
 
 {
   "title": "إكسسوارات",
@@ -98,6 +100,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"142-T+PigJddQlsxQdHRdrvlYNBfsxE"
 
 {
   "data": {
@@ -137,6 +140,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"10c-oQyTG5mcUeaBfwh1AmVkeLiPwzM"
 
 {
   "items": [
@@ -175,6 +179,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"10f-j4oH6uSMyf3ZmBElUGkrYTIp5+4"
 
 {
   "data": {
@@ -203,6 +208,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"ad-PuRdI1l4BbW2SpbycsjQvLrUM4U"
 
 {
   "title": "إكسسوارات",
@@ -240,6 +246,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"11b-cKZpE+HCNLsU3m6w1E6FCTwHn0U"
 
 {
   "data": {
@@ -275,6 +282,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"ae-yj8Ss6eLMxuaoRO8mw+z9fKQ8u4"
 
 {
   "title": "إكسسوارات",
@@ -308,6 +316,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"64-NAXjeKsSqgrgivaMZeFIfDU96c4"
 
 {
   "data": {
@@ -338,6 +347,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"63-r6p09iUI48TrsxEJWge6PPTm0/Y"
 
 {
   "data": {
@@ -358,6 +368,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"36-+cOQgW84xb2Dt0OlhgafnaZVxxc"
 
 {
   "slug": "تخفيضات-الصيف",
@@ -383,6 +394,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"63-r6p09iUI48TrsxEJWge6PPTm0/Y"
 
 {
   "data": {
@@ -418,6 +430,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"cf-KJ/yCHjrzUbEVj2EzaTljT1Eb7c"
 
 {
   "data": {
@@ -455,6 +468,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"59-zSlAVFCX9OI+Vt95LklYCAKPGt0"
 
 {
   "data": {
@@ -490,6 +504,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"db-GKGGLmOlrGeHgWKjURNMIeK8pUU"
 
 {
   "errors": [
@@ -531,6 +546,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"9b-BxJZWij6XqSHVYr9PfmDt82FNmc"
 
 {
   "statusCode": 409,
@@ -558,6 +574,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"28-/sfumtZOvUKDE9u8V3/clluSg94"
 
 {
   "data": {
@@ -584,6 +601,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"22-WdzdemMSD6mWhlJomi9ciN1795w"
 
 {
   "data": {
@@ -601,6 +619,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"10-oV4hJxRVSENxc/wX8+mA4/Pe4tA"
 
 {
   "success": true
@@ -616,6 +635,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"73-B2MUd45taJH8kWV4CgLIhCO2r5Q"
 
 {
   "statusCode": 404,

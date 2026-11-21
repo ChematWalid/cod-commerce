@@ -23,6 +23,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"41-QYLlffKIfsgmgbkhFuODHS3bBoc"
 
 {
   "data": {
@@ -57,6 +58,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"d2-gKgEXcx8MNM7GIS9kfg+MiiPa28"
 
 {
   "data": {
@@ -104,6 +106,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"97-pH2z6FeEkM/7lzoGqMCVRkvaO+E"
 
 {
   "data": {
@@ -131,6 +134,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"71-jawXNAqQVXMOdrMcUocb1DuHuDk"
 
 {
   "items": [
@@ -166,6 +170,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"1fa-GODIHrIzdmbbjGGDwMXb9cbN7xk"
 
 {
   "data": {
@@ -227,6 +232,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"416-/y22rSDgjpgs+S8GFuR2unD7MGI"
 
 {
   "product": {
@@ -261,8 +267,8 @@ content-type: application/json; charset=utf-8
         ]
       }
     ],
-    "createdAt": "2026-11-21T03:47:45.457Z",
-    "updatedAt": "2026-11-21T03:48:02.881Z",
+    "createdAt": "2026-11-21T08:02:02.835Z",
+    "updatedAt": "2026-11-21T08:02:19.507Z",
     "tagIds": [
       "<TAG_NEW>"
     ],
@@ -327,6 +333,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"1a3-1lGkfo1bai2RcB0yN4/mTB325+U"
 
 {
   "data": {
@@ -372,6 +379,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"17d-P94w//meb1kqgCGzZ/d4dOyM2P8"
 
 {
   "items": [

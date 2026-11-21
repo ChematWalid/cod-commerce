@@ -20,6 +20,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"f1-7km24k25YOX2uvV+mFntUnYhLn0"
 
 {
   "data": {
@@ -58,6 +59,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"cb-D7dPICMzJPZBvzHLiwtJXKXxOxU"
 
 {
   "manual": [
@@ -104,6 +106,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"b9-/oNesvRXVrls1GWjzVlyivSoUxc"
 
 {
   "data": {
@@ -143,6 +146,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"62-HudFdPVwvI0Xx506qy09GqHYCDw"
 
 {
   "manual": [],
@@ -180,6 +184,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"b6-FLptCiedxazwCCHcb0pOIctXMKU"
 
 {
   "errors": [
@@ -219,6 +224,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"128-vyugJ66Cu/Eb71yw6hyzy+tojZs"
 
 {
   "data": {

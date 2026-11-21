@@ -53,6 +53,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"284-RzTyHQiyam/3dmypZ32N5mXIxg0"
 
 {
   "data": {
@@ -131,6 +132,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"95-W3DvVpchgVDufBWIMX1qlZc9GJI"
 
 {
   "data": {
@@ -193,6 +195,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"228-euj+tKGbom3X/9s3GtwuNzTZp8Q"
 
 {
   "title": "أي شرط",
@@ -253,6 +256,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"1c3-NyY8/YFbipFpBzZpPKjCxQUi0zI"
 
 {
   "items": [
@@ -327,6 +331,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"179-iMlg4JRDzpP1amDShA626rsyypM"
 
 {
   "data": {
@@ -383,6 +388,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"2b0-8yKy7NUXY/wMGf2P50F9RnsdexE"
 
 {
   "data": {
@@ -455,6 +461,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"c4-y2p9XFKa2fWi/jjVA+XR5CSu2+M"
 
 {
   "data": {
@@ -513,6 +520,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"156-ftyYNek2GRMyhCKe6ypwr2RAGZg"
 
 {
   "title": "كل الأحمر",
@@ -553,6 +561,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"120-SXuH4RcAQQWIcyT0C4+rzzlwv+A"
 
 {
   "items": [
@@ -616,6 +625,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"175-nMw/t+rbla2IzSNPTzCpXnXatdw"
 
 {
   "data": {
@@ -660,6 +670,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"27c-SvB2jeFK81sMDJLzyLj1qBIMQM0"
 
 {
   "items": [
@@ -745,6 +756,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"bc-kjqs7xULyKnJXAXUPx9WRGY1nhQ"
 
 {
   "errors": [
@@ -797,6 +809,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 400 Bad Request
 content-type: application/json; charset=utf-8
+etag: W/"7c-oTDw3pPSXApJxbmHcTj0e5sEpkM"
 
 {
   "statusCode": 400,

@@ -20,6 +20,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"22-WdzdemMSD6mWhlJomi9ciN1795w"
 
 {
   "data": {
@@ -37,6 +38,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"73-zrrTrNrVt2Fw7mlXhxEwHQjGx0A"
 
 {
   "statusCode": 404,
@@ -55,6 +57,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"75-63YnfHue2T96CcCpxXTtyC/5k0Q"
 
 {
   "statusCode": 404,
@@ -85,6 +88,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"b1-BBfUP7v5EpS/bErG+hTLV4cW2aY"
 
 {
   "errors": [
@@ -129,6 +133,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"b6-0ctj9OKh3wkGIbzPGNwF74IBwaU"
 
 {
   "errors": [
@@ -161,6 +166,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"73-zrrTrNrVt2Fw7mlXhxEwHQjGx0A"
 
 {
   "statusCode": 404,
@@ -179,6 +185,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"98-Edk6gG3lZdT19UZW3Kg50+LBLQU"
 
 {
   "statusCode": 404,
@@ -206,6 +213,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"c9-kCcmJHs11elX5jU7bM4ewi8omsk"
 
 {
   "data": {
@@ -241,6 +249,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"c2-NUIzmxXV+mafhaQFsuJT4j62Pyw"
 
 {
   "errors": [
@@ -273,11 +282,12 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 403 Forbidden
 content-type: application/json; charset=utf-8
+etag: W/"7e-Rrj5wOTkFsLTbGJaVNzthiAoOzA"
 
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-21T03:48:06.117Z",
+  "timestamp": "2026-11-21T08:02:22.857Z",
   "path": "/catalog/collections"
 }
 ```
@@ -298,6 +308,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"bc-dlPqFzVUQnR0BjkX+BHib/y69eo"
 
 {
   "errors": [
@@ -336,6 +347,7 @@ Authorization: Bearer [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"35-nU2QNnSPQMMS+hLbqKHcS8OkakU"
 
 {
   "data": {

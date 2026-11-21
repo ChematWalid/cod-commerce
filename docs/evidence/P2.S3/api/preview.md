@@ -49,6 +49,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"89-8o6BLjfByOxutxKNUwoWHGhtdc4"
 
 {
   "data": {
@@ -114,6 +115,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"c7-w+Ub+JXXm09MGPX0FBZ/ZNAvp1s"
 
 {
   "data": {
@@ -184,6 +186,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"cc-aidTalDO0gtyLN+HsSvE1gDPcJ4"
 
 {
   "data": {
@@ -247,6 +250,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"1c3-xD9IWH7gG+fLlYjbLz0JuNGe5C4"
 
 {
   "totalItems": 5,
@@ -294,6 +298,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"19f-W94emUoIRW61arh8hp4HY4FYu5w"
 
 {
   "items": [
@@ -303,7 +308,7 @@ content-type: application/json; charset=utf-8
       "description": "مختارات الصيف بأسعار مخفضة",
       "featuredAsset": {
         "id": "1",
-        "preview": "http://127.0.0.1:23100/assets/b/249741973760516096/s/<STORE_DEMO>/preview/f8/f8687ba77a6fa478dfa0d1018e827075__preview.png"
+        "preview": "http://127.0.0.1:23100/assets/b/249806488732704768/s/<STORE_DEMO>/preview/7a/7a0f8f799fa729474e6c2776e16bc870__preview.png"
       },
       "id": "2",
       "mode": "manual",
@@ -317,7 +322,7 @@ content-type: application/json; charset=utf-8
 }
 ```
 
-### previewStoreCollectionMatches past the budget (preview 28 in a minute): refused with retryAfterSeconds
+### previewStoreCollectionMatches past the budget (preview 29 in a minute): refused with retryAfterSeconds
 
 ```http
 POST http://127.0.0.1:23100/admin-api?languageCode=en
@@ -364,6 +369,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"e2-yrYws8e92wL+ekMU8rGNL8n7PRo"
 
 {
   "errors": [
@@ -380,7 +386,7 @@ content-type: application/json; charset=utf-8
       ],
       "extensions": {
         "code": "collections.rate-limited",
-        "retryAfterSeconds": 1
+        "retryAfterSeconds": 2
       }
     }
   ],
@@ -430,6 +436,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 429 Too Many Requests
 retry-after: 2
 content-type: application/json; charset=utf-8
+etag: W/"8c-wE10Xdn7mF4ke/NaTMsRQqY7Rwk"
 
 {
   "statusCode": 429,
