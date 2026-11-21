@@ -23,7 +23,7 @@ function outcomeOf(result: BulkEditProductResultDto, translate: (id: string) => 
   return result.changedFields.map((field) => translate(changedFieldLabelId(field))).join(', ');
 }
 
-/** The product as its line names it: its title, or "Product <id>" when the store has no such product (#261). */
+/** The product as its line names it: its title, or "Product <id>" when the store has no such product (issue 261). */
 function productNameOf(
   result: BulkEditProductResultDto,
   translate: (id: string, values: Record<string, unknown>) => string,
@@ -53,7 +53,7 @@ export function BulkResult(props: {
       <ul className="grid max-h-60 gap-1 overflow-y-auto">
         {props.results.map((result) => (
           <li key={result.productId} className={result.ok ? undefined : 'text-destructive'}>
-            {/* The title is the merchant's text in any script: isolated, so its digits keep their place (#261). */}
+            {/* The title is the merchant's text in any script: isolated, so its digits keep their place (issue 261). */}
             <bdi>{productNameOf(result, translate)}</bdi>
             {i18n._('catalog-import.bulk-product-line', { outcome: outcomeOf(result, translate) })}
           </li>

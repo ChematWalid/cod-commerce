@@ -28,7 +28,7 @@ interface PreviewStepProps {
 
 /**
  * Below the `sm` width the row number and key columns hide (the key moves under the name) and the text cells wrap, so
- * a phone shows the name and the row's reasons without scrolling sideways (#261).
+ * a phone shows the name and the row's reasons without scrolling sideways (issue 261).
  */
 const WIDE_ONLY = 'hidden sm:table-cell';
 const WRAPPING = 'whitespace-normal break-words';
