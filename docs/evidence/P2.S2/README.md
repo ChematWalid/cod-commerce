@@ -73,7 +73,7 @@ applies; the import is a four-step wizard (Upload, Columns, Preview, Confirm).
 | `bulk-edit` | "Bulk edit (2 products)": Status Draft, Price Change by a percentage, Value 10 %, Brand / Add tag / Remove tag Keep as is, Preview changes and Cancel. |
 | `bulk-edit-result` | After the dry run: "Would change: 2. Refused: 0." and one line per product (price; the status was already Draft), Apply changes instead of Preview. |
 | `export-dialog` | Export products: Selected products (2), CSV, Export and Close. |
-| `export-job` | A filtered export of every product (above 500): the choices disabled and the job's progress bar at 0 % (queued), no download yet. |
+| `export-job` | A filtered export of every product (above 500), caught while the job is queued: the choices disabled, an unlabelled grey progress bar under them (no percentage, status or row count on screen) and no download yet. |
 | `import-upload` | Step 1 Upload: the hint (Excel or CSV, 10 MB, 5,000 rows, one row per variant), the chosen products.csv, Upload and analyze. |
 | `import-analyze` | A PNG named photo.csv: after the upload the analysis refuses it, toast "Only Excel (.xlsx) and CSV files can be imported." (Arabic: "يمكن استيراد ملفات Excel (.xlsx) وCSV فقط."). |
 | `import-mapping` | Step 2 Columns: each file column with its field select (Product key, Name, Type, Status, Price, Variant SKU), "Remarque libre" set to Ignore this column with "Unknown column, ignored."; Back and Preview the rows. |
@@ -88,3 +88,8 @@ Seen and left as is (issue #261, severity low):
   the merchant scrolls sideways.
 - The native file input shows the browser's own "Choose File" in English on the Arabic pages (the test browser runs in
   en-US; a browser in Arabic shows its own words).
+- The export job's progress bar carries no label: nothing on screen says the job is queued or running, how far it is or
+  how many rows it holds, so a merchant cannot tell a queued job from a stuck dialog.
+
+The phone overflow of the import preview and the id-only bulk result lines are to be fixed before the phase-end PR
+(D2281).
