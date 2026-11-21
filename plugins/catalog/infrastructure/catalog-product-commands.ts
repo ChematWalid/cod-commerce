@@ -133,9 +133,10 @@ export class CatalogProductCommands {
 
   /**
    * The store-channel context of `scope` (admin API, no user) that a worker or an outbox consumer passes to the
-   * other calls; an archived store or a store of another business is refused.
+   * other calls; an archived store or a store of another business is refused. An outbox consumer passes its
+   * delivery's context as `within`, so the store context joins that transaction (D2282).
    */
-  storeContext(scope: StoreScope): Promise<RequestContext> {
-    return this.contexts.storeContext(scope);
+  storeContext(scope: StoreScope, within?: RequestContext): Promise<RequestContext> {
+    return this.contexts.storeContext(scope, within);
   }
 }

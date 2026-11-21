@@ -39,6 +39,8 @@ export interface StoreTestOptions {
   readonly plugins: NonNullable<VendureConfig['plugins']>;
   readonly partitionedSchemas: readonly PartitionedTableSchema[];
   readonly partitionMaintenance: Type<PartitionMaintainer>;
+  /** The most connections the server's pool opens; node-postgres's default (10) when omitted. */
+  readonly poolSize?: number;
 }
 
 /**
@@ -49,6 +51,7 @@ export function createStoreTestEnvironment(options: StoreTestOptions): ReturnTyp
   const environment = createPluginTestEnvironment({
     plugins: options.plugins,
     db: loadPluginTestDbConfig(process.env),
+    ...(options.poolSize === undefined ? {} : { poolSize: options.poolSize }),
   });
   withPartitionedSchemas(environment.server, options.partitionedSchemas, options.partitionMaintenance);
   return environment;

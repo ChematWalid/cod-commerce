@@ -24,16 +24,21 @@ export class CatalogStoreContexts {
 
   /**
    * A context in the store channel of `scope`, admin API, no user: what a job or an outbox consumer writes with,
-   * where no request and no tenant guard exist.
+   * where no request and no tenant guard exist. Given `within` (an outbox delivery's context), the checks and the
+   * answer run in its transaction: a consumer then holds one pooled connection, never a second while the delivery's
+   * waits (#260, D2282).
    *
    * @throws {ProductNotFoundError} when the store is not a live store of the business, or the business is suspended.
    */
-  async storeContext(scope: StoreScope): Promise<RequestContext> {
-    const base = await this.contexts.create({ apiType: 'admin' });
+  async storeContext(scope: StoreScope, within?: RequestContext): Promise<RequestContext> {
+    const base = within ?? (await this.contexts.create({ apiType: 'admin' }));
     const store = await this.liveStore(base, scope);
     const channel = await this.channels.findOne(base, store.channelId);
     if (channel === undefined) throw new ProductNotFoundError();
-    const ctx = await this.contexts.create({ apiType: 'admin', channelOrToken: channel });
+    const ctx =
+      within === undefined
+        ? await this.contexts.create({ apiType: 'admin', channelOrToken: channel })
+        : within.copy(channel);
     await this.assertScope(ctx, scope);
     return ctx;
   }

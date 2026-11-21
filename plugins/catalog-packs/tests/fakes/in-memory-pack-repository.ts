@@ -11,6 +11,8 @@ export class InMemoryPackRepository implements PackRepositoryPort {
   private readonly rows = new Map<string, PackRecord[]>();
   private sequence = 0;
   readonly reads: string[] = [];
+  /** The context of every pack lookup, in order. */
+  readonly readContexts: OperationContext[] = [];
 
   /** Seeds a stored pack. */
   put(scope: StoreScope, record: PackRecord): void {
@@ -29,13 +31,15 @@ export class InMemoryPackRepository implements PackRepositoryPort {
     return this.of(scope);
   }
 
-  findByProduct(_ctx: OperationContext, scope: StoreScope, productId: string): Promise<PackRecord | undefined> {
+  findByProduct(ctx: OperationContext, scope: StoreScope, productId: string): Promise<PackRecord | undefined> {
     this.reads.push(scope.businessId);
+    this.readContexts.push(ctx);
     return Promise.resolve(this.of(scope).find((row) => row.productId === productId));
   }
 
-  holding(_ctx: OperationContext, scope: StoreScope, productId: string): Promise<readonly PackRecord[]> {
+  holding(ctx: OperationContext, scope: StoreScope, productId: string): Promise<readonly PackRecord[]> {
     this.reads.push(scope.businessId);
+    this.readContexts.push(ctx);
     return Promise.resolve(this.of(scope).filter((row) => row.components.some((line) => line.productId === productId)));
   }
 

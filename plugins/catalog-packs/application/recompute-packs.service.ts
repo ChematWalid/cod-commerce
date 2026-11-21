@@ -13,18 +13,29 @@ import type { PackPorts } from './pack-ports';
  * Keeps stored pack prices true when a product changes (D2203): the packs holding it are repriced and their
  * product written when the values change; a component deleted, set to draft or losing the shared value marks the
  * pack `stale` and keeps its last price; a pack product that is gone or no longer a pack loses its pack rows. Each
- * pack runs in its own transaction under the pack's lock.
+ * pack runs in its own transaction under the pack's lock (a savepoint when the caller's context already holds one).
  */
 export class RecomputePacksService {
   constructor(private readonly ports: PackPorts) {}
 
   /** Recomputes for a change of product `productId` of the scope's store. */
   async recompute(ctx: OperationContext, scope: StoreScope, productId: string): Promise<void> {
+    await this.recomputePacks(ctx, scope, await this.affectedPacks(ctx, scope, productId));
+  }
+
+  /**
+   * The pack products a change of `productId` reprices: its own pack, then the packs holding it. Empty for a product
+   * that is no pack and no component, which then needs no transaction, lock or store context (#260, D2282).
+   */
+  async affectedPacks(ctx: OperationContext, scope: StoreScope, productId: string): Promise<string[]> {
     const own = await this.ports.packs.findByProduct(ctx, scope, productId);
-    if (own !== undefined) await this.recomputeOne(ctx, scope, own.productId);
-    for (const pack of await this.ports.packs.holding(ctx, scope, productId)) {
-      await this.recomputeOne(ctx, scope, pack.productId);
-    }
+    const holding = await this.ports.packs.holding(ctx, scope, productId);
+    return [...(own === undefined ? [] : [own.productId]), ...holding.map((pack) => pack.productId)];
+  }
+
+  /** Reprices each pack product of `packProductIds` in turn, each in its own transaction under its lock. */
+  async recomputePacks(ctx: OperationContext, scope: StoreScope, packProductIds: readonly string[]): Promise<void> {
+    for (const packProductId of packProductIds) await this.recomputeOne(ctx, scope, packProductId);
   }
 
   /** Reprices one pack from its row as stored once the pack's lock is held (D2241); a pack gone by then is done. */

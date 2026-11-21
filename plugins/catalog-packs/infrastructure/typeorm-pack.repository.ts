@@ -40,7 +40,10 @@ export class TypeOrmPackRepository implements PackRepositoryPort {
     const packIds = [...new Set(lines.map((line) => line.packId))];
     if (packIds.length === 0) return [];
     const rows = await this.packs.find(tenant, { where: { ...inStore(scope), id: In(packIds) }, order: { id: 'ASC' } });
-    return Promise.all(rows.map((row) => this.recordOf(ctx, scope, row)));
+    // One query at a time: `ctx` may carry a transaction, whose one connection cannot run two (D2282).
+    const records: PackRecord[] = [];
+    for (const row of rows) records.push(await this.recordOf(ctx, scope, row));
+    return records;
   }
 
   async save(ctx: OperationContext, scope: StoreScope, pack: PackSave): Promise<PackRecord> {

@@ -18,6 +18,17 @@ function arranged() {
 }
 
 describe('SavePackService (D2202, D2203)', () => {
+  it('reads the components one after another, never two queries at once on its transaction (#260, D2282)', async () => {
+    // Arrange
+    const { catalog, saving } = arranged();
+
+    // Act
+    await saving.save(CTX, SCOPE_A, { productId: '20', definition: aDefinition() });
+
+    // Assert
+    expect(catalog.maxReadsInFlight).toBe(1);
+  });
+
   it('stores the pack and writes the computed price and weight into the pack product', async () => {
     // Arrange
     const { catalog, packs, saving } = arranged();
@@ -87,9 +98,11 @@ describe('SavePackService (D2202, D2203)', () => {
     const foreign = saving.save(CTX, SCOPE_B, { productId: '20', definition: aDefinition() });
     const malformed = saving.save(CTX, SCOPE_A, { productId: '07', definition: aDefinition() });
 
-    // Assert
-    await expect(foreign).rejects.toThrow(PackNotFoundError);
-    await expect(malformed).rejects.toThrow(PackNotFoundError);
+    // Assert: both handlers attach at once, since the fake's reads answer on a later turn
+    await Promise.all([
+      expect(foreign).rejects.toThrow(PackNotFoundError),
+      expect(malformed).rejects.toThrow(PackNotFoundError),
+    ]);
   });
 
   it('refuses a component of another business as not found and saves nothing', async () => {

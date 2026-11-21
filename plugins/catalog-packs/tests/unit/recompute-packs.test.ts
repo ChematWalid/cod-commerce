@@ -148,4 +148,15 @@ describe('RecomputePacksService (D2203)', () => {
     expect(catalog.writes).toEqual([]);
     expect(packs.all(SCOPE_A)).toEqual([]);
   });
+
+  it("reads a pack's components one after another, never two queries at once on its transaction (#260, D2282)", async () => {
+    // Arrange
+    const { catalog, service } = arranged();
+
+    // Act
+    await service.recompute(CTX, SCOPE_A, '11');
+
+    // Assert
+    expect(catalog.maxReadsInFlight).toBe(1);
+  });
 });

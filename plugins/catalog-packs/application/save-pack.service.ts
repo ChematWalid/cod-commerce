@@ -55,19 +55,19 @@ export class SavePackService {
   /**
    * The component ids that are products of the scope's store. Ids are global and lock keys hold no business, so
    * another store's (or a malformed) id is left out: it takes no lock on that product, and `pricePack` refuses it.
+   * One read after another, as `ctx` may carry a transaction (D2282).
    */
   private async ownComponentIds(
     ctx: OperationContext,
     scope: StoreScope,
     definition: PackDefinition,
   ): Promise<string[]> {
-    const owned = await Promise.all(
-      definition.components.map(async ({ productId }) => {
-        const id = parseProductId(productId);
-        return id !== undefined && (await this.ports.catalog.byId(ctx, scope, id)) !== undefined;
-      }),
-    );
-    return definition.components.filter((_line, index) => owned[index]).map((line) => line.productId);
+    const owned: string[] = [];
+    for (const { productId } of definition.components) {
+      const id = parseProductId(productId);
+      if (id !== undefined && (await this.ports.catalog.byId(ctx, scope, id)) !== undefined) owned.push(productId);
+    }
+    return owned;
   }
 
   private async packProduct(ctx: OperationContext, scope: StoreScope, productId: string): Promise<ComponentProduct> {

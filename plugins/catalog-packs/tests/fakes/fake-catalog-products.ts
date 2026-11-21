@@ -12,6 +12,9 @@ export class FakeCatalogProducts implements CatalogProductsPort {
   readonly saveLocks: PackSaveLock[] = [];
   /** Runs once the save locks are "granted", standing in for a component write that committed before them. */
   onLockForSave: () => void = () => undefined;
+  /** The most reads that were in flight at once: one context runs one query at a time (D2282). */
+  maxReadsInFlight = 0;
+  private readsInFlight = 0;
 
   put(scope: StoreScope, ...products: readonly ComponentProduct[]): void {
     const store = this.products.get(keyOf(scope)) ?? new Map<string, ComponentProduct>();
@@ -27,8 +30,13 @@ export class FakeCatalogProducts implements CatalogProductsPort {
     return this.products.get(keyOf(scope))?.get(productId);
   }
 
-  byId(_ctx: OperationContext, scope: StoreScope, productId: string): Promise<ComponentProduct | undefined> {
-    return Promise.resolve(this.get(scope, productId));
+  async byId(_ctx: OperationContext, scope: StoreScope, productId: string): Promise<ComponentProduct | undefined> {
+    this.readsInFlight += 1;
+    this.maxReadsInFlight = Math.max(this.maxReadsInFlight, this.readsInFlight);
+    // A real read answers on a later turn: a caller that starts the next read before awaiting this one overlaps it.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    this.readsInFlight -= 1;
+    return this.get(scope, productId);
   }
 
   lockForSave(_ctx: OperationContext, _scope: StoreScope, lock: PackSaveLock): Promise<void> {

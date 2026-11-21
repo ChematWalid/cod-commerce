@@ -95,6 +95,10 @@ export function packInput(
 export interface PacksForeignModules {
   readonly plugins: NonNullable<VendureConfig['plugins']>;
   readonly partitionedSchemas: readonly PartitionedTableSchema[];
+  /** Plugins registered after the packs (e.g. catalog-import, whose entry only a test file may import). */
+  readonly trailing?: NonNullable<VendureConfig['plugins']>;
+  /** The most connections the server's pool opens (D2282: a pool smaller than a queue's concurrency). */
+  readonly poolSize?: number;
 }
 
 /** The pack kit: the generic store kit plus the catalog calls the pack tests arrange with. */
@@ -140,9 +144,11 @@ export function packsSuite(foreign: PacksForeignModules): PacksSuite {
       // The pack resolver registers with the offers' unit price registrar on bootstrap (D2276).
       OffersPlugin.init({ quoteKeys: quoteKeysFromEnv() }),
       CatalogPacksPlugin,
+      ...(foreign.trailing ?? []),
     ],
     partitionedSchemas: [...OUTBOX_SCHEMAS, ...foreign.partitionedSchemas],
     partitionMaintenance: PartitionMaintenanceService,
+    ...(foreign.poolSize === undefined ? {} : { poolSize: foreign.poolSize }),
   });
   const suite = {} as PacksSuite;
   beforeAll(async () => {
@@ -172,12 +178,12 @@ export async function until<T>(read: () => Promise<T | undefined>, timeoutMs = 3
 }
 
 /** Waits until every event is relayed and every delivery has run, so no earlier recompute is still pending. */
-export async function outboxSettled(kit: PacksKit): Promise<void> {
+export async function outboxSettled(kit: PacksKit, timeoutMs?: number): Promise<void> {
   await until(async () => {
     const [row] = await kit.query<{ open: string }>(
       `SELECT ((SELECT count(*) FROM outbox_event WHERE status = 'pending')
              + (SELECT count(*) FROM outbox_delivery WHERE status IN ('pending', 'enqueued')))::text AS open`,
     );
     return row?.open === '0' ? true : undefined;
-  });
+  }, timeoutMs);
 }

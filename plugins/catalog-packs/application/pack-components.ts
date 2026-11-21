@@ -13,18 +13,22 @@ export interface PricedPack {
   readonly computed: PackComputation;
 }
 
-/** Reads the product of every component line in the scope's store; a malformed id reads as missing. */
+/**
+ * Reads the product of every component line in the scope's store; a malformed id reads as missing. One read after
+ * another: `ctx` may carry a transaction, whose one connection runs one query at a time (#260, D2282).
+ */
 async function readComponents(
   ports: PackPorts,
   ctx: OperationContext,
   scope: StoreScope,
   definition: PackDefinition,
 ): Promise<{ line: PackDefinition['components'][number]; product: ComponentProduct | undefined }[]> {
-  const read = async (productId: string) => {
-    const id = parseProductId(productId);
-    return id === undefined ? undefined : ports.catalog.byId(ctx, scope, id);
-  };
-  return Promise.all(definition.components.map(async (line) => ({ line, product: await read(line.productId) })));
+  const lines: { line: PackDefinition['components'][number]; product: ComponentProduct | undefined }[] = [];
+  for (const line of definition.components) {
+    const id = parseProductId(line.productId);
+    lines.push({ line, product: id === undefined ? undefined : await ports.catalog.byId(ctx, scope, id) });
+  }
+  return lines;
 }
 
 /**

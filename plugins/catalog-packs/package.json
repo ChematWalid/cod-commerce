@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
+    "@cod/plugin-catalog-import": "workspace:*",
     "@cod/plugin-platform-jobs": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
     "@cod/testing": "workspace:*",
