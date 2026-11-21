@@ -11,10 +11,10 @@ import { LtrRun } from './ltr-run';
 /** The order form's language: amounts are grouped as in Algeria, in Latin digits. */
 const PREVIEW_LANGUAGE = 'ar';
 
-/** An amount in dinars, kept in reading order inside the Arabic text. */
+/** An amount in dinars, kept in reading order inside the Arabic text and never broken across lines. */
 function Money({ amount }: { readonly amount: number }): ReactNode {
   return (
-    <span>
+    <span className="whitespace-nowrap">
       <LtrRun>{formatWhole(amount, PREVIEW_LANGUAGE)}</LtrRun> {PREVIEW_COPY.currency}
     </span>
   );
@@ -27,11 +27,14 @@ function LineTag({ line }: { readonly line: QuoteLine }): ReactNode {
   return null;
 }
 
-/** One line as the engine priced it: quantity, unit price (the list price struck through when lower), its amount. */
+/**
+ * One line as the engine priced it: quantity, unit price (the list price struck through when lower), its amount. The
+ * preview sits in the editor's narrow side column, so the parts wrap instead of overflowing the card.
+ */
 function PreviewLine({ line }: { readonly line: QuoteLine }): ReactNode {
   return (
-    <li className="flex items-center justify-between gap-2 text-sm">
-      <span className="flex items-center gap-2">
+    <li className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
+      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <LineTag line={line} />
         {PREVIEW_COPY.quantity}: <LtrRun>{formatWhole(line.quantity, PREVIEW_LANGUAGE)}</LtrRun>
         {' · '}
@@ -77,7 +80,7 @@ function ScenarioTotals({ scenario }: { readonly scenario: PreviewScenario }): R
 /** One synthetic cart of the preview, as the order form would show it. */
 function ScenarioCard({ scenario }: { readonly scenario: PreviewScenario }): ReactNode {
   return (
-    <div className="grid gap-2 rounded-md border p-3">
+    <div className="grid min-w-0 gap-2 rounded-md border p-3">
       <ul className="grid gap-1">
         {scenario.quote.lines.map((line) => (
           <PreviewLine key={line.key} line={line} />
@@ -121,11 +124,11 @@ function PreviewNotes({ preview, error, loading }: ArabicPreviewProps): ReactNod
 export function ArabicPreview(props: ArabicPreviewProps): ReactNode {
   const { i18n } = useLingui();
   return (
-    <div className="grid gap-3" data-testid={ARABIC_PREVIEW_TEST_ID}>
+    <div className="grid min-w-0 gap-3" data-testid={ARABIC_PREVIEW_TEST_ID}>
       <p className="text-muted-foreground text-xs">{i18n._('offers.preview-hint')}</p>
       <PreviewNotes {...props} />
       {props.preview !== undefined && (
-        <div lang="ar" dir="rtl" className="grid gap-3">
+        <div lang="ar" dir="rtl" className="grid min-w-0 gap-3">
           {props.preview.scenarios.map((scenario) => (
             <ScenarioCard key={`${String(scenario.pieces)}-${String(scenario.addonAccepted)}`} scenario={scenario} />
           ))}

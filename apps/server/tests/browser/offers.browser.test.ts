@@ -49,6 +49,18 @@ const GENERATED_COUNT = 3;
 
 const editor = (page: Page) => byTestId(page, OFFER_EDITOR_TEST_ID);
 const previewText = (page: Page) => byTestId(page, ARABIC_PREVIEW_TEST_ID).innerText();
+/** How many pixels the widest element under the test id sticks out of its dashboard card, left or right (0 when none). */
+const spillOutOfCard = (page: Page, testId: string): Promise<number> =>
+  page.evaluate((id) => {
+    const root = document.querySelector(`[data-testid="${id}"]`);
+    if (root === null) throw new Error(`no ${id}`);
+    const card = (root.closest('[data-slot="card"]') ?? root).getBoundingClientRect();
+    const spills = [root, ...root.querySelectorAll('*')].map((element) => {
+      const box = element.getBoundingClientRect();
+      return box.width === 0 ? 0 : Math.max(card.left - box.left, box.right - card.right);
+    });
+    return Math.max(0, ...spills);
+  }, testId);
 const visibleCard = (page: Page, id: string) =>
   page.locator(`[data-testid="${APP_TYPE_CARD_TEST_ID}"][data-app-type="${id}"]:visible`);
 
@@ -145,6 +157,15 @@ describe('offers admin', () => {
 
     await expect.poll(() => previewText(page)).toContain(atTwenty);
     await expect(previewText(page)).resolves.not.toContain(atTen);
+  });
+
+  it('keeps every preview line inside its side card on a desktop screen', async () => {
+    const productId = await sampleProduct();
+    const atTen = await previewAmount(page, UNIT_AT_TEN_PERCENT);
+    await open(page, newOfferPath('quantity', productId));
+    await expect.poll(() => previewText(page)).toContain(atTen);
+
+    await expect(spillOutOfCard(page, ARABIC_PREVIEW_TEST_ID)).resolves.toBeLessThanOrEqual(1);
   });
 
   it('shows the publish problems for an empty draft', async () => {
