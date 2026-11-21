@@ -21,6 +21,8 @@ import { LtrRun } from './ltr-run';
 
 /** Hidden on a phone, so the collection, its visibility and the actions fit without a sideways scroll. */
 const WIDE_ONLY = 'hidden md:table-cell';
+/** The stock header cell aligns to a physical side; `text-start` keeps each header over its column in a right-to-left page. */
+const HEAD = 'text-start';
 
 interface CollectionTableProps {
   readonly collections: readonly StoreCollectionDto[];
@@ -109,11 +111,11 @@ export function CollectionTable(props: CollectionTableProps): ReactNode {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{i18n._('collections.column-title')}</TableHead>
-          <TableHead className={WIDE_ONLY}>{i18n._('collections.column-type')}</TableHead>
-          <TableHead className={WIDE_ONLY}>{i18n._('collections.column-products')}</TableHead>
-          <TableHead>{i18n._('collections.column-visibility')}</TableHead>
-          <TableHead className={WIDE_ONLY}>{i18n._('collections.column-position')}</TableHead>
+          <TableHead className={HEAD}>{i18n._('collections.column-title')}</TableHead>
+          <TableHead className={`${WIDE_ONLY} ${HEAD}`}>{i18n._('collections.column-type')}</TableHead>
+          <TableHead className={`${WIDE_ONLY} ${HEAD}`}>{i18n._('collections.column-products')}</TableHead>
+          <TableHead className={HEAD}>{i18n._('collections.column-visibility')}</TableHead>
+          <TableHead className={`${WIDE_ONLY} ${HEAD}`}>{i18n._('collections.column-position')}</TableHead>
           <TableHead>
             <span className="sr-only">{i18n._('collections.row-actions')}</span>
           </TableHead>
