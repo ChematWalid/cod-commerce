@@ -20,6 +20,8 @@ function rowOf(fields: Partial<OfferRowDto> & Pick<OfferRowDto, 'id' | 'kind' | 
     endsAt: null,
     codeCount: 0,
     performance: NO_PERFORMANCE,
+    allowedMoves: [],
+    deletable: false,
     ...fields,
   };
 }

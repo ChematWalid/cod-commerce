@@ -10,7 +10,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { Page, PageTitle } from '@vendure/dashboard';
 import { type ReactNode, useMemo, useState } from 'react';
 import { EditorBlocks } from '../components/editor-blocks';
-import { CREATE_OFFERS_KEY, EDIT_OFFERS_KEY, OFFER_EDITOR_TEST_ID, OFFERS_PATH, VIEW_OFFERS_KEY } from '../constants';
+import { CREATE_OFFERS_KEY, OFFER_EDITOR_TEST_ID, OFFERS_PATH, VIEW_OFFERS_KEY } from '../constants';
 import type { OfferViewDto } from '../dto';
 import { useOffer } from '../editor-queries';
 import { usePreview } from '../hooks/use-offer-preview';
@@ -24,6 +24,7 @@ import {
   type OfferFormErrors,
   offerFormOf,
 } from '../model/editor-form';
+import { editorAccessOf } from '../model/editor-access';
 import { editorLoadViewOf } from '../model/editor-load';
 import { type StoreScope, useHeldPermissions, useOfferAppTypes } from '../queries';
 
@@ -74,13 +75,12 @@ function useEditorController(props: EditorProps) {
     onInvalid: state.setErrors,
     onSaved: state.onSaved,
   });
-  const archived = state.offer?.status === 'archived';
-  const canSave = !archived && held.has(state.offer === null ? CREATE_OFFERS_KEY : EDIT_OFFERS_KEY);
+  const access = editorAccessOf(state.offer, held);
   const onDiscard = (): void => {
     if (state.offer === null) void navigate({ to: storePathFor(OFFERS_PATH, props.storeAlias) });
     else state.discard();
   };
-  return { state, save, canSave, onDiscard, preview: usePreview(props.scope, state.form) };
+  return { state, save, ...access, onDiscard, preview: usePreview(props.scope, state.form) };
 }
 
 function EditorPage(props: EditorProps): ReactNode {
@@ -99,7 +99,7 @@ function EditorPage(props: EditorProps): ReactNode {
         offerId={state.offer?.id ?? null}
         preview={editor.preview}
         footer={{
-          isDraft: state.offer === null || state.offer.status === 'draft',
+          isDraft: editor.isDraft,
           disabled: !editor.canSave,
           busy: editor.save.isPending,
           onDiscard: editor.onDiscard,

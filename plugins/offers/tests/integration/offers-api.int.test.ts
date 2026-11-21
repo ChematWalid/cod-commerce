@@ -43,8 +43,9 @@ describe('the offers Admin API and REST routes (D2517-D2520)', () => {
 
     // Assert
     expect(offer).toMatchObject({ kind: 'quantity', status: 'draft', version: 1, codeCount: 0, publishedAt: null });
+    expect(offer).toMatchObject({ allowedMoves: ['publish', 'archive'], editable: true, deletable: true });
     expect(rest.status).toBe(201);
-    expect(rest.body).toMatchObject({ kind: 'quantity', status: 'draft', title: 'Two pieces' });
+    expect(rest.body).toMatchObject({ kind: 'quantity', status: 'draft', title: 'Two pieces', deletable: true });
   });
 
   it('publishes and returns publishedAt', async () => {
@@ -56,6 +57,7 @@ describe('the offers Admin API and REST routes (D2517-D2520)', () => {
 
     // Assert
     expect(publishOffer.status).toBe('active');
+    expect(publishOffer).toMatchObject({ allowedMoves: ['pause', 'archive'], editable: true, deletable: false });
     expect(publishOffer.publishedAt).not.toBeNull();
   });
 

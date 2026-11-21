@@ -15,6 +15,13 @@ export const offersAdminApiSchema = gql`
     archived
   }
 
+  enum OfferMove {
+    publish
+    pause
+    resume
+    archive
+  }
+
   enum OfferMethod {
     automatic
     codes
@@ -54,6 +61,9 @@ export const offersAdminApiSchema = gql`
     targets: [OfferTarget!]!
     codeCount: Int!
     performance: OfferPerformance!
+    allowedMoves: [OfferMove!]!
+    editable: Boolean!
+    deletable: Boolean!
   }
 
   type OfferPage {

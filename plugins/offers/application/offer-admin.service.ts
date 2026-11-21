@@ -19,7 +19,7 @@ import {
   OfferNotDeletableError,
   OfferNotFoundError,
 } from '../domain/errors';
-import { assertEditable, moveTo } from '../domain/offer-lifecycle';
+import { assertEditable, isDeletableStatus, moveTo } from '../domain/offer-lifecycle';
 import {
   draftOf,
   editedOffer,
@@ -160,7 +160,7 @@ export class OfferAdminService {
    */
   async delete(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<void> {
     const offer = await this.get(ctx, scope, rawId);
-    if (offer.status !== 'draft') throw new OfferNotDeletableError();
+    if (!isDeletableStatus(offer.status)) throw new OfferNotDeletableError();
     // The status is checked again in the delete itself, so an offer published since the read is never deleted.
     if (await this.ports.offers.delete(ctx, scope, offer.id, 'draft')) return;
     const stillThere = await this.ports.offers.findById(ctx, scope, offer.id);

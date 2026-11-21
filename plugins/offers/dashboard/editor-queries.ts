@@ -16,7 +16,7 @@ import { readRequestToken, type StoreScope, storeQuery } from './queries';
 /** Every field of an offer the editor reads back after a load or a save. */
 const OFFER_FIELDS = `
   id kind method title label config combinesWith eligibility totalUsageLimit perBuyerLimit status
-  startsAt endsAt version targets { role refType refId } codeCount`;
+  startsAt endsAt version targets { role refType refId } codeCount allowedMoves editable`;
 
 const OFFER_QUERY = `query OfferEditor($id: String!) { offer(id: $id) { ${OFFER_FIELDS} } }`;
 const CREATE_MUTATION = `mutation OfferCreate($input: CreateOfferInput!) { createOffer(input: $input) { ${OFFER_FIELDS} } }`;

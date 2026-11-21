@@ -17,6 +17,8 @@ const OFFERS_QUERY = /* GraphQL */ `
         startsAt
         endsAt
         codeCount
+        allowedMoves
+        deletable
         performance {
           orders
           deliveredRevenue

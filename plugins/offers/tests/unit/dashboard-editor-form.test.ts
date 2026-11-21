@@ -40,6 +40,8 @@ const SAVED_OFFER: OfferViewDto = {
   version: 3,
   targets: [],
   codeCount: 2,
+  allowedMoves: ['publish', 'archive'],
+  editable: true,
 };
 
 describe('offer editor form', () => {

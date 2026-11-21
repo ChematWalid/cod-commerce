@@ -10,6 +10,9 @@ import type {
   OfferTarget,
 } from '@cod/shared';
 
+/** A lifecycle move of an offer (`OfferMove`, D2510). */
+export type OfferMoveDto = 'publish' | 'pause' | 'resume' | 'archive';
+
 /** The options `offers` takes: the shared list options (D2513). */
 export type OfferListInput = OfferListOptionsInput;
 
@@ -24,6 +27,10 @@ export interface OfferRowDto {
   readonly endsAt: string | null;
   readonly codeCount: number;
   readonly performance: OfferPerformance;
+  /** The moves the server allows the offer's status (D2543). */
+  readonly allowedMoves: readonly OfferMoveDto[];
+  /** Whether the server lets the offer be deleted (D2521). */
+  readonly deletable: boolean;
 }
 
 export interface OfferPageDto {
@@ -52,6 +59,10 @@ export interface OfferViewDto {
   readonly version: number;
   readonly targets: readonly OfferTarget[];
   readonly codeCount: number;
+  /** The moves the server allows the offer's status (D2543). */
+  readonly allowedMoves: readonly OfferMoveDto[];
+  /** Whether the server still lets the offer be edited. */
+  readonly editable: boolean;
 }
 
 /** A product of the target search (`catalogProducts`), and one opened to pick a variant (`catalogProduct`). */

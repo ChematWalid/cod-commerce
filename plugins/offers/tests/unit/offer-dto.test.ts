@@ -32,6 +32,9 @@ describe('the offer DTOs (D2519)', () => {
       targets: [{ role: 'buy', refType: 'variant', refId: '11' }],
       codeCount: 4,
       performance,
+      allowedMoves: ['pause', 'archive'],
+      editable: true,
+      deletable: false,
     });
     expect(Object.keys(dto)).not.toContain('createdAt');
   });

@@ -79,20 +79,24 @@ describe('offer list columns', () => {
 describe('offer row actions', () => {
   it('offers only Edit to a viewer', () => {
     // Act
-    const actions = rowActionsOf({ status: 'active' }, new Set());
+    const actions = rowActionsOf({ allowedMoves: ['pause', 'archive'], deletable: false }, new Set());
 
     // Assert
     expect(actions).toEqual(['edit']);
   });
 
-  it('offers the moves of the status to an editor, and Delete on a draft only', () => {
+  it('offers the moves and the deletion the server allows to an editor, publishing only in the editor', () => {
     // Arrange
     const held = new Set([CREATE_OFFERS_KEY, EDIT_OFFERS_KEY, DELETE_OFFERS_KEY]);
+    const allowed = [
+      { allowedMoves: ['publish', 'archive'], deletable: true },
+      { allowedMoves: ['pause', 'archive'], deletable: false },
+      { allowedMoves: ['resume', 'archive'], deletable: false },
+      { allowedMoves: [], deletable: false },
+    ] as const;
 
     // Act
-    const byStatus = (['draft', 'active', 'paused', 'archived'] as const).map((status) =>
-      rowActionsOf({ status }, held),
-    );
+    const byStatus = allowed.map((offer) => rowActionsOf(offer, held));
 
     // Assert
     expect(byStatus).toEqual([

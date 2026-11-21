@@ -41,9 +41,27 @@ const MOVE_TO: Readonly<Record<OfferStatus, OfferMove | undefined>> = {
   archived: 'archive',
 };
 
+/** The moves an offer of `status` may make, in {@link OFFER_MOVES} order; the API answers them (D2543). */
+export function allowedMovesOf(status: OfferStatus): readonly OfferMove[] {
+  return (Object.keys(OFFER_MOVES) as OfferMove[]).filter((move) => {
+    const rule: OfferMoveRule = OFFER_MOVES[move];
+    return rule.from.includes(status);
+  });
+}
+
+/** Whether an offer of `status` may still be edited: an archived offer never is. */
+export function isEditableStatus(status: OfferStatus): boolean {
+  return status !== 'archived';
+}
+
+/** Whether an offer of `status` may be deleted: only a draft (D2521), a published one is archived instead. */
+export function isDeletableStatus(status: OfferStatus): boolean {
+  return status === 'draft';
+}
+
 /** @throws {@link InvalidOfferTransitionError} when `offer` is archived: an archived offer is never edited again. */
 export function assertEditable(offer: OfferRecord): void {
-  if (offer.status === 'archived') throw new InvalidOfferTransitionError();
+  if (!isEditableStatus(offer.status)) throw new InvalidOfferTransitionError();
 }
 
 /** The move that reaches `status`; @throws {@link InvalidOfferTransitionError} for `draft`, which no move reaches. */

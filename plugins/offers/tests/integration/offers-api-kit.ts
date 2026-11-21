@@ -26,6 +26,7 @@ const SET_ACCESS = `mutation ($input: SetMemberAccessInput!) { setMemberAccess(i
 /** The offer fields the API tests read back. */
 export const OFFER_FIELDS = `
   id kind method title status version publishedAt startsAt endsAt codeCount usageCount config
+  allowedMoves editable deletable
   targets { role refType refId } performance { orders deliveredRevenue discountGiven }
 `;
 
@@ -40,6 +41,9 @@ export interface OfferResult {
   readonly publishedAt: string | null;
   readonly codeCount: number;
   readonly performance: { orders: number; deliveredRevenue: number; discountGiven: number };
+  readonly allowedMoves: readonly string[];
+  readonly editable: boolean;
+  readonly deletable: boolean;
 }
 
 /** A REST answer. */

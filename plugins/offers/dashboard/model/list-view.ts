@@ -1,5 +1,6 @@
 import { PRICING_ERROR_CODES, type OfferMethod, type OfferPerformance, type OfferStatus } from '@cod/shared';
 import { CREATE_OFFERS_KEY, DELETE_OFFERS_KEY, EDIT_OFFERS_KEY } from '../constants';
+import type { OfferRowDto } from '../dto';
 import type { OfferListTab } from './list-search';
 import { isStoreSwitched } from './store-bound-fetch';
 
@@ -36,27 +37,23 @@ export const ROW_ACTION_LABEL_IDS: Readonly<Record<OfferRowAction, string>> = {
   delete: 'offers.action-delete',
 };
 
-/** The lifecycle move an editor may make from each status (D2510): pause a live offer, resume a paused one. */
-const MOVE_OF_STATUS: Readonly<Record<OfferStatus, readonly OfferRowAction[]>> = {
-  draft: ['archive'],
-  active: ['pause', 'archive'],
-  paused: ['resume', 'archive'],
-  archived: [],
-};
+/** The moves a row's menu makes, in menu order; publishing is the editor's, after its checks. */
+const ROW_MOVES = ['pause', 'resume', 'archive'] as const satisfies readonly OfferRowAction[];
 
 /**
- * The actions a row offers, by what the server says the caller holds; the server checks each again. Edit opens the
- * editor, which needs only the view key to read the offer; only a draft can be deleted (D2521).
+ * The actions a row offers: the moves and the deletion the server allows the offer (D2543), as far as the caller's
+ * keys reach; the server checks each again. Edit opens the editor, which needs only the view key to read the offer.
  */
 export function rowActionsOf(
-  offer: { readonly status: OfferStatus },
+  offer: Pick<OfferRowDto, 'allowedMoves' | 'deletable'>,
   held: ReadonlySet<string>,
 ): readonly OfferRowAction[] {
+  const moves = held.has(EDIT_OFFERS_KEY) ? ROW_MOVES.filter((move) => offer.allowedMoves.includes(move)) : [];
   return [
     'edit',
     ...(held.has(CREATE_OFFERS_KEY) ? (['duplicate'] as const) : []),
-    ...(held.has(EDIT_OFFERS_KEY) ? MOVE_OF_STATUS[offer.status] : []),
-    ...(held.has(DELETE_OFFERS_KEY) && offer.status === 'draft' ? (['delete'] as const) : []),
+    ...moves,
+    ...(held.has(DELETE_OFFERS_KEY) && offer.deletable ? (['delete'] as const) : []),
   ];
 }
 

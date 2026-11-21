@@ -7,6 +7,7 @@ import type {
   OfferStatus,
   OfferTarget,
 } from '@cod/shared';
+import { allowedMovesOf, isDeletableStatus, isEditableStatus, type OfferMove } from '../domain/offer-lifecycle';
 import type { OfferSummaryRecord, StoredCode } from '../domain/offer-record';
 
 /** One offer as both API surfaces answer it (`OfferView`, D2519): ids as text, instants as ISO text. */
@@ -32,6 +33,12 @@ export interface OfferViewDto {
   readonly targets: readonly OfferTarget[];
   readonly codeCount: number;
   readonly performance: OfferPerformance;
+  /** The lifecycle moves the offer's status allows (D2543); the caller's permissions are checked apart. */
+  readonly allowedMoves: readonly OfferMove[];
+  /** Whether the offer may still be edited: not once archived. */
+  readonly editable: boolean;
+  /** Whether the offer may be deleted: a draft only (D2521). */
+  readonly deletable: boolean;
 }
 
 /** A list page (`OfferPage`, D2513). */
@@ -81,6 +88,9 @@ export function toOfferViewDto(offer: OfferSummaryRecord, performance: OfferPerf
     targets: offer.targets.map((target) => ({ ...target })),
     codeCount: offer.codeCount,
     performance: { ...performance },
+    allowedMoves: allowedMovesOf(offer.status),
+    editable: isEditableStatus(offer.status),
+    deletable: isDeletableStatus(offer.status),
   };
 }
 
