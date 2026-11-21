@@ -85,4 +85,25 @@ describe('bulk edit dry run, nulls and concurrency (D2213, D2255)', () => {
     // Assert
     expect((await suite.kit.product(product.id))?.price).toBe(2000);
   });
+
+  it("names each product by its title, and gives no title for another business's product (#261)", async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.b);
+    const foreign = await suite.kit.createProduct({ title: 'Synthetic B product' });
+    const [own] = await productsOfA(1, { title: 'Synthetic A product' });
+    if (own === undefined) throw new Error('no product');
+    const titled = `mutation ($input: CatalogBulkEditInput!) {
+      bulkEditCatalogProducts(input: $input) { results { productId productTitle ok } } }`;
+
+    // Act
+    const answer = await suite.kit.gql<{
+      bulkEditCatalogProducts: { results: { productId: string; productTitle: string | null; ok: boolean }[] };
+    }>(titled, { input: { productIds: [own.id, foreign.id], changes: { status: 'hidden' }, dryRun: true } });
+
+    // Assert
+    expect(answer.bulkEditCatalogProducts.results).toEqual([
+      { productId: own.id, productTitle: 'Synthetic A product', ok: true },
+      { productId: foreign.id, productTitle: null, ok: false },
+    ]);
+  });
 });

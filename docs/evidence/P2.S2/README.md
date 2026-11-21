@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P2.S2.sh`. Data is synthetic
 (the demo seed, plus what the script creates and imports). Image built from a tree with no uncommitted change outside the
-evidence folders and browser tests, last image-relevant commit `6b8c29b842d19a4404e5862330ce860c22c9889a`. Compose project `cod-evidence`; the
+evidence folders and browser tests, last image-relevant commit `4fcc90a0e12d1f31a4cba73b536d2688a4c0c438`. Compose project `cod-evidence`; the
 roles sign upload and download links for Garage at `http://127.0.0.1:23900`, whose bucket CORS `scripts/garage-cors.mjs`
 set for the dashboard's origin; link imports use the fixture scraper (`LINK_IMPORT_SCRAPER=fixture`, host
 `shop.example.test` only, D2214).

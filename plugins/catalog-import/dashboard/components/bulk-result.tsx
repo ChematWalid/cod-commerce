@@ -23,6 +23,14 @@ function outcomeOf(result: BulkEditProductResultDto, translate: (id: string) => 
   return result.changedFields.map((field) => translate(changedFieldLabelId(field))).join(', ');
 }
 
+/** The product as its line names it: its title, or "Product <id>" when the store has no such product (#261). */
+function productNameOf(
+  result: BulkEditProductResultDto,
+  translate: (id: string, values: Record<string, unknown>) => string,
+): string {
+  return result.productTitle ?? translate('catalog-import.bulk-product-unnamed', { id: result.productId });
+}
+
 /**
  * The bulk edit's answer per product (D2213): after the dry run what would change, after applying what changed; a
  * refused product says why and the others still change.
@@ -32,7 +40,7 @@ export function BulkResult(props: {
   readonly results: readonly BulkEditProductResultDto[];
 }): ReactNode {
   const { i18n } = useLingui();
-  const translate = (id: string): string => i18n._(id);
+  const translate = (id: string, values: Record<string, unknown> = {}): string => i18n._(id, values);
   const refused = props.results.filter((result) => !result.ok).length;
   return (
     <div data-testid={BULK_RESULT_TEST_ID} data-phase={props.phase} className="grid gap-2 text-sm">
@@ -45,10 +53,9 @@ export function BulkResult(props: {
       <ul className="grid max-h-60 gap-1 overflow-y-auto">
         {props.results.map((result) => (
           <li key={result.productId} className={result.ok ? undefined : 'text-destructive'}>
-            {i18n._('catalog-import.bulk-product-line', {
-              id: result.productId,
-              outcome: outcomeOf(result, translate),
-            })}
+            {/* The title is the merchant's text in any script: isolated, so its digits keep their place (#261). */}
+            <bdi>{productNameOf(result, translate)}</bdi>
+            {i18n._('catalog-import.bulk-product-line', { outcome: outcomeOf(result, translate) })}
           </li>
         ))}
       </ul>

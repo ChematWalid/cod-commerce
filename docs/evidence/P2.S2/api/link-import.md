@@ -22,7 +22,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"a1-G/eymgRzt5ysswBp28QIls3vgmc"
+etag: W/"a1-it1TUsPSqby3LI/SNheKBIjj7ls"
 
 {
   "data": {
@@ -89,7 +89,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"9b-vCOg/79r/2B90XtlJUN0vK3Psds"
+etag: W/"9b-Mw1GHSmevfrQcfpjA/wdmTvyIrM"
 
 {
   "data": {
@@ -148,7 +148,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"7a-kNCln4koEOvitUUBLWF1VIQ16sE"
+etag: W/"7a-FzXJFlbv6cAI3Q/mSTtXmWGsb7k"
 
 {
   "importId": "<LINK_IMPORT_REST>",
@@ -167,7 +167,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"7a-kNCln4koEOvitUUBLWF1VIQ16sE"
+etag: W/"7a-FzXJFlbv6cAI3Q/mSTtXmWGsb7k"
 
 {
   "importId": "<LINK_IMPORT_REST>",

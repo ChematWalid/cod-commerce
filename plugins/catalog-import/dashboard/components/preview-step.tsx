@@ -26,18 +26,28 @@ interface PreviewStepProps {
   readonly onNext: () => void;
 }
 
+/**
+ * Below the `sm` width the row number and key columns hide (the key moves under the name) and the text cells wrap, so
+ * a phone shows the name and the row's reasons without scrolling sideways (#261).
+ */
+const WIDE_ONLY = 'hidden sm:table-cell';
+const WRAPPING = 'whitespace-normal break-words';
+
 /** One planned row: what it does, its key and name as written in the file (plain text), and its reasons. */
 function PreviewRow({ row }: { readonly row: ImportPreviewRowDto }): ReactNode {
   const { i18n } = useLingui();
   return (
     <TableRow>
-      <TableCell>{row.rowNumber}</TableCell>
+      <TableCell className={WIDE_ONLY}>{row.rowNumber}</TableCell>
       <TableCell>
         <Badge variant={row.action === 'error' ? 'destructive' : 'outline'}>{i18n._(actionLabelId(row.action))}</Badge>
       </TableCell>
-      <TableCell>{row.productKey ?? ''}</TableCell>
-      <TableCell>{row.name ?? ''}</TableCell>
-      <TableCell>
+      <TableCell className={WIDE_ONLY}>{row.productKey ?? ''}</TableCell>
+      <TableCell className={WRAPPING}>
+        {row.name ?? ''}
+        <span className="text-muted-foreground block text-xs sm:hidden">{row.productKey ?? ''}</span>
+      </TableCell>
+      <TableCell className={WRAPPING}>
         <ul className="grid gap-0.5 text-xs">
           {row.messages.map((reason) => (
             <li key={reason}>{i18n._(rowReasonMessageId(reason))}</li>
@@ -95,9 +105,9 @@ export function PreviewStep(props: PreviewStepProps): ReactNode {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{i18n._('catalog-import.preview-row')}</TableHead>
+            <TableHead className={WIDE_ONLY}>{i18n._('catalog-import.preview-row')}</TableHead>
             <TableHead>{i18n._('catalog-import.preview-action')}</TableHead>
-            <TableHead>{i18n._('catalog-import.field-product-key')}</TableHead>
+            <TableHead className={WIDE_ONLY}>{i18n._('catalog-import.field-product-key')}</TableHead>
             <TableHead>{i18n._('catalog-import.field-name')}</TableHead>
             <TableHead>{i18n._('catalog-import.preview-messages')}</TableHead>
           </TableRow>

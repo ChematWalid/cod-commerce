@@ -11,6 +11,8 @@ import { applyPriceChange } from './price-change';
 /** What a bulk edit reads of one product: the fields it may change. */
 export interface EditableProduct {
   readonly id: string;
+  /** Shown on the product's line of the answer, so the merchant reads names rather than ids (#261). */
+  readonly title: string;
   readonly status: ProductStatus;
   readonly brandId: string | null;
   readonly tagIds: readonly string[];

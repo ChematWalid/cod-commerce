@@ -12,6 +12,7 @@ const actor: ActivityActor = { administratorId: 5, ip: '192.0.2.1', userAgent: '
 
 const productOf = (id: string, price = 1000): EditableProduct => ({
   id,
+  title: `Synthetic ${id}`,
   status: 'active',
   brandId: null,
   tagIds: ['801'],
@@ -47,7 +48,13 @@ describe('bulk edit use case (D2213)', () => {
 
     // Assert
     expect(results).toEqual(
-      ['1', '2', '3'].map((productId) => ({ productId, ok: true, changedFields: ['status'], error: null })),
+      ['1', '2', '3'].map((productId) => ({
+        productId,
+        productTitle: `Synthetic ${productId}`,
+        ok: true,
+        changedFields: ['status'],
+        error: null,
+      })),
     );
     expect(world.units).toHaveLength(3);
     expect(world.writesOf('status').map((write) => write.productId)).toEqual(['1', '2', '3']);
@@ -64,7 +71,9 @@ describe('bulk edit use case (D2213)', () => {
     const results = await service.edit(ctx, SCOPE, actor, command(['1'], { status: 'active' }));
 
     // Assert
-    expect(results).toEqual([{ productId: '1', ok: true, changedFields: [], error: null }]);
+    expect(results).toEqual([
+      { productId: '1', productTitle: 'Synthetic 1', ok: true, changedFields: [], error: null },
+    ]);
     expect(world.committed).toEqual([]);
   });
 
@@ -75,6 +84,7 @@ describe('bulk edit use case (D2213)', () => {
     // Assert
     expect(results[1]).toEqual({
       productId: '404',
+      productTitle: null,
       ok: false,
       changedFields: [],
       error: CATALOG_ERROR_CODES.PRODUCT_NOT_FOUND,
@@ -194,8 +204,14 @@ describe('bulk edit use case (D2213)', () => {
 
     // Assert
     expect(dry).toEqual([
-      { productId: '1', ok: true, changedFields: ['status', 'price'], error: null },
-      { productId: '2', ok: false, changedFields: [], error: CATALOG_ERROR_CODES.INVALID_INPUT },
+      { productId: '1', productTitle: 'Synthetic 1', ok: true, changedFields: ['status', 'price'], error: null },
+      {
+        productId: '2',
+        productTitle: 'Synthetic 2',
+        ok: false,
+        changedFields: [],
+        error: CATALOG_ERROR_CODES.INVALID_INPUT,
+      },
     ]);
     expect(world.committed).toEqual([]);
   });

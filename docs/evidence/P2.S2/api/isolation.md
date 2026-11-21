@@ -192,7 +192,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"ad-9er2254iCxwUxR36N+uXbpQmfkI"
+etag: W/"ad-ljlEudJK4+hBgLvz5gMP8tWlsSk"
 
 {
   "statusCode": 404,
@@ -253,7 +253,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"a4-bu4SZVHpTSOXHoViVByRy9M0Cjs"
+etag: W/"a4-4uwYbdGwl3jJNMz6hpRAlCnihtM"
 
 {
   "statusCode": 404,
@@ -314,7 +314,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"a1-p8gXUYYxxCZGsL9L/eoExvlxaFA"
+etag: W/"a1-7t3+WV7y7cqtYSli+tqMu7fgrv4"
 
 {
   "statusCode": 404,
@@ -333,7 +333,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"b5-up+qBkAl/Z0TwFknBSmjVone1vw"
+etag: W/"b5-mXjXNuJ3Mm9VCPXatDxZrKHrGLs"
 
 {
   "statusCode": 404,
@@ -352,7 +352,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"b5-kNnI/xpjWhoFwjS5NDZNwUYgW7s"
+etag: W/"b5-Yy1ZovWAOaN5AcSRWPD3ZnTkNtQ"
 
 {
   "statusCode": 404,
@@ -371,7 +371,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"1ab-VehxsZ7ouDB4ePsBPsaAARziUHs"
+etag: W/"1ab-oiYiL+nJxOZqh+/UkG4NpARJrj0"
 
 {
   "importId": "<IMPORT_OF_B>",
@@ -431,12 +431,13 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"63-Lt3oWOhooBUzQL2JfNKYFXyi0fQ"
+etag: W/"77-GZWyzWHv83PSlMJdgduro7m+uso"
 
 {
   "results": [
     {
       "productId": "542",
+      "productTitle": null,
       "ok": false,
       "changedFields": [],
       "error": "catalog.product-not-found"
@@ -463,7 +464,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"2b5-tveKUeSIEN70zJV/5VhfgA8YEnc"
+etag: W/"2b5-e4kBRqPdtDARshr29fBz/4pFq3Q"
 
 {
   "exportId": "<EXPORT_A_OF_B>",
@@ -472,7 +473,7 @@ etag: W/"2b5-tveKUeSIEN70zJV/5VhfgA8YEnc"
   "rowCount": 0,
   "skippedPacks": 0,
   "errorCode": null,
-  "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_A_OF_B>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235429Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_A_OF_B>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject"
+  "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_A_OF_B>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T120007Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_A_OF_B>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject"
 }
 ```
 
@@ -583,12 +584,12 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 403 Forbidden
 content-type: application/json; charset=utf-8
-etag: W/"87-KZvyGJfb+i+Ke+V2jW30G+/zCyY"
+etag: W/"87-6rjDBKMWs93DqQCBBE4MV2xlUcM"
 
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-20T23:54:30.320Z",
+  "timestamp": "2026-11-21T12:00:08.784Z",
   "path": "/catalog/import-export/fields"
 }
 ```

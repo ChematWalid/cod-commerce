@@ -10,6 +10,7 @@ import { toRequestContext } from './request-context';
 /** A catalog product as a bulk edit reads it. */
 const editableOf = (view: ProductView): EditableProduct => ({
   id: view.id,
+  title: view.title,
   status: view.status,
   brandId: view.brandId,
   tagIds: view.tagIds,

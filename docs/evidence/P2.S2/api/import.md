@@ -24,13 +24,13 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"2c5-KkvAnPZM1+9AX9YOjWql9IDOyPo"
+etag: W/"2c5-aERW5WJ7cxYa70VondzMvAdxrdk"
 
 {
   "data": {
     "createCatalogImportUpload": {
       "importId": "<IMPORT_SHOWCASE>",
-      "uploadUrl": "http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235410Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
+      "uploadUrl": "http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115947Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
       "method": "PUT",
       "headers": [
         {
@@ -42,7 +42,7 @@ etag: W/"2c5-KkvAnPZM1+9AX9YOjWql9IDOyPo"
           "value": "528"
         }
       ],
-      "expiresAt": "2026-11-21T00:04:10.182Z"
+      "expiresAt": "2026-11-21T12:09:47.658Z"
     }
   }
 }
@@ -51,7 +51,7 @@ etag: W/"2c5-KkvAnPZM1+9AX9YOjWql9IDOyPo"
 ### PUT the file to the upload link (Garage): stored
 
 ```http
-PUT http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235410Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject
+PUT http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115947Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject
 Content-Type: text/csv
 Content-Length: 528
 
@@ -81,7 +81,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"3cb-oinxAugib8S5BejgVaYVUtrWbpU"
+etag: W/"3cb-7qU7pfJLUidA0QxZNSVfGcISAh4"
 
 {
   "data": {
@@ -195,7 +195,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"321-5wdBUK3+P9kg9F/ets5veNUMfR4"
+etag: W/"321-iOSneBYSDhxxuIdXQ/9fZ0fUStA"
 
 {
   "data": {
@@ -278,7 +278,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"1bf-luVpJ4+GGjfRt8YpXlbenC/s0Qk"
+etag: W/"1bf-+Epqe9js7DnUGi8nxipn8rIO/to"
 
 {
   "data": {
@@ -327,7 +327,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"2fc-/f+pkVzwgrmYp3gjAXqfBzyFvyU"
+etag: W/"2fc-4wJSNGOY6cR+q9yR6P4kx7+snco"
 
 {
   "importId": "<IMPORT_SHOWCASE>",
@@ -404,7 +404,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"3e3-4zfifhjDl01vWw/vnNn2BNVI85g"
+etag: W/"3e3-5apgKlhvDqpc8gN+OOAbFHpl3Rs"
 
 {
   "data": {
@@ -515,7 +515,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"632-n1YujUsFY32TKaqvs8Nfb/ZU7kM"
+etag: W/"632-rB+F49IaPyuxGevT0OXHiq9yQzg"
 
 {
   "data": {
@@ -606,7 +606,7 @@ etag: W/"632-n1YujUsFY32TKaqvs8Nfb/ZU7kM"
         "failed": 3
       },
       "errorCode": null,
-      "errorReportUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/errors?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235412Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22import-errors-<IMPORT_SHOWCASE>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject"
+      "errorReportUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/errors?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115950Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22import-errors-<IMPORT_SHOWCASE>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject"
     }
   }
 }
@@ -615,7 +615,7 @@ etag: W/"632-n1YujUsFY32TKaqvs8Nfb/ZU7kM"
 ### GET the error report link: the failed rows and their reasons (CSV)
 
 ```http
-GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/errors?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235412Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22import-errors-<IMPORT_SHOWCASE>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject
+GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SHOWCASE>/errors?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115950Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22import-errors-<IMPORT_SHOWCASE>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject
 
 HTTP/1.1 200 OK
 etag: "d18256e0635428e44db27c3c79c2d76e"
@@ -683,7 +683,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"a2-GJV1wLY/zumt0qpe8jpRTvhJKoo"
+etag: W/"a2-4mHxf6tzVH4THFbb5HEDU1dDpVU"
 
 {
   "data": {
@@ -720,24 +720,24 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"27a-D+G+PhVFxkohVpUQeHSeUd9QPrY"
+etag: W/"27a-WP3QdgORU/LpHMOwR78OMQVqfHA"
 
 {
   "importId": "<IMPORT_REST>",
-  "uploadUrl": "http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_REST>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235413Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
+  "uploadUrl": "http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_REST>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115951Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
   "method": "PUT",
   "headers": {
     "content-type": "text/csv",
     "content-length": "94"
   },
-  "expiresAt": "2026-11-21T00:04:13.921Z"
+  "expiresAt": "2026-11-21T12:09:51.599Z"
 }
 ```
 
 ### PUT the file to the upload link
 
 ```http
-PUT http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_REST>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235413Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject
+PUT http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_REST>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115951Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject
 Content-Type: text/csv
 Content-Length: 94
 
@@ -761,7 +761,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"205-R22+mIghw8/lBR0xaLcEfGjO4+Q"
+etag: W/"205-5aBmBRqlDyq79sbkndHHWszrpHw"
 
 {
   "importId": "<IMPORT_REST>",
@@ -821,7 +821,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"f0-I8lariDfHa5sISlurug6TqQb3vc"
+etag: W/"f0-78XtifdgbMrMwrX2uUeq1qDpFu8"
 
 {
   "importId": "<IMPORT_REST>",
@@ -855,7 +855,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"234-tkZWQKCOjpTs/kEe4SFSJxBelZU"
+etag: W/"234-GrxTt/73NKQqWOlxSRY3S3rCUcc"
 
 {
   "importId": "<IMPORT_REST>",
@@ -917,7 +917,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"250-8ngG2Dh+PTFz08xC6yc0/nvEhVQ"
+etag: W/"250-A1Ye2Toghm05/Wk/2lQ+/sEJ0Qo"
 
 {
   "importId": "<IMPORT_REST>",

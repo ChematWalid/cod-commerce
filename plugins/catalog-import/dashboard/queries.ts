@@ -57,6 +57,8 @@ export interface CatalogExportDto {
 /** `CatalogBulkEditProductResult`. */
 export interface BulkEditProductResultDto {
   readonly productId: string;
+  /** `null` when the id is not one of the store's products. */
+  readonly productTitle: string | null;
   readonly ok: boolean;
   readonly changedFields: readonly string[];
   readonly error: string | null;
@@ -99,7 +101,7 @@ const CONFIRM_MUTATION = `mutation CatalogImportConfirm($id: String!) {
 const EXPORT_MUTATION = `mutation CatalogExportProducts($input: CatalogExportInput!) {
   exportCatalogProducts(input: $input) { ${EXPORT_FIELDS} } }`;
 const BULK_MUTATION = `mutation CatalogBulkEdit($input: CatalogBulkEditInput!) {
-  bulkEditCatalogProducts(input: $input) { results { productId ok changedFields error } } }`;
+  bulkEditCatalogProducts(input: $input) { results { productId productTitle ok changedFields error } } }`;
 
 /** Raised when the object store refuses the uploaded file. */
 export class UploadRefusedError extends Error {

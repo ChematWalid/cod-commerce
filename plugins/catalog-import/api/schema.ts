@@ -36,6 +36,8 @@ export const importAdminApiSchema = gql`
   "One product's outcome: the fields that changed, or the error code that refused it."
   type CatalogBulkEditProductResult {
     productId: ID!
+    "The product's title in the store; null when the id is not one of the store's products."
+    productTitle: String
     ok: Boolean!
     changedFields: [String!]!
     error: String
