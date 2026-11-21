@@ -49,8 +49,32 @@ export const OFFERS_TABLE_COUNTS = {
   offers_code: BY_BUSINESS('offers_code'),
 } as const;
 
+/** The pack tables (P2.S2, D2202): the P2 world saves a pack with two components in each business. */
+export const CATALOG_PACKS_TABLE_COUNTS = {
+  catalog_pack: BY_BUSINESS('catalog_pack'),
+  catalog_pack_component: BY_BUSINESS('catalog_pack_component'),
+} as const;
+
+/**
+ * The import and export tables (P2.S2, D2210, D2211, D2214): the P2 world previews a spreadsheet import (its job and
+ * rows), exports a product and imports a link (its job and the Draft's origin) in each business.
+ */
+export const CATALOG_IMPORT_TABLE_COUNTS = {
+  catalog_import_job: BY_BUSINESS('catalog_import_job'),
+  catalog_import_row: BY_BUSINESS('catalog_import_row'),
+  catalog_export_job: BY_BUSINESS('catalog_export_job'),
+  catalog_product_origin: BY_BUSINESS('catalog_product_origin'),
+} as const;
+
 /** Every counted table: P1's, the catalog's and the offers'. */
-const ALL_TABLE_COUNTS = { ...TENANT_TABLE_COUNTS, ...CATALOG_TABLE_COUNTS, ...OFFERS_TABLE_COUNTS };
+const ALL_TABLE_COUNTS = {
+  ...TENANT_TABLE_COUNTS,
+  ...CATALOG_TABLE_COUNTS,
+  ...OFFERS_TABLE_COUNTS,
+  // P2.S2: the packs' and the import's.
+  ...CATALOG_PACKS_TABLE_COUNTS,
+  ...CATALOG_IMPORT_TABLE_COUNTS,
+};
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
 

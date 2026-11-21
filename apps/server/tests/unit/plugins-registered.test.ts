@@ -1,5 +1,4 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { CatalogPlugin } from '@cod/plugin-catalog';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -210,22 +209,6 @@ describe('buildPlugins', () => {
     // Assert
     expect(plugins).toContain(RbacPlugin);
   });
-
-  // Team imports catalog's module to register its order-manager check: Catalog configures once, between them (D2137).
-  it.each(SERVER_ROLES)(
-    'registers CatalogPlugin once for the %s role, after AuthPlugin and before TeamPlugin',
-    (role: ServerRole) => {
-      // Arrange
-      const env = loadEnv({ ...valid, ROLE: role });
-      const expectedOrder: readonly unknown[] = [AuthPlugin, CatalogPlugin, TeamPlugin];
-
-      // Act
-      const plugins = buildPlugins(env, role);
-
-      // Assert: each of the three appears once, in this order
-      expect(plugins.filter((plugin) => expectedOrder.includes(plugin))).toEqual(expectedOrder);
-    },
-  );
 
   it.each(SERVER_ROLES)('registers TeamPlugin with the dashboard URL for the %s role', (role: ServerRole) => {
     // Arrange

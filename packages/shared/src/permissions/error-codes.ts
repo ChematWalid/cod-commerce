@@ -22,7 +22,7 @@ export const RBAC_ERROR_CODES = {
 /** One of the {@link RBAC_ERROR_CODES} values. */
 export type RbacErrorCode = (typeof RBAC_ERROR_CODES)[keyof typeof RBAC_ERROR_CODES];
 
-/** Activity-log actions written by the roles and team features. */
+/** Activity-log actions written by the roles, team and catalog features. */
 export const ACTIVITY_ACTIONS = {
   ROLE_CREATED: 'rbac.role.created',
   ROLE_UPDATED: 'rbac.role.updated',
@@ -41,6 +41,10 @@ export const ACTIVITY_ACTIONS = {
   COMMISSION_CREATED: 'team.commission.created',
   COMMISSION_UPDATED: 'team.commission.updated',
   COMMISSION_DELETED: 'team.commission.deleted',
+  CATALOG_PRODUCTS_BULK_EDITED: 'catalog.products.bulk-edit',
+  CATALOG_PRODUCTS_IMPORTED: 'catalog.products.import',
+  CATALOG_PRODUCT_LINK_IMPORTED: 'catalog.products.link-import',
+  CATALOG_PRODUCTS_EXPORTED: 'catalog.products.export',
 } as const;
 
 /** One of the {@link ACTIVITY_ACTIONS} values. */
@@ -55,6 +59,8 @@ export const ACTIVITY_ENTITY_TYPES = {
   MEMBER: 'member',
   TEAM_MEMBER: 'team-member',
   COMMISSION_CONFIG: 'commission-config',
+  PRODUCT: 'product',
+  CATALOG_JOB: 'catalog-job',
 } as const;
 
 /** One of the {@link ACTIVITY_ENTITY_TYPES} values. */

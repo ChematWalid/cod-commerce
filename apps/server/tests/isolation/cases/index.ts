@@ -5,6 +5,8 @@ import { CATALOG_SOLD_OUT_CASES } from './catalog-sold-out';
 import { CATALOG_STOCK_CASES } from './catalog-stock';
 import { CATALOG_SWEEP_CASES } from './catalog-sweep';
 import { CATALOG_TAXONOMY_CASES } from './catalog-taxonomy';
+import { IMPORT_EXPORT_CASES } from './import-export';
+import { PACKS_CASES } from './packs';
 import { TEAM_CASES } from './team';
 import { ACCOUNT_CASES } from './account';
 import { PLATFORM_CASES } from './platform';
@@ -31,6 +33,7 @@ export const ISOLATION_CASES: readonly IsolationCase[] = [
 /**
  * Every cell of the P2 isolation matrix (P2.S1 catalog, D2115). Kept apart from {@link ISOLATION_CASES}, which the P1
  * suite runs unchanged (its `stock.products` cell stays FORBIDDEN, D2101).
+ * P2.S2 adds the packs, import and export cells (D2278).
  */
 export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...CATALOG_PRODUCT_CASES,
@@ -39,4 +42,6 @@ export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...CATALOG_SWEEP_CASES,
   ...CATALOG_STOCK_CASES,
   ...CATALOG_SOLD_OUT_CASES,
+  ...PACKS_CASES,
+  ...IMPORT_EXPORT_CASES,
 ];

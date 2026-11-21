@@ -1,0 +1,13 @@
+{
+  "error": {
+    "packs-invalid-input": "Some of the pack details are not valid.",
+    "packs-not-found": "Pack product not found.",
+    "packs-not-a-pack": "This product is not a pack.",
+    "packs-component-not-found": "A component product or variant was not found in this store.",
+    "packs-component-is-pack": "A pack cannot contain a pack.",
+    "packs-shared-option-missing": "Every component must have the shared option, and no other option.",
+    "packs-no-common-value": "The components have no value of the shared option in common.",
+    "catalog-concurrent-update": "This product was changed at the same time. Try again.",
+    "packs-internal": "The request could not be completed."
+  }
+}

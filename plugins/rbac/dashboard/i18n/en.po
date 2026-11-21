@@ -172,6 +172,14 @@ msgid "rbac.target-commission"
 msgstr "Commission structure"
 
 #. js-lingui-explicit-id
+msgid "rbac.target-product"
+msgstr "Product"
+
+#. js-lingui-explicit-id
+msgid "rbac.target-catalog-job"
+msgstr "Import or export"
+
+#. js-lingui-explicit-id
 msgid "rbac.actor-system"
 msgstr "System"
 
@@ -254,6 +262,22 @@ msgstr "Commission updated"
 #. js-lingui-explicit-id
 msgid "team.commission.deleted"
 msgstr "Commission deleted"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.bulk-edit"
+msgstr "Products bulk edited"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.import"
+msgstr "Products imported"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.link-import"
+msgstr "Product imported from a link"
+
+#. js-lingui-explicit-id
+msgid "catalog.products.export"
+msgstr "Products exported"
 
 #. js-lingui-explicit-id
 msgid "rbac.role-not-found"

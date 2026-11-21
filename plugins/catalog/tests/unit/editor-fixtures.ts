@@ -19,6 +19,7 @@ export const savedRunner: CatalogProductDto = {
   slug: 'runner',
   description: '<p>Light</p>',
   status: 'active',
+  type: 'physical',
   price: 2500,
   oldPrice: null,
   sku: 'RUN',

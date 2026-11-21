@@ -3,7 +3,7 @@ import { LOGO_MAX_BYTES } from '../auth/constants';
 /** Lifecycle of a product: listed, reachable only by its landing page, or never public (D2109). */
 export const PRODUCT_STATUSES = ['active', 'hidden', 'draft'] as const;
 /** Kinds of product; append-only (P2.S2 appends `pack`, D2126). */
-export const PRODUCT_TYPES = ['physical'] as const;
+export const PRODUCT_TYPES = ['physical', 'pack'] as const;
 /** Tabs of the admin product list; `draft` lists drafts only, `sold-out` the sold-out products (D2108). */
 export const PRODUCT_LIST_TABS = ['all', 'draft', 'sold-out'] as const;
 

@@ -6,6 +6,7 @@ import type {
   ProductPage,
   SlugLookup,
 } from '../../domain/ports/product-catalog.port';
+import type { ProductIdPage, ProductLookupPort, SkuCandidate } from '../../domain/ports/product-lookup.port';
 import type {
   OptionGroupRecord,
   ProductDraft,
@@ -44,7 +45,7 @@ interface StoredProduct {
  * Vendure's product, variant and option entities of every store in memory, one channel per store. It applies the
  * matrix plan as the Vendure adapter does, so the use-case tests see the same variants.
  */
-export class InMemoryProductCatalog implements ProductCatalogPort {
+export class InMemoryProductCatalog implements ProductCatalogPort, ProductLookupPort {
   readonly stored: StoredProduct[] = [];
   /** Collections per store channel: `storeId → ids`. */
   readonly collections = new Map<string, Set<string>>();
@@ -144,19 +145,53 @@ export class InMemoryProductCatalog implements ProductCatalogPort {
     return Promise.resolve(this.live(ctx, id)?.record);
   }
 
-  list(ctx: OperationContext, criteria: ProductCriteria): Promise<ProductPage> {
+  private matching(ctx: OperationContext, criteria: ProductCriteria): ProductRecord[] {
     const allowed = criteria.productIds === undefined ? undefined : new Set<string>(criteria.productIds);
     const excluded = new Set<string>(criteria.excludedProductIds ?? []);
-    const matching = this.stored
+    const byIdAscending = (left: ProductRecord, right: ProductRecord) => Number(left.id) - Number(right.id);
+    const newestFirst = (left: ProductRecord, right: ProductRecord) =>
+      right.createdAt.getTime() - left.createdAt.getTime();
+    return this.stored
       .filter((row) => row.storeId === storeOf(ctx) && !row.deleted)
       .map((row) => row.record)
       .filter((record) => (allowed === undefined || allowed.has(record.id)) && !excluded.has(record.id))
       .filter((record) => criteria.status === undefined || record.status === criteria.status)
       .filter((record) => criteria.statuses === undefined || criteria.statuses.includes(record.status))
       .filter((record) => criteria.brandId === undefined || record.brandId === criteria.brandId)
-      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+      .sort(criteria.sort === 'id-asc' ? byIdAscending : newestFirst);
+  }
+
+  list(ctx: OperationContext, criteria: ProductCriteria): Promise<ProductPage> {
+    const matching = this.matching(ctx, criteria);
     const items = matching.slice(criteria.skip, criteria.skip + criteria.take);
     return Promise.resolve({ items, totalItems: matching.length });
+  }
+
+  listIds(ctx: OperationContext, criteria: ProductCriteria): Promise<ProductIdPage> {
+    this.calls.push(`listIds:${String(criteria.skip)}:${String(criteria.take)}`);
+    const matching = this.matching(ctx, criteria);
+    const ids = matching.slice(criteria.skip, criteria.skip + criteria.take).map((record) => record.id);
+    return Promise.resolve({ ids, totalItems: matching.length });
+  }
+
+  /** Like Vendure's `contains`: case-insensitive, but blind to Unicode form, so the use case must compare exactly. */
+  findBySkus(ctx: OperationContext, skus: readonly string[]): Promise<readonly SkuCandidate[]> {
+    const contains = (held: string) => skus.some((sku) => held.toLowerCase().includes(sku.toLowerCase()));
+    const live = this.stored.filter((row) => row.storeId === storeOf(ctx) && !row.deleted).map((row) => row.record);
+    const variants = live.flatMap((record) =>
+      record.variants
+        .filter((variant) => contains(variant.sku))
+        .map((variant) => ({
+          productId: record.id,
+          variantId: variant.id,
+          sku: variant.sku,
+          productType: record.type,
+        })),
+    );
+    const products = live
+      .filter((record) => record.sku !== null && contains(record.sku))
+      .map((record) => ({ productId: record.id, variantId: null, sku: record.sku ?? '', productType: record.type }));
+    return Promise.resolve([...variants, ...products]);
   }
 
   softDelete(ctx: OperationContext, id: CoreId): Promise<boolean> {

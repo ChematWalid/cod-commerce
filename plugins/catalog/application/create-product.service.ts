@@ -1,5 +1,7 @@
 import type { ProductCommand } from '@cod/shared';
+import { InvalidCatalogInputError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
+import { createsWithinPackBoundary } from '../domain/pack-boundary';
 import type { StoreScope } from '../domain/store-scope';
 import { planVariantMatrix } from '../domain/variant-matrix';
 import type { ProductPorts } from './catalog-ports';
@@ -10,7 +12,8 @@ import { type ProductSaveResult, saveLinks, viewOf, warningsOf } from './product
 /**
  * "Create a product" in the caller's active store: checks every id it names, plans its variants from its options
  * (D2124), stores it with its links and settings and publishes `product.changed` in one transaction (D2127). An old
- * price below the price is a warning, never a refusal (AC3).
+ * price below the price is a warning, never a refusal (AC3). A pack is created bare: no options, weight or old price
+ * (D2227).
  */
 export class CreateProductService {
   private readonly references: ProductReferenceCheck;
@@ -20,6 +23,7 @@ export class CreateProductService {
   }
 
   async create(ctx: OperationContext, scope: StoreScope, command: ProductCommand): Promise<ProductSaveResult> {
+    if (!createsWithinPackBoundary(command)) throw new InvalidCatalogInputError();
     const references = { ...command, orderManagerIds: command.settings?.orderManagerIds };
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       // Checked under the shared taxonomy and media locks, so nothing it names is deleted before it commits.

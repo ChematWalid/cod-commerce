@@ -14,6 +14,8 @@ export interface ProductCriteria {
   /** Only products in one of these statuses (a public context, D2109); `status` narrows further. */
   readonly statuses?: readonly ProductStatus[];
   readonly brandId?: Snowflake;
+  /** `id-asc` pages by ascending product id (exports, D2218); newest first otherwise. */
+  readonly sort?: 'id-asc';
   readonly skip: number;
   readonly take: number;
 }

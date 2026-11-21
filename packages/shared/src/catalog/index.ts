@@ -5,4 +5,5 @@ export * from './fields';
 export * from './schemas';
 export * from './list-query';
 export * from './editor-ids';
+export * from './list-page';
 export * from './product-changed';

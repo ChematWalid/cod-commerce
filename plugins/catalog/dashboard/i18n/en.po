@@ -618,3 +618,27 @@ msgstr "Orders stopped for the sold-out products"
 #. js-lingui-explicit-id
 msgid "catalog.orders-resumed-done"
 msgstr "Orders resumed for the sold-out products"
+
+#. js-lingui-explicit-id
+msgid "catalog.select-product"
+msgstr "Select product"
+
+#. js-lingui-explicit-id
+msgid "catalog.select-page"
+msgstr "Select every product on this page"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-type"
+msgstr "Product type"
+
+#. js-lingui-explicit-id
+msgid "catalog.type-physical"
+msgstr "Physical product"
+
+#. js-lingui-explicit-id
+msgid "catalog.type-pack"
+msgstr "Pack"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-pack-pricing-hint"
+msgstr "A pack's prices are computed from its components in the pack card."

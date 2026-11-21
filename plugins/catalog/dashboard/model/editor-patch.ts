@@ -1,5 +1,6 @@
-import { catalogNameKey, type ProductStatus } from '@cod/shared';
+import { catalogNameKey, type ProductStatus, type ProductType } from '@cod/shared';
 import { type EditorForm, type SettingsDraft, type VariantDraft, wholeNumberOf } from './editor-form';
+import { isPackForm, withoutPackComputed } from './editor-pack';
 import { type OptionDraft, type OptionsDraft, resetsVariants } from './options-draft';
 
 /** The product fields of a create or an update, as the catalog API takes them (`CreateCatalogProductInput`). */
@@ -47,7 +48,7 @@ export interface VariantPatchInput {
   readonly featuredAssetId?: string | null;
 }
 
-export type CreateProductInput = ProductFieldsInput & { readonly settings: SettingsInput };
+export type CreateProductInput = ProductFieldsInput & { readonly type: ProductType; readonly settings: SettingsInput };
 
 /** `UpdateCatalogProductInput`: only what changed; an absent field stays, `null` clears. */
 export type ProductPatchInput = Partial<ProductFieldsInput> & {
@@ -118,11 +119,16 @@ const settingsOf = (settings: SettingsDraft): SettingsInput => ({
   orderManagerIds: settings.orderManagerIds,
 });
 
-/** "Create a product" from the form: every field, the options and the full settings. */
-export const createInputOf = (form: EditorForm): CreateProductInput => ({
-  ...fieldsOf(form),
-  settings: settingsOf(form.settings),
-});
+/**
+ * "Create a product" from the form: every field, its type, the options and the full settings. A pack is created bare,
+ * without options, weight or old price and at a placeholder price of 0 (D2227, D2233): catalog-packs computes them once
+ * it is composed.
+ */
+export function createInputOf(form: EditorForm): CreateProductInput {
+  const fields = fieldsOf(form);
+  const packed = isPackForm(form) ? { ...fields, price: 0, optionGroups: [], weight: null, oldPrice: null } : fields;
+  return { ...packed, type: form.type, settings: settingsOf(form.settings) };
+}
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 
@@ -159,11 +165,29 @@ function variantPatchesOf(saved: EditorForm, form: EditorForm): VariantPatchInpu
   });
 }
 
-/** "Edit a product": the fields, settings and variant edits that differ from what was saved. */
-export function patchOf(saved: EditorForm, form: EditorForm): ProductPatchInput {
+/** The variant edits of a pack without prices: catalog-packs prices every pack variant (D2227). */
+function packVariantPatchesOf(patches: readonly VariantPatchInput[]): VariantPatchInput[] {
+  return patches.flatMap((patch) => {
+    const unpriced = withoutPackComputed(patch);
+    return Object.keys(unpriced).length > 1 ? [unpriced] : [];
+  });
+}
+
+/** The product fields of a save, without what catalog-packs computes for a pack (prices, weight, options). */
+function changedFieldsOf(saved: EditorForm, form: EditorForm): Partial<ProductFieldsInput> {
   const fields = changedEntries(fieldsOf(saved), fieldsOf(form));
+  return isPackForm(saved) ? withoutPackComputed(fields) : fields;
+}
+
+/**
+ * "Edit a product": the fields, settings and variant edits that differ from what was saved. The type is never sent:
+ * a product keeps it (D2227); a pack's save leaves its prices, weight and options to catalog-packs.
+ */
+export function patchOf(saved: EditorForm, form: EditorForm): ProductPatchInput {
+  const fields = changedFieldsOf(saved, form);
   const settings = changedEntries(settingsOf(saved.settings), settingsOf(form.settings));
-  const variants = variantPatchesOf(saved, form);
+  const edits = variantPatchesOf(saved, form);
+  const variants = isPackForm(saved) ? packVariantPatchesOf(edits) : edits;
   return {
     ...fields,
     ...(Object.keys(settings).length === 0 ? {} : { settings }),
