@@ -111,7 +111,7 @@ function CollectionRow(props: Omit<CollectionTableProps, 'collections'> & { read
 export function CollectionTable(props: CollectionTableProps): ReactNode {
   const { i18n } = useLingui();
   return (
-    <Table>
+    <Table className="cod-collections-table">
       <TableHeader>
         <TableRow>
           <TableHead className={START}>{i18n._('collections.column-title')}</TableHead>

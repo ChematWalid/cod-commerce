@@ -31,3 +31,10 @@ html[dir='rtl'] .cod-collections-switch [data-slot='switch-thumb'][data-checked]
 [data-slot='card']:has(> [data-slot='card-content'] > .cod-collections-block-hidden) {
   display: none;
 }
+
+/* merchant-shell gives every cell `unicode-bidi: plaintext` in a right-to-left page, so a cell holding only a number
+   or a badge (no Arabic letter) turns left-to-right and its value leaves its column's start. The list's numbers are
+   already isolated in their own LTR run, so its cells keep the page direction. */
+html[dir='rtl'] .cod-collections-table td {
+  unicode-bidi: isolate;
+}
