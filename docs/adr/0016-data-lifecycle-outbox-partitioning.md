@@ -177,3 +177,12 @@ Spike D, 2026-11-07, P0.S2a-2. Scratch app outside the repo (`@vendure/create@3.
 - `migrate` runs on `DATABASE_URL_DIRECT`, and its session-level advisory lock lives on a connection of its own; the test database setup connects directly too.
 
 **CI.** The integration job runs in parts so that none exceeds the ten-minute job budget (D51, D118): `others`, `server-e2e` (holds the three e2e files above), `tenancy-1/2` (added with this section, two shards because the whole suite took about ten minutes locally; `others` excludes it), `auth-1/2`, `rbac-1/2`, `platform-1` (jobs, partitions, outbox) and `platform-2` (secrets, webhooks, flags); the two platform parts run their packages one after the other (`--concurrency=1`), because every plugin test server listens on Vendure's one default test port. Local times, with the machine shared: `server-e2e` 7 min, `tenancy` shards 6 and 4 min, `platform-1` 4 min, `platform-2` 6 min. `packages/config/tests/integration-matrix.ts` is the expected list and `ci-workflow.test.ts` compares it with the workflow.
+
+## Amendment (2026-11-14): collections consumer and topic (P2.S3)
+
+**Status**: Proposed (2026-11-14), listed under "ADRs to accept" in the P2.S3 handoff. Decisions D2312, D2313 and D2335 of `docs/roadmap/P2-decisions.md`.
+
+| Topic | Change | Decision |
+|---|---|---|
+| Consumers | New consumer `collections-membership` on queue `catalog-effects` (bulk, ADR 0013 amendment of 2026-11-14), topic `product.changed`: re-evaluates one product against every automatic collection of its store under the per-store lock. Idempotent: it rebuilds membership from the latest committed facts and rules, so a redelivered or stale event changes nothing. | D2312, D2313, D2334 |
+| Topics | New topic `collection.changed` (payload `{ collectionId, storeId, change: created \| updated \| membership \| deleted }`, ids only), published by collections-rules in the writing transaction. | D2335 |

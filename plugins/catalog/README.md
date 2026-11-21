@@ -23,6 +23,43 @@ The entry exports `CatalogPlugin` and the read facade `CatalogProductQueries` (w
 and `CatalogOperationContext` types: Team registers its check there on bootstrap (D2114, D2132); a second
 registration throws. Later tasks add more services; the session handoff lists what P2.S2-S5 and P3 may use.
 
+### Product facts reader (P2.S3, D2308)
+
+`CatalogProductFactsReader` (with `CatalogProductFacts`, `CatalogRuleOptions`, `CatalogStoreScope`,
+`CatalogStoreChannelMismatchError` and `CATALOG_FACTS_MAX_IDS`) serves collection rules. It takes the store as an
+argument, so an outbox consumer or a job can call it with a context it built on the store's channel; every method
+refuses a context on another channel. It does not check the store's status (active, archived): the caller does. `factsOf(ctx, scope, ids)` (at most 100 ids; unknown, deleted, other-store and
+malformed ids left out) reads in three statements: products, variants with their channel price and options, and tag
+links. Price, on sale and variant options come from non-hidden variants only (D2304). `pageIds(ctx, scope,
+{ after, take, search? })` is a keyset page (`id < after`, newest first); a malformed `after`, a `take` outside 1-100
+or a search over 100 characters is refused with `InvalidCatalogInputError`. `ruleOptionsOf(ctx, scope)` lists the
+store's brands, tags and option names with their values, merged by the shared `normalForMatch`. The Vendure-table
+reads live in `infrastructure/vendure-product-facts.query.ts`, a reviewed raw-data entry; tag links go through
+`TagRepositoryPort.tagIdsOfProducts`.
+
+### Collection membership and visible reads (P2.S3, D2309-D2311, D2324)
+
+- `COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR` (with `CollectionMembershipSource`, `CollectionMembershipSourceRegistrar`
+  and `CatalogCollectionOption`): the catalog reads which collections hold a product through
+  `CollectionMembershipRegistry`, the `catalog_product_collection` table until collection rules register their
+  source on bootstrap. A product's `collectionIds` are its manual collections only; a
+  product write naming a collection the source does not call manual (`manualCollectionIdsAmong`) answers
+  `catalog.collection-not-found`; the list's collection filter sees every member (`productIdsInCollection`). The
+  Admin API query `catalogCollectionOptions` (`catalog.products.view`) lists the source's `collectionOptionsOf`,
+  empty without collection rules.
+- `CatalogReadService.listVisibleAmong(ctx, context, productIds, { skip, take })`: the products a public list
+  context shows among at most `COLLECTION_MAX_MANUAL_PRODUCTS` ids, in the given order (a manual collection); ids are
+  filtered by `ProductCatalogPort.visibleIdsAmong` (ids only) and only the page's records are read.
+  `listVisible(ctx, context, { skip, take, productIds })` limits the newest-first list to at most
+  `CATALOG_MAX_AMONG_IDS` ids (an automatic collection). Malformed, repeated and other-store ids are left out.
+- `VisibleProduct.collectionIds` (the public read) holds manual collections only (D2309); a product's automatic
+  memberships come from the collections-rules read, never from this field.
+- The registrar the plugin exports can only `register`; a second registration throws
+  `CollectionMembershipSourceAlreadyRegisteredError`. A registered source must take its per-store lock (D2334) in
+  `replaceProductCollections` and drop or refuse ids that turned automatic since the use case's manual check.
+- Deleting a tag publishes `product.changed` (`updated`) for every product it unlinks, in the delete's transaction,
+  as a brand delete does.
+
 ## API (Task 11)
 
 GraphQL `catalogProducts`, `catalogProduct`, `catalogSlugAvailability`, `createCatalogProduct`,

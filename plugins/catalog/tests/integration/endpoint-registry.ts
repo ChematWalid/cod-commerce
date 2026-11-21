@@ -47,6 +47,14 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     variables: (ids) => ({ id: ids.productId }),
   },
   {
+    operation: 'catalogCollectionOptions',
+    access: 'catalog.products.view',
+    foreign: 'own-only',
+    byId: false,
+    document: 'query { catalogCollectionOptions { id title } }',
+    variables: () => ({}),
+  },
+  {
     operation: 'catalogSlugAvailability',
     access: 'catalog.products.view',
     foreign: 'own-only',

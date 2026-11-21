@@ -9,6 +9,7 @@ export const OUTBOX_TOPICS = [
   'salary.paid',
   'offer.applied',
   'platform.demo',
+  'collection.changed',
 ] as const;
 
 /** One of {@link OUTBOX_TOPICS}. */

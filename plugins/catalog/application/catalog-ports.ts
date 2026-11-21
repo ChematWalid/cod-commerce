@@ -1,4 +1,5 @@
 import type { BrandRepositoryPort } from '../domain/ports/brand-repository.port';
+import type { CollectionMembershipSource } from '../domain/ports/collection-membership-source.port';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { DescriptionSanitizerPort } from '../domain/ports/description-sanitizer.port';
 import type { HighlightRepositoryPort } from '../domain/ports/highlight-repository.port';
@@ -8,7 +9,6 @@ import type { MediaRepositoryPort } from '../domain/ports/media-repository.port'
 import type { MediaStoragePort } from '../domain/ports/media-storage.port';
 import type { OrderManagerCheckSource } from '../domain/ports/order-manager-check.port';
 import type { ProductCatalogPort } from '../domain/ports/product-catalog.port';
-import type { ProductCollectionRepositoryPort } from '../domain/ports/product-collection-repository.port';
 import type { ProductEventsPort } from '../domain/ports/product-events.port';
 import type { ProductLookupPort } from '../domain/ports/product-lookup.port';
 import type { ProductSearchPort } from '../domain/ports/product-search.port';
@@ -37,7 +37,8 @@ export interface ProductPorts {
   readonly media: MediaRepositoryPort;
   /** The files behind the media library (D2113). */
   readonly storage: MediaStoragePort;
-  readonly collections: ProductCollectionRepositoryPort;
+  /** Which collections hold the store's products: the catalog's table until collection rules register (D2309). */
+  readonly collections: CollectionMembershipSource;
   readonly sanitizer: DescriptionSanitizerPort;
   readonly ids: IdGeneratorPort;
   readonly clock: ClockPort;

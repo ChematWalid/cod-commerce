@@ -97,3 +97,9 @@ export const toSaveResultDto = (result: ProductSaveResult): CatalogProductSaveRe
   product: toProductDto(result.product),
   warnings: result.warnings,
 });
+
+/** One collection the product list can filter by (`CatalogCollectionOption`). */
+export interface CatalogCollectionOptionDto {
+  readonly id: string;
+  readonly title: string;
+}

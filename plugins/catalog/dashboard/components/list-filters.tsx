@@ -14,11 +14,10 @@ interface FilterSelectProps {
   readonly value: string | null;
   readonly options: readonly CatalogNamedDto[];
   readonly onChange: (value: string | null) => void;
-  readonly disabled?: boolean;
 }
 
 /** One filter: every option of the store, or "any". */
-function FilterSelect({ labelId, value, options, onChange, disabled = false }: FilterSelectProps): ReactNode {
+function FilterSelect({ labelId, value, options, onChange }: FilterSelectProps): ReactNode {
   const { i18n } = useLingui();
   const id = useId();
   const label = i18n._(labelId);
@@ -26,7 +25,6 @@ function FilterSelect({ labelId, value, options, onChange, disabled = false }: F
   return (
     <Select
       value={value ?? ANY_VALUE}
-      disabled={disabled}
       onValueChange={(next) => {
         onChange(next === null || next === ANY_VALUE ? null : next);
       }}
@@ -48,6 +46,7 @@ function FilterSelect({ labelId, value, options, onChange, disabled = false }: F
 
 interface ListFiltersProps {
   readonly state: ProductListState;
+  readonly collections: readonly CatalogNamedDto[];
   readonly brands: readonly CatalogNamedDto[];
   readonly tags: readonly CatalogNamedDto[];
   readonly onChange: (change: ProductListFilterChange) => void;
@@ -55,7 +54,7 @@ interface ListFiltersProps {
 
 type FilterField = 'collectionId' | 'brandId' | 'tagId';
 
-/** The three filters in display order; collections arrive with P2.S3, so theirs has no option yet. */
+/** The three filters in display order. */
 const FILTERS: readonly { readonly field: FilterField; readonly labelId: string }[] = [
   { field: 'collectionId', labelId: 'catalog.filter-collection' },
   { field: 'brandId', labelId: 'catalog.filter-brand' },
@@ -63,10 +62,10 @@ const FILTERS: readonly { readonly field: FilterField; readonly labelId: string 
 ];
 
 /** Search by name, SKU or barcode (variants' too), and the collection, brand and tag filters, combined with AND (AC4). */
-export function ListFilters({ state, brands, tags, onChange }: ListFiltersProps): ReactNode {
+export function ListFilters({ state, collections, brands, tags, onChange }: ListFiltersProps): ReactNode {
   const { i18n } = useLingui();
   const options: Readonly<Record<FilterField, readonly CatalogNamedDto[]>> = {
-    collectionId: [],
+    collectionId: collections,
     brandId: brands,
     tagId: tags,
   };
@@ -90,7 +89,6 @@ export function ListFilters({ state, brands, tags, onChange }: ListFiltersProps)
           labelId={labelId}
           value={state[field]}
           options={options[field]}
-          disabled={field === 'collectionId'}
           onChange={(value) => {
             onChange({ [field]: value });
           }}

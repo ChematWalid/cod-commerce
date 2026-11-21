@@ -3,8 +3,8 @@ import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context';
 
 /**
- * Where the links of a store's products to Vendure collections are kept (`catalog_product_collection`): the
- * product's collections until P2.S3 builds collection rules (Task 11 deviation).
+ * Where the links of a store's products to Vendure collections are kept (`catalog_product_collection`): the default
+ * collection membership source until collection rules register theirs (D2309, `CollectionMembershipRegistry`).
  */
 export interface ProductCollectionRepositoryPort {
   /**

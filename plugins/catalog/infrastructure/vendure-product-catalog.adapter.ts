@@ -16,6 +16,7 @@ import type {
   ProductCriteria,
   ProductPage,
   SlugLookup,
+  VisibilityCriteria,
 } from '../domain/ports/product-catalog.port';
 import type { ProductDraft, ProductFields, ProductRecord, ProductUpdate } from '../domain/product';
 import { createsDefaultVariant, type MatrixPlan } from '../domain/variant-matrix';
@@ -146,6 +147,23 @@ export class VendureProductCatalog implements ProductCatalogPort {
     const page = await this.products.findAll(request, listOptionsOf(criteria), []);
     const records = await Promise.all(page.items.map((product) => this.read(request, coreIdOf(product.id))));
     return { items: records.filter((record) => record !== undefined), totalItems: page.totalItems };
+  }
+
+  async visibleIdsAmong(
+    ctx: OperationContext,
+    criteria: VisibilityCriteria,
+    ids: readonly CoreId[],
+  ): Promise<readonly CoreId[]> {
+    const request = toRequestContext(ctx);
+    const found = new Set<CoreId>();
+    // A Vendure list answers at most a page, so the ids go a page at a time; each page names its ids in the filter.
+    for (let start = 0; start < ids.length; start += CATALOG_MAX_PAGE_SIZE) {
+      const productIds = ids.slice(start, start + CATALOG_MAX_PAGE_SIZE);
+      const options = listOptionsOf({ ...criteria, productIds, skip: 0, take: productIds.length });
+      const page = await this.products.findAll(request, options, []);
+      for (const product of page.items) found.add(coreIdOf(product.id));
+    }
+    return ids.filter((id) => found.has(id));
   }
 
   async softDelete(ctx: OperationContext, id: CoreId): Promise<boolean> {

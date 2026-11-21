@@ -5,6 +5,7 @@ import type {
   ProductCriteria,
   ProductPage,
   SlugLookup,
+  VisibilityCriteria,
 } from '../../domain/ports/product-catalog.port';
 import type { ProductIdPage, ProductLookupPort, SkuCandidate } from '../../domain/ports/product-lookup.port';
 import type {
@@ -165,6 +166,22 @@ export class InMemoryProductCatalog implements ProductCatalogPort, ProductLookup
     const matching = this.matching(ctx, criteria);
     const items = matching.slice(criteria.skip, criteria.skip + criteria.take);
     return Promise.resolve({ items, totalItems: matching.length });
+  }
+
+  visibleIdsAmong(
+    ctx: OperationContext,
+    criteria: VisibilityCriteria,
+    ids: readonly CoreId[],
+  ): Promise<readonly CoreId[]> {
+    this.calls.push('visibleIdsAmong');
+    const excluded = new Set<string>(criteria.excludedProductIds ?? []);
+    const visible = new Set<string>(
+      this.stored
+        .filter((row) => row.storeId === storeOf(ctx) && !row.deleted && !excluded.has(row.record.id))
+        .filter((row) => criteria.statuses === undefined || criteria.statuses.includes(row.record.status))
+        .map((row) => row.record.id),
+    );
+    return Promise.resolve(ids.filter((id) => visible.has(id)));
   }
 
   listIds(ctx: OperationContext, criteria: ProductCriteria): Promise<ProductIdPage> {

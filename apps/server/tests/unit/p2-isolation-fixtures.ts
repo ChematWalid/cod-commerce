@@ -1,5 +1,6 @@
 import type { CatalogImportWorld } from '../isolation/catalog-import-world';
 import type { CatalogWorld } from '../isolation/catalog-world';
+import type { CollectionsWorld } from '../isolation/collections-world';
 import { type OffersWorld, SHARED_CODE } from '../isolation/offers-rows';
 import type { BusinessWorld } from '../isolation/world-types';
 
@@ -38,7 +39,7 @@ export function catalogOf(label: 'A' | 'B'): CatalogWorld {
     brand: { id: id('7'), name: `Brand ${label}` },
     tag: { id: id('8'), name: `Tag ${label}` },
     highlight: { id: id('9'), text: `Highlight ${label}` },
-    collection: { id: `T_1${n}`, name: `Collection ${label}` },
+    collection: { id: `T_1${n}`, name: `Collection ${label}`, slug: `collection-${label}` },
     media: { id: id('11'), assetId: `T_2${n}` },
     otherStoreMedia: { id: id('12'), assetId: `T_3${n}` },
     product: {
@@ -50,6 +51,17 @@ export function catalogOf(label: 'A' | 'B'): CatalogWorld {
       variantIds: [`T_5${n}`, `T_6${n}`],
     },
     catalogRole: { id: id('13'), name: `Catalog role ${label}` },
+  };
+}
+
+/** The collections rows of a business of the matrix, with made-up ids (P2.S3). */
+export function collectionsOf(label: 'A' | 'B'): CollectionsWorld {
+  const n = label === 'A' ? '1' : '2';
+  const collection = (prefix: string) => ({ id: `T_${prefix}${n}`, title: `Collection ${prefix} ${label}` });
+  return {
+    automatic: collection('7'),
+    otherStore: collection('9'),
+    secondProduct: { id: `T_10${n}`, title: `Second product ${label}` },
   };
 }
 

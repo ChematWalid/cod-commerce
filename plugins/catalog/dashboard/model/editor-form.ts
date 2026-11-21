@@ -53,7 +53,6 @@ export interface EditorForm {
   readonly brandId: string | null;
   readonly tagIds: readonly string[];
   readonly highlightIds: readonly string[];
-  readonly collectionIds: readonly string[];
   readonly label: string;
   readonly cardCaption: string;
   readonly metaTitle: string;
@@ -122,7 +121,6 @@ export const emptyEditorForm = (): EditorForm => ({
   brandId: null,
   tagIds: [],
   highlightIds: [],
-  collectionIds: [],
   label: '',
   cardCaption: '',
   metaTitle: '',
@@ -173,7 +171,6 @@ export const editorFormOf = (product: CatalogProductDto): EditorForm => ({
   brandId: product.brandId,
   tagIds: product.tagIds,
   highlightIds: product.highlightIds,
-  collectionIds: product.collectionIds,
   label: textOf(product.label),
   cardCaption: textOf(product.cardCaption),
   metaTitle: textOf(product.metaTitle),

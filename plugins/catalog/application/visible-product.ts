@@ -10,6 +10,12 @@ export type VisibleProductSettings = Pick<ProductSettingsValues, 'quantityRules'
 
 /** A product as a public context shows it: whether it is sold out, and whether a buyer may still order it. */
 export interface VisibleProduct extends Omit<ProductView, 'barcode' | 'variants' | 'settings'> {
+  /**
+   * The collections the merchant put this product in by hand, only (D2309). A product an automatic collection's rule
+   * matches is not listed here: that membership comes from the collections-rules read, so a storefront building
+   * breadcrumbs or "more in this collection" must ask collections-rules, not this field.
+   */
+  readonly collectionIds: ProductView['collectionIds'];
   /** Only the variants the merchant has not hidden (AC1). */
   readonly variants: readonly VisibleVariant[];
   readonly settings: VisibleProductSettings;

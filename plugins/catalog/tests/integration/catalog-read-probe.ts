@@ -4,10 +4,12 @@ import { Allow, Ctx, Permission, PluginCommonModule, type RequestContext, Vendur
 import {
   asCatalogOperationContext,
   CatalogPlugin,
+  type CoreId,
   CatalogReadService,
   NoActiveStoreError,
   type PublicListContext,
   type PublicVisibilityContext,
+  type VisibleProductPage,
 } from '../../index';
 
 /** What the probe answers for one product a public context shows. */
@@ -22,6 +24,19 @@ const PAGE = { skip: 0, take: 100 };
 /** What the untenanted route answers when the read refused for want of an active store, and only then. */
 export const NO_ACTIVE_STORE_REFUSAL = 'no-active-store';
 const probed = ({ title, soldOut, orderable }: ProbedProduct): ProbedProduct => ({ title, soldOut, orderable });
+
+/** What the probe answers for a page of the products among given ids (D2310). */
+export interface ProbedIdPage {
+  readonly ids: readonly string[];
+  readonly totalItems: number;
+}
+
+/** The ids of a comma-separated query value, as sent: malformed ones reach the read service untouched. */
+const idsOf = (value: string | undefined): CoreId[] => (value ?? '').split(',').filter((id) => id !== '') as CoreId[];
+const idPageOf = (page: VisibleProductPage): ProbedIdPage => ({
+  ids: page.items.map((item) => item.id),
+  totalItems: page.totalItems,
+});
 
 /**
  * A stand-in for P3's storefront (no public endpoint exists in P2.S1): it calls the exported `CatalogReadService` the
@@ -49,6 +64,28 @@ class CatalogReadProbeController {
   ): Promise<ProbedProduct | null> {
     const found = await this.reads.findBySlug(asCatalogOperationContext(ctx), slug, context);
     return found === undefined ? null : probed(found);
+  }
+
+  /** The products among `ids` the context lists, in the given order (manual collections, D2310). */
+  @Get('among')
+  @Allow(Permission.Authenticated)
+  @TenantScoped()
+  async among(
+    @Ctx() ctx: RequestContext,
+    @Query('ids') ids: string | undefined,
+    @Query('skip') skip: string | undefined,
+  ): Promise<ProbedIdPage> {
+    const page = { skip: Number(skip ?? '0'), take: PAGE.take };
+    return idPageOf(await this.reads.listVisibleAmong(asCatalogOperationContext(ctx), 'listing', idsOf(ids), page));
+  }
+
+  /** The products among `ids` the listing shows, newest first (automatic collections, D2310). */
+  @Get('list-among')
+  @Allow(Permission.Authenticated)
+  @TenantScoped()
+  async listAmong(@Ctx() ctx: RequestContext, @Query('ids') ids: string | undefined): Promise<ProbedIdPage> {
+    const options = { ...PAGE, productIds: idsOf(ids) };
+    return idPageOf(await this.reads.listVisible(asCatalogOperationContext(ctx), 'listing', options));
   }
 
   /** No tenant guard: the read must refuse a context without an active store; that refusal alone answers 409. */

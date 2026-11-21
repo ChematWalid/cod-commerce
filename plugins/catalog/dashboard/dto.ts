@@ -87,7 +87,6 @@ export interface CatalogProductDto {
   readonly brandId: string | null;
   readonly tagIds: readonly string[];
   readonly highlightIds: readonly string[];
-  readonly collectionIds: readonly string[];
   readonly label: string | null;
   readonly cardCaption: string | null;
   readonly metaTitle: string | null;

@@ -1,0 +1,524 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "collections.heading"
+msgstr "Collections"
+
+#. js-lingui-explicit-id
+msgid "collections.create"
+msgstr "Create collection"
+
+#. js-lingui-explicit-id
+msgid "collections.search"
+msgstr "Search by title"
+
+#. js-lingui-explicit-id
+msgid "collections.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "collections.empty"
+msgstr "No collections yet. Create one to group products in your store."
+
+#. js-lingui-explicit-id
+msgid "collections.no-match"
+msgstr "No collection matches this search."
+
+#. js-lingui-explicit-id
+msgid "collections.column-title"
+msgstr "Collection"
+
+#. js-lingui-explicit-id
+msgid "collections.column-type"
+msgstr "Type"
+
+#. js-lingui-explicit-id
+msgid "collections.column-products"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "collections.column-visibility"
+msgstr "Visibility"
+
+#. js-lingui-explicit-id
+msgid "collections.column-position"
+msgstr "Position"
+
+#. js-lingui-explicit-id
+msgid "collections.row-actions"
+msgstr "Actions"
+
+#. js-lingui-explicit-id
+msgid "collections.action-edit"
+msgstr "Edit"
+
+#. js-lingui-explicit-id
+msgid "collections.action-delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-manual"
+msgstr "Manual"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-automatic"
+msgstr "Automatic"
+
+#. js-lingui-explicit-id
+msgid "collections.visible-yes"
+msgstr "Visible"
+
+#. js-lingui-explicit-id
+msgid "collections.visible-no"
+msgstr "Hidden"
+
+#. js-lingui-explicit-id
+msgid "collections.page-previous"
+msgstr "Previous"
+
+#. js-lingui-explicit-id
+msgid "collections.page-next"
+msgstr "Next"
+
+#. js-lingui-explicit-id
+msgid "collections.delete-heading"
+msgstr "Delete this collection?"
+
+#. js-lingui-explicit-id
+msgid "collections.delete-body"
+msgstr "“{name}” will be deleted. Its products stay in your store."
+
+#. js-lingui-explicit-id
+msgid "collections.deleted"
+msgstr "Collection deleted"
+
+#. js-lingui-explicit-id
+msgid "collections.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "collections.new-heading"
+msgstr "New collection"
+
+#. js-lingui-explicit-id
+msgid "collections.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "collections.created"
+msgstr "Collection created"
+
+#. js-lingui-explicit-id
+msgid "collections.saved"
+msgstr "Collection saved"
+
+#. js-lingui-explicit-id
+msgid "collections.no-changes"
+msgstr "Nothing to save"
+
+#. js-lingui-explicit-id
+msgid "collections.fix-errors"
+msgstr "Check the highlighted fields"
+
+#. js-lingui-explicit-id
+msgid "collections.not-found"
+msgstr "Collection not found"
+
+#. js-lingui-explicit-id
+msgid "collections.block-details"
+msgstr "Details"
+
+#. js-lingui-explicit-id
+msgid "collections.block-products"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "collections.block-image"
+msgstr "Image"
+
+#. js-lingui-explicit-id
+msgid "collections.block-visibility"
+msgstr "Visibility"
+
+#. js-lingui-explicit-id
+msgid "collections.block-organisation"
+msgstr "Organisation"
+
+#. js-lingui-explicit-id
+msgid "collections.title"
+msgstr "Title"
+
+#. js-lingui-explicit-id
+msgid "collections.slug"
+msgstr "Link name (slug)"
+
+#. js-lingui-explicit-id
+msgid "collections.slug-hint-new"
+msgstr "Leave empty to make it from the title."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-hint-edit"
+msgstr "Leave empty to keep the current one."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-available"
+msgstr "This link name is free."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-unavailable"
+msgstr "Another collection of this store already uses this link name."
+
+#. js-lingui-explicit-id
+msgid "collections.description"
+msgstr "Description"
+
+#. js-lingui-explicit-id
+msgid "collections.visible"
+msgstr "Show in the store"
+
+#. js-lingui-explicit-id
+msgid "collections.visible-hint"
+msgstr "Hidden collections stay out of the storefront."
+
+#. js-lingui-explicit-id
+msgid "collections.position"
+msgstr "Position"
+
+#. js-lingui-explicit-id
+msgid "collections.position-hint"
+msgstr "Lower numbers come first (0 to 9999)."
+
+#. js-lingui-explicit-id
+msgid "collections.image-choose"
+msgstr "Choose from library"
+
+#. js-lingui-explicit-id
+msgid "collections.image-upload"
+msgstr "Upload image"
+
+#. js-lingui-explicit-id
+msgid "collections.image-uploading"
+msgstr "Uploading…"
+
+#. js-lingui-explicit-id
+msgid "collections.image-remove"
+msgstr "Remove image"
+
+#. js-lingui-explicit-id
+msgid "collections.image-library"
+msgstr "Media library"
+
+#. js-lingui-explicit-id
+msgid "collections.image-library-empty"
+msgstr "The library has no images yet."
+
+#. js-lingui-explicit-id
+msgid "collections.image-pick"
+msgstr "Use this image"
+
+#. js-lingui-explicit-id
+msgid "collections.image-use"
+msgstr "Use image"
+
+#. js-lingui-explicit-id
+msgid "collections.image-needs-products"
+msgstr "Choosing an image needs access to products."
+
+#. js-lingui-explicit-id
+msgid "collections.automatic-hint"
+msgstr "Products that meet the conditions are added automatically."
+
+#. js-lingui-explicit-id
+msgid "collections.products-need-edit"
+msgstr "Adding or ordering products needs the permission to edit collections."
+
+#. js-lingui-explicit-id
+msgid "collections.add-products"
+msgstr "Add products"
+
+#. js-lingui-explicit-id
+msgid "collections.search-products"
+msgstr "Search products by title"
+
+#. js-lingui-explicit-id
+msgid "collections.search-no-match"
+msgstr "No product matches this search."
+
+#. js-lingui-explicit-id
+msgid "collections.add-picked"
+msgstr "Add selected ({count})"
+
+#. js-lingui-explicit-id
+msgid "collections.no-products"
+msgstr "No products in this collection yet."
+
+#. js-lingui-explicit-id
+msgid "collections.remove-product"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "collections.reorder-handle"
+msgstr "Move (drag, or use the arrow keys)"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-confirm-heading"
+msgstr "Switch to automatic?"
+
+#. js-lingui-explicit-id
+msgid "collections.mode-confirm-body"
+msgstr "The products you picked and their order will be replaced by the products that meet the conditions."
+
+#. js-lingui-explicit-id
+msgid "collections.mode-confirm-save"
+msgstr "Switch and save"
+
+#. js-lingui-explicit-id
+msgid "collections.error-title-required"
+msgstr "Enter a title."
+
+#. js-lingui-explicit-id
+msgid "collections.error-position"
+msgstr "Enter a whole number from 0 to 9999."
+
+#. js-lingui-explicit-id
+msgid "collections.error-generic"
+msgstr "Something went wrong. Try again."
+
+#. js-lingui-explicit-id
+msgid "collections.error-forbidden"
+msgstr "You do not have permission for this."
+
+#. js-lingui-explicit-id
+msgid "collections.error-store-switched"
+msgstr "The active store changed. Reload the page."
+
+#. js-lingui-explicit-id
+msgid "collections.invalid-input"
+msgstr "Some values are not valid."
+
+#. js-lingui-explicit-id
+msgid "collections.rule-invalid"
+msgstr "Add at least one complete condition."
+
+#. js-lingui-explicit-id
+msgid "collections.slug-taken"
+msgstr "Another collection of this store already uses this link name."
+
+#. js-lingui-explicit-id
+msgid "collections.image-not-found"
+msgstr "This image is no longer in the library."
+
+#. js-lingui-explicit-id
+msgid "collections.product-not-found"
+msgstr "A product was not found in this store."
+
+#. js-lingui-explicit-id
+msgid "collections.too-many-products"
+msgstr "A collection holds at most 500 products."
+
+#. js-lingui-explicit-id
+msgid "collections.too-many-collections"
+msgstr "A store holds at most 500 collections."
+
+#. js-lingui-explicit-id
+msgid "collections.not-manual"
+msgstr "Products can only be picked by hand in a manual collection."
+
+#. js-lingui-explicit-id
+msgid "collections.rate-limited"
+msgstr "Too many requests. Wait a moment and try again."
+
+#. js-lingui-explicit-id
+msgid "collections.match-label"
+msgstr "Products must match"
+
+#. js-lingui-explicit-id
+msgid "collections.match-all"
+msgstr "All conditions"
+
+#. js-lingui-explicit-id
+msgid "collections.match-any"
+msgstr "Any condition"
+
+#. js-lingui-explicit-id
+msgid "collections.field-tag"
+msgstr "Tag"
+
+#. js-lingui-explicit-id
+msgid "collections.field-brand"
+msgstr "Brand"
+
+#. js-lingui-explicit-id
+msgid "collections.field-price"
+msgstr "Price"
+
+#. js-lingui-explicit-id
+msgid "collections.field-on_sale"
+msgstr "On sale"
+
+#. js-lingui-explicit-id
+msgid "collections.field-title"
+msgstr "Title"
+
+#. js-lingui-explicit-id
+msgid "collections.field-option"
+msgstr "Option"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-is_any_of"
+msgstr "is any of"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-is_not"
+msgstr "is not"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-between"
+msgstr "is between"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-is"
+msgstr "is"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-contains"
+msgstr "contains"
+
+#. js-lingui-explicit-id
+msgid "collections.operator-not_contains"
+msgstr "does not contain"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-field"
+msgstr "Field"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-operator"
+msgstr "Operator"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "collections.condition-add"
+msgstr "Add condition"
+
+#. js-lingui-explicit-id
+msgid "collections.price-min"
+msgstr "Lowest price (DZD)"
+
+#. js-lingui-explicit-id
+msgid "collections.price-max"
+msgstr "Highest price (DZD)"
+
+#. js-lingui-explicit-id
+msgid "collections.on-sale-yes"
+msgstr "Yes"
+
+#. js-lingui-explicit-id
+msgid "collections.on-sale-no"
+msgstr "No"
+
+#. js-lingui-explicit-id
+msgid "collections.title-value"
+msgstr "Word in the title"
+
+#. js-lingui-explicit-id
+msgid "collections.title-value-add"
+msgstr "Add"
+
+#. js-lingui-explicit-id
+msgid "collections.value-remove"
+msgstr "Remove value"
+
+#. js-lingui-explicit-id
+msgid "collections.value-unknown"
+msgstr "Unknown (deleted)"
+
+#. js-lingui-explicit-id
+msgid "collections.values-none"
+msgstr "This store has none yet."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-heading"
+msgstr "Preview"
+
+#. js-lingui-explicit-id
+msgid "collections.preview-incomplete"
+msgstr "Complete a condition to see the matching products."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-loading"
+msgstr "Counting matching products…"
+
+#. js-lingui-explicit-id
+msgid "collections.preview-count"
+msgstr "Matching products: {count}"
+
+#. js-lingui-explicit-id
+msgid "collections.value-unknown-hint"
+msgstr "(unknown)"
+
+#. js-lingui-explicit-id
+msgid "collections.values-unavailable"
+msgstr "This store's values are not loaded yet."
+
+#. js-lingui-explicit-id
+msgid "collections.row-values-needed"
+msgstr "Pick at least one value."
+
+#. js-lingui-explicit-id
+msgid "collections.row-invalid"
+msgstr "This condition is not complete."
+
+#. js-lingui-explicit-id
+msgid "collections.price-bound-needed"
+msgstr "Enter a minimum, a maximum or both."
+
+#. js-lingui-explicit-id
+msgid "collections.price-min-above-max"
+msgstr "The minimum must not be above the maximum."
+
+#. js-lingui-explicit-id
+msgid "collections.price-whole-dzd"
+msgstr "Use whole DZD amounts up to {max}."
+
+#. js-lingui-explicit-id
+msgid "collections.preview-ignored"
+msgstr "Incomplete conditions left out of this preview: {count}"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-title"
+msgstr "Collections"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-manual"
+msgstr "Chosen by hand"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-by-rule"
+msgstr "Added by rule"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-save"
+msgstr "Save collections"
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-saved"
+msgstr "Collections saved."
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-new"
+msgstr "Save the product first to add it to collections."
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-none"
+msgstr "The store has no manual collection yet."
+
+#. js-lingui-explicit-id
+msgid "collections.product-block-read-only"
+msgstr "You can see these collections but not change them."

@@ -141,7 +141,7 @@ jobs:
       matrix:
         include:
           - part: others
-            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags --filter=!@cod/plugin-catalog --filter=!@cod/plugin-catalog-packs --filter=!@cod/plugin-catalog-import --filter=!@cod/plugin-offers
+            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags --filter=!@cod/plugin-catalog --filter=!@cod/plugin-catalog-packs --filter=!@cod/plugin-catalog-import --filter=!@cod/plugin-collections-rules --filter=!@cod/plugin-offers
           - part: server-e2e
             command: pnpm exec turbo run test:integration --filter=@cod/server
           - part: tenancy-1
@@ -164,6 +164,8 @@ jobs:
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-catalog -- tests/integration/permissions.int.test.ts tests/integration/isolation-sweep.int.test.ts
           - part: catalog-2
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-catalog -- --exclude=tests/integration/permissions.int.test.ts --exclude=tests/integration/isolation-sweep.int.test.ts
+          - part: collections-rules
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-collections-rules
           - part: offers
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-offers
           - part: catalog-packs

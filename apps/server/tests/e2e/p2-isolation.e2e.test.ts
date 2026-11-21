@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CATALOG_ERROR_CODES } from '@cod/shared';
+import { parseInternalKeys } from '@cod/shared/internal-auth';
 import {
   CATALOG_IMPORT_OBJECT_STORAGE,
   CatalogImportPlugin,
@@ -18,15 +19,10 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
+import { itKeepsImportFilesUnderTheirPrefix, uploadedObjectsOf } from '../isolation/cases/catalog-import-storage';
+import { itKeepsStoredRulesInTheirStore } from '../isolation/cases/collections-stored-rule';
 import { describeOffersIsolation, type OfferRowsOfBoth, offerRowsOf } from '../isolation/cases/offers';
-import {
-  CATALOG_IMPORT_WORLDS,
-  catalogImportOf,
-  exportKeyOf,
-  importSnapshotOf,
-  seedCatalogImport,
-  type UploadedObjects,
-} from '../isolation/catalog-import-world';
+import { CATALOG_IMPORT_WORLDS, importSnapshotOf, seedCatalogImport } from '../isolation/catalog-import-world';
 import {
   CATALOG_SNAPSHOT_FIELDS,
   CATALOG_WORLDS,
@@ -34,6 +30,14 @@ import {
   otherStoreSnapshotOf,
   seedCatalog,
 } from '../isolation/catalog-world';
+import {
+  COLLECTION_WORLDS,
+  collectionsFingerprints,
+  collectionsOf,
+  COLLECTIONS_SNAPSHOT_FIELDS,
+  seedCollections,
+  seededCollectionsFilter,
+} from '../isolation/collections-world';
 import { errorCodesOf, IsolationHttp } from '../isolation/http';
 import { ownChannel } from '../isolation/matrix';
 import { CORRUPT_PNG, OVERSIZED_PNG, sourceKeyOf, storedState } from '../isolation/media-guard';
@@ -41,7 +45,7 @@ import { type Outcome, runMatrix } from '../isolation/run';
 import { UPLOAD_CATALOG_MEDIA } from '../isolation/seed-operations';
 import { OFFERS_WORLDS, seedOffers } from '../isolation/offers-world';
 import { snapshotOf } from '../isolation/snapshot';
-import { P2_TENANT_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
+import { P2_TENANT_TABLES, RETIRED_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
 import { buildWorld, type World } from '../isolation/world';
 import {
   afterE2eInit,
@@ -52,6 +56,7 @@ import {
   removeBullKeys,
 } from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
+import { sendRaw, signedHeaders } from './support/signed-request';
 import { ASSET_KEY_PREFIX, ASSET_ROUTE } from '../../src/config/asset-storage.config';
 import { PrefixedAssetStorage } from '../../src/config/prefixed-asset-storage';
 import { TenantAssetNamingStrategy } from '../../src/config/tenant-asset-naming.strategy';
@@ -63,6 +68,18 @@ const ENV = { PLATFORM_DEMO_HANDLERS: 'true' };
 const PASSWORD = 'synthetic-isolation-password';
 const CENSUS_WAIT_MS = 60_000;
 const CENSUS_POLL_MS = 500;
+/** What each owner's snapshot reads of its first store: the catalog and the collections (P2.S3). */
+const FIRST_STORE_FIELDS = `${CATALOG_SNAPSHOT_FIELDS} ${COLLECTIONS_SNAPSHOT_FIELDS}`;
+/**
+ * The default storefront's collection list, narrowed to the seeded collections' ids so no page can hide one: the Shop
+ * API is internal-only (D112), so the call is signed.
+ */
+const SHOP_COLLECTIONS =
+  'query ($options: CollectionListOptions) { collections(options: $options) { totalItems items { name slug } } }';
+/** What the Shop API's collection list answers. */
+interface ShopCollections {
+  readonly data?: { readonly collections?: { readonly totalItems?: unknown } };
+}
 /** Text no answer may carry: SQL, entity names, stacks (D2136). */
 const INTERNALS = [/\bselect\b.+\bfrom\b/i, /QueryFailedError/, /EntityNotFound/, /\bat .+\.(?:js|ts):\d+/];
 
@@ -78,9 +95,10 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
  * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
  * (P2.S4), seeded in process, that A's quotes must never see, and A reaches for B's offers and codes through every
- * offers endpoint (P2.S5). It also gets a pack, a previewed spreadsheet import, an export and a link import (P2.S2)
- * that A reaches for through every pack and import endpoint; their files are stored under the business's and store's
- * prefix of the private bucket.
+ * offers endpoint (P2.S5); collections (P2.S3: manual, by rule, on each store) seeded as its owner through
+ * `createStoreCollection`, which A reaches for through every collections endpoint; and a pack, a previewed spreadsheet
+ * import, an export and a link import (P2.S2) that A reaches for through every pack and import endpoint, their files
+ * stored under the business's and store's prefix of the private bucket.
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -101,20 +119,10 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   const http = new IsolationHttp(`http://localhost:${String(PORT)}`);
   const sql = () => server.app.get(TransactionalConnection).rawConnection;
   const storage = () => server.app.get<CatalogImportObjectStorage>(CATALOG_IMPORT_OBJECT_STORAGE);
-  const objects: UploadedObjects = {
-    write: (key, bytes, contentType) =>
-      storage().write(key as Parameters<CatalogImportObjectStorage['write']>[0], bytes, contentType),
-  };
+  const objects = uploadedObjectsOf(storage);
   let world: World;
   let outcomes: Map<string, Outcome>;
-  let before: {
-    a: unknown;
-    b: unknown;
-    aOtherStore: unknown;
-    bOtherStore: unknown;
-    aImport: unknown;
-    bImport: unknown;
-  };
+  let before: Record<'a' | 'b' | 'aOtherStore' | 'bOtherStore' | 'aImport' | 'bImport', unknown>;
   let offerRows: OfferRowsOfBoth;
 
   beforeAll(async () => {
@@ -135,17 +143,19 @@ describe('P2 isolation: a business sees only its own catalog', () => {
       suffix: randomBytes(4).toString('hex'),
       password: PASSWORD,
     });
-    CATALOG_WORLDS.set('A', await seedCatalog(http, world.superadmin, world.a));
-    CATALOG_WORLDS.set('B', await seedCatalog(http, world.superadmin, world.b));
+    CATALOG_WORLDS.set('A', await seedCatalog(http, world.a));
+    CATALOG_WORLDS.set('B', await seedCatalog(http, world.b));
+    COLLECTION_WORLDS.set('A', await seedCollections(http, world.a));
+    COLLECTION_WORLDS.set('B', await seedCollections(http, world.b));
     OFFERS_WORLDS.set('A', await seedOffers(server.app, http, world.a));
     OFFERS_WORLDS.set('B', await seedOffers(server.app, http, world.b));
     CATALOG_IMPORT_WORLDS.set('A', await seedCatalogImport(http, objects, world.a));
     CATALOG_IMPORT_WORLDS.set('B', await seedCatalogImport(http, objects, world.b));
     before = {
-      a: await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS),
-      b: await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS),
-      aOtherStore: await otherStoreSnapshotOf(http, world.a),
-      bOtherStore: await otherStoreSnapshotOf(http, world.b),
+      a: await snapshotOf(http, world.a, FIRST_STORE_FIELDS),
+      b: await snapshotOf(http, world.b, FIRST_STORE_FIELDS),
+      aOtherStore: await otherStoreSnapshotOf(http, world.a, COLLECTIONS_SNAPSHOT_FIELDS),
+      bOtherStore: await otherStoreSnapshotOf(http, world.b, COLLECTIONS_SNAPSHOT_FIELDS),
       aImport: await importSnapshotOf(http, world.a),
       bImport: await importSnapshotOf(http, world.b),
     };
@@ -165,7 +175,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it(
-    'seeds a row of each business in every P1, catalog, offers, pack and import tenant table',
+    'seeds a row of each business in every P1, catalog, offers, collections, pack and import tenant table',
     async () => {
       // The outbox rows come from the webhooks' asynchronous processing, so the census waits for them.
       const emptyTables = async (): Promise<string[]> => {
@@ -183,6 +193,12 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     },
     CENSUS_WAIT_MS + CENSUS_POLL_MS * 10,
   );
+
+  it('writes no row of either business to a retired table (D2309)', async () => {
+    const counts = await tenantRowCounts(sql(), [world.a.businessId, world.b.businessId], RETIRED_TABLES);
+
+    expect(Object.values(counts)).toEqual(RETIRED_TABLES.map(() => ({ a: 0, b: 0 })));
+  });
 
   it.each(runsOf)('%s', (run) => {
     const outcome = outcomes.get(run);
@@ -202,13 +218,38 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it("leaves each business's data and catalog as its owner saw them before the attacks", async () => {
-    expect(await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS)).toEqual(before.a);
-    expect(await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS)).toEqual(before.b);
+    expect(await snapshotOf(http, world.a, FIRST_STORE_FIELDS)).toEqual(before.a);
+    expect(await snapshotOf(http, world.b, FIRST_STORE_FIELDS)).toEqual(before.b);
   });
 
   it("leaves each business's second store catalog as its owner saw it before the attacks", async () => {
-    expect(await otherStoreSnapshotOf(http, world.a)).toEqual(before.aOtherStore);
-    expect(await otherStoreSnapshotOf(http, world.b)).toEqual(before.bOtherStore);
+    expect(await otherStoreSnapshotOf(http, world.a, COLLECTIONS_SNAPSHOT_FIELDS)).toEqual(before.aOtherStore);
+    expect(await otherStoreSnapshotOf(http, world.b, COLLECTIONS_SNAPSHOT_FIELDS)).toEqual(before.bOtherStore);
+  });
+
+  itKeepsStoredRulesInTheirStore({ world: () => world, http, sql });
+
+  it("lists none of either business's collections on the default storefront (D2333)", async () => {
+    const [key] = parseInternalKeys(env.INTERNAL_HMAC_KEYS);
+    if (key === undefined) throw new Error('INTERNAL_HMAC_KEYS holds no signing key: the Shop census needs one');
+    const body = JSON.stringify({ query: SHOP_COLLECTIONS, variables: seededCollectionsFilter([world.a, world.b]) });
+    const call = { method: 'POST', path: '/shop-api', body };
+    const seeded = [world.a, world.b].flatMap((business) => [
+      catalogOf(business).collection.name,
+      catalogOf(business).collection.slug,
+      ...collectionsFingerprints(collectionsOf(business)),
+    ]);
+
+    const answer = await sendRaw({
+      ...call,
+      port: PORT,
+      host: `api.${env.PLATFORM_DOMAIN}`,
+      headers: { 'content-type': 'application/json', ...signedHeaders(key, call) },
+    });
+
+    expect(answer.status).toBe(200);
+    expect((JSON.parse(answer.body) as ShopCollections).data?.collections?.totalItems).toBe(0);
+    expect(seeded.filter((value) => answer.body.includes(value))).toEqual([]);
   });
 
   it("stores A's media file under A's business and store prefix", async () => {
@@ -232,19 +273,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(await importSnapshotOf(http, world.b)).toEqual(before.bImport);
   });
 
-  it("stores A's spreadsheet upload under the uploads prefix of A's business and store (D2144)", async () => {
-    const { uploadKey } = catalogImportOf(world.a).spreadsheet;
-
-    expect(uploadKey).toMatch(new RegExp(`^uploads/b/${world.a.businessId}/s/${world.a.stores[0].id}/`));
-    expect(await storage().head(uploadKey as Parameters<CatalogImportObjectStorage['head']>[0])).not.toBeNull();
-  });
-
-  it("stores A's export file under the exports prefix of A's business and store (D2144)", async () => {
-    const key = await exportKeyOf(http, world.a);
-
-    expect(key).toMatch(new RegExp(`^exports/b/${world.a.businessId}/s/${world.a.stores[0].id}/`));
-    expect(await storage().head(key as Parameters<CatalogImportObjectStorage['head']>[0])).not.toBeNull();
-  });
+  itKeepsImportFilesUnderTheirPrefix({ world: () => world, http, storage });
 
   describeOffersIsolation({ world: () => world, app: () => server.app, rowsBeforeMatrix: () => offerRows });
 

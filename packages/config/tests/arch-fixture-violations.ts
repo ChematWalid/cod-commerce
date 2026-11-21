@@ -11,6 +11,7 @@ const RBAC_GUARD_ENTRY = 'plugins/rbac/guard.ts';
 const RBAC_MEMBER_ACCESS_ENTRY = 'plugins/rbac/member-access.ts';
 const AUTH_INVITATIONS_ENTRY = 'plugins/auth/invitations.ts';
 const CATALOG_ENTRY = 'plugins/catalog/index.ts';
+const COLLECTIONS_ENTRY = 'plugins/collections-rules/index.ts';
 const CATALOG_PACKS_ENTRY = 'plugins/catalog-packs/index.ts';
 const CATALOG_IMPORT_ENTRY = 'plugins/catalog-import/index.ts';
 const OFFERS_ENTRY = 'plugins/offers/index.ts';
@@ -42,6 +43,8 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('application-is-pure', 'application/uses-typeorm.ts', TYPEORM),
   violation('catalog-entry-infra-only', 'api/uses-catalog-package.ts', CATALOG_ENTRY),
   violation('catalog-entry-infra-only', 'application/uses-catalog-package.ts', CATALOG_ENTRY),
+  violation('collections-entry-infra-only', 'api/uses-collections-package.ts', COLLECTIONS_ENTRY),
+  violation('collections-entry-infra-only', 'application/uses-collections-package.ts', COLLECTIONS_ENTRY),
   violation('catalog-packs-entry-infra-only', 'api/uses-catalog-packs-package.ts', CATALOG_PACKS_ENTRY),
   violation('catalog-packs-entry-infra-only', 'application/uses-catalog-packs-package.ts', CATALOG_PACKS_ENTRY),
   violation('catalog-import-entry-infra-only', 'api/uses-catalog-import-package.ts', CATALOG_IMPORT_ENTRY),

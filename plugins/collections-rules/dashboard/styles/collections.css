@@ -1,0 +1,40 @@
+/* Layout of the collections' own surfaces. Unlayered, so these win over Tailwind's utilities. Logical properties only. */
+
+/* The list's thumbnail: a fixed square, an empty one when the collection has no image. */
+.cod-collections-thumb {
+  flex: none;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: 0.375rem;
+}
+
+/* The image card's picture and a tile of the library picker: a square that keeps its place in the grid. */
+.cod-collections-tile {
+  display: block;
+  inline-size: 6rem;
+  block-size: 6rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+/* The stock switch moves its thumb by a physical translate; in a right-to-left page it must move the other way. */
+html[dir='rtl'] .cod-collections-switch [data-slot='switch-thumb'][data-checked] {
+  translate: calc(-100% + 2px) 0;
+}
+
+/* A product of a manual collection while it is dragged to a new place. */
+.cod-collections-dragging {
+  opacity: 0.5;
+}
+
+/* The collections block of the product editor when the caller may not see collections: the whole card goes. */
+[data-slot='card']:has(> [data-slot='card-content'] > .cod-collections-block-hidden) {
+  display: none;
+}
+
+/* merchant-shell gives every cell `unicode-bidi: plaintext` in a right-to-left page, so a cell holding only a number
+   or a badge (no Arabic letter) turns left-to-right and its value leaves its column's start. The list's numbers are
+   already isolated in their own LTR run, so its cells keep the page direction. */
+html[dir='rtl'] .cod-collections-table td {
+  unicode-bidi: isolate;
+}

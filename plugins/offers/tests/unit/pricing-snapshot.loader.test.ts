@@ -170,7 +170,10 @@ describe('PricingSnapshotLoader', () => {
   it("puts each line in its product's collections", async () => {
     // Arrange
     const { loader, collections } = setUpLoader();
-    collections.register({ collectionsOf: () => Promise.resolve(new Map([['1', ['31', '32']]])) });
+    collections.register({
+      collectionsOf: () => Promise.resolve(new Map([['1', ['31', '32']]])),
+      existingCollectionIds: (_ctx, _scope, ids) => Promise.resolve(ids),
+    });
 
     // Act
     const loaded = await loader.load(ctx, scopeA, aSnapshotRequest());

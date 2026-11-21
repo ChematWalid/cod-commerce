@@ -22,7 +22,7 @@ import { readRequestToken, type StoreScope, storeQuery } from './queries';
 /** Every field of a product the editor reads back after a load or a save. */
 const PRODUCT_FIELDS = `
   id title slug description status type price oldPrice sku barcode weight width height length
-  featuredAsset { id } assets { id } brandId tagIds highlightIds collectionIds
+  featuredAsset { id } assets { id } brandId tagIds highlightIds
   label cardCaption metaTitle metaDescription
   optionGroups { id name values { id name } }
   variants { id name sku price oldPrice barcode isHidden optionValues featuredAsset { id } }

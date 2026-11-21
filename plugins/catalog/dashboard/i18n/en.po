@@ -496,14 +496,6 @@ msgid "catalog.editor-no-brand"
 msgstr "No brand"
 
 #. js-lingui-explicit-id
-msgid "catalog.editor-collections"
-msgstr "Collections"
-
-#. js-lingui-explicit-id
-msgid "catalog.editor-collections-later"
-msgstr "Collections can be chosen once the store has some."
-
-#. js-lingui-explicit-id
 msgid "catalog.editor-tags"
 msgstr "Tags"
 

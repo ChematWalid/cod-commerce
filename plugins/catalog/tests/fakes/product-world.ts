@@ -4,6 +4,7 @@ import { OrderManagerCheckRegistry } from '../../application/order-manager-check
 import type { CoreId } from '../../domain/core-id';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { ActiveStore } from '../../domain/ports/store-settings.port';
+import { CollectionMembershipRegistry } from '../../infrastructure/collection-membership-registry';
 import { SettingsFlagSoldOutSource } from '../../infrastructure/settings-flag-sold-out.source';
 import type { StoreScope } from '../../domain/store-scope';
 import { newId, T0 } from '../support/builders';
@@ -36,6 +37,8 @@ export class ProductWorld {
   readonly media = new InMemoryMediaRepository();
   readonly storage = new InMemoryMediaStorage();
   readonly collections = new InMemoryProductCollectionRepository();
+  /** The membership the use cases read: the table above until a test registers a source (D2309). */
+  readonly membership = new CollectionMembershipRegistry(this.collections);
   /** Where a test registers a fake team check (D2114); empty by default, like a server without team. */
   readonly orderManagerChecks = new OrderManagerCheckRegistry();
   readonly events: PublishedEvent[] = [];
@@ -47,6 +50,8 @@ export class ProductWorld {
   transactions = 0;
   /** Taxonomy and media locks taken outside a transaction, where they would end at once. */
   locksOutsideTransaction = 0;
+  /** `product.changed` events published outside a transaction, where they would not commit with the change. */
+  eventsOutsideTransaction = 0;
   /** The business each taxonomy or media lock was keyed by, in call order. */
   readonly lockBusinesses: string[] = [];
   private openTransactions = 0;
@@ -57,6 +62,7 @@ export class ProductWorld {
     search: { matchingProductIds: () => Promise.resolve(this.searchHits) },
     events: {
       publish: (_ctx, scope, productId, change) => {
+        if (this.openTransactions === 0) this.eventsOutsideTransaction += 1;
         this.events.push({ scope, productId, change });
         return Promise.resolve();
       },
@@ -78,7 +84,7 @@ export class ProductWorld {
     settings: this.settings,
     media: this.media,
     storage: this.storage,
-    collections: this.collections,
+    collections: this.membership,
     // Marks the text so a test sees the sanitiser ran; the real allow-list is tested on its own.
     sanitizer: { sanitize: (html) => html.replaceAll(/<script>.*?<\/script>/g, '') },
     ids: { next: newId },

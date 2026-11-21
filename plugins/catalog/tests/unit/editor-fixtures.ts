@@ -33,7 +33,6 @@ export const savedRunner: CatalogProductDto = {
   brandId: null,
   tagIds: ['7000000000000000002'],
   highlightIds: [],
-  collectionIds: [],
   label: null,
   cardCaption: null,
   metaTitle: null,

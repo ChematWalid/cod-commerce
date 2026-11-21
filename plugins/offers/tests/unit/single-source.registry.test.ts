@@ -19,6 +19,7 @@ const buyer = { phone: '+213555123456' };
 
 const oneCollection: CollectionMembership = {
   collectionsOf: (_ctx, _scope, productIds) => Promise.resolve(new Map(productIds.map((id) => [id, ['77']]))),
+  existingCollectionIds: () => Promise.resolve(['77']),
 };
 
 describe('SingleSourceRegistry', () => {
@@ -61,6 +62,29 @@ describe('SingleSourceRegistry', () => {
     // Assert
     expect(memberships.size).toBe(0);
     expect(matchingLines(offer, [line])).toEqual([]);
+  });
+
+  it('answers every collection id unchanged by default, so collection targets stay unchecked (D2342)', async () => {
+    // Arrange
+    const registry = newCollectionMembershipRegistry();
+
+    // Act
+    const existing = await registry.current().existingCollectionIds(ctx, scopeA, ['77', '404']);
+
+    // Assert
+    expect(existing).toEqual(['77', '404']);
+  });
+
+  it('asks the registered source which collections exist (D2342)', async () => {
+    // Arrange
+    const registry = newCollectionMembershipRegistry();
+    registry.register(oneCollection);
+
+    // Act
+    const existing = await registry.current().existingCollectionIds(ctx, scopeA, ['77', '404']);
+
+    // Assert
+    expect(existing).toEqual(['77']);
   });
 
   it('reports an unresolved delivery by default', async () => {

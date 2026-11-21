@@ -25,6 +25,7 @@ describe('OUTBOX_TOPICS', () => {
       'salary.paid',
       'offer.applied',
       'platform.demo',
+      'collection.changed',
     ]);
   });
 

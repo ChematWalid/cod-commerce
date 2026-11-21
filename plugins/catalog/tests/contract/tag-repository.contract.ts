@@ -121,5 +121,47 @@ export function describeTagRepositoryContract(name: string, make: MakeHarness<Ta
       // Assert
       await expect(repo.tagIdsOf(ctx, scopeA, productId)).resolves.toEqual([second.id, first.id]);
     });
+
+    it("reads the tag ids of many products at once, in each product's order, of its store only", async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [first, second] = [tagOf(scopeA), tagOf(scopeA)];
+      for (const tag of [first, second]) await repo.insert(ctx, scopeA, tag);
+      const otherStoreTag = tagOf(scopeA2);
+      await repo.insert(ctx, scopeA2, otherStoreTag);
+      const [tagged, untagged, otherStore] = [newCoreId(), newCoreId(), newCoreId()];
+      await repo.replaceProductTags(ctx, scopeA, tagged, [second.id, first.id]);
+      await repo.replaceProductTags(ctx, scopeA2, otherStore, [otherStoreTag.id]);
+
+      // Act
+      const read = await repo.tagIdsOfProducts(ctx, scopeA, [tagged, untagged, otherStore]);
+
+      // Assert
+      expect([...read.entries()]).toEqual([[tagged, [second.id, first.id]]]);
+      await expect(repo.tagIdsOfProducts(ctx, scopeA, [])).resolves.toEqual(new Map());
+    });
+
+    it("never reads another business's tag links of many products", async () => {
+      // Arrange
+      const { repo, ctx } = await make();
+      const [own, foreignTag] = [tagOf(scopeA), tagOf(scopeB)];
+      await repo.insert(ctx, scopeA, own);
+      await repo.insert(ctx, scopeB, foreignTag);
+      const [shared, foreignProduct] = [newCoreId(), newCoreId()];
+      await repo.replaceProductTags(ctx, scopeA, shared, [own.id]);
+      await repo.replaceProductTags(ctx, scopeB, shared, [foreignTag.id]);
+      await repo.replaceProductTags(ctx, scopeB, foreignProduct, [foreignTag.id]);
+
+      // Act
+      const fromA = await repo.tagIdsOfProducts(ctx, scopeA, [shared, foreignProduct]);
+      const fromB = await repo.tagIdsOfProducts(ctx, scopeB, [shared, foreignProduct]);
+
+      // Assert
+      expect([...fromA.entries()]).toEqual([[shared, [own.id]]]);
+      expect([...fromB.entries()]).toEqual([
+        [shared, [foreignTag.id]],
+        [foreignProduct, [foreignTag.id]],
+      ]);
+    });
   });
 }

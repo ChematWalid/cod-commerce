@@ -1,5 +1,6 @@
 import type { TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { type Snowflake, toSnowflake } from '@cod/shared';
+import { In } from 'typeorm';
 import { type CoreId, toCoreId } from '../domain/core-id';
 import { ConcurrentUpdateError } from '../domain/errors';
 import { distinctLinkIds } from '../domain/link-ids';
@@ -55,6 +56,24 @@ export class TypeOrmTagRepository extends TypeOrmCatalogNameRepository implement
       order: { id: 'ASC' },
     });
     return rows.map((row) => toSnowflake(row.tagId));
+  }
+
+  async tagIdsOfProducts(
+    ctx: OperationContext,
+    scope: StoreScope,
+    productIds: readonly CoreId[],
+  ): Promise<ReadonlyMap<CoreId, readonly Snowflake[]>> {
+    if (productIds.length === 0) return new Map();
+    const rows = await this.links.find(requestScope(ctx, scope), {
+      where: { ...inStore(scope), productId: In([...productIds]) },
+      order: { id: 'ASC' },
+    });
+    const read = new Map<CoreId, Snowflake[]>();
+    for (const row of rows) {
+      const productId = toCoreId(row.productId);
+      read.set(productId, [...(read.get(productId) ?? []), toSnowflake(row.tagId)]);
+    }
+    return read;
   }
 
   async productIdsWithTag(ctx: OperationContext, scope: StoreScope, tagId: Snowflake): Promise<readonly CoreId[]> {

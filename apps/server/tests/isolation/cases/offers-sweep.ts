@@ -12,7 +12,7 @@ import {
   UNKNOWN_TARGETS,
 } from '../offers-operations';
 import type { BusinessWorld } from '../world-types';
-import { MALFORMED_IDS } from './catalog-sweep';
+import { MALFORMED_IDS } from './endpoint-sweep';
 
 /**
  * The offers cells (P2.S5 Task 11), over HTTP on the seeded world: each store lists only its own offers; B's offer and

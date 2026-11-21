@@ -5,6 +5,9 @@ import { CATALOG_SOLD_OUT_CASES } from './catalog-sold-out';
 import { CATALOG_STOCK_CASES } from './catalog-stock';
 import { CATALOG_SWEEP_CASES } from './catalog-sweep';
 import { CATALOG_TAXONOMY_CASES } from './catalog-taxonomy';
+import { COLLECTION_LIST_CASES } from './collections-lists';
+import { COLLECTION_STOCK_CASES } from './collections-stock';
+import { COLLECTION_SWEEP_CASES } from './collections-sweep';
 import { OFFERS_SWEEP_CASES } from './offers-sweep';
 import { IMPORT_EXPORT_CASES } from './import-export';
 import { PACKS_CASES } from './packs';
@@ -17,6 +20,7 @@ import { STOCK_READ_CASES } from './stock-reads';
 import { STOCK_WRITE_CASES } from './stock-writes';
 import { TENANCY_CASES } from './tenancy';
 import { TENANCY_WRITE_CASES } from './tenancy-writes';
+import { OFFERS_COLLECTION_TARGET_CASES } from './offers-collection-targets';
 
 /** Every cell of the P1 isolation matrix, grouped by the plugin that owns the endpoint. */
 export const ISOLATION_CASES: readonly IsolationCase[] = [
@@ -32,7 +36,7 @@ export const ISOLATION_CASES: readonly IsolationCase[] = [
 ];
 
 /**
- * Every cell of the P2 isolation matrix (P2.S1 catalog, D2115; P2.S5 offers endpoints). Kept apart from {@link ISOLATION_CASES}, which the P1
+ * Every cell of the P2 isolation matrix (P2.S1 catalog, D2115; P2.S3 collections; P2.S5 offers endpoints). Kept apart from {@link ISOLATION_CASES}, which the P1
  * suite runs unchanged (its `stock.products` cell stays FORBIDDEN, D2101).
  * P2.S2 adds the packs, import and export cells (D2278).
  */
@@ -43,7 +47,11 @@ export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...CATALOG_SWEEP_CASES,
   ...CATALOG_STOCK_CASES,
   ...CATALOG_SOLD_OUT_CASES,
+  ...COLLECTION_SWEEP_CASES,
+  ...COLLECTION_LIST_CASES,
+  ...COLLECTION_STOCK_CASES,
   ...OFFERS_SWEEP_CASES,
   ...PACKS_CASES,
   ...IMPORT_EXPORT_CASES,
+  ...OFFERS_COLLECTION_TARGET_CASES,
 ];

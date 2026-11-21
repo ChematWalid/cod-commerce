@@ -113,6 +113,8 @@ describe('architecture rules', () => {
         'plugins/good/catalog-wiring.plugin.ts',
         'plugins/good/infrastructure/uses-auth-invitations-package.ts',
         'plugins/good/infrastructure/uses-catalog-package.ts',
+        'plugins/good/infrastructure/uses-collections-package.ts',
+        'plugins/collections-rules/index.ts',
         'plugins/good/infrastructure/uses-platform-package.ts',
         'plugins/good/infrastructure/uses-rbac-member-access-package.ts',
         'plugins/good/infrastructure/uses-tenancy-package.ts',

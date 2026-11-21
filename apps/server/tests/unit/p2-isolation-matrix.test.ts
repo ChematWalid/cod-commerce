@@ -1,6 +1,7 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CatalogImportPlugin } from '@cod/plugin-catalog-import';
 import { CatalogPacksPlugin } from '@cod/plugin-catalog-packs';
+import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { OffersPlugin } from '@cod/plugin-offers';
 import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -9,6 +10,8 @@ import { OFFERS_SWEEP_CASES } from '../isolation/cases/offers-sweep';
 import { CATALOG_OPERATIONS, CATALOG_ROUTES } from '../isolation/catalog-operations';
 import { CATALOG_IMPORT_WORLDS } from '../isolation/catalog-import-world';
 import { CATALOG_WORLDS } from '../isolation/catalog-world';
+import { COLLECTION_OPERATIONS, COLLECTION_ROUTES } from '../isolation/collections-operations';
+import { COLLECTION_WORLDS } from '../isolation/collections-world';
 import { IMPORT_OPERATIONS, IMPORT_ROUTES } from '../isolation/import-operations';
 import { OFFERS_OPERATIONS, OFFERS_ROUTES, ownOfferIdsOf } from '../isolation/offers-operations';
 import { OFFERS_WORLDS } from '../isolation/offers-rows';
@@ -18,10 +21,11 @@ import {
   CATALOG_IMPORT_TABLE_COUNTS,
   CATALOG_PACKS_TABLE_COUNTS,
   CATALOG_TABLE_COUNTS,
+  COLLECTIONS_TABLE_COUNTS,
   OFFERS_TABLE_COUNTS,
 } from '../isolation/tenant-tables';
 import type { World } from '../isolation/world-types';
-import { businessOf, catalogImportOf, catalogOf, offersOf } from './p2-isolation-fixtures';
+import { businessOf, catalogImportOf, catalogOf, collectionsOf, offersOf } from './p2-isolation-fixtures';
 
 type Class = abstract new (...args: never[]) => object;
 type Handler = (...args: never[]) => unknown;
@@ -73,6 +77,7 @@ describe('P2 isolation matrix', () => {
   beforeAll(() => {
     for (const label of ['A', 'B'] as const) {
       CATALOG_WORLDS.set(label, catalogOf(label));
+      COLLECTION_WORLDS.set(label, collectionsOf(label));
       OFFERS_WORLDS.set(label, offersOf(label));
       CATALOG_IMPORT_WORLDS.set(label, catalogImportOf(label));
       TEAM_WORLDS.set(label, {
@@ -85,6 +90,7 @@ describe('P2 isolation matrix', () => {
 
   afterAll(() => {
     CATALOG_WORLDS.clear();
+    COLLECTION_WORLDS.clear();
     OFFERS_WORLDS.clear();
     CATALOG_IMPORT_WORLDS.clear();
     TEAM_WORLDS.clear();
@@ -104,6 +110,25 @@ describe('P2 isolation matrix', () => {
 
     // Assert
     expect([...counted].sort()).toEqual(tablesOf(OffersPlugin).sort());
+  });
+
+  it('covers every CollectionsRulesPlugin operation, route and table', () => {
+    // Arrange
+    const declared = {
+      operations: [...declaredOperations(CollectionsRulesPlugin)].sort(),
+      routes: [...declaredRoutes(CollectionsRulesPlugin)].sort(),
+      tables: tablesOf(CollectionsRulesPlugin).sort(),
+    };
+
+    // Act
+    const covered = {
+      operations: COLLECTION_OPERATIONS.map((operation) => operation.name).sort(),
+      routes: COLLECTION_ROUTES.map((route) => `${route.method} ${route.route}`).sort(),
+      tables: Object.keys(COLLECTIONS_TABLE_COUNTS).sort(),
+    };
+
+    // Assert
+    expect(covered).toEqual(declared);
   });
 
   it.each([

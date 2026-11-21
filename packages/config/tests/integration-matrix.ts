@@ -50,6 +50,8 @@ export const CATALOG_HEAVY_FILES = [
 ] as const;
 /** The packages whose suite runs as a file-group part plus a rest-of-suite part, with the group's files. */
 const FILE_SPLITS: Readonly<Record<string, readonly string[]>> = { [CATALOG]: CATALOG_HEAVY_FILES };
+/** Collections have a part of their own too: `others` stays near its budget (D2328). */
+const COLLECTIONS = '@cod/plugin-collections-rules';
 /** The offers have a part of their own too: five Vendure test-server suites would overrun `others` (D2433). */
 const OFFERS = '@cod/plugin-offers';
 /** The platform plugins of part `platform-1` (D118). */
@@ -74,12 +76,13 @@ const othersExclusions = [
   CATALOG,
   CATALOG_PACKS,
   CATALOG_IMPORT,
+  COLLECTIONS,
   OFFERS,
 ]
   .map((name) => `--filter=!${name}`)
   .join(' ');
 
-/** The parts of the matrix, in order (D51, D69, D118, D2116, D2216, D2433). */
+/** The parts of the matrix, in order (D51, D69, D118, D2116, D2216, D2328, D2433). */
 export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'others', command: `pnpm test:integration ${othersExclusions}` },
   { part: 'server-e2e', command: unshardedCommand(SERVER) },
@@ -93,6 +96,7 @@ export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'platform-2', command: groupedCommand(PLATFORM_2) },
   { part: 'catalog-1', command: fileGroupCommand(CATALOG, CATALOG_HEAVY_FILES) },
   { part: 'catalog-2', command: restOfSuiteCommand(CATALOG, CATALOG_HEAVY_FILES) },
+  { part: 'collections-rules', command: unshardedCommand(COLLECTIONS) },
   { part: 'offers', command: unshardedCommand(OFFERS) },
   { part: 'catalog-packs', command: unshardedCommand(CATALOG_PACKS) },
   { part: 'catalog-import', command: unshardedCommand(CATALOG_IMPORT) },

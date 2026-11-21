@@ -3,6 +3,7 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { api, LS_KEY_SELECTED_CHANNEL_TOKEN } from '@vendure/dashboard';
 import {
   BRANDS_QUERY_KEY,
+  COLLECTION_OPTIONS_QUERY_KEY,
   EFFECTIVE_PERMISSIONS_QUERY_KEY,
   MEDIA_PREVIEWS_QUERY_KEY,
   PRODUCTS_QUERY_KEY,
@@ -37,6 +38,7 @@ const PRODUCTS_QUERY = /* GraphQL */ `
 
 const BRANDS_QUERY = 'query CatalogBrandOptions { catalogBrands { id name } }';
 const TAGS_QUERY = 'query CatalogTagOptions { catalogTags { id name } }';
+const COLLECTION_OPTIONS_QUERY = 'query CatalogCollectionFilterOptions { catalogCollectionOptions { id title } }';
 const MEDIA_PREVIEWS_QUERY = `query CatalogMediaPreviews($options: CatalogMediaListInput) {
   catalogMedia(options: $options) { items { assetId previewUrl } } }`;
 const EFFECTIVE_PERMISSIONS_QUERY = 'query CatalogEffectivePermissions { effectivePermissions { permissions } }';
@@ -111,6 +113,21 @@ export function useCatalogTags(scope: StoreScope | null) {
       scope,
       async () => (await api.query<{ readonly catalogTags: readonly CatalogNamedDto[] }>(TAGS_QUERY)).catalogTags,
     ),
+  );
+}
+
+/**
+ * The store's collections for the list's Collection filter, from catalog's own query (D2324): empty while no plugin
+ * provides collections. Named like brands and tags, so the filter reads them the same way.
+ */
+export function useCatalogCollectionOptions(scope: StoreScope | null) {
+  return useQuery(
+    storeQuery(COLLECTION_OPTIONS_QUERY_KEY, scope, async () => {
+      const answer = await api.query<{
+        readonly catalogCollectionOptions: readonly { readonly id: string; readonly title: string }[];
+      }>(COLLECTION_OPTIONS_QUERY);
+      return answer.catalogCollectionOptions.map(({ id, title }): CatalogNamedDto => ({ id, name: title }));
+    }),
   );
 }
 

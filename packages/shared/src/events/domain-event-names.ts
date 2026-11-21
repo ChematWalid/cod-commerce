@@ -12,6 +12,7 @@ export const DOMAIN_EVENT_NAMES = {
   DeviceTrusted: 'device.trusted',
   SalaryPaid: 'salary.paid',
   ProductChanged: 'product.changed',
+  CollectionChanged: 'collection.changed',
   OfferApplied: 'offer.applied',
 } as const;
 

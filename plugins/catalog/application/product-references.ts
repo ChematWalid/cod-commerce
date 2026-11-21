@@ -124,7 +124,7 @@ export class ProductReferenceCheck {
       this.brand(ctx, scope, input.brandId),
       this.tags(ctx, scope, input.tagIds),
       this.highlights(ctx, scope, input.highlightIds),
-      this.collections(ctx, input.collectionIds),
+      this.collections(ctx, scope, input.collectionIds),
       this.assets(ctx, scope, input, held),
       checkOrderManagers(this.ports, ctx, scope, snowflakesOf(input.orderManagerIds ?? [], OrderManagerUnknownError)),
     ]);
@@ -169,11 +169,18 @@ export class ProductReferenceCheck {
     return highlightIds;
   }
 
-  private async collections(ctx: OperationContext, ids: readonly string[] | undefined) {
+  /**
+   * Collections of the store channel (D2134) that the membership source calls manual (D2309): a product write never
+   * names an automatic collection, whose products come from its rule.
+   */
+  private async collections(ctx: OperationContext, scope: StoreScope, ids: readonly string[] | undefined) {
     if (ids === undefined) return undefined;
     const collectionIds = coreIdsOf(ids, CollectionNotFoundError);
-    const found = collectionIds.length === 0 ? [] : await this.ports.products.existingCollections(ctx, collectionIds);
+    if (collectionIds.length === 0) return collectionIds;
+    const found = await this.ports.products.existingCollections(ctx, collectionIds);
     if (!allFound(collectionIds, found)) throw new CollectionNotFoundError();
+    const manual = await this.ports.collections.manualCollectionIdsAmong(ctx, scope, collectionIds);
+    if (!allFound(collectionIds, manual)) throw new CollectionNotFoundError();
     return collectionIds;
   }
 

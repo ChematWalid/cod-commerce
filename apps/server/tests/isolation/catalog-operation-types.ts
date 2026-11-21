@@ -1,6 +1,9 @@
 import type { IsolationEntity } from './matrix';
 
-/** The shapes of the catalog endpoint lists (`catalog-operations.ts`, `catalog-sold-out-operations.ts`). */
+/**
+ * The shapes of the catalog endpoint lists (`catalog-operations.ts`, `catalog-sold-out-operations.ts`), which the
+ * collections list (`collections-operations.ts`, P2.S3) shares.
+ */
 
 /** The rows of a business a call may name; for REST the product id is the REST form (`restIdOf`). */
 export interface CatalogTarget {
@@ -16,7 +19,10 @@ export interface CatalogTarget {
 }
 
 /** The field of {@link CatalogTarget} a by-id endpoint names. */
-export type TargetField = 'productId' | 'brandId' | 'tagId' | 'highlightId' | 'mediaId';
+export type TargetField = 'productId' | 'brandId' | 'tagId' | 'highlightId' | 'mediaId' | 'collectionId';
+
+/** The fields that name a Vendure row: GraphQL takes them as `ID`, decoded by the entity id strategy first. */
+export const ENGINE_ID_FIELDS: ReadonlySet<TargetField> = new Set(['productId', 'collectionId']);
 
 /** What a by-id endpoint answers for an id that is not a row of the caller's store. */
 export interface ById {
@@ -38,7 +44,7 @@ export interface CatalogOperation {
 
 /** One REST route. */
 export interface CatalogRoute {
-  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  readonly method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** The route as the controller declares it, e.g. `/catalog/products/:id`. */
   readonly route: string;
   readonly entity: IsolationEntity;

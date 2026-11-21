@@ -1,0 +1,16 @@
+{
+  "error": {
+    "collections-not-found": "المجموعة غير موجودة.",
+    "collections-invalid-input": "بعض البيانات غير صالحة.",
+    "collections-rule-invalid": "الشروط غير صالحة.",
+    "collections-slug-taken": "هذا الرابط مستخدم من قبل مجموعة أخرى في هذا المتجر.",
+    "collections-image-not-found": "الصورة غير موجودة.",
+    "collections-product-not-found": "لم يتم العثور على منتج في هذا المتجر.",
+    "collections-too-many-products": "يمكن أن تضم المجموعة 500 منتج مختار يدويًا على الأكثر.",
+    "collections-too-many-collections": "بلغ هذا المتجر الحد الأقصى من المجموعات (500).",
+    "collections-not-manual": "هذه المجموعة تأخذ منتجاتها من شروطها.",
+    "collections-channel-not-found": "المتجر غير موجود.",
+    "collections-rate-limited": "طلبات كثيرة جدًا. حاول مرة أخرى بعد قليل.",
+    "collections-internal": "تعذر إتمام الطلب."
+  }
+}

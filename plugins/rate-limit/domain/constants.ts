@@ -19,6 +19,11 @@ export const CATALOG_MEDIA_BUSINESS_CAPACITY = 1000;
 /** Media uploads one administrator may make per hour (D2138). */
 export const CATALOG_MEDIA_ACTOR_CAPACITY = 120;
 
+/** Live previews of a collection rule one administrator may run per minute: each one matches the whole store (D2338). */
+export const COLLECTIONS_PREVIEW_ACTOR_CAPACITY = 30;
+/** Reads of the collection condition builder's options one administrator may make per minute (D2338). */
+export const COLLECTIONS_RULE_OPTIONS_ACTOR_CAPACITY = 30;
+
 /** Spreadsheet import steps (upload, analyze, preview, confirm) per hour: each parses a file in the API (D2217). */
 export const CATALOG_IMPORT_ACTOR_CAPACITY = 30;
 export const CATALOG_IMPORT_BUSINESS_CAPACITY = 200;

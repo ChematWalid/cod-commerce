@@ -18,6 +18,7 @@ import { TagService } from '../application/tag.service';
 import {
   BRAND_REPOSITORY,
   CLOCK,
+  COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
   DESCRIPTION_SANITIZER,
   HIGHLIGHT_REPOSITORY,
   ID_GENERATOR,
@@ -40,6 +41,7 @@ import {
   TRANSACTION,
 } from '../application/tokens';
 import { CatalogReadService } from '../application/catalog-read.service';
+import { CollectionOptionsService } from '../application/collection-options.service';
 import { SoldOutService } from '../application/sold-out.service';
 import { SoldOutSourceRegistry } from '../application/sold-out-source.registry';
 import { UpdateProductService } from '../application/update-product.service';
@@ -47,6 +49,7 @@ import { WritePackValuesService } from '../application/write-pack-values.service
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
+import { CollectionMembershipRegistry, registrarOf } from './collection-membership-registry';
 import { HtmlDescriptionSanitizer } from './description-sanitizer';
 import { OutboxProductEvents } from './product-changed.outbox';
 import { SettingsFlagSoldOutSource } from './settings-flag-sold-out.source';
@@ -158,11 +161,18 @@ export const PRODUCT_PROVIDERS: Provider[] = [
       new TypeOrmHighlightRepository(factory, ids),
     inject: [TenantRepositoryFactory, ID_GENERATOR],
   },
+  // The catalog's own links until collection rules register their source on the registrar (D2309).
   {
     provide: PRODUCT_COLLECTION_REPOSITORY,
     useFactory: (factory: TenantRepositoryFactory, ids: IdGeneratorPort) =>
-      new TypeOrmProductCollectionRepository(factory, ids),
+      new CollectionMembershipRegistry(new TypeOrmProductCollectionRepository(factory, ids)),
     inject: [TenantRepositoryFactory, ID_GENERATOR],
+  },
+  // Only `register` leaves the module: the registry's source methods would write links past every product check.
+  {
+    provide: COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,
+    useFactory: registrarOf,
+    inject: [PRODUCT_COLLECTION_REPOSITORY],
   },
   {
     provide: PRODUCT_PORTS,
@@ -184,6 +194,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(MediaLibraryService),
   useCase(SoldOutService),
   useCase(CatalogReadService),
+  useCase(CollectionOptionsService),
   useCase(DemoCatalogSeedService),
   useCase(CreateProductWithVariantsService),
   useCase(ProductLookupService),

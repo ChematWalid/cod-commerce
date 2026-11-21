@@ -102,17 +102,12 @@ function TagsField({ form, disabled, onChange, scope }: ScopedSectionProps): Rea
   );
 }
 
-/** Status, brand, collections and tags of the product in its store. Collections arrive with P2.S3. */
+/** Status, brand and tags of the product in its store; its collections have a block of their own (D2324). */
 export function OrganisationSection(props: ScopedSectionProps): ReactNode {
-  const { i18n } = useLingui();
   return (
     <div className="grid gap-5">
       <StatusField {...props} />
       <BrandField {...props} />
-      <div className="grid gap-1">
-        <p className="text-sm font-medium">{i18n._('catalog.editor-collections')}</p>
-        <p className="text-muted-foreground text-xs">{i18n._('catalog.editor-collections-later')}</p>
-      </div>
       <TagsField {...props} />
     </div>
   );

@@ -85,6 +85,8 @@ const RAW_DATA_ALLOWED_FILES = [
   'plugins/rbac/infrastructure/vendure-actor-directory.ts',
   'plugins/team/infrastructure/invitation-token-lookup.ts',
   'plugins/catalog/infrastructure/vendure-asset-reads.ts',
+  'plugins/catalog/infrastructure/vendure-product-facts.query.ts',
+  'plugins/collections-rules/infrastructure/pg-collections-lock.ts',
   'plugins/platform-partitions/infrastructure/postgres-partition-catalog.ts',
   'plugins/platform-outbox/infrastructure/outbox-partition-policies.ts',
   'plugins/platform-outbox/infrastructure/outbox-due-scan.ts',

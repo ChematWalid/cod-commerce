@@ -22,7 +22,6 @@ export interface ProductFieldsInput {
   readonly brandId: string | null;
   readonly tagIds: readonly string[];
   readonly highlightIds: readonly string[];
-  readonly collectionIds: readonly string[];
   readonly label: string | null;
   readonly cardCaption: string | null;
   readonly seo: { readonly metaTitle: string | null; readonly metaDescription: string | null };
@@ -77,6 +76,10 @@ const RULE_FALLBACK = 1;
 export const slugHintIdOf = (productId: string | null): string =>
   productId === null ? 'catalog.editor-slug-hint' : 'catalog.editor-slug-hint-edit';
 
+/**
+ * The product fields the editor sends. A product's collections are left out (absent = unchanged on the server): the
+ * collections block on this page saves them on its own (D2324).
+ */
 function fieldsOf(form: EditorForm): ProductFieldsInput {
   const slug = form.slug.trim();
   return {
@@ -97,7 +100,6 @@ function fieldsOf(form: EditorForm): ProductFieldsInput {
     brandId: form.brandId,
     tagIds: form.tagIds,
     highlightIds: form.highlightIds,
-    collectionIds: form.collectionIds,
     label: textOrNull(form.label),
     cardCaption: textOrNull(form.cardCaption),
     seo: { metaTitle: textOrNull(form.metaTitle), metaDescription: textOrNull(form.metaDescription) },

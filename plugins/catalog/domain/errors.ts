@@ -152,6 +152,17 @@ export class TaxonomyLimitError extends DomainError {
   }
 }
 
+/**
+ * A second plugin tried to register a collection membership source (D2309): two sources would silently disagree. A
+ * bootstrap wiring fault, never an API answer, so it carries no `CATALOG_ERROR_CODES` code.
+ */
+export class CollectionMembershipSourceAlreadyRegisteredError extends Error {
+  constructor() {
+    super('A collection membership source is already registered');
+    this.name = 'CollectionMembershipSourceAlreadyRegisteredError';
+  }
+}
+
 /** Every catalog error, one per code of `CATALOG_ERROR_CODES`; the API's error mapping covers each. */
 export const CATALOG_ERROR_CLASSES = [
   ProductNotFoundError,

@@ -44,6 +44,19 @@ export class InMemoryTagRepository extends InMemoryCatalogNameRepository impleme
     return Promise.resolve(own.map((link) => link.tagId));
   }
 
+  tagIdsOfProducts(
+    _ctx: OperationContext,
+    scope: StoreScope,
+    productIds: readonly CoreId[],
+  ): Promise<ReadonlyMap<CoreId, readonly Snowflake[]>> {
+    const asked = new Set(productIds);
+    const read = new Map<CoreId, Snowflake[]>();
+    for (const link of this.links.filter((row) => inStore(scope, row) && asked.has(row.productId))) {
+      read.set(link.productId, [...(read.get(link.productId) ?? []), link.tagId]);
+    }
+    return Promise.resolve(read);
+  }
+
   productIdsWithTag(_ctx: OperationContext, scope: StoreScope, tagId: Snowflake): Promise<readonly CoreId[]> {
     const own = this.links.filter((link) => inStore(scope, link) && link.tagId === tagId);
     return Promise.resolve(own.map((link) => link.productId));

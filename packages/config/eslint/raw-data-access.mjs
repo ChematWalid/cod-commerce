@@ -65,6 +65,13 @@ export const RAW_DATA_ACCESS_FILES = [
   // or collection uses one (core reads only featured images). Every id was found in the business's `catalog_media`
   // first (P2.S1 Task 13, D2128, D2132).
   '**/plugins/catalog/infrastructure/vendure-asset-reads.ts',
+  // The batched, read-only product facts of collection rules: Vendure's product, variant, price and option tables, which
+  // hold no tenant column, always joined to the caller's channel after the reader checked it is the store's; product
+  // ids are parsed first. Vendure's services read one product at a time (N+1) and have no keyset page or option list
+  // (P2.S3, D2308).
+  '**/plugins/catalog/infrastructure/vendure-product-facts.query.ts',
+  // Runs only the transaction advisory lock that serialises the membership writers of one store (P2.S3, D2334).
+  '**/plugins/collections-rules/infrastructure/pg-collections-lock.ts',
   // `platform_task_heartbeat` is a platform table, one row per scheduled task (D108, D120).
   '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
   // DDL and catalog reads of partition maintenance (`SET LOCAL`, `pg_advisory_xact_lock`); no tenant row (D106).

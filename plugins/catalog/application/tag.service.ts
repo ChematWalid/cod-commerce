@@ -6,11 +6,14 @@ import { createTag, renameTag, type Tag } from '../domain/taxonomy';
 import type { ProductPorts } from './catalog-ports';
 import { CatalogNames } from './catalog-names';
 
-/** The tags of the caller's active store: add, rename, list and delete; a deleted tag leaves every product. */
+/**
+ * The tags of the caller's active store: add, rename, list and delete. A deleted tag leaves every product, and each of
+ * them is announced as changed in the delete's transaction, so collection rules naming the tag follow (D2311).
+ */
 export class TagService {
   private readonly names: CatalogNames;
 
-  constructor(ports: ProductPorts) {
+  constructor(private readonly ports: ProductPorts) {
     this.names = new CatalogNames(ports, ports.tags, {
       create: createTag,
       rename: renameTag,
@@ -31,6 +34,9 @@ export class TagService {
   }
 
   delete(ctx: OperationContext, scope: StoreScope, rawId: string): Promise<void> {
-    return this.names.delete(ctx, scope, rawId);
+    return this.names.delete(ctx, scope, rawId, async (tx, id) => {
+      const unlinked = await this.ports.tags.productIdsWithTag(tx, scope, id);
+      for (const productId of unlinked) await this.ports.events.publish(tx, scope, productId, 'updated');
+    });
   }
 }
