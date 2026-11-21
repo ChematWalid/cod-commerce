@@ -56,7 +56,7 @@ describe('offer summary', () => {
       'Starts when published.',
       'Has no end date.',
       'Combines with delivery offers.',
-      'Sample: 3 pieces cost 13230 DZD, saving 1470 DZD.',
+      'Sample: a quantity of 3 costs 13230 DZD, saving 1470 DZD.',
     ]);
     expect(render('ar', lines)).toEqual([
       'ابتداءً من 2 قطعة: تخفيض 10 ٪ على كل قطعة.',
@@ -72,6 +72,17 @@ describe('offer summary', () => {
       'يُجمع مع عروض التوصيل.',
       'مثال: 3 قطعة بـ 13230 دج، بتوفير 1470 دج.',
     ]);
+  });
+
+  it('quotes a one-piece sample in grammatical English', () => {
+    // Arrange
+    const onePiece: SummaryPreview = { scenarios: [{ pieces: 1, quote: { total: 6900, savings: 3700 } }] };
+
+    // Act
+    const lines = summaryOf(QUANTITY_FORM, onePiece);
+
+    // Assert
+    expect(render('en', lines).at(-1)).toBe('Sample: a quantity of 1 costs 6900 DZD, saving 3700 DZD.');
   });
 
   it('summarises dates, limits and a kind it does not know without a sample', () => {
