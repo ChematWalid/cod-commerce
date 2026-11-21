@@ -3,6 +3,7 @@ import { TextField } from '@cod/plugin-merchant-shell/shell-api';
 import { useLingui } from '@lingui/react';
 import type { ReactNode } from 'react';
 import type { EditorForm, SettingsDraft } from '../model/editor-form';
+import { packFieldReadOnly } from '../model/editor-pack';
 import { OrderManagersField } from './order-managers-field';
 import type { ScopedSectionProps } from './section-props';
 import { SwitchRow } from './switch-row';
@@ -72,7 +73,7 @@ function SizeFields({ form, errors, disabled, onChange }: SettingsProps): ReactN
           inputMode="numeric"
           suffix={i18n._(unitId)}
           value={form[key]}
-          disabled={disabled}
+          disabled={packFieldReadOnly(form, key, disabled)}
           errorId={errors[key]}
           onChange={(event) => {
             onChange({ [key]: event.target.value } satisfies Partial<EditorForm>);

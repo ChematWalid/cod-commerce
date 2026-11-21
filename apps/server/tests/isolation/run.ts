@@ -1,5 +1,6 @@
 import { errorCodesOf, type Exchange, type GraphqlBody, type IsolationHttp, type MatrixRequest } from './http';
 import type { Expectation, IsolationCase } from './matrix';
+import { CATALOG_IMPORT_WORLDS, catalogImportFingerprints } from './catalog-import-world';
 import { CATALOG_WORLDS, catalogFingerprints } from './catalog-world';
 import { COLLECTION_WORLDS, collectionsFingerprints } from './collections-world';
 import { TEAM_WORLDS, teamFingerprints } from './team-world';
@@ -29,11 +30,13 @@ export function fingerprintsOf(victim: BusinessWorld): string[] {
   const team = TEAM_WORLDS.get(victim.label);
   const catalog = CATALOG_WORLDS.get(victim.label);
   const collections = COLLECTION_WORLDS.get(victim.label);
+  const imported = CATALOG_IMPORT_WORLDS.get(victim.label);
   return [
     ...allValuesOf(victim),
     ...(team === undefined ? [] : teamFingerprints(team)),
     ...(catalog === undefined ? [] : catalogFingerprints(catalog)),
     ...(collections === undefined ? [] : collectionsFingerprints(collections)),
+    ...(imported === undefined ? [] : catalogImportFingerprints(imported)),
   ].filter((value) => value.length >= MIN_FINGERPRINT_LENGTH);
 }
 

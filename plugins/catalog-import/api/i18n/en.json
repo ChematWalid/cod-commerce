@@ -1,0 +1,17 @@
+{
+  "error": {
+    "catalog-import-invalid-input": "Some of the details are not valid.",
+    "catalog-import-taxonomy-not-found": "A brand or tag was not found in this store.",
+    "catalog-import-collections-unavailable": "Collections cannot be changed in bulk yet.",
+    "catalog-import-job-not-found": "This import or export was not found.",
+    "catalog-import-too-many-rows": "Too many rows: an import reads at most 5 000 rows and an export at most 20 000 products; narrow the file or the filter.",
+    "catalog-import-file-type": "This file is not an xlsx or CSV spreadsheet of the declared type.",
+    "catalog-import-file-too-large": "The file is larger than declared or than 10 MB.",
+    "catalog-import-no-header": "No header row with a name and a price column was found in the first 10 rows.",
+    "catalog-import-job-state": "This import is not at a step that allows this; reload it.",
+    "catalog-import-link-refused": "This link cannot be imported. Use the public web address of a product page.",
+    "catalog-import-link-unreachable": "The page of this link could not be reached. Try again later.",
+    "catalog-import-ai-disabled": "AI features are turned off for now. Try again later.",
+    "catalog-import-internal": "The request could not be completed."
+  }
+}

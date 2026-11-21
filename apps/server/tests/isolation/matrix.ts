@@ -25,7 +25,12 @@ export type IsolationEntity =
   | 'product tag'
   | 'highlight'
   | 'media'
-  | 'collection';
+  | 'collection'
+  // P2.S2: packs and catalog import (D2278).
+  | 'pack'
+  | 'import job'
+  | 'export job'
+  | 'product origin';
 
 /** How the attacker reaches for the victim's data; each is a column of the evidence matrix. */
 export type IsolationAccess =

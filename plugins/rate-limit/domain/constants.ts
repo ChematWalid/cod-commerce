@@ -24,6 +24,20 @@ export const COLLECTIONS_PREVIEW_ACTOR_CAPACITY = 30;
 /** Reads of the collection condition builder's options one administrator may make per minute (D2338). */
 export const COLLECTIONS_RULE_OPTIONS_ACTOR_CAPACITY = 30;
 
+/** Spreadsheet import steps (upload, analyze, preview, confirm) per hour: each parses a file in the API (D2217). */
+export const CATALOG_IMPORT_ACTOR_CAPACITY = 30;
+export const CATALOG_IMPORT_BUSINESS_CAPACITY = 200;
+/** Exports one business may start per hour; each writes a file to the private bucket (D2217). */
+export const CATALOG_EXPORT_BUSINESS_CAPACITY = 120;
+/** Link imports and AI polish per hour; each fetches a remote page or calls a model (D2217). */
+export const CATALOG_SCRAPE_ACTOR_CAPACITY = 60;
+export const CATALOG_SCRAPE_BUSINESS_CAPACITY = 300;
+/** Bulk edits per hour; each may write up to 500 products (D2217). */
+export const CATALOG_BULK_EDIT_ACTOR_CAPACITY = 120;
+export const CATALOG_BULK_EDIT_BUSINESS_CAPACITY = 600;
+/** Pack price previews one administrator may ask for per hour, as the editor recomputes (D2217). */
+export const CATALOG_PACK_PREVIEW_ACTOR_CAPACITY = 600;
+
 /** Wrong or right code guesses per day one account may make, whatever the resends (D44). */
 export const OTP_DAILY_CAPACITY = 50;
 

@@ -30,6 +30,9 @@ export const DEFAULT_PRODUCT_STATUS: ProductStatus = 'draft';
 /** The type of a product saved without one (D2126). */
 export const DEFAULT_PRODUCT_TYPE: ProductType = 'physical';
 
+/** The type of a pack product: catalog-packs owns its components and prices (D2126, D2227). */
+export const PACK_PRODUCT_TYPE: ProductType = 'pack';
+
 /** Longest stored status or type word; the longest today is `physical`. */
 export const SHORT_KIND_MAX_LENGTH = 16;
 

@@ -17,8 +17,23 @@ export {
   CatalogStoreChannelMismatchError,
   type CatalogVariantOption,
 } from './application/product-facts';
+export {
+  CatalogProductCommands,
+  type PackSaveLock,
+  type ProductStatusChange,
+} from './infrastructure/catalog-product-commands';
+export type { ProductSaveResult, ProductView } from './application/product-view';
+export type { ProductWithVariantsCommand, VariantOverride } from './application/create-product-with-variants.service';
+export type {
+  NamedRef,
+  ProductIdsPage,
+  ProductIdsPageRequest,
+  TaxonomyIndex,
+} from './application/product-lookup.service';
+export type { ProductListFilter } from './application/product-criteria';
+export type { PackOptionPrice, PackValues } from './application/write-pack-values.service';
+export type { SkuMatch } from './domain/sku-match';
 export type { StoreScope as CatalogStoreScope } from './domain/store-scope';
-export type { ProductView } from './application/product-view';
 export type { ProductViewPage } from './application/list-products.service';
 export {
   type CatalogListOptions,

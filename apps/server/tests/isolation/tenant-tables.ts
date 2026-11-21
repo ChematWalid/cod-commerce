@@ -58,12 +58,32 @@ export const COLLECTIONS_TABLE_COUNTS = {
   collections_member: BY_BUSINESS('collections_member'),
 } as const;
 
-/** Every counted table: P1's, the catalog's, the offers' and the collections'. */
+/** The pack tables (P2.S2, D2202): the P2 world saves a pack with two components in each business. */
+export const CATALOG_PACKS_TABLE_COUNTS = {
+  catalog_pack: BY_BUSINESS('catalog_pack'),
+  catalog_pack_component: BY_BUSINESS('catalog_pack_component'),
+} as const;
+
+/**
+ * The import and export tables (P2.S2, D2210, D2211, D2214): the P2 world previews a spreadsheet import (its job and
+ * rows), exports a product and imports a link (its job and the Draft's origin) in each business.
+ */
+export const CATALOG_IMPORT_TABLE_COUNTS = {
+  catalog_import_job: BY_BUSINESS('catalog_import_job'),
+  catalog_import_row: BY_BUSINESS('catalog_import_row'),
+  catalog_export_job: BY_BUSINESS('catalog_export_job'),
+  catalog_product_origin: BY_BUSINESS('catalog_product_origin'),
+} as const;
+
+/** Every counted table: P1's, the catalog's, the offers', the collections', the packs' and the import's. */
 const ALL_TABLE_COUNTS = {
   ...TENANT_TABLE_COUNTS,
   ...CATALOG_TABLE_COUNTS,
   ...OFFERS_TABLE_COUNTS,
   ...COLLECTIONS_TABLE_COUNTS,
+  // P2.S2: the packs' and the import's.
+  ...CATALOG_PACKS_TABLE_COUNTS,
+  ...CATALOG_IMPORT_TABLE_COUNTS,
 };
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
@@ -77,7 +97,10 @@ export const RETIRED_TABLES: readonly TenantTable[] = ['catalog_product_collecti
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
-/** The P1 tables, the catalog's, the offers' and the collections', less the retired ones: the P2 world fills each. */
+/**
+ * The P1 tables, the catalog's, the offers', the collections', the packs' and the import's, less the retired ones: the
+ * P2 world fills each.
+ */
 export const P2_TENANT_TABLES = (Object.keys(ALL_TABLE_COUNTS) as TenantTable[]).filter(
   (table) => !RETIRED_TABLES.includes(table),
 );

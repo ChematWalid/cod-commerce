@@ -1,0 +1,17 @@
+{
+  "error": {
+    "catalog-import-invalid-input": "بعض البيانات غير صالحة.",
+    "catalog-import-taxonomy-not-found": "لم يتم العثور على علامة تجارية أو وسم في هذا المتجر.",
+    "catalog-import-collections-unavailable": "لا يمكن تعديل المجموعات دفعة واحدة بعد.",
+    "catalog-import-job-not-found": "لم يتم العثور على عملية الاستيراد أو التصدير هذه.",
+    "catalog-import-too-many-rows": "عدد الصفوف كبير جدًا: يقرأ الاستيراد 5000 صف على الأكثر والتصدير 20000 منتج على الأكثر؛ قلّص الملف أو التصفية.",
+    "catalog-import-file-type": "هذا الملف ليس جدول xlsx أو CSV من النوع المعلن.",
+    "catalog-import-file-too-large": "الملف أكبر من الحجم المعلن أو من 10 ميغابايت.",
+    "catalog-import-no-header": "لم يُعثر في الصفوف العشرة الأولى على صف عناوين يضم عمودي الاسم والسعر.",
+    "catalog-import-job-state": "هذا الاستيراد ليس في مرحلة تسمح بذلك؛ أعد تحميله.",
+    "catalog-import-link-refused": "لا يمكن استيراد هذا الرابط. استخدم العنوان العام لصفحة منتج.",
+    "catalog-import-link-unreachable": "تعذر الوصول إلى صفحة هذا الرابط. حاول مرة أخرى لاحقًا.",
+    "catalog-import-ai-disabled": "ميزات الذكاء الاصطناعي متوقفة حاليًا. حاول مرة أخرى لاحقًا.",
+    "catalog-import-internal": "تعذر إكمال الطلب."
+  }
+}

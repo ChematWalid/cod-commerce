@@ -4,6 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CATALOG_ERROR_CODES } from '@cod/shared';
 import { parseInternalKeys } from '@cod/shared/internal-auth';
+import {
+  CATALOG_IMPORT_OBJECT_STORAGE,
+  CatalogImportPlugin,
+  type CatalogImportObjectStorage,
+} from '@cod/plugin-catalog-import';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
 import {
   AssetServerPlugin,
@@ -14,8 +19,10 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
+import { itKeepsImportFilesUnderTheirPrefix, uploadedObjectsOf } from '../isolation/cases/catalog-import-storage';
 import { itKeepsStoredRulesInTheirStore } from '../isolation/cases/collections-stored-rule';
 import { describeOffersIsolation } from '../isolation/cases/offers';
+import { CATALOG_IMPORT_WORLDS, importSnapshotOf, seedCatalogImport } from '../isolation/catalog-import-world';
 import {
   CATALOG_SNAPSHOT_FIELDS,
   CATALOG_WORLDS,
@@ -87,8 +94,10 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * catalog endpoint, by id, by list, by write, by naming B's rows in its own writes and with B's store token, and A's
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
  * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
- * (P2.S4), seeded in process, that A's quotes must never see, and collections (P2.S3: manual, by rule, on each store)
- * seeded as its owner through `createStoreCollection`, which A reaches for through every collections endpoint.
+ * (P2.S4), seeded in process, that A's quotes must never see; collections (P2.S3: manual, by rule, on each store)
+ * seeded as its owner through `createStoreCollection`, which A reaches for through every collections endpoint; and a
+ * pack, a previewed spreadsheet import, an export and a link import (P2.S2) that A reaches for through every pack and
+ * import endpoint, their files stored under the business's and store's prefix of the private bucket.
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -103,11 +112,16 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     storageStrategyFactory: (options) =>
       new PrefixedAssetStorage(defaultAssetStorageStrategyFactory(options), ASSET_KEY_PREFIX),
   });
+  // The integration job runs no Garage either: the private bucket is the memory storage, and link imports read the
+  // fixture scraper's synthetic pages (D2208, D2214). Re-called after the app config's own `init`, which it replaces.
+  CatalogImportPlugin.init({ objectStorage: { kind: 'memory' }, linkScraper: 'fixture', appEnv: env.APP_ENV });
   const http = new IsolationHttp(`http://localhost:${String(PORT)}`);
   const sql = () => server.app.get(TransactionalConnection).rawConnection;
+  const storage = () => server.app.get<CatalogImportObjectStorage>(CATALOG_IMPORT_OBJECT_STORAGE);
+  const objects = uploadedObjectsOf(storage);
   let world: World;
   let outcomes: Map<string, Outcome>;
-  let before: { a: unknown; b: unknown; aOtherStore: unknown; bOtherStore: unknown };
+  let before: Record<'a' | 'b' | 'aOtherStore' | 'bOtherStore' | 'aImport' | 'bImport', unknown>;
 
   beforeAll(async () => {
     await server.init({ initialData: E2E_INITIAL_DATA, customerCount: 0 });
@@ -133,11 +147,15 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     COLLECTION_WORLDS.set('B', await seedCollections(http, world.b));
     OFFERS_WORLDS.set('A', await seedOffers(server.app, world.a));
     OFFERS_WORLDS.set('B', await seedOffers(server.app, world.b));
+    CATALOG_IMPORT_WORLDS.set('A', await seedCatalogImport(http, objects, world.a));
+    CATALOG_IMPORT_WORLDS.set('B', await seedCatalogImport(http, objects, world.b));
     before = {
       a: await snapshotOf(http, world.a, FIRST_STORE_FIELDS),
       b: await snapshotOf(http, world.b, FIRST_STORE_FIELDS),
       aOtherStore: await otherStoreSnapshotOf(http, world.a, COLLECTIONS_SNAPSHOT_FIELDS),
       bOtherStore: await otherStoreSnapshotOf(http, world.b, COLLECTIONS_SNAPSHOT_FIELDS),
+      aImport: await importSnapshotOf(http, world.a),
+      bImport: await importSnapshotOf(http, world.b),
     };
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
     outcomes = new Map(
@@ -154,7 +172,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it(
-    'seeds a row of each business in every P1, catalog, offers and collections tenant table',
+    'seeds a row of each business in every P1, catalog, offers, collections, pack and import tenant table',
     async () => {
       // The outbox rows come from the webhooks' asynchronous processing, so the census waits for them.
       const emptyTables = async (): Promise<string[]> => {
@@ -246,6 +264,13 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(key).toMatch(new RegExp(`^b/${world.a.businessId}/s/${world.a.stores[0].id}/source/`));
     expect(existsSync(join(assetDir, `${ASSET_KEY_PREFIX}${key ?? ''}`))).toBe(true);
   });
+
+  it("leaves each business's pack, imports and export as its owner saw them before the attacks", async () => {
+    expect(await importSnapshotOf(http, world.a)).toEqual(before.aImport);
+    expect(await importSnapshotOf(http, world.b)).toEqual(before.bImport);
+  });
+
+  itKeepsImportFilesUnderTheirPrefix({ world: () => world, http, storage });
 
   describeOffersIsolation({ world: () => world, app: () => server.app });
 

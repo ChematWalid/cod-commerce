@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { DASHBOARD_BASE_PATH } from '../../src/config/dashboard-route';
 import { DEV_API_PORT } from '../../src/config/ports';
 import { PRODUCT_EDITOR_TEST_ID, PRODUCT_LIST_TEST_ID } from '@cod/plugin-catalog';
+import { CATALOG_IMPORT_PAGE_TEST_ID } from '@cod/plugin-catalog-import';
 import { BUSINESS_CARD_TEST_ID, SETTINGS_PATH } from '@cod/plugin-merchant-shell';
 import { COLLECTION_EDITOR_TEST_ID, COLLECTION_LIST_TEST_ID } from '@cod/plugin-collections-rules';
 
@@ -22,6 +23,7 @@ export const DASHBOARD_PAGES_UNDER_TEST: readonly DashboardPageUnderTest[] = [
   { path: SETTINGS_PATH, readyTestId: BUSINESS_CARD_TEST_ID, slug: 'settings' },
   { path: '/stores/active/collections', readyTestId: COLLECTION_LIST_TEST_ID, slug: 'collections' },
   { path: '/stores/active/collections/new', readyTestId: COLLECTION_EDITOR_TEST_ID, slug: 'collection-editor' },
+  { path: '/stores/active/products/import', readyTestId: CATALOG_IMPORT_PAGE_TEST_ID, slug: 'product-import' },
 ];
 
 /** The dashboard of a host-run api (`pnpm --filter @cod/server dev`). */

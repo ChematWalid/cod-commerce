@@ -88,6 +88,9 @@ jobs:
       SUPERADMIN_USERNAME: superadmin
       SUPERADMIN_PASSWORD: change-me-admin
       S3_ENDPOINT: http://localhost:3900
+      # Import uploads and export downloads are presigned for the browser's own origin (D2208): here it reaches Garage
+      # on the same address as the api.
+      S3_PUBLIC_ENDPOINT: http://localhost:3900
       S3_BUCKET_PRIVATE: cod-private
       S3_ACCESS_KEY: GK000000000000000000000000
       S3_SECRET_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
@@ -143,6 +146,13 @@ jobs:
       # service creates the job's bucket with the job's placeholder keys, which .env.example holds too.
       - name: Start the object storage
         run: docker compose --env-file .env.example up -d --wait garage
+      # The dashboard puts import files on, and reads exports from, the private bucket directly (D2208).
+      - name: Allow the dashboard's origin on the private bucket
+        run: node scripts/garage-cors.mjs
+      # The memory storage of the integration and e2e suites cannot show it: the real Garage must refuse a presigned
+      # upload whose body is larger than the size signed into it.
+      - name: Refuse a presigned PUT with a larger body than signed
+        run: node scripts/check-presigned-put.mjs
       - name: Start the api
         run: |
           ROLE=api API_PORT=3100 setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-api.js > api.log 2>&1 &

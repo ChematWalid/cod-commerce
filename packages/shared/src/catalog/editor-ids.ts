@@ -21,3 +21,10 @@ export const CATALOG_EDITOR_BLOCK_IDS = {
 
 /** One of the {@link CATALOG_EDITOR_BLOCK_IDS} values. */
 export type CatalogEditorBlockId = (typeof CATALOG_EDITOR_BLOCK_IDS)[keyof typeof CATALOG_EDITOR_BLOCK_IDS];
+
+/**
+ * Query key prefixes of the product editor and the product list. Catalog's dashboard re-exports them, so a block of
+ * another plugin (the pack editor, D2201) can invalidate the product's caches after its own save.
+ */
+export const CATALOG_PRODUCT_QUERY_KEY = ['catalog', 'product'] as const;
+export const CATALOG_PRODUCTS_QUERY_KEY = ['catalog', 'products'] as const;

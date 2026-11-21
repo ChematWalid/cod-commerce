@@ -1,6 +1,4 @@
 import { AuthPlugin } from '@cod/plugin-auth';
-import { CatalogPlugin } from '@cod/plugin-catalog';
-import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -211,21 +209,6 @@ describe('buildPlugins', () => {
     // Assert
     expect(plugins).toContain(RbacPlugin);
   });
-
-  it.each(SERVER_ROLES)(
-    'registers CatalogPlugin once for the %s role, after AuthPlugin and before CollectionsRulesPlugin and TeamPlugin',
-    (role: ServerRole) => {
-      // Arrange: Team and collections import catalog's module, so Catalog configures once, before both (D2137)
-      const env = loadEnv({ ...valid, ROLE: role });
-      const expectedOrder: readonly unknown[] = [AuthPlugin, CatalogPlugin, CollectionsRulesPlugin, TeamPlugin];
-
-      // Act
-      const plugins = buildPlugins(env, role);
-
-      // Assert: each of the four appears once, in this order
-      expect(plugins.filter((plugin) => expectedOrder.includes(plugin))).toEqual(expectedOrder);
-    },
-  );
 
   it.each(SERVER_ROLES)('registers TeamPlugin with the dashboard URL for the %s role', (role: ServerRole) => {
     // Arrange

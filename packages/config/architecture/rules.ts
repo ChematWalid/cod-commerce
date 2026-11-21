@@ -27,11 +27,37 @@ const COLLECTIONS_ENTRY = '^plugins/collections-rules/index[.]ts$';
 /** The offers entry point that exposes the pricing module and its services to other plugins and apps (D2402). */
 const OFFERS_ENTRY = '^plugins/offers/index[.]ts$';
 
+/** The catalog-packs entry point that exposes its module and the pack price resolver (D2200, D2204). */
+const CATALOG_PACKS_ENTRY = '^plugins/catalog-packs/index[.]ts$';
+
+/** The catalog-import entry point that exposes its module and the imports-exports job registrar (D2200, D2212). */
+const CATALOG_IMPORT_ENTRY = '^plugins/catalog-import/index[.]ts$';
+
 /** The one module of another plugin that a dashboard may import: the merchant shell's page registry (D83). */
 const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
 /** The dashboard files a plugin's entry point may re-export: route paths, test ids and language lists. */
 const SERVER_SHARED_DASHBOARD_FILES = 'dashboard/(constants|document-lang)[.]ts$';
+
+/**
+ * A rule keeping a feature plugin's entry (Nest services and its module) to adapters: outside `owner` only an
+ * infrastructure/ file, a plugin's root *.plugin.ts module file, a test kit or apps/server may import `entry`.
+ */
+const featureEntryInfraOnly = (name: string, owner: string, entry: string, comment: string): IForbiddenRuleType => ({
+  name,
+  comment,
+  severity: 'error',
+  from: {
+    pathNot: [
+      '^plugins/[^/]+/infrastructure/',
+      '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
+      '^plugins/[^/]+/tests/',
+      `^plugins/${owner}/`,
+      '^apps/server/',
+    ],
+  },
+  to: { path: entry },
+});
 
 /**
  * The dependency rules of CLAUDE.md §3a.1–2, checked by dependency-cruiser.
@@ -84,7 +110,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the collections entry (D2317), the offers entry (D2402), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the collections entry (D2317), the offers entry (D2402), the catalog-packs and catalog-import entries (D2200), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -100,6 +126,8 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         CATALOG_ENTRY,
         COLLECTIONS_ENTRY,
         OFFERS_ENTRY,
+        CATALOG_PACKS_ENTRY,
+        CATALOG_IMPORT_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -199,54 +227,24 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     from: { pathNot: ['^plugins/[^/]+/infrastructure/', '^plugins/[^/]+/[^/]+[.]plugin[.]ts$', '^plugins/auth/'] },
     to: { path: AUTH_INVITATIONS_ENTRY },
   },
-  {
-    name: 'catalog-entry-infra-only',
-    comment:
-      "The catalog entry exports Nest services and catalog's module: outside catalog only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2104, D2137). Frontend apps never import it: they are API clients and must not bundle server services (ADR 0017). dashboard/ is refused by dashboard-no-server-entry too.",
-    severity: 'error',
-    from: {
-      pathNot: [
-        '^plugins/[^/]+/infrastructure/',
-        '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
-        '^plugins/[^/]+/tests/',
-        '^plugins/catalog/',
-        '^apps/server/',
-      ],
-    },
-    to: { path: CATALOG_ENTRY },
-  },
-  {
-    name: 'collections-entry-infra-only',
-    comment:
-      "The collections entry exports Nest services and the collections module: outside collections-rules only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2317). Frontend apps never import it (ADR 0017); dashboard/ is refused by dashboard-no-server-entry too.",
-    severity: 'error',
-    from: {
-      pathNot: [
-        '^plugins/[^/]+/infrastructure/',
-        '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
-        '^plugins/[^/]+/tests/',
-        '^plugins/collections-rules/',
-        '^apps/server/',
-      ],
-    },
-    to: { path: COLLECTIONS_ENTRY },
-  },
-  {
-    name: 'offers-entry-infra-only',
-    comment:
-      "The offers entry exports Nest services and the offers module: outside offers only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2402). Frontend apps never import it: they are API clients and must not bundle server services (ADR 0017).",
-    severity: 'error',
-    from: {
-      pathNot: [
-        '^plugins/[^/]+/infrastructure/',
-        '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
-        '^plugins/[^/]+/tests/',
-        '^plugins/offers/',
-        '^apps/server/',
-      ],
-    },
-    to: { path: OFFERS_ENTRY },
-  },
+  featureEntryInfraOnly(
+    'catalog-entry-infra-only',
+    'catalog',
+    CATALOG_ENTRY,
+    "The catalog entry exports Nest services and catalog's module: outside catalog only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2104, D2137). Frontend apps never import it: they are API clients and must not bundle server services (ADR 0017). dashboard/ is refused by dashboard-no-server-entry too.",
+  ),
+  featureEntryInfraOnly(
+    'collections-entry-infra-only',
+    'collections-rules',
+    COLLECTIONS_ENTRY,
+    "The collections entry exports Nest services and the collections module: outside collections-rules only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2317). Frontend apps never import it (ADR 0017); dashboard/ is refused by dashboard-no-server-entry too.",
+  ),
+  featureEntryInfraOnly(
+    'offers-entry-infra-only',
+    'offers',
+    OFFERS_ENTRY,
+    "The offers entry exports Nest services and the offers module: outside offers only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2402). Frontend apps never import it: they are API clients and must not bundle server services (ADR 0017).",
+  ),
   {
     name: 'catalog-no-offers',
     comment:
@@ -255,6 +253,18 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     from: { path: '^plugins/catalog/' },
     to: { path: ['^plugins/offers/', '^@cod/plugin-offers(/|$)'] },
   },
+  featureEntryInfraOnly(
+    'catalog-packs-entry-infra-only',
+    'catalog-packs',
+    CATALOG_PACKS_ENTRY,
+    "The catalog-packs entry exports Nest services and its module: outside catalog-packs only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2200, D2104 pattern). Frontend apps never import it (ADR 0017).",
+  ),
+  featureEntryInfraOnly(
+    'catalog-import-entry-infra-only',
+    'catalog-import',
+    CATALOG_IMPORT_ENTRY,
+    "The catalog-import entry exports Nest services, its module and the imports-exports job registrar: outside catalog-import only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2200, D2212, D2104 pattern). Frontend apps never import it (ADR 0017).",
+  ),
   {
     name: 'apps-no-plugin-internals',
     comment: 'An app imports a plugin through its entry point, never from its layers.',

@@ -1,5 +1,6 @@
 /** Injection tokens of the catalog's ports; the adapters behind them are wired in `infrastructure/*.providers.ts`. */
 export const PRODUCT_CATALOG = Symbol('CatalogProductCatalog');
+export const PRODUCT_LOOKUP = Symbol('CatalogProductLookup');
 export const PRODUCT_SEARCH = Symbol('CatalogProductSearch');
 export const PRODUCT_EVENTS = Symbol('CatalogProductEvents');
 export const TRANSACTION = Symbol('CatalogTransaction');

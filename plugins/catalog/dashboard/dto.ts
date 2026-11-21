@@ -1,4 +1,4 @@
-import type { ProductListQueryInput, ProductStatus, StoreAccessKind } from '@cod/shared';
+import type { ProductListQueryInput, ProductStatus, ProductType, StoreAccessKind } from '@cod/shared';
 
 /** The options `catalogProducts` takes: the shared list query (AC4, D2123). */
 export type CatalogProductListInput = ProductListQueryInput;
@@ -73,6 +73,7 @@ export interface CatalogProductDto {
   readonly slug: string;
   readonly description: string | null;
   readonly status: ProductStatus;
+  readonly type: ProductType;
   readonly price: number;
   readonly oldPrice: number | null;
   readonly sku: string | null;

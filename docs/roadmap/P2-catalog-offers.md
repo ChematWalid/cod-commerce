@@ -128,6 +128,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S2-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S1.md`.
 - `docs/research/data-model.md` "Product" (`type: PHYSICAL | (PACK)`, `packPricingMode`, `packDiscountType`, `packDiscountValue`, `packVariantMode`, `packSharedOption`, `packWeightMode`, `bundleId`, `source`, `importJobId`, `scrapImportNeedsImageReview`) and "Order" `orderItems.bundleId/packParentItemId`.
 - `docs/research/api-surface.md` "Catalog & store": `/products/bulk-edit`, `/products/export`, `/import-export/fields`, `/import-export/formats`, `/import-export/products/analyze`, `/import-export/products/imports/:id` (+ `/preview`, `/confirm`), `/scrape/import-job`, `/scrape/products/:id/polish`.

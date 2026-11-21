@@ -58,13 +58,13 @@ export const catalogRefIdSchema = z
 const hasNoRepeat = (keys: readonly string[]): boolean => new Set(keys).size === keys.length;
 
 /** The row a referenced id names once the boundary parses it: a decimal id loses its leading zeros. */
-function idKey(id: string): string {
+export function catalogRefIdKey(id: string): string {
   return /^\d+$/.test(id) ? BigInt(id).toString() : id;
 }
 
 /** True when no two ids name the same row (`"01"` and `"1"` are the same id). */
 export function hasNoRepeatedId(ids: readonly string[]): boolean {
-  return hasNoRepeat(ids.map(idKey));
+  return hasNoRepeat(ids.map(catalogRefIdKey));
 }
 
 /**

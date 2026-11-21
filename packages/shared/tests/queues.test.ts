@@ -115,6 +115,19 @@ describe('worker pools', () => {
   });
 });
 
+describe('durable job kinds', () => {
+  it('are unique', () => {
+    const kinds = Object.values(DURABLE_JOB_KINDS);
+
+    expect(new Set(kinds).size).toBe(kinds.length);
+  });
+
+  it('name the catalog import and export jobs (D2212)', () => {
+    expect(DURABLE_JOB_KINDS.catalogImport).toBe('cim');
+    expect(DURABLE_JOB_KINDS.catalogExport).toBe('cex');
+  });
+});
+
 describe('durableJobId', () => {
   it('joins the kind and parts with a dash', () => {
     expect(durableJobId(DURABLE_JOB_KINDS.outboxDelivery, '7301', 'demo-log')).toBe('od-7301-demo-log');

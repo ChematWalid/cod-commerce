@@ -1,0 +1,532 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-title"
+msgstr "استيراد المنتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-number"
+msgstr "{number}. {label}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-upload"
+msgstr "الرفع"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-mapping"
+msgstr "الأعمدة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-preview"
+msgstr "المعاينة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-confirm"
+msgstr "التأكيد"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.upload-hint"
+msgstr "اختر ملف Excel (.xlsx) أو CSV، حتى 10 ميغابايت و5000 سطر، سطر واحد لكل متغير."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.upload-file"
+msgstr "ملف الجدول"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.upload-analyze"
+msgstr "رفع وتحليل"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.uploading"
+msgstr "جارٍ الرفع…"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-header"
+msgstr "العمود في الملف"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-field"
+msgstr "حقل المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-field-of"
+msgstr "الحقل للعمود {header}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-next"
+msgstr "معاينة الأسطر"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-ignored"
+msgstr "تجاهل هذا العمود"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-product-key"
+msgstr "مفتاح المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-description"
+msgstr "الوصف"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-status"
+msgstr "الحالة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-type"
+msgstr "النوع"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-price"
+msgstr "السعر"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-old-price"
+msgstr "السعر القديم"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-weight"
+msgstr "الوزن (غ)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-brand"
+msgstr "العلامة التجارية"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-tags"
+msgstr "الوسوم"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-collections"
+msgstr "المجموعات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option1-name"
+msgstr "اسم الخيار 1"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option1-value"
+msgstr "قيمة الخيار 1"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option2-name"
+msgstr "اسم الخيار 2"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option2-value"
+msgstr "قيمة الخيار 2"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option3-name"
+msgstr "اسم الخيار 3"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option3-value"
+msgstr "قيمة الخيار 3"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-variant-sku"
+msgstr "رمز المتغير"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-barcode"
+msgstr "الباركود"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-image-urls"
+msgstr "روابط الصور"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-creates"
+msgstr "للإنشاء"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-updates"
+msgstr "للتحديث"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-errors"
+msgstr "بها أخطاء"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-warnings"
+msgstr "بها تنبيهات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-row"
+msgstr "السطر"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-action"
+msgstr "الإجراء"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-messages"
+msgstr "ملاحظات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-next"
+msgstr "متابعة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-create"
+msgstr "إنشاء"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-update"
+msgstr "تحديث"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-error"
+msgstr "خطأ"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-previous"
+msgstr "السابق"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-next"
+msgstr "التالي"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-range"
+msgstr "{first}–{last} من {total}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.back"
+msgstr "رجوع"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.confirm"
+msgstr "استيراد"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.nothing-to-import"
+msgstr "لا يمكن استيراد أي سطر. صحّح الملف وارفعه من جديد."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.running"
+msgstr "جارٍ الاستيراد…"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-done"
+msgstr "انتهى الاستيراد"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-created"
+msgstr "تم الإنشاء: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-updated"
+msgstr "تم التحديث: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-failed"
+msgstr "فشل: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-report"
+msgstr "تنزيل تقرير الأخطاء"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-import"
+msgstr "استيراد المنتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-export"
+msgstr "تصدير"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-bulk-edit"
+msgstr "تعديل جماعي ({count} محدد)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-title"
+msgstr "تصدير المنتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-scope"
+msgstr "المنتجات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-scope-selected"
+msgstr "المنتجات المحددة ({count})"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-scope-filtered"
+msgstr "كل المنتجات المطابقة لعوامل تصفية القائمة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-format"
+msgstr "الصيغة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.format-xlsx"
+msgstr "Excel (.xlsx)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.format-csv"
+msgstr "CSV"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-start"
+msgstr "تصدير"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-select-first"
+msgstr "حدد منتجات في القائمة أولاً، أو صدّر كل المنتجات المطابقة لعوامل التصفية."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-too-many-selected"
+msgstr "عدد المنتجات المحددة كبير جداً لتصدير واحد. استخدم عوامل تصفية القائمة بدلاً من ذلك."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-ready"
+msgstr "الملف جاهز: {count} سطر."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-skipped-packs"
+msgstr "حزم مستبعدة: {count}. لا يمكن استيراد الحزم بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.download"
+msgstr "تنزيل"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.close"
+msgstr "إغلاق"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-title"
+msgstr "تعديل جماعي ({count} منتج)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.keep"
+msgstr "إبقاء كما هو"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.brand-clear"
+msgstr "بدون علامة تجارية"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.tag-add"
+msgstr "إضافة وسم"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.tag-remove"
+msgstr "إزالة وسم"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.status-active"
+msgstr "نشط"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.status-hidden"
+msgstr "مخفي"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.status-draft"
+msgstr "مسودة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-percent"
+msgstr "تغيير بنسبة مئوية"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-amount"
+msgstr "تغيير بمبلغ"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-fixed"
+msgstr "تحديد سعر ثابت"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-value"
+msgstr "القيمة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.currency"
+msgstr "دج"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-nothing-changed"
+msgstr "اختر تغييراً واحداً على الأقل."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-price-invalid"
+msgstr "أدخل تغيير السعر كرقم."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-dry-run-start"
+msgstr "معاينة التغييرات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-apply"
+msgstr "تطبيق التغييرات"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-dry-run"
+msgstr "سيتغير: {count}. مرفوض: {refused}."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-applied"
+msgstr "تم التغيير: {count}. مرفوض: {refused}."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-product-line"
+msgstr "المنتج {id}: {outcome}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-unchanged"
+msgstr "بدون تغيير"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-status"
+msgstr "الحالة"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-brand"
+msgstr "العلامة التجارية"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-tags"
+msgstr "الوسوم"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-price"
+msgstr "السعر"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-generic"
+msgstr "حدث خطأ ما. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-forbidden"
+msgstr "ليست لديك صلاحية القيام بهذا في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-store-switched"
+msgstr "تغيّر المتجر في علامة تبويب أخرى. أعد تحميل الصفحة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-upload-refused"
+msgstr "تعذّر رفع الملف. اختره من جديد وأعد المحاولة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.reason-unknown"
+msgstr "هذا السطر به مشكلة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.invalid-input"
+msgstr "بعض القيم غير صالحة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.job-not-found"
+msgstr "لم يتم العثور على هذا الاستيراد أو التصدير."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.job-state"
+msgstr "تقدّم هذا الاستيراد بالفعل. ابدأ استيراداً جديداً."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.file-type"
+msgstr "يمكن استيراد ملفات Excel (.xlsx) وCSV فقط."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.file-too-large"
+msgstr "الملف كبير جداً (10 ميغابايت كحد أقصى)."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.too-many-rows"
+msgstr "الملف يحتوي على أسطر كثيرة جداً."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.no-header"
+msgstr "لم يتم العثور على سطر العناوين في الأسطر الأولى من الملف."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.update-forbidden"
+msgstr "يمكنك إنشاء منتجات لكن لا يمكنك تحديث المنتجات الموجودة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.collections-unavailable"
+msgstr "لا يمكن تغيير المجموعات بعد."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.taxonomy-not-found"
+msgstr "هذه العلامة التجارية أو الوسم غير موجود في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-product-not-found"
+msgstr "لا يوجد منتج في هذا المتجر بهذا المفتاح."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-sku-taken"
+msgstr "أخذ منتج في هذا المتجر رمز SKU هذا بعد المعاينة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-out-of-range"
+msgstr "السعر الجديد خارج النطاق المسموح."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.link-refused"
+msgstr "لا يمكن استيراد هذا الرابط."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.link-unreachable"
+msgstr "تعذّر الوصول إلى الصفحة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.ai-disabled"
+msgstr "هذه الميزة معطّلة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-ambiguous"
+msgstr "عدة متغيرات في هذا المتجر لها هذا الرمز."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-duplicate-in-file"
+msgstr "هذا الرمز مستخدم في سطر سابق من الملف."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-invalid-value"
+msgstr "قيمة في هذا السطر غير صالحة."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-type-unsupported"
+msgstr "يمكن استيراد المنتجات المادية فقط."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-image-url"
+msgstr "رابط صورة غير صالح (http أو https، 10 روابط كحد أقصى)."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-variant-not-found"
+msgstr "لم يعد للمنتج هذا المتغير."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-unknown-column"
+msgstr "عمود غير معروف، تم تجاهله."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-unknown-taxonomy"
+msgstr "علامة تجارية أو وسم غير معروف، تم تجاهله."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-collections-ignored"
+msgstr "يتم تجاهل المجموعات حالياً."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-weight-conflict"
+msgstr "سطر آخر لهذا المنتج له وزن مختلف؛ تم الإبقاء على الأول."

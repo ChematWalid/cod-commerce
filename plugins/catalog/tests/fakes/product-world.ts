@@ -58,6 +58,7 @@ export class ProductWorld {
 
   readonly ports: ProductPorts = {
     products: this.products,
+    lookup: this.products,
     search: { matchingProductIds: () => Promise.resolve(this.searchHits) },
     events: {
       publish: (_ctx, scope, productId, change) => {

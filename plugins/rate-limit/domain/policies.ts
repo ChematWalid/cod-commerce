@@ -1,7 +1,15 @@
 import {
   ACCOUNT_CAPACITY,
+  CATALOG_BULK_EDIT_ACTOR_CAPACITY,
+  CATALOG_BULK_EDIT_BUSINESS_CAPACITY,
+  CATALOG_EXPORT_BUSINESS_CAPACITY,
+  CATALOG_IMPORT_ACTOR_CAPACITY,
+  CATALOG_IMPORT_BUSINESS_CAPACITY,
   CATALOG_MEDIA_ACTOR_CAPACITY,
   CATALOG_MEDIA_BUSINESS_CAPACITY,
+  CATALOG_PACK_PREVIEW_ACTOR_CAPACITY,
+  CATALOG_SCRAPE_ACTOR_CAPACITY,
+  CATALOG_SCRAPE_BUSINESS_CAPACITY,
   COLLECTIONS_PREVIEW_ACTOR_CAPACITY,
   COLLECTIONS_RULE_OPTIONS_ACTOR_CAPACITY,
   DAY_WINDOW_SECONDS,
@@ -73,6 +81,16 @@ export const RATE_LIMIT_POLICIES = {
   // Collection rule previews and builder options (D2338): each reads the whole store, so they keep limiting too.
   'collections-preview-actor': perMinute(COLLECTIONS_PREVIEW_ACTOR_CAPACITY, 'in-process'),
   'collections-rule-options-actor': perMinute(COLLECTIONS_RULE_OPTIONS_ACTOR_CAPACITY, 'in-process'),
+  // Catalog import, export, link import, bulk edit and pack preview (D2217): bucket, CPU and worker work, so they keep
+  // limiting from memory too. Actor buckets are spent before business ones.
+  'catalog-import-actor': perHour(CATALOG_IMPORT_ACTOR_CAPACITY),
+  'catalog-import-business': perHour(CATALOG_IMPORT_BUSINESS_CAPACITY),
+  'catalog-export-business': perHour(CATALOG_EXPORT_BUSINESS_CAPACITY),
+  'catalog-scrape-actor': perHour(CATALOG_SCRAPE_ACTOR_CAPACITY),
+  'catalog-scrape-business': perHour(CATALOG_SCRAPE_BUSINESS_CAPACITY),
+  'catalog-bulk-edit-actor': perHour(CATALOG_BULK_EDIT_ACTOR_CAPACITY),
+  'catalog-bulk-edit-business': perHour(CATALOG_BULK_EDIT_BUSINESS_CAPACITY),
+  'catalog-pack-preview-actor': perHour(CATALOG_PACK_PREVIEW_ACTOR_CAPACITY),
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** One of the {@link RATE_LIMIT_POLICIES}. */

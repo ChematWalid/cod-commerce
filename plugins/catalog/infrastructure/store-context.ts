@@ -1,0 +1,69 @@
+import { asOperationContext as asTenancyContext, BusinessStoreDirectory } from '@cod/plugin-tenancy';
+import { Injectable } from '@nestjs/common';
+import { ChannelService, idsAreEqual, type RequestContext, RequestContextService } from '@vendure/core';
+import { ProductNotFoundError } from '../domain/errors';
+import type { StoreScope } from '../domain/store-scope';
+
+/** A store tenancy keeps, as far as the check needs it. */
+interface StoreChannel {
+  readonly channelId: number;
+}
+
+/**
+ * The store-channel contexts of the explicit-scope facade (D2201): a check that a context and a scope name one live
+ * store of one active business (D2235), and the context a worker or an outbox consumer runs in, built from the scope alone. A
+ * refusal answers like a missing product, so a guessed scope learns nothing (D2136).
+ */
+@Injectable()
+export class CatalogStoreContexts {
+  constructor(
+    private readonly directory: BusinessStoreDirectory,
+    private readonly channels: ChannelService,
+    private readonly contexts: RequestContextService,
+  ) {}
+
+  /**
+   * A context in the store channel of `scope`, admin API, no user: what a job or an outbox consumer writes with,
+   * where no request and no tenant guard exist. Given `within` (an outbox delivery's context), the checks and the
+   * answer run in its transaction: a consumer then holds one pooled connection, never a second while the delivery's
+   * waits (#260, D2282).
+   *
+   * @throws {ProductNotFoundError} when the store is not a live store of the business, or the business is suspended.
+   */
+  async storeContext(scope: StoreScope, within?: RequestContext): Promise<RequestContext> {
+    const base = within ?? (await this.contexts.create({ apiType: 'admin' }));
+    const store = await this.liveStore(base, scope);
+    const channel = await this.channels.findOne(base, store.channelId);
+    if (channel === undefined) throw new ProductNotFoundError();
+    const ctx =
+      within === undefined
+        ? await this.contexts.create({ apiType: 'admin', channelOrToken: channel })
+        : within.copy(channel);
+    await this.assertScope(ctx, scope);
+    return ctx;
+  }
+
+  /**
+   * Checks that `scope` names a live store of its business whose channel is the one `ctx` runs in, and that this is
+   * not Vendure's default channel (D2133, D2170): products follow the channel and their links the scope, so the two
+   * must agree.
+   *
+   * @throws {ProductNotFoundError} otherwise.
+   */
+  async assertScope(ctx: RequestContext, scope: StoreScope): Promise<void> {
+    const defaultChannel = await this.channels.getDefaultChannel(ctx);
+    if (idsAreEqual(ctx.channelId, defaultChannel.id)) throw new ProductNotFoundError();
+    const store = await this.liveStore(ctx, scope);
+    if (!idsAreEqual(store.channelId, ctx.channelId)) throw new ProductNotFoundError();
+  }
+
+  /** The scope's store when it and its business are live: a suspended business writes nothing, as with the guard. */
+  private async liveStore(ctx: RequestContext, scope: StoreScope): Promise<StoreChannel> {
+    const tenancyCtx = asTenancyContext(ctx);
+    if (!(await this.directory.isActiveBusiness(tenancyCtx, scope.businessId))) throw new ProductNotFoundError();
+    const stores = await this.directory.storesOf(tenancyCtx, scope.businessId);
+    const store = stores.find((held) => held.id === scope.storeId);
+    if (store?.status !== 'active') throw new ProductNotFoundError();
+    return store;
+  }
+}

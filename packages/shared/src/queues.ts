@@ -95,6 +95,9 @@ export const DURABLE_JOB_KINDS = {
   inboundWebhook: 'iw',
   kekRewrap: 'kek',
   collectionsReconcile: 'crs',
+  // The `imports-exports` jobs of catalog-import (D2212).
+  catalogImport: 'cim',
+  catalogExport: 'cex',
 } as const;
 export type DurableJobKind = (typeof DURABLE_JOB_KINDS)[keyof typeof DURABLE_JOB_KINDS];
 

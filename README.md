@@ -21,6 +21,7 @@ git config core.hooksPath .githooks   # local hooks: block AI attribution in com
 cp .env.example .env                  # placeholders only; never commit real values
 docker compose up -d --wait postgres pgbouncer valkey garage mailpit   # data services only
 pnpm install
+node --env-file=.env scripts/garage-cors.mjs                            # once: lets the dashboard upload to the bucket
 ```
 
 ## Scripts

@@ -1,0 +1,532 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-title"
+msgstr "Import products"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-number"
+msgstr "{number}. {label}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-upload"
+msgstr "Upload"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-mapping"
+msgstr "Columns"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-preview"
+msgstr "Preview"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.step-confirm"
+msgstr "Confirm"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.upload-hint"
+msgstr "Choose an Excel (.xlsx) or CSV file, up to 10 MB and 5,000 rows, one row per variant."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.upload-file"
+msgstr "Spreadsheet file"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.upload-analyze"
+msgstr "Upload and analyze"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.uploading"
+msgstr "Uploading…"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-header"
+msgstr "Column in the file"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-field"
+msgstr "Product field"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-field-of"
+msgstr "Field for column {header}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.mapping-next"
+msgstr "Preview the rows"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-ignored"
+msgstr "Ignore this column"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-product-key"
+msgstr "Product key"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-name"
+msgstr "Name"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-description"
+msgstr "Description"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-status"
+msgstr "Status"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-type"
+msgstr "Type"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-price"
+msgstr "Price"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-old-price"
+msgstr "Old price"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-weight"
+msgstr "Weight (g)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-brand"
+msgstr "Brand"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-tags"
+msgstr "Tags"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-collections"
+msgstr "Collections"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option1-name"
+msgstr "Option 1 name"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option1-value"
+msgstr "Option 1 value"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option2-name"
+msgstr "Option 2 name"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option2-value"
+msgstr "Option 2 value"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option3-name"
+msgstr "Option 3 name"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-option3-value"
+msgstr "Option 3 value"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-variant-sku"
+msgstr "Variant SKU"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-barcode"
+msgstr "Barcode"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.field-image-urls"
+msgstr "Image links"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-creates"
+msgstr "To create"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-updates"
+msgstr "To update"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-errors"
+msgstr "With errors"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.summary-warnings"
+msgstr "With warnings"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-row"
+msgstr "Row"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-action"
+msgstr "Action"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-messages"
+msgstr "Notes"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.preview-next"
+msgstr "Continue"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-create"
+msgstr "Create"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-update"
+msgstr "Update"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-error"
+msgstr "Error"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-previous"
+msgstr "Previous"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-next"
+msgstr "Next"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.page-range"
+msgstr "{first}–{last} of {total}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.back"
+msgstr "Back"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.confirm"
+msgstr "Import"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.nothing-to-import"
+msgstr "No row can be imported. Fix the file and upload it again."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.running"
+msgstr "Importing…"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-done"
+msgstr "Import finished"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-created"
+msgstr "Created: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-updated"
+msgstr "Updated: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.result-failed"
+msgstr "Failed: {count}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-report"
+msgstr "Download the error report"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-import"
+msgstr "Import products"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-export"
+msgstr "Export"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.action-bulk-edit"
+msgstr "Bulk edit ({count} selected)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-title"
+msgstr "Export products"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-scope"
+msgstr "Products"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-scope-selected"
+msgstr "Selected products ({count})"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-scope-filtered"
+msgstr "All products matching the list filters"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-format"
+msgstr "Format"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.format-xlsx"
+msgstr "Excel (.xlsx)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.format-csv"
+msgstr "CSV"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-start"
+msgstr "Export"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-select-first"
+msgstr "Select products in the list first, or export all products matching the filters."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-too-many-selected"
+msgstr "Too many products are selected for one export. Use the list filters instead."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-ready"
+msgstr "The file is ready: {count} rows."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.export-skipped-packs"
+msgstr "Packs left out: {count}. Packs cannot be imported yet."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.download"
+msgstr "Download"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.close"
+msgstr "Close"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-title"
+msgstr "Bulk edit ({count} products)"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.keep"
+msgstr "Keep as is"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.brand-clear"
+msgstr "No brand"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.tag-add"
+msgstr "Add tag"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.tag-remove"
+msgstr "Remove tag"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.status-active"
+msgstr "Active"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.status-hidden"
+msgstr "Hidden"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.status-draft"
+msgstr "Draft"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-percent"
+msgstr "Change by a percentage"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-amount"
+msgstr "Change by an amount"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-fixed"
+msgstr "Set a fixed price"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-value"
+msgstr "Value"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.currency"
+msgstr "DZD"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-nothing-changed"
+msgstr "Choose at least one change."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-price-invalid"
+msgstr "Enter the price change as a number."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-dry-run-start"
+msgstr "Preview changes"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-apply"
+msgstr "Apply changes"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-dry-run"
+msgstr "Would change: {count}. Refused: {refused}."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-applied"
+msgstr "Changed: {count}. Refused: {refused}."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-product-line"
+msgstr "Product {id}: {outcome}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-unchanged"
+msgstr "no change"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-status"
+msgstr "status"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-brand"
+msgstr "brand"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-tags"
+msgstr "tags"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.changed-price"
+msgstr "price"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-generic"
+msgstr "Something went wrong. Try again."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-forbidden"
+msgstr "You do not have permission to do this in this store."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-store-switched"
+msgstr "The store changed in another tab. Reload the page."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.error-upload-refused"
+msgstr "The file could not be uploaded. Choose it again and retry."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.reason-unknown"
+msgstr "This row has a problem."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.invalid-input"
+msgstr "Some values are not valid."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.job-not-found"
+msgstr "This import or export was not found."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.job-state"
+msgstr "This import already moved on. Start a new one."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.file-type"
+msgstr "Only Excel (.xlsx) and CSV files can be imported."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.file-too-large"
+msgstr "The file is too large (10 MB at most)."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.too-many-rows"
+msgstr "The file has too many rows."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.no-header"
+msgstr "No header row was found in the first rows of the file."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.update-forbidden"
+msgstr "You may create products but not update existing ones."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.collections-unavailable"
+msgstr "Collections cannot be changed yet."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.taxonomy-not-found"
+msgstr "That brand or tag does not exist in this store."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-product-not-found"
+msgstr "No product of this store has this key."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-sku-taken"
+msgstr "A product of this store took this SKU after the preview."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.price-out-of-range"
+msgstr "The new price is out of range."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.link-refused"
+msgstr "This link cannot be imported."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.link-unreachable"
+msgstr "The page could not be reached."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.ai-disabled"
+msgstr "This feature is turned off."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-ambiguous"
+msgstr "Several variants of this store have this SKU."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-duplicate-in-file"
+msgstr "This SKU is already used by an earlier row of the file."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-invalid-value"
+msgstr "A value of this row is not valid."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-type-unsupported"
+msgstr "Only physical products can be imported."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-image-url"
+msgstr "An image link is not valid (http or https, 10 links at most)."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.row-variant-not-found"
+msgstr "The product no longer has this variant."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-unknown-column"
+msgstr "Unknown column, ignored."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-unknown-taxonomy"
+msgstr "Unknown brand or tag, ignored."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-collections-ignored"
+msgstr "Collections are ignored for now."
+
+#. js-lingui-explicit-id
+msgid "catalog-import.warn-weight-conflict"
+msgstr "Another row of this product has a different weight; the first one is kept."

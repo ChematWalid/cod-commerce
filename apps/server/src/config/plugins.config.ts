@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { AuthPlugin, type AuthOAuthOptions, type AuthPluginOptions, type SmtpOptions } from '@cod/plugin-auth';
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { CatalogImportPlugin } from '@cod/plugin-catalog-import';
+import { CatalogPacksPlugin } from '@cod/plugin-catalog-packs';
 import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { OffersPlugin } from '@cod/plugin-offers';
@@ -149,10 +151,28 @@ const authPlugin = (env: AppEnv): VendurePluginEntry =>
     ...oauthOptions(env),
   });
 
+/** Import and export on the private Garage bucket (D2208): the server signs browser links on the public endpoint. */
+const catalogImportPlugin = (env: AppEnv): VendurePluginEntry =>
+  CatalogImportPlugin.init({
+    objectStorage: {
+      kind: 's3',
+      endpoint: env.S3_ENDPOINT,
+      publicEndpoint: env.S3_PUBLIC_ENDPOINT,
+      region: env.S3_REGION,
+      forcePathStyle: env.S3_FORCE_PATH_STYLE,
+      bucket: env.S3_BUCKET_PRIVATE,
+      accessKeyId: env.S3_ACCESS_KEY,
+      secretAccessKey: env.S3_SECRET_KEY,
+    },
+    linkScraper: env.LINK_IMPORT_SCRAPER,
+    appEnv: env.APP_ENV,
+  });
+
 /**
  * RBAC, auth, catalog, offers, collections and Team, in this order: Team builds on the services of the others (D206)
  * and registers its order-manager check in the catalog module, so Catalog configures after Auth and before Team
  * (D2137); the offers (D2402) and then the collections (P2.S3) import the catalog module and configure after it.
+ * The catalog feature plugins (packs and import) come after Team and write through catalog's exported facade (D2200).
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
   return [
@@ -162,6 +182,8 @@ function memberPlugins(env: AppEnv): VendurePluginEntry[] {
     OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
     CollectionsRulesPlugin,
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
+    CatalogPacksPlugin,
+    catalogImportPlugin(env),
   ];
 }
 
