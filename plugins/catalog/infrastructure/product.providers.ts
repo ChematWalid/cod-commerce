@@ -3,6 +3,7 @@ import type { Provider } from '@nestjs/common';
 import type { ProductPorts } from '../application/catalog-ports';
 import { BrandService } from '../application/brand.service';
 import { CreateProductService } from '../application/create-product.service';
+import { CreateProductWithVariantsService } from '../application/create-product-with-variants.service';
 import { DemoCatalogSeedService } from '../application/demo-catalog-seed.service';
 import { DeleteProductService } from '../application/delete-product.service';
 import { GetProductService } from '../application/get-product.service';
@@ -10,6 +11,7 @@ import { HighlightService } from '../application/highlight.service';
 import { ListProductsService } from '../application/list-products.service';
 import { MediaLibraryService } from '../application/media-library.service';
 import { OrderManagerCheckRegistry } from '../application/order-manager-check.registry';
+import { ProductLookupService } from '../application/product-lookup.service';
 import { SetProductStatusService } from '../application/set-product-status.service';
 import { SlugAvailabilityService } from '../application/slug-availability.service';
 import { TagService } from '../application/tag.service';
@@ -26,6 +28,7 @@ import {
   PRODUCT_CATALOG,
   PRODUCT_COLLECTION_REPOSITORY,
   PRODUCT_EVENTS,
+  PRODUCT_LOOKUP,
   PRODUCT_PORTS,
   PRODUCT_SEARCH,
   PRODUCT_SETTINGS_REPOSITORY,
@@ -40,6 +43,7 @@ import { CatalogReadService } from '../application/catalog-read.service';
 import { SoldOutService } from '../application/sold-out.service';
 import { SoldOutSourceRegistry } from '../application/sold-out-source.registry';
 import { UpdateProductService } from '../application/update-product.service';
+import { WritePackValuesService } from '../application/write-pack-values.service';
 import type { ClockPort } from '../domain/ports/clock.port';
 import type { IdGeneratorPort } from '../domain/ports/id-generator.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
@@ -63,6 +67,7 @@ import { DefaultChannelExit } from './vendure-default-channel';
 import { VendureMediaStorage } from './vendure-media-storage.adapter';
 import { VendureOptionSync } from './vendure-option-sync';
 import { VendureProductCatalog } from './vendure-product-catalog.adapter';
+import { VendureProductLookup } from './vendure-product-lookup.adapter';
 import { VendureProductStructure } from './vendure-product-structure';
 import { VendureProductSearch } from './vendure-product-search.adapter';
 import { VendureVariantSync } from './vendure-variant-sync.adapter';
@@ -75,6 +80,7 @@ const SYSTEM_CLOCK: ClockPort = { now: () => new Date() };
  */
 export const PORT_TOKEN_OF = {
   products: PRODUCT_CATALOG,
+  lookup: PRODUCT_LOOKUP,
   search: PRODUCT_SEARCH,
   events: PRODUCT_EVENTS,
   transaction: TRANSACTION,
@@ -112,6 +118,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   PgProductLock,
   VendureProductStructure,
   { provide: PRODUCT_CATALOG, useClass: VendureProductCatalog },
+  { provide: PRODUCT_LOOKUP, useClass: VendureProductLookup },
   { provide: PRODUCT_SEARCH, useClass: VendureProductSearch },
   { provide: PRODUCT_EVENTS, useClass: OutboxProductEvents },
   { provide: TRANSACTION, useClass: TransactionAdapter },
@@ -178,4 +185,7 @@ export const PRODUCT_PROVIDERS: Provider[] = [
   useCase(SoldOutService),
   useCase(CatalogReadService),
   useCase(DemoCatalogSeedService),
+  useCase(CreateProductWithVariantsService),
+  useCase(ProductLookupService),
+  useCase(WritePackValuesService),
 ];

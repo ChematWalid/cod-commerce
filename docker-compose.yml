@@ -35,6 +35,10 @@ x-app: &app
     S3_ACCESS_KEY: ${S3_ACCESS_KEY}
     S3_SECRET_KEY: ${S3_SECRET_KEY}
     S3_BUCKET_PRIVATE: ${S3_BUCKET_PRIVATE}
+    # Blank falls back to S3_ENDPOINT; set it to the https address a browser reaches Garage on (production refuses an
+    # http link host, D2208, D2252).
+    S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+    LINK_IMPORT_SCRAPER: ${LINK_IMPORT_SCRAPER:-}
     COOKIE_SECRET: ${COOKIE_SECRET}
     CORS_ORIGINS: ${CORS_ORIGINS:-}
     CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}

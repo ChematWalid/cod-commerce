@@ -16,7 +16,7 @@ export interface Caller {
 
 /** A request as the matrix describes it; `channelToken` selects the store, as the dashboard does. */
 export interface MatrixRequest {
-  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  readonly method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** `/admin-api` for GraphQL, or a REST path. */
   readonly path: string;
   readonly caller: Caller;

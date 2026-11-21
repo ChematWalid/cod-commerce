@@ -3,6 +3,11 @@ import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CATALOG_ERROR_CODES } from '@cod/shared';
+import {
+  CATALOG_IMPORT_OBJECT_STORAGE,
+  CatalogImportPlugin,
+  type CatalogImportObjectStorage,
+} from '@cod/plugin-catalog-import';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
 import {
   AssetServerPlugin,
@@ -14,6 +19,14 @@ import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
 import { describeOffersIsolation, type OfferRowsOfBoth, offerRowsOf } from '../isolation/cases/offers';
+import {
+  CATALOG_IMPORT_WORLDS,
+  catalogImportOf,
+  exportKeyOf,
+  importSnapshotOf,
+  seedCatalogImport,
+  type UploadedObjects,
+} from '../isolation/catalog-import-world';
 import {
   CATALOG_SNAPSHOT_FIELDS,
   CATALOG_WORLDS,
@@ -65,7 +78,9 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
  * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
  * (P2.S4), seeded in process, that A's quotes must never see, and A reaches for B's offers and codes through every
- * offers endpoint (P2.S5).
+ * offers endpoint (P2.S5). It also gets a pack, a previewed spreadsheet import, an export and a link import (P2.S2)
+ * that A reaches for through every pack and import endpoint; their files are stored under the business's and store's
+ * prefix of the private bucket.
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -80,11 +95,26 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     storageStrategyFactory: (options) =>
       new PrefixedAssetStorage(defaultAssetStorageStrategyFactory(options), ASSET_KEY_PREFIX),
   });
+  // The integration job runs no Garage either: the private bucket is the memory storage, and link imports read the
+  // fixture scraper's synthetic pages (D2208, D2214). Re-called after the app config's own `init`, which it replaces.
+  CatalogImportPlugin.init({ objectStorage: { kind: 'memory' }, linkScraper: 'fixture', appEnv: env.APP_ENV });
   const http = new IsolationHttp(`http://localhost:${String(PORT)}`);
   const sql = () => server.app.get(TransactionalConnection).rawConnection;
+  const storage = () => server.app.get<CatalogImportObjectStorage>(CATALOG_IMPORT_OBJECT_STORAGE);
+  const objects: UploadedObjects = {
+    write: (key, bytes, contentType) =>
+      storage().write(key as Parameters<CatalogImportObjectStorage['write']>[0], bytes, contentType),
+  };
   let world: World;
   let outcomes: Map<string, Outcome>;
-  let before: { a: unknown; b: unknown; aOtherStore: unknown; bOtherStore: unknown };
+  let before: {
+    a: unknown;
+    b: unknown;
+    aOtherStore: unknown;
+    bOtherStore: unknown;
+    aImport: unknown;
+    bImport: unknown;
+  };
   let offerRows: OfferRowsOfBoth;
 
   beforeAll(async () => {
@@ -109,11 +139,15 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     CATALOG_WORLDS.set('B', await seedCatalog(http, world.superadmin, world.b));
     OFFERS_WORLDS.set('A', await seedOffers(server.app, http, world.a));
     OFFERS_WORLDS.set('B', await seedOffers(server.app, http, world.b));
+    CATALOG_IMPORT_WORLDS.set('A', await seedCatalogImport(http, objects, world.a));
+    CATALOG_IMPORT_WORLDS.set('B', await seedCatalogImport(http, objects, world.b));
     before = {
       a: await snapshotOf(http, world.a, CATALOG_SNAPSHOT_FIELDS),
       b: await snapshotOf(http, world.b, CATALOG_SNAPSHOT_FIELDS),
       aOtherStore: await otherStoreSnapshotOf(http, world.a),
       bOtherStore: await otherStoreSnapshotOf(http, world.b),
+      aImport: await importSnapshotOf(http, world.a),
+      bImport: await importSnapshotOf(http, world.b),
     };
     offerRows = { a: await offerRowsOf(server.app, world.a), b: await offerRowsOf(server.app, world.b) };
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
@@ -131,7 +165,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
   });
 
   it(
-    'seeds a row of each business in every P1, catalog and offers tenant table',
+    'seeds a row of each business in every P1, catalog, offers, pack and import tenant table',
     async () => {
       // The outbox rows come from the webhooks' asynchronous processing, so the census waits for them.
       const emptyTables = async (): Promise<string[]> => {
@@ -191,6 +225,25 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     // The world uploads the logo on A's first store, so its key also names that store (Task 13 deviation (11)).
     expect(key).toMatch(new RegExp(`^b/${world.a.businessId}/s/${world.a.stores[0].id}/source/`));
     expect(existsSync(join(assetDir, `${ASSET_KEY_PREFIX}${key ?? ''}`))).toBe(true);
+  });
+
+  it("leaves each business's pack, imports and export as its owner saw them before the attacks", async () => {
+    expect(await importSnapshotOf(http, world.a)).toEqual(before.aImport);
+    expect(await importSnapshotOf(http, world.b)).toEqual(before.bImport);
+  });
+
+  it("stores A's spreadsheet upload under the uploads prefix of A's business and store (D2144)", async () => {
+    const { uploadKey } = catalogImportOf(world.a).spreadsheet;
+
+    expect(uploadKey).toMatch(new RegExp(`^uploads/b/${world.a.businessId}/s/${world.a.stores[0].id}/`));
+    expect(await storage().head(uploadKey as Parameters<CatalogImportObjectStorage['head']>[0])).not.toBeNull();
+  });
+
+  it("stores A's export file under the exports prefix of A's business and store (D2144)", async () => {
+    const key = await exportKeyOf(http, world.a);
+
+    expect(key).toMatch(new RegExp(`^exports/b/${world.a.businessId}/s/${world.a.stores[0].id}/`));
+    expect(await storage().head(key as Parameters<CatalogImportObjectStorage['head']>[0])).not.toBeNull();
   });
 
   describeOffersIsolation({ world: () => world, app: () => server.app, rowsBeforeMatrix: () => offerRows });

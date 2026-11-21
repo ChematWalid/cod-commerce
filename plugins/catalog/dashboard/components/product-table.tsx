@@ -17,6 +17,7 @@ import { formatDzd, STATUS_LABEL_IDS } from '../model/list-view';
 import { soldOutBadgesOf } from '../model/sold-out-view';
 import { LtrRun } from './ltr-run';
 import { RowActions, type RowCommand } from './row-actions';
+import { SelectPageHead, SelectRowCell, type TableSelection } from './selection-cells';
 
 /** Hidden on a phone, so the product, its status and the actions fit without a sideways scroll. */
 const WIDE_ONLY = 'hidden md:table-cell';
@@ -32,6 +33,7 @@ interface ProductTableProps {
   readonly previews: ReadonlyMap<string, string>;
   readonly held: ReadonlySet<string>;
   readonly onCommand: (command: RowCommand, product: CatalogProductRowDto) => void;
+  readonly selection: TableSelection;
 }
 
 function ProductCell({
@@ -72,10 +74,11 @@ function PriceCell({ price }: { readonly price: number }): ReactNode {
   return <LtrRun>{`${formatDzd(price, language)} ${i18n._('catalog.currency')}`}</LtrRun>;
 }
 
-function HeaderRow(): ReactNode {
+function HeaderRow({ selection }: Pick<ProductTableProps, 'selection'>): ReactNode {
   const { i18n } = useLingui();
   return (
     <TableRow>
+      <SelectPageHead selection={selection} />
       <TableHead className="text-start">{i18n._('catalog.column-product')}</TableHead>
       <TableHead className="text-start">{i18n._('catalog.column-status')}</TableHead>
       <TableHead className={`${WIDE_ONLY} text-start`}>{i18n._('catalog.column-price')}</TableHead>
@@ -96,6 +99,7 @@ function ProductRow({
   const collections = product.collectionIds.length;
   return (
     <TableRow data-testid={PRODUCT_ROW_TEST_ID} data-product-id={product.id}>
+      <SelectRowCell productId={product.id} title={product.title} selection={props.selection} />
       <TableCell className="whitespace-normal">
         <ProductCell product={product} previews={props.previews} />
       </TableCell>
@@ -114,12 +118,15 @@ function ProductRow({
   );
 }
 
-/** The products of the page: thumbnail and title, status, price, collections, creation date and the row's actions. */
+/**
+ * The products of the page: a checkbox, thumbnail and title, status, price, collections, creation date and the row's
+ * actions. The ticked products go to the action bar's items (D2201).
+ */
 export function ProductTable({ products, ...props }: ProductTableProps): ReactNode {
   return (
     <Table>
       <TableHeader>
-        <HeaderRow />
+        <HeaderRow selection={props.selection} />
       </TableHeader>
       <TableBody>
         {products.map((product) => (

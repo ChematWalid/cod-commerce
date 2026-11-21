@@ -1,8 +1,17 @@
-import { CARD_CAPTION_MAX, LABEL_MAX, PRODUCT_TITLE_MAX } from '@cod/shared';
+import { CARD_CAPTION_MAX, LABEL_MAX, PRODUCT_TITLE_MAX, PRODUCT_TYPES, type ProductType } from '@cod/shared';
 import { useLingui } from '@lingui/react';
-import { Label, RichTextEditor } from '@vendure/dashboard';
-import type { ClipboardEvent, DragEvent, ReactNode } from 'react';
-import { EDITOR_TITLE_TEST_ID } from '../constants';
+import {
+  Label,
+  RichTextEditor,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@vendure/dashboard';
+import { type ClipboardEvent, type DragEvent, type ReactNode, useId } from 'react';
+import { EDITOR_TITLE_TEST_ID, EDITOR_TYPE_TEST_ID } from '../constants';
+import { PRODUCT_TYPE_LABEL_IDS, showsTypeChoice } from '../model/product-type-choice';
 import { FormTextField } from './form-text-field';
 import type { ScopedSectionProps } from './section-props';
 import { SlugField } from './slug-field';
@@ -38,11 +47,43 @@ function DescriptionField({ form, disabled, onChange }: ScopedSectionProps): Rea
   );
 }
 
-/** Title, slug, description, and the short label and caption the store's product cards show. */
+const isProductType = (value: unknown): value is ProductType => PRODUCT_TYPES.some((type) => type === value);
+
+/** Physical or Pack, chosen when the product is created (D2201 c); a saved product keeps its type. */
+function TypeField({ form, disabled, onChange }: ScopedSectionProps): ReactNode {
+  const { i18n } = useLingui();
+  const id = useId();
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{i18n._('catalog.editor-type')}</Label>
+      <Select
+        value={form.type}
+        disabled={disabled}
+        onValueChange={(type) => {
+          if (isProductType(type)) onChange({ type });
+        }}
+      >
+        <SelectTrigger id={id} data-testid={EDITOR_TYPE_TEST_ID} className="w-full sm:w-60">
+          <SelectValue>{i18n._(PRODUCT_TYPE_LABEL_IDS[form.type])}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {PRODUCT_TYPES.map((type) => (
+            <SelectItem key={type} value={type}>
+              {i18n._(PRODUCT_TYPE_LABEL_IDS[type])}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+/** The type on a new product, title, slug, and the short label and caption the store's product cards show. */
 export function DetailsSection(props: ScopedSectionProps & { readonly productId: string | null }): ReactNode {
   const { form, disabled, onChange } = props;
   return (
     <div className="grid gap-4">
+      {showsTypeChoice(props.productId) && <TypeField {...props} />}
       <FormTextField
         section={props}
         field="title"

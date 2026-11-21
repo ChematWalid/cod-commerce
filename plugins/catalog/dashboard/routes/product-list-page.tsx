@@ -1,5 +1,5 @@
 import { ACTIVE_STORE_ALIAS, type ShellPageProps, storePathFor } from '@cod/plugin-merchant-shell/shell-api';
-import { CATALOG_PRODUCT_LIST_PAGE_ID } from '@cod/shared';
+import { CATALOG_PRODUCT_LIST_BLOCK_ID, CATALOG_PRODUCT_LIST_PAGE_ID } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
@@ -11,23 +11,24 @@ import {
   PageLayout,
   PageTitle,
 } from '@vendure/dashboard';
-import { type ReactNode, useDeferredValue, useEffect, useState } from 'react';
+import { type ReactNode, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { DeleteDialog } from '../components/delete-dialog';
 import { ListFilters } from '../components/list-filters';
 import { ListPager } from '../components/list-pager';
 import { ProductTable } from '../components/product-table';
+import type { TableSelection } from '../components/selection-cells';
 import { SoldOutBar } from '../components/sold-out-bar';
 import type { RowCommand } from '../components/row-actions';
 import { StatusTabs } from '../components/status-tabs';
 import {
   CREATE_PRODUCT_TEST_ID,
-  CREATE_PRODUCTS_KEY,
   NEW_PRODUCT_PATH,
   PRODUCT_LIST_TEST_ID,
   PRODUCTS_EMPTY_TEST_ID,
   productPathOf,
 } from '../constants';
 import type { CatalogProductRowDto } from '../dto';
+import { type ListSelectionControl, useListSelection } from '../hooks/use-list-selection';
 import { useProductCommand } from '../hooks/use-product-commands';
 import { useStoreScope } from '../hooks/use-store-scope';
 import {
@@ -40,7 +41,9 @@ import {
   withFilter,
   withPage,
 } from '../model/list-search';
+import { pageSelectionState } from '../model/list-selection';
 import { listErrorMessageId } from '../model/list-view';
+import { actionItemsShown, CREATE_PRODUCT_ACTION, listPageEntityOf } from '../model/product-list-actions';
 import { soldOutOrdersOffered } from '../model/sold-out-view';
 import {
   type StoreScope,
@@ -50,9 +53,6 @@ import {
   useHeldPermissions,
   useMediaPreviews,
 } from '../queries';
-
-const LIST_BLOCK_ID = 'catalog-product-list';
-const CREATE_ACTION_ID = 'catalog-create-product';
 
 /** The list's state; the search reaches the query deferred, so typing stays responsive. */
 function useListState() {
@@ -76,6 +76,19 @@ function useRowCommands(storeAlias: string, scope: StoreScope | null) {
   return { onCommand, deleting, setDeleting, command };
 }
 
+/** What the table ticks with: the selection, and how much of the page shown it holds. */
+function tableSelectionOf(control: ListSelectionControl, rows: readonly CatalogProductRowDto[]): TableSelection {
+  const pageIds = rows.map((product) => product.id);
+  return {
+    selectedIds: new Set(control.selection.ids),
+    pageState: pageSelectionState(control.selection, pageIds),
+    onToggle: control.toggle,
+    onTogglePage: (on: boolean) => {
+      control.togglePage(pageIds, on);
+    },
+  };
+}
+
 function ListBody(props: {
   readonly scope: StoreScope | null;
   readonly products: ReturnType<typeof useCatalogProducts>;
@@ -83,6 +96,7 @@ function ListBody(props: {
   readonly pastLastPage: boolean;
   readonly held: ReadonlySet<string>;
   readonly onCommand: (action: RowCommand, product: CatalogProductRowDto) => void;
+  readonly selection: ListSelectionControl;
 }): ReactNode {
   const { i18n } = useLingui();
   const previews = useMediaPreviews(props.scope);
@@ -100,7 +114,13 @@ function ListBody(props: {
   }
   const previewMap = previews.data ?? new Map<string, string>();
   return (
-    <ProductTable products={products.data.items} previews={previewMap} held={props.held} onCommand={props.onCommand} />
+    <ProductTable
+      products={products.data.items}
+      previews={previewMap}
+      held={props.held}
+      onCommand={props.onCommand}
+      selection={tableSelectionOf(props.selection, products.data.items)}
+    />
   );
 }
 
@@ -159,14 +179,15 @@ function ListToolbar({ list, scope, held }: ListToolbarProps): ReactNode {
 }
 
 interface ProductListProps {
+  readonly list: ListState;
+  readonly selection: ListSelectionControl;
   readonly scope: StoreScope | null;
   readonly held: ReadonlySet<string>;
   readonly onCommand: (action: RowCommand, product: CatalogProductRowDto) => void;
 }
 
 /** The toolbar, the table of the page asked for and the pager. */
-function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
-  const list = useListState();
+function ProductList({ list, selection, scope, held, onCommand }: ProductListProps): ReactNode {
   const products = useCatalogProducts(scope, list.query);
   const pastLastPage = useLastPageClamp(list, products.data?.totalItems);
   return (
@@ -179,6 +200,7 @@ function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
         pastLastPage={pastLastPage}
         held={held}
         onCommand={onCommand}
+        selection={selection}
       />
       <ListPager
         page={list.state.page}
@@ -191,28 +213,45 @@ function ProductList({ scope, held, onCommand }: ProductListProps): ReactNode {
   );
 }
 
-/** The store's products (the `products.all` leaf): tabs, search, filters, the table and its row actions (AC4). */
+/**
+ * The page's own action-bar items: Create product, shown to holders of the create key only. A plain function, not a
+ * component: `PageActionBar` merges only its direct `ActionBarItem` children with the items other plugins register.
+ */
+function actionBarItemsOf(held: ReadonlySet<string>, storeAlias: string): ReactNode[] {
+  return actionItemsShown([CREATE_PRODUCT_ACTION], held).map((item) => (
+    <ActionBarItem key={item.id} itemId={item.id}>
+      <CreateButton storeAlias={storeAlias} />
+    </ActionBarItem>
+  ));
+}
+
+/**
+ * The store's products (the `products.all` leaf): tabs, search, filters, the table, its row actions and selection
+ * (AC4). The page's `entity` hands action-bar items the list's query and the ticked products (D2201).
+ */
 export function ProductListPage({ store }: ShellPageProps): ReactNode {
   const { i18n } = useLingui();
   const storeAlias = store?.id ?? ACTIVE_STORE_ALIAS;
   const scope = useStoreScope(store);
   const held = useHeldPermissions(scope);
   const rows = useRowCommands(storeAlias, scope);
+  const list = useListState();
+  const selection = useListSelection(scope?.storeId ?? null, list.query);
+  const queryKey = JSON.stringify(list.query);
+  const selectedKey = selection.selection.ids.join(',');
+  // Keyed by value: the query object and the id list are rebuilt on every render.
+  const entity = useMemo(() => listPageEntityOf(list.query, selection.selection.ids), [queryKey, selectedKey]);
   return (
-    <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID}>
+    <Page pageId={CATALOG_PRODUCT_LIST_PAGE_ID} entity={entity}>
       <PageTitle>{i18n._('catalog.products-title')}</PageTitle>
-      {/* A direct child: the page puts only its own `PageActionBar` children in the title row. Without the create
-          key there is no bar at all, so the title row keeps no empty action slot. */}
-      {held.has(CREATE_PRODUCTS_KEY) && (
-        <PageActionBar>
-          <ActionBarItem itemId={CREATE_ACTION_ID}>
-            <CreateButton storeAlias={storeAlias} />
-          </ActionBarItem>
-        </PageActionBar>
-      )}
+      {/*
+        A literal direct child, rendered for every viewer (D2201): `Page` finds its action bar by element type, and other
+        plugins add items (export, bulk edit, import) by the page's id, each gated by its own key.
+      */}
+      <PageActionBar>{actionBarItemsOf(held, storeAlias)}</PageActionBar>
       <PageLayout>
-        <FullWidthPageBlock blockId={LIST_BLOCK_ID}>
-          <ProductList scope={scope} held={held} onCommand={rows.onCommand} />
+        <FullWidthPageBlock blockId={CATALOG_PRODUCT_LIST_BLOCK_ID}>
+          <ProductList list={list} selection={selection} scope={scope} held={held} onCommand={rows.onCommand} />
         </FullWidthPageBlock>
       </PageLayout>
       <DeleteDialog

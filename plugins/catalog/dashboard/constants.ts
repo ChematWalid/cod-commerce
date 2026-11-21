@@ -1,4 +1,4 @@
-import type { PermissionKey } from '@cod/shared';
+import { CATALOG_PRODUCT_QUERY_KEY, CATALOG_PRODUCTS_QUERY_KEY, type PermissionKey } from '@cod/shared';
 
 /** The catalog keys the server's `effectivePermissions` answers with, which decide the controls shown (ADR 0017). */
 export const CREATE_PRODUCTS_KEY: PermissionKey = 'catalog.products.create';
@@ -8,13 +8,16 @@ export const VIEW_PRODUCTS_KEY: PermissionKey = 'catalog.products.view';
 /** The team key that lets the editor list the members who may be order managers (D2114). */
 export const VIEW_MEMBERS_KEY: PermissionKey = 'team.members.view';
 
-/** Query key prefixes; each query adds the store it answers for (`StoreScope`), so no store sees another's cache. */
-export const PRODUCTS_QUERY_KEY = ['catalog', 'products'] as const;
+/**
+ * Query key prefixes; each query adds the store it answers for (`StoreScope`), so no store sees another's cache. The
+ * product and product-list keys live in `@cod/shared`, so another plugin's block can invalidate them (D2201).
+ */
+export const PRODUCTS_QUERY_KEY = CATALOG_PRODUCTS_QUERY_KEY;
 export const BRANDS_QUERY_KEY = ['catalog', 'brands'] as const;
 export const TAGS_QUERY_KEY = ['catalog', 'tags'] as const;
 export const MEDIA_PREVIEWS_QUERY_KEY = ['catalog', 'media-previews'] as const;
 export const EFFECTIVE_PERMISSIONS_QUERY_KEY = ['catalog', 'effective-permissions'] as const;
-export const PRODUCT_QUERY_KEY = ['catalog', 'product'] as const;
+export const PRODUCT_QUERY_KEY = CATALOG_PRODUCT_QUERY_KEY;
 export const HIGHLIGHTS_QUERY_KEY = ['catalog', 'highlights'] as const;
 export const MEDIA_LIBRARY_QUERY_KEY = ['catalog', 'media-library'] as const;
 export const SLUG_QUERY_KEY = ['catalog', 'slug-availability'] as const;
@@ -45,6 +48,9 @@ export const VARIANT_SKU_TEST_ID = 'catalog-variant-sku';
 export const RESET_CONFIRM_TEST_ID = 'catalog-reset-confirm';
 export const SOLD_OUT_ORDERS_TEST_ID = 'catalog-sold-out-orders';
 export const SOLD_OUT_BADGE_TEST_ID = 'catalog-sold-out-badge';
+export const PRODUCT_SELECT_TEST_ID = 'catalog-product-select';
+export const PRODUCT_SELECT_PAGE_TEST_ID = 'catalog-product-select-page';
+export const EDITOR_TYPE_TEST_ID = 'catalog-editor-type';
 
 /** How long the slug field waits after the last key before it asks whether the slug is free. */
 export const SLUG_CHECK_DELAY_MS = 500;

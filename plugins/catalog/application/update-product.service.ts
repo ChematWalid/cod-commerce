@@ -1,6 +1,7 @@
 import type { ProductPatchCommand, VariantPatchCommand } from '@cod/shared';
 import { type CoreId, parseCoreId } from '../domain/core-id';
-import { ProductNotFoundError } from '../domain/errors';
+import { InvalidCatalogInputError, ProductNotFoundError } from '../domain/errors';
+import { keepsPackBoundary } from '../domain/pack-boundary';
 import type { OperationContext } from '../domain/ports/operation-context';
 import { optionSpecsOf, type ProductRecord, type ProductUpdate, type VariantChange } from '../domain/product';
 import type { StoreScope } from '../domain/store-scope';
@@ -80,7 +81,7 @@ function updateOf(
 /**
  * "Edit a product" of the caller's active store: an absent field stays, `null` clears, edits to variants name live
  * variants of this product only (D2135), and editing options keeps the variants whose combination remains (D2124).
- * Links and settings are replaced only when sent; `product.changed` is published once (D2127).
+ * No edit crosses the pack boundary or prices a pack (D2227). Links and settings are replaced only when sent; `product.changed` is published once (D2127).
  */
 export class UpdateProductService {
   private readonly references: ProductReferenceCheck;
@@ -103,6 +104,7 @@ export class UpdateProductService {
       if (!(await this.ports.products.lockForUpdate(tx, id))) throw new ProductNotFoundError();
       const record = await this.ports.products.findOne(tx, id);
       if (record === undefined) throw new ProductNotFoundError();
+      if (!keepsPackBoundary(record.type, patch)) throw new InvalidCatalogInputError();
       const refs = await this.references.check(tx, scope, references, heldImagesOf(record));
       await this.references.shareImages(tx, references);
       const saved = await this.save(tx, id, updateOf(record, patch, refs, this.ports));

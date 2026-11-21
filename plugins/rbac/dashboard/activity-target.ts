@@ -5,6 +5,8 @@ const ENTITY_MESSAGE_IDS: Readonly<Record<ActivityEntityType, string>> = {
   [ACTIVITY_ENTITY_TYPES.MEMBER]: 'rbac.target-member',
   [ACTIVITY_ENTITY_TYPES.TEAM_MEMBER]: 'rbac.target-team-member',
   [ACTIVITY_ENTITY_TYPES.COMMISSION_CONFIG]: 'rbac.target-commission',
+  [ACTIVITY_ENTITY_TYPES.PRODUCT]: 'rbac.target-product',
+  [ACTIVITY_ENTITY_TYPES.CATALOG_JOB]: 'rbac.target-catalog-job',
 };
 
 function isKnownEntityType(entityType: string): entityType is ActivityEntityType {

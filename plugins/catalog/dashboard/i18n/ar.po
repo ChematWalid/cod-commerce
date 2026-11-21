@@ -618,3 +618,27 @@ msgstr "تم إيقاف الطلبات على المنتجات التي نفدت
 #. js-lingui-explicit-id
 msgid "catalog.orders-resumed-done"
 msgstr "تم استئناف الطلبات على المنتجات التي نفدت كميتها"
+
+#. js-lingui-explicit-id
+msgid "catalog.select-product"
+msgstr "تحديد المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.select-page"
+msgstr "تحديد كل منتجات هذه الصفحة"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-type"
+msgstr "نوع المنتج"
+
+#. js-lingui-explicit-id
+msgid "catalog.type-physical"
+msgstr "منتج مادي"
+
+#. js-lingui-explicit-id
+msgid "catalog.type-pack"
+msgstr "حزمة"
+
+#. js-lingui-explicit-id
+msgid "catalog.editor-pack-pricing-hint"
+msgstr "تُحسب أسعار الحزمة من مكوّناتها في بطاقة الحزمة."

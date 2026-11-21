@@ -1,7 +1,15 @@
 import {
   ACCOUNT_CAPACITY,
+  CATALOG_BULK_EDIT_ACTOR_CAPACITY,
+  CATALOG_BULK_EDIT_BUSINESS_CAPACITY,
+  CATALOG_EXPORT_BUSINESS_CAPACITY,
+  CATALOG_IMPORT_ACTOR_CAPACITY,
+  CATALOG_IMPORT_BUSINESS_CAPACITY,
   CATALOG_MEDIA_ACTOR_CAPACITY,
   CATALOG_MEDIA_BUSINESS_CAPACITY,
+  CATALOG_PACK_PREVIEW_ACTOR_CAPACITY,
+  CATALOG_SCRAPE_ACTOR_CAPACITY,
+  CATALOG_SCRAPE_BUSINESS_CAPACITY,
   DAY_WINDOW_SECONDS,
   HOUR_WINDOW_SECONDS,
   IP_CAPACITY,
@@ -68,6 +76,16 @@ export const RATE_LIMIT_POLICIES = {
   // Catalog media uploads (D2138): each one writes a file to the shared bucket, so they keep limiting from memory too.
   'catalog-media-business': perHour(CATALOG_MEDIA_BUSINESS_CAPACITY),
   'catalog-media-actor': perHour(CATALOG_MEDIA_ACTOR_CAPACITY),
+  // Catalog import, export, link import, bulk edit and pack preview (D2217): bucket, CPU and worker work, so they keep
+  // limiting from memory too. Actor buckets are spent before business ones.
+  'catalog-import-actor': perHour(CATALOG_IMPORT_ACTOR_CAPACITY),
+  'catalog-import-business': perHour(CATALOG_IMPORT_BUSINESS_CAPACITY),
+  'catalog-export-business': perHour(CATALOG_EXPORT_BUSINESS_CAPACITY),
+  'catalog-scrape-actor': perHour(CATALOG_SCRAPE_ACTOR_CAPACITY),
+  'catalog-scrape-business': perHour(CATALOG_SCRAPE_BUSINESS_CAPACITY),
+  'catalog-bulk-edit-actor': perHour(CATALOG_BULK_EDIT_ACTOR_CAPACITY),
+  'catalog-bulk-edit-business': perHour(CATALOG_BULK_EDIT_BUSINESS_CAPACITY),
+  'catalog-pack-preview-actor': perHour(CATALOG_PACK_PREVIEW_ACTOR_CAPACITY),
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** One of the {@link RATE_LIMIT_POLICIES}. */

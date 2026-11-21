@@ -13,6 +13,8 @@ describe('activity target', () => {
       'rbac.target-member',
       'rbac.target-team-member',
       'rbac.target-commission',
+      'rbac.target-product',
+      'rbac.target-catalog-job',
     ]);
   });
 

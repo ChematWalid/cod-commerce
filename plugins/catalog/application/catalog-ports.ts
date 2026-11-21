@@ -10,6 +10,7 @@ import type { OrderManagerCheckSource } from '../domain/ports/order-manager-chec
 import type { ProductCatalogPort } from '../domain/ports/product-catalog.port';
 import type { ProductCollectionRepositoryPort } from '../domain/ports/product-collection-repository.port';
 import type { ProductEventsPort } from '../domain/ports/product-events.port';
+import type { ProductLookupPort } from '../domain/ports/product-lookup.port';
 import type { ProductSearchPort } from '../domain/ports/product-search.port';
 import type { ProductSettingsRepositoryPort } from '../domain/ports/product-settings-repository.port';
 import type { SoldOutSource } from '../domain/ports/sold-out-source.port';
@@ -24,6 +25,8 @@ import type { TransactionPort } from '../domain/ports/transaction.port';
  */
 export interface ProductPorts {
   readonly products: ProductCatalogPort;
+  /** SKU matching and id paging for imports and exports (D2201, D2218). */
+  readonly lookup: ProductLookupPort;
   readonly search: ProductSearchPort;
   readonly events: ProductEventsPort;
   readonly transaction: TransactionPort;

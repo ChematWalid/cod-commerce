@@ -8,8 +8,8 @@ import {
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { z } from 'zod';
 import { authDefaults, authEnvShape, authSecretsOf, requireAuthSettings } from './auth-env';
+import { catalogImportDefaults, catalogImportEnvShape, requireCatalogImportSettings } from './catalog-import-env';
 import {
-  hasReservedTld,
   isDeployed,
   isPlaceholderSecret,
   PLACEHOLDER_SECRET_MARKER,
@@ -21,6 +21,7 @@ import { DEFAULT_API_PORT, DEFAULT_WORKER_HEALTH_PORT, isPort } from './ports';
 import * as quoteKeys from './quote-keys-env';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
+import { rejectUnsafeTenancySettings } from './tenancy-env';
 import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
@@ -147,6 +148,7 @@ const baseSchema = z.object({
   ...tenantSecretsEnvShape,
   ...quoteKeys.quoteKeysEnvShape,
   ...authEnvShape,
+  ...catalogImportEnvShape,
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
@@ -223,27 +225,6 @@ function requireKnownActiveKid(env: BaseEnv, context: z.RefinementCtx): void {
   }
 }
 
-/** A deployed server must know its real domain, and only tests may skip the worker id lease (ADR 0003). */
-function rejectUnsafeTenancySettings(env: BaseEnv, context: z.RefinementCtx): void {
-  if (isDeployed(env) && env.PLATFORM_DOMAIN === undefined) {
-    context.addIssue({ code: 'custom', path: ['PLATFORM_DOMAIN'], message: 'is required in this environment' });
-  }
-  if (isDeployed(env) && env.PLATFORM_DOMAIN !== undefined && hasReservedTld(env.PLATFORM_DOMAIN)) {
-    context.addIssue({
-      code: 'custom',
-      path: ['PLATFORM_DOMAIN'],
-      message: 'ends in a reserved name (invalid, test, example, localhost or local): set the real domain',
-    });
-  }
-  if (env.APP_ENV !== 'test' && env.SNOWFLAKE_WORKER_ID !== undefined) {
-    context.addIssue({
-      code: 'custom',
-      path: ['SNOWFLAKE_WORKER_ID'],
-      message: 'is only allowed when APP_ENV is test',
-    });
-  }
-}
-
 const envSchema = baseSchema
   .superRefine(rejectPlaceholders)
   .superRefine(rejectUnsafeTenancySettings)
@@ -251,6 +232,7 @@ const envSchema = baseSchema
   .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireKnownKekActiveKid)
+  .superRefine(requireCatalogImportSettings)
   .superRefine(quoteKeys.requireKnownQuoteActiveKid)
   .superRefine((env, context) => {
     requireAuthSettings(env, isDeployed(env), context);
@@ -258,6 +240,7 @@ const envSchema = baseSchema
   .transform((env) => ({
     ...env,
     ...authDefaults(env, isDeployed(env)),
+    ...catalogImportDefaults(env),
     PLATFORM_DOMAIN: env.PLATFORM_DOMAIN ?? DEFAULT_PLATFORM_DOMAIN,
     DB_POOL_MAX: env.DB_POOL_MAX ?? DEFAULT_POOL_MAX_BY_ROLE[env.ROLE],
   }));

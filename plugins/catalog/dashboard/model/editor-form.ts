@@ -1,5 +1,12 @@
-import { CATALOG_ERROR_CODES, INT_COLUMN_MAX, MAX_PRODUCT_HIGHLIGHTS, type ProductStatus } from '@cod/shared';
+import {
+  CATALOG_ERROR_CODES,
+  INT_COLUMN_MAX,
+  MAX_PRODUCT_HIGHLIGHTS,
+  type ProductStatus,
+  type ProductType,
+} from '@cod/shared';
 import type { CatalogProductDto, CatalogVariantDto } from '../dto';
+import { isPackComputed } from './editor-pack';
 import type { OptionsDraft } from './options-draft';
 
 /** A variant row of the editor: what the variants table edits, numbers as typed. */
@@ -31,6 +38,8 @@ export interface EditorForm {
   readonly slug: string;
   readonly description: string;
   readonly status: ProductStatus;
+  /** Chosen on a new product only; a saved product keeps its type (D2201 c, D2227). */
+  readonly type: ProductType;
   readonly price: string;
   readonly oldPrice: string;
   readonly sku: string;
@@ -99,6 +108,7 @@ export const emptyEditorForm = (): EditorForm => ({
   slug: '',
   description: '',
   status: 'active',
+  type: 'physical',
   price: '',
   oldPrice: '',
   sku: '',
@@ -149,6 +159,7 @@ export const editorFormOf = (product: CatalogProductDto): EditorForm => ({
   slug: product.slug,
   description: textOf(product.description),
   status: product.status,
+  type: product.type,
   price: textOf(product.price),
   oldPrice: textOf(product.oldPrice),
   sku: textOf(product.sku),
@@ -186,6 +197,7 @@ function settingsAreValid({ settings }: EditorForm): boolean {
 /**
  * What the form refuses before the server is asked (the server checks again): a blank title, money or a size that is
  * not a whole number, an option without values, more than six highlights (AC3), a bad variant price or quantity rule.
+ * A pack's computed fields are not checked: they are read-only and never sent (D2233).
  */
 export function editorFormErrors(form: EditorForm): EditorFormErrors {
   const checks: readonly [EditorField, boolean, string][] = [
@@ -201,7 +213,8 @@ export function editorFormErrors(form: EditorForm): EditorFormErrors {
     ['variants', form.variants.every((row) => isWhole(row.price)), WHOLE_NUMBER_MESSAGE_ID],
     ['settings', settingsAreValid(form), WHOLE_NUMBER_MESSAGE_ID],
   ];
-  return Object.fromEntries(checks.filter(([, valid]) => !valid).map(([field, , messageId]) => [field, messageId]));
+  const refused = checks.filter(([field, valid]) => !valid && !isPackComputed(form, field));
+  return Object.fromEntries(refused.map(([field, , messageId]) => [field, messageId]));
 }
 
 /**
