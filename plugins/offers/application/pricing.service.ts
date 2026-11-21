@@ -9,7 +9,7 @@ import type { PricingCart } from '../domain/cart';
 import { MS_PER_SECOND } from '../domain/constants';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import { mergeLines } from '../domain/engine/merge-lines';
-import { type OrderRelease, releaseOrderUsage } from '../domain/engine/order-usage';
+import { type OrderRelease, type OrderUsage, releaseOrderUsage } from '../domain/engine/order-usage';
 import { priceCart } from '../domain/engine/pipeline';
 import type { PricedQuote } from '../domain/engine/priced-quote';
 import { InvalidQuoteRequestError, NoActiveStoreError } from '../domain/errors';
@@ -38,6 +38,11 @@ export interface PricingServiceDeps {
  */
 export interface ScopedQuoteOptions {
   readonly addonPlacement: AddonPlacement;
+  /**
+   * The uses of the existing order whose own cart is quoted (the post-order add-on, D2542): given back with the
+   * order's own buyer, as re-pricing does (D2427), so the order does not count against itself. Omitted for a new cart.
+   */
+  readonly orderUsage?: OrderUsage;
 }
 
 /** Checkout's options: the add-ons of the order form. */
@@ -47,6 +52,12 @@ const CHECKOUT: ScopedQuoteOptions = { addonPlacement: 'order_form' };
 interface Evaluation {
   readonly options: ScopedQuoteOptions;
   readonly release: OrderRelease | null;
+}
+
+/** What a scoped quote gives back: an existing order's own uses, with its own buyer (the cart is the order's). */
+function releaseOf({ orderUsage }: ScopedQuoteOptions): OrderRelease | null {
+  if (orderUsage === undefined) return null;
+  return { ...parseOrderUsage(orderUsage), ownBuyer: true };
 }
 
 /** The engine's pricing of a cart and the variants the gate refused in it. */
@@ -220,7 +231,7 @@ export class PricingService {
     options: ScopedQuoteOptions,
   ): Promise<PricedCart> {
     const request = parseRequest(raw);
-    const evaluated = await this.evaluate(ctx, scope, request, { options, release: null });
+    const evaluated = await this.evaluate(ctx, scope, request, { options, release: releaseOf(options) });
     const { priced } = evaluated;
     if (evaluated.unavailableVariantIds.length > 0) return { priced, quote: unsignedQuoteOf(evaluated) };
     const signed = this.deps.signer.sign(scope, priced, tokenCartOf(request));

@@ -1,8 +1,11 @@
 import type { QuoteRequest } from '@cod/shared';
+import type { OrderUsage } from '../engine/order-usage';
 import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context.port';
 
-/** An order as the post-order add-on reads it (D2508): its status and the cart it was priced from. */
+/**
+ * An order as the post-order add-on reads it (D2508): its status, the cart it was priced from and the uses it holds.
+ */
 export interface AddonOrder {
   readonly id: string;
   readonly status: string;
@@ -11,6 +14,13 @@ export interface AddonOrder {
    * hold every add-on line already on the order, summed per offer and variant, so a repeat is capped (D2532 b).
    */
   readonly cart: QuoteRequest;
+  /**
+   * The uses the order already holds, built with `orderUsageOf` from its stored `appliedOffers` and
+   * `buyerOrdersBefore`, as for re-pricing (D2427, D2442). The pending order is already counted in the buyer's history
+   * and its offers' usage, so the add-on quote gives them back: a first-order add-on stays offered on the buyer's
+   * first order, and the order's own last allowed use refuses nothing (D2542).
+   */
+  readonly orderUsage: OrderUsage;
 }
 
 /** An add-on line the engine priced for an order (D2506, D2508): the order stores it as its own add-on line. */

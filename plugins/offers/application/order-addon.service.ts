@@ -32,8 +32,14 @@ export interface OrderAddonInput {
 /** One add-on entry of a quote request. */
 type QuoteAddon = QuoteRequest['addons'][number];
 
-/** The thank-you page's quote options: only its add-ons are priced, the order form's are refused (D2506). */
-const THANK_YOU: ScopedQuoteOptions = { addonPlacement: 'thank_you' };
+/**
+ * The thank-you page's quote options for `order`: only its add-ons are priced, the order form's are refused (D2506),
+ * and the order's own uses are given back, so it does not count against itself (D2542).
+ */
+const thankYouOptionsOf = (order: AddonOrder): ScopedQuoteOptions => ({
+  addonPlacement: 'thank_you',
+  orderUsage: order.orderUsage,
+});
 
 /** The pieces of the add-on of `offerId` on `variantId` the order already holds. */
 function heldPiecesOf(cart: QuoteRequest, { offerId, variantId }: QuoteAddon): number {
@@ -113,7 +119,7 @@ export class OrderAddonService {
     if (!isSnowflake(offerId)) throw new AddonNotOfferedError();
     const accepted = { offerId, variantId, quantity };
     const cart = cartWithAddon(order.cart, accepted);
-    const quote = await this.ports.pricing.quoteForScope(ctx, scope, cart, THANK_YOU);
+    const quote = await this.ports.pricing.quoteForScope(ctx, scope, cart, thankYouOptionsOf(order));
     const line = pricedAddonOf(quote, input, heldPiecesOf(order.cart, accepted));
     await target.appendLine(ctx, scope, order.id, line);
     await this.ports.events.offerApplied(ctx, scope, appliedPayloadOf(scope, { orderId: order.id, offerId }, line));

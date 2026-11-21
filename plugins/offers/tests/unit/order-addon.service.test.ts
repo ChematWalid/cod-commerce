@@ -44,7 +44,7 @@ describe('OrderAddonService.addAddonToOrder', () => {
 
     // Assert
     expect(line.unitPrice).toBe(1_500);
-    expect(world.quoteOptions).toEqual([{ addonPlacement: 'thank_you' }]);
+    expect(world.quoteOptions).toEqual([{ addonPlacement: 'thank_you', orderUsage: anAddonOrder().orderUsage }]);
   });
 
   it('appends to an unconfirmed order', async () => {

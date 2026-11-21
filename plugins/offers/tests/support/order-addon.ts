@@ -18,6 +18,7 @@ export const anAddonOrder = (overrides: Partial<AddonOrder> = {}): AddonOrder =>
   id: ORDER_ID,
   status: 'pending',
   cart: quoteRequestSchema.parse(aRequest(1)),
+  orderUsage: { offerIds: [], codes: [], buyerOrdersBefore: null },
   ...overrides,
 });
 
