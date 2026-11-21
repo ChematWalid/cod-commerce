@@ -46,6 +46,9 @@
 - `docs/research/dashboard-captures.md`: "Delivery & Shipping"
 - `docs/research/data-model.md`: "Order" (deliveryAgent, carrierFee, deliverySpeed); `docs/research/api-surface.md`: "Delivery" and dispatch/preflight/undispatch/validate entries under "Orders"
 
+**Audit issues to close** (carried from P2.S1)
+- #207 CO-6 (low, D2120): add the **Default carrier** field to Store settings → Profile (`StoreOperationsFields` in `plugins/merchant-shell/dashboard/components/store-operations-fields.tsx`; `UpdateStoreInput.defaultCarrierId` already exists, its ownership check is #153 TEN-4), with a browser test and screenshots. This closes inventory row 131.
+
 **High-level plan**
 1. Shared types + `CarrierAdapter` interface (`validateCredentials`, `createParcels`, `cancel`, `validate`, `getStatuses` / `handleWebhook`, `getLabels`, `syncPrices`, `supportsExchange`, `capabilities`, credential/config JSON-schema) and adapter registry → commit `feat(carriers): carrier adapter interface and registry`
 2. Entities `CarrierAccount` (credentials stored via TenantSecretService from P1.S6, account name, auto-validate, write-opening-note, overweight allowance/rate/volumetric, parcel-opening policy, assigned employee), store default carrier, per-order carrier; migrations → commit `feat(carriers): carrier account entities with encrypted credentials`

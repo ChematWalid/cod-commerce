@@ -2,6 +2,7 @@ import type { Exchange } from './http';
 import type { IsolationAccess, IsolationEntity } from './matrix';
 import type { Outcome } from './run';
 import type { TenantTable } from './tenant-tables';
+import { CATALOG_WORLDS } from './catalog-world';
 import { TEAM_WORLDS } from './team-world';
 import type { BusinessWorld, World } from './world-types';
 
@@ -15,6 +16,20 @@ function teamPlaceholdersOf(label: 'A' | 'B'): [string, string][] {
     [team.ownerMemberId, `<TEAM_MEMBER_${label}_OWNER>`],
     [team.invited.memberId, `<TEAM_MEMBER_${label}_INVITED>`],
     [team.commission.id, `<COMMISSION_${label}>`],
+  ];
+}
+
+/** The catalog rows' ids (P2.S1) as placeholders. */
+function catalogPlaceholdersOf(label: 'A' | 'B'): [string, string][] {
+  const catalog = CATALOG_WORLDS.get(label);
+  if (catalog === undefined) return [];
+  return [
+    [catalog.brand.id, `<BRAND_${label}>`],
+    [catalog.tag.id, `<TAG_${label}>`],
+    [catalog.highlight.id, `<HIGHLIGHT_${label}>`],
+    [catalog.media.id, `<MEDIA_${label}1>`],
+    [catalog.otherStoreMedia.id, `<MEDIA_${label}2>`],
+    [catalog.catalogRole.id, `<CATALOG_ROLE_${label}>`],
   ];
 }
 
@@ -32,6 +47,7 @@ export function placeholdersOf(world: World): [string, string][] {
       [business.note.id, `<NOTE_${l}>`],
       [business.logoAssetId, `<LOGO_${l}>`],
       ...teamPlaceholdersOf(l),
+      ...catalogPlaceholdersOf(l),
       ...business.stores.flatMap((store): [string, string][] => [
         [store.channelToken, `<TOKEN_${store.label}>`],
         [store.id, `<STORE_${store.label}>`],
@@ -76,6 +92,9 @@ export function transcriptOf(exchange: Exchange, placeholders: readonly [string,
     `${request.method} ${request.path}`,
     ...headers,
     shownBody.trimEnd(),
+    ...(request.upload === undefined
+      ? []
+      : ['', `file: ${request.upload.name} (${String(request.upload.bytes.length)} bytes)`]),
     '```',
     '',
     `**HTTP ${String(exchange.status)}**`,
@@ -125,7 +144,7 @@ export function matrixTable(outcomes: readonly Outcome[]): string {
 }
 
 /** The census table: both businesses' rows in every tenant table. */
-export const censusTable = (counts: Record<TenantTable, { a: number; b: number }>): string =>
+export const censusTable = (counts: Partial<Record<TenantTable, { a: number; b: number }>>): string =>
   [
     '| Table | Rows of A | Rows of B |',
     '|---|---|---|',

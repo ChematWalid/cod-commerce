@@ -1,14 +1,17 @@
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { AssetServerPlugin, configureS3AssetStorage, PresetOnlyStrategy } from '@vendure/asset-server-plugin';
 import type { AppEnv } from './env';
 import { PrefixedAssetStorage } from './prefixed-asset-storage';
+import { TenantAssetNamingStrategy } from './tenant-asset-naming.strategy';
 
 /** Where the api serves assets (D33); also the path the asset URLs carry. */
 export const ASSET_ROUTE = 'assets';
 
-/** The key prefix of asset files inside the shared Garage bucket (D33). P2 replaces bucket and naming. */
+/**
+ * The key prefix of asset files inside the shared Garage bucket (D33). Below it, tenant files sit under their tenant's
+ * prefix (`assets/b/{business}/s/{store}/source/…`, D2113) from the naming strategy.
+ */
 export const ASSET_KEY_PREFIX = 'assets/';
 
 /**
@@ -38,7 +41,7 @@ export function assetServerPlugin(env: AppEnv): ReturnType<typeof AssetServerPlu
   return AssetServerPlugin.init({
     route: ASSET_ROUTE,
     assetUploadDir: UNUSED_LOCAL_UPLOAD_DIR,
-    namingStrategy: new RandomAssetNamingStrategy(),
+    namingStrategy: new TenantAssetNamingStrategy(),
     imageTransformStrategy: new PresetOnlyStrategy({ defaultPreset: DEFAULT_IMAGE_PRESET }),
     storageStrategyFactory: (options) => new PrefixedAssetStorage(s3(options), ASSET_KEY_PREFIX),
   });

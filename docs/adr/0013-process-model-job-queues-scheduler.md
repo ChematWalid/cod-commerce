@@ -205,3 +205,27 @@ This settles the three items of the activeQueues addendum.
 3. **Boot assertion.** `buildVendureConfig` throws when `activeQueues` is non-empty and the job queue strategy is not `PooledJobQueueStrategy`. The `it.fails` test of `active-queues.e2e.test.ts` keeps running on the stock strategy as the upstream signal.
 
 Cost: deep imports into `@vendure/job-queue-plugin` (`bullmq-job-queue-strategy`, `constants`, `job-list-index.service`), which a plugin upgrade must re-check; M.S1 re-runs the pool e2e. Fallback: every worker `all`.
+
+## Amendment (2026-11-14): catalog effects queue and collections reconcile (P2.S3)
+
+**Status**: Proposed (2026-11-14), listed under "ADRs to accept" in the P2.S3 handoff. Decisions D2312 and D2336 of `docs/roadmap/P2-decisions.md`.
+
+Rows added to the queue taxonomy and the scheduled tasks above:
+
+| Queue | Producers | Concurrency / worker | Retries / backoff | Pool |
+|---|---|---|---|---|
+| `catalog-effects` | outbox relay (`product.changed` → consumer `collections-membership`) | 3 | 8, exp 1 s | bulk |
+| `catalog-reconcile` | job `collections.recompute-store`: collection rule saves over 2 000 products, a `collections-membership` delivery on its last attempt, the bootstrap `matchVersion` check, the `collections-reconcile` sweep | 1 | 5, exp 30 s | bulk |
+
+| Task id | Schedule | Action |
+|---|---|---|
+| `collections-reconcile` | nightly (01:30 UTC) | enqueue `collections.recompute-store` on `catalog-reconcile` for every store with automatic collections, so membership heals from a lost delivery, a writer that published no `product.changed`, or a `NORMAL_FORM_VERSION` change |
+
+Why bulk: a catalog import of thousands of products fans out one membership recompute per product, which must not compete with `order-effects` or `dispatch`. `storefront-revalidate` is not reused (another consumer, other retry needs).
+
+**Changed 2026-11-20 (Task 8):** the job has its own queue `catalog-reconcile`. A queue has exactly one processor (`PlatformQueues.define`), and the outbox already defines `catalog-effects` as the delivery queue of `collections-membership`, so the job cannot share it. Job ids are `crs-{storeId}-{run}`: `v{NORMAL_FORM_VERSION}` at bootstrap and `n{YYYYMMDD}` nightly (a repeat is ignored), a fresh snowflake for a save or a failed delivery. **Changed 2026-11-20 (Task 8 review):** a failed delivery's reconcile is `d{YYYYMMDDHH}` (UTC hour, platform clock), so the failed deliveries of one store in one hour queue one whole-store walk, not one per product; a save keeps a fresh id. **Changed 2026-11-20 (Task 8 review round 2):** that job is queued with a delay to the next UTC hour boundary, so it starts after every failure its id merges and none of them is left to the nightly sweep.
+
+Tenant contract of the job `collections.recompute-store`:
+- **Payload (rule d):** ids only, `{ businessId, storeId }`. The processor rebuilds the context and resolves the store through `StoreSettingsReader.settingsOf(ctx, businessId, storeId)`; a store that does not belong to that business, or no longer exists, is acknowledged and logged, never recomputed.
+- **Fairness (rule a):** a whole-store scan takes the per-business semaphore of queue `catalog-reconcile` (max 1), so one business with many stores cannot starve the bulk pool; when it is not acquired, the job is re-delayed with jitter.
+- **Durability:** the job has no durable Postgres row. Losing Valkey loses a queued recompute; that is an accepted loss, healed by the next nightly `collections-reconcile` run. The `product.changed` deliveries that feed the same queue keep their `outbox_delivery` rows (ADR 0016).

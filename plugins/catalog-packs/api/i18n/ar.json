@@ -1,0 +1,13 @@
+{
+  "error": {
+    "packs-invalid-input": "بعض بيانات الحزمة غير صالحة.",
+    "packs-not-found": "منتج الحزمة غير موجود.",
+    "packs-not-a-pack": "هذا المنتج ليس حزمة.",
+    "packs-component-not-found": "لم يُعثر على أحد منتجات الحزمة أو متغيراتها في هذا المتجر.",
+    "packs-component-is-pack": "لا يمكن أن تحتوي الحزمة على حزمة.",
+    "packs-shared-option-missing": "يجب أن يحتوي كل منتج في الحزمة على الخيار المشترك، دون أي خيار آخر.",
+    "packs-no-common-value": "لا توجد قيمة مشتركة للخيار بين منتجات الحزمة.",
+    "catalog-concurrent-update": "تم تعديل هذا المنتج في الوقت نفسه. حاول مرة أخرى.",
+    "packs-internal": "تعذر إكمال الطلب."
+  }
+}

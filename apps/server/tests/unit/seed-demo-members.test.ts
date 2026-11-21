@@ -12,6 +12,7 @@ const SEEDED_MEMBER_EMAILS = [
   'noview@demo.example.test',
   'settingsview@demo.example.test',
   'perstore@demo.example.test',
+  'collectionsview@demo.example.test',
 ];
 
 function appWhere(memberExists: boolean): { app: INestApplicationContext; withTransaction: ReturnType<typeof vi.fn> } {
@@ -43,7 +44,7 @@ describe('seedDemoMembers', () => {
     expect(withTransaction).not.toHaveBeenCalled();
   });
 
-  it('creates the five demo members, each in its own transaction', async () => {
+  it('creates the six demo members, each in its own transaction', async () => {
     // Arrange
     const { app, withTransaction } = appWhere(false);
 

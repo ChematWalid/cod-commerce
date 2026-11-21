@@ -1,3 +1,5 @@
+// Historical, the template route was removed in P2.S1 (D2111); the committed evidence stays. This script exits at
+// once: the notes page it drives no longer has a route.
 // Screenshot helper of scripts/evidence/P1.S1.sh (CLAUDE.md §3a.14): drives the live dashboard of the cod-evidence
 // stack, signed in as a business owner (the merchant's real role), to the notes page and writes the PNGs
 // (ar/en x desktop/mobile), the content-language shots (desktop/mobile) and the README table rows.
@@ -20,6 +22,11 @@ import {
   loginAsOwner,
   setDisplayLanguage,
 } from '../../apps/server/tests/browser/dashboard-session.ts';
+
+console.error(
+  'template-screens.mjs is historical, the template route was removed in P2.S1 (D2111); the committed evidence stays',
+);
+process.exit(1);
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/server/package.json'))('playwright-core');

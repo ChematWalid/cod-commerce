@@ -65,3 +65,47 @@ export const ONE_PIXEL_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64',
 );
+
+/** The collections documents (P2.S3) the world's collections are seeded with, as each owner (D2330). */
+export const CREATE_STORE_COLLECTION = `mutation ($input: CreateStoreCollectionInput!) {
+  createStoreCollection(input: $input) { id title slug }
+}`;
+
+/** Sets the manual products of a collection, in order (D2318). */
+export const SET_STORE_COLLECTION_PRODUCTS = `mutation ($id: ID!, $productIds: [ID!]!) {
+  setStoreCollectionProducts(id: $id, productIds: $productIds) { id productCount }
+}`;
+
+/** The catalog documents (P2.S1) the world's catalog is seeded with. */
+export const CREATE_CATALOG_BRAND = `mutation ($input: CatalogBrandInput!) {
+  createCatalogBrand(input: $input) { id name }
+}`;
+
+export const CREATE_CATALOG_TAG = `mutation ($input: CatalogTagInput!) {
+  createCatalogTag(input: $input) { id name }
+}`;
+
+export const CREATE_CATALOG_HIGHLIGHT = `mutation ($input: CatalogHighlightInput!) {
+  createCatalogHighlight(input: $input) { id text }
+}`;
+
+export const UPLOAD_CATALOG_MEDIA = 'mutation ($file: Upload!) { uploadCatalogMedia(file: $file) { id assetId } }';
+
+export const CREATE_CATALOG_PRODUCT = `mutation ($input: CreateCatalogProductInput!) {
+  createCatalogProduct(input: $input) { product { id variants { id } } }
+}`;
+
+/** The area level of the role that lets the world's member work on the catalog of its one store. */
+export const CATALOG_AREA_LEVELS = [{ area: 'catalog', level: 'full' }];
+
+/** The area level of the role that lets the world's member work on the offers of its one store. */
+export const OFFERS_AREA_LEVELS = [{ area: 'offers', level: 'full' }];
+
+/** The settings a create carries: a create takes every flag, only the lists may be left out (`productSettingsSchema`). */
+export const CATALOG_SETTINGS = {
+  isFragile: false,
+  allowParcelOpening: true,
+  allowOutOfStockOrders: true,
+  soldOut: false,
+  quantityRules: { enabled: false, min: 1, step: 1 },
+};

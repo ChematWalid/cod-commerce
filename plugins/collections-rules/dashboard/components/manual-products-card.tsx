@@ -1,0 +1,121 @@
+import { COLLECTION_MODES, COLLECTIONS_ERROR_CODES } from '@cod/shared';
+import { useLingui } from '@lingui/react';
+import { Button, toast } from '@vendure/dashboard';
+import { type ReactNode, useState } from 'react';
+import { ADD_PRODUCTS_TEST_ID, COLLECTION_MODE_TEST_ID } from '../constants';
+import { MODE_LABEL_IDS } from '../model/list-view';
+import { type ManualProduct, withProducts } from '../model/manual-order';
+import { AddProductsDialog } from './add-products-dialog';
+import type { ScopedCardProps } from './card-props';
+import { FieldError } from './field-error';
+import { ProductRows } from './product-rows';
+import { RuleBuilder } from './rule-builder';
+
+/** Manual or automatic (D2302); the save asks before a saved manual list is replaced (D2339). */
+function ModeSwitch({ form, disabled, onChange }: ScopedCardProps): ReactNode {
+  const { i18n } = useLingui();
+  return (
+    <div role="group" data-testid={COLLECTION_MODE_TEST_ID} className="flex flex-wrap gap-2">
+      {COLLECTION_MODES.map((mode) => (
+        <Button
+          key={mode}
+          type="button"
+          size="sm"
+          variant={form.mode === mode ? 'default' : 'outline'}
+          aria-pressed={form.mode === mode}
+          data-mode={mode}
+          disabled={disabled}
+          onClick={() => {
+            onChange({ mode });
+          }}
+        >
+          {i18n._(MODE_LABEL_IDS[mode])}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/** Add products: a store product search that needs the edit key (D2314), so it is off without it. */
+function AddProducts(props: ScopedCardProps & { readonly locked: boolean }): ReactNode {
+  const { i18n } = useLingui();
+  const [adding, setAdding] = useState(false);
+  const change = (products: readonly ManualProduct[]): void => {
+    props.onChange({ products });
+  };
+  return (
+    <>
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          data-testid={ADD_PRODUCTS_TEST_ID}
+          disabled={props.locked || props.scope === null}
+          onClick={() => {
+            setAdding(true);
+          }}
+        >
+          {i18n._('collections.add-products')}
+        </Button>
+      </div>
+      {adding && (
+        <AddProductsDialog
+          scope={props.scope}
+          present={props.form.products}
+          onConfirm={(added) => {
+            const next = withProducts(props.form.products, added);
+            change(next.products);
+            if (next.dropped > 0) toast.error(i18n._(COLLECTIONS_ERROR_CODES.TOO_MANY_PRODUCTS));
+            setAdding(false);
+          }}
+          onClose={() => {
+            setAdding(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** The hand-ordered list: reorder by drag or arrow keys, remove, and add; read-only without the edit key (D2314). */
+function ManualList(props: ScopedCardProps): ReactNode {
+  const { i18n } = useLingui();
+  const locked = props.disabled || !props.canEditProducts;
+  return (
+    <div className="grid gap-3">
+      {!props.disabled && !props.canEditProducts && (
+        <p className="text-muted-foreground text-sm">{i18n._('collections.products-need-edit')}</p>
+      )}
+      <ProductRows
+        products={props.form.products}
+        editable={!locked}
+        onReorder={(products) => {
+          props.onChange({ products });
+        }}
+      />
+      <AddProducts {...props} locked={locked} />
+    </div>
+  );
+}
+
+/** An automatic collection: its conditions decide the members, with a live preview of what they match. */
+function AutomaticMembers(props: ScopedCardProps): ReactNode {
+  const { i18n } = useLingui();
+  return (
+    <div className="grid gap-3">
+      <p className="text-muted-foreground text-sm">{i18n._('collections.automatic-hint')}</p>
+      <RuleBuilder {...props} />
+    </div>
+  );
+}
+
+/** The Products card: the mode, then the hand-ordered list or the rule builder. */
+export function ManualProductsCard(props: ScopedCardProps): ReactNode {
+  return (
+    <div className="grid gap-4">
+      <ModeSwitch {...props} />
+      {props.form.mode === 'manual' ? <ManualList {...props} /> : <AutomaticMembers {...props} />}
+      <FieldError messageId={props.errors.products ?? props.errors.rule} />
+    </div>
+  );
+}

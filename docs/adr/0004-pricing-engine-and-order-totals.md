@@ -50,7 +50,7 @@ Option 3, with 3a and P0.
 **Quote token** `qt1.<payload>.<sig>`
 - `payload` = base64url (no padding) of canonical JSON (sorted keys, no whitespace): `{ v: 1, kid, b: businessId, s: storeId, h, exp, t, sh, l, d, a, n }`.
   - `h` = SHA-256 (hex) of the canonical cart: lines sorted by `variantId` as `variantId:qty`, destination (`provinceCode`, `townOns`, `stopdesk`), sorted codes, and the phone hash if any applied offer's eligibility used the phone.
-  - `t` = total, `sh` = shipping price, `l` = lines `[{ variantId, qty, unitPrice, originalPrice, offerIds }]`, `d` = order-level discounts `[{ amount, offerId | code }]`, `a` = add-ons `[{ variantId, qty, unitPrice, parentVariantId }]`. All whole DZD integers.
+  - `t` = total, `sh` = shipping price, `l` = lines `[{ variantId, qty, unitPrice, originalPrice, offerIds }]`, `d` = order-level discounts `[{ amount, offerId | code }]`, `o` = every applied offer `[{ offerId, code? }]`, stored on the order as `appliedOffers` so an edit gives back exactly the uses the order holds (D2445), `a` = add-ons `[{ variantId, qty, unitPrice, parentVariantId }]`. All whole DZD integers.
   - `exp` = issue time + 15 min (epoch seconds); `n` = 96-bit random nonce.
 - `sig` = base64url HMAC-SHA256 over the ASCII bytes `qt1.<payload>` with the platform key named by `kid`.
 - **Key rotation**: keys live in a versioned secret `QUOTE_HMAC_KEYS = { kid: key }` with `QUOTE_HMAC_ACTIVE_KID`. Rotation: add the new key, switch the active `kid`, keep verifying the old `kid` for 30 min (2 × token lifetime), then remove it. Verification with an unknown `kid` fails like a bad signature.
@@ -74,7 +74,7 @@ Option 3, with 3a and P0.
 | Quote `subtotal` / `discountTotal` / `total` | `subtotal` = Σ `line.linePriceWithTax` (pre-proration); `discountTotal` = −Σ `order.discounts[].amountWithTax`; `t` = `order.totalWithTax`. Note: Vendure's `subTotalWithTax` is **after** order-level discounts (8 500), so it is not the quote subtotal. | `totalWithTax` 9 100 = 5 000 + 4 000 + 600 − 500 |
 | Order total check | Intake asserts `order.totalWithTax === t` after `ArrangingPayment` (where Vendure re-runs `applyPriceAdjustments`) and before adding the payment; otherwise the transaction rolls back and the mismatch alert fires. | the re-run on `ArrangingPayment` kept 9 100 (strategies are deterministic over the custom fields) |
 
-**Re-pricing after intake** (agent upsell P4.S3, edits): goes through `PricingService.reprice(order, change)`, which sets the same custom fields and lets Vendure recalculate. It never writes totals directly. A timeline audit diff is recorded.
+**Re-pricing after intake** (agent upsell P4.S3, edits): goes through `PricingService.reprice(order, change)`, which sets the same custom fields and lets Vendure recalculate. It never writes totals directly. A timeline audit diff is recorded. An edit re-prices every line of the changed cart at the current snapshot, untouched lines included, and its delta is measured from the order's stored total, with the part due to prices that moved since intake reported apart (D2446).
 
 ## Consequences
 
@@ -146,3 +146,14 @@ RAW shipping [{"listPrice":600,"adjustments":"[]"}]
 - `OrderService.addPaymentToOrder` throws `must be called within a transaction` outside a resolver; intake wraps the whole flow in `TransactionalConnection.withTransaction(ctx, …)` (ADR 0009).
 - `PromotionService.createPromotion` without conditions or coupon → `MISSING_CONDITIONS_ERROR`; hence the `has-quote-discounts` condition.
 - Two variants of one product without options → `product-variant-options-combination-already-exists`; irrelevant to pricing, noted for seed scripts.
+
+## Amendment (P2.S5, 2026-11-21)
+
+Accepted (2026-11-21, standing user authorization for P2). Sharpens the quote token and the add-on row of the Decision above for the buy-X-get-Y and add-on kinds; full reasoning: `docs/roadmap/P2-decisions.md` (D2504, D2506, D2531, D2542).
+
+- **Gift lines (D2504).** A gifted unit is a separate quote line split off the matched line, key `<variantId>:gift:<offerId>`, `giftOf: offerId`, priced at the gift price (free 0, percent off, or a fixed amount off clamped at 0). In the token it sits in `l` with `g: offerId`, so a variant may appear twice in `l`. `totalPrice = unitPrice × quantity` holds on every line.
+- **Add-ons in the quote (D2506).** `QuoteRequest.addons?: { offerId, variantId, quantity }[]` (at most 5) carries the add-ons the buyer accepted. Priced add-ons are lines with key `<variantId>:addon:<offerId>`, `addonOf` and `parentVariantId`, shown in `Quote.lines` and counted in `subtotal`; an add-on that cannot be priced is dropped and listed in `Quote.rejectedAddons` and never makes the quote unavailable.
+- **Add-ons in the token.** Add-on lines go **only in `a[]`**, never in `l`, so intake counts each once. `a[]` entries are `{ offerId, variantId, qty, unitPrice, parentVariantId: string | null }` (`null` for an add-on offered on any order). Token invariant: `t = Σ l(unitPrice × qty) + Σ a(unitPrice × qty) + sh − Σ d.amount`.
+- **`h` and add-ons.** `h` covers the accepted add-ons as a key `addons: [[offerId, variantId, quantity], …]` sorted by offer id then variant id, **present only when non-empty**, so every hash of a cart without add-ons is unchanged.
+- **Placement is internal.** Whether an add-on is offered on the order form or the thank-you page is an internal option of the trusted scoped core, `quoteForScope(ctx, scope, request, { addonPlacement })` (default `order_form`), never a field of the public request. The post-order add-on (`OrderAddonService`, P3.S4/P4.S1 wire it) quotes the order's cart with `thank_you` and gives the order's own uses back (`orderUsage`, D2542).
+- **Add-ons always combine (D2507, D2531).** An accepted add-on never competes with other offers and enters the subtotal before the order stage, so order minimums, order discounts and delivery thresholds see it.

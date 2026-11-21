@@ -1,5 +1,6 @@
 export { TenantContextMissingError } from './api/tenant-context-missing.error';
-export { tenantOf } from './api/tenant-of';
+export { findTenant, tenantOf } from './api/tenant-of';
+export { RequestStoreSettings } from './api/request-store-settings';
 export { platformStaffPermission, tenantBusinessPermission } from './api/permissions';
 export { TenantScoped } from './api/tenant-scoped.decorator';
 export { TenantGuard } from './api/tenant.guard';
@@ -17,6 +18,7 @@ export {
   ProvisionBusinessService,
 } from './application/provision-business.service';
 export { BusinessStoreDirectory, type BusinessSummary } from './domain/ports/business-store-directory.port';
+export { type StoreSettings, StoreSettingsReader } from './domain/ports/store-settings-reader.port';
 export type {
   BusinessProvisionedEvent,
   StoreCreatedEvent,

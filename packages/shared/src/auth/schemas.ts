@@ -4,7 +4,13 @@ import { AUTH_OPAQUE_TOKEN_MAX_LENGTH, OTP_LENGTH, PASSWORD_MAX_BYTES, PASSWORD_
 import { normalizeEmail } from './normalize-email';
 
 const NAME_MAX_LENGTH = 100;
-const PHONE_DIGITS = /^\+\d{8,15}$/;
+/** E.164: a country code never starts with 0. */
+const PHONE_E164 = /^\+[1-9]\d{7,14}$/;
+/**
+ * An Algerian national number has no trunk 0: a mobile (5/6/7) has 9 digits, a fixed line (area code 2x/3x/4x)
+ * has 8. Any other length is a second spelling of some number, so it is refused.
+ */
+const ALGERIAN_E164 = /^\+213(?:[5-7]\d{8}|[2-4]\d{7})$/;
 const ALGERIA_PREFIX = '+213';
 const NATIONAL_TRUNK = '0';
 const PHONE_SEPARATORS = /[\s.\-()]/g;
@@ -25,9 +31,13 @@ export const emailSchema = z.string().transform(normalizeEmail).pipe(z.email());
 /** The numeric code from a verification email. */
 export const otpSchema = z.string().regex(new RegExp(`^\\d{${String(OTP_LENGTH)}}$`));
 
+/** `00…` is the same number as `+…`, so it goes through the `+2130` trunk rule too (one buyer, one E.164 string). */
+function withPlusPrefix(compact: string): string {
+  return compact.startsWith(INTERNATIONAL_PREFIX) ? `+${compact.slice(INTERNATIONAL_PREFIX.length)}` : compact;
+}
+
 function toInternationalPhone(raw: string): string {
-  const compact = raw.trim().replace(PHONE_SEPARATORS, '');
-  if (compact.startsWith(INTERNATIONAL_PREFIX)) return `+${compact.slice(INTERNATIONAL_PREFIX.length)}`;
+  const compact = withPlusPrefix(raw.trim().replace(PHONE_SEPARATORS, ''));
   if (compact.startsWith(ALGERIA_PREFIX + NATIONAL_TRUNK))
     return ALGERIA_PREFIX + compact.slice(ALGERIA_PREFIX.length + 1);
   if (compact.startsWith(NATIONAL_TRUNK)) return `${ALGERIA_PREFIX}${compact.slice(1)}`;
@@ -36,9 +46,18 @@ function toInternationalPhone(raw: string): string {
 
 /**
  * A phone number in E.164. A national number with a leading 0 is read as Algerian (+213), a leading 00
- * as +, and a trunk 0 typed after +213 is dropped.
+ * as +, and a trunk 0 typed after +213 is dropped. Anything that would still give one buyer a second spelling
+ * (a country code starting with 0, a +213 number that is not a valid mobile or fixed-line length) is refused (D2418).
  */
-export const phoneE164Schema = z.string().transform(toInternationalPhone).pipe(z.string().regex(PHONE_DIGITS));
+export const phoneE164Schema = z
+  .string()
+  .transform(toInternationalPhone)
+  .pipe(
+    z
+      .string()
+      .regex(PHONE_E164)
+      .refine((phone) => !phone.startsWith(ALGERIA_PREFIX) || ALGERIAN_E164.test(phone)),
+  );
 
 const nameSchema = z.string().trim().min(1).max(NAME_MAX_LENGTH);
 const opaqueTokenSchema = z.string().max(AUTH_OPAQUE_TOKEN_MAX_LENGTH);

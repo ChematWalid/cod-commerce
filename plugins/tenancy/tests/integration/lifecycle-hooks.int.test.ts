@@ -1,5 +1,5 @@
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
-import { toBusinessId } from '@cod/shared';
+import { toBusinessId, toSnowflake } from '@cod/shared';
 import { RequestContextService, TransactionalConnection, User } from '@vendure/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProvisionBusinessService } from '../../application/provision-business.service';
@@ -125,6 +125,25 @@ describe('Tenant lifecycle hooks', () => {
     await expect(creating).rejects.toThrow('seeding failed');
     expect(probe.storeEvents).toHaveLength(1);
     expect(await counts()).toEqual(before);
+  });
+
+  it('the directory answers whether a business is active, and false once suspended or unknown', async () => {
+    // Arrange
+    const { business } = await server.app
+      .get(ProvisionBusinessService)
+      .provision(await context(), commandFor('suspendable'));
+    const directory = server.app.get(BusinessStoreDirectory);
+    const businessId = toBusinessId(business.id);
+    const active = await directory.isActiveBusiness(await context(), businessId);
+    const connection = server.app.get(TransactionalConnection).rawConnection;
+
+    // Act
+    await connection.getRepository(BusinessEntity).update({ id: business.id }, { status: 'suspended' });
+    const suspended = await directory.isActiveBusiness(await context(), businessId);
+    const unknown = await directory.isActiveBusiness(await context(), toBusinessId(toSnowflake('1')));
+
+    // Assert
+    expect([active, suspended, unknown]).toEqual([true, false, false]);
   });
 
   it('clamps the page size of allBusinessIds to at least one row', async () => {

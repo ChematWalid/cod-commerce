@@ -62,6 +62,7 @@ export const STRONG_SECRETS = {
   AUTH_TOKEN_SECRET: syntheticSecret('auth-token-secret'),
   INTERNAL_HMAC_KEYS: `k1:${syntheticSecret('internal-hmac-k1')}`,
   TENANT_SECRET_KEKS: `k1:${KEK_ONE}`,
+  QUOTE_HMAC_KEYS: `k1:${syntheticSecret('quote-hmac-k1')}`,
   S3_SECRET_KEY: syntheticHex('s3-secret-key'),
 } as const;
 
@@ -75,9 +76,12 @@ export const CORE_ENV = {
   REDIS_URL: 'redis://valkey:6379',
   ...STRONG_SECRETS,
   TENANT_SECRET_ACTIVE_KID: 'k1',
+  QUOTE_HMAC_ACTIVE_KID: 'k1',
   SUPERADMIN_USERNAME: 'superadmin',
   SUPERADMIN_PASSWORD: 'test-password',
   S3_ENDPOINT: 'http://garage:3900',
+  // The https link host production needs beside the internal http endpoint (D2252).
+  S3_PUBLIC_ENDPOINT: 'https://files.example.test',
   S3_ACCESS_KEY: `GK${'a'.repeat(24)}`,
   S3_BUCKET_PRIVATE: 'cod-private',
 } as const;

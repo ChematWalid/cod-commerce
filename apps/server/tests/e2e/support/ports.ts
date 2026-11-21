@@ -19,4 +19,5 @@ export const E2E_PORTS = {
   internalOnly: 3062,
   valkeyLoss: 3063,
   isolation: 3064,
+  p2Isolation: 3065,
 } as const;

@@ -1,0 +1,112 @@
+import {
+  MAX_LINE_OFFERS_APPLIED,
+  MAX_ORDER_DISCOUNTS_APPLIED,
+  MAX_QUOTE_ADDONS,
+  MAX_QUOTE_LINES,
+  type AddonPlacement,
+  type CombinationClass,
+  type OfferMethod,
+  type OfferTargetRole,
+  type PricingChannel,
+} from '@cod/shared';
+
+/** The method of offers a typed code activates; only they hold codes (D2403, D2449). */
+export const CODES_METHOD: OfferMethod = 'codes';
+
+/** Orders a buyer has before their first one: a `first` audience offer is for a buyer with this many (D2418). */
+export const FIRST_ORDER_COUNT = 0;
+
+/**
+ * Target roles whose lines an offer counts and discounts (D2410). A set, not a comparison: P2.S5 adds the `get` and
+ * `addon` roles, which are not bought lines.
+ */
+export const BUY_ROLES: ReadonlySet<string> = new Set(['buy']);
+
+/** What joins a gift line's variant id and offer id in its key (D2504); `:` never occurs in a decimal id. */
+export const GIFT_KEY_SEPARATOR = ':gift:';
+
+/** What joins an add-on line's variant id and offer id in its key (D2506); `:` never occurs in a decimal id. */
+export const ADDON_KEY_SEPARATOR = ':addon:';
+
+/** Milliseconds per second: token instants are integer epoch seconds (D2421). */
+export const MS_PER_SECOND = 1_000;
+
+/** Dot-separated parts of a quote token: `qt1.<payload>.<signature>` (D2421). */
+export const QUOTE_TOKEN_PART_COUNT = 3;
+
+/** The unpadded base64url alphabet of a token's payload and signature parts. */
+export const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * First value a sign `issuedAt` may not reach: epoch seconds stay below it until the year 5138, while epoch
+ * milliseconds of any date after 1973 are above it, so a clock read in milliseconds is caught (D2421).
+ */
+export const EPOCH_SECONDS_LIMIT = 100_000_000_000;
+
+/**
+ * Most candidates of a combination class one quote accepts (D2411): order discounts are listed once per quote in the
+ * token (`d`), so they are bounded per quote; a waived delivery is one flag whatever its count.
+ */
+export const ACCEPTED_LIMIT_PER_QUOTE_BY_CLASS: Readonly<Partial<Record<CombinationClass, number>>> = {
+  order: MAX_ORDER_DISCOUNTS_APPLIED,
+};
+
+/**
+ * Most candidates of a combination class one line carries (D2411): a token line lists its own `offerIds`, so line
+ * offers are bounded per line, and offers on other lines never count against each other.
+ */
+export const ACCEPTED_LIMIT_PER_LINE_BY_CLASS: Readonly<Partial<Record<CombinationClass, number>>> = {
+  product: MAX_LINE_OFFERS_APPLIED,
+};
+
+/** Width of the short enum-like columns (`method`, `status`, target `role` and `refType`); every value is shorter. */
+export const ENUM_COLUMN_LENGTH = 16;
+
+/** The `source` of a unit price no resolver claimed: the variant's channel list price (D2423). */
+export const LIST_PRICE_SOURCE = 'variant';
+
+/**
+ * Most delivery-class offers one quote applies: the first waives the delivery fee, and any later one is worth nothing
+ * and is refused, never applied (D2414).
+ */
+export const MAX_DELIVERY_OFFERS_APPLIED = 1;
+
+/**
+ * Most offers one order can hold (D2427, D2445, D2451, D2531 c): every line at its line-offer bound, the order
+ * discounts, the one delivery waiver and one add-on offer per add-on, as the token's `o` lists them. An order usage
+ * naming more did not come from a stored order.
+ */
+export const MAX_ORDER_HELD_OFFERS =
+  MAX_QUOTE_LINES * MAX_LINE_OFFERS_APPLIED +
+  MAX_ORDER_DISCOUNTS_APPLIED +
+  MAX_DELIVERY_OFFERS_APPLIED +
+  MAX_QUOTE_ADDONS;
+
+/** The order statuses a post-order add-on may still be appended in (D2508): before the order is confirmed. */
+export const ADDON_EDITABLE_ORDER_STATUSES: ReadonlySet<string> = new Set(['pending', 'unconfirmed']);
+
+/**
+ * The id of the draft a preview prices (D2516). Not a decimal id, so it never names a stored offer; the synthetic
+ * product and variant ids below are not decimal either, so they never name a real one.
+ */
+export const PREVIEW_OFFER_ID = 'preview-offer';
+
+/** The code that activates a draft activated by codes in its preview (D2516); stored codes are upper case. */
+export const PREVIEW_CODE = 'PREVIEW';
+
+/** The channel a preview prices on when the draft allows every channel (D2516). */
+export const PREVIEW_DEFAULT_CHANNEL: PricingChannel = 'storefront';
+
+/** Where a preview offers add-ons when the draft's kind offers none (D2516). */
+export const PREVIEW_ADDON_PLACEMENT: AddonPlacement = 'order_form';
+
+/** The product and variant of a synthetic preview line of each role, when the draft has no target of that role. */
+export const PREVIEW_ITEM_IDS: Readonly<Record<OfferTargetRole, { productId: string; variantId: string }>> = {
+  buy: { productId: 'preview-buy-product', variantId: 'preview-buy-variant' },
+  get: { productId: 'preview-get-product', variantId: 'preview-get-variant' },
+  addon: { productId: 'preview-addon-product', variantId: 'preview-addon-variant' },
+};
+
+/** Pieces of the add-on a preview accepts, and of a get line when its kind does not say (D2516). */
+export const PREVIEW_ADDON_PIECES = 1;
+export const PREVIEW_GET_PIECES = 1;

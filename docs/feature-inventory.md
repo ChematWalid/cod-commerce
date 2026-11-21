@@ -113,13 +113,13 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | ✓ | Feature | Type | Where / notes |
 |---|---|---|---|
 | [ ] | Product list: All / Draft; filters collection, brand, tag; search name/SKU/barcode; preview, edit, customize page, set draft | C | `S:/products` |
-| [ ] | Product types: physical product and Pack (bundle) | C | |
-| [ ] | Product form: title, rich-text description, main + additional images, price, old price, SKU, weight, package size, variants (options × values), status Active / Hidden (landing-page only) / Draft, brand, collections, tags, custom fields, highlights (max 6), SEO listing | C | `S:/products/add`, `S:/products/:id/edit` |
-| [ ] | Product settings: name on delivery label, fragile, keep selling when out of stock, quantity rules, dedicated order managers | C | |
+| [x] | Product types: physical product and Pack (bundle) | C | |
+| [x] | Product form: title, rich-text description, main + additional images, price, old price, SKU, weight, package size, variants (options × values), status Active / Hidden (landing-page only) / Draft, brand, collections, tags, custom fields, highlights (max 6), SEO listing | C | `S:/products/add`, `S:/products/:id/edit` |
+| [x] | Product settings: name on delivery label, fragile, keep selling when out of stock, quantity rules, dedicated order managers | C | |
 | [ ] | Bulk edit, export | S | |
 | [ ] | Import products from a link (scrape + AI polish) or spreadsheet (analyze → preview → confirm) | S | `/scrape/*`, `/import-export/*` |
-| [ ] | Collections: image, title, description, manual products or automatic conditions, visibility, position | C | `S:/categories/new` |
-| [ ] | Offers: quantity offer, free delivery, product discount, discount codes, buy X get Y, order discount, add-on (pre/post purchase upsell) | C | `S:/offers` |
+| [x] | Collections: image, title, description, manual products or automatic conditions, visibility, position | C | `S:/categories/new` |
+| [x] | Offers: quantity offer, free delivery, product discount, discount codes, buy X get Y, order discount, add-on (pre/post purchase upsell) | C | `S:/offers` |
 | [ ] | A/B tests: landing page vs product page, lifecycle | S | `S:/ab-tests` |
 | [ ] | Landing pages per product (plan-limited) | C | builder `product` pages |
 | [ ] | Sold-out behaviour: keep showing or hide; stop/resume orders | C | store settings |
@@ -256,8 +256,8 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 | [ ] | Carrier collection with expected vs received and difference category | C | Finance |
 | [ ] | P&L "at most" with missing-cost warnings; working money (carriers + road + stock) | C | Finance |
 | [ ] | Product types incl. Pack (bundle pricing/variant/weight modes); AI image clean-up; product store-page template | S | Products |
-| [ ] | Offer engine: 7 kinds (quantity, free delivery, product discount, discount codes, buy X get Y, order discount, add-on pre/post order) with audience, channels, schedule, usage limits, combination rules, live Arabic preview, draft/publish, performance stats | C | Offers |
-| [ ] | Collections with automatic conditions (All/Any; tag, brand, price, on sale, title, option values) | C | Products |
+| [x] | Offer engine: 7 kinds (quantity, free delivery, product discount, discount codes, buy X get Y, order discount, add-on pre/post order) with audience, channels, schedule, usage limits, combination rules, live Arabic preview, draft/publish, performance stats | C | Offers |
+| [x] | Collections with automatic conditions (All/Any; tag, brand, price, on sale, title, option values) | C | Products |
 | [ ] | Landing pages: per product or chosen variants; block editor (image, text, video incl. TikTok/YouTube, button to form/WhatsApp, spacer, benefits, reviews, before/after, FAQ, countdown, trust strip, custom code); order-form block config (fields, custom questions, delivery display, summary, sticky button, language/direction, after-order thank-you/WhatsApp/link); AI generation (20 credits) | C | Store |
 | [ ] | A/B test wizard: product → competing pages → traffic split → winner metric (conversion, AOV, confirmation rate, delivery rate) | S | Store |
 | [ ] | Builder: page templates (Home, Product pages incl. per-product override, Collection, Checkout, Success, Search); full section settings; styles (palettes, Arabic font pairings, RTL/LTR, order button, global product card, filters, layout & motion, page code JS, custom CSS); keyboard shortcuts; Tassya AI design tab | C | Store |

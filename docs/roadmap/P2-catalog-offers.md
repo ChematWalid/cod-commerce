@@ -36,6 +36,7 @@ Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUT
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S1-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P1.S5.md`, ADR 0002 (tenant scoping), ADR 0003 (ids).
 - D500 in `docs/roadmap/P1-decisions.md` (#229): Vendure's `slugForEntity` is platform-staff only, so product and collection slug checks need a business-scoped endpoint of `plugins/catalog` (the stock dashboard slug field calls the refused query).
 - `docs/research/data-model.md` "Product" (Product, ProductOption, ProductVariant field lists, image CDN note).
@@ -127,6 +128,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S2-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S1.md`.
 - `docs/research/data-model.md` "Product" (`type: PHYSICAL | (PACK)`, `packPricingMode`, `packDiscountType`, `packDiscountValue`, `packVariantMode`, `packSharedOption`, `packWeightMode`, `bundleId`, `source`, `importJobId`, `scrapImportNeedsImageReview`) and "Order" `orderItems.bundleId/packParentItemId`.
 - `docs/research/api-surface.md` "Catalog & store": `/products/bulk-edit`, `/products/export`, `/import-export/fields`, `/import-export/formats`, `/import-export/products/analyze`, `/import-export/products/imports/:id` (+ `/preview`, `/confirm`), `/scrape/import-job`, `/scrape/products/:id/polish`.
@@ -196,6 +198,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S3-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S1.md`.
 - `docs/research/second-pass.md` "Collections" (create page `/stores/:sid/categories/new`; "Products must match All / Any"; condition fields Tag, Brand, Price, On sale, Title + every product option name; operators "is any of" / "is not"; live "which products match" preview; manual Add products; Visibility; Organization/position).
 - `docs/research/data-model.md` "Product" (`categoryId`, `categoryIds[]`, `collections[]`); `api-surface.md` "Catalog & store" (`/products/categories`); `dashboard-captures.md` "Collections `/stores/:storeId/categories`".
@@ -264,6 +267,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S4-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S1.md`, ADR 0004 (pricing/quote token and how quotes become Vendure order totals — the engine must produce exactly the per-line and shipping numbers that strategy needs), ADR 0003; `docs/roadmap/handoff/P2.S2.md` if merged (pack resolver).
 - `docs/research/data-model.md` "Offer" (entity, `config`, `combinesWith`, `eligibility`, limits, status, targets, performance) and "Storefront ordering protocol" steps 2–3 (shipping-quote shape; cart-quote request/response; quoteToken format `qt1.<base64url JSON {v,b,s,h,exp,t,sh,l,d,a}>.<HMAC>`, ~15 min).
 - `docs/research/second-pass.md` "Storefront order → delivered" step 1 and 4 (nudge "add one more piece to save 980 DA"; "Now: 1 piece · 2 pieces: DZD 8,820 (+3,920) · 3 pieces … Free delivery") and "Offers (7 kinds)" shared parts and kinds 1–4, 6.
@@ -337,6 +341,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S5-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S4.md`, ADR 0004.
 - `docs/research/second-pass.md` "Offers (7 kinds)" — shared editor parts (name, Arabic headline, Automatic/With codes, Who and where, Shown on, Dates and limits, Combines with, live Summary and Arabic order-form preview, footer Discard / Save as draft / Publish) and kinds 1–7 (BXGY: buy N get M, gift Free/% off/fixed, most times per order, visible removable gift line; Add-on: 1–5 add-on products, price fixed/% off/amount off, pieces per order, checkbox in the form or one tap on the thank-you page while unconfirmed). Also "Products" edit-page "Offers section".
 - `docs/research/data-model.md` "Offer" (`targets[{role: buy|get|addon,…}]`, `performance`, `codeCount`, lifecycle timestamps).

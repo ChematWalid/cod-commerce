@@ -27,28 +27,103 @@ export const TENANT_TABLE_COUNTS = {
   commission_config: BY_BUSINESS('commission_config'),
 } as const;
 
-export type TenantTable = keyof typeof TENANT_TABLE_COUNTS;
+/**
+ * The catalog tables (P2.S1, D2100): the P2 world seeds a row of each business in every one. Vendure's own product,
+ * variant and asset tables carry no business column; their rows are reached through the catalog cases instead.
+ */
+export const CATALOG_TABLE_COUNTS = {
+  catalog_brand: BY_BUSINESS('catalog_brand'),
+  catalog_tag: BY_BUSINESS('catalog_tag'),
+  catalog_product_tag: BY_BUSINESS('catalog_product_tag'),
+  catalog_highlight: BY_BUSINESS('catalog_highlight'),
+  catalog_product_highlight: BY_BUSINESS('catalog_product_highlight'),
+  catalog_product_settings: BY_BUSINESS('catalog_product_settings'),
+  catalog_product_collection: BY_BUSINESS('catalog_product_collection'),
+  catalog_media: BY_BUSINESS('catalog_media'),
+} as const;
 
+/** The offers tables (P2.S4, D2405): the P2 world seeds an offer with a target and a code in each business. */
+export const OFFERS_TABLE_COUNTS = {
+  offers_offer: BY_BUSINESS('offers_offer'),
+  offers_offer_target: BY_BUSINESS('offers_offer_target'),
+  offers_code: BY_BUSINESS('offers_code'),
+} as const;
+
+/**
+ * The collections tables (P2.S3, D2300): the P2 world seeds collections with rules and members in each business
+ * through `createStoreCollection` (D2330).
+ */
+export const COLLECTIONS_TABLE_COUNTS = {
+  collections_definition: BY_BUSINESS('collections_definition'),
+  collections_member: BY_BUSINESS('collections_member'),
+} as const;
+
+/** The pack tables (P2.S2, D2202): the P2 world saves a pack with two components in each business. */
+export const CATALOG_PACKS_TABLE_COUNTS = {
+  catalog_pack: BY_BUSINESS('catalog_pack'),
+  catalog_pack_component: BY_BUSINESS('catalog_pack_component'),
+} as const;
+
+/**
+ * The import and export tables (P2.S2, D2210, D2211, D2214): the P2 world previews a spreadsheet import (its job and
+ * rows), exports a product and imports a link (its job and the Draft's origin) in each business.
+ */
+export const CATALOG_IMPORT_TABLE_COUNTS = {
+  catalog_import_job: BY_BUSINESS('catalog_import_job'),
+  catalog_import_row: BY_BUSINESS('catalog_import_row'),
+  catalog_export_job: BY_BUSINESS('catalog_export_job'),
+  catalog_product_origin: BY_BUSINESS('catalog_product_origin'),
+} as const;
+
+/** Every counted table: P1's, the catalog's, the offers', the collections', the packs' and the import's. */
+const ALL_TABLE_COUNTS = {
+  ...TENANT_TABLE_COUNTS,
+  ...CATALOG_TABLE_COUNTS,
+  ...OFFERS_TABLE_COUNTS,
+  ...COLLECTIONS_TABLE_COUNTS,
+  // P2.S2: the packs' and the import's.
+  ...CATALOG_PACKS_TABLE_COUNTS,
+  ...CATALOG_IMPORT_TABLE_COUNTS,
+};
+
+export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
+
+/**
+ * Catalog tables no server path writes any more: with the collections plugin registered, a product's manual
+ * collection links live in `collections_member` (D2309); the table is dropped after P2. The census expects them empty.
+ */
+export const RETIRED_TABLES: readonly TenantTable[] = ['catalog_product_collection'];
+
+/** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
+
+/**
+ * The P1 tables, the catalog's, the offers', the collections', the packs' and the import's, less the retired ones: the
+ * P2 world fills each.
+ */
+export const P2_TENANT_TABLES = (Object.keys(ALL_TABLE_COUNTS) as TenantTable[]).filter(
+  (table) => !RETIRED_TABLES.includes(table),
+);
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */
 export interface SqlRunner {
   query(sql: string, parameters: unknown[]): Promise<{ n: number }[]>;
 }
 
-/** A's and B's row counts in every tenant table. */
+/** A's and B's row counts in every table of `tables` (the P1 tenant tables unless named). */
 export async function tenantRowCounts(
   sql: SqlRunner | { rawConnection: SqlRunner },
   [a, b]: readonly [string, string],
-): Promise<Record<TenantTable, { a: number; b: number }>> {
+  tables: readonly TenantTable[] = TENANT_TABLES,
+): Promise<Partial<Record<TenantTable, { a: number; b: number }>>> {
   const runner = 'rawConnection' in sql ? sql.rawConnection : sql;
   const count = async (statement: string, businessId: string): Promise<number> =>
     (await runner.query(statement, [businessId]))[0]?.n ?? 0;
   const entries = await Promise.all(
-    TENANT_TABLES.map(async (table) => {
-      const statement = TENANT_TABLE_COUNTS[table];
+    tables.map(async (table) => {
+      const statement = ALL_TABLE_COUNTS[table];
       return [table, { a: await count(statement, a), b: await count(statement, b) }] as const;
     }),
   );
-  return Object.fromEntries(entries) as Record<TenantTable, { a: number; b: number }>;
+  return Object.fromEntries(entries);
 }

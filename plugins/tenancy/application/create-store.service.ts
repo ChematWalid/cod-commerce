@@ -101,7 +101,10 @@ export class CreateStoreService {
     return business;
   }
 
-  /** The new channel holds nothing yet, so a logo must come from a channel the business already has. */
+  /**
+   * The new channel holds nothing yet, so a logo must come from a channel the business already has; {@link openStore}
+   * then shares it with the new channel, the one `Store.logoUrl` and `updateStore` look at (D2120).
+   */
   private async assertLogoAllowed(ctx: OperationContext, business: Business, input: CreateStoreInput): Promise<void> {
     if (input.logoAssetId === undefined) return;
     const stores = await this.ports.platform.findStoreAccess(ctx, toBusinessId(business.id));
@@ -120,6 +123,9 @@ export class CreateStoreService {
     const { sellerId } = business;
     const channelId = await this.ports.channels.createChannel(ctx, { sellerId, language: input.language });
     await this.ports.channels.assignRoleToChannel(ctx, business.ownerRoleId, channelId);
+    if (input.logoAssetId !== undefined) {
+      await this.ports.assets.shareWithChannel(ctx, input.logoAssetId, channelId);
+    }
     const store = newStore({
       id: toStoreId(this.ports.ids.next()),
       businessId: business.id,

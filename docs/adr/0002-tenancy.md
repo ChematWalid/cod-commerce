@@ -98,6 +98,29 @@ Accepted (2026-11-09, standing user authorization for P1). Sharpens the Decision
 - **Lifecycle hooks (D56).** Tenancy exposes `TenantLifecycleRegistry` (`businessProvisioned`, `storeCreated`), awaited inside the provisioning or store transaction, so the RBAC plugin seeds roles atomically without tenancy importing it.
 - **Existing businesses (D57).** No SQL data migration: `runMigrate` converges every business idempotently, adopting `ownerRoleId` as Owner's `all` binding with the same Vendure Role id, so sessions and user rows stay valid.
 
+## Addendum: tenant status on every handler (P2.S1, 2026-11-14)
+
+Accepted (2026-11-14, standing user authorization for P2). Sharpens Isolation mechanism §2; audit finding TEN-3 (#108); full reasoning: `docs/roadmap/P2-decisions.md` (D2117).
+
+- **Where status is checked today.** Store archive and business suspension are checked by `TenantGuard`, and only on handlers that carry `@TenantScoped()`; there is no global guard. Invariants and the gate that pins each:
+  - no catalogue key projects onto a stock Vendure permission, so a merchant role reaches stock handlers only through `Authenticated` (gate: `apps/server/tests/unit/tenant-status-guard.test.ts`, `REVIEWED_STOCK_ENGINE_GRANTS` is empty);
+  - `requirePermission` adds `TenantGuard` to the method or class it decorates (gate: `plugins/rbac/tests/unit/require-permission.test.ts`, "requirePermission tenant scope");
+  - every plugin handler carries `requirePermission` or a non-empty `@Allow` (gate: `packages/config/tests/handler-permissions.test.ts`); it does not check `@TenantScoped()`;
+  - a store id taken from input is read through `RequestStoreSettings`, which answers null outside `tenantOf(ctx).storeIds` (gate: `plugins/tenancy/tests/unit/request-store-settings.test.ts`; that handlers use it is a review rule, checked in Task 11's isolation sweep).
+
+  What is a rule, not yet a gate: a plugin handler that touches tenant tables uses `requirePermission` or adds `@TenantScoped()` itself. A raw `@Allow(<plugin permission>)` without `@TenantScoped()` is accepted by the handler-permissions test (D85) and would skip the status checks; today only platform-staff handlers use it (`platform-flags`, `platform-outbox` jobs health, and tenancy's `slug-for-entity.resolver.ts`), and they read no business's rows. This residual closes with option A below, or earlier with an arch test listing raw-`@Allow` handlers without `@TenantScoped()` against a reviewed allow-list (tracked in the P2.S1 handoff).
+- **Known exceptions, on purpose.** Every engine role holds the stock `Permission.Authenticated`, which Vendure requires of any signed-in caller: the RBAC binding projector and converge add it to each role as `ENGINE_BASE_PERMISSION` (`plugins/rbac/domain/constants.ts`). So a member of a suspended business or an archived store still reaches the grant-free handlers of `apps/server/tests/unit/open-admin-operations.reviewed.ts`. That file is the full list, each operation with what it reads; this ADR names the categories and why each is exempt from status checks, since none reads or writes another row of the business:
+  - own-account operations (`activeAdministrator`, `updateActiveAdministrator`, `setActiveAdministratorAvatar`, `me`, the account profile, password, email-change request and email verification operations) act on the caller's own user;
+  - token-bearer operations (`confirmEmailChange`, `verifyEmail`, `resetPassword`) act on the owner of a mailed token, which proves the mailbox;
+  - sign-in and sign-up (`login`, `authenticate`, `logout`, `requestPasswordReset`, `registerMerchant`) start or end the caller's own session, or create a new business, and answer the same for an unknown address;
+  - public configuration (`authPublicConfig`, `subdomainAvailability`, `entityDuplicators`, `globalSettings`) returns deployment or platform settings, or whether a public host name is free;
+  - `activeChannel` returns the request's own channel; `duplicateEntity` needs a stock permission no merchant role holds; the settings-store operations have no registered field; `switchableStores` lists only active stores of the caller's business, which is none for a suspended one (`plugins/tenancy/tests/integration/switchable-stores.int.test.ts`, "lists the active stores ... without the archived one" and "answers a suspended business with no stores").
+
+  The gate below cannot see them, since they need no grant; adding a handler to that file means placing it in one of these categories or extending this list. Option A below covers them too once it lands.
+- **When the global guard becomes mandatory.** The session that adds the first reviewed stock grant also adds a global tenant status guard (option A, an `APP_GUARD` that runs after Vendure's `AuthGuard`) in the same PR, so a suspended business or archived store cannot reach a stock handler through that grant.
+- **Gate.** `apps/server/tests/unit/tenant-status-guard.test.ts` fails as soon as any catalogue key projects onto a stock `Permission`, or `ownerRolePermissions`, which the Owner role receives directly rather than through catalogue keys, contains one (the engine base `Authenticated` is added on top of it); its messages point here.
+- **Proof of the scoped path (planned).** Task 11 of P2.S1 adds the catalog plugin's integration suite `plugins/catalog/tests/integration/tenant-status.int.test.ts`, which checks that its handlers refuse an archived store and a suspended business (`FORBIDDEN` on `catalogProducts`, `createCatalogProduct`, the REST routes and `uploadCatalogMedia`). TEN-3 (#108) stays open until that suite is merged, and is then closed by the P2.S1 PR (closed by hand after the squash-merge into `phase/P2`, D2143).
+
 ## Consequences
 
 ### Positive

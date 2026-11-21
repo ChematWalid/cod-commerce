@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# The dashboard screenshots are historical: scripts/evidence/template-screens.mjs drove the template route that P2.S1
+# removed (D2111), so a re-run skips that step and keeps the committed dashboard shots. Everything else still re-runs.
+# Needs APP_ENV development or test (the .env.example default): the isolation rows use the template notes.
 # Proof-of-working evidence for P1.S1 (CLAUDE.md §3a.14): runs the real compose stack under its own project (cod-evidence,
 # host ports +20000), plus a second api container of the same image, seeds the demo businesses and records live
 # transcripts of every new tenancy operation and REST route (cross-tenant not-found, FORBIDDEN, anonymous availability,
@@ -28,6 +31,9 @@ export SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_FROM=no-reply@localhost AUTH_DASHBO
 export SMTP_TLS=none SMTP_USERNAME='' SMTP_PASSWORD=''
 export INTERNAL_HMAC_KEYS=k1:evidence-internal-hmac-key-synthetic-0000000001 INTERNAL_HMAC_ACTIVE_KID=k1
 export TENANT_SECRET_KEKS=k1:3a5c7e9f1b2d4f60718293a4b5c6d7e8f9a0b1c2d3e4f5061728394a5b6c7d8e TENANT_SECRET_ACTIVE_KID=k1
+: "${QUOTE_HMAC_KEYS:=k1:change-me-quote-hmac-00000000000000000000000000}"
+: "${QUOTE_HMAC_ACTIVE_KID:=k1}"
+export QUOTE_HMAC_KEYS QUOTE_HMAC_ACTIVE_KID
 export WORKER_ACTIVE_QUEUES=''
 # shellcheck source=lib/sign.sh
 . scripts/evidence/lib/sign.sh
@@ -392,12 +398,11 @@ export DEMO_STORE_NAME='Demo Store' DEMO_STORE_LOCALE=ar DEMO_STORE_HOST=demo.lo
 export SECOND_STORE_NAME='Second Store' SECOND_STORE_LOCALE=fr SECOND_STORE_HOST=second.localhost
 export STORE_NAME_TEST_ID=store-name NOT_FOUND_TEST_ID=not-found NOT_FOUND_TEXT='Page not found' UNKNOWN_HOST=nope.localhost
 node scripts/evidence/storefront-screens.mjs "$STOREFRONT_HOST_PORT" "$work/shots-store" "$work/store-table.md"
-OWNER_EMAIL_A=$OWNER_A OWNER_EMAIL_B=$OWNER_B STORE_SUBDOMAIN_A=demo CHANNEL_TOKEN_A=$TOKEN_A \
-  NOTE_TITLES="$TITLE_A1|$TITLE_A2" OTHER_BUSINESS_TITLE="$TITLE_B1" \
-  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/template-screens.mjs "$api/dashboard" "$work/shots-dash" "$work/dash-table.md"
-rm -rf "$out/screens"
+# The dashboard shots drove the template route that P2.S1 removed (D2111): skipped, the committed ones stay.
+echo "evidence: skipping the dashboard screenshots (template route removed in P2.S1, D2111); the committed ones stay" >&2
 mkdir -p "$out/screens"
-command cp "$work"/shots-store/*.png "$work"/shots-dash/*.png "$out/screens/"
+for f in "$work"/shots-store/*.png; do command rm -f "$out/screens/$(basename "$f")"; done
+command cp "$work"/shots-store/*.png "$out/screens/"
 
 # --- README, with what a person saw in the shots -----------------------------------------------
 {
@@ -433,11 +438,9 @@ Storefront:
 | --- | --- | --- | --- | --- |
 $(command cat "$work/store-table.md")
 
-Dashboard, signed in as the demo owner on the Arabic store:
-
-| File | URL | Viewport | Language | \`dir\` / \`lang\` asserted |
-| --- | --- | --- | --- | --- |
-$(command cat "$work/dash-table.md")
+Dashboard, signed in as the demo owner on the Arabic store: the \`dashboard-*\` and \`template-notes-*\` shots in
+\`screens/\` are historical. They drove the template notes route that P2.S1 removed (D2111), so this script no longer
+retakes them.
 
 README
   [[ -f scripts/evidence/P1.S1-seen.md ]] && command cat scripts/evidence/P1.S1-seen.md

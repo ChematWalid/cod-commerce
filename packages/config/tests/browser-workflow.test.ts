@@ -111,6 +111,43 @@ describe('browser.yml', () => {
     expect(job.services?.['valkey']?.image).toBe(integration.services?.['valkey']?.image);
   });
 
+  it('starts the compose object storage with the placeholder keys and waits for it before the api (P2.S1 uploads)', () => {
+    const garage = index('docker compose --env-file .env.example up -d --wait garage');
+
+    expect(garage).toBeGreaterThanOrEqual(0);
+    expect(garage).toBeLessThan(index('apps/server/dist/main-api.js'));
+    expect(job.env?.['S3_ENDPOINT']).toBe('http://localhost:3900');
+    expect(read('.env.example')).toContain(`S3_ACCESS_KEY=${job.env?.['S3_ACCESS_KEY'] ?? 'missing'}`);
+    expect(read('.env.example')).toContain(`S3_SECRET_KEY=${job.env?.['S3_SECRET_KEY'] ?? 'missing'}`);
+    expect(read('.env.example')).toContain(`S3_BUCKET_PRIVATE=${job.env?.['S3_BUCKET_PRIVATE'] ?? 'missing'}`);
+  });
+
+  it('signs the browser upload and download links on the endpoint the browser reaches (D2208)', () => {
+    expect(job.env?.['S3_PUBLIC_ENDPOINT']).toBe('http://localhost:3900');
+  });
+
+  it('sets the Garage bucket CORS right after the object storage starts, before the api (D2208)', () => {
+    const garage = index('docker compose --env-file .env.example up -d --wait garage');
+
+    expect(index('node scripts/garage-cors.mjs')).toBe(garage + 1);
+    expect(index('node scripts/garage-cors.mjs')).toBeLessThan(index('apps/server/dist/main-api.js'));
+  });
+
+  it('proves against the real Garage that a presigned PUT with a larger body than signed is refused with 403 (D2208)', () => {
+    const probe = index('node scripts/check-presigned-put.mjs');
+
+    expect(probe).toBeGreaterThan(index('node scripts/garage-cors.mjs'));
+    expect(probe).toBeLessThan(index('${{ matrix.command }}'));
+    expect(read('scripts/check-presigned-put.mjs')).toContain('PRESIGNED-PUT-OK');
+  });
+
+  it('signs the probe with the built adapter, so it covers the server signer (D2279)', () => {
+    expect(index('node scripts/check-presigned-put.mjs')).toBeGreaterThan(index('pnpm build'));
+    expect(read('scripts/check-presigned-put.mjs')).toContain(
+      'plugins/catalog-import/dist/infrastructure/garage-object-storage.js',
+    );
+  });
+
   it('stays inside the ADR 0001 time budget', () => {
     expect(job['timeout-minutes']).toBeLessThanOrEqual(10);
   });

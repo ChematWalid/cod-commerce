@@ -55,6 +55,23 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/team/infrastructure/invitation-token-lookup.ts',
   // Runs only the advisory lock (D213).
   '**/plugins/team/infrastructure/pg-business-lock.adapter.ts',
+  // Runs only the advisory lock that serialises saves of one product (P2.S1 Task 11 review).
+  '**/plugins/catalog/infrastructure/pg-product-lock.ts',
+  // Runs only the advisory locks that keep product saves and taxonomy deletes apart (P2.S1 Task 12 review).
+  '**/plugins/catalog/infrastructure/pg-taxonomy-lock.ts',
+  // Runs only the advisory locks that keep product saves and media deletes apart (P2.S1 Task 13 review, D2128).
+  '**/plugins/catalog/infrastructure/pg-media-lock.ts',
+  // Asset reads AssetService has only per channel: assets by id, their channels, and whether a live product, variant
+  // or collection uses one (core reads only featured images). Every id was found in the business's `catalog_media`
+  // first (P2.S1 Task 13, D2128, D2132).
+  '**/plugins/catalog/infrastructure/vendure-asset-reads.ts',
+  // The batched, read-only product facts of collection rules: Vendure's product, variant, price and option tables, which
+  // hold no tenant column, always joined to the caller's channel after the reader checked it is the store's; product
+  // ids are parsed first. Vendure's services read one product at a time (N+1) and have no keyset page or option list
+  // (P2.S3, D2308).
+  '**/plugins/catalog/infrastructure/vendure-product-facts.query.ts',
+  // Runs only the transaction advisory lock that serialises the membership writers of one store (P2.S3, D2334).
+  '**/plugins/collections-rules/infrastructure/pg-collections-lock.ts',
   // `platform_task_heartbeat` is a platform table, one row per scheduled task (D108, D120).
   '**/plugins/platform-jobs/infrastructure/task-heartbeat.repository.ts',
   // DDL and catalog reads of partition maintenance (`SET LOCAL`, `pg_advisory_xact_lock`); no tenant row (D106).
@@ -94,6 +111,11 @@ export const RAW_DATA_ACCESS_FILES = [
   'apps/server/src/seed/seed-demo-members.ts',
   // Takes (and polls for) only the migration advisory lock on its own `pg` client (the one file that imports `pg`); it reads no table.
   'apps/server/src/roles/migrate.role.ts',
+  // Runs only the advisory lock that serialises saves and recomputes of one pack product (P2.S2 Task 4 review, D2241).
+  '**/plugins/catalog-packs/infrastructure/pg-pack-lock.ts',
+  // Reads job rows of both catalog-import job tables across businesses (ids, scope, status, actor, times; never a
+  // payload) for the worker and the job reconciler; every write goes through TenantRepository (P2.S2 Task 6, D2212).
+  '**/plugins/catalog-import/infrastructure/postgres-job-scan.ts',
 ];
 
 export const RAW_DATA_ACCESS_MESSAGE =

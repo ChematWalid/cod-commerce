@@ -58,6 +58,34 @@ describe('architecture rules', () => {
     });
   });
 
+  it('lets the server app import the catalog entry', async () => {
+    // Arrange: the server app registers the plugin and calls its exported services (D2104, D2129)
+    const roots = ['apps/server'];
+
+    // Act
+    const good = await checkArchitecture({ baseDir: fixturesArch, roots });
+
+    // Assert
+    expect(good.cruisedModules).toEqual(
+      expect.arrayContaining(['apps/server/uses-catalog-package.ts', 'plugins/catalog/index.ts']),
+    );
+    expect(good.violations).toEqual([]);
+  });
+
+  it('refuses the catalog entry in a frontend app', async () => {
+    // Arrange: frontends are API clients and never bundle server services (ADR 0017)
+    const roots = ['apps/storefront'];
+
+    // Act
+    const bad = await checkArchitecture({ baseDir: fixturesArch, roots });
+
+    // Assert
+    const from = 'apps/storefront/uses-catalog-package.ts';
+    expect(bad.violations.filter((violation) => violation.from === from)).toEqual([
+      { rule: 'catalog-entry-infra-only', from, to: 'plugins/catalog/index.ts' },
+    ]);
+  });
+
   it('accepts a plugin that follows the dependency direction', async () => {
     const good = await checkArchitecture({ baseDir: fixturesArch, roots: ['plugins/good'] });
 
@@ -81,12 +109,18 @@ describe('architecture rules', () => {
         'plugins/auth/invitations.ts',
         'plugins/good/api/uses-rbac-guard-package.ts',
         'plugins/good/dashboard/uses-shell-api-package.ts',
+        'plugins/catalog/index.ts',
+        'plugins/good/catalog-wiring.plugin.ts',
         'plugins/good/infrastructure/uses-auth-invitations-package.ts',
+        'plugins/good/infrastructure/uses-catalog-package.ts',
+        'plugins/good/infrastructure/uses-collections-package.ts',
+        'plugins/collections-rules/index.ts',
         'plugins/good/infrastructure/uses-platform-package.ts',
         'plugins/good/infrastructure/uses-rbac-member-access-package.ts',
         'plugins/good/infrastructure/uses-tenancy-package.ts',
         'plugins/good/invitations-wiring.plugin.ts',
         'plugins/good/member-access-wiring.plugin.ts',
+        'plugins/good/tests/unit/uses-catalog-package.ts',
         'plugins/platform-jobs/index.ts',
         'plugins/merchant-shell/dashboard/shell-api.ts',
         'plugins/rbac/guard.ts',
@@ -125,5 +159,105 @@ describe('architecture rules', () => {
 
   it('fails loudly when a root does not exist', async () => {
     await expect(checkArchitecture({ baseDir: fixturesArch, roots: ['missing'] })).rejects.toThrow();
+  });
+});
+
+describe('offers entry (D2402)', () => {
+  const cruise = (root: string) => checkArchitecture({ baseDir: fixturesArch, roots: [root] });
+  const violationsFrom = async (root: string, from: string) =>
+    (await cruise(root)).violations.filter((violation) => violation.from === from);
+
+  it('offers-entry-from-infrastructure: lets an adapter import the offers entry', async () => {
+    // Arrange
+    const from = 'plugins/good/infrastructure/uses-offers-package.ts';
+
+    // Act
+    const report = await cruise('plugins/good');
+
+    // Assert
+    expect(report.cruisedModules).toEqual(expect.arrayContaining([from, 'plugins/offers/index.ts']));
+    expect(report.violations.filter((violation) => violation.from === from)).toEqual([]);
+  });
+
+  it('offers-entry-from-plugin-file: lets a root *.plugin.ts file import the offers entry', async () => {
+    // Arrange
+    const from = 'plugins/good/offers-wiring.plugin.ts';
+
+    // Act
+    const report = await cruise('plugins/good');
+
+    // Assert
+    expect(report.cruisedModules).toContain(from);
+    expect(report.violations.filter((violation) => violation.from === from)).toEqual([]);
+  });
+
+  it.each(['api', 'application'])('offers-entry-from-%s: refuses the offers entry in that layer', async (layer) => {
+    // Arrange
+    const from = `plugins/bad/${layer}/uses-offers-package.ts`;
+
+    // Act
+    const violations = await violationsFrom('plugins/bad', from);
+
+    // Assert
+    expect(violations).toEqual([{ rule: 'offers-entry-infra-only', from, to: 'plugins/offers/index.ts' }]);
+  });
+
+  it('offers-internals-from-other-plugin: refuses an offers internal outside the offers plugin', async () => {
+    // Arrange
+    const from = 'plugins/bad/infrastructure/uses-offers-internals.ts';
+
+    // Act
+    const violations = await violationsFrom('plugins/bad', from);
+
+    // Assert
+    expect(violations).toEqual([
+      { rule: 'no-cross-plugin-internals', from, to: 'plugins/offers/domain/offer-rule.ts' },
+    ]);
+  });
+
+  it('offers-entry-from-server-app: lets the server app import the offers entry', async () => {
+    // Arrange: the server app registers OffersPlugin (D2402)
+    const from = 'apps/server/uses-offers-package.ts';
+
+    // Act
+    const report = await cruise('apps/server');
+
+    // Assert
+    expect(report.cruisedModules).toEqual(expect.arrayContaining([from, 'plugins/offers/index.ts']));
+    expect(report.violations.filter((violation) => violation.from === from)).toEqual([]);
+  });
+
+  it('offers-entry-from-frontend-app: refuses the offers entry in a frontend app', async () => {
+    // Arrange: frontends are API clients and never bundle server services (ADR 0017)
+    const from = 'apps/storefront/uses-offers-package.ts';
+
+    // Act
+    const violations = await violationsFrom('apps/storefront', from);
+
+    // Assert
+    expect(violations).toEqual([{ rule: 'offers-entry-infra-only', from, to: 'plugins/offers/index.ts' }]);
+  });
+
+  it("offers-entry-from-test-kit: lets another plugin's tests import the offers entry", async () => {
+    // Arrange
+    const from = 'plugins/good/tests/unit/uses-offers-package.ts';
+
+    // Act
+    const report = await cruise('plugins/good');
+
+    // Assert
+    expect(report.cruisedModules).toContain(from);
+    expect(report.violations.filter((violation) => violation.from === from)).toEqual([]);
+  });
+
+  it('catalog-imports-offers: refuses the offers entry anywhere in the catalog, adapters included', async () => {
+    // Arrange: the offers fixture imports nothing from the catalog, so no-circular cannot be what fires
+    const from = 'plugins/catalog/infrastructure/uses-offers-package.ts';
+
+    // Act
+    const violations = await violationsFrom('plugins/catalog', from);
+
+    // Assert
+    expect(violations).toEqual([{ rule: 'catalog-no-offers', from, to: 'plugins/offers/index.ts' }]);
   });
 });

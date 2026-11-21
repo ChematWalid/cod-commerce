@@ -1,4 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
+import { CatalogPlugin } from '@cod/plugin-catalog';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
@@ -41,6 +42,8 @@ const { server } = createPluginTestEnvironment({
     RbacPlugin,
     // Team's invitations need auth's invited accounts and mail queue.
     AuthPlugin.init(authTestOptions()),
+    // Team imports the catalog's module to register its order-manager check (D2137).
+    CatalogPlugin,
     TeamPlugin.init({ dashboardUrl: 'http://localhost:3100/dashboard' }),
   ],
   db: loadPluginTestDbConfig(process.env),

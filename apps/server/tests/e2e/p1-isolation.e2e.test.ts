@@ -105,7 +105,7 @@ describe('P1 isolation: a store owner sees only their own business', () => {
           world.a.businessId,
           world.b.businessId,
         ]);
-        return TENANT_TABLES.filter((table) => counts[table].a === 0 || counts[table].b === 0);
+        return TENANT_TABLES.filter((table) => (counts[table]?.a ?? 0) === 0 || (counts[table]?.b ?? 0) === 0);
       };
       const deadline = Date.now() + CENSUS_WAIT_MS;
       let empty = await emptyTables();

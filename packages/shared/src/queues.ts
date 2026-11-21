@@ -58,6 +58,10 @@ export const QUEUES = {
   'asset-derivatives': exponential('bulk', 1, 3, 10_000),
   documents: exponential('bulk', 1, 3, 10_000),
   'platform-maintenance': exponential('bulk', 1, 3, 10_000),
+  // Collection membership recompute and store reconcile (D2312): an import of thousands of products stays off critical.
+  'catalog-effects': exponential('bulk', 3, 8, 1_000),
+  // The store reconcile of collections (D2336): a whole-store walk, one at a time per worker; a lost run heals nightly.
+  'catalog-reconcile': exponential('bulk', 1, 5, 30_000),
 } as const satisfies Record<string, QueueSpec>;
 
 export type QueueName = keyof typeof QUEUES;
@@ -90,6 +94,10 @@ export const DURABLE_JOB_KINDS = {
   outboxDelivery: 'od',
   inboundWebhook: 'iw',
   kekRewrap: 'kek',
+  collectionsReconcile: 'crs',
+  // The `imports-exports` jobs of catalog-import (D2212).
+  catalogImport: 'cim',
+  catalogExport: 'cex',
 } as const;
 export type DurableJobKind = (typeof DURABLE_JOB_KINDS)[keyof typeof DURABLE_JOB_KINDS];
 

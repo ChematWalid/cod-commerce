@@ -10,11 +10,7 @@ import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  ARABIC_FONT_FAMILY,
-  SHELL_PLACEHOLDER_PATH,
-  SHELL_PLACEHOLDER_TEST_ID,
-} from '../../plugins/merchant-shell/dashboard/constants.ts';
+import { ARABIC_FONT_FAMILY, SHELL_SKELETON_TEST_ID } from '../../plugins/merchant-shell/dashboard/constants.ts';
 import { loginAsSuperadmin, setDisplayLanguage } from '../../apps/server/tests/browser/dashboard-session.ts';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
@@ -25,6 +21,8 @@ if (!baseArg || !outDir) throw new Error('usage: dashboard-screens.mjs <dashboar
 const base = baseArg.replace(/\/$/, '');
 const MAX_BYTES = 300 * 1024;
 const LOGIN_PATH = '/login';
+/** The shell page shot: the P0 placeholder route is gone (#175), so the Home leaf's skeleton stands in. */
+const SHELL_PATH = '/home';
 /** The dashboard's own sign-out: the mutation its "Log out" menu item sends, on the Admin API. */
 const ADMIN_API_PATH = '/admin-api';
 const LOGOUT_MUTATION = 'mutation { logout { success } }';
@@ -118,8 +116,8 @@ function assertArabicFont(state, label) {
 
 async function shootShell(page, lang, vpName) {
   const label = `shell ${lang}/${vpName}`;
-  await page.goto(`${base}${SHELL_PLACEHOLDER_PATH}`);
-  await page.getByTestId(SHELL_PLACEHOLDER_TEST_ID).waitFor({ state: 'attached' });
+  await page.goto(`${base}${SHELL_PATH}`);
+  await page.getByTestId(SHELL_SKELETON_TEST_ID).waitFor({ state: 'attached' });
   await settle(page);
   const state = await documentState(page);
   assertDocument(state, lang, label);
@@ -234,13 +232,11 @@ function tableRows(rows) {
     const login = `login-${r.lang}-${r.vpName}.png`;
     const shell = `merchant-shell-${r.lang}-${r.vpName}.png`;
     lines.push(`| [\`${login}\`](screens/${login}) | \`/dashboard${LOGIN_PATH}\` | ${vp} | ${r.lang} | ${asserted} |`);
-    lines.push(
-      `| [\`${shell}\`](screens/${shell}) | \`/dashboard${SHELL_PLACEHOLDER_PATH}\` | ${vp} | ${r.lang} | ${asserted} |`,
-    );
+    lines.push(`| [\`${shell}\`](screens/${shell}) | \`/dashboard${SHELL_PATH}\` | ${vp} | ${r.lang} | ${asserted} |`);
     if (r.vpName === 'mobile') {
       const sidebar = `merchant-shell-sidebar-${r.lang}-mobile.png`;
       lines.push(
-        `| [\`${sidebar}\`](screens/${sidebar}) | \`/dashboard${SHELL_PLACEHOLDER_PATH}\` (sidebar open) | ${vp} | ${r.lang} | ${asserted} |`,
+        `| [\`${sidebar}\`](screens/${sidebar}) | \`/dashboard${SHELL_PATH}\` (sidebar open) | ${vp} | ${r.lang} | ${asserted} |`,
       );
     }
   }
@@ -269,7 +265,7 @@ ${tableRows(rows)}
 ## Checks (the script fails otherwise)
 
 - Every page, login and shell: \`document.documentElement.dir\` is \`rtl\` for Arabic and \`ltr\` for English, and \`lang\` is \`ar\` / \`en\`.
-- Shell pages: the \`${SHELL_PLACEHOLDER_TEST_ID}\` marker is present.
+- Shell pages: the \`${SHELL_SKELETON_TEST_ID}\` marker is present.
 - Arabic shell pages: the \`${ARABIC_FONT_FAMILY}\` FontFace is \`loaded\`, and the body font family contains it.
 - Every PNG is at most 300 KB (the ${EXPECTED_PNGS} files must all exist); no password or cookie secret appears in this folder.
 

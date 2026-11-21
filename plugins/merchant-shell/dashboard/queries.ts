@@ -43,6 +43,8 @@ const ACTIVE_BUSINESS_QUERY = /* GraphQL */ `
     activeBusiness {
       id
       name
+      logoAssetId
+      logoUrl
     }
   }
 `;
@@ -54,6 +56,10 @@ const STORE_QUERY = /* GraphQL */ `
       name
       description
       language
+      logoAssetId
+      logoUrl
+      showAddressField
+      soldOutBehavior
     }
   }
 `;

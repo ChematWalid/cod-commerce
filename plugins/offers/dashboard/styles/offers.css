@@ -1,0 +1,16 @@
+/* Layout of the offers' own surfaces. Unlayered, so these win over Tailwind's utilities. Logical properties only. */
+
+/* A card of the create dialog: the cards of one row keep one height, whatever their description's length. */
+.cod-offers-card {
+  min-block-size: 6rem;
+  align-content: start;
+}
+
+/*
+ * A view of the create dialog that is no longer the chosen tab. Base UI keeps a closing tab panel mounted, visible
+ * and inert until its exit animations settle (at least one frame), so both views' cards showed at once and the
+ * dialog jumped in height. The views have no exit animation: hide the closing one at once.
+ */
+.cod-offers-create-view[inert] {
+  display: none;
+}

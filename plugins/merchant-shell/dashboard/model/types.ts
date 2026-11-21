@@ -1,3 +1,5 @@
+import type { SoldOutBehavior } from '@cod/shared';
+
 /** The icons of the navigation groups, by meaning; `nav/icons.ts` maps each name to a drawn icon. */
 export const SHELL_ICON_NAMES = [
   'home',
@@ -36,6 +38,9 @@ export interface ShellPageProps {
 export interface BusinessRecord {
   readonly id: string;
   readonly name: string;
+  readonly logoAssetId: string | null;
+  /** Set only for an asset of the business's own channels (D2120). */
+  readonly logoUrl: string | null;
 }
 
 /** A store as `store(id)` returns the part the settings page edits. */
@@ -44,4 +49,8 @@ export interface StoreRecord {
   readonly name: string;
   readonly description: string;
   readonly language: string;
+  readonly logoAssetId: string | null;
+  readonly logoUrl: string | null;
+  readonly showAddressField: boolean;
+  readonly soldOutBehavior: SoldOutBehavior;
 }

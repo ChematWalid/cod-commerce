@@ -25,6 +25,18 @@ describe('RATE_LIMIT_POLICIES', () => {
       'team-invite-business': [100, 3600],
       'team-invite-actor': [30, 3600],
       'team-resend-actor': [30, 3600],
+      'catalog-media-business': [1000, 3600],
+      'catalog-media-actor': [120, 3600],
+      'collections-preview-actor': [30, 60],
+      'collections-rule-options-actor': [30, 60],
+      'catalog-import-actor': [30, 3600],
+      'catalog-import-business': [200, 3600],
+      'catalog-export-business': [120, 3600],
+      'catalog-scrape-actor': [60, 3600],
+      'catalog-scrape-business': [300, 3600],
+      'catalog-bulk-edit-actor': [120, 3600],
+      'catalog-bulk-edit-business': [600, 3600],
+      'catalog-pack-preview-actor': [600, 3600],
     });
   });
 
