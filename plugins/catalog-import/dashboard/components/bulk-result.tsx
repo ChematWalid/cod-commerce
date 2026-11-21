@@ -53,10 +53,9 @@ export function BulkResult(props: {
       <ul className="grid max-h-60 gap-1 overflow-y-auto">
         {props.results.map((result) => (
           <li key={result.productId} className={result.ok ? undefined : 'text-destructive'}>
-            {i18n._('catalog-import.bulk-product-line', {
-              name: productNameOf(result, translate),
-              outcome: outcomeOf(result, translate),
-            })}
+            {/* The title is the merchant's text in any script: isolated, so its digits keep their place (#261). */}
+            <bdi>{productNameOf(result, translate)}</bdi>
+            {i18n._('catalog-import.bulk-product-line', { outcome: outcomeOf(result, translate) })}
           </li>
         ))}
       </ul>

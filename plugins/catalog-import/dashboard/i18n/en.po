@@ -385,7 +385,7 @@ msgstr "Changed: {count}. Refused: {refused}."
 
 #. js-lingui-explicit-id
 msgid "catalog-import.bulk-product-line"
-msgstr "{name}: {outcome}"
+msgstr ": {outcome}"
 
 #. js-lingui-explicit-id
 msgid "catalog-import.bulk-product-unnamed"
