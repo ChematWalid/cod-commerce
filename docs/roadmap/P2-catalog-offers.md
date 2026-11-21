@@ -341,6 +341,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P2.S5-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`, `docs/roadmap/handoff/P2.S4.md`, ADR 0004.
 - `docs/research/second-pass.md` "Offers (7 kinds)" — shared editor parts (name, Arabic headline, Automatic/With codes, Who and where, Shown on, Dates and limits, Combines with, live Summary and Arabic order-form preview, footer Discard / Save as draft / Publish) and kinds 1–7 (BXGY: buy N get M, gift Free/% off/fixed, most times per order, visible removable gift line; Add-on: 1–5 add-on products, price fixed/% off/amount off, pieces per order, checkbox in the form or one tap on the thank-you page while unconfirmed). Also "Products" edit-page "Offers section".
 - `docs/research/data-model.md` "Offer" (`targets[{role: buy|get|addon,…}]`, `performance`, `codeCount`, lifecycle timestamps).

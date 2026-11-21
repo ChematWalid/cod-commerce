@@ -1,5 +1,6 @@
 import { asOperationContext } from '../../domain/ports/operation-context.port';
 import { describeOfferCodeRepositoryContract } from '../contract/offer-code-repository.contract';
+import { describeOfferListContract } from '../contract/offer-list.contract';
 import { describeOfferRepositoryContract, type MakeOfferHarness } from '../contract/offer-repository.contract';
 import { describeOfferUsageCounterContract } from '../contract/offer-usage-counter.contract';
 import { InMemoryOfferTables } from '../fakes/in-memory-offer-repository';
@@ -20,4 +21,5 @@ const harness: MakeOfferHarness = () => {
 // left pending across another awaited call, or two started together and awaited in turn.
 describeOfferRepositoryContract('InMemoryOfferRepository', harness);
 describeOfferCodeRepositoryContract('InMemoryOfferCodeRepository', harness);
+describeOfferListContract('InMemoryOfferRepository', harness);
 describeOfferUsageCounterContract('InMemoryOfferUsageCounter', harness);

@@ -1,11 +1,13 @@
-import type { Snowflake } from '@cod/shared';
+import type { OfferStatus, Snowflake } from '@cod/shared';
 import { normaliseCode } from '../../domain/engine/codes';
 import { CodeTakenError, NoActiveStoreError, OfferNotFoundError } from '../../domain/errors';
 import type { OfferRecord, StoredCode } from '../../domain/offer-record';
 import type {
   OfferCodeRepositoryPort,
   OfferListFilter,
+  OfferPage,
   OfferRepositoryPort,
+  OfferTargetRefs,
 } from '../../domain/ports/offer-repository.port';
 import type { OfferUsageCounterPort } from '../../domain/ports/offer-usage-counter.port';
 import type { OperationContext } from '../../domain/ports/operation-context.port';
@@ -26,6 +28,20 @@ const lacksStore = (scope: StoreScope): boolean => !scope.storeId;
 
 const newestFirst = (left: OfferRecord, right: OfferRecord): number =>
   right.createdAt.getTime() - left.createdAt.getTime() || (BigInt(right.id) > BigInt(left.id) ? 1 : -1);
+
+/** Whether `offer` has a target, of any role, on one of the products or variants of `refs` (D2513). */
+const targetsOneOf = (offer: OfferRecord, refs: OfferTargetRefs): boolean =>
+  offer.targets.some(
+    ({ refType, refId }) =>
+      (refType === 'product' && refs.productIds.includes(refId)) ||
+      (refType === 'variant' && refs.variantIds.includes(refId)),
+  );
+
+/** Whether `offer` passes every filter `filter` sets. */
+const matches = (offer: OfferRecord, { status, kind, refs }: OfferListFilter): boolean =>
+  (status === undefined || offer.status === status) &&
+  (kind === undefined || offer.kind === kind) &&
+  (refs === undefined || targetsOneOf(offer, refs));
 
 /** The store's offers in memory; it passes the offer repository contract. */
 export class InMemoryOfferRepository implements OfferRepositoryPort {
@@ -50,21 +66,32 @@ export class InMemoryOfferRepository implements OfferRepositoryPort {
     return Promise.resolve(this.tables.offerOf(scope, id));
   }
 
-  list(_ctx: OperationContext, scope: StoreScope, filter: OfferListFilter): Promise<readonly OfferRecord[]> {
-    const offers = this.tables.offerRows.filter((row) => owns(scope, row)).map((row) => row.value);
-    const matching = offers.filter((offer) => filter.status === undefined || offer.status === filter.status);
-    return Promise.resolve(matching.sort(newestFirst));
+  list(_ctx: OperationContext, scope: StoreScope, filter: OfferListFilter): Promise<OfferPage> {
+    const matching = this.offersOf(scope).filter((offer) => matches(offer, filter));
+    const items = matching.sort(newestFirst).slice(filter.skip, filter.skip + filter.take);
+    return Promise.resolve({ items, totalItems: matching.length });
   }
 
-  delete(_ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<boolean> {
+  delete(_ctx: OperationContext, scope: StoreScope, id: Snowflake, status?: OfferStatus): Promise<boolean> {
     const before = this.tables.offerRows.length;
-    this.tables.offerRows = this.tables.offerRows.filter((row) => !(owns(scope, row) && row.value.id === id));
+    const doomed = (offer: OfferRecord): boolean =>
+      offer.id === id && (status === undefined || offer.status === status);
+    if (!this.offersOf(scope).some(doomed)) return Promise.resolve(false);
+    this.tables.offerRows = this.tables.offerRows.filter((row) => !(owns(scope, row) && doomed(row.value)));
     this.tables.codeRows = this.tables.codeRows.filter((row) => !(owns(scope, row) && row.value.offerId === id));
     return Promise.resolve(this.tables.offerRows.length < before);
   }
 
-  activeOf(ctx: OperationContext, scope: StoreScope): Promise<readonly OfferRecord[]> {
-    return this.list(ctx, scope, { status: 'active' });
+  activeOf(_ctx: OperationContext, scope: StoreScope): Promise<readonly OfferRecord[]> {
+    return Promise.resolve(
+      this.offersOf(scope)
+        .filter((offer) => offer.status === 'active')
+        .sort(newestFirst),
+    );
+  }
+
+  private offersOf(scope: StoreScope): OfferRecord[] {
+    return this.tables.offerRows.filter((row) => owns(scope, row)).map((row) => row.value);
   }
 }
 
@@ -95,6 +122,18 @@ export class InMemoryOfferCodeRepository implements OfferCodeRepositoryPort {
   listOf(_ctx: OperationContext, scope: StoreScope, offerId: Snowflake): Promise<readonly StoredCode[]> {
     const codes = this.codesOf(scope).filter((code) => code.offerId === offerId);
     return Promise.resolve(codes.sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime()));
+  }
+
+  countByOffer(
+    _ctx: OperationContext,
+    scope: StoreScope,
+    offerIds: readonly Snowflake[],
+  ): Promise<ReadonlyMap<string, number>> {
+    const counts = new Map<string, number>();
+    for (const { offerId } of this.codesOf(scope).filter((code) => offerIds.includes(code.offerId))) {
+      counts.set(offerId, (counts.get(offerId) ?? 0) + 1);
+    }
+    return Promise.resolve(counts);
   }
 
   findByCodes(_ctx: OperationContext, scope: StoreScope, codes: readonly string[]): Promise<readonly StoredCode[]> {

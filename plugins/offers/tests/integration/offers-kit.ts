@@ -5,7 +5,13 @@ import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbo
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
-import { type OfferInput, type QuoteRequestInput, toBusinessId, toStoreId } from '@cod/shared';
+import {
+  type OfferInput,
+  type PartitionedTableSchema,
+  type QuoteRequestInput,
+  toBusinessId,
+  toStoreId,
+} from '@cod/shared';
 import {
   type BusinessFixture,
   createPluginTestEnvironment,
@@ -13,7 +19,7 @@ import {
   type StoreFixture,
   withPartitionedSchemas,
 } from '@cod/testing';
-import { ProductService, ProductVariantService, RequestContextService } from '@vendure/core';
+import { ProductService, ProductVariantService, RequestContextService, type VendureConfig } from '@vendure/core';
 import { OfferAdminService } from '../../application/offer-admin.service';
 import type { OfferRecord } from '../../domain/offer-record';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context.port';
@@ -26,10 +32,22 @@ const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 /** The list price of the brief's worked examples. */
 export const LIST_PRICE = 4_900;
 
+/**
+ * What a test server may add beside the offers: a module only a test file may import (rbac, whose guard the API
+ * handlers use) and the partitioned tables it writes.
+ */
+export interface OffersForeignModules {
+  readonly plugins: NonNullable<VendureConfig['plugins']>;
+  readonly partitionedSchemas: readonly PartitionedTableSchema[];
+}
+
+const NO_FOREIGN_MODULES: OffersForeignModules = { plugins: [], partitionedSchemas: [] };
+
 /** A Vendure test server with the offers and everything they import; one snowflake worker id per file (D2433). */
 export function offersTestEnvironment(
   snowflakeWorkerId: number,
   appEnv: string,
+  foreign: OffersForeignModules = NO_FOREIGN_MODULES,
 ): ReturnType<typeof createPluginTestEnvironment> {
   const environment = createPluginTestEnvironment({
     plugins: [
@@ -39,12 +57,17 @@ export function offersTestEnvironment(
       // The catalog writes `product.changed` to the outbox (D2127), whose tables are partitioned.
       PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv }),
       PlatformOutboxPlugin,
+      ...foreign.plugins,
       CatalogPlugin,
       OffersPlugin.init({ quoteKeys: aQuoteKeyRing(['k1'], 'k1') }),
     ],
     db: loadPluginTestDbConfig(process.env),
   });
-  withPartitionedSchemas(environment.server, OUTBOX_SCHEMAS, PartitionMaintenanceService);
+  withPartitionedSchemas(
+    environment.server,
+    [...OUTBOX_SCHEMAS, ...foreign.partitionedSchemas],
+    PartitionMaintenanceService,
+  );
   return environment;
 }
 
@@ -95,7 +118,7 @@ export async function anActiveOfferIn(
   const admin = server.app.get(OfferAdminService);
   const ctx = await storeContext(server, store);
   const draft = await admin.createDraft(ctx, scope, input);
-  return admin.setStatus(ctx, scope, draft.id, 'active');
+  return admin.publish(ctx, scope, draft.id);
 }
 
 /** 10 % off from two pieces of `variantId` (the worked examples' tier). */
@@ -114,6 +137,20 @@ export const productDiscountOn = (variantId: string, percent: number, method: 'a
     title: 'Product discount',
     config: { valueType: 'percent', value: percent, appliesTo: 'targets' },
     targets: [{ refType: 'variant', refId: variantId }],
+  }) satisfies OfferInput;
+
+/** A free add-on of `variantId` on any order of the order form (D2505). */
+export const addonOfferOn = (variantId: string) =>
+  ({
+    kind: 'addon',
+    title: 'Add-on',
+    config: {
+      condition: 'any_order',
+      price: { mode: 'fixed', value: 0 },
+      maxPiecesPerOrder: 1,
+      placement: 'order_form',
+    },
+    targets: [{ role: 'addon', refType: 'variant', refId: variantId }],
   }) satisfies OfferInput;
 
 /** A storefront request for `quantity` of `variantId`, home delivery to Algiers. */

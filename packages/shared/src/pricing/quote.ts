@@ -1,6 +1,6 @@
 import type { PLATFORM_CURRENCY_CODE } from '../platform/platform-defaults';
 import type { OrderPricingMode } from './channels';
-import type { CodeRejectReason, SkipReason } from './reasons';
+import type { AddonRejectReason, CodeRejectReason, SkipReason } from './reasons';
 
 /** A discount on one line, in whole DZD for the whole line. */
 export interface LineDiscount {
@@ -29,6 +29,12 @@ export interface QuoteLine {
   unitPrice: number;
   totalPrice: number;
   discounts: LineDiscount[];
+  /** Set on a gift line split off a matched line: the buy-x-get-y offer that gifted it (D2504). */
+  giftOf?: string;
+  /** Set on an add-on line: the add-on offer that priced it (D2506). */
+  addonOf?: string;
+  /** On an add-on line: the cart variant it rides with, or null for an add-on offered on any order (D2506). */
+  parentVariantId?: string | null;
 }
 
 /** What the buyer pays for delivery; `price = 0` and `waived` when an offer waives it (D2414). */
@@ -58,8 +64,15 @@ export interface FreeDeliverySuggestion {
   missing: { pieces?: number; amount?: number };
 }
 
-/** A hint to the buyer; P2.S5 may add kinds. */
-export type Suggestion = FreeDeliverySuggestion;
+/** A buy-x-get-y gift the buyer earned but has not added: `units` of the offer's `get` items (D2504). */
+export interface GiftSuggestion {
+  type: 'gift';
+  offerId: string;
+  units: number;
+}
+
+/** A hint to the buyer. */
+export type Suggestion = FreeDeliverySuggestion | GiftSuggestion;
 
 /** An offer that gave its effect; `amount` is the buyer saving in DZD. */
 export interface AppliedOffer {
@@ -81,6 +94,13 @@ export interface RejectedCode {
   reason: CodeRejectReason;
 }
 
+/** A requested add-on the quote dropped, and why (D2506). */
+export interface RejectedAddon {
+  offerId: string;
+  variantId: string;
+  reason: AddonRejectReason;
+}
+
 /**
  * A cart quote, shaped as the cart-quote response of the research plus `unavailableVariantIds` (D2425). Amounts are
  * whole DZD; `total = subtotal − discountTotal + delivery.price` (D2415). Without a token when a line is unavailable.
@@ -98,6 +118,7 @@ export interface Quote {
   applied: AppliedOffer[];
   skipped: SkippedOffer[];
   rejectedCodes: RejectedCode[];
+  rejectedAddons: RejectedAddon[];
   suggestions: Suggestion[];
   quoteToken: string | null;
   /** ISO-8601 instant the token expires, or null without a token. */

@@ -43,7 +43,7 @@ describe('OfferAdminService', () => {
 
     // Assert
     await expect(created).rejects.toBeInstanceOf(UnknownOfferKindError);
-    await expect(service.list(ctx, scopeA)).resolves.toEqual([]);
+    await expect(service.list(ctx, scopeA)).resolves.toEqual({ items: [], totalItems: 0 });
   });
 
   it('refuses an input that breaks the offer schema', async () => {
@@ -64,7 +64,7 @@ describe('OfferAdminService', () => {
     setNow(at(5));
 
     // Act
-    const published = await service.setStatus(ctx, scopeA, draft.id, 'active');
+    const published = await service.publish(ctx, scopeA, draft.id);
     setNow(at(6));
     const paused = await service.setStatus(ctx, scopeA, draft.id, 'paused');
     setNow(at(7));

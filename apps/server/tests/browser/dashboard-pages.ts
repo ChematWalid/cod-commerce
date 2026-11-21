@@ -5,6 +5,7 @@ import { PRODUCT_EDITOR_TEST_ID, PRODUCT_LIST_TEST_ID } from '@cod/plugin-catalo
 import { CATALOG_IMPORT_PAGE_TEST_ID } from '@cod/plugin-catalog-import';
 import { BUSINESS_CARD_TEST_ID, SETTINGS_PATH } from '@cod/plugin-merchant-shell';
 import { COLLECTION_EDITOR_TEST_ID, COLLECTION_LIST_TEST_ID } from '@cod/plugin-collections-rules';
+import { OFFER_EDITOR_TEST_ID, OFFER_LIST_TEST_ID } from '@cod/plugin-offers';
 
 /** A dashboard page the RTL browser test opens in Arabic and in English. */
 export interface DashboardPageUnderTest {
@@ -23,6 +24,8 @@ export const DASHBOARD_PAGES_UNDER_TEST: readonly DashboardPageUnderTest[] = [
   { path: SETTINGS_PATH, readyTestId: BUSINESS_CARD_TEST_ID, slug: 'settings' },
   { path: '/stores/active/collections', readyTestId: COLLECTION_LIST_TEST_ID, slug: 'collections' },
   { path: '/stores/active/collections/new', readyTestId: COLLECTION_EDITOR_TEST_ID, slug: 'collection-editor' },
+  { path: '/stores/active/offers', readyTestId: OFFER_LIST_TEST_ID, slug: 'offers' },
+  { path: '/stores/active/offers/new?type=quantity', readyTestId: OFFER_EDITOR_TEST_ID, slug: 'offer-editor' },
   { path: '/stores/active/products/import', readyTestId: CATALOG_IMPORT_PAGE_TEST_ID, slug: 'product-import' },
 ];
 

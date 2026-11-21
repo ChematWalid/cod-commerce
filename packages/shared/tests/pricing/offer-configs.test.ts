@@ -132,6 +132,34 @@ describe('offerInputSchema', () => {
     expect(offer.targets).toEqual([{ role: 'buy', refType: 'product', refId: '42' }]);
   });
 
+  it('accepts an offer target with the get and addon roles', () => {
+    const offer = offerInputSchema.parse({
+      kind: 'bxgy',
+      title: 'Buy 2 get 1',
+      config: {},
+      targets: [
+        { role: 'get', refType: 'product', refId: '43' },
+        { role: 'addon', refType: 'variant', refId: '44' },
+      ],
+    });
+
+    expect(offer.targets.map((target) => target.role)).toEqual(['get', 'addon']);
+  });
+
+  it('still defaults a target role to buy', () => {
+    const offer = offerInputSchema.parse({
+      kind: 'bxgy',
+      title: 'Buy 2 get 1',
+      config: {},
+      targets: [{ refType: 'collection', refId: '7' }],
+    });
+
+    expect(offer.targets).toEqual([{ role: 'buy', refType: 'collection', refId: '7' }]);
+    expect(offerInputSchema.safeParse({ ...offer, targets: [{ ...offer.targets[0], role: 'gift' }] }).success).toBe(
+      false,
+    );
+  });
+
   it.each(['2147483648', '99999999999999999999'])('refuses a target refId above the int range: %s', (refId) => {
     const result = offerInputSchema.safeParse({
       kind: 'quantity',

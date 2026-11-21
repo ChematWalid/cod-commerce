@@ -7,6 +7,7 @@ import {
 } from '@cod/shared';
 import type { OfferKindCalculator } from '../engine/kind-registry';
 import type { KindInput, OfferOutcome } from '../engine/outcome';
+import { BUY_TARGET_OPTIONAL } from './target-rules';
 import { shortfallOf } from './threshold';
 
 /** The raw discount on the order base, by value type (§3a.7): percent half up, or fixed DZD (D2409). */
@@ -37,4 +38,5 @@ export const orderDiscountCalculator: OfferKindCalculator<OrderDiscountConfig> =
   stage: STAGE_ORDER,
   configSchema: orderDiscountConfigSchema,
   evaluate: evaluateOrderDiscount,
+  targetRules: () => BUY_TARGET_OPTIONAL,
 };

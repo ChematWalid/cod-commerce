@@ -1,6 +1,7 @@
 import { freeDeliveryConfigSchema, STAGE_DELIVERY, type FreeDeliveryConfig, type Suggestion } from '@cod/shared';
 import type { OfferKindCalculator } from '../engine/kind-registry';
 import type { KindInput, OfferOutcome } from '../engine/outcome';
+import { BUY_TARGET_OPTIONAL } from './target-rules';
 import { shortfallOf } from './threshold';
 
 /**
@@ -29,5 +30,6 @@ export const freeDeliveryCalculator: OfferKindCalculator<FreeDeliveryConfig> = {
   stage: STAGE_DELIVERY,
   configSchema: freeDeliveryConfigSchema,
   evaluate: evaluateFreeDelivery,
+  targetRules: () => BUY_TARGET_OPTIONAL,
   suggest: suggestFreeDelivery,
 };

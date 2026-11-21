@@ -150,9 +150,11 @@ describe('catalog import, export and bulk edit', () => {
 
     // Assert: two rows written, and the file downloads as CSV
     await expect.poll(() => byTestId(page, EXPORT_DOWNLOAD_TEST_ID).getAttribute('data-row-count')).toBe('2');
-    const opened = page.context().waitForEvent('page');
+    // The link opens in a new tab and turns into a download there; Chromium reports a new-window download on the
+    // opener page, before the new tab's page event, so it is awaited here and not on the new tab.
+    const downloaded = page.waitForEvent('download');
     await byTestId(page, EXPORT_DOWNLOAD_TEST_ID).click();
-    const download = await (await opened).waitForEvent('download');
+    const download = await downloaded;
     expect(download.suggestedFilename()).toMatch(/\.csv$/);
     await assertNoPageError(page);
   });

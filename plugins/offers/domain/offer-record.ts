@@ -14,6 +14,11 @@ export interface OfferRecord extends Offer {
   readonly updatedAt: Date;
 }
 
+/** An offer as the admin list shows it (D2513): with how many codes it holds, counted on read (D2529). */
+export interface OfferSummaryRecord extends OfferRecord {
+  readonly codeCount: number;
+}
+
 /** A discount code of one offer, stored trimmed and upper-cased (D2406). */
 export interface StoredCode {
   readonly id: Snowflake;
@@ -57,6 +62,26 @@ export function draftOf({ id, command, config, now }: DraftInput): OfferRecord {
   return {
     id,
     ...commandFields(command, config),
+    status: 'draft',
+    publishedAt: null,
+    pausedAt: null,
+    archivedAt: null,
+    usageCount: 0,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * A new draft copying `source`'s kind, method, texts, config, combination, eligibility, limits, dates and targets
+ * (D2511): unpublished, unused, version 1, made at `now`. Codes are the caller's: they are unique per store.
+ */
+export function duplicateOf(source: OfferRecord, id: Snowflake, now: Date): OfferRecord {
+  return {
+    ...source,
+    id,
+    targets: source.targets.map((target) => ({ ...target })),
     status: 'draft',
     publishedAt: null,
     pausedAt: null,

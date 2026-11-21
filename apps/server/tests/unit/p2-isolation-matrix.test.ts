@@ -6,12 +6,15 @@ import { OffersPlugin } from '@cod/plugin-offers';
 import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
+import { OFFERS_SWEEP_CASES } from '../isolation/cases/offers-sweep';
 import { CATALOG_OPERATIONS, CATALOG_ROUTES } from '../isolation/catalog-operations';
-import { CATALOG_IMPORT_WORLDS, type CatalogImportWorld } from '../isolation/catalog-import-world';
-import { CATALOG_WORLDS, type CatalogWorld } from '../isolation/catalog-world';
+import { CATALOG_IMPORT_WORLDS } from '../isolation/catalog-import-world';
+import { CATALOG_WORLDS } from '../isolation/catalog-world';
 import { COLLECTION_OPERATIONS, COLLECTION_ROUTES } from '../isolation/collections-operations';
-import { COLLECTION_WORLDS, type CollectionsWorld } from '../isolation/collections-world';
+import { COLLECTION_WORLDS } from '../isolation/collections-world';
 import { IMPORT_OPERATIONS, IMPORT_ROUTES } from '../isolation/import-operations';
+import { OFFERS_OPERATIONS, OFFERS_ROUTES, ownOfferIdsOf } from '../isolation/offers-operations';
+import { OFFERS_WORLDS } from '../isolation/offers-rows';
 import { PACKS_OPERATIONS, PACKS_ROUTES } from '../isolation/packs-operations';
 import { TEAM_WORLDS } from '../isolation/team-world';
 import {
@@ -21,7 +24,8 @@ import {
   COLLECTIONS_TABLE_COUNTS,
   OFFERS_TABLE_COUNTS,
 } from '../isolation/tenant-tables';
-import type { BusinessWorld, World } from '../isolation/world-types';
+import type { World } from '../isolation/world-types';
+import { businessOf, catalogImportOf, catalogOf, collectionsOf, offersOf } from './p2-isolation-fixtures';
 
 type Class = abstract new (...args: never[]) => object;
 type Handler = (...args: never[]) => unknown;
@@ -60,74 +64,6 @@ function declaredRoutes(plugin: Class): string[] {
   });
 }
 
-const store = (label: string, id: string) => ({
-  label,
-  id,
-  subdomain: `store-${id}`,
-  channelToken: `token-${id}`,
-});
-
-/** A business of the matrix with made-up ids: requests are built, never sent. */
-function businessOf(label: 'A' | 'B'): BusinessWorld {
-  const n = label === 'A' ? '1' : '2';
-  return {
-    label,
-    businessId: `10000000000000000${n}`,
-    name: `Business ${label}`,
-    stores: [store(`${label}1`, `20000000000000000${n}`), store(`${label}2`, `30000000000000000${n}`)],
-    owner: { label: `owner ${label}`, token: 'owner', email: 'o@example.test', administratorId: n, lastName: 'L' },
-    member: { label: `member ${label}`, token: 'member', email: 'm@example.test', administratorId: `1${n}` },
-    role: { id: `40000000000000000${n}`, name: `Role ${label}` },
-    secret: { id: `50000000000000000${n}`, value: 'synthetic' },
-    note: { id: `60000000000000000${n}`, title: `Note ${label}` },
-    logoAssetId: `T_${n}`,
-  };
-}
-
-function catalogOf(label: 'A' | 'B'): CatalogWorld {
-  const n = label === 'A' ? '1' : '2';
-  const id = (prefix: string): string => `${prefix}0000000000000000${n}`;
-  return {
-    brand: { id: id('7'), name: `Brand ${label}` },
-    tag: { id: id('8'), name: `Tag ${label}` },
-    highlight: { id: id('9'), text: `Highlight ${label}` },
-    collection: { id: `T_1${n}`, name: `Collection ${label}`, slug: `collection-${label}` },
-    media: { id: id('11'), assetId: `T_2${n}` },
-    otherStoreMedia: { id: id('12'), assetId: `T_3${n}` },
-    product: {
-      id: `T_4${n}`,
-      restId: `4${n}`,
-      title: `Product ${label}`,
-      slug: `iso-${label}`,
-      sku: `ISO-${label}`,
-      variantIds: [`T_5${n}`, `T_6${n}`],
-    },
-    catalogRole: { id: id('13'), name: `Catalog role ${label}` },
-  };
-}
-
-function collectionsOf(label: 'A' | 'B'): CollectionsWorld {
-  const n = label === 'A' ? '1' : '2';
-  const collection = (prefix: string) => ({ id: `T_${prefix}${n}`, title: `Collection ${prefix} ${label}` });
-  return {
-    automatic: collection('7'),
-    otherStore: collection('9'),
-    secondProduct: { id: `T_10${n}`, title: `Second product ${label}` },
-  };
-}
-
-/** The packs, import and export rows of a business of the matrix, with made-up ids. */
-function catalogImportOf(label: 'A' | 'B'): CatalogImportWorld {
-  const n = label === 'A' ? '1' : '2';
-  const id = (prefix: string): string => `${prefix}0000000000000000${n}`;
-  return {
-    pack: { productId: `T_7${n}`, componentIds: [`T_8${n}`, `T_9${n}`] },
-    spreadsheet: { importId: id('17'), uploadKey: `uploads/b/${id('1')}/s/${id('2')}/imports/${id('17')}/source` },
-    exportId: id('18'),
-    link: { importId: id('19'), productId: `T_10${n}` },
-  };
-}
-
 /** The tables of the entities `plugin` registers (Vendure's `entities` plugin metadata). */
 function tablesOf(plugin: Class): string[] {
   const entities = Reflect.getMetadata('entities', plugin) as Class[];
@@ -142,6 +78,7 @@ describe('P2 isolation matrix', () => {
     for (const label of ['A', 'B'] as const) {
       CATALOG_WORLDS.set(label, catalogOf(label));
       COLLECTION_WORLDS.set(label, collectionsOf(label));
+      OFFERS_WORLDS.set(label, offersOf(label));
       CATALOG_IMPORT_WORLDS.set(label, catalogImportOf(label));
       TEAM_WORLDS.set(label, {
         ownerMemberId: `14000000000000000${label === 'A' ? '1' : '2'}`,
@@ -154,6 +91,7 @@ describe('P2 isolation matrix', () => {
   afterAll(() => {
     CATALOG_WORLDS.clear();
     COLLECTION_WORLDS.clear();
+    OFFERS_WORLDS.clear();
     CATALOG_IMPORT_WORLDS.clear();
     TEAM_WORLDS.clear();
   });
@@ -254,6 +192,70 @@ describe('P2 isolation matrix', () => {
     expect([...covered].sort()).toEqual([...declared].sort());
   });
 
+  it('names every Admin API operation the offers plugin declares', () => {
+    // Arrange
+    const declared = declaredOperations(OffersPlugin);
+
+    // Act
+    const covered = OFFERS_OPERATIONS.map((operation) => operation.name);
+
+    // Assert
+    expect([...covered].sort()).toEqual([...declared].sort());
+  });
+
+  it('names every REST route the offers plugin declares', () => {
+    // Arrange
+    const declared = declaredRoutes(OffersPlugin);
+
+    // Act
+    const covered = OFFERS_ROUTES.map((route) => `${route.method} ${route.route}`);
+
+    // Assert
+    expect([...covered].sort()).toEqual([...declared].sort());
+  });
+
+  it("lists A's offers as A's store-restricted member on its first store (the member-other-store control)", () => {
+    // Arrange
+    const control = OFFERS_SWEEP_CASES.find((testCase) => testCase.id === 'offers.offers.member-own-store');
+
+    // Act
+    const request = control?.request(world.a, world.b, world);
+
+    // Assert
+    expect(request?.caller).toBe(world.a.member);
+    expect(request?.channel?.token).toBe(world.a.stores[0].channelToken);
+    expect(control?.expect.kind === 'own' ? control.expect.mustInclude(world.a) : []).toEqual(ownOfferIdsOf(world.a));
+  });
+
+  it.each([
+    ['offers.offer', 'offers.get-/offers/:id'],
+    ['offers.offerAppTypes', 'offers.get-/offers/app-types'],
+    ['offers.previewOffer', 'offers.post-/offers/preview'],
+    ['offers.deleteOffer', 'offers.delete-/offers/:id'],
+  ])('puts %s and %s in the same access column', (operation, route) => {
+    // Arrange
+    const accessOf = (id: string) => OFFERS_SWEEP_CASES.find((testCase) => testCase.id === `${id}.foreign-id`)?.access;
+
+    // Act
+    const [onGraphql, onRest] = [accessOf(operation), accessOf(route)];
+
+    // Assert
+    expect(onGraphql).toBeDefined();
+    expect(onRest).toBe(onGraphql);
+  });
+
+  it.each([
+    ['offers.createOffer.foreign-id', { kind: 'code', code: 'offers.unknown-targets' }],
+    ['offers.post-/offers.foreign-id', { kind: 'status', status: 422, code: 'offers.unknown-targets' }],
+  ])("refuses %s naming the other business's variant (D2537)", (id, expected) => {
+    // Act
+    const cell = OFFERS_SWEEP_CASES.find((testCase) => testCase.id === id);
+
+    // Assert
+    expect(cell?.expect).toEqual(expected);
+    expect(cell?.access).toBe('write');
+  });
+
   it('gives every cell a unique id', () => {
     // Arrange
     const ids = P2_ISOLATION_CASES.map((testCase) => testCase.id);
@@ -279,7 +281,7 @@ describe('P2 isolation matrix', () => {
 
       // Assert
       for (const request of requests) {
-        expect(request.path === '/admin-api' || request.path.startsWith('/catalog/')).toBe(true);
+        expect(['/admin-api', '/catalog/', '/offers'].some((prefix) => request.path.startsWith(prefix))).toBe(true);
         expect(JSON.stringify(request)).not.toContain('undefined');
       }
     },

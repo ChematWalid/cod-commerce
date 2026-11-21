@@ -1,0 +1,23 @@
+{
+  "error": {
+    "pricing-invalid-request": "Some of the details are not valid.",
+    "pricing-total-too-large": "The total is too large.",
+    "pricing-no-active-store": "This store is not available.",
+    "offers-offer-not-found": "Offer not found.",
+    "offers-invalid-config": "Some of the offer details are not valid.",
+    "offers-unknown-kind": "This kind of offer does not exist.",
+    "offers-code-taken": "This code is already used in this store.",
+    "offers-invalid-transition": "This offer cannot change to that status.",
+    "offers-offer-conflict": "This offer was changed at the same time. Reload it and try again.",
+    "offers-code-method-required": "Only an offer activated by codes can have codes.",
+    "offers-invalid-targets": "This kind of offer cannot have one of these products.",
+    "offers-unknown-targets": "One of these products is not in this store.",
+    "offers-publish-invalid": "This offer is not ready to publish.",
+    "offers-offer-not-deletable": "Only a draft can be deleted. Archive this offer instead.",
+    "offers-order-addon-unavailable": "Add-ons cannot be added to orders yet.",
+    "offers-order-not-editable": "This order can no longer take an add-on.",
+    "offers-order-not-found": "Order not found.",
+    "offers-addon-not-offered": "This add-on is not offered for this order.",
+    "offers-internal": "The request could not be completed."
+  }
+}

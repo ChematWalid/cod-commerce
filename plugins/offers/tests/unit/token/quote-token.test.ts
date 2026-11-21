@@ -12,6 +12,7 @@ import {
   ISSUED_AT,
   NONCE,
   payloadOf,
+  tampered,
   PHONE,
   RING_K1,
 } from '../../support/quote-token';
@@ -180,6 +181,68 @@ describe('verifyQuoteToken: key rotation', () => {
 
     // Act
     const result = verifyQuoteToken(aVerifyInput(token, { ring: withoutK1 }));
+
+    // Assert
+    expect(result).toEqual({ ok: false, reason: 'bad_signature' });
+  });
+});
+
+describe('signQuote: gift lines', () => {
+  const GIFT_LINES = [
+    { variantId: '7', qty: 2, unitPrice: 4_900, originalPrice: 4_900, offerIds: [] },
+    { variantId: '7', qty: 1, unitPrice: 0, originalPrice: 4_900, offerIds: ['7005'], g: '7005' },
+  ];
+
+  it('round-trips a gift line entry', () => {
+    // Arrange
+    const body = aBody({ t: 9_800, l: GIFT_LINES, o: [{ offerId: '7005' }] });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(aToken(body)));
+
+    // Assert
+    expect(result.ok && result.payload.l).toEqual(GIFT_LINES);
+  });
+
+  it('fails a token whose gift offer was changed as a bad signature', () => {
+    // Arrange
+    const token = tampered(aToken(aBody({ t: 9_800, l: GIFT_LINES })), (payload) => {
+      const gift = payload.l[1];
+      if (gift !== undefined) gift.g = '7006';
+    });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(token));
+
+    // Assert
+    expect(result).toEqual({ ok: false, reason: 'bad_signature' });
+  });
+});
+
+describe('signQuote: add-ons (D2506)', () => {
+  const ANY_ORDER_ADDON = { offerId: '7006', variantId: '21', qty: 1, unitPrice: 1_200, parentVariantId: null };
+  const RIDING_ADDON = { ...ANY_ORDER_ADDON, variantId: '22', parentVariantId: '7' };
+
+  it('signs a with offerId and a null parent', () => {
+    // Arrange
+    const body = aBody({ t: 8_820 + 2_400, a: [ANY_ORDER_ADDON, RIDING_ADDON], o: [{ offerId: '7006' }] });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(aToken(body)));
+
+    // Assert
+    expect(result.ok && result.payload.a).toEqual([ANY_ORDER_ADDON, RIDING_ADDON]);
+  });
+
+  it('fails a token whose add-on price was changed as a bad signature', () => {
+    // Arrange
+    const token = tampered(aToken(aBody({ a: [ANY_ORDER_ADDON] })), (payload) => {
+      const addon = payload.a[0];
+      if (addon !== undefined) addon.unitPrice = 0;
+    });
+
+    // Act
+    const result = verifyQuoteToken(aVerifyInput(token));
 
     // Assert
     expect(result).toEqual({ ok: false, reason: 'bad_signature' });

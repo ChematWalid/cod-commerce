@@ -13,6 +13,7 @@ export const DOMAIN_EVENT_NAMES = {
   SalaryPaid: 'salary.paid',
   ProductChanged: 'product.changed',
   CollectionChanged: 'collection.changed',
+  OfferApplied: 'offer.applied',
 } as const;
 
 /** One of the {@link DOMAIN_EVENT_NAMES} values. */

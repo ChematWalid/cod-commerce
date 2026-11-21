@@ -12,8 +12,8 @@ export const OFFER_STATUSES = ['draft', 'active', 'paused', 'archived'] as const
 export const COMBINATION_CLASSES = ['product', 'order', 'delivery'] as const;
 /** How an order keeps the quoted prices (D2426). */
 export const ORDER_PRICING_MODES = ['quote'] as const;
-/** Role of an offer target; P2.S5 appends `get` and `addon`. */
-export const OFFER_TARGET_ROLES = ['buy'] as const;
+/** Role of an offer target: what the buyer buys, what a buy-x-get-y gifts, and what an add-on offers (D2501). */
+export const OFFER_TARGET_ROLES = ['buy', 'get', 'addon'] as const;
 /** What an offer target names. */
 export const TARGET_REF_TYPES = ['variant', 'product', 'collection'] as const;
 /** A quantity tier price is a percent off, or the total of the tier's pieces (D2409). */
@@ -22,6 +22,15 @@ export const QUANTITY_PRICE_MODES = ['percent', 'total'] as const;
 export const DISCOUNT_VALUE_TYPES = ['percent', 'fixed'] as const;
 /** What a product discount covers: every product, or the offer's targets. */
 export const PRODUCT_DISCOUNT_SCOPES = ['all', 'targets'] as const;
+
+/** Which units a buy-x-get-y gifts: more of the matched items, or the offer's `get` targets (D2503). */
+export const BXGY_GET_SOURCES = ['same', 'targets'] as const;
+/** When an add-on is offered: on any order, or when the cart holds a `buy` target (D2505). */
+export const ADDON_CONDITIONS = ['any_order', 'targets'] as const;
+/** Where an add-on is offered: on the order form before checkout, or on the thank-you page after it (D2506). */
+export const ADDON_PLACEMENTS = ['order_form', 'thank_you'] as const;
+/** The merchant goals the create dialog groups offer app types by (D2515). */
+export const OFFER_APP_GOALS = ['sell_more', 'delivery', 'stock', 'influencers'] as const;
 
 export type PricingChannel = (typeof PRICING_CHANNELS)[number];
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
@@ -35,3 +44,7 @@ export type TargetRefType = (typeof TARGET_REF_TYPES)[number];
 export type QuantityPriceMode = (typeof QUANTITY_PRICE_MODES)[number];
 export type DiscountValueType = (typeof DISCOUNT_VALUE_TYPES)[number];
 export type ProductDiscountScope = (typeof PRODUCT_DISCOUNT_SCOPES)[number];
+export type BxgyGetSource = (typeof BXGY_GET_SOURCES)[number];
+export type AddonCondition = (typeof ADDON_CONDITIONS)[number];
+export type AddonPlacement = (typeof ADDON_PLACEMENTS)[number];
+export type OfferAppGoal = (typeof OFFER_APP_GOALS)[number];
