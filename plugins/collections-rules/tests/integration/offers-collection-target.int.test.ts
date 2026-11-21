@@ -115,6 +115,9 @@ describe('offers collection targets through the registered membership source (D2
     expect(outside).toBe(LIST_PRICE);
   });
 
+  // End-to-end smoke check: foreign collection targets leave this scope's products at list price, while an offer on
+  // the scope's own collection discounts the same product (positive control: the source is live in this scope).
+  // The direct source cell below is what guards (businessId, storeId) scoping of membership.
   it.each([
     {
       where: "A's second store",
@@ -125,7 +128,7 @@ describe('offers collection targets through the registered membership source (D2
     },
     { where: 'business B', business: 'b', store: 0, foreign: () => [a.collectionId, a2.collectionId], own: () => b },
   ] as const)(
-    'a collection of another store never matches a product of $where',
+    'an offer naming a foreign collection id never discounts in $where, its own collection does',
     async ({ business, store, foreign, own }) => {
       // Arrange
       const owner = suite.fixtures[business];
@@ -133,13 +136,17 @@ describe('offers collection targets through the registered membership source (D2
       for (const collectionId of foreign()) await activeOfferIn(owner, shop, collectionId);
 
       // Act
-      const subtotal = await subtotalOf(owner, shop, own().inside.variantId);
+      const foreignOnly = await subtotalOf(owner, shop, own().inside.variantId);
+      await activeOfferIn(owner, shop, own().collectionId);
+      const withOwn = await subtotalOf(owner, shop, own().inside.variantId);
 
       // Assert
-      expect(subtotal).toBe(LIST_PRICE);
+      expect(foreignOnly).toBe(LIST_PRICE);
+      expect(withOwn).toBe(DISCOUNTED);
     },
   );
 
+  // Isolation proof (plan: "same product id in A2/B"): A's product id asked in another scope answers nothing.
   it("answers no collection of A for the same product id asked in A's second store or in business B", async () => {
     // Arrange
     const source = suite.kit.app.get(OffersCollectionMembershipSource);

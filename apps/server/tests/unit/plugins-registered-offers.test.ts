@@ -1,4 +1,5 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
+import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { OffersPlugin } from '@cod/plugin-offers';
 import { describe, expect, it } from 'vitest';
 import { loadEnv, SERVER_ROLES, type ServerRole } from '../../src/config/env';
@@ -18,5 +19,18 @@ describe('buildPlugins: offers', () => {
     // Assert: offers appear once, immediately after the catalog
     expect(plugins.filter((plugin) => plugin === OffersPlugin)).toHaveLength(1);
     expect(plugins.indexOf(OffersPlugin)).toBe(plugins.indexOf(CatalogPlugin) + 1);
+  });
+
+  // Collections-rules imports OffersPlugin to register its membership source on the offers' registrar (D2341).
+  it.each(SERVER_ROLES)('registers OffersPlugin before CollectionsRulesPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...CORE_ENV, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert: both are registered once on every role, the offers first
+    expect(plugins.filter((plugin) => plugin === CollectionsRulesPlugin)).toHaveLength(1);
+    expect(plugins.indexOf(OffersPlugin)).toBeLessThan(plugins.indexOf(CollectionsRulesPlugin));
   });
 });
