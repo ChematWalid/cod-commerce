@@ -21,6 +21,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"95-Fra8KS/n3EMiJa29ECKyjmnFPJk"
 
 [
   {
@@ -29,7 +30,7 @@ content-type: application/json; charset=utf-8
     "code": "WELCOME10",
     "usageLimit": 50,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.139Z"
+    "createdAt": "2026-11-21T06:29:37.989Z"
   }
 ]
 ```
@@ -49,31 +50,32 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"1c6-9S4tTZspG0LLXL83NcCgztlj9as"
 
 [
   {
     "id": "<CODE_2>",
     "offerId": "<OFFER_CODES>",
-    "code": "EVQ6BG4T6Q",
+    "code": "EV3TTLMABZ",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   },
   {
     "id": "<CODE_3>",
     "offerId": "<OFFER_CODES>",
-    "code": "EV2WZ4DKLD",
+    "code": "EVMGGZVH64",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   },
   {
     "id": "<CODE_4>",
     "offerId": "<OFFER_CODES>",
-    "code": "EV3WLR2ULA",
+    "code": "EVZLXQ58XS",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   }
 ]
 ```
@@ -101,19 +103,20 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"be-6dvL9Sc2XhlNgAf5CDXZbK6LJng"
 
 {
   "data": {
     "generateOfferCodes": [
       {
         "id": "<CODE_5>",
-        "code": "GQXGRYNMLR",
+        "code": "GQ5YG7LERC",
         "usageLimit": 1,
         "usageCount": 0
       },
       {
         "id": "<CODE_6>",
-        "code": "GQZCGSVVKC",
+        "code": "GQ7PAFF78Q",
         "usageLimit": 1,
         "usageCount": 0
       }
@@ -125,12 +128,13 @@ content-type: application/json; charset=utf-8
 ### DELETE /offers/:id/codes/:code (one generated code)
 
 ```http
-DELETE http://127.0.0.1:23100/offers/<OFFER_CODES>/codes/EV3WLR2ULA
+DELETE http://127.0.0.1:23100/offers/<OFFER_CODES>/codes/EVZLXQ58XS
 Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"10-oV4hJxRVSENxc/wX8+mA4/Pe4tA"
 
 {
   "success": true
@@ -146,6 +150,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2eb-++b0BMnjdohj7Qd8TPehB7oeRoM"
 
 [
   {
@@ -154,39 +159,39 @@ content-type: application/json; charset=utf-8
     "code": "WELCOME10",
     "usageLimit": 50,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.139Z"
+    "createdAt": "2026-11-21T06:29:37.989Z"
   },
   {
     "id": "<CODE_2>",
     "offerId": "<OFFER_CODES>",
-    "code": "EVQ6BG4T6Q",
+    "code": "EV3TTLMABZ",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   },
   {
     "id": "<CODE_3>",
     "offerId": "<OFFER_CODES>",
-    "code": "EV2WZ4DKLD",
+    "code": "EVMGGZVH64",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   },
   {
     "id": "<CODE_5>",
     "offerId": "<OFFER_CODES>",
-    "code": "GQXGRYNMLR",
+    "code": "GQ5YG7LERC",
     "usageLimit": 1,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.534Z"
+    "createdAt": "2026-11-21T06:29:38.429Z"
   },
   {
     "id": "<CODE_6>",
     "offerId": "<OFFER_CODES>",
-    "code": "GQZCGSVVKC",
+    "code": "GQ7PAFF78Q",
     "usageLimit": 1,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.534Z"
+    "createdAt": "2026-11-21T06:29:38.429Z"
   }
 ]
 ```

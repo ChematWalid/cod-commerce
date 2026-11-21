@@ -16,6 +16,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"8e-MbgDWUyWVAa351Gq4qgQL/jlYY0"
 
 {
   "statusCode": 409,
@@ -46,6 +47,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"be-PLK+2R1juWMtnWWiWxz4GiCR06k"
 
 {
   "errors": [

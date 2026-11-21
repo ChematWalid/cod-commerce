@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"350-VEEyVD2IzW4r3CNaPYxJnF7O50Q"
 
 {
   "id": "<OFFER_QUANTITY>",
@@ -51,7 +52,7 @@ content-type: application/json; charset=utf-8
   "status": "active",
   "startsAt": null,
   "endsAt": null,
-  "publishedAt": "2026-11-21T05:06:34.537Z",
+  "publishedAt": "2026-11-21T06:29:36.458Z",
   "pausedAt": null,
   "archivedAt": null,
   "usageCount": 0,
@@ -68,7 +69,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "pause",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": false
 }
 ```
 
@@ -81,7 +88,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "query": "mutation ($id: String!) { publishOffer(id: $id) { id kind status publishedAt } }",
+  "query": "mutation ($id: String!) { publishOffer(id: $id) { id kind status publishedAt allowedMoves editable deletable } }",
   "variables": {
     "id": "<OFFER_FREE_DELIVERY>"
   }
@@ -90,6 +97,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"cd-RxunQpPw2AeovehPZaFdoasDokU"
 
 {
   "data": {
@@ -97,7 +105,13 @@ content-type: application/json; charset=utf-8
       "id": "<OFFER_FREE_DELIVERY>",
       "kind": "free_delivery",
       "status": "active",
-      "publishedAt": "2026-11-21T05:06:34.863Z"
+      "publishedAt": "2026-11-21T06:29:36.775Z",
+      "allowedMoves": [
+        "pause",
+        "archive"
+      ],
+      "editable": true,
+      "deletable": false
     }
   }
 }

@@ -20,6 +20,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"94-0QEgsC+/A/0XWHMNOZp1Ein/voQ"
 
 [
   {
@@ -28,7 +29,7 @@ content-type: application/json; charset=utf-8
     "code": "SAME10",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:37.304Z"
+    "createdAt": "2026-11-21T06:29:38.890Z"
   }
 ]
 ```
@@ -56,6 +57,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"2a9-ge2w2SRQ1/9mmCkKTQIq6lY7yIo"
 
 {
   "id": "<OFFER_B_CODES>",
@@ -97,7 +99,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "publish",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": true
 }
 ```
 
@@ -119,6 +127,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"94-MLT5unaHVXKSM3CD8cAefqtGrRI"
 
 [
   {
@@ -127,7 +136,7 @@ content-type: application/json; charset=utf-8
     "code": "SAME10",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:37.551Z"
+    "createdAt": "2026-11-21T06:29:39.199Z"
   }
 ]
 ```
@@ -150,6 +159,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"8c-pGW5l5ZP4giQPvrX+yOc630pah4"
 
 {
   "statusCode": 409,
@@ -168,6 +178,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"37e-5gEr6XNbomNqQ2W8/7L9ltGs2Ko"
 
 [
   {
@@ -176,39 +187,39 @@ content-type: application/json; charset=utf-8
     "code": "WELCOME10",
     "usageLimit": 50,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.139Z"
+    "createdAt": "2026-11-21T06:29:37.989Z"
   },
   {
     "id": "<CODE_2>",
     "offerId": "<OFFER_CODES>",
-    "code": "EVQ6BG4T6Q",
+    "code": "EV3TTLMABZ",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   },
   {
     "id": "<CODE_3>",
     "offerId": "<OFFER_CODES>",
-    "code": "EV2WZ4DKLD",
+    "code": "EVMGGZVH64",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.294Z"
+    "createdAt": "2026-11-21T06:29:38.171Z"
   },
   {
     "id": "<CODE_5>",
     "offerId": "<OFFER_CODES>",
-    "code": "GQXGRYNMLR",
+    "code": "GQ5YG7LERC",
     "usageLimit": 1,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.534Z"
+    "createdAt": "2026-11-21T06:29:38.429Z"
   },
   {
     "id": "<CODE_6>",
     "offerId": "<OFFER_CODES>",
-    "code": "GQZCGSVVKC",
+    "code": "GQ7PAFF78Q",
     "usageLimit": 1,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:36.534Z"
+    "createdAt": "2026-11-21T06:29:38.429Z"
   },
   {
     "id": "<CODE_A_7>",
@@ -216,7 +227,7 @@ content-type: application/json; charset=utf-8
     "code": "SAME10",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:37.304Z"
+    "createdAt": "2026-11-21T06:29:38.890Z"
   }
 ]
 ```
@@ -230,6 +241,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"94-MLT5unaHVXKSM3CD8cAefqtGrRI"
 
 [
   {
@@ -238,7 +250,7 @@ content-type: application/json; charset=utf-8
     "code": "SAME10",
     "usageLimit": null,
     "usageCount": 0,
-    "createdAt": "2026-11-21T05:06:37.551Z"
+    "createdAt": "2026-11-21T06:29:39.199Z"
   }
 ]
 ```

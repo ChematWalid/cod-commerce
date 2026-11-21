@@ -41,6 +41,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"63c-SuixxvXPJROS+SexC+HrkDxNksA"
 
 {
   "scenarios": [
@@ -217,6 +218,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"657-7nP5HqFTvQATnfCDwG3AZj+91C8"
 
 {
   "data": {

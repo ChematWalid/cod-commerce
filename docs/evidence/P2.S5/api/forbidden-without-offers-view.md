@@ -11,11 +11,12 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 403 Forbidden
 content-type: application/json; charset=utf-8
+etag: W/"71-wCylXO/EyFa4UJaPIRHk99jltwY"
 
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-21T05:06:42.340Z",
+  "timestamp": "2026-11-21T06:29:43.844Z",
   "path": "/offers"
 }
 ```
@@ -58,11 +59,12 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 403 Forbidden
 content-type: application/json; charset=utf-8
+etag: W/"79-rZ65q366sk5cZEKdkvvZtqi3X2o"
 
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-21T05:06:42.420Z",
+  "timestamp": "2026-11-21T06:29:43.923Z",
   "path": "/offers/preview"
 }
 ```
@@ -83,6 +85,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"b7-V7UNYeY3I3LcgOdTiWXMQ2JTa4A"
 
 {
   "errors": [

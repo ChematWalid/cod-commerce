@@ -221,6 +221,27 @@ async function signedIn(browser, lang, vp) {
   return page;
 }
 
+/** The dialog parts a merchant needs to read it and to leave it; seven cards outgrow a phone, so they must not scroll away. */
+const DIALOG_PARTS = ['[data-slot="dialog-title"]', '[data-slot="dialog-close"]'];
+
+/**
+ * Fails unless the open dialog's title and close button lie wholly inside the viewport (before any scroll): a dialog
+ * taller than the screen used to push both above its top edge on a phone, out of reach.
+ */
+async function assertDialogReachable(page, name) {
+  const outside = await page.evaluate((selectors) => {
+    const dialog = document.querySelector('[data-slot="dialog-content"]');
+    if (dialog === null) return ['the dialog'];
+    return selectors.filter((selector) => {
+      const part = dialog.querySelector(selector);
+      if (part === null) return true;
+      const box = part.getBoundingClientRect();
+      return box.top < 0 || box.left < 0 || box.bottom > window.innerHeight || box.right > window.innerWidth;
+    });
+  }, DIALOG_PARTS);
+  if (outside.length > 0) fail(`${name}: ${outside.join(' and ')} outside the viewport`);
+}
+
 const open = (page, path) => page.goto(`${base}${path}`, { waitUntil: 'domcontentloaded' });
 const visibleCards = (page) => page.locator(`[data-testid="${APP_TYPE_CARD_TEST_ID}"]:visible`);
 /** A whole amount as the Arabic preview writes it (ar-DZ, Latin digits), as the browser spec reads it. */
@@ -245,6 +266,7 @@ async function shootList(page, t, tag, lang) {
     [`[data-testid="${APP_TYPE_CARD_TEST_ID}"]`, APP_TYPE_IDS.length],
   );
   if ((await visibleCards(page).count()) !== APP_TYPE_IDS.length) fail(`create-dialog-${tag}: not seven cards`);
+  await assertDialogReachable(page, `create-dialog-${tag}`);
   await shoot(page, `create-dialog-${tag}`, lang, { overlay: true });
 }
 
@@ -317,6 +339,7 @@ async function main() {
     );
     proved(`The offers list shows at least ${LISTED_OFFERS} offers of the store.`);
     proved('The create dialog, on All types, shows exactly seven app-type cards.');
+    proved("The create dialog's title and close button lie inside the viewport, on desktop and on a phone.");
     proved('Each of the seven editors shows its form, the Arabic order-form preview and the summary.');
     proved(`The quantity editor's preview shows the first tier's unit price (${UNIT_AT_TEN_PERCENT} DZD).`);
     proved(`The codes panel lists ${FIRST_CODE} and SAME10.`);

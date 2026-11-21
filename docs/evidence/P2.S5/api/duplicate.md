@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"33a-EFr3np2AT93WL2/h0QptCuFnKlg"
 
 {
   "id": "<OFFER_COPY>",
@@ -68,7 +69,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "publish",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": true
 }
 ```
 

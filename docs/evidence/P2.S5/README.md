@@ -3,7 +3,7 @@
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P2.S5.sh`. Data is
 synthetic: the demo seed's two businesses, plus what the script creates in store A1 (`demo`, Arabic) over the catalog
 Admin API (a product at 4,900 DZD and an add-on product at 1,500 DZD) and over the offers API. Image built from a tree
-with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit `46b91c5cb75d807bb58d530c9de5385cf94c093b`.
+with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit `c66c72561da1acefbf7de1077642b2f0d3312004`.
 Compose project `cod-evidence`.
 
 ## API transcripts
@@ -55,12 +55,27 @@ Each line below is a failing assertion in the script if it does not hold.
 - Every shot: the framework's name appears only inside the licence notice, and no raw message id is visible.
 - The offers list shows at least 7 offers of the store.
 - The create dialog, on All types, shows exactly seven app-type cards.
+- The create dialog's title and close button lie inside the viewport, on desktop and on a phone.
 - Each of the seven editors shows its form, the Arabic order-form preview and the summary.
 - The quantity editor's preview shows the first tier's unit price (4410 DZD).
 - The codes panel lists WELCOME10 and SAME10.
 - The product editor's Offers block lists the 3 offers bought on the 4,900 product.
 
 ## What was seen (§3a.17)
+
+Regenerated after the review fixes (2026-11-21, image `c66c725`, built fresh): the `OfferView` now answers
+`allowedMoves`, `editable` and `deletable` (D2543), the editor offers Publish only to members holding `offers.edit`
+(D2544), and the create dialog scrolls inside a phone's screen. Opened by eye on this run: the four `create-dialog`
+shots, the four `codes-panel` shots and the two mobile `product-offers-block` shots (the PNGs whose bytes changed), plus
+`editor-quantity-en-desktop`, `editor-bxgy-ar-mobile` and `editor-addon-ar-desktop` (the editor shots, unchanged byte
+for byte). On a phone the dialog now opens with "Create an offer" / "إنشاء عرض" and its close button at the top of the
+screen and the cards scrolling below them (the run before showed the title and close button pushed above the screen);
+the script now fails a run where either lies outside the viewport. The active quantity offer's editor shows Discard and
+Save, no Publish (`allowedMoves` has no `publish`); the bxgy and add-on drafts show Publish, Save as draft and Discard
+for the owner. Every transcript that answers an offer was read: each now carries the three fields, and the script asserts
+them against the offer's status (draft `publish, archive` editable and deletable; active `pause, archive`; paused
+`resume, archive`; archived none, neither editable nor deletable). Transcripts also gained the server's weak `etag`
+header (a hash of the body, no secret). The notes below are from the earlier run and still hold.
 
 Every PNG was opened and read by eye (2026-11-21): all 48 of the run after the preview fix, then, on the final run
 (image `46b91c5`, which differs only by the English summary sentence), the English shots that carry that sentence and
@@ -75,7 +90,7 @@ Arabic for the Arabic demo store. Every PNG is under 300 KB (largest: `editor-qu
 | Screen | ar desktop / mobile, en desktop / mobile |
 | --- | --- |
 | `offers-list` | Seven offers of store A1: status tabs (All, Drafts, Active, Paused, Archived), seven kind chips, columns Offer, Type, Activation, Status, Dates, Orders, Delivered revenue, Discount given and a row menu; the codes offer reads "Discount codes, Codes: 6"; badges Draft / Archived / Active (green); zero performance shown as 0 and 0 DZD. On a phone the table keeps Offer, Status and the row menu, and the chips wrap. |
-| `create-dialog` | "Create an offer" on All types: seven cards, Quantity offer first with the green "Recommended" badge, each with its one-line description. On a phone the dialog scrolls inside the viewport with the cards in one column. |
+| `create-dialog` | "Create an offer" on All types: seven cards, Quantity offer first with the green "Recommended" badge, each with its one-line description. On a phone the dialog's title and close button sit at the top of the screen and the cards, in one column, scroll inside the dialog. |
 | `editor-quantity` | The saved three-tier offer: tier price mode, Tier 1 (2 pieces, 10 %, picked first) and Tier 2 (3 pieces, 15 %, free delivery) with the quick-percent chips, the chosen product, then the shared cards (How buyers get it, Who gets it, Shown on, Dates and limits with the Algeria-time hint, Combines with). Side column: Summary and the Arabic order-form preview. On a phone the side cards follow the form and the action bar sits at the bottom. |
 | `editor-free_delivery`, `editor-product_discount`, `editor-discount_codes`, `editor-order_discount` | New-offer editors of each kind with its own settings (free delivery: when, delivery method, wilayas and who pays; product discount: applies to, percent or amount, most off a piece, countdown; discount codes adds the Codes card "Save the draft to add codes."; order discount: minimum none / amount / pieces). Previews priced by the server (4,410 + 800 = 5,210 saving 490; free delivery 4,900 with the "free delivery" badge). |
 | `editor-bxgy` | The saved buy 2 get 1: buy / get pieces, most times per order, the buyer gets more of the same items, gifted piece free; the preview shows the gift line tagged "هدية" at 0 DZD, saving 4,900, total 10,600. |
@@ -85,6 +100,10 @@ Arabic for the Arabic demo store. Every PNG is under 300 KB (largest: `editor-qu
 | `product-offers-block` | The 4,900 product's Offers block: buy 2 get 1 (Draft), the duplicate quantity draft and the active quantity offer, each with its kind, and "Add a quantity offer". |
 
 Fixed this session after looking:
+
+- On a phone the create dialog grew past the screen, so its title and close button sat above the top edge
+  (`fix(offers): let the create offer dialog scroll within a phone screen`); the script now fails a shot where either
+  lies outside the viewport.
 
 - The order-form preview's lines did not wrap, so on desktop the side card clipped 62 px of prices and totals
   (`fix(offers): keep the order form preview inside its side card`); the script now fails a shot where anything

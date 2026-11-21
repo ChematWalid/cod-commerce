@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"9ba-fF8hLjoOG/Jkd4qzj28vxfxgXe0"
 
 {
   "items": [
@@ -63,7 +64,13 @@ content-type: application/json; charset=utf-8
         "orders": 0,
         "deliveredRevenue": 0,
         "discountGiven": 0
-      }
+      },
+      "allowedMoves": [
+        "publish",
+        "archive"
+      ],
+      "editable": true,
+      "deletable": true
     },
     {
       "id": "<OFFER_COPY>",
@@ -121,7 +128,13 @@ content-type: application/json; charset=utf-8
         "orders": 0,
         "deliveredRevenue": 0,
         "discountGiven": 0
-      }
+      },
+      "allowedMoves": [
+        "publish",
+        "archive"
+      ],
+      "editable": true,
+      "deletable": true
     },
     {
       "id": "<OFFER_QUANTITY>",
@@ -162,7 +175,7 @@ content-type: application/json; charset=utf-8
       "status": "active",
       "startsAt": null,
       "endsAt": null,
-      "publishedAt": "2026-11-21T05:06:34.537Z",
+      "publishedAt": "2026-11-21T06:29:36.458Z",
       "pausedAt": null,
       "archivedAt": null,
       "usageCount": 0,
@@ -179,7 +192,13 @@ content-type: application/json; charset=utf-8
         "orders": 0,
         "deliveredRevenue": 0,
         "discountGiven": 0
-      }
+      },
+      "allowedMoves": [
+        "pause",
+        "archive"
+      ],
+      "editable": true,
+      "deletable": false
     }
   ],
   "totalItems": 3

@@ -34,6 +34,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"350-tJ7DutRrZBiAHccRdQ7Ba+fZZ8U"
 
 {
   "id": "<OFFER_QUANTITY>",
@@ -74,7 +75,7 @@ content-type: application/json; charset=utf-8
   "status": "active",
   "startsAt": null,
   "endsAt": null,
-  "publishedAt": "2026-11-21T05:06:34.537Z",
+  "publishedAt": "2026-11-21T06:29:36.458Z",
   "pausedAt": null,
   "archivedAt": null,
   "usageCount": 0,
@@ -91,7 +92,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "pause",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": false
 }
 ```
 
@@ -110,6 +117,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"a3-ZtpkdTZF9di5oR03hKYMwV5WYQA"
 
 {
   "statusCode": 409,

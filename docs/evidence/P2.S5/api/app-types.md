@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2aa-1+vem/FkpT/RglIOl7gAUqqaor0"
 
 [
   {
@@ -81,6 +82,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"2c6-d2SO1K7Iyfj5U5nh6R98ZWP8jd8"
 
 {
   "data": {

@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"36b-jpPQrcOEYaDna6SW3M+gvyAs+oc"
 
 {
   "items": [
@@ -53,7 +54,7 @@ content-type: application/json; charset=utf-8
       "status": "active",
       "startsAt": null,
       "endsAt": null,
-      "publishedAt": "2026-11-21T05:06:34.537Z",
+      "publishedAt": "2026-11-21T06:29:36.458Z",
       "pausedAt": null,
       "archivedAt": null,
       "usageCount": 0,
@@ -70,7 +71,13 @@ content-type: application/json; charset=utf-8
         "orders": 0,
         "deliveredRevenue": 0,
         "discountGiven": 0
-      }
+      },
+      "allowedMoves": [
+        "pause",
+        "archive"
+      ],
+      "editable": true,
+      "deletable": false
     }
   ],
   "totalItems": 1
@@ -86,7 +93,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "query": "query ($options: OfferListInput) { offers(options: $options) { totalItems items { id kind method title status } } }",
+  "query": "query ($options: OfferListInput) { offers(options: $options) { totalItems items { id kind method title status allowedMoves editable deletable } } }",
   "variables": {
     "options": {
       "status": "draft"
@@ -97,6 +104,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"413-sCvUzi6yeEZycBYjLASDC9n6OeE"
 
 {
   "data": {
@@ -108,35 +116,65 @@ content-type: application/json; charset=utf-8
           "kind": "product_discount",
           "method": "codes",
           "title": "رموز الخصم للأدلة",
-          "status": "draft"
+          "status": "draft",
+          "allowedMoves": [
+            "publish",
+            "archive"
+          ],
+          "editable": true,
+          "deletable": true
         },
         {
           "id": "<OFFER_ADDON>",
           "kind": "addon",
           "method": "automatic",
           "title": "إضافة بعد الطلب للأدلة",
-          "status": "draft"
+          "status": "draft",
+          "allowedMoves": [
+            "publish",
+            "archive"
+          ],
+          "editable": true,
+          "deletable": true
         },
         {
           "id": "<OFFER_BXGY>",
           "kind": "bxgy",
           "method": "automatic",
           "title": "اشتر 2 واحصل على 1 للأدلة",
-          "status": "draft"
+          "status": "draft",
+          "allowedMoves": [
+            "publish",
+            "archive"
+          ],
+          "editable": true,
+          "deletable": true
         },
         {
           "id": "<OFFER_COPY>",
           "kind": "quantity",
           "method": "automatic",
           "title": "عرض الكمية للأدلة",
-          "status": "draft"
+          "status": "draft",
+          "allowedMoves": [
+            "publish",
+            "archive"
+          ],
+          "editable": true,
+          "deletable": true
         },
         {
           "id": "<OFFER_INCOMPLETE>",
           "kind": "quantity",
           "method": "automatic",
           "title": "مسودة بلا منتج",
-          "status": "draft"
+          "status": "draft",
+          "allowedMoves": [
+            "publish",
+            "archive"
+          ],
+          "editable": true,
+          "deletable": true
         }
       ]
     }

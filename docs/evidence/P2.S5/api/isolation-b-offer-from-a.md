@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"73-FDUZ2Rto3rQ4LkmdbgJ4FOFfGkk"
 
 {
   "statusCode": 404,
@@ -34,6 +35,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"73-FDUZ2Rto3rQ4LkmdbgJ4FOFfGkk"
 
 {
   "statusCode": 404,
@@ -52,6 +54,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"79-A5zjrZaOTgDshxS+KgG/+0yZmcQ"
 
 {
   "statusCode": 404,
@@ -79,6 +82,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"18-7B9U9tyQn9g/KvIdBam40lPYBaE"
 
 {
   "data": {
@@ -96,6 +100,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2a9-kLrzpqAbstXUTg4g/GWfV4KHMOA"
 
 {
   "id": "<OFFER_B_CODES>",
@@ -137,7 +142,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "publish",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": true
 }
 ```
 

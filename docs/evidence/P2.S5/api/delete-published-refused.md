@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"9f-7xSbHo8UAPMkIoa/gNz51Ee9zb0"
 
 {
   "statusCode": 409,
@@ -29,6 +30,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"10-oV4hJxRVSENxc/wX8+mA4/Pe4tA"
 
 {
   "success": true
@@ -44,6 +46,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
+etag: W/"73-w+Y2XjPmuqRSu7ZOhgocyN4PlBw"
 
 {
   "statusCode": 404,

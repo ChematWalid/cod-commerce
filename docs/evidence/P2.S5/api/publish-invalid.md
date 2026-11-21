@@ -34,6 +34,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 201 Created
 content-type: application/json; charset=utf-8
+etag: W/"305-+PjUqzK/2GL9jejIe73P6X1yPNs"
 
 {
   "id": "<OFFER_INCOMPLETE>",
@@ -85,7 +86,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "publish",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": true
 }
 ```
 
@@ -98,6 +105,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 422 Unprocessable Entity
 content-type: application/json; charset=utf-8
+etag: W/"a5-cDpUBOCltS+e/x8mBMEbhMq845U"
 
 {
   "statusCode": 422,

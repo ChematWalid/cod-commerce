@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2b7-C+zLjNa2tGUB4qDDjAtmvhv0nJI"
 
 {
   "id": "<OFFER_FREE_DELIVERY>",
@@ -39,8 +40,8 @@ content-type: application/json; charset=utf-8
   "status": "paused",
   "startsAt": null,
   "endsAt": null,
-  "publishedAt": "2026-11-21T05:06:34.863Z",
-  "pausedAt": "2026-11-21T05:06:38.677Z",
+  "publishedAt": "2026-11-21T06:29:36.775Z",
+  "pausedAt": "2026-11-21T06:29:40.407Z",
   "archivedAt": null,
   "usageCount": 0,
   "version": 3,
@@ -50,7 +51,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "resume",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": false
 }
 ```
 
@@ -63,6 +70,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2a0-vUl3SS5shNkZ209pwl/rFdYRpjg"
 
 {
   "id": "<OFFER_FREE_DELIVERY>",
@@ -91,7 +99,7 @@ content-type: application/json; charset=utf-8
   "status": "active",
   "startsAt": null,
   "endsAt": null,
-  "publishedAt": "2026-11-21T05:06:34.863Z",
+  "publishedAt": "2026-11-21T06:29:36.775Z",
   "pausedAt": null,
   "archivedAt": null,
   "usageCount": 0,
@@ -102,7 +110,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "pause",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": false
 }
 ```
 
@@ -115,6 +129,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2a8-9lmjrocQ8fIyhWy9CIYdojLIGN8"
 
 {
   "id": "<OFFER_FREE_DELIVERY>",
@@ -143,9 +158,9 @@ content-type: application/json; charset=utf-8
   "status": "archived",
   "startsAt": null,
   "endsAt": null,
-  "publishedAt": "2026-11-21T05:06:34.863Z",
+  "publishedAt": "2026-11-21T06:29:36.775Z",
   "pausedAt": null,
-  "archivedAt": "2026-11-21T05:06:38.901Z",
+  "archivedAt": "2026-11-21T06:29:40.658Z",
   "usageCount": 0,
   "version": 5,
   "targets": [],
@@ -154,7 +169,10 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [],
+  "editable": false,
+  "deletable": false
 }
 ```
 
@@ -167,6 +185,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
+etag: W/"95-kDobX+QfcfMwJpREma7jHGJ71wU"
 
 {
   "statusCode": 409,

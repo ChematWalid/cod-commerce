@@ -36,6 +36,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2ce-FoRlbO0geYsL4U+SKjuxlTnzD5c"
 
 {
   "scenarios": [

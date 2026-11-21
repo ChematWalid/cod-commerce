@@ -11,6 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
+etag: W/"2bf-YBu76DLf4CQ7pknbtrGK+aHt9sE"
 
 {
   "id": "<OFFER_CODES>",
@@ -52,7 +53,13 @@ content-type: application/json; charset=utf-8
     "orders": 0,
     "deliveredRevenue": 0,
     "discountGiven": 0
-  }
+  },
+  "allowedMoves": [
+    "publish",
+    "archive"
+  ],
+  "editable": true,
+  "deletable": true
 }
 ```
 
@@ -65,7 +72,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "query": "query ($id: String!) { offer(id: $id) { id kind method title status version publishedAt pausedAt archivedAt codeCount usageCount config targets { role refType refId } performance { orders deliveredRevenue discountGiven } } }",
+  "query": "query ($id: String!) { offer(id: $id) { id kind method title status version publishedAt pausedAt archivedAt codeCount usageCount config targets { role refType refId } performance { orders deliveredRevenue discountGiven } allowedMoves editable deletable } }",
   "variables": {
     "id": "<OFFER_CODES>"
   }
@@ -74,6 +81,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
+etag: W/"1e8-cBlXA4t9Tr5A8lPA9oC1dOpWgNM"
 
 {
   "data": {
@@ -101,7 +109,13 @@ content-type: application/json; charset=utf-8
         "orders": 0,
         "deliveredRevenue": 0,
         "discountGiven": 0
-      }
+      },
+      "allowedMoves": [
+        "publish",
+        "archive"
+      ],
+      "editable": true,
+      "deletable": true
     }
   }
 }

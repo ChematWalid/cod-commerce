@@ -9,7 +9,10 @@ create_product() { # create_product <label> <session> <channel> <input-js> -> $w
   gql "$Q_CREATE_PRODUCT" "$(vars "{input:$4}")" "$2" "$3"
   expect_ok "create $1"
 }
-OFFER_FIELDS='id kind method title status version publishedAt pausedAt archivedAt codeCount usageCount config targets { role refType refId } performance { orders deliveredRevenue discountGiven }'
+OFFER_FIELDS='id kind method title status version publishedAt pausedAt archivedAt codeCount usageCount config targets { role refType refId } performance { orders deliveredRevenue discountGiven } allowedMoves editable deletable'
+# What an OfferView answers about its own lifecycle (D2543): the moves its status allows, whether it may still be edited
+# (not once archived) and deleted (a draft only, D2521). `ACCESS(o)` holds when an offer's three fields match its status.
+ACCESS='((o)=>({draft:"publish,archive|true|true",active:"pause,archive|true|false",paused:"resume,archive|true|false",archived:"|false|false"})[o.status]===[o.allowedMoves.join(),o.editable,o.deletable].join("|"))'
 remember_offer() { remember_id "$1" "$2"; }
 CODE_SEQ=0
 remember_codes() { # remember_codes <prefix>: every code id of the code list in $work/b, as <prefix>_<n>
@@ -52,7 +55,7 @@ f="$out/api/create-quantity-draft.md"
 begin "$f" "Create a quantity draft" "A new offer is a draft of the active store (store from the session, never the body); \`offers.create\`."
 body=$(offer_body "{kind:'quantity',title:'عرض الكمية للأدلة',config:$TIERS,targets:$BUY}")
 rest POST /offers "$body" "$owner" "$demo"; expect_status "create quantity" 201
-assert_js "draft" "b.status==='draft' && b.publishedAt===null && b.targets[0].role==='buy'" "$work/b"
+assert_js "draft" "b.status==='draft' && b.publishedAt===null && b.targets[0].role==='buy' && $ACCESS(b)" "$work/b"
 quantity_offer=$(js 'b.id' "$work/b"); remember_offer OFFER_QUANTITY "$quantity_offer"
 emit_rest "$f" "POST /offers (quantity, two tiers, on the 4,900 product)" POST /offers "$body"
 
@@ -73,21 +76,21 @@ assert_js "still draft" "b.status==='draft'" "$work/b"
 f="$out/api/publish.md"
 begin "$f" "Publish" "A complete draft becomes \`active\` and gets \`publishedAt\`; \`offers.edit\`."
 rest POST "/offers/$quantity_offer/publish" - "$owner" "$demo"; expect_status publish 200
-assert_js published "b.status==='active' && typeof b.publishedAt==='string'" "$work/b"
+assert_js published "b.status==='active' && typeof b.publishedAt==='string' && $ACCESS(b)" "$work/b"
 emit_rest "$f" "POST /offers/:id/publish" POST "/offers/$quantity_offer/publish" -
 body=$(offer_body "{kind:'free_delivery',title:'توصيل مجاني للأدلة',config:{threshold:{type:'none'}}}")
 rest POST /offers "$body" "$owner" "$demo"; expect_status "create free delivery" 201
 free_offer=$(js 'b.id' "$work/b"); remember_offer OFFER_FREE_DELIVERY "$free_offer"
-Q="mutation (\$id: String!) { publishOffer(id: \$id) { id kind status publishedAt } }"
+Q="mutation (\$id: String!) { publishOffer(id: \$id) { id kind status publishedAt allowedMoves editable deletable } }"
 gql "$Q" "$(vars "{id:'$free_offer'}")" "$owner" "$demo"; expect_ok publishOffer
-assert_js "published (graphql)" "b.data.publishOffer.status==='active'" "$work/b"
+assert_js "published (graphql)" "b.data.publishOffer.status==='active' && $ACCESS(b.data.publishOffer)" "$work/b"
 emit "$f" "publishOffer (a free-delivery offer)" "$Q" "$(vars "{id:'$free_offer'}")" "$owner" "$demo"
 
 # --- duplicate.md -------------------------------------------------------------------------------
 f="$out/api/duplicate.md"
 begin "$f" "Duplicate" "A copy is a new draft with the same configuration and targets (D2511); \`offers.create\`."
 rest POST "/offers/$quantity_offer/duplicate" - "$owner" "$demo"; expect_status duplicate 201
-assert_js copy "b.status==='draft' && b.id!=='$quantity_offer' && b.config.tiers.length===2" "$work/b"
+assert_js copy "b.status==='draft' && b.id!=='$quantity_offer' && b.config.tiers.length===2 && $ACCESS(b)" "$work/b"
 dup_offer=$(js 'b.id' "$work/b"); remember_offer OFFER_COPY "$dup_offer"
 emit_rest "$f" "POST /offers/:id/duplicate" POST "/offers/$quantity_offer/duplicate" -
 
@@ -106,18 +109,18 @@ codes_offer=$(js 'b.id' "$work/b"); remember_offer OFFER_CODES "$codes_offer"
 f="$out/api/list-by-status-and-kind.md"
 begin "$f" "List by status and kind" "A page of the active store's offers, newest first; the query string (REST) or \`options\` (GraphQL) filters it."
 rest GET '/offers?status=active&kind=quantity' - "$owner" "$demo"; expect_status "list active quantity" 200
-assert_js "active quantity" "b.totalItems===1 && b.items[0].id==='$quantity_offer'" "$work/b"
+assert_js "active quantity" "b.totalItems===1 && b.items[0].id==='$quantity_offer' && $ACCESS(b.items[0])" "$work/b"
 emit_rest "$f" "GET /offers?status=active&kind=quantity" GET '/offers?status=active&kind=quantity' -
-Q="query (\$options: OfferListInput) { offers(options: \$options) { totalItems items { id kind method title status } } }"
+Q="query (\$options: OfferListInput) { offers(options: \$options) { totalItems items { id kind method title status allowedMoves editable deletable } } }"
 gql "$Q" '{"options":{"status":"draft"}}' "$owner" "$demo"; expect_ok "offers drafts"
-assert_js "drafts only" "b.data.offers.items.length>=5 && b.data.offers.items.every((o)=>o.status==='draft')" "$work/b"
+assert_js "drafts only" "b.data.offers.items.length>=5 && b.data.offers.items.every((o)=>o.status==='draft' && $ACCESS(o))" "$work/b"
 emit "$f" "offers(options: { status: draft })" "$Q" '{"options":{"status":"draft"}}' "$owner" "$demo"
 
 # --- list-by-product.md -------------------------------------------------------------------------
 f="$out/api/list-by-product.md"
 begin "$f" "List by product" "The offers bought on one product (the product editor's Offers block, D2524)."
 rest GET "/offers?productId=$product" - "$owner" "$demo"; expect_status "list by product" 200
-assert_js "on the product" "b.totalItems===3 && ['$quantity_offer','$dup_offer','$bxgy_offer'].every((id)=>b.items.some((o)=>o.id===id))" "$work/b"
+assert_js "on the product" "b.totalItems===3 && ['$quantity_offer','$dup_offer','$bxgy_offer'].every((id)=>b.items.some((o)=>o.id===id)) && b.items.every($ACCESS)" "$work/b"
 emit_rest "$f" "GET /offers?productId=<the 4,900 product>" GET "/offers?productId=$product" -
 
 # --- codes-add-and-generate.md ------------------------------------------------------------------
@@ -176,11 +179,11 @@ emit_rest "$f" "Business B: GET /offers/:id/codes" GET "/offers/$b_offer/codes" 
 f="$out/api/get-with-code-count.md"
 begin "$f" "One offer with its code count" "One offer of the active store, with \`codeCount\` and its performance; \`offers.view\`."
 rest GET "/offers/$codes_offer" - "$owner" "$demo"; expect_status get 200
-assert_js "code count" "b.codeCount===6 && b.method==='codes'" "$work/b"
+assert_js "code count" "b.codeCount===6 && b.method==='codes' && $ACCESS(b)" "$work/b"
 emit_rest "$f" "GET /offers/:id" GET "/offers/$codes_offer" -
 Q="query (\$id: String!) { offer(id: \$id) { $OFFER_FIELDS } }"
 gql "$Q" "$(vars "{id:'$codes_offer'}")" "$owner" "$demo"; expect_ok offer
-assert_js "code count (graphql)" 'b.data.offer.codeCount===6' "$work/b"
+assert_js "code count (graphql)" "b.data.offer.codeCount===6 && $ACCESS(b.data.offer)" "$work/b"
 emit "$f" "offer(id:)" "$Q" "$(vars "{id:'$codes_offer'}")" "$owner" "$demo"
 
 # --- update-version-conflict.md -----------------------------------------------------------------
@@ -189,7 +192,7 @@ begin "$f" "Edit with a version" "An edit may name the version it was read at (D
 read_at=$(version_of "$quantity_offer")
 body=$(offer_body "{title:'عرض الكمية للأدلة',config:$TIERS,version:$read_at}")
 rest PATCH "/offers/$quantity_offer" "$body" "$owner" "$demo"; expect_status "update at version" 200
-assert_js "version moved on" "b.version===$((read_at + 1))" "$work/b"
+assert_js "version moved on" "b.version===$((read_at + 1)) && $ACCESS(b)" "$work/b"
 emit_rest "$f" "PATCH /offers/:id at the current version $read_at" PATCH "/offers/$quantity_offer" "$body"
 body=$(offer_body "{title:'عنوان قديم',version:$read_at}")
 rest PATCH "/offers/$quantity_offer" "$body" "$owner" "$demo"; expect_rest_code "stale version" 409 offers.offer-conflict
@@ -199,13 +202,13 @@ emit_rest "$f" "PATCH /offers/:id at the old version $read_at: 409" PATCH "/offe
 f="$out/api/pause-resume-archive.md"
 begin "$f" "Pause, resume, archive" "The lifecycle of a published offer (D2510); \`offers.edit\`."
 rest POST "/offers/$free_offer/pause" - "$owner" "$demo"; expect_status pause 200
-assert_js paused "b.status==='paused' && typeof b.pausedAt==='string'" "$work/b"
+assert_js paused "b.status==='paused' && typeof b.pausedAt==='string' && $ACCESS(b)" "$work/b"
 emit_rest "$f" "POST /offers/:id/pause" POST "/offers/$free_offer/pause" -
 rest POST "/offers/$free_offer/resume" - "$owner" "$demo"; expect_status resume 200
-assert_js resumed "b.status==='active'" "$work/b"
+assert_js resumed "b.status==='active' && $ACCESS(b)" "$work/b"
 emit_rest "$f" "POST /offers/:id/resume" POST "/offers/$free_offer/resume" -
 rest POST "/offers/$free_offer/archive" - "$owner" "$demo"; expect_status archive 200
-assert_js archived "b.status==='archived' && typeof b.archivedAt==='string'" "$work/b"
+assert_js archived "b.status==='archived' && typeof b.archivedAt==='string' && b.allowedMoves.length===0 && !b.editable && $ACCESS(b)" "$work/b"
 emit_rest "$f" "POST /offers/:id/archive" POST "/offers/$free_offer/archive" -
 rest POST "/offers/$free_offer/resume" - "$owner" "$demo"; expect_rest_code "resume archived" 409 offers.invalid-transition
 emit_rest "$f" "POST /offers/:id/resume of an archived offer: 409" POST "/offers/$free_offer/resume" -
@@ -299,7 +302,7 @@ gql "$Q" "$(vars "{id:'$b_offer'}")" "$owner" "$demo"; expect_ok "A offer(B)"
 assert_js "null" 'b.data.offer===null' "$work/b"
 emit "$f" "offer(id: <B's offer>)" "$Q" "$(vars "{id:'$b_offer'}")" "$owner" "$demo"
 rest GET "/offers/$b_offer" - "$second_owner" "$second"; expect_status "B unchanged" 200
-assert_js "B unchanged" "b.title==='Codes de B' && b.version===$b_version" "$work/b"
+assert_js "B unchanged" "b.title==='Codes de B' && b.version===$b_version && $ACCESS(b)" "$work/b"
 emit_rest "$f" "Business B reads its offer afterwards: unchanged" GET "/offers/$b_offer" -
 
 # --- forbidden-without-offers-view.md -----------------------------------------------------------
