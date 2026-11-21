@@ -12,7 +12,12 @@ import {
   TabsTrigger,
 } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
-import { APP_TYPE_CARD_TEST_ID, CREATE_DIALOG_TEST_ID } from '../constants';
+import {
+  APP_TYPE_CARD_TEST_ID,
+  CREATE_ALL_KINDS_TEST_ID,
+  CREATE_BY_GOAL_TEST_ID,
+  CREATE_DIALOG_TEST_ID,
+} from '../constants';
 import type { OfferAppTypeDto } from '../dto';
 import { type AppTypeCard, appTypeCards } from '../model/app-type-cards';
 
@@ -81,10 +86,10 @@ function DialogBody({ appTypes, onChoose }: Pick<CreateOfferDialogProps, 'appTyp
         <TabsTrigger value={VIEW_BY_GOAL}>{i18n._('offers.create-by-goal')}</TabsTrigger>
         <TabsTrigger value={VIEW_ALL}>{i18n._('offers.create-all-kinds')}</TabsTrigger>
       </TabsList>
-      <TabsContent value={VIEW_BY_GOAL} className="pt-3">
+      <TabsContent value={VIEW_BY_GOAL} data-testid={CREATE_BY_GOAL_TEST_ID} className="cod-offers-create-view pt-3">
         <CardGrid cards={cards.byGoal} byGoal onChoose={onChoose} />
       </TabsContent>
-      <TabsContent value={VIEW_ALL} className="pt-3">
+      <TabsContent value={VIEW_ALL} data-testid={CREATE_ALL_KINDS_TEST_ID} className="cod-offers-create-view pt-3">
         <CardGrid cards={cards.all} byGoal={false} onChoose={onChoose} />
       </TabsContent>
     </Tabs>
