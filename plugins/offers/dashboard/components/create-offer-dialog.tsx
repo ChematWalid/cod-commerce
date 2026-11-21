@@ -101,7 +101,11 @@ export function CreateOfferDialog({ open, appTypes, onChoose, onClose }: CreateO
         if (!next) onClose();
       }}
     >
-      <DialogContent data-testid={CREATE_DIALOG_TEST_ID} className="sm:max-w-2xl">
+      {/* Seven cards outgrow a phone's height: the dialog scrolls inside the viewport so its title stays reachable. */}
+      <DialogContent
+        data-testid={CREATE_DIALOG_TEST_ID}
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle>{i18n._('offers.create-title')}</DialogTitle>
           <DialogDescription>{i18n._('offers.create-description')}</DialogDescription>
