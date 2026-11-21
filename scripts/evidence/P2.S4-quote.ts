@@ -85,6 +85,12 @@ const HOME_FEE = 800;
 const DESK_FEE = 500;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
+/**
+ * How long after its creation the "ended" offer ends: a publish refuses an end date already past (D2510), so the
+ * offer is published live and the run waits for its end before quoting. The margin covers its own create and publish
+ * on a loaded machine.
+ */
+const ENDS_SOON_MS = 10_000;
 const ALGIERS = '16';
 const MS_PER_SECOND = 1000;
 const TOKEN = /^qt1\.([^.]+)\.(.+)$/;
@@ -197,7 +203,7 @@ async function seedOffers(admin: OfferAdmin, a1: Store, b: Store): Promise<Offer
   const publish = async (store: Store, name: string, input: OfferInput, codes: string[] = []): Promise<string> => {
     const draft = await admin.createDraft(store.ctx, store.scope, input);
     remember(name, draft.id);
-    const active = await admin.setStatus(store.ctx, store.scope, draft.id, 'active');
+    const active = await admin.publish(store.ctx, store.scope, draft.id);
     check(`${name} active`, active.status === 'active', active);
     if (codes.length > 0) {
       const limited = (code: string) => (code === 'usedup15' ? { code, usageLimit: 1 } : { code });
@@ -232,12 +238,14 @@ async function seedOffers(admin: OfferAdmin, a1: Store, b: Store): Promise<Offer
       targets: product(catalog.scheduleProduct),
     }),
   );
+  // Read the clock again here: the offers above may have taken longer than the margin.
+  const endedAt = Date.now() + ENDS_SOON_MS;
   const ended = await publish(
     a1,
     'OFFER_ENDED',
-    percentOff('Ended an hour ago', 7, {
+    percentOff('Ended seconds after its publication', 7, {
       startsAt: new Date(now - 7 * DAY_MS).toISOString(),
-      endsAt: new Date(now - HOUR_MS).toISOString(),
+      endsAt: new Date(endedAt).toISOString(),
       targets: product(catalog.scheduleProduct),
     }),
   );
@@ -260,7 +268,14 @@ async function seedOffers(admin: OfferAdmin, a1: Store, b: Store): Promise<Offer
     percentOff("Business B's code", 20, { method: 'codes', targets: product(catalog.bProduct) }),
     ['bonly20'],
   );
+  await untilPast(endedAt);
   return { quantity, notStarted, ended, welcome, usedUp, order10, save1000, b: bOffer };
+}
+
+/** Resolves once the clock has passed `instantMs`. */
+async function untilPast(instantMs: number): Promise<void> {
+  const left = instantMs - Date.now() + MS_PER_SECOND;
+  if (left > 0) await new Promise((resolve) => setTimeout(resolve, left));
 }
 
 /** The code's one allowed use is taken, through the use case P3.S4 records an order's uses with (D2447). */
@@ -417,7 +432,7 @@ async function quotes(pricing: Pricing, a1: Store, ids: OfferIds): Promise<void>
       name: 'quote-schedule-skipped',
       title: 'Offers outside their schedule: skipped not_started and ended',
       about:
-        'Two published automatic offers on this product: one starts next week, one ended an hour ago (D2419, AC3). ' +
+        'Two published automatic offers on this product: one starts next week, one has ended (D2419, AC3). ' +
         'Both are reported in `skipped` and the price is untouched.',
       input: request([line(catalog.scheduleVariant, 1)]),
     },

@@ -7,6 +7,18 @@ export interface TokenLine {
   readonly unitPrice: number;
   readonly originalPrice: number;
   readonly offerIds: readonly string[];
+  /** On a gift line: the buy-x-get-y offer that gifted it (D2504); its variant may then appear twice in `l`. */
+  readonly g?: string;
+}
+
+/** One add-on line as the quote token signs it (ADR 0004 `a`, D2506): never also in `l`. */
+export interface TokenAddon {
+  readonly offerId: string;
+  readonly variantId: string;
+  readonly qty: number;
+  readonly unitPrice: number;
+  /** The cart variant the add-on rides with, or null for an add-on offered on any order. */
+  readonly parentVariantId: string | null;
 }
 
 /** One order-level discount as the quote token signs it (ADR 0004 `d`); `code` when a code activated it. */
@@ -27,10 +39,12 @@ export interface TokenUse {
 
 /**
  * What the engine prices, before the token: the quote without `quoteToken`/`expiresAt`, plus the token's lines,
- * discounts and applied offers and whether an applied offer read the buyer's phone (the signed `p` flag, D2421).
+ * add-ons, discounts and applied offers and whether an applied offer read the buyer's phone (the signed `p` flag,
+ * D2421).
  */
 export type PricedQuote = Omit<Quote, 'quoteToken' | 'expiresAt'> & {
   readonly tokenLines: readonly TokenLine[];
+  readonly tokenAddons: readonly TokenAddon[];
   readonly tokenDiscounts: readonly TokenDiscount[];
   readonly tokenUses: readonly TokenUse[];
   readonly phoneUsed: boolean;

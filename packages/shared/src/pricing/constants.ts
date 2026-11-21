@@ -34,6 +34,11 @@ export const MAX_LINE_OFFERS_APPLIED = 4;
 export const MAX_ORDER_DISCOUNTS_APPLIED = MAX_QUOTE_CODES + 3;
 /** Most codes one admin add may carry, so one call never holds a transaction for an unbounded batch. */
 export const MAX_CODES_PER_ADD = 100;
+/**
+ * Most codes one offer may hold (D2535(k)), so the offer's code list, read whole by the admin, stays bounded. One code
+ * per influencer is the use case; a thousand covers it many times over.
+ */
+export const MAX_CODES_PER_OFFER = 1000;
 /** Longest code a buyer may type, before trimming and upper-casing. */
 export const MAX_CODE_INPUT_LENGTH = 64;
 /** Longest phone text a request may carry, before normalising. */
@@ -66,8 +71,35 @@ export const KIND_PATTERN = /^[a-z0-9_]+$/;
 /** Most targets of one offer. */
 export const MAX_OFFER_TARGETS = 100;
 
-/** Pipeline stages, applied in ascending order (D2411, D2412). */
+/** Pipeline stages, applied in ascending order (D2411, D2412, D2503, D2505). */
 export const STAGE_QUANTITY = 10;
+export const STAGE_BXGY = 15;
 export const STAGE_PRODUCT_DISCOUNT = 20;
+export const STAGE_ADDON = 25;
 export const STAGE_ORDER = 30;
 export const STAGE_DELIVERY = 40;
+
+/** Most units one buy-x-get-y step buys or gifts, and most times it applies to one order (D2503). */
+export const MAX_BXGY_QUANTITY = 20;
+export const MAX_BXGY_TIMES = 50;
+/** Most add-on targets of one offer, and most pieces of one add-on per order (D2505). */
+export const MAX_ADDON_PRODUCTS = 5;
+export const MAX_ADDON_PIECES = 10;
+/** Most add-ons one quote request may carry (D2506). */
+export const MAX_QUOTE_ADDONS = 5;
+
+/** Admin offer list page size: the default and the largest page (D2513). */
+export const OFFER_PAGE_SIZE = 20;
+export const OFFER_PAGE_MAX = 50;
+
+/** Generated codes (D2512): an optional upper-case prefix, then a random part without look-alike characters. */
+export const GENERATED_CODE_LENGTH = 8;
+export const GENERATED_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const GENERATED_CODE_PREFIX_MAX = 8;
+export const GENERATED_CODE_PREFIX_PATTERN = /^[A-Z0-9]*$/;
+/** Draws of a generated batch before a collision with stored codes gives up (D2512). */
+export const GENERATE_CODE_ROUNDS = 3;
+
+/** Defaults of an offer preview: a sample unit price and delivery fee in DZD (D2516). */
+export const PREVIEW_SAMPLE_PRICE = 4900;
+export const PREVIEW_DELIVERY_FEE = 800;

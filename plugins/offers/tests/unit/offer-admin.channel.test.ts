@@ -10,10 +10,10 @@ import { aCode, anActiveOffer, scopeA, scopeA2, scopeB } from '../support/offer-
 /** The admin over a store A1 that holds one code offer, a context on A1's channel and the fake that hands them out. */
 async function setUpGuardedAdmin() {
   const stores = new FakeActiveStores();
-  const { service, tables } = setUpOfferAdmin({ stores });
+  const { service, lifecycle, codeBook, tables } = setUpOfferAdmin({ stores });
   const ctxA = stores.contextOf(scopeA);
   const offer = await service.createDraft(ctxA, scopeA, { ...QUANTITY_INPUT, method: 'codes' });
-  return { service, tables, stores, ctxA, offer };
+  return { service, lifecycle, codeBook, tables, stores, ctxA, offer };
 }
 
 describe('OfferAdminService channel guard (D2448)', () => {
@@ -22,7 +22,7 @@ describe('OfferAdminService channel guard (D2448)', () => {
     ['business B', scopeB],
   ])("refuses every call on a ctx of %s's channel", async (_name, foreignScope) => {
     // Arrange
-    const { service, tables, stores, offer } = await setUpGuardedAdmin();
+    const { service, lifecycle, codeBook, tables, stores, offer } = await setUpGuardedAdmin();
     const ctx = stores.contextOf(foreignScope);
     const before = structuredClone(tables.offerRows);
 
@@ -36,6 +36,13 @@ describe('OfferAdminService channel guard (D2448)', () => {
       () => service.list(ctx, scopeA),
       () => service.addCodes(ctx, scopeA, offer.id, [{ code: 'FOREIGN10' }]),
       () => service.removeCode(ctx, scopeA, offer.id, 'FOREIGN10'),
+      () => service.publish(ctx, scopeA, offer.id),
+      () => lifecycle.pause(ctx, scopeA, offer.id),
+      () => lifecycle.resume(ctx, scopeA, offer.id),
+      () => lifecycle.archive(ctx, scopeA, offer.id),
+      () => lifecycle.duplicate(ctx, scopeA, offer.id),
+      () => codeBook.list(ctx, scopeA, offer.id),
+      () => codeBook.generate(ctx, scopeA, offer.id, { count: 1 }),
     ];
     const outcomes = [];
     for (const call of calls)
@@ -60,7 +67,7 @@ describe('OfferAdminService channel guard (D2448)', () => {
     const listed = await service.list(ctxA, scopeA);
 
     // Assert
-    expect(listed.map((listed) => listed.id)).toEqual([offer.id]);
+    expect(listed.items.map((listed) => listed.id)).toEqual([offer.id]);
   });
 
   it("refuses an archived store's own channel", async () => {

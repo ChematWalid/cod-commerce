@@ -14,11 +14,17 @@ export type {
   RepriceResult,
   UnpricedOrderChange,
 } from './application/order-change';
-export { OfferAdminService } from './application/offer-admin.service';
+export { OfferAdminService, type OfferSummaryPage } from './application/offer-admin.service';
+export { OfferLifecycleService } from './application/offer-lifecycle.service';
+export { OfferCodesService } from './application/offer-codes.service';
 export { OfferUsageService, type RecordedOrderUses } from './application/offer-usage.service';
-export type { OfferRecord, StoredCode } from './domain/offer-record';
+export { OrderAddonService, type OrderAddonInput } from './application/order-addon.service';
+export { OfferStatsService } from './application/offer-stats.service';
+export { OfferAppTypeService, type OfferAppTypeRegistrar } from './application/offer-app-type.service';
+export { OfferPreviewService } from './application/offer-preview.service';
+export type { OfferRecord, OfferSummaryRecord, StoredCode } from './domain/offer-record';
 export { type OrderUsage, orderUsageOf } from './domain/engine/order-usage';
-export type { TokenUse } from './domain/engine/priced-quote';
+export type { TokenAddon, TokenUse } from './domain/engine/priced-quote';
 export type { QuotePayload, QuoteRejectReason, QuoteVerification } from './domain/token/quote-token';
 export { asOperationContext } from './domain/ports/operation-context.port';
 
@@ -26,7 +32,10 @@ export { asOperationContext } from './domain/ports/operation-context.port';
 export {
   BUYER_HISTORY_REGISTRAR,
   COLLECTION_MEMBERSHIP_REGISTRAR,
+  OFFER_APP_TYPE_REGISTRAR,
+  OFFER_PERFORMANCE_SOURCE_REGISTRAR,
   OFFER_USAGE_REGISTRAR,
+  ORDER_ADDON_TARGET_REGISTRAR,
   SHIPPING_QUOTE_REGISTRAR,
   UNIT_PRICE_RESOLVER_REGISTRAR,
 } from './application/tokens';
@@ -51,3 +60,34 @@ export type {
 } from './domain/ports/shipping-quote.port';
 export type { BuyerHistory, BuyerHistoryRegistrar } from './domain/ports/buyer-history.port';
 export type { OfferUsageCounts, OfferUsageRegistrar } from './domain/ports/offer-usage.port';
+export type {
+  AddonOrder,
+  OrderAddonTarget,
+  OrderAddonTargetRegistrar,
+  PricedAddonLine,
+} from './domain/ports/order-addon-target.port';
+export type { OfferPerformanceRegistrar, OfferPerformanceSource } from './domain/ports/offer-performance.port';
+export type { OfferOrderFact, OfferOrderState, OfferOrderUse } from './domain/performance';
+
+// The dashboard's route paths and test ids, for the browser spec and the evidence script (framework-free).
+export {
+  ADD_QUANTITY_OFFER_TEST_ID,
+  APP_TYPE_CARD_TEST_ID,
+  ARABIC_PREVIEW_TEST_ID,
+  CODES_PANEL_TEST_ID,
+  CREATE_DIALOG_TEST_ID,
+  CREATE_OFFER_TEST_ID,
+  EDITOR_DISCARD_TEST_ID,
+  EDITOR_PUBLISH_TEST_ID,
+  EDITOR_SAVE_TEST_ID,
+  KIND_CHIPS_TEST_ID,
+  NEW_OFFER_PATH,
+  OFFER_EDITOR_TEST_ID,
+  OFFER_LIST_TEST_ID,
+  OFFER_ROW_TEST_ID,
+  OFFER_TABS_TEST_ID,
+  offerPathOf,
+  OFFERS_EMPTY_TEST_ID,
+  PRODUCT_OFFER_ROW_TEST_ID,
+  PRODUCT_OFFERS_TEST_ID,
+} from './dashboard/constants';

@@ -146,3 +146,14 @@ RAW shipping [{"listPrice":600,"adjustments":"[]"}]
 - `OrderService.addPaymentToOrder` throws `must be called within a transaction` outside a resolver; intake wraps the whole flow in `TransactionalConnection.withTransaction(ctx, …)` (ADR 0009).
 - `PromotionService.createPromotion` without conditions or coupon → `MISSING_CONDITIONS_ERROR`; hence the `has-quote-discounts` condition.
 - Two variants of one product without options → `product-variant-options-combination-already-exists`; irrelevant to pricing, noted for seed scripts.
+
+## Amendment (P2.S5, 2026-11-21)
+
+Accepted (2026-11-21, standing user authorization for P2). Sharpens the quote token and the add-on row of the Decision above for the buy-X-get-Y and add-on kinds; full reasoning: `docs/roadmap/P2-decisions.md` (D2504, D2506, D2531, D2542).
+
+- **Gift lines (D2504).** A gifted unit is a separate quote line split off the matched line, key `<variantId>:gift:<offerId>`, `giftOf: offerId`, priced at the gift price (free 0, percent off, or a fixed amount off clamped at 0). In the token it sits in `l` with `g: offerId`, so a variant may appear twice in `l`. `totalPrice = unitPrice × quantity` holds on every line.
+- **Add-ons in the quote (D2506).** `QuoteRequest.addons?: { offerId, variantId, quantity }[]` (at most 5) carries the add-ons the buyer accepted. Priced add-ons are lines with key `<variantId>:addon:<offerId>`, `addonOf` and `parentVariantId`, shown in `Quote.lines` and counted in `subtotal`; an add-on that cannot be priced is dropped and listed in `Quote.rejectedAddons` and never makes the quote unavailable.
+- **Add-ons in the token.** Add-on lines go **only in `a[]`**, never in `l`, so intake counts each once. `a[]` entries are `{ offerId, variantId, qty, unitPrice, parentVariantId: string | null }` (`null` for an add-on offered on any order). Token invariant: `t = Σ l(unitPrice × qty) + Σ a(unitPrice × qty) + sh − Σ d.amount`.
+- **`h` and add-ons.** `h` covers the accepted add-ons as a key `addons: [[offerId, variantId, quantity], …]` sorted by offer id then variant id, **present only when non-empty**, so every hash of a cart without add-ons is unchanged.
+- **Placement is internal.** Whether an add-on is offered on the order form or the thank-you page is an internal option of the trusted scoped core, `quoteForScope(ctx, scope, request, { addonPlacement })` (default `order_form`), never a field of the public request. The post-order add-on (`OrderAddonService`, P3.S4/P4.S1 wire it) quotes the order's cart with `thank_you` and gives the order's own uses back (`orderUsage`, D2542).
+- **Add-ons always combine (D2507, D2531).** An accepted add-on never competes with other offers and enters the subtotal before the order stage, so order minimums, order discounts and delivery thresholds see it.

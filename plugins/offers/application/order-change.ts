@@ -1,6 +1,6 @@
 import type { Quote, QuoteRequestInput } from '@cod/shared';
 import type { OrderUsage } from '../domain/engine/order-usage';
-import type { TokenUse } from '../domain/engine/priced-quote';
+import type { TokenAddon, TokenUse } from '../domain/engine/priced-quote';
 
 /**
  * An order change to price (D2427): the order's cart as it is and as it would be. Both carts are priced at today's
@@ -39,6 +39,11 @@ export interface OrderFieldLine {
 /** The order custom fields of the changed cart (ADR 0004); P4.S3 writes them, the pricing service never does. */
 export interface OrderFields {
   readonly lines: readonly OrderFieldLine[];
+  /**
+   * The add-on lines of the changed cart (the token's `a`, D2506): never also in `lines`, so the stored lines plus
+   * add-ons plus shipping minus discounts equal `after.total`.
+   */
+  readonly addons: readonly TokenAddon[];
   /** JSON of the token's order discounts `d`. */
   readonly quoteDiscounts: string;
   readonly quotedShipping: number;

@@ -26,7 +26,7 @@ describe('OfferAdminService under concurrent writes', () => {
     // Arrange
     const { service, race } = setUpOfferAdmin();
     const draft = await service.createDraft(ctx, scopeA, QUANTITY_INPUT);
-    await service.setStatus(ctx, scopeA, draft.id, 'active');
+    await service.publish(ctx, scopeA, draft.id);
     race(() => service.setStatus(ctx, scopeA, draft.id, 'archived'));
 
     // Act

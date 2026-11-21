@@ -18,7 +18,7 @@ import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P2_ISOLATION_CASES } from '../isolation/cases';
-import { describeOffersIsolation } from '../isolation/cases/offers';
+import { describeOffersIsolation, type OfferRowsOfBoth, offerRowsOf } from '../isolation/cases/offers';
 import {
   CATALOG_IMPORT_WORLDS,
   catalogImportOf,
@@ -77,9 +77,10 @@ const runsOf = P2_ISOLATION_CASES.flatMap((testCase) => [
  * catalog endpoint, by id, by list, by write, by naming B's rows in its own writes and with B's store token, and A's
  * store-restricted member reaches for A's other store (D2132). Files go through the production naming strategy and
  * key prefix, so the tenant prefixes of stored keys (AC7, #210) are checked on disk. Each business also gets offers
- * (P2.S4), seeded in process, that A's quotes must never see, and a pack, a previewed spreadsheet import, an export and
- * a link import (P2.S2) that A reaches for through every pack and import endpoint; their files are stored under the
- * business's and store's prefix of the private bucket.
+ * (P2.S4), seeded in process, that A's quotes must never see, and A reaches for B's offers and codes through every
+ * offers endpoint (P2.S5). It also gets a pack, a previewed spreadsheet import, an export and a link import (P2.S2)
+ * that A reaches for through every pack and import endpoint; their files are stored under the business's and store's
+ * prefix of the private bucket.
  */
 describe('P2 isolation: a business sees only its own catalog', () => {
   const env = e2eEnv({ env: ENV });
@@ -114,6 +115,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     aImport: unknown;
     bImport: unknown;
   };
+  let offerRows: OfferRowsOfBoth;
 
   beforeAll(async () => {
     await server.init({ initialData: E2E_INITIAL_DATA, customerCount: 0 });
@@ -135,8 +137,8 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     });
     CATALOG_WORLDS.set('A', await seedCatalog(http, world.superadmin, world.a));
     CATALOG_WORLDS.set('B', await seedCatalog(http, world.superadmin, world.b));
-    OFFERS_WORLDS.set('A', await seedOffers(server.app, world.a));
-    OFFERS_WORLDS.set('B', await seedOffers(server.app, world.b));
+    OFFERS_WORLDS.set('A', await seedOffers(server.app, http, world.a));
+    OFFERS_WORLDS.set('B', await seedOffers(server.app, http, world.b));
     CATALOG_IMPORT_WORLDS.set('A', await seedCatalogImport(http, objects, world.a));
     CATALOG_IMPORT_WORLDS.set('B', await seedCatalogImport(http, objects, world.b));
     before = {
@@ -147,6 +149,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
       aImport: await importSnapshotOf(http, world.a),
       bImport: await importSnapshotOf(http, world.b),
     };
+    offerRows = { a: await offerRowsOf(server.app, world.a), b: await offerRowsOf(server.app, world.b) };
     const ran = await runMatrix(http, world, P2_ISOLATION_CASES);
     outcomes = new Map(
       ran.map((outcome) => [
@@ -243,7 +246,7 @@ describe('P2 isolation: a business sees only its own catalog', () => {
     expect(await storage().head(key as Parameters<CatalogImportObjectStorage['head']>[0])).not.toBeNull();
   });
 
-  describeOffersIsolation({ world: () => world, app: () => server.app });
+  describeOffersIsolation({ world: () => world, app: () => server.app, rowsBeforeMatrix: () => offerRows });
 
   it.each([
     ['a PNG header with a corrupt body', CORRUPT_PNG],

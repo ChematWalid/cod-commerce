@@ -6,7 +6,7 @@ import type { PricedQuote } from '../domain/engine/priced-quote';
 import { MS_PER_SECOND } from '../domain/constants';
 import type { Clock } from '../domain/ports/clock.port';
 import type { StoreScope } from '../domain/store-scope';
-import { cartHash, type CartHashLine, phoneKey } from '../domain/token/cart-hash';
+import { type CartHashAddon, cartHash, type CartHashLine, phoneKey } from '../domain/token/cart-hash';
 import { signQuote, type QuoteVerification, type SignedQuote, verifyQuoteToken } from '../domain/token/quote-token';
 
 /** What the quote signer is built from: the key ring, the clock and the nonce source (both injected for tests). */
@@ -16,13 +16,17 @@ export interface QuoteSignerDeps {
   readonly nonce: () => string;
 }
 
-/** The cart a token commits to, as the buyer sent it: `h` covers it (D2421); the phone is E.164 or null. */
+/**
+ * The cart a token commits to, as the buyer sent it: `h` covers it (D2421), add-ons included (D2506); the phone is
+ * E.164 or null.
+ */
 export interface TokenCart {
   readonly channel: PricingChannel;
   readonly lines: readonly CartHashLine[];
   readonly destination: PricingDestination;
   readonly codes: readonly string[];
   readonly phone: string | null;
+  readonly addons: readonly CartHashAddon[];
 }
 
 /** A 96-bit random nonce, base64url: the token's `n` (D2421). */
@@ -53,7 +57,7 @@ export class QuoteSigner {
       l: priced.tokenLines.map((line) => ({ ...line, offerIds: [...line.offerIds] })),
       d: [...priced.tokenDiscounts],
       o: [...priced.tokenUses],
-      a: [],
+      a: [...priced.tokenAddons],
     };
     return signQuote({ ring: this.deps.ring, payload, issuedAt: this.epochSeconds(), nonce: this.deps.nonce() });
   }

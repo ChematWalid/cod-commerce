@@ -1,4 +1,5 @@
-import type { BuyerRef, PricedLine } from '../domain/cart';
+import type { QuoteAddonInput } from '@cod/shared';
+import type { BuyerRef, CartAddon, PricedLine } from '../domain/cart';
 import { type CoreId, parseCoreId } from '../domain/core-id';
 import type { OfferKindRegistry } from '../domain/engine/kind-registry';
 import type { MergeableLine } from '../domain/engine/merge-lines';
@@ -39,13 +40,54 @@ export interface PricingSnapshotPorts {
 /** A buyer without a phone has no history: audience and per-buyer offers are skipped (D2418, D2435). */
 const NO_BUYER_USAGE: ReadonlyMap<string, number> = new Map();
 
-const coreIdsOf = (lines: readonly MergeableLine[]): CoreId[] =>
-  lines.flatMap((line) => parseCoreId(line.variantId) ?? []);
+/** The distinct variant ids of the lines and add-ons, as core ids: the gate prices both in one call (D2506). */
+const coreIdsOf = (lines: readonly MergeableLine[], addons: readonly QuoteAddonInput[]): CoreId[] => {
+  const variantIds = new Set([...lines, ...addons].map((item) => item.variantId));
+  return [...variantIds].flatMap((variantId) => parseCoreId(variantId) ?? []);
+};
+
+/** Collection ids of each product, by product id. */
+type Memberships = ReadonlyMap<string, readonly string[]>;
+
+/** The accepted lines in cart order, each in its product's collections; the product always comes from the gate. */
+function pricedLinesOf(
+  lines: readonly MergeableLine[],
+  prices: ReadonlyMap<string, ResolvedUnitPrice>,
+  memberships: Memberships,
+): PricedLine[] {
+  return lines.flatMap((line) => {
+    const price = prices.get(line.variantId);
+    if (price === undefined) return [];
+    const { variantId, productId, unitPrice } = price;
+    const collectionIds = [...(memberships.get(productId) ?? [])];
+    return [{ key: variantId, productId, variantId, quantity: line.quantity, originalPrice: unitPrice, collectionIds }];
+  });
+}
+
+/** The add-ons in request order with the gate's price of their variant, or `priced: null` when it refused it. */
+function cartAddonsOf(
+  addons: readonly QuoteAddonInput[],
+  prices: ReadonlyMap<string, ResolvedUnitPrice>,
+  memberships: Memberships,
+): CartAddon[] {
+  return addons.map(({ offerId, variantId, quantity }) => {
+    const price = prices.get(variantId);
+    if (price === undefined) return { offerId, variantId, quantity, priced: null };
+    const collectionIds = [...(memberships.get(price.productId) ?? [])];
+    return {
+      offerId,
+      variantId,
+      quantity,
+      priced: { productId: price.productId, originalPrice: price.unitPrice, collectionIds },
+    };
+  });
+}
 
 /**
- * Loads what one quote reads before the pure engine runs (D2424): the gated unit prices, collection memberships, the
- * store's active offers of a known kind and a valid config, the submitted codes, the shipping quote and the buyer's history. Nothing is
- * cached here: it answers the {@link PricingSnapshotSource} port, and P3.S3 wraps it with a caching adapter.
+ * Loads what one quote reads before the pure engine runs (D2424): the gated unit prices of the lines and add-ons,
+ * collection memberships, the store's active offers of a known kind and a valid config, the submitted codes, the
+ * shipping quote of the lines (add-ons left out, D2531) and the buyer's history. Nothing is cached here: it answers
+ * the {@link PricingSnapshotSource} port, and P3.S3 wraps it with a caching adapter.
  */
 export class PricingSnapshotLoader implements PricingSnapshotSource {
   /** Offers already reported for an unknown kind or an invalid config, so each is logged once per process. */
@@ -60,8 +102,9 @@ export class PricingSnapshotLoader implements PricingSnapshotSource {
    * are not read without a phone, and usage only for offers with a per-buyer limit (D2418).
    */
   async load(ctx: OperationContext, scope: StoreScope, request: SnapshotRequest): Promise<LoadedCart> {
-    const prices = await this.ports.unitPrices.pricesOf(ctx, scope, coreIdsOf(request.lines));
-    const lines = await this.pricedLines(ctx, scope, request.lines, prices);
+    const prices = await this.ports.unitPrices.pricesOf(ctx, scope, coreIdsOf(request.lines, request.addons));
+    const memberships = await this.membershipsOf(ctx, scope, prices);
+    const lines = pricedLinesOf(request.lines, prices, memberships);
     const offers = await this.knownOffers(ctx, scope);
     const snapshot: PricingSnapshot = {
       offers,
@@ -71,30 +114,19 @@ export class PricingSnapshotLoader implements PricingSnapshotSource {
       now: this.ports.clock.now(),
     };
     const unavailableVariantIds = request.lines.filter((line) => !prices.has(line.variantId)).map((l) => l.variantId);
-    return { snapshot, lines, unavailableVariantIds };
+    const addons = cartAddonsOf(request.addons, prices, memberships);
+    return { snapshot, lines, unavailableVariantIds, addons };
   }
 
-  /** The accepted lines in cart order, each in its product's collections; the product always comes from the gate. */
-  private async pricedLines(
+  /** The collections of every product the gate priced, by product id; the source is not asked without one. */
+  private async membershipsOf(
     ctx: OperationContext,
     scope: StoreScope,
-    lines: readonly MergeableLine[],
     prices: ReadonlyMap<string, ResolvedUnitPrice>,
-  ): Promise<PricedLine[]> {
+  ): Promise<Memberships> {
     const productIds = [...new Set([...prices.values()].map((price) => price.productId))];
-    const memberships =
-      productIds.length === 0
-        ? new Map<string, readonly string[]>()
-        : await this.ports.collections.current().collectionsOf(ctx, scope, productIds);
-    return lines.flatMap((line) => {
-      const price = prices.get(line.variantId);
-      if (price === undefined) return [];
-      const { variantId, productId, unitPrice } = price;
-      const collectionIds = [...(memberships.get(productId) ?? [])];
-      return [
-        { key: variantId, productId, variantId, quantity: line.quantity, originalPrice: unitPrice, collectionIds },
-      ];
-    });
+    if (productIds.length === 0) return new Map();
+    return this.ports.collections.current().collectionsOf(ctx, scope, productIds);
   }
 
   /**

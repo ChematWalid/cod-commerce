@@ -33,16 +33,18 @@ const quotePayloadSchema = z.object({
       unitPrice: wholeDzd,
       originalPrice: wholeDzd,
       offerIds: z.array(decimalId),
+      g: decimalId.optional(),
     }),
   ),
   d: z.array(z.object({ amount: wholeDzd, offerId: decimalId, code: z.string().optional() })),
   o: z.array(z.object({ offerId: decimalId, code: z.string().optional() })),
   a: z.array(
     z.object({
+      offerId: decimalId,
       variantId: decimalId,
       qty: z.number().int().positive(),
       unitPrice: wholeDzd,
-      parentVariantId: decimalId,
+      parentVariantId: decimalId.nullable(),
     }),
   ),
   n: z.string(),
@@ -50,9 +52,10 @@ const quotePayloadSchema = z.object({
 
 /**
  * The signed payload of a quote token (ADR 0004, D2421): business `b`, store `s`, cart hash `h`, phone flag `p`,
- * total `t`, delivery price `sh`, lines `l`, order discounts `d`, applied offers with their codes `o` (D2445), add-ons
- * `a` (empty until P2.S5), expiry `exp`
- * (epoch seconds) and nonce `n`. Ids are decimal strings, since snowflakes exceed 2^53; money is whole DZD.
+ * total `t`, delivery price `sh`, lines `l`, order discounts `d`, applied offers with their codes `o` (D2445), add-on
+ * lines `a` (D2506: offer, variant, quantity, price and parent, never also in `l`, so `t = Σ l + Σ a + sh − Σ d`),
+ * expiry `exp` (epoch seconds) and nonce `n`. Ids are decimal strings, since snowflakes exceed 2^53; money is whole
+ * DZD.
  */
 export type QuotePayload = z.infer<typeof quotePayloadSchema>;
 

@@ -1,4 +1,4 @@
-import { DomainError, PRICING_ERROR_CODES } from '@cod/shared';
+import { DomainError, PRICING_ERROR_CODES, type PublishProblem } from '@cod/shared';
 
 /** No offer with that id in the active store; a foreign or malformed id answers the same. */
 export class OfferNotFoundError extends DomainError {
@@ -13,6 +13,25 @@ export class InvalidOfferConfigError extends DomainError {
   readonly code = PRICING_ERROR_CODES.INVALID_CONFIG;
   constructor() {
     super('Invalid offer configuration');
+  }
+}
+
+/** A target has a role its offer's kind does not allow (D2501); the message never repeats the targets. */
+export class InvalidOfferTargetsError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.INVALID_TARGETS;
+  constructor() {
+    super('This offer kind does not allow one of these targets');
+  }
+}
+
+/**
+ * A target names no variant or product of the offer's store (D2537): another store's or business's, deleted or
+ * unknown. The message never repeats the ids.
+ */
+export class UnknownOfferTargetsError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.UNKNOWN_TARGETS;
+  constructor() {
+    super('One of these targets is not in this store');
   }
 }
 
@@ -45,6 +64,25 @@ export class InvalidOfferTransitionError extends DomainError {
   readonly code = PRICING_ERROR_CODES.INVALID_TRANSITION;
   constructor() {
     super('This status change is not allowed');
+  }
+}
+
+/**
+ * The offer is not complete enough to be live (D2510): it names what is missing (`title`, `targets`, `dates`), every
+ * problem at once, and never repeats the input.
+ */
+export class OfferPublishInvalidError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.PUBLISH_INVALID;
+  constructor(readonly problems: readonly PublishProblem[]) {
+    super('This offer cannot be published yet');
+  }
+}
+
+/** Only a draft can be deleted (D2521): a published offer is archived, so orders and stats keep its id. */
+export class OfferNotDeletableError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.OFFER_NOT_DELETABLE;
+  constructor() {
+    super('Only a draft offer can be deleted; archive it instead');
   }
 }
 
@@ -101,5 +139,37 @@ export class InvalidUnitPriceError extends Error {
   constructor(resolverKey: string, variantId: string) {
     super(`Unit price resolver "${resolverKey}" answered an invalid price for variant ${variantId}`);
     this.name = 'InvalidUnitPriceError';
+  }
+}
+
+/** No order source is registered yet (D2508): orders arrive in P3.S4, so no add-on can be appended before. */
+export class OrderAddonUnavailableError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ORDER_ADDON_UNAVAILABLE;
+  constructor() {
+    super('Add-ons cannot be added to orders yet');
+  }
+}
+
+/** No order with that id in the store (D2508); a foreign or malformed id answers the same. */
+export class OrderNotFoundForAddonError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ORDER_NOT_FOUND;
+  constructor() {
+    super('No such order');
+  }
+}
+
+/** The order is past the statuses an add-on may still be appended in (D2508). */
+export class OrderNotEditableError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ORDER_NOT_EDITABLE;
+  constructor() {
+    super('This order can no longer take an add-on');
+  }
+}
+
+/** The store offers no such thank-you add-on for this order (D2508); the message never repeats the ids. */
+export class AddonNotOfferedError extends DomainError {
+  readonly code = PRICING_ERROR_CODES.ADDON_NOT_OFFERED;
+  constructor() {
+    super('This add-on is not offered for this order');
   }
 }

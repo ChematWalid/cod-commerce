@@ -4,11 +4,19 @@ import {
   STAGE_PRODUCT_DISCOUNT,
   type DiscountValueType,
   type ProductDiscountConfig,
+  type ProductDiscountScope,
 } from '@cod/shared';
-import type { OfferKindCalculator } from '../engine/kind-registry';
+import type { OfferKindCalculator, TargetRules } from '../engine/kind-registry';
 import type { KindInput, OfferOutcome } from '../engine/outcome';
 import { matchingLines } from '../engine/targets';
 import { lineOutcome } from './line-outcome';
+import { BUY_TARGET_OPTIONAL, BUY_TARGET_REQUIRED } from './target-rules';
+
+/** Buy targets are needed only when the discount applies to them, not to every product (D2501). */
+const TARGET_RULES_BY_SCOPE: Readonly<Record<ProductDiscountScope, TargetRules>> = {
+  all: BUY_TARGET_OPTIONAL,
+  targets: BUY_TARGET_REQUIRED,
+};
 
 /** The raw discount of one unit at `unitPrice`, by value type (§3a.7): percent half up, or fixed DZD (D2409). */
 const RAW_UNIT_DISCOUNTS: Readonly<Record<DiscountValueType, (value: number, unitPrice: number) => number>> = {
@@ -40,4 +48,5 @@ export const productDiscountCalculator: OfferKindCalculator<ProductDiscountConfi
   stage: STAGE_PRODUCT_DISCOUNT,
   configSchema: productDiscountConfigSchema,
   evaluate: evaluateProductDiscount,
+  targetRules: (config) => TARGET_RULES_BY_SCOPE[config.appliesTo],
 };

@@ -7,7 +7,7 @@ import type { Offer } from '../../domain/offer';
 import type { PricingSnapshot, ShippingQuoteResult } from '../../domain/snapshot';
 import { aCart, anOffer, aSnapshot } from './builders';
 
-/** The registry of the four built-in kinds, as the plugin wires it. */
+/** The registry of the built-in kinds, as the plugin wires it. */
 export const REGISTRY = new OfferKindRegistry(BUILT_IN_OFFER_KINDS);
 
 /** A resolved home delivery at 800 DZD without overweight (the brief's worked examples). */

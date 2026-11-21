@@ -184,6 +184,18 @@ const RUNTIME_EXPORTS = [
   'freeDeliveryConfigSchema',
   'productDiscountConfigSchema',
   'orderDiscountConfigSchema',
+  'bxgyConfigSchema',
+  'addonConfigSchema',
+  'ADDON_REJECT_REASONS',
+  'OFFER_TARGET_ROLES',
+  'ADDON_PLACEMENTS',
+  'OFFER_APP_GOALS',
+  'PUBLISH_PROBLEMS',
+  'OFFER_CONFIG_WARNINGS',
+  'OFFER_APPLIED_SOURCES',
+  'offerListOptionsSchema',
+  'generateCodesInputSchema',
+  'offerPreviewInputSchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {

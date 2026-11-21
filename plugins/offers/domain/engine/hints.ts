@@ -32,14 +32,17 @@ export interface SuggestionsInput {
   readonly waived: boolean;
 }
 
+/** Suggestions a waived delivery makes moot: nothing is left to waive (D2416). */
+const MOOT_ONCE_WAIVED: ReadonlySet<Suggestion['type']> = new Set<Suggestion['type']>(['free_delivery']);
+
 /**
- * Unmet thresholds of the eligible offers whose kind suggests (free delivery, D2416), measured on the lines after
- * line offers (D2412); none once delivery is already waived.
+ * Hints of the eligible offers whose kind suggests, measured on the lines after line offers (D2412): unmet free
+ * delivery thresholds (D2416), none once delivery is already waived, and gifts earned but not in the cart (D2504).
  */
 export function suggestionsOf({ entries, lines, delivery, waived }: SuggestionsInput): Suggestion[] {
-  if (waived) return [];
   return entries.flatMap((entry) => {
     const suggestion = entry.calculator.suggest?.(kindInputOf(entry, lines, delivery)) ?? null;
-    return suggestion === null ? [] : [suggestion];
+    if (suggestion === null || (waived && MOOT_ONCE_WAIVED.has(suggestion.type))) return [];
+    return [suggestion];
   });
 }
