@@ -285,7 +285,7 @@ content-type: application/json; charset=utf-8
 }
 ```
 
-### GET /catalog/collections after the previews: still 7 collections, nothing saved
+### GET /catalog/collections after the previews: still 8 collections, nothing saved
 
 ```http
 GET http://127.0.0.1:23100/catalog/collections?take=1
@@ -303,7 +303,7 @@ content-type: application/json; charset=utf-8
       "description": "مختارات الصيف بأسعار مخفضة",
       "featuredAsset": {
         "id": "1",
-        "preview": "http://127.0.0.1:23100/assets/b/249734040897200128/s/<STORE_DEMO>/preview/c0/c0ae59d316cfce0b4d5a31d8855ca62a__preview.png"
+        "preview": "http://127.0.0.1:23100/assets/b/249741973760516096/s/<STORE_DEMO>/preview/f8/f8687ba77a6fa478dfa0d1018e827075__preview.png"
       },
       "id": "2",
       "mode": "manual",
@@ -313,7 +313,7 @@ content-type: application/json; charset=utf-8
       "productCount": 3
     }
   ],
-  "totalItems": 7
+  "totalItems": 8
 }
 ```
 

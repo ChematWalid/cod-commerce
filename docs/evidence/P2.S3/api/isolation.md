@@ -277,7 +277,7 @@ content-type: application/json; charset=utf-8
 {
   "statusCode": 403,
   "message": "FORBIDDEN: error.forbidden",
-  "timestamp": "2026-11-21T03:14:36.412Z",
+  "timestamp": "2026-11-21T03:48:06.117Z",
   "path": "/catalog/collections"
 }
 ```

@@ -244,7 +244,7 @@ content-type: application/json; charset=utf-8
 }
 ```
 
-### GET /catalog/collections/:id/products of the Any collection: p1-p4, not p5 (its only red variant is hidden, 1200 is out of range, no promo tag)
+### GET /catalog/collections/:id/products of the Any collection: p1-p4 and the seed's shirt (price in range), not p5 (its only red variant is hidden, 1200 is out of range, no promo tag)
 
 ```http
 GET http://127.0.0.1:23100/catalog/collections/7/products?take=50
@@ -576,6 +576,137 @@ content-type: application/json; charset=utf-8
     }
   ],
   "totalItems": 3
+}
+```
+
+### AC3: createStoreCollection, اللون is not [أحمر]
+
+```http
+POST http://127.0.0.1:23100/admin-api?languageCode=en
+Content-Type: application/json
+Authorization: Bearer [REDACTED]
+vendure-token: [REDACTED]
+
+{
+  "query": "mutation ($input: CreateStoreCollectionInput!) { createStoreCollection(input: $input) { id title slug description featuredAsset { id } mode rule { version match conditions { field operator option values min max value } } visible position productCount } }",
+  "variables": {
+    "input": {
+      "title": "بلا أحمر",
+      "visible": false,
+      "position": 7,
+      "mode": "automatic",
+      "rule": {
+        "version": 1,
+        "match": "all",
+        "conditions": [
+          {
+            "field": "option",
+            "option": "اللون",
+            "operator": "is_not",
+            "values": [
+              "أحمر"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
+
+HTTP/1.1 200 OK
+cache-control: no-store
+content-type: application/json; charset=utf-8
+
+{
+  "data": {
+    "createStoreCollection": {
+      "id": "10",
+      "title": "بلا أحمر",
+      "slug": "بلا-أحمر",
+      "description": null,
+      "featuredAsset": null,
+      "mode": "automatic",
+      "rule": {
+        "version": 1,
+        "match": "all",
+        "conditions": [
+          {
+            "field": "option",
+            "operator": "is_not",
+            "option": "اللون",
+            "values": [
+              "أحمر"
+            ],
+            "min": null,
+            "max": null,
+            "value": null
+          }
+        ]
+      },
+      "visible": false,
+      "position": 7,
+      "productCount": 7
+    }
+  }
+}
+```
+
+### GET /catalog/collections/:id/products of اللون is not [أحمر]: p5 (its red variant is hidden), p4 (no colour) and p2 (blue), neither p1 nor p3
+
+```http
+GET http://127.0.0.1:23100/catalog/collections/10/products?take=50
+Authorization: Bearer [REDACTED]
+vendure-token: [REDACTED]
+
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+
+{
+  "items": [
+    {
+      "productId": "15",
+      "title": "قبعة صيفية",
+      "status": "active",
+      "price": 1200
+    },
+    {
+      "productId": "14",
+      "title": "حقيبة جري",
+      "status": "active",
+      "price": 6000
+    },
+    {
+      "productId": "12",
+      "title": "حذاء جري أزرق",
+      "status": "active",
+      "price": 2800
+    },
+    {
+      "productId": "5",
+      "title": "حقيبة قماشية تجريبية",
+      "status": "active",
+      "price": 1800
+    },
+    {
+      "productId": "4",
+      "title": "قارورة ماء تجريبية",
+      "status": "active",
+      "price": 1500
+    },
+    {
+      "productId": "3",
+      "title": "قبعة تجريبية",
+      "status": "hidden",
+      "price": 1200
+    },
+    {
+      "productId": "2",
+      "title": "كوب سيراميك تجريبي",
+      "status": "draft",
+      "price": 900
+    }
+  ],
+  "totalItems": 7
 }
 ```
 

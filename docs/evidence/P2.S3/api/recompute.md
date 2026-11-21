@@ -13,7 +13,7 @@ vendure-token: [REDACTED]
 {
   "query": "query ($id: ID!, $options: StoreCollectionProductListInput) { storeCollectionProducts(id: $id, options: $options) { totalItems items { productId title status price } } }",
   "variables": {
-    "id": "10",
+    "id": "11",
     "options": {
       "take": 50
     }
@@ -94,7 +94,7 @@ vendure-token: [REDACTED]
 {
   "query": "query ($id: ID!, $options: StoreCollectionProductListInput) { storeCollectionProducts(id: $id, options: $options) { totalItems items { productId title status price } } }",
   "variables": {
-    "id": "10",
+    "id": "11",
     "options": {
       "take": 50
     }
@@ -125,7 +125,7 @@ content-type: application/json; charset=utf-8
 ### GET /catalog/collections/:id/products: the same
 
 ```http
-GET http://127.0.0.1:23100/catalog/collections/10/products
+GET http://127.0.0.1:23100/catalog/collections/11/products
 Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
@@ -156,7 +156,7 @@ vendure-token: [REDACTED]
 {
   "query": "query ($id: ID!, $options: StoreCollectionProductListInput) { storeCollectionProducts(id: $id, options: $options) { totalItems items { productId title status price } } }",
   "variables": {
-    "id": "11",
+    "id": "12",
     "options": {
       "take": 50
     }
@@ -261,8 +261,8 @@ content-type: application/json; charset=utf-8
         ]
       }
     ],
-    "createdAt": "2026-11-21T03:14:16.434Z",
-    "updatedAt": "2026-11-21T03:14:33.243Z",
+    "createdAt": "2026-11-21T03:47:45.457Z",
+    "updatedAt": "2026-11-21T03:48:02.881Z",
     "tagIds": [
       "<TAG_NEW>"
     ],
@@ -317,7 +317,7 @@ vendure-token: [REDACTED]
 {
   "query": "query ($id: ID!, $options: StoreCollectionProductListInput) { storeCollectionProducts(id: $id, options: $options) { totalItems items { productId title status price } } }",
   "variables": {
-    "id": "11",
+    "id": "12",
     "options": {
       "take": 50
     }
@@ -366,7 +366,7 @@ content-type: application/json; charset=utf-8
 ### GET /catalog/collections/:id/products: the same
 
 ```http
-GET http://127.0.0.1:23100/catalog/collections/11/products
+GET http://127.0.0.1:23100/catalog/collections/12/products
 Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 

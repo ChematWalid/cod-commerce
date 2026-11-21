@@ -118,6 +118,10 @@ content-type: application/json; charset=utf-8
         {
           "id": "7",
           "title": "أي شرط"
+        },
+        {
+          "id": "10",
+          "title": "بلا أحمر"
         }
       ]
     }
@@ -146,6 +150,10 @@ content-type: application/json; charset=utf-8
     {
       "id": "7",
       "title": "أي شرط"
+    },
+    {
+      "id": "10",
+      "title": "بلا أحمر"
     }
   ]
 }
@@ -234,6 +242,10 @@ content-type: application/json; charset=utf-8
       {
         "id": "8",
         "title": "بدون ترويج"
+      },
+      {
+        "id": "10",
+        "title": "بلا أحمر"
       }
     ]
   }

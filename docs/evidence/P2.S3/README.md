@@ -2,7 +2,7 @@
 
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by `scripts/evidence/P2.S3.sh`. Data is synthetic
 (the demo seed plus the tags, brand, products and collections the script creates). Image built from a tree with no
-uncommitted change outside the evidence folders and browser tests, last image-relevant commit `c6f588eb41a58434a5a66f3a91c1b0b3d7e73f4f`. Compose
+uncommitted change outside the evidence folders and browser tests, last image-relevant commit `1bea1ee577672baabe535a5234d228b46ec0ee8a`. Compose
 project `cod-evidence`. Every transcript shows the GraphQL and the REST form of the operations it covers (D2314, D2315).
 
 ## API transcripts
@@ -43,6 +43,7 @@ Each line below is a failing assertion in the script if it does not hold.
 - The automatic collection shows its 3 condition rows and a preview count of 1 (All), the API's count.
 - Switched to Any without saving, the preview counts 5, the API's count for Any.
 - The product editor's collections block lists the manual collection of the product.
+- The same block lists the automatic collection أحذية ترويجية حمراء the product matches by rule.
 - Catalog's product list filtered by the manual collection shows exactly its 3 products.
 - The owner's second store shows the empty collections list and no row.
 
@@ -65,14 +66,14 @@ name of the store (اللون here), the operators "is any of" / "is not" (and "
 
 | Screen | ar desktop / mobile, en desktop / mobile |
 | --- | --- |
-| `collections-list` | Seven collections of the Arabic demo store in position order: the manual تخفيضات الصيف (image, 3 products, position 0) first, then the automatic ones with their member counts; بدون ترويج shows the Hidden badge. On a phone the table keeps Collection, Visibility and the row menu. |
+| `collections-list` | Nine collections of the Arabic demo store in position order: the manual تخفيضات الصيف (image, 3 products, position 0) first, then the automatic ones with their member counts; بدون ترويج and بلا أحمر (اللون is not [أحمر], 7 products) show the Hidden badge. On a phone the table keeps Collection, Visibility and the row menu. |
 | `collections-empty` | The owner's second store (Demo Store 2 in the switcher): the empty-state sentence "No collections yet…", the search and Create collection. |
 | `collection-new-manual` | "New collection" titled مختارات الجري / Running picks, Manual selected, the three products picked through Add products in the order picked (حذاء جري أحمر, حذاء جري أزرق, حقيبة جري) with drag handles, prices and Remove; slug empty with its "made from the title" hint; visibility on, position 0. On a phone the cards stack, Products before Image. |
-| `collection-edit-automatic` | أحذية ترويجية حمراء: image, Automatic, All conditions selected, three rows Tag is any of [ترويج الأدلة], Price is between 2000 and 5000 (DZD fields), اللون is any of [أحمر]; preview "Matching products: 1" listing حذاء جري أحمر at 2,500, the API's count. On a phone each row stacks field, operator and Remove. |
+| `collection-edit-automatic` | أحذية ترويجية حمراء: image, Automatic, All conditions selected, three rows Tag is any of [ترويج الأدلة], Price is between 2000 and 5000 (DZD fields), اللون is any of [أحمر] (in Arabic the operator reads أيٌّ من); preview "Matching products: 1" listing حذاء جري أحمر at 2,500, the API's count. On a phone each row stacks field, operator and Remove. |
 | `collection-preview-any` | The same rule switched to Any condition without saving: preview "Matching products: 5" (p1-p4 and a seed shirt in the price range); p5, whose only red variant is hidden, is absent. |
 | `collection-delete-dialog` | "Delete this collection?" naming تخفيضات الصيف, saying its products stay in the store, Cancel and Delete (destructive tint); the Arabic name sits isolated inside the English sentence. On a phone the buttons stack. |
 | `product-editor-collections` | Catalog's product editor of حذاء جري أحمر with our Collections card in the side column: "Chosen by hand" with تخفيضات الصيف ticked and Save collections, "Added by rule" listing the three automatic collections it matches. On a phone the card follows Status and organisation. |
 | `product-list-collection-filter` | Catalog's product list with the collection filter set to تخفيضات الصيف: exactly its three products. On a phone the filters stack. |
 
-Noted, not changed: the Arabic operator "is any of" reads أحد, short and ambiguous on its own; it joins the native review
-of the collections wording (D2326) filed at the end of the session.
+Fixed after the first look: the Arabic operator "is any of" read أحد, which on its own means "one" or "Sunday"; it now
+reads أيٌّ من, so a row reads اللون أيٌّ من [أحمر]. The collections wording itself stays in the native review (D2326).

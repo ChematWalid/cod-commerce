@@ -28,7 +28,7 @@ content-type: application/json; charset=utf-8
           "name": "علامة الأدلة"
         },
         {
-          "id": "249734059209531392",
+          "id": "249741990978134016",
           "name": "علامة تجريبية"
         }
       ],
@@ -42,7 +42,7 @@ content-type: application/json; charset=utf-8
           "name": "ترويج الأدلة"
         },
         {
-          "id": "249734059326971904",
+          "id": "249741991183654912",
           "name": "جديد"
         }
       ],
@@ -81,7 +81,7 @@ content-type: application/json; charset=utf-8
 {
   "brands": [
     {
-      "id": "249734063114428416",
+      "id": "249741996653027328",
       "name": "Marque démo"
     }
   ],
@@ -91,7 +91,7 @@ content-type: application/json; charset=utf-8
       "name": "B evidence tag"
     },
     {
-      "id": "249734063525470208",
+      "id": "249741997026320384",
       "name": "Nouveau"
     }
   ],
