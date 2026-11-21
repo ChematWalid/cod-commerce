@@ -11,7 +11,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "query": "mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId ok changedFields error } } }",
+  "query": "mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId productTitle ok changedFields error } } }",
   "variables": {
     "input": {
       "productIds": [
@@ -34,7 +34,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"11a-/Rq9KlTTlh+AZgt/hkNTRbijJx8"
+etag: W/"1c8-Gp2NMx4GDQj0Nh5B5WcH/a9mpDE"
 
 {
   "data": {
@@ -42,6 +42,7 @@ etag: W/"11a-/Rq9KlTTlh+AZgt/hkNTRbijJx8"
       "results": [
         {
           "productId": "14",
+          "productTitle": "منتج التعديل الجماعي 1",
           "ok": true,
           "changedFields": [
             "status",
@@ -51,6 +52,7 @@ etag: W/"11a-/Rq9KlTTlh+AZgt/hkNTRbijJx8"
         },
         {
           "productId": "15",
+          "productTitle": "منتج التعديل الجماعي 2",
           "ok": true,
           "changedFields": [
             "status",
@@ -60,6 +62,7 @@ etag: W/"11a-/Rq9KlTTlh+AZgt/hkNTRbijJx8"
         },
         {
           "productId": "16",
+          "productTitle": "منتج التعديل الجماعي 3",
           "ok": true,
           "changedFields": [
             "status",
@@ -117,7 +120,7 @@ Authorization: Bearer [REDACTED]
 vendure-token: [REDACTED]
 
 {
-  "query": "mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId ok changedFields error } } }",
+  "query": "mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId productTitle ok changedFields error } } }",
   "variables": {
     "input": {
       "productIds": [
@@ -143,7 +146,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"147-vFYFwxzmPwrw7KicZjB8sb/2rok"
+etag: W/"1f5-gMoWMdQcBoTKLk5YcgASL+YHcIg"
 
 {
   "data": {
@@ -151,6 +154,7 @@ etag: W/"147-vFYFwxzmPwrw7KicZjB8sb/2rok"
       "results": [
         {
           "productId": "14",
+          "productTitle": "منتج التعديل الجماعي 1",
           "ok": true,
           "changedFields": [
             "status",
@@ -162,6 +166,7 @@ etag: W/"147-vFYFwxzmPwrw7KicZjB8sb/2rok"
         },
         {
           "productId": "15",
+          "productTitle": "منتج التعديل الجماعي 2",
           "ok": true,
           "changedFields": [
             "status",
@@ -173,6 +178,7 @@ etag: W/"147-vFYFwxzmPwrw7KicZjB8sb/2rok"
         },
         {
           "productId": "16",
+          "productTitle": "منتج التعديل الجماعي 3",
           "ok": true,
           "changedFields": [
             "status",
@@ -206,7 +212,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"ca-4blUABjGW8ZqtySr+TNwQdYdU6k"
+etag: W/"ca-PorxRFBhurz7L3M8C7REzI/IgZE"
 
 {
   "data": {
@@ -249,12 +255,13 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"b3-1mtexw5JBTzJVGj1P15IfCCohbI"
+etag: W/"101-0io3NoX2tixOCrpabLJ6vHCsj5k"
 
 {
   "results": [
     {
       "productId": "14",
+      "productTitle": "منتج التعديل الجماعي 1",
       "ok": true,
       "changedFields": [
         "status",
@@ -264,6 +271,7 @@ etag: W/"b3-1mtexw5JBTzJVGj1P15IfCCohbI"
     },
     {
       "productId": "999999",
+      "productTitle": null,
       "ok": false,
       "changedFields": [],
       "error": "catalog.product-not-found"

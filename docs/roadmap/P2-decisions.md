@@ -6,6 +6,7 @@ Decisions taken while building phase P2. Each row gives the decision, why, and t
 
 | # | Decision | Why | Cost if wrong |
 |---|---|---|---|
+| D2000 | Phase end: #261 items 1 and 3 are fixed in a PR into `phase/P2` before the phase PR. Bulk-edit answers carry `productTitle` (null for an id the store does not own), the line shows the title in a `<bdi>`, and below `sm` the import preview hides the row and key columns (key under the name) and wraps. Items 2, 4 and 5 stay in #261. | D2281 made them due before `main`; a title read in the same scoped read keeps isolation | Low: one nullable field, additive to the API |
 
 ## P2.S1
 

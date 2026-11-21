@@ -290,7 +290,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"2d9-hqR+WB2yKEM1HgqTJruEfGRUgyE"
+etag: W/"2d9-hJCkHZuaKU6jNSNdjdJWnMFKgrk"
 
 {
   "data": {
@@ -301,7 +301,7 @@ etag: W/"2d9-hqR+WB2yKEM1HgqTJruEfGRUgyE"
       "rowCount": 2,
       "skippedPacks": 1,
       "errorCode": null,
-      "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_SELECTED>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235250Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_SELECTED>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject"
+      "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_SELECTED>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115810Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_SELECTED>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject"
     }
   }
 }
@@ -310,7 +310,7 @@ etag: W/"2d9-hqR+WB2yKEM1HgqTJruEfGRUgyE"
 ### GET the download link: the CSV, as an attachment
 
 ```http
-GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_SELECTED>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235250Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_SELECTED>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject
+GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_SELECTED>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115810Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_SELECTED>.csv%22&response-content-type=text%2Fcsv&x-id=GetObject
 
 HTTP/1.1 200 OK
 etag: "d194c3377633b41c574e5494c05387a4"
@@ -340,7 +340,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"2ef-Zf7sIqcPlFrNAtrxkW4MbvWIF8k"
+etag: W/"2ef-i7bFbQZM8Nj27qL6xiKQNy/6LwE"
 
 {
   "exportId": "<EXPORT_REST>",
@@ -349,17 +349,17 @@ etag: W/"2ef-Zf7sIqcPlFrNAtrxkW4MbvWIF8k"
   "rowCount": 1,
   "skippedPacks": 0,
   "errorCode": null,
-  "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_REST>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235251Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_REST>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject"
+  "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_REST>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115811Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_REST>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject"
 }
 ```
 
 ### GET the download link: the Excel file
 
 ```http
-GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_REST>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235251Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_REST>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject
+GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_REST>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115811Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_REST>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject
 
 HTTP/1.1 200 OK
-etag: "1a074d0c75565ff44de0aa51bc7b587d"
+etag: "472f71472d86e6339742d783f01779ab"
 content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 content-disposition: attachment; filename="products-<EXPORT_REST>.xlsx"
 
@@ -390,7 +390,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"a6-gXKTLK9oVgPox7cJTJP7evo0c5U"
+etag: W/"a6-EnXoJmNEtQkXqeXupBlHlHi3lv8"
 
 {
   "data": {
@@ -425,7 +425,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"30d-K3WFueN85pITsx50+gDw7DzeAG0"
+etag: W/"30d-dTsA0zhpzJnlO4Tbf+/Fkb/xsJg"
 
 {
   "data": {
@@ -436,7 +436,7 @@ etag: W/"30d-K3WFueN85pITsx50+gDw7DzeAG0"
       "rowCount": 520,
       "skippedPacks": 0,
       "errorCode": null,
-      "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_JOB>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235409Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_JOB>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject"
+      "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_JOB>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115946Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_JOB>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject"
     }
   }
 }
@@ -451,7 +451,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"2f1-Ncp8+N9PmzWwlGsYDpX3azEPjnw"
+etag: W/"2f1-NyyRXiE+euSICYFsrvr/Od2IQm8"
 
 {
   "exportId": "<EXPORT_JOB>",
@@ -460,17 +460,17 @@ etag: W/"2f1-Ncp8+N9PmzWwlGsYDpX3azEPjnw"
   "rowCount": 520,
   "skippedPacks": 0,
   "errorCode": null,
-  "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_JOB>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235409Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_JOB>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject"
+  "downloadUrl": "http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_JOB>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115947Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_JOB>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject"
 }
 ```
 
 ### GET the download link: the job's Excel file
 
 ```http
-GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_JOB>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235409Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_JOB>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject
+GET http://127.0.0.1:23900/cod-private/exports/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/exports/<EXPORT_JOB>/file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115947Z&X-Amz-Expires=300&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22products-<EXPORT_JOB>.xlsx%22&response-content-type=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet&x-id=GetObject
 
 HTTP/1.1 200 OK
-etag: "aa8ccc01c3daa829e4f23c9d966fb820"
+etag: "68066b99f431520a7fc614caf65f67f4"
 content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 content-disposition: attachment; filename="products-<EXPORT_JOB>.xlsx"
 

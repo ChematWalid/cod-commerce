@@ -18,24 +18,24 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"27a-LQX3gp6kVe7fStt4PYxFOINLM1E"
+etag: W/"27a-iKTucvH0FXHI5C6Inmu9XTWboYU"
 
 {
   "importId": "<IMPORT_SIGNED>",
-  "uploadUrl": "http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SIGNED>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235415Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
+  "uploadUrl": "http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SIGNED>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115953Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
   "method": "PUT",
   "headers": {
     "content-type": "text/csv",
     "content-length": "51"
   },
-  "expiresAt": "2026-11-21T00:04:15.823Z"
+  "expiresAt": "2026-11-21T12:09:53.689Z"
 }
 ```
 
 ### PUT a larger body than signed to the link: Garage refuses it (403)
 
 ```http
-PUT http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SIGNED>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261120T235415Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject
+PUT http://127.0.0.1:23900/cod-private/uploads/b/<BUSINESS_DEMO>/s/<STORE_DEMO>/imports/<IMPORT_SIGNED>/source?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=[REDACTED]&X-Amz-Date=20261121T115953Z&X-Amz-Expires=600&X-Amz-Signature=[REDACTED]&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject
 Content-Type: text/csv
 Content-Length: 91
 
@@ -178,7 +178,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
-etag: W/"c6-F4MGD9ZFj4ONRSaiK2RKO3v4aXM"
+etag: W/"c6-4wsswFUFQTE8Uufa/iZ486cXSuM"
 
 {
   "statusCode": 409,
@@ -200,7 +200,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"179-T751oD4wVxLC5wr9zgtZtgEInZQ"
+etag: W/"179-hy9rnrs2KZ8byHrVbDhxTxVJtw0"
 
 {
   "importId": "<IMPORT_MEMBER>",
