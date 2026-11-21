@@ -1,14 +1,21 @@
+import type { ProductType } from '@cod/shared';
 import type { CoreId } from './core-id';
 import { comparableText } from './comparable-text';
 import type { SkuCandidate } from './ports/product-lookup.port';
 
 /**
  * What one SKU names in a store (D2201): nothing, one product (and its variant, or `null` for the product's own SKU on
- * a product with options), or more than one, which an import must not guess between (D2209).
+ * a product with options) with the product's type (D2284), or more than one, which an import must not guess between
+ * (D2209).
  */
 export type SkuMatch =
   | { readonly kind: 'none' }
-  | { readonly kind: 'one'; readonly productId: CoreId; readonly variantId: CoreId | null }
+  | {
+      readonly kind: 'one';
+      readonly productId: CoreId;
+      readonly variantId: CoreId | null;
+      readonly productType: ProductType;
+    }
   | { readonly kind: 'ambiguous' };
 
 const NO_MATCH: SkuMatch = { kind: 'none' };
@@ -32,7 +39,7 @@ function matchOf(candidates: readonly SkuCandidate[]): SkuMatch {
   const [only] = holders;
   if (only === undefined) return NO_MATCH;
   if (holders.length > 1) return AMBIGUOUS;
-  return { kind: 'one', productId: only.productId, variantId: only.variantId };
+  return { kind: 'one', productId: only.productId, variantId: only.variantId, productType: only.productType };
 }
 
 /**

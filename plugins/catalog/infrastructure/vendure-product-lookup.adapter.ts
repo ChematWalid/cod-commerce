@@ -1,4 +1,4 @@
-import { CATALOG_MAX_PAGE_SIZE } from '@cod/shared';
+import { CATALOG_MAX_PAGE_SIZE, type ProductType } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { SortOrder } from '@vendure/common/lib/generated-types';
 import {
@@ -53,6 +53,11 @@ const containsAny = (field: string, skus: readonly string[]) => ({
 const productSkuOf = (product: Product): string | null =>
   (product.customFields as Partial<ProductCustomFields>).defaultSku ?? null;
 
+const productTypeOf = (product: Product): ProductType => (product.customFields as ProductCustomFields).type;
+
+/** A variant holding a looked-up SKU, before its product's type is read. */
+type VariantHolder = Omit<SkuCandidate, 'productType'>;
+
 /**
  * {@link ProductLookupPort} on Vendure's services in the caller's store channel (D2201, D2218): they see only that
  * channel's live rows (`deletedAt IS NULL`, the channel join of `findAll`).
@@ -83,14 +88,28 @@ export class VendureProductLookup implements ProductLookupPort {
     return found;
   }
 
+  /** Variants holding one of `skus`, each with its product's type (one more query for their products, D2284). */
   private async variantCandidates(ctx: RequestContext, skus: readonly string[]): Promise<SkuCandidate[]> {
     const read: PageReader<ProductVariant> = (options) => this.variants.findAll(ctx, options);
-    const rows = await readAll(read, containsAny('sku', skus));
-    return rows.map((variant) => ({
+    const holders: VariantHolder[] = (await readAll(read, containsAny('sku', skus))).map((variant) => ({
       productId: coreIdOf(variant.productId),
       variantId: coreIdOf(variant.id),
       sku: variant.sku,
     }));
+    const types = await this.typesOf(ctx, [...new Set(holders.map((holder) => holder.productId))]);
+    // A variant whose product is not live in the channel (deleted meanwhile) holds no SKU.
+    return holders.flatMap((holder) => {
+      const productType = types.get(holder.productId);
+      return productType === undefined ? [] : [{ ...holder, productType }];
+    });
+  }
+
+  /** The type of each live product of `ids` in the caller's channel. */
+  private async typesOf(ctx: RequestContext, ids: readonly string[]): Promise<ReadonlyMap<string, ProductType>> {
+    if (ids.length === 0) return new Map();
+    const read: PageReader<Product> = (options) => this.products.findAll(ctx, options, []);
+    const rows = await readAll(read, { id: { in: [...ids] } });
+    return new Map(rows.map((product) => [coreIdOf(product.id), productTypeOf(product)]));
   }
 
   private async productCandidates(ctx: RequestContext, skus: readonly string[]): Promise<SkuCandidate[]> {
@@ -98,7 +117,9 @@ export class VendureProductLookup implements ProductLookupPort {
     const rows = await readAll(read, containsAny('defaultSku', skus));
     return rows.flatMap((product) => {
       const sku = productSkuOf(product);
-      return sku === null ? [] : [{ productId: coreIdOf(product.id), variantId: null, sku }];
+      return sku === null
+        ? []
+        : [{ productId: coreIdOf(product.id), variantId: null, sku, productType: productTypeOf(product) }];
     });
   }
 }

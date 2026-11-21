@@ -29,7 +29,28 @@ describe('ProductLookupService', () => {
 
     // Assert
     expect(product.variants.map((variant) => variant.sku)).toEqual(['BASE-1', 'BASE-2']);
-    expect(matches.get('base')).toEqual({ kind: 'one', productId: product.id, variantId: null });
+    expect(matches.get('base')).toEqual({
+      kind: 'one',
+      productId: product.id,
+      variantId: null,
+      productType: 'physical',
+    });
+  });
+
+  it("answers a pack's SKU with the pack type, so an import can refuse it (D2284)", async () => {
+    // Arrange
+    const pack = await create({ sku: 'BUNDLE', type: 'pack' });
+
+    // Act
+    const matches = await lookup.findBySkus(world.ctxOf(scopeA), scopeA, ['BUNDLE']);
+
+    // Assert
+    expect(matches.get('BUNDLE')).toEqual({
+      kind: 'one',
+      productId: pack.id,
+      variantId: pack.variants[0]?.id,
+      productType: 'pack',
+    });
   });
 
   it('folds case and NFC after the contains pre-filter', async () => {
@@ -43,7 +64,12 @@ describe('ProductLookupService', () => {
 
     // Assert
     const [variant] = exact.variants;
-    expect(matches.get(decomposed)).toEqual({ kind: 'one', productId: exact.id, variantId: variant?.id });
+    expect(matches.get(decomposed)).toEqual({
+      kind: 'one',
+      productId: exact.id,
+      variantId: variant?.id,
+      productType: 'physical',
+    });
     expect(matches.get('missing')).toEqual({ kind: 'none' });
   });
 

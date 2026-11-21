@@ -1,3 +1,4 @@
+import type { ProductType } from '@cod/shared';
 import type { CoreId } from '../core-id';
 import type { OperationContext } from './operation-context';
 import type { ProductCriteria } from './product-catalog.port';
@@ -17,6 +18,8 @@ export interface SkuCandidate {
   /** The variant holding `sku`, or `null` for the product's own SKU (the `defaultSku` field). */
   readonly variantId: CoreId | null;
   readonly sku: string;
+  /** The type of the product holding `sku`: an import must not write a pack's computed values (D2284). */
+  readonly productType: ProductType;
 }
 
 /**

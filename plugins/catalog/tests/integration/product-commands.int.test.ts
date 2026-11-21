@@ -21,9 +21,7 @@ beforeAll(async () => {
   commands = server.app.get(CatalogProductCommands);
 });
 
-afterAll(async () => {
-  await server.destroy();
-});
+afterAll(() => server.destroy());
 
 const scopeOf = (business: TwoBusinesses['a'], store: StoreFixture): CatalogStoreScope => ({
   businessId: toBusinessId(business.businessId),
@@ -38,6 +36,8 @@ const command = (input: Partial<ProductInput> = {}) =>
     price: 500,
     ...input,
   });
+/** A SKU match on a physical product, which an import may update (D2284). */
+const PHYSICAL = { kind: 'one', productType: 'physical' } as const;
 
 /** A context of `store`'s channel built without the tenant guard, as a worker or a script would. */
 const channelContext = (store: StoreFixture): Promise<RequestContext> =>
@@ -188,7 +188,7 @@ describe('CatalogProductCommands (D2201)', () => {
     const matches = await commands.findBySkus(ctx, scopeA(), [lookedUp]);
 
     // Assert
-    expect(matches.get(lookedUp)).toEqual({ kind: 'one', productId: product.id, variantId: product.variants[0]?.id });
+    expect(matches.get(lookedUp)).toEqual({ ...PHYSICAL, productId: product.id, variantId: product.variants[0]?.id });
   });
 
   it('finds a SKU holding a backslash, a percent sign or an underscore exactly (D2234)', async () => {
@@ -197,7 +197,7 @@ describe('CatalogProductCommands (D2201)', () => {
     const expected = new Map<string, SkuMatch>();
     for (const sku of ['AB\\C', 'TRAIL\\', 'PCT%1', 'UND_1']) {
       const { product } = await commands.create(ctx, scopeA(), command({ sku }));
-      expected.set(sku, { kind: 'one', productId: product.id, variantId: product.variants[0]?.id ?? null });
+      expected.set(sku, { ...PHYSICAL, productId: product.id, variantId: product.variants[0]?.id ?? null });
     }
     for (const sku of ['ABC', 'UNDX1']) await commands.create(ctx, scopeA(), command({ sku }));
     expected.set('AB\\', { kind: 'none' });

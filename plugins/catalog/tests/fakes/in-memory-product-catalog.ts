@@ -181,11 +181,16 @@ export class InMemoryProductCatalog implements ProductCatalogPort, ProductLookup
     const variants = live.flatMap((record) =>
       record.variants
         .filter((variant) => contains(variant.sku))
-        .map((variant) => ({ productId: record.id, variantId: variant.id, sku: variant.sku })),
+        .map((variant) => ({
+          productId: record.id,
+          variantId: variant.id,
+          sku: variant.sku,
+          productType: record.type,
+        })),
     );
     const products = live
       .filter((record) => record.sku !== null && contains(record.sku))
-      .map((record) => ({ productId: record.id, variantId: null, sku: record.sku ?? '' }));
+      .map((record) => ({ productId: record.id, variantId: null, sku: record.sku ?? '', productType: record.type }));
     return Promise.resolve([...variants, ...products]);
   }
 
