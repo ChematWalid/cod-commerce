@@ -11,7 +11,7 @@ docs
 **/.next
 .claude
 .superpowers
-.eslintcache
+.eslintcache*
 **/coverage
 *.log
 **/*.log

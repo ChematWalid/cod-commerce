@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CATALOG_HEAVY_FILES } from './integration-matrix';
 
 const repoRoot = resolve(__dirname, '../../..');
 const WORKSPACE_ROOTS = ['apps', 'packages', 'plugins'] as const;
@@ -39,5 +40,12 @@ describe('integration suites', () => {
     // Assert
     expect(packages.length).toBeGreaterThan(0);
     expect(empty).toEqual([]);
+  });
+
+  // A renamed file would leave CI part `catalog-1` with no test file and move its slow tests into `catalog-2`.
+  it('names only existing catalog files in the catalog file-group part', () => {
+    const missing = CATALOG_HEAVY_FILES.filter((file) => !existsSync(join(repoRoot, 'plugins/catalog', file)));
+
+    expect(missing).toEqual([]);
   });
 });
