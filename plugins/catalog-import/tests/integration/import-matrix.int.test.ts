@@ -32,7 +32,8 @@ describe('the option matrix of an imported product (D2270)', () => {
       expect.objectContaining({ rowNumber: 2, action: 'error', messages: [E.INVALID_VALUE] }),
       expect.objectContaining({ rowNumber: 3, action: 'error', messages: [E.INVALID_VALUE] }),
     ]);
-    expect(done.result).toEqual({ created: 1, updated: 0, failed: 0 });
+    // The report counts every error row, the previewed ones included (as import-flow's 95 created / 5 failed)
+    expect(done.result).toEqual({ created: 1, updated: 0, failed: 2 });
     expect(await productCount(suite)).toBe(before + 1);
   });
 
