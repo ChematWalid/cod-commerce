@@ -9,9 +9,13 @@ import type { ShippingQuoteSource } from '../domain/ports/shipping-quote.port';
 import { UNRESOLVED_SHIPPING } from '../domain/snapshot';
 import { SingleSourceRegistry } from './single-source.registry';
 
-/** No product is in any collection until P2.S3 registers its source: collection targets are inert (D2423). */
+/**
+ * No product is in any collection until P2.S3 registers its source: collection targets are inert (D2423), and every
+ * collection id is taken as it is, unchecked (D2342).
+ */
 const NO_COLLECTION_MEMBERSHIP: CollectionMembership = {
   collectionsOf: () => Promise.resolve(new Map<string, readonly string[]>()),
+  existingCollectionIds: (_ctx, _scope, collectionIds) => Promise.resolve(collectionIds),
 };
 
 /** Every delivery is unresolved, with fees 0, until P3.S1 registers its fee table (D2423). */

@@ -1,5 +1,5 @@
 import { PRICING_ERROR_CODES } from '@cod/shared';
-import { catalogOf } from './catalog-world';
+import { catalogOf, restIdOf } from './catalog-world';
 import type { IsolationEntity } from './matrix';
 import { offersOf } from './offers-rows';
 import type { BusinessWorld } from './world-types';
@@ -81,6 +81,19 @@ const offerNaming = (target: OffersTarget): Record<string, unknown> => ({
   targets: [{ refType: 'variant', refId: target.variantId }],
 });
 
+/** The create mutation, shared by the `createOffer` entry and the collection target cells (D2342). */
+export const CREATE_OFFER_DOCUMENT =
+  'mutation ($input: CreateOfferInput!) { createOffer(input: $input) { id targets { refId } } }';
+
+/** A product discount on one collection (Vendure id, GraphQL or raw form): what a collection target cell creates. */
+export const offerNamingCollection = (collectionId: string): Record<string, unknown> => ({
+  kind: 'product_discount',
+  method: 'automatic',
+  title: 'Synthetic collection offer',
+  config: { valueType: 'percent', value: 10, appliesTo: 'targets' },
+  targets: [{ refType: 'collection', refId: restIdOf(collectionId) }],
+});
+
 /** A lifecycle mutation of one offer id, answering its view. */
 const moveOperation = (name: string): OffersOperation => ({
   name,
@@ -130,7 +143,7 @@ const OFFER_OPERATIONS: readonly OffersOperation[] = [
     name: 'createOffer',
     entity: 'offer',
     foreign: 'unknown-target',
-    document: 'mutation ($input: CreateOfferInput!) { createOffer(input: $input) { id targets { refId } } }',
+    document: CREATE_OFFER_DOCUMENT,
     variables: (t) => ({ input: offerNaming(t) }),
   },
   {

@@ -20,6 +20,7 @@ import { STOCK_READ_CASES } from './stock-reads';
 import { STOCK_WRITE_CASES } from './stock-writes';
 import { TENANCY_CASES } from './tenancy';
 import { TENANCY_WRITE_CASES } from './tenancy-writes';
+import { OFFERS_COLLECTION_TARGET_CASES } from './offers-collection-targets';
 
 /** Every cell of the P1 isolation matrix, grouped by the plugin that owns the endpoint. */
 export const ISOLATION_CASES: readonly IsolationCase[] = [
@@ -52,4 +53,5 @@ export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...OFFERS_SWEEP_CASES,
   ...PACKS_CASES,
   ...IMPORT_EXPORT_CASES,
+  ...OFFERS_COLLECTION_TARGET_CASES,
 ];

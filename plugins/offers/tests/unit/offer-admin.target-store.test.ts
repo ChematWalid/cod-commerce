@@ -15,11 +15,14 @@ const discountOn = (targets: OfferInput['targets']): OfferInput => ({
   targets,
 });
 
-/** The admin services with variant 11 and product 3 in store A, and variant 91 and product 9 in business B's store. */
+/**
+ * The admin services with variant 11, product 3 and collection 5 in store A, and variant 91, product 9 and collection
+ * 95 in business B's store.
+ */
 function twoStores() {
   const admin = setUpOfferAdmin();
-  admin.targets.stock(scopeA, { variantIds: ['11'], productIds: ['3'] });
-  admin.targets.stock(scopeB, { variantIds: ['91'], productIds: ['9'] });
+  admin.targets.stock(scopeA, { variantIds: ['11'], productIds: ['3'], collectionIds: ['5'] });
+  admin.targets.stock(scopeB, { variantIds: ['91'], productIds: ['9'], collectionIds: ['95'] });
   return admin;
 }
 
@@ -47,7 +50,19 @@ describe('OfferAdminService targets in the store (D2537)', () => {
     await expect(creating).rejects.toMatchObject({ code: UNKNOWN_TARGETS });
   });
 
-  it("accepts the store's own variant and product, and leaves collection targets unchecked until P2.S3", async () => {
+  it("refuses a create naming another business's collection and writes no row (D2342)", async () => {
+    // Arrange
+    const { service, tables } = twoStores();
+
+    // Act
+    const creating = service.createDraft(ctx, scopeA, discountOn([{ refType: 'collection', refId: '95' }]));
+
+    // Assert
+    await expect(creating).rejects.toMatchObject({ code: UNKNOWN_TARGETS });
+    expect(tables.offerRows).toEqual([]);
+  });
+
+  it("accepts the store's own variant, product and collection, each checked once (D2342)", async () => {
     // Arrange
     const { service, targets } = twoStores();
     const input = discountOn([
@@ -61,7 +76,7 @@ describe('OfferAdminService targets in the store (D2537)', () => {
 
     // Assert
     expect(draft.targets.map((target) => target.refId)).toEqual(['11', '3', '5']);
-    expect(targets.calls).toEqual([{ variantIds: ['11'], productIds: ['3'] }]);
+    expect(targets.calls).toEqual([{ variantIds: ['11'], productIds: ['3'], collectionIds: ['5'] }]);
   });
 
   it("refuses an update adding another business's variant and keeps the offer", async () => {

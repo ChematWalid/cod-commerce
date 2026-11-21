@@ -55,6 +55,19 @@ describe('OffersCollectionMembershipSource (D2341)', () => {
     });
   });
 
+  it("answers the store's own collections among the ids, never another store's or business's (D2342)", async () => {
+    // Arrange
+    const own = await manualCollection(world, scopeA);
+    const otherStore = await manualCollection(world, scopeA2);
+    const otherBusiness = await automaticCollection(world, scopeB, ['2']);
+
+    // Act
+    const existing = await source.existingCollectionIds(offersCtx, scopeA, [own, otherStore, otherBusiness, '404']);
+
+    // Assert
+    expect(existing).toEqual([own]);
+  });
+
   it('answers an empty map for an empty cart', async () => {
     // Act
     const answer = await source.collectionsOf(offersCtx, scopeA, []);

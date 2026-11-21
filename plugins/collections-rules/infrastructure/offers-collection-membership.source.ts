@@ -35,4 +35,13 @@ export class OffersCollectionMembershipSource implements CollectionMembership, O
   ): Promise<ReadonlyMap<string, readonly string[]>> {
     return this.queries.collectionIdsOfProducts(asOperationContext(ctx), scope, productIds);
   }
+
+  /** The store's live collections among `collectionIds`, canonical: the offers' collection target check (D2342). */
+  existingCollectionIds(
+    ctx: OffersOperationContext,
+    scope: OffersStoreScope,
+    collectionIds: readonly string[],
+  ): Promise<readonly string[]> {
+    return this.queries.existingCollectionIds(asOperationContext(ctx), scope, collectionIds);
+  }
 }

@@ -7,7 +7,7 @@ import {
   type StoreScope,
 } from '@cod/plugin-offers';
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
-import { type OfferInput, toBusinessId, toStoreId } from '@cod/shared';
+import { type OfferInput, PRICING_ERROR_CODES, toBusinessId, toStoreId } from '@cod/shared';
 import type { BusinessFixture, StoreFixture } from '@cod/testing';
 import { RequestContextService } from '@vendure/core';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -23,6 +23,7 @@ const LIST_PRICE = 4_900;
 const PERCENT_OFF = 10;
 const DISCOUNTED = 4_410;
 const TAG_NAME = 'offer-promo';
+const UNKNOWN_TARGETS = PRICING_ERROR_CODES.UNKNOWN_TARGETS;
 
 /** A tagged product (inside the rule) and an untagged one, in the client's active store; raw ids. */
 interface Arranged {
@@ -68,11 +69,20 @@ const discountOn = (collectionId: string): OfferInput => ({
   targets: [{ refType: 'collection', refId: collectionId }],
 });
 
-async function activeOfferIn(business: BusinessFixture, store: StoreFixture, collectionId: string): Promise<void> {
+async function draftIn(business: BusinessFixture, store: StoreFixture, collectionId: string): Promise<string> {
   const admin = suite.kit.app.get(OfferAdminService);
-  const [ctx, scope] = [await contextOf(store), scopeOf(business, store)];
-  const draft = await admin.createDraft(ctx, scope, discountOn(collectionId));
-  await admin.setStatus(ctx, scope, draft.id, 'active');
+  const draft = await admin.createDraft(await contextOf(store), scopeOf(business, store), discountOn(collectionId));
+  return draft.id;
+}
+
+async function activeOfferIn(business: BusinessFixture, store: StoreFixture, collectionId: string): Promise<void> {
+  const id = await draftIn(business, store, collectionId);
+  await suite.kit.app.get(OfferAdminService).publish(await contextOf(store), scopeOf(business, store), id);
+}
+
+async function offerCountIn(business: BusinessFixture, store: StoreFixture): Promise<number> {
+  const page = await suite.kit.app.get(OfferAdminService).list(await contextOf(store), scopeOf(business, store));
+  return page.totalItems;
 }
 
 async function subtotalOf(business: BusinessFixture, store: StoreFixture, variantId: string): Promise<number> {
@@ -115,9 +125,8 @@ describe('offers collection targets through the registered membership source (D2
     expect(outside).toBe(LIST_PRICE);
   });
 
-  // End-to-end smoke check: foreign collection targets leave this scope's products at list price, while an offer on
-  // the scope's own collection discounts the same product (positive control: the source is live in this scope).
-  // The direct source cell below is what guards (businessId, storeId) scoping of membership.
+  // D2342: the offers check collection targets through the registered source, so a foreign collection id is refused
+  // at write time (no row), while the scope's own collection is accepted and discounts its product.
   it.each([
     {
       where: "A's second store",
@@ -128,20 +137,25 @@ describe('offers collection targets through the registered membership source (D2
     },
     { where: 'business B', business: 'b', store: 0, foreign: () => [a.collectionId, a2.collectionId], own: () => b },
   ] as const)(
-    'an offer naming a foreign collection id never discounts in $where, its own collection does',
+    'refuses an offer naming a foreign collection in $where and writes no row, accepts its own collection',
     async ({ business, store, foreign, own }) => {
       // Arrange
       const owner = suite.fixtures[business];
       const shop = owner.stores[store];
-      for (const collectionId of foreign()) await activeOfferIn(owner, shop, collectionId);
+      const before = await offerCountIn(owner, shop);
 
       // Act
-      const foreignOnly = await subtotalOf(owner, shop, own().inside.variantId);
+      const refusals: PromiseSettledResult<string>[] = [];
+      for (const id of foreign()) refusals.push(...(await Promise.allSettled([draftIn(owner, shop, id)])));
+      const after = await offerCountIn(owner, shop);
       await activeOfferIn(owner, shop, own().collectionId);
       const withOwn = await subtotalOf(owner, shop, own().inside.variantId);
 
       // Assert
-      expect(foreignOnly).toBe(LIST_PRICE);
+      for (const refusal of refusals) {
+        expect(refusal).toMatchObject({ status: 'rejected', reason: { code: UNKNOWN_TARGETS } });
+      }
+      expect(after).toBe(before);
       expect(withOwn).toBe(DISCOUNTED);
     },
   );

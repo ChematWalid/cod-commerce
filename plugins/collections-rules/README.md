@@ -35,7 +35,8 @@ its `infrastructure/`, its root `*.plugin.ts` file and its `tests/` (rule `colle
 - `asCollectionsOperationContext` to pass a Vendure `RequestContext` to both.
 
 The offers never import this plugin: `OffersCollectionMembershipSource` registers `collectionIdsOfProducts` on the
-offers' `COLLECTION_MEMBERSHIP_REGISTRAR` on bootstrap (D2341). This plugin therefore imports `OffersPlugin` to inject
+offers' `COLLECTION_MEMBERSHIP_REGISTRAR` on bootstrap (D2341), and `existingCollectionIds` with it, so an offer
+naming another store's or business's collection is refused with `offers.unknown-targets` (D2342). This plugin therefore imports `OffersPlugin` to inject
 the registrar and comes after it in `buildPlugins`; a test server of this plugin boots the offers too (`OffersPlugin.init` with synthetic quote keys).
 
 Membership is **eventually consistent** with product edits: a tag, price or option change reaches automatic
