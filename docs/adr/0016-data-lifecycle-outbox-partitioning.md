@@ -180,7 +180,7 @@ Spike D, 2026-11-07, P0.S2a-2. Scratch app outside the repo (`@vendure/create@3.
 
 ## Amendment (2026-11-14): collections consumer and topic (P2.S3)
 
-**Status**: Proposed (2026-11-14), listed under "ADRs to accept" in the P2.S3 handoff. Decisions D2312, D2313 and D2335 of `docs/roadmap/P2-decisions.md`.
+**Status**: Accepted (2026-11-21, accepted by the user at the P2 phase end). Decisions D2312, D2313 and D2335 of `docs/roadmap/P2-decisions.md`.
 
 | Topic | Change | Decision |
 |---|---|---|

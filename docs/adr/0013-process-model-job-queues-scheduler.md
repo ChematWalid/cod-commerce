@@ -208,7 +208,7 @@ Cost: deep imports into `@vendure/job-queue-plugin` (`bullmq-job-queue-strategy`
 
 ## Amendment (2026-11-14): catalog effects queue and collections reconcile (P2.S3)
 
-**Status**: Proposed (2026-11-14), listed under "ADRs to accept" in the P2.S3 handoff. Decisions D2312 and D2336 of `docs/roadmap/P2-decisions.md`.
+**Status**: Accepted (2026-11-21, accepted by the user at the P2 phase end). Decisions D2312 and D2336 of `docs/roadmap/P2-decisions.md`.
 
 Rows added to the queue taxonomy and the scheduled tasks above:
 
