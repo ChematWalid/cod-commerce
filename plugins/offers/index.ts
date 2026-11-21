@@ -71,8 +71,10 @@ export type { OfferOrderFact, OfferOrderState, OfferOrderUse } from './domain/pe
 
 // The dashboard's route paths and test ids, for the browser spec and the evidence script (framework-free).
 export {
+  ADD_QUANTITY_OFFER_TEST_ID,
   APP_TYPE_CARD_TEST_ID,
   ARABIC_PREVIEW_TEST_ID,
+  CODES_PANEL_TEST_ID,
   CREATE_DIALOG_TEST_ID,
   CREATE_OFFER_TEST_ID,
   EDITOR_DISCARD_TEST_ID,
@@ -86,4 +88,6 @@ export {
   OFFER_TABS_TEST_ID,
   offerPathOf,
   OFFERS_EMPTY_TEST_ID,
+  PRODUCT_OFFER_ROW_TEST_ID,
+  PRODUCT_OFFERS_TEST_ID,
 } from './dashboard/constants';
