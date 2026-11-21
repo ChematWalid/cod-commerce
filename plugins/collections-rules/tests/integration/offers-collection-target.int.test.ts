@@ -107,7 +107,7 @@ beforeAll(async () => {
   b = await arrangeIn(fixtures.b, fixtures.b.stores[0]);
 });
 
-describe('offers collection targets through the registered membership source (D2341)', () => {
+describe('offers collection targets through the registered membership source (D2341, D2342)', () => {
   it('matches a collection target through the registered membership source', async () => {
     // Arrange
     const { a: business } = suite.fixtures;
@@ -145,16 +145,21 @@ describe('offers collection targets through the registered membership source (D2
       const before = await offerCountIn(owner, shop);
 
       // Act
-      const refusals: PromiseSettledResult<string>[] = [];
-      for (const id of foreign()) refusals.push(...(await Promise.allSettled([draftIn(owner, shop, id)])));
+      const refusals: unknown[] = [];
+      for (const id of foreign())
+        refusals.push(
+          await draftIn(owner, shop, id).then(
+            () => 'accepted',
+            (e: unknown) => e,
+          ),
+        );
       const after = await offerCountIn(owner, shop);
       await activeOfferIn(owner, shop, own().collectionId);
       const withOwn = await subtotalOf(owner, shop, own().inside.variantId);
 
       // Assert
-      for (const refusal of refusals) {
-        expect(refusal).toMatchObject({ status: 'rejected', reason: { code: UNKNOWN_TARGETS } });
-      }
+      expect(refusals).toHaveLength(foreign().length);
+      for (const refusal of refusals) expect(refusal).toMatchObject({ code: UNKNOWN_TARGETS });
       expect(after).toBe(before);
       expect(withOwn).toBe(DISCOUNTED);
     },

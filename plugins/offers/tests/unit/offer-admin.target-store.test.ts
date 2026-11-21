@@ -97,6 +97,39 @@ describe('OfferAdminService targets in the store (D2537)', () => {
     await expect(service.get(ctx, scopeA, draft.id)).resolves.toMatchObject({ version: 1 });
   });
 
+  it("refuses an edit adding another business's collection and keeps the stored targets (D2342)", async () => {
+    // Arrange
+    const { service } = twoStores();
+    const draft = await service.createDraft(ctx, scopeA, discountOn([{ refType: 'collection', refId: '5' }]));
+
+    // Act
+    const editing = service.update(ctx, scopeA, draft.id, {
+      targets: [
+        { refType: 'collection', refId: '5' },
+        { refType: 'collection', refId: '95' },
+      ],
+    });
+
+    // Assert
+    await expect(editing).rejects.toMatchObject({ code: UNKNOWN_TARGETS });
+    const kept = await service.get(ctx, scopeA, draft.id);
+    expect(kept.targets.map((target) => target.refId)).toEqual(['5']);
+  });
+
+  it('refuses to publish a draft whose collection target has left the store, and keeps it a draft (D2342)', async () => {
+    // Arrange
+    const { service, targets } = twoStores();
+    const draft = await service.createDraft(ctx, scopeA, discountOn([{ refType: 'collection', refId: '5' }]));
+    targets.empty(scopeA);
+
+    // Act
+    const publishing = service.publish(ctx, scopeA, draft.id);
+
+    // Assert
+    await expect(publishing).rejects.toMatchObject({ code: UNKNOWN_TARGETS });
+    await expect(service.get(ctx, scopeA, draft.id)).resolves.toMatchObject({ status: 'draft', publishedAt: null });
+  });
+
   it('keeps a draft editable when a stored target has left the store since: only added targets are checked', async () => {
     // Arrange
     const { service, targets } = twoStores();
