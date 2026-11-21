@@ -3,6 +3,8 @@ import {
   APP_TYPE_CARD_TEST_ID,
   ARABIC_PREVIEW_TEST_ID,
   CODES_PANEL_TEST_ID,
+  CREATE_ALL_KINDS_TEST_ID,
+  CREATE_BY_GOAL_TEST_ID,
   CREATE_DIALOG_TEST_ID,
   CREATE_OFFER_TEST_ID,
   EDITOR_PUBLISH_TEST_ID,
@@ -61,18 +63,45 @@ const spillOutOfCard = (page: Page, testId: string): Promise<number> =>
     });
     return Math.max(0, ...spills);
   }, testId);
-const visibleCard = (page: Page, id: string) =>
-  page.locator(`[data-testid="${APP_TYPE_CARD_TEST_ID}"][data-app-type="${id}"]:visible`);
+const ALL_KINDS_TAB = 'All types';
+const allKindsCard = (page: Page, id: string) =>
+  byTestId(page, CREATE_ALL_KINDS_TEST_ID).locator(`[data-testid="${APP_TYPE_CARD_TEST_ID}"][data-app-type="${id}"]`);
 
-/** Opens the create dialog from the list and shows every kind. */
-async function openCreateDialog(page: Page): Promise<void> {
+/** Opens the create dialog from the list, on its first view. */
+async function openCreateDialogOnFirstView(page: Page): Promise<void> {
   await open(page, OFFERS_LIST_PATH);
   await byTestId(page, OFFER_LIST_TEST_ID).waitFor();
   await byTestId(page, CREATE_OFFER_TEST_ID).click();
-  const dialog = byTestId(page, CREATE_DIALOG_TEST_ID);
-  await dialog.waitFor();
-  await dialog.getByRole('tab', { name: 'All types' }).click();
+  await byTestId(page, CREATE_DIALOG_TEST_ID).waitFor();
 }
+
+/** Opens the create dialog from the list and shows every kind. */
+async function openCreateDialog(page: Page): Promise<void> {
+  await openCreateDialogOnFirstView(page);
+  await byTestId(page, CREATE_DIALOG_TEST_ID).getByRole('tab', { name: ALL_KINDS_TAB }).click();
+  await byTestId(page, CREATE_ALL_KINDS_TEST_ID).waitFor();
+}
+
+/**
+ * Clicks a tab of the create dialog and counts the visible cards once React has committed the switch, before the
+ * next frame: the moment a closing tab panel still shows if it waits for its exit to settle.
+ */
+const visibleCardsRightAfterTab = (page: Page, tabName: string): Promise<number> =>
+  page.evaluate(
+    async ([dialogId, cardId, name]) => {
+      const tab = [...document.querySelectorAll(`[data-testid="${dialogId}"] [role="tab"]`)].find(
+        (element) => element.textContent.trim() === name,
+      );
+      if (!(tab instanceof HTMLElement)) throw new Error(`no ${name} tab`);
+      tab.click();
+      await new Promise<void>((resolve) => {
+        queueMicrotask(resolve);
+      });
+      return [...document.querySelectorAll(`[data-testid="${cardId}"]`)].filter((card) => card.checkVisibility())
+        .length;
+    },
+    [CREATE_DIALOG_TEST_ID, APP_TYPE_CARD_TEST_ID, tabName] as const,
+  );
 
 describe('offers admin', () => {
   let browser: Browser;
@@ -114,13 +143,25 @@ describe('offers admin', () => {
     return id;
   };
 
+  it('shows only the chosen view of the create dialog, even on the frame of the switch', async () => {
+    await openCreateDialogOnFirstView(page);
+    await byTestId(page, CREATE_BY_GOAL_TEST_ID).waitFor();
+
+    const visibleCards = await visibleCardsRightAfterTab(page, ALL_KINDS_TAB);
+
+    expect(visibleCards).toBe(BUILT_IN_APP_TYPE_IDS.length);
+    await expect.poll(() => byTestId(page, CREATE_BY_GOAL_TEST_ID).count()).toBe(0);
+  });
+
   it('opens each of the seven editors from the create dialog', async () => {
     await openCreateDialog(page);
-    await expect.poll(() => page.locator(`[data-testid="${APP_TYPE_CARD_TEST_ID}"]:visible`).count()).toBe(7);
+    await expect
+      .poll(() => byTestId(page, CREATE_ALL_KINDS_TEST_ID).locator(`[data-testid="${APP_TYPE_CARD_TEST_ID}"]`).count())
+      .toBe(BUILT_IN_APP_TYPE_IDS.length);
 
     for (const id of BUILT_IN_APP_TYPE_IDS) {
       await openCreateDialog(page);
-      await visibleCard(page, id).click();
+      await allKindsCard(page, id).click();
 
       await page.waitForURL((url) => url.searchParams.get('type') === id);
       await editor(page).getByRole('heading', { name: 'New offer' }).waitFor();
