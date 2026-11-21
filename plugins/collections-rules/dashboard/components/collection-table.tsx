@@ -21,8 +21,11 @@ import { LtrRun } from './ltr-run';
 
 /** Hidden on a phone, so the collection, its visibility and the actions fit without a sideways scroll. */
 const WIDE_ONLY = 'hidden md:table-cell';
-/** The stock header cell aligns to a physical side; `text-start` keeps each header over its column in a right-to-left page. */
-const HEAD = 'text-start';
+/**
+ * The stock table aligns its cells to a physical side; `text-start` on every header and value cell keeps each value under
+ * its header in a right-to-left page.
+ */
+const START = 'text-start';
 
 interface CollectionTableProps {
   readonly collections: readonly StoreCollectionDto[];
@@ -82,19 +85,19 @@ function CollectionRow(props: Omit<CollectionTableProps, 'collections'> & { read
   const { collection } = props;
   return (
     <TableRow data-testid={COLLECTION_ROW_TEST_ID} data-collection-id={collection.id}>
-      <TableCell>
+      <TableCell className={START}>
         <TitleCell collection={collection} />
       </TableCell>
-      <TableCell className={WIDE_ONLY}>{i18n._(MODE_LABEL_IDS[collection.mode])}</TableCell>
-      <TableCell className={WIDE_ONLY}>
+      <TableCell className={`${WIDE_ONLY} ${START}`}>{i18n._(MODE_LABEL_IDS[collection.mode])}</TableCell>
+      <TableCell className={`${WIDE_ONLY} ${START}`}>
         <LtrRun>{String(collection.productCount)}</LtrRun>
       </TableCell>
-      <TableCell>
+      <TableCell className={START}>
         <Badge variant={collection.visible ? 'primary' : 'outline'}>
           {i18n._(collection.visible ? 'collections.visible-yes' : 'collections.visible-no')}
         </Badge>
       </TableCell>
-      <TableCell className={WIDE_ONLY}>
+      <TableCell className={`${WIDE_ONLY} ${START}`}>
         <LtrRun>{String(collection.position)}</LtrRun>
       </TableCell>
       <TableCell className="text-end">
@@ -111,11 +114,11 @@ export function CollectionTable(props: CollectionTableProps): ReactNode {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className={HEAD}>{i18n._('collections.column-title')}</TableHead>
-          <TableHead className={`${WIDE_ONLY} ${HEAD}`}>{i18n._('collections.column-type')}</TableHead>
-          <TableHead className={`${WIDE_ONLY} ${HEAD}`}>{i18n._('collections.column-products')}</TableHead>
-          <TableHead className={HEAD}>{i18n._('collections.column-visibility')}</TableHead>
-          <TableHead className={`${WIDE_ONLY} ${HEAD}`}>{i18n._('collections.column-position')}</TableHead>
+          <TableHead className={START}>{i18n._('collections.column-title')}</TableHead>
+          <TableHead className={`${WIDE_ONLY} ${START}`}>{i18n._('collections.column-type')}</TableHead>
+          <TableHead className={`${WIDE_ONLY} ${START}`}>{i18n._('collections.column-products')}</TableHead>
+          <TableHead className={START}>{i18n._('collections.column-visibility')}</TableHead>
+          <TableHead className={`${WIDE_ONLY} ${START}`}>{i18n._('collections.column-position')}</TableHead>
           <TableHead>
             <span className="sr-only">{i18n._('collections.row-actions')}</span>
           </TableHead>
