@@ -88,7 +88,8 @@ describe('product export (AC3, D2211)', () => {
     const names = linesOf(await fileOf(started.downloadUrl ?? ''))
       .slice(1)
       .map((line) => line.split(',')[1]);
-    expect(names).toEqual(['Quartzfilter 1', 'Quartzfilter 2']);
+    // The filter is under test, not the order: products created in the same instant tie on the list's sort.
+    expect([...names].sort()).toEqual(['Quartzfilter 1', 'Quartzfilter 2']);
   });
 
   it('selected ids are deduped', async () => {
