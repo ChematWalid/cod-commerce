@@ -37,6 +37,12 @@ export const EDITOR_PUBLISH_TEST_ID = 'offers-editor-publish';
 export const EDITOR_DISCARD_TEST_ID = 'offers-editor-discard';
 export const SUMMARY_CARD_TEST_ID = 'offers-summary-card';
 export const CODES_PANEL_TEST_ID = 'offers-codes-panel';
+export const PRODUCT_OFFERS_TEST_ID = 'offers-product-offers';
+export const PRODUCT_OFFER_ROW_TEST_ID = 'offers-product-offer-row';
+export const ADD_QUANTITY_OFFER_TEST_ID = 'offers-add-quantity-offer';
+
+/** The product editor's Offers block (D2524): its id among the editor's blocks. */
+export const PRODUCT_OFFERS_BLOCK_ID = 'offers-product-editor-offers';
 
 /** How long the editor waits after the last change before it asks for a new preview (D2516). */
 export const PREVIEW_DEBOUNCE_MS = 300;

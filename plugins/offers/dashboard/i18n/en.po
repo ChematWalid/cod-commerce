@@ -1246,3 +1246,19 @@ msgstr "Code removed."
 #. js-lingui-explicit-id
 msgid "offers.codes-invalid"
 msgstr "Type a code, and whole numbers for the counts."
+
+#. js-lingui-explicit-id
+msgid "offers.product-block-title"
+msgstr "Offers"
+
+#. js-lingui-explicit-id
+msgid "offers.product-none"
+msgstr "No offer targets this product yet."
+
+#. js-lingui-explicit-id
+msgid "offers.product-more"
+msgstr "And {count} more in the offers list."
+
+#. js-lingui-explicit-id
+msgid "offers.product-add-quantity"
+msgstr "Add a quantity offer"

@@ -22,7 +22,8 @@ const WIDE_ONLY = 'hidden md:table-cell';
 /** Hidden below a wide screen: the performance columns come last. */
 const LARGE_ONLY = 'hidden lg:table-cell';
 
-const BADGE_OF_STATUS: Readonly<Record<OfferStatus, ComponentProps<typeof Badge>['variant']>> = {
+/** The badge colour of each status, shared by the list and the product editor block. */
+export const BADGE_OF_STATUS: Readonly<Record<OfferStatus, ComponentProps<typeof Badge>['variant']>> = {
   active: 'success',
   paused: 'warning',
   draft: 'outline',

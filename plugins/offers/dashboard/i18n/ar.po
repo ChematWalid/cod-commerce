@@ -1246,3 +1246,19 @@ msgstr "حُذف الرمز."
 #. js-lingui-explicit-id
 msgid "offers.codes-invalid"
 msgstr "أدخل رمزًا، وأعدادًا صحيحة للأعداد."
+
+#. js-lingui-explicit-id
+msgid "offers.product-block-title"
+msgstr "العروض"
+
+#. js-lingui-explicit-id
+msgid "offers.product-none"
+msgstr "لا يوجد عرض على هذا المنتج بعد."
+
+#. js-lingui-explicit-id
+msgid "offers.product-more"
+msgstr "و{count} عروض أخرى في قائمة العروض."
+
+#. js-lingui-explicit-id
+msgid "offers.product-add-quantity"
+msgstr "إضافة عرض كمية"
