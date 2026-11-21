@@ -755,6 +755,9 @@ importers:
       '@cod/plugin-catalog-import':
         specifier: workspace:*
         version: link:../catalog-import
+      '@cod/plugin-platform-flags':
+        specifier: workspace:*
+        version: link:../platform-flags
       '@cod/plugin-platform-jobs':
         specifier: workspace:*
         version: link:../platform-jobs

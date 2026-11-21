@@ -3,9 +3,19 @@ import {
   CatalogImportPlugin,
   type CatalogImportObjectStorage,
 } from '@cod/plugin-catalog-import';
+import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { describe, expect, it } from 'vitest';
-import { outboxSettled, PACK, type PackResult, packInput, packsSuite, SAVE_PACK, until } from './packs-kit';
+import {
+  outboxSettled,
+  PACK,
+  type PackResult,
+  packInput,
+  packsSuite,
+  SAVE_PACK,
+  TEST_REDIS_URL,
+  until,
+} from './packs-kit';
 
 /**
  * Fewer connections than the `integrations` queue runs recompute deliveries at once (5): a delivery that asks the
@@ -22,7 +32,11 @@ const HEADER = ['product_key', 'name', 'price', 'type', 'variant_sku'];
 const suite = packsSuite({
   plugins: [RbacPlugin],
   partitionedSchemas: [ACTIVITY_LOG_SCHEMA],
-  trailing: [CatalogImportPlugin.init({ objectStorage: { kind: 'memory' }, linkScraper: 'fixture', appEnv: 'test' })],
+  // Catalog-import imports platform-flags, which refuses to boot without its options (D2283).
+  trailing: [
+    PlatformFlagsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: 'test-catalog-packs' }),
+    CatalogImportPlugin.init({ objectStorage: { kind: 'memory' }, linkScraper: 'fixture', appEnv: 'test' }),
+  ],
   poolSize: POOL_SIZE,
 });
 
