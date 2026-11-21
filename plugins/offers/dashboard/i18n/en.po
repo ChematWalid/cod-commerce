@@ -678,3 +678,571 @@ msgstr "A tier total does not divide evenly by its pieces: unit prices are round
 #. js-lingui-explicit-id
 msgid "offers.warning-other"
 msgstr "Check this offer's settings before publishing."
+
+#. js-lingui-explicit-id
+msgid "offers.block-summary"
+msgstr "Summary"
+
+#. js-lingui-explicit-id
+msgid "offers.block-codes"
+msgstr "Codes"
+
+#. js-lingui-explicit-id
+msgid "offers.summary-tier-percent"
+msgstr "From {quantity} pieces: {price} % off each piece."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-tier-total"
+msgstr "From {quantity} pieces: {price} DZD for the pieces."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-tier-free-delivery"
+msgstr "From {quantity} pieces, delivery is free."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-tier-preselected"
+msgstr "The {quantity} pieces tier is picked on the form at first."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-targets"
+msgstr "Chosen products: {count}."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-targets-none"
+msgstr "No product chosen yet."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-free-delivery-none"
+msgstr "Free delivery on every order; the store pays the fee."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-free-delivery-pieces"
+msgstr "Free delivery from {min} pieces; the store pays the fee."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-free-delivery-amount"
+msgstr "Free delivery from {min} DZD; the store pays the fee."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-discount-percent"
+msgstr "{value} % off each piece."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-discount-fixed"
+msgstr "{value} DZD off each piece."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-discount-cap"
+msgstr "At most {cap} DZD off a piece."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-scope-all"
+msgstr "On every product of the store."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-countdown"
+msgstr "Shows a countdown to the end date."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-bxgy-same"
+msgstr "Buy {buy}, get {get} more of the same items."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-bxgy-targets"
+msgstr "Buy {buy}, get {get} of the chosen gift items."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-gift-free"
+msgstr "The gifted pieces are free."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-gift-percent"
+msgstr "The gifted pieces are {value} % off."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-gift-fixed"
+msgstr "The gifted pieces are {value} DZD off."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-bxgy-times"
+msgstr "At most {count} times per order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-order-percent"
+msgstr "{value} % off the order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-order-fixed"
+msgstr "{value} DZD off the order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-order-cap"
+msgstr "At most {cap} DZD off the order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-minimum-pieces"
+msgstr "From {min} pieces in the cart."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-minimum-amount"
+msgstr "From an order of {min} DZD."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-products"
+msgstr "Add-on products offered: {count}."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-products-none"
+msgstr "No add-on product chosen yet."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-fixed"
+msgstr "The add-on costs {value} DZD."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-percent"
+msgstr "The add-on is {value} % off."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-amount-off"
+msgstr "The add-on is {value} DZD off."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-any-order"
+msgstr "Offered with any order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-with-targets"
+msgstr "Offered when the cart holds a chosen product."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-pieces"
+msgstr "Up to {count} pieces per order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-order-form"
+msgstr "Offered on the order form."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-addon-thank-you"
+msgstr "Offered on the thank-you page."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-kind-other"
+msgstr "This offer's own settings apply."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-method-automatic"
+msgstr "Applies by itself at checkout."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-method-codes"
+msgstr "Applies when the buyer types one of its codes."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-audience-everyone"
+msgstr "For every buyer."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-audience-first"
+msgstr "For a buyer's first order."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-audience-returning"
+msgstr "For buyers who ordered before."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-channels-all"
+msgstr "Shown everywhere the store sells."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-channels-some"
+msgstr "Shown on {count} of the store's channels."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-wilayas-some"
+msgstr "Only in {count} wilayas."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-delivery-home"
+msgstr "Home delivery only."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-delivery-desk"
+msgstr "Desk pickup only."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-start-publish"
+msgstr "Starts when published."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-start-date"
+msgstr "Starts on {date}."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-end-none"
+msgstr "Has no end date."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-end-date"
+msgstr "Ends on {date}."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-limit-total"
+msgstr "Can be used {count} times in all."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-limit-buyer"
+msgstr "Each buyer can use it {count} times."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-combines-none"
+msgstr "Does not combine with other offers."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-combines-order"
+msgstr "Combines with order discounts."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-combines-product"
+msgstr "Combines with product offers."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-combines-delivery"
+msgstr "Combines with delivery offers."
+
+#. js-lingui-explicit-id
+msgid "offers.summary-sample"
+msgstr "Sample: {pieces} pieces cost {total} DZD, saving {saving} DZD."
+
+#. js-lingui-explicit-id
+msgid "offers.unit-percent"
+msgstr "%"
+
+#. js-lingui-explicit-id
+msgid "offers.unit-dzd"
+msgstr "DZD"
+
+#. js-lingui-explicit-id
+msgid "offers.unit-pieces"
+msgstr "pieces"
+
+#. js-lingui-explicit-id
+msgid "offers.field-price-mode"
+msgstr "Tier price"
+
+#. js-lingui-explicit-id
+msgid "offers.field-price-percent"
+msgstr "A percent off each piece"
+
+#. js-lingui-explicit-id
+msgid "offers.field-price-total"
+msgstr "A total price for the pieces"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-heading"
+msgstr "Tier {number}"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-quantity"
+msgstr "From (pieces)"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-percent"
+msgstr "Percent off"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-total"
+msgstr "Price of the pieces"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-chips"
+msgstr "Quick percents"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-preselected"
+msgstr "Picked on the form at first"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-free-delivery"
+msgstr "Free delivery"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-remove"
+msgstr "Remove tier"
+
+#. js-lingui-explicit-id
+msgid "offers.field-tier-add"
+msgstr "Add a tier"
+
+#. js-lingui-explicit-id
+msgid "offers.field-threshold"
+msgstr "When delivery is free"
+
+#. js-lingui-explicit-id
+msgid "offers.field-threshold-none"
+msgstr "On every order"
+
+#. js-lingui-explicit-id
+msgid "offers.field-threshold-pieces"
+msgstr "From a number of pieces"
+
+#. js-lingui-explicit-id
+msgid "offers.field-threshold-amount"
+msgstr "From an order amount"
+
+#. js-lingui-explicit-id
+msgid "offers.field-min-pieces"
+msgstr "Pieces"
+
+#. js-lingui-explicit-id
+msgid "offers.field-min-amount"
+msgstr "Amount"
+
+#. js-lingui-explicit-id
+msgid "offers.field-delivery-methods"
+msgstr "Delivery method"
+
+#. js-lingui-explicit-id
+msgid "offers.field-delivery-both"
+msgstr "Home and desk"
+
+#. js-lingui-explicit-id
+msgid "offers.field-delivery-home"
+msgstr "Home only"
+
+#. js-lingui-explicit-id
+msgid "offers.field-delivery-desk"
+msgstr "Desk only"
+
+#. js-lingui-explicit-id
+msgid "offers.field-wilayas"
+msgstr "Wilayas"
+
+#. js-lingui-explicit-id
+msgid "offers.field-wilayas-all"
+msgstr "Every wilaya"
+
+#. js-lingui-explicit-id
+msgid "offers.field-wilayas-chosen"
+msgstr "Chosen wilayas"
+
+#. js-lingui-explicit-id
+msgid "offers.field-wilaya"
+msgstr "Wilaya {code}"
+
+#. js-lingui-explicit-id
+msgid "offers.field-fee-note"
+msgstr "The store pays the delivery fee of every order this offer makes free."
+
+#. js-lingui-explicit-id
+msgid "offers.field-applies-to"
+msgstr "Applies to"
+
+#. js-lingui-explicit-id
+msgid "offers.field-applies-all"
+msgstr "Every product"
+
+#. js-lingui-explicit-id
+msgid "offers.field-applies-targets"
+msgstr "Chosen products"
+
+#. js-lingui-explicit-id
+msgid "offers.field-value-type"
+msgstr "Discount"
+
+#. js-lingui-explicit-id
+msgid "offers.field-value-percent"
+msgstr "A percent"
+
+#. js-lingui-explicit-id
+msgid "offers.field-value-fixed"
+msgstr "A fixed amount"
+
+#. js-lingui-explicit-id
+msgid "offers.field-value"
+msgstr "Value"
+
+#. js-lingui-explicit-id
+msgid "offers.field-cap"
+msgstr "Most off a piece"
+
+#. js-lingui-explicit-id
+msgid "offers.field-order-cap"
+msgstr "Most off the order"
+
+#. js-lingui-explicit-id
+msgid "offers.field-blank-hint"
+msgstr "Leave blank for no limit."
+
+#. js-lingui-explicit-id
+msgid "offers.field-countdown"
+msgstr "Show a countdown to the end date"
+
+#. js-lingui-explicit-id
+msgid "offers.field-minimum"
+msgstr "Minimum"
+
+#. js-lingui-explicit-id
+msgid "offers.field-minimum-none"
+msgstr "None"
+
+#. js-lingui-explicit-id
+msgid "offers.field-minimum-amount"
+msgstr "An order amount"
+
+#. js-lingui-explicit-id
+msgid "offers.field-minimum-pieces"
+msgstr "A number of pieces"
+
+#. js-lingui-explicit-id
+msgid "offers.field-buy-quantity"
+msgstr "Buy (pieces)"
+
+#. js-lingui-explicit-id
+msgid "offers.field-get-from"
+msgstr "The buyer gets"
+
+#. js-lingui-explicit-id
+msgid "offers.field-get-same"
+msgstr "More of the same items"
+
+#. js-lingui-explicit-id
+msgid "offers.field-get-targets"
+msgstr "Other chosen items"
+
+#. js-lingui-explicit-id
+msgid "offers.field-get-quantity"
+msgstr "Get (pieces)"
+
+#. js-lingui-explicit-id
+msgid "offers.field-get-items"
+msgstr "Gift items"
+
+#. js-lingui-explicit-id
+msgid "offers.field-gift"
+msgstr "Price of a gifted piece"
+
+#. js-lingui-explicit-id
+msgid "offers.field-gift-free"
+msgstr "Free"
+
+#. js-lingui-explicit-id
+msgid "offers.field-percent-off"
+msgstr "A percent off"
+
+#. js-lingui-explicit-id
+msgid "offers.field-amount-off"
+msgstr "An amount off"
+
+#. js-lingui-explicit-id
+msgid "offers.field-max-times"
+msgstr "Most times per order"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-products"
+msgstr "Add-on products (up to five)"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-condition"
+msgstr "Offered"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-any-order"
+msgstr "With any order"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-with-targets"
+msgstr "With chosen products"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-buy-items"
+msgstr "Offered with these products"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-price"
+msgstr "Add-on price"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-fixed"
+msgstr "A fixed price"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-pieces"
+msgstr "Pieces per order"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-placement"
+msgstr "Where it is offered"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-order-form"
+msgstr "On the order form"
+
+#. js-lingui-explicit-id
+msgid "offers.field-addon-thank-you"
+msgstr "On the thank-you page"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-save-first"
+msgstr "Save the draft to add codes."
+
+#. js-lingui-explicit-id
+msgid "offers.codes-none"
+msgstr "No code yet."
+
+#. js-lingui-explicit-id
+msgid "offers.codes-usage"
+msgstr "Used {count} of {limit}"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-usage-unlimited"
+msgstr "Used {count}"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-code"
+msgstr "Code"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-hint"
+msgstr "Codes are saved in capitals."
+
+#. js-lingui-explicit-id
+msgid "offers.codes-limit"
+msgstr "Uses per code"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-add"
+msgstr "Add code"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-generate-heading"
+msgstr "Generate codes"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-count"
+msgstr "How many"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-prefix"
+msgstr "Prefix"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-generate"
+msgstr "Generate"
+
+#. js-lingui-explicit-id
+msgid "offers.codes-saved"
+msgstr "Codes saved."
+
+#. js-lingui-explicit-id
+msgid "offers.codes-removed"
+msgstr "Code removed."
+
+#. js-lingui-explicit-id
+msgid "offers.codes-invalid"
+msgstr "Type a code, and whole numbers for the counts."

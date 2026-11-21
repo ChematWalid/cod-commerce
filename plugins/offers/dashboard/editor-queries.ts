@@ -32,7 +32,7 @@ const TARGET_PRODUCT_QUERY = `query OfferTargetProduct($id: ID!) {
   catalogProduct(id: $id) { id title price variants { id name price } } }`;
 
 /** A write sent only while requests go to `scope`'s store ({@link sendForStore}). */
-async function mutate<T>(scope: StoreScope | null, document: string, variables: object): Promise<T> {
+export async function mutateForStore<T>(scope: StoreScope | null, document: string, variables: object): Promise<T> {
   return (await sendForStore(scope?.channelToken ?? null, readRequestToken, () =>
     api.mutate(document, variables),
   )) as T;
@@ -53,15 +53,15 @@ export function useOffer(scope: StoreScope | null, offerId: string | null) {
 
 /** Creates a draft in `scope`'s store; refused unsent when requests go to another store. */
 export const createOffer = async (scope: StoreScope | null, input: OfferInput): Promise<OfferViewDto> =>
-  (await mutate<{ readonly createOffer: OfferViewDto }>(scope, CREATE_MUTATION, { input })).createOffer;
+  (await mutateForStore<{ readonly createOffer: OfferViewDto }>(scope, CREATE_MUTATION, { input })).createOffer;
 
 /** Saves the changed fields of an offer of `scope`'s store, made on `patch.version`. */
 export const updateOffer = async (scope: StoreScope | null, id: string, patch: OfferPatch): Promise<OfferViewDto> =>
-  (await mutate<{ readonly updateOffer: OfferViewDto }>(scope, UPDATE_MUTATION, { id, ...patch })).updateOffer;
+  (await mutateForStore<{ readonly updateOffer: OfferViewDto }>(scope, UPDATE_MUTATION, { id, ...patch })).updateOffer;
 
 /** Takes a draft live (D2510); refused with its publish problems when the draft is incomplete. */
 export const publishOffer = async (scope: StoreScope | null, id: string): Promise<OfferViewDto> =>
-  (await mutate<{ readonly publishOffer: OfferViewDto }>(scope, PUBLISH_MUTATION, { id })).publishOffer;
+  (await mutateForStore<{ readonly publishOffer: OfferViewDto }>(scope, PUBLISH_MUTATION, { id })).publishOffer;
 
 /** The preview of `input`, waiting while there is none (D2516); nothing is written. */
 export function useOfferPreview(scope: StoreScope | null, input: OfferPreviewInput | null) {

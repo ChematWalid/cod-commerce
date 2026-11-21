@@ -96,6 +96,7 @@ function EditorPage(props: EditorProps): ReactNode {
         disabled={!editor.canSave}
         onChange={state.onChange}
         scope={props.scope}
+        offerId={state.offer?.id ?? null}
         preview={editor.preview}
         footer={{
           isDraft: state.offer === null || state.offer.status === 'draft',

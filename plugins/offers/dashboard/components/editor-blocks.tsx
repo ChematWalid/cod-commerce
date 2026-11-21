@@ -5,7 +5,8 @@ import type { PreviewState } from '../hooks/use-offer-preview';
 import type { StoreScope } from '../queries';
 import { ArabicPreview } from './arabic-preview';
 import { EditorFooter, type EditorFooterProps } from './editor-footer';
-import { kindEditorOf } from './kind-editor-slot';
+import { CodesPanel } from './codes-panel';
+import { kindEditorOf } from './kinds';
 import { AudienceSection } from './sections/audience-section';
 import { ChannelsSection } from './sections/channels-section';
 import { CombinesSection } from './sections/combines-section';
@@ -13,6 +14,7 @@ import { DatesLimitsSection } from './sections/dates-limits-section';
 import { MethodSection } from './sections/method-section';
 import { NameSection } from './sections/name-section';
 import type { SectionProps } from './sections/section-props';
+import { SummaryCard } from './summary-card';
 
 /** The editor's block ids, so a later session can place its own blocks around them (D2105 practice). */
 export const OFFER_EDITOR_BLOCK_IDS = {
@@ -23,12 +25,16 @@ export const OFFER_EDITOR_BLOCK_IDS = {
   channels: 'offers-editor-channels',
   dates: 'offers-editor-dates',
   combines: 'offers-editor-combines',
+  codes: 'offers-editor-codes',
+  summary: 'offers-editor-summary',
   preview: 'offers-editor-preview',
   footer: 'offers-editor-footer',
 } as const;
 
 export interface EditorBlocksProps extends SectionProps {
   readonly scope: StoreScope | null;
+  /** The saved offer's id, or null for a new one (its codes wait for the first save). */
+  readonly offerId: string | null;
   readonly preview: PreviewState;
   readonly footer: EditorFooterProps;
 }
@@ -53,12 +59,18 @@ function KindBlock(props: EditorBlocksProps): ReactNode {
       scope={props.scope}
       disabled={props.disabled}
       targetsErrorId={props.errors.targets}
+      eligibility={props.form.eligibility}
+      onEligibility={(eligibility) => {
+        props.onChange({ eligibility });
+      }}
+      warnings={props.preview.preview?.warnings ?? []}
     />
   );
 }
 
 /**
- * The main column: name and headline, the kind's card, then the shared sections. A plain function, not a component:
+ * The main column: name and headline, the kind's card, then the shared sections, with the codes card for an offer
+ * activated by codes (D2540). A plain function, not a component:
  * the layout engine only sees `PageBlock`s that are its direct children (or in a fragment).
  */
 function mainBlocks(props: EditorBlocksProps, t: Translate): ReactNode[] {
@@ -72,6 +84,13 @@ function mainBlocks(props: EditorBlocksProps, t: Translate): ReactNode[] {
     <PageBlock key="method" column="main" blockId={ids.method} title={t('offers.block-method')}>
       <MethodSection {...props} />
     </PageBlock>,
+    ...(props.form.method === 'codes'
+      ? [
+          <PageBlock key="codes" column="main" blockId={ids.codes} title={t('offers.block-codes')}>
+            <CodesPanel scope={props.scope} offerId={props.offerId} disabled={props.disabled} />
+          </PageBlock>,
+        ]
+      : []),
     <PageBlock key="audience" column="main" blockId={ids.audience} title={t('offers.block-audience')}>
       <AudienceSection {...props} />
     </PageBlock>,
@@ -94,6 +113,9 @@ export function EditorBlocks(props: EditorBlocksProps): ReactNode {
   return (
     <PageLayout>
       {mainBlocks(props, t)}
+      <PageBlock column="side" blockId={ids.summary} title={t('offers.block-summary')}>
+        <SummaryCard form={props.form} preview={props.preview.preview} />
+      </PageBlock>
       <PageBlock column="side" blockId={ids.preview} title={t('offers.block-preview')}>
         <ArabicPreview {...props.preview} />
       </PageBlock>

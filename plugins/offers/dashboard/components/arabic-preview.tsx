@@ -1,25 +1,15 @@
-import type { OfferConfigWarning, OfferPreview, PreviewScenario, QuoteLine } from '@cod/shared';
+import type { OfferPreview, PreviewScenario, QuoteLine } from '@cod/shared';
 import { useLingui } from '@lingui/react';
 import { Badge } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
 import { ARABIC_PREVIEW_TEST_ID } from '../constants';
 import { formatWhole } from '../model/list-view';
 import { nextTierText, PREVIEW_COPY } from '../model/preview-copy';
+import { warningMessageIdOf } from '../model/preview-warnings';
 import { LtrRun } from './ltr-run';
 
 /** The order form's language: amounts are grouped as in Algeria, in Latin digits. */
 const PREVIEW_LANGUAGE = 'ar';
-
-/** The merchant's note per configuration warning (A11); a warning this dashboard does not know gets a generic one. */
-const WARNING_MESSAGE_IDS: Readonly<Record<OfferConfigWarning, string>> = {
-  tier_total_not_divisible: 'offers.warning-tier-total-not-divisible',
-};
-const OTHER_WARNING_MESSAGE_ID = 'offers.warning-other';
-
-const warningMessageIdOf = (warning: string): string =>
-  Object.hasOwn(WARNING_MESSAGE_IDS, warning)
-    ? WARNING_MESSAGE_IDS[warning as OfferConfigWarning]
-    : OTHER_WARNING_MESSAGE_ID;
 
 /** An amount in dinars, kept in reading order inside the Arabic text. */
 function Money({ amount }: { readonly amount: number }): ReactNode {
