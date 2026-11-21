@@ -272,7 +272,7 @@ login_superadmin; superadmin=$LAST_TOKEN
 echo "waiting ${PREVIEW_BUDGET_REFILL_SECONDS}s for the preview budget to refill"
 sleep "$PREVIEW_BUDGET_REFILL_SECONDS"
 reset_limits
-EV_DEMO_STORE_ID=$demo_store EV_EMPTY_STORE_ID=$demo2_store EV_AUTO_ID=$auto_all_id EV_ALL_COUNT=$all_count \
+EV_DEMO_STORE_ID=$demo_store EV_EMPTY_STORE_ID=$demo2_store EV_AUTO_ID=$auto_all_id EV_AUTO_TITLE=$auto_all_title EV_ALL_COUNT=$all_count \
   EV_ANY_COUNT=$any_count EV_DELETE_ID=$filter_id EV_FILTER_TITLE=$filter_title EV_BLOCK_PRODUCT_ID=$p1 \
   EV_PICK_SEARCH=$pick_search EV_PICK_TITLES=$pick_titles timeout 1200 \
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P2.S3-screens.mjs \

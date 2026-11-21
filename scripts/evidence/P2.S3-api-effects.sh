@@ -65,7 +65,7 @@ gql "$Q_SEARCH" "$input" "$owner" "$demo"; expect_ok search
 assert_js search "['$p1','$p2','$p4'].every((id)=>b.data.storeCollectionProductSearch.items.some((p)=>p.productId===id))&&!b.data.storeCollectionProductSearch.items.some((p)=>p.productId==='$b_product')" "$work/b"
 emit "$f" "storeCollectionProductSearch (جري) in A's store: p1, p2, p4, never B's product" "$Q_SEARCH" "$input" "$owner" "$demo"
 rest GET "/catalog/collections/product-search?search=$(urlencode "$pick_search")&take=20" - "$owner" "$demo"; expect_status "REST search" 200
-assert_js "REST search" "!b.items.some((p)=>p.productId==='$b_product')" "$work/b"
+assert_js "REST search" "['$p1','$p2','$p4'].every((id)=>b.items.some((p)=>p.productId===id))&&!b.items.some((p)=>p.productId==='$b_product')" "$work/b"
 emit_rest "$f" "GET /catalog/collections/product-search?search=جري (URL-encoded)" GET "/catalog/collections/product-search?search=$(urlencode "$pick_search")&take=20" -
 gql "$Q_SEARCH" "$input" "$second_owner" "$second"; expect_ok "B search"
 assert_js "B search" "b.data.storeCollectionProductSearch.items.map((p)=>p.productId).join()==='$b_product'" "$work/b"
@@ -99,7 +99,7 @@ gql "$Q_SET" "$(vars "{id:'$b_collection',productIds:['$p1']}")" "$owner" "$demo
 emit "$f" "setStoreCollectionProducts on B's collection: not found" "$Q_SET" "$(vars "{id:'$b_collection',productIds:['$p1']}")" "$owner" "$demo"
 rest DELETE "/catalog/collections/$b_collection" - "$owner" "$demo"; expect_rest_code "A deletes B" 404 collections.not-found
 emit_rest "$f" "DELETE /catalog/collections/<B's collection>: 404" DELETE "/catalog/collections/$b_collection" -
-rest GET "/catalog/collections/of-product/$b_product" - "$owner" "$demo"; expect_status "A reads B product" 404
+rest GET "/catalog/collections/of-product/$b_product" - "$owner" "$demo"; expect_rest_code "A reads B product" 404 collections.product-not-found
 emit_rest "$f" "GET /catalog/collections/of-product/<B's product>: 404" GET "/catalog/collections/of-product/$b_product" -
 gql "$Q_COLLECTION" "$(vars "{id:'$b_collection'}")" "$second_owner" "$second"; expect_ok "B still has it"
 assert_js "B still has it" "b.data.storeCollection.title==='Collection B'" "$work/b"
@@ -129,11 +129,12 @@ emit "$f" "previewStoreCollectionMatches: the All rule of AC1" "$Q_PREVIEW" "$in
 input=$(vars "{input:{rule:$any_rule,skip:0,take:2}}")
 gql "$Q_PREVIEW" "$input" "$owner" "$demo"; expect_ok "preview any"
 any_count=$(js 'b.data.previewStoreCollectionMatches.totalItems' "$work/b")
+first_page=$(js "b.data.previewStoreCollectionMatches.items.map((p)=>p.productId).join()" "$work/b")
 assert_js "preview any" "b.data.previewStoreCollectionMatches.items.length===2&&$any_count>$all_count" "$work/b"
 emit "$f" "The same conditions with Any, first page of two" "$Q_PREVIEW" "$input" "$owner" "$demo"
 input=$(vars "{input:{rule:$any_rule,skip:2,take:2}}")
 gql "$Q_PREVIEW" "$input" "$owner" "$demo"; expect_ok "preview page 2"
-assert_js "preview page 2" "b.data.previewStoreCollectionMatches.totalItems===$any_count" "$work/b"
+assert_js "preview page 2" "b.data.previewStoreCollectionMatches.totalItems===$any_count&&b.data.previewStoreCollectionMatches.items.length===2&&!b.data.previewStoreCollectionMatches.items.some((p)=>'$first_page'.split(',').includes(p.productId))" "$work/b"
 emit "$f" "Second page of two" "$Q_PREVIEW" "$input" "$owner" "$demo"
 body=$(vars "{rule:$any_rule,take:5}")
 rest POST /catalog/collections/preview "$body" "$owner" "$demo"; expect_status "REST preview" 200

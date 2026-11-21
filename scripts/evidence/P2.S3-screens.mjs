@@ -6,7 +6,7 @@
 //   node P2.S3-screens.mjs <dashboard-url> <out-dir>
 //
 // Env: DEMO_OWNER_PASSWORD (read by the session helper, never printed), EV_DEMO_STORE_ID, EV_EMPTY_STORE_ID (the owner's
-// second store, which holds no collection), EV_AUTO_ID (the All collection), EV_ALL_COUNT / EV_ANY_COUNT (the API's
+// second store, which holds no collection), EV_AUTO_ID / EV_AUTO_TITLE (the All collection), EV_ALL_COUNT / EV_ANY_COUNT (the API's
 // preview counts of its rule with All and Any), EV_DELETE_ID / EV_FILTER_TITLE (the manual collection), EV_BLOCK_PRODUCT_ID,
 // EV_PICK_SEARCH / EV_PICK_TITLES (the Add products search and the three titles it picks, separated by "|").
 /* global process, console, URL, document, window, NodeFilter, getComputedStyle, requestAnimationFrame */
@@ -41,6 +41,7 @@ const env = (name) => process.env[name] || fail(`${name} must be set`);
 const DEMO_STORE = env('EV_DEMO_STORE_ID');
 const EMPTY_STORE = env('EV_EMPTY_STORE_ID');
 const AUTO_ID = env('EV_AUTO_ID');
+const AUTO_TITLE = env('EV_AUTO_TITLE');
 const ALL_COUNT = env('EV_ALL_COUNT');
 const ANY_COUNT = env('EV_ANY_COUNT');
 const DELETE_ID = env('EV_DELETE_ID');
@@ -66,8 +67,8 @@ const FILTERED_PRODUCTS = 3;
 const LICENCE_NOTICE = '[data-vendure-branding]';
 /** The framework's name; only the licence notice may show it on a merchant's screen (ADR 0007, D79). */
 const VENDOR_NAME = /vendure/i;
-/** A catalogue id shown as text means a missing translation. */
-const RAW_MESSAGE_ID = /\b(catalog|collections|shell|subdomain)\.[a-z]+(-[a-z_]+)+\b/;
+/** A catalogue id shown as text means a missing translation (the ids of other plugins' catalogues, by shape). */
+const RAW_MESSAGE_ID = /\b(catalog|collections|shell|subdomain)\.[a-z_]+(-[a-z_]+)*\b/;
 
 /** @returns {never} */
 function fail(message) {
@@ -78,11 +79,14 @@ function catalogue(plugin, lang) {
   const entries = new Map();
   const po = readFileSync(join(root, `plugins/${plugin}/dashboard/i18n/${lang}.po`), 'utf8');
   for (const [, id, text] of po.matchAll(/^msgid "(.+)"\nmsgstr "(.*)"$/gm)) entries.set(id, text);
-  return (id) => entries.get(id) ?? fail(`${plugin} ${lang}.po has no ${id}`);
+  const translate = (id) => entries.get(id) ?? fail(`${plugin} ${lang}.po has no ${id}`);
+  return Object.assign(translate, { ids: [...entries.keys()] });
 }
 const T = Object.fromEntries(
   LANGS.map((lang) => [lang, { col: catalogue('collections-rules', lang), cat: catalogue('catalog', lang) }]),
 );
+/** Every msgid of the two catalogues these screens show, whatever its shape. */
+const MESSAGE_IDS = [...new Set(LANGS.flatMap((lang) => [...T[lang].col.ids, ...T[lang].cat.ids]))];
 const proved = (line) => console.error(line);
 const byTestId = (page, id) => page.locator(`[data-testid="${id}"]`);
 const collectionRow = (page, id) =>
@@ -139,8 +143,8 @@ async function shoot(page, name, lang, { overlay = false } = {}) {
   if (overflow > 1) fail(`${name}: ${overflow}px of horizontal overflow`);
   const text = await textOutsideNotice(page);
   if (VENDOR_NAME.test(text)) fail(`${name}: the framework's name is visible`);
-  const raw = RAW_MESSAGE_ID.exec(text);
-  if (raw !== null) fail(`${name}: the untranslated id ${raw[0]} is visible`);
+  const raw = MESSAGE_IDS.find((id) => text.includes(id)) ?? RAW_MESSAGE_ID.exec(text)?.[0];
+  if (raw !== undefined) fail(`${name}: the untranslated id ${raw} is visible`);
   const file = join(outDir, `${name}.png`);
   if (overlay) await page.screenshot({ path: file });
   else await shootWholeContent(page, file);
@@ -232,6 +236,8 @@ async function shootProductBlock(page, tag, lang) {
   const block = byTestId(page, PRODUCT_COLLECTIONS_BLOCK_TEST_ID);
   await block.waitFor();
   await block.getByText(FILTER_TITLE).first().waitFor();
+  // Only the "Added by rule" part lists automatic collections.
+  await block.getByText(AUTO_TITLE).first().waitFor();
   await shoot(page, `product-editor-collections-${tag}`, lang);
 }
 
@@ -290,6 +296,7 @@ async function main() {
     );
     proved(`Switched to Any without saving, the preview counts ${ANY_COUNT}, the API's count for Any.`);
     proved("The product editor's collections block lists the manual collection of the product.");
+    proved(`The same block lists the automatic collection ${AUTO_TITLE} the product matches by rule.`);
     proved(`Catalog's product list filtered by the manual collection shows exactly its ${FILTERED_PRODUCTS} products.`);
     proved("The owner's second store shows the empty collections list and no row.");
   } finally {

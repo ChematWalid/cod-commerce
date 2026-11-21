@@ -159,7 +159,8 @@ mid_price="{field:'price',operator:'between',min:2000,max:5000}"
 red_color="{field:'option',option:'$COLOR',operator:'is_any_of',values:['$RED']}"
 all_rule="{version:1,match:'all',conditions:[$promo_tag,$mid_price,$red_color]}"
 any_rule="{version:1,match:'any',conditions:[$promo_tag,$mid_price,$red_color]}"
-input="{title:'أحذية ترويجية حمراء',featuredAssetId:'$cover_asset',visible:true,position:2,mode:'automatic',rule:$all_rule}"
+auto_all_title='أحذية ترويجية حمراء'
+input="{title:'$auto_all_title',featuredAssetId:'$cover_asset',visible:true,position:2,mode:'automatic',rule:$all_rule}"
 create "AC1 all" "$input" "$owner" "$demo"; auto_all_id=$MADE
 emit "$f" "AC1: createStoreCollection, All of Tag is any of [promo], Price 2000-5000, اللون is any of [أحمر]" "$Q_CREATE" "$(vars "{input:$input}")" "$owner" "$demo"
 poll_members "$auto_all_id" "ids.join()==='$p1'" "AC1 all"
@@ -170,8 +171,9 @@ auto_any_id=$(js 'b.id' "$work/b")
 emit_rest "$f" "AC1: POST /catalog/collections, the same three conditions with Any" POST /catalog/collections "$body"
 poll_members "$auto_any_id" "['$p1','$p2','$p3','$p4'].every((id)=>ids.includes(id))&&!ids.includes('$p5')" "AC1 any"
 rest GET "/catalog/collections/$auto_any_id/products?take=50" - "$owner" "$demo"; expect_status "GET any members" 200
-assert_js "any members" "!b.items.some((p)=>p.productId==='$p5')" "$work/b"
-emit_rest "$f" "GET /catalog/collections/:id/products of the Any collection: p1-p4, not p5 (its only red variant is hidden, 1200 is out of range, no promo tag)" GET "/catalog/collections/$auto_any_id/products?take=50" -
+# Besides p1-p4 only the seed's products can match, and those have no promo tag or red variant: their price is in range.
+assert_js "any members" "['$p1','$p2','$p3','$p4'].every((id)=>b.items.some((p)=>p.productId===id))&&!b.items.some((p)=>p.productId==='$p5')&&b.items.every((p)=>['$p1','$p2','$p3','$p4'].includes(p.productId)||(p.price>=2000&&p.price<=5000))&&b.totalItems===b.items.length" "$work/b"
+emit_rest "$f" "GET /catalog/collections/:id/products of the Any collection: p1-p4 and the seed's shirt (price in range), not p5 (its only red variant is hidden, 1200 is out of range, no promo tag)" GET "/catalog/collections/$auto_any_id/products?take=50" -
 
 not_promo="{version:1,match:'all',conditions:[{field:'tag',operator:'is_not',values:['$tag_promo']}]}"
 input="{title:'بدون ترويج',visible:false,position:5,mode:'automatic',rule:$not_promo}"
@@ -191,6 +193,13 @@ emit_rest "$f" "AC3: POST /catalog/collections, اللون is any of [أحمر]"
 poll_members "$red_id" "ids.includes('$p1')&&ids.includes('$p3')&&!ids.includes('$p5')&&!ids.includes('$p2')" "AC3"
 rest GET "/catalog/collections/$red_id/products?take=50" - "$owner" "$demo"; expect_status "GET red members" 200
 emit_rest "$f" "GET /catalog/collections/:id/products: p1 and p3, not p5 (red only on a hidden variant) nor p2 (blue)" GET "/catalog/collections/$red_id/products?take=50" -
+not_red="{field:'option',option:'$COLOR',operator:'is_not',values:['$RED']}"
+input="{title:'بلا أحمر',visible:false,position:7,mode:'automatic',rule:{version:1,match:'all',conditions:[$not_red]}}"
+create "AC3 not red" "$input" "$owner" "$demo"; not_red_id=$MADE
+emit "$f" "AC3: createStoreCollection, اللون is not [أحمر]" "$Q_CREATE" "$(vars "{input:$input}")" "$owner" "$demo"
+poll_members "$not_red_id" "ids.includes('$p5')&&ids.includes('$p4')&&ids.includes('$p2')&&!ids.includes('$p1')&&!ids.includes('$p3')" "AC3 not red"
+rest GET "/catalog/collections/$not_red_id/products?take=50" - "$owner" "$demo"; expect_status "GET not-red members" 200
+emit_rest "$f" "GET /catalog/collections/:id/products of اللون is not [أحمر]: p5 (its red variant is hidden), p4 (no colour) and p2 (blue), neither p1 nor p3" GET "/catalog/collections/$not_red_id/products?take=50" -
 
 bad_rule="{version:1,match:'all',conditions:[{field:'price',operator:'between',min:5000,max:1000}]}"
 input="{input:{title:'قاعدة خاطئة',visible:true,position:6,mode:'automatic',rule:$bad_rule}}"

@@ -369,7 +369,7 @@ msgstr "الخيار"
 
 #. js-lingui-explicit-id
 msgid "collections.operator-is_any_of"
-msgstr "أحد"
+msgstr "أيٌّ من"
 
 #. js-lingui-explicit-id
 msgid "collections.operator-is_not"
