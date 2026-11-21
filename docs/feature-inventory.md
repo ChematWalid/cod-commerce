@@ -119,7 +119,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Bulk edit, export | S | |
 | [ ] | Import products from a link (scrape + AI polish) or spreadsheet (analyze → preview → confirm) | S | `/scrape/*`, `/import-export/*` |
 | [ ] | Collections: image, title, description, manual products or automatic conditions, visibility, position | C | `S:/categories/new` |
-| [ ] | Offers: quantity offer, free delivery, product discount, discount codes, buy X get Y, order discount, add-on (pre/post purchase upsell) | C | `S:/offers` |
+| [x] | Offers: quantity offer, free delivery, product discount, discount codes, buy X get Y, order discount, add-on (pre/post purchase upsell) | C | `S:/offers` |
 | [ ] | A/B tests: landing page vs product page, lifecycle | S | `S:/ab-tests` |
 | [ ] | Landing pages per product (plan-limited) | C | builder `product` pages |
 | [ ] | Sold-out behaviour: keep showing or hide; stop/resume orders | C | store settings |
@@ -256,7 +256,7 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 | [ ] | Carrier collection with expected vs received and difference category | C | Finance |
 | [ ] | P&L "at most" with missing-cost warnings; working money (carriers + road + stock) | C | Finance |
 | [ ] | Product types incl. Pack (bundle pricing/variant/weight modes); AI image clean-up; product store-page template | S | Products |
-| [ ] | Offer engine: 7 kinds (quantity, free delivery, product discount, discount codes, buy X get Y, order discount, add-on pre/post order) with audience, channels, schedule, usage limits, combination rules, live Arabic preview, draft/publish, performance stats | C | Offers |
+| [x] | Offer engine: 7 kinds (quantity, free delivery, product discount, discount codes, buy X get Y, order discount, add-on pre/post order) with audience, channels, schedule, usage limits, combination rules, live Arabic preview, draft/publish, performance stats | C | Offers |
 | [ ] | Collections with automatic conditions (All/Any; tag, brand, price, on sale, title, option values) | C | Products |
 | [ ] | Landing pages: per product or chosen variants; block editor (image, text, video incl. TikTok/YouTube, button to form/WhatsApp, spacer, benefits, reviews, before/after, FAQ, countdown, trust strip, custom code); order-form block config (fields, custom questions, delivery display, summary, sticky button, language/direction, after-order thank-you/WhatsApp/link); AI generation (20 credits) | C | Store |
 | [ ] | A/B test wizard: product → competing pages → traffic split → winner metric (conversion, AOV, confirmation rate, delivery rate) | S | Store |
