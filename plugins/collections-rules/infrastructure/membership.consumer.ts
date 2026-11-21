@@ -5,7 +5,7 @@ import {
   OutboxParkError,
 } from '@cod/plugin-platform-outbox';
 import { requestContextOf } from '@cod/plugin-tenancy';
-import { isSnowflake, PRODUCT_CHANGE_KINDS, QUEUES, type TenantScope, toStoreId } from '@cod/shared';
+import { isSnowflake, PRODUCT_CHANGE_KINDS, QUEUES, type QueueName, type TenantScope, toStoreId } from '@cod/shared';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Logger } from '@vendure/core';
 import { z } from 'zod';
@@ -19,7 +19,8 @@ import { StoreChannelContexts } from './store-channel-context';
 
 /** The consumer's name: part of every delivery's job id. */
 export const MEMBERSHIP_CONSUMER_NAME = 'collections-membership';
-const MEMBERSHIP_QUEUE = 'catalog-effects';
+/** The pool every membership recompute of a product runs on (D2312). */
+const MEMBERSHIP_QUEUE: QueueName = 'catalog-effects';
 const LOG_CONTEXT = 'CollectionsMembershipConsumer';
 
 /** The `product.changed` payload (D2127) as this consumer trusts it: ids only, each well formed. */
