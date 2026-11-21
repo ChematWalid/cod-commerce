@@ -100,7 +100,7 @@ Accepted (2026-11-09, standing user authorization for P1). Sharpens the Decision
 
 ## Addendum: tenant status on every handler (P2.S1, 2026-11-14)
 
-Accepted (2026-11-14, standing user authorization for P2). Sharpens Isolation mechanism §2; audit finding TEN-3 (#108); full reasoning: `docs/roadmap/P2-decisions.md` (D2117).
+Accepted (2026-11-14, standing user authorization for P2; confirmed by the user 2026-11-21 at the P2 phase end). Sharpens Isolation mechanism §2; audit finding TEN-3 (#108); full reasoning: `docs/roadmap/P2-decisions.md` (D2117).
 
 - **Where status is checked today.** Store archive and business suspension are checked by `TenantGuard`, and only on handlers that carry `@TenantScoped()`; there is no global guard. Invariants and the gate that pins each:
   - no catalogue key projects onto a stock Vendure permission, so a merchant role reaches stock handlers only through `Authenticated` (gate: `apps/server/tests/unit/tenant-status-guard.test.ts`, `REVIEWED_STOCK_ENGINE_GRANTS` is empty);

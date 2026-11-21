@@ -149,7 +149,7 @@ RAW shipping [{"listPrice":600,"adjustments":"[]"}]
 
 ## Amendment (P2.S5, 2026-11-21)
 
-Accepted (2026-11-21, standing user authorization for P2). Sharpens the quote token and the add-on row of the Decision above for the buy-X-get-Y and add-on kinds; full reasoning: `docs/roadmap/P2-decisions.md` (D2504, D2506, D2531, D2542).
+Accepted (2026-11-21, standing user authorization for P2; confirmed by the user 2026-11-21 at the P2 phase end). Sharpens the quote token and the add-on row of the Decision above for the buy-X-get-Y and add-on kinds; full reasoning: `docs/roadmap/P2-decisions.md` (D2504, D2506, D2531, D2542).
 
 - **Gift lines (D2504).** A gifted unit is a separate quote line split off the matched line, key `<variantId>:gift:<offerId>`, `giftOf: offerId`, priced at the gift price (free 0, percent off, or a fixed amount off clamped at 0). In the token it sits in `l` with `g: offerId`, so a variant may appear twice in `l`. `totalPrice = unitPrice × quantity` holds on every line.
 - **Add-ons in the quote (D2506).** `QuoteRequest.addons?: { offerId, variantId, quantity }[]` (at most 5) carries the add-ons the buyer accepted. Priced add-ons are lines with key `<variantId>:addon:<offerId>`, `addonOf` and `parentVariantId`, shown in `Quote.lines` and counted in `subtotal`; an add-on that cannot be priced is dropped and listed in `Quote.rejectedAddons` and never makes the quote unavailable.
