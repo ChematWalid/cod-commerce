@@ -8,13 +8,15 @@ export interface EditorFooterProps {
   readonly isDraft: boolean;
   /** True when the caller may not save (no create or edit key). */
   readonly disabled: boolean;
+  /** False hides Publish: the caller lacks the edit key `publishOffer` asks for. */
+  readonly canPublish: boolean;
   readonly busy: boolean;
   readonly onDiscard: () => void;
   readonly onSave: () => void;
   readonly onPublish: () => void;
 }
 
-/** Discard / Save as draft / Publish; a live offer saves in place and has no Publish. */
+/** Discard / Save as draft / Publish; a live offer saves in place, and Publish shows only to who may publish. */
 export function EditorFooter(props: EditorFooterProps): ReactNode {
   const { i18n } = useLingui();
   const blocked = props.disabled || props.busy;
@@ -31,7 +33,7 @@ export function EditorFooter(props: EditorFooterProps): ReactNode {
       >
         {i18n._(props.isDraft ? 'offers.editor-save-draft' : 'offers.editor-save')}
       </Button>
-      {props.isDraft && (
+      {props.isDraft && props.canPublish && (
         <Button data-testid={EDITOR_PUBLISH_TEST_ID} disabled={blocked} onClick={props.onPublish}>
           {i18n._('offers.editor-publish')}
         </Button>

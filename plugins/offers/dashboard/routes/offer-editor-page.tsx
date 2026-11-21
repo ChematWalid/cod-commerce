@@ -101,6 +101,7 @@ function EditorPage(props: EditorProps): ReactNode {
         footer={{
           isDraft: editor.isDraft,
           disabled: !editor.canSave,
+          canPublish: editor.canPublish,
           busy: editor.save.isPending,
           onDiscard: editor.onDiscard,
           onSave: () => {

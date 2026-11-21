@@ -12,7 +12,7 @@ describe('the editor access (D2543)', () => {
     const access = editorAccessOf(null, new Set([CREATE_OFFERS_KEY, EDIT_OFFERS_KEY]));
 
     // Assert
-    expect(access).toEqual({ canSave: true, isDraft: true });
+    expect(access).toEqual({ canSave: true, canPublish: true, isDraft: true });
   });
 
   it('shows Publish only while the server allows the move', () => {
@@ -24,7 +24,7 @@ describe('the editor access (D2543)', () => {
 
     // Assert
     expect(draft.isDraft).toBe(true);
-    expect(active).toEqual({ canSave: true, isDraft: false });
+    expect(active).toEqual({ canSave: true, canPublish: false, isDraft: false });
   });
 
   it('saves nothing on an offer the server says is no longer editable', () => {
@@ -41,5 +41,21 @@ describe('the editor access (D2543)', () => {
 
     // Assert
     expect(access.canSave).toBe(false);
+  });
+
+  it('saves a new draft but never publishes it for a member with create and not edit', () => {
+    // Arrange, Act
+    const access = editorAccessOf(null, new Set([CREATE_OFFERS_KEY]));
+
+    // Assert
+    expect(access).toEqual({ canSave: true, canPublish: false, isDraft: true });
+  });
+
+  it('publishes a saved draft with the edit key', () => {
+    // Arrange, Act
+    const access = editorAccessOf(DRAFT, new Set([EDIT_OFFERS_KEY]));
+
+    // Assert
+    expect(access.canPublish).toBe(true);
   });
 });
