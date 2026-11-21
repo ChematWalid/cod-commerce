@@ -385,7 +385,11 @@ msgstr "تم التغيير: {count}. مرفوض: {refused}."
 
 #. js-lingui-explicit-id
 msgid "catalog-import.bulk-product-line"
-msgstr "المنتج {id}: {outcome}"
+msgstr "{name}: {outcome}"
+
+#. js-lingui-explicit-id
+msgid "catalog-import.bulk-product-unnamed"
+msgstr "المنتج {id}"
 
 #. js-lingui-explicit-id
 msgid "catalog-import.bulk-unchanged"

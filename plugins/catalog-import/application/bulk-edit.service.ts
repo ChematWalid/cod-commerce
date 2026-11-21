@@ -10,6 +10,8 @@ import type { UnitOfWorkPort } from './ports/unit-of-work.port';
 /** What a bulk edit answers for one product: changed (the fields, maybe none) or refused (its error code). */
 export interface BulkEditOutcome {
   readonly productId: string;
+  /** The product's title in the store, or `null` when the id is not one of the store's products (#261). */
+  readonly productTitle: string | null;
   readonly ok: boolean;
   readonly changedFields: readonly BulkEditChangedField[];
   readonly error: string | null;
@@ -90,15 +92,18 @@ export class BulkEditService {
 
   /** One product in its own unit of work; a domain refusal rolls it back and becomes its error. */
   private async editOne(ctx: OperationContext, scope: StoreScope, edit: ProductEdit): Promise<BulkEditOutcome> {
+    // The title is read inside the unit, so it outlives a rollback; it stays null for an id the store does not own.
+    const seen: SeenProduct = { title: null };
+    const line = { productId: edit.productId };
     try {
-      const changedFields = await this.deps.units.run(ctx, scope, (tx) => this.apply(tx, scope, edit));
-      return { productId: edit.productId, ok: true, changedFields, error: null };
+      const changedFields = await this.deps.units.run(ctx, scope, (tx) => this.apply(tx, scope, edit, seen));
+      return { ...line, productTitle: seen.title, ok: true, changedFields, error: null };
     } catch (error: unknown) {
       if (error instanceof DryRunRollback) {
-        return { productId: edit.productId, ok: true, changedFields: error.changedFields, error: null };
+        return { ...line, productTitle: seen.title, ok: true, changedFields: error.changedFields, error: null };
       }
       if (!(error instanceof DomainError)) throw error;
-      return { productId: edit.productId, ok: false, changedFields: [], error: error.code };
+      return { ...line, productTitle: seen.title, ok: false, changedFields: [], error: error.code };
     }
   }
 
@@ -106,9 +111,11 @@ export class BulkEditService {
     tx: OperationContext,
     scope: StoreScope,
     { productId, changes, actor, dryRun }: ProductEdit,
+    seen: SeenProduct,
   ): Promise<readonly BulkEditChangedField[]> {
     const { catalog, activity } = this.deps;
     const product = await this.lockedProduct(tx, scope, productId);
+    seen.title = product.title;
     const plan = planProductEdit(product, changes);
     if (plan.changedFields.length === 0) return plan.changedFields;
     if (plan.status !== undefined) await catalog.setStatus(tx, scope, productId, plan.status);
@@ -130,6 +137,11 @@ export class BulkEditService {
     if (product === undefined) throw new ProductNotFoundError();
     return product;
   }
+}
+
+/** What one product's unit learned before it ended, kept for the answer line. */
+interface SeenProduct {
+  title: string | null;
 }
 
 /** One product's part of a bulk edit. */

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { distinctProductIds, type EditableProduct, planProductEdit } from '../../domain/bulk-edit-plan';
 
 const product: EditableProduct = {
+  title: 'Synthetic',
   id: '7',
   status: 'active',
   brandId: '901',

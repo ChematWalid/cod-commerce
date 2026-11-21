@@ -160,7 +160,7 @@ emit_rest "$f" "POST /catalog/packs/preview with a pack as a component: refused"
 # --- bulk-edit.md ---------------------------------------------------------------------------------
 f="$out/api/bulk-edit.md"
 begin "$f" "Bulk edit" "Status, brand, tags and price of up to 500 selected products of the active store (D2213); one result per product. \`dryRun\` computes the same results and writes nothing. Needs \`catalog.products.edit\`."
-Q_BULK='mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId ok changedFields error } } }'
+Q_BULK='mutation ($input: CatalogBulkEditInput!) { bulkEditCatalogProducts(input: $input) { results { productId productTitle ok changedFields error } } }'
 bulk_ids=()
 for n in 1 2 3; do
   new_product "$owner" "$demo" "{title:'منتج التعديل الجماعي $n',status:'active',price:${n}000,sku:'EVBULK-$n'}"

@@ -11,6 +11,7 @@ import { scopeOf } from './store-scope-of';
 /** One product's line of a bulk-edit answer, as both API surfaces give it. */
 export interface CatalogBulkEditProductResultDto {
   readonly productId: string;
+  readonly productTitle: string | null;
   readonly ok: boolean;
   readonly changedFields: readonly string[];
   readonly error: string | null;
