@@ -218,13 +218,26 @@ describe('quoteDelivery: overweight (D3121)', () => {
     });
   });
 
-  it('answers unresolved instead of overflowing when the total passes the money ceiling', () => {
-    // Arrange
-    const heavy = { ...OVERWEIGHT, overweightRate: 10_000 };
-    const grams = (MONEY_MAX_DZD / 10_000 + 10) * 1000;
+  it('prices a total of exactly the money ceiling', () => {
+    // Arrange: 600 home plus one DZD per started kilogram from the first gram.
+    const perKg = { ...OVERWEIGHT, overweightAllowanceKg: 0, overweightRate: 1 };
+    const weightGrams = (MONEY_MAX_DZD - 600) * 1000;
+
+    // Act
+    const quote = quoteDelivery(input({ group: perKg, weightGrams }));
+
+    // Assert
+    expect(quote).toMatchObject({ resolved: true, baseFee: 600, totalFee: MONEY_MAX_DZD });
+  });
+
+  it('answers unresolved instead of overflowing when the total passes the money ceiling by 1 DZD', () => {
+    // Arrange: a whole, safe weight, so only the ceiling can refuse it.
+    const perKg = { ...OVERWEIGHT, overweightAllowanceKg: 0, overweightRate: 1 };
+    const weightGrams = (MONEY_MAX_DZD - 600 + 1) * 1000;
 
     // Act and Assert
-    expect(quoteDelivery(input({ group: heavy, weightGrams: grams }))).toEqual(UNRESOLVED);
+    expect(Number.isSafeInteger(weightGrams)).toBe(true);
+    expect(quoteDelivery(input({ group: perKg, weightGrams }))).toEqual(UNRESOLVED);
   });
 
   it.each([Number.MAX_SAFE_INTEGER + 1, Number.POSITIVE_INFINITY, Number.NaN, -1, 1.5])(

@@ -1,4 +1,4 @@
-import { toSnowflake } from '@cod/shared';
+import { MONEY_MAX_DZD, toSnowflake } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { UNRESOLVED_QUOTE } from '../../domain/quote';
 import type { ShippingQuoteRequest } from '../../domain/quote-request';
@@ -153,7 +153,17 @@ describe('ShippingQuoteService', () => {
     expect(weights.asked).toEqual([]);
   });
 
-  it('answers unresolved for a cart too heavy to price (huge quantity)', async () => {
+  it('answers unresolved for a cart whose weight is safe but whose fee passes the money ceiling', async () => {
+    // Arrange: MONEY_MAX_DZD kilograms is a safe weight, but 50 DZD per kilogram over 5 kg is past the ceiling.
+    const { quotes } = await storeWithGroup();
+    const items = [{ productId: '8', quantity: MONEY_MAX_DZD, weightGrams: 1000 }];
+
+    // Act and Assert
+    expect(Number.isSafeInteger(MONEY_MAX_DZD * 1000)).toBe(true);
+    await expect(quotes.quote(ctx, STORE_A1, request({ items }))).resolves.toEqual(UNRESOLVED_QUOTE);
+  });
+
+  it('answers unresolved for a cart whose weight passes the safe integers (huge quantity)', async () => {
     // Arrange
     const { quotes } = await storeWithGroup();
     const items = [{ productId: '8', quantity: Number.MAX_SAFE_INTEGER, weightGrams: 1000 }];
