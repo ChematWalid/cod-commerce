@@ -32,8 +32,8 @@ describe('storefront host routing (against next start)', () => {
   beforeAll(async () => {
     await waitForHttp(url('/livez'), 200, STARTUP_TIMEOUT_MS);
     const storeId = await secondStoreId();
-    secondInternalPath = `/_t/${storeId}/${second.defaultLocale}`;
-    secondEncodedInternalPath = `/%5Ft/${storeId}/${second.defaultLocale}`;
+    secondInternalPath = `/_t/${second.defaultLocale}/${storeId}`;
+    secondEncodedInternalPath = `/%5Ft/${second.defaultLocale}/${storeId}`;
   });
 
   it('renders the demo store hello page', async () => {

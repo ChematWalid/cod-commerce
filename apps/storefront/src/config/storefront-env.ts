@@ -18,7 +18,14 @@ export const STOREFRONT_ENV_KEYS = [
   'INTERNAL_HMAC_KEYS',
   'INTERNAL_HMAC_ACTIVE_KID',
   'PLATFORM_DOMAIN',
+  'STOREFRONT_THEME',
 ] as const;
+
+/** The themes `STOREFRONT_THEME` can select for every store until P8 stores a theme per store (D3207). */
+export const STOREFRONT_THEME_NAMES = ['default', 'compact'] as const;
+
+/** One of the {@link STOREFRONT_THEME_NAMES}. */
+export type StorefrontThemeName = (typeof STOREFRONT_THEME_NAMES)[number];
 
 const APP_ENVS: readonly string[] = ['development', 'test', 'staging', 'production'];
 const API_URL_PROTOCOLS: readonly string[] = ['http:', 'https:'];
@@ -41,6 +48,8 @@ export interface StorefrontEnv {
   readonly internalSigningKey: InternalSigningKey;
   /** Stores live on `<label>.<platformDomain>`; any other host is answered 404 without an api call (D3214). */
   readonly platformDomain: string;
+  /** The theme every store renders with (D3207). */
+  readonly themeName: StorefrontThemeName;
 }
 
 /** The environment is invalid. The issues name variables and rules, never values: a URL can hold a password. */
@@ -119,6 +128,45 @@ export function readPlatformDomain(env: NodeJS.Dict<string>): string {
  */
 export function platformDomain(): string {
   return readPlatformDomain(process.env);
+}
+
+const isThemeName = (value: string): value is StorefrontThemeName =>
+  (STOREFRONT_THEME_NAMES as readonly string[]).includes(value);
+
+/** The theme name and its issue, if any; unset means `default`. */
+function themeNameOf(env: NodeJS.Dict<string>): { name: StorefrontThemeName; issue: string | undefined } {
+  const value = env['STOREFRONT_THEME']?.trim() ?? '';
+  if (value === '') return { name: 'default', issue: undefined };
+  if (isThemeName(value)) return { name: value, issue: undefined };
+  return { name: 'default', issue: `STOREFRONT_THEME must be one of ${STOREFRONT_THEME_NAMES.join(', ')}` };
+}
+
+/**
+ * The theme of this process. Read on each call, for the reason {@link internalApiUrl} is.
+ *
+ * @throws StorefrontEnvError when `STOREFRONT_THEME` is set to an unknown theme
+ */
+export function storefrontThemeName(): StorefrontThemeName {
+  const { name, issue } = themeNameOf(process.env);
+  if (issue !== undefined) throw new StorefrontEnvError([issue]);
+  return name;
+}
+
+/**
+ * Every configured internal key, for checking host bindings (D3202): a binding signed with any kid still in
+ * `INTERNAL_HMAC_KEYS` is valid, so a key rotation does not break cached tenant paths. Read on each call.
+ *
+ * @throws StorefrontEnvError when `INTERNAL_HMAC_KEYS` is missing or invalid (the message holds no secret)
+ */
+export function internalVerifyKeys(): readonly InternalSigningKey[] {
+  const value = process.env['INTERNAL_HMAC_KEYS']?.trim();
+  if (!value) throw new StorefrontEnvError(['INTERNAL_HMAC_KEYS is required']);
+  try {
+    return parseInternalKeys(value);
+  } catch (error) {
+    if (!(error instanceof InvalidInternalKeysError)) throw error;
+    throw new StorefrontEnvError([`INTERNAL_HMAC_KEYS is invalid (${error.message})`]);
+  }
 }
 
 /** The signing key and the issues of `INTERNAL_HMAC_KEYS` and `INTERNAL_HMAC_ACTIVE_KID`; issues never hold a secret. */
@@ -202,13 +250,21 @@ export function loadStorefrontEnv(env: NodeJS.Dict<string>): StorefrontEnv {
   const internalApiUrl = env['INTERNAL_API_URL']?.trim();
   const signing = signingKeyOf(env);
   const platform = platformDomainOf(env);
+  const theme = themeNameOf(env);
   issues.push(
     ...presentIssues(internalApiUrlIssue(internalApiUrl)),
     ...signing.issues,
-    ...presentIssues(platform.issue),
+    ...presentIssues(platform.issue, theme.issue),
   );
   if (issues.length > 0 || internalApiUrl === undefined || signing.key === undefined) {
     throw new StorefrontEnvError(issues);
   }
-  return { redisUrl, deploymentId, internalApiUrl, internalSigningKey: signing.key, platformDomain: platform.domain };
+  return {
+    redisUrl,
+    deploymentId,
+    internalApiUrl,
+    internalSigningKey: signing.key,
+    platformDomain: platform.domain,
+    themeName: theme.name,
+  };
 }

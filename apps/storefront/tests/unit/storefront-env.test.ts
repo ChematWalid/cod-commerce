@@ -37,7 +37,15 @@ describe('loadStorefrontEnv', () => {
       internalApiUrl: 'http://api:3000',
       internalSigningKey: { kid: 'k2', secret: 'change-me-internal-hmac-111111111111111111111' },
       platformDomain: 'souk.example.dz',
+      themeName: 'default',
     });
+  });
+
+  it('selects the compact theme and refuses an unknown one', () => {
+    expect(loadStorefrontEnv({ ...valid, STOREFRONT_THEME: 'compact' }).themeName).toBe('compact');
+    expect(issuesOf({ ...valid, STOREFRONT_THEME: 'neon' })).toEqual([
+      'STOREFRONT_THEME must be one of default, compact',
+    ]);
   });
 
   it('keeps the development fallbacks of the cache, but never guesses the API', () => {
@@ -109,6 +117,7 @@ describe('loadStorefrontEnv', () => {
       'NEXT_DEPLOYMENT_ID',
       'PLATFORM_DOMAIN',
       'REDIS_URL',
+      'STOREFRONT_THEME',
     ]);
   });
 });

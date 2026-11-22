@@ -1,0 +1,98 @@
+/* The theme's base styles. Logical properties only, so one stylesheet serves rtl and ltr stores (ADR 0005). Colours,
+   radius and font come from the theme tokens as custom properties on .theme-root. */
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
+
+body {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.theme-root {
+  min-block-size: 100svh;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family);
+}
+
+.theme-root a {
+  color: inherit;
+}
+
+.section {
+  padding-inline: 1rem;
+}
+
+.announcement-bar {
+  margin: 0;
+  margin-inline: -1rem;
+  padding-block: 0.5rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1rem;
+}
+
+.store-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.hero-banner,
+.success-message {
+  padding-block: 3rem;
+  text-align: center;
+}
+
+.hero-banner h1,
+.success-message h1 {
+  margin-block: 0 1rem;
+  font-size: 1.75rem;
+}
+
+.button {
+  display: inline-block;
+  padding-block: 0.625rem;
+  padding-inline: 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.theme-root .button {
+  color: #ffffff;
+}
+
+.trust-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding-block: 2rem;
+  padding-inline: 0;
+  list-style: none;
+  text-align: center;
+}
+
+.site-footer {
+  padding-block: 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
