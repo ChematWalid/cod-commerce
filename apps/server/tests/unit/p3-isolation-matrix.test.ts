@@ -76,6 +76,26 @@ describe('P3 storefront isolation matrix', () => {
     expect(unreached.map((testCase) => testCase.call(pair).signing.kind)).toEqual(['unsigned', 'signed', 'signed']);
     expect(unreached.every((testCase) => testCase.expect.kind === 'refused')).toBe(true);
   });
+
+  it("reads A's own collection through both membership routes, showing A's product and hiding B's", () => {
+    // Arrange
+    const ownCollectionIds = ['storefront.collection-own-slug', 'storefront.products-own-collection'];
+
+    // Act
+    const cells = STOREFRONT_ISOLATION_CASES.filter((testCase) => ownCollectionIds.includes(testCase.id));
+
+    // Assert
+    expect(cells.map((testCase) => testCase.id).sort()).toEqual([...ownCollectionIds].sort());
+    for (const testCase of cells) {
+      const call = testCase.call(pair);
+      expect(call.path).toContain(encodeURIComponent(pair.attacker.collectionSlug));
+      expect(call.signing).toEqual({ kind: 'signed', storeId: pair.attacker.storeId });
+      expect(testCase.reachesGuard).toBe(true);
+      if (testCase.expect.kind !== 'answers') throw new Error(`${testCase.id} must answer`);
+      expect(testCase.expect.shows(pair)).toContain(pair.attacker.productName);
+      expect(testCase.expect.hides(pair)).toEqual(pair.victim.names);
+    }
+  });
 });
 
 describe('storefrontHeadersOf', () => {

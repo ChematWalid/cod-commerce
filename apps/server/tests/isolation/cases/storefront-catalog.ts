@@ -92,6 +92,17 @@ const ROUTE_CASES: readonly StorefrontIsolationCase[] = [
     reachesGuard: true,
   },
   {
+    id: 'storefront.products-own-collection',
+    endpoint: PRODUCTS,
+    title: "A's signed list filtered by A's collection slug holds A's product and none of B's",
+    call: (pair) => ({
+      path: `/store/products?collection=${encodeURIComponent(pair.attacker.collectionSlug)}&take=50`,
+      signing: asAttacker(pair),
+    }),
+    expect: { kind: 'answers', shows: (pair) => [pair.attacker.productName], hides: (pair) => pair.victim.names },
+    reachesGuard: true,
+  },
+  {
     id: 'storefront.search-own-term',
     endpoint: 'GET /store/product/search',
     title: "A's signed search for a word of A's product finds it and none of B's products",
@@ -138,6 +149,18 @@ const ROUTE_CASES: readonly StorefrontIsolationCase[] = [
       kind: 'answers',
       shows: (pair) => [pair.attacker.collectionSlug],
       hides: (pair) => [pair.victim.collectionSlug],
+    },
+    reachesGuard: true,
+  },
+  {
+    id: 'storefront.collection-own-slug',
+    endpoint: 'GET /store/collection/:slug',
+    title: "A's signed collection page of A's slug answers A's collection with A's product and none of B's",
+    call: (pair) => ({ path: `${collectionPath(pair.attacker.collectionSlug)}?take=50`, signing: asAttacker(pair) }),
+    expect: {
+      kind: 'answers',
+      shows: (pair) => [pair.attacker.collectionSlug, pair.attacker.productName],
+      hides: (pair) => pair.victim.names,
     },
     reachesGuard: true,
   },
