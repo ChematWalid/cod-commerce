@@ -31,6 +31,8 @@ export * from './team';
 export * from './tenancy/tenant-key';
 export * from './tenancy/sold-out-behavior';
 export * from './text/control-characters';
+export * from './text/normalize-for-search';
+export * from './text/search-normal-cases';
 export * from './catalog';
 export * from './collections';
 export * from './catalog-packs';
