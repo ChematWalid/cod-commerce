@@ -30,6 +30,14 @@ const isCount = (value: number): boolean => Number.isSafeInteger(value) && value
 const isGrams = (value: number): boolean => Number.isSafeInteger(value) && value >= 0;
 
 /**
+ * Whether every line reads: a whole quantity ≥ 1 and, when sent, a whole unit weight ≥ 0 g (D3133). Checked whatever
+ * the group's overweight setting, without reading any product weight.
+ */
+export function isReadableParcel(items: readonly ShippingQuoteItem[]): boolean {
+  return items.every((item) => isCount(item.quantity) && (item.weightGrams === undefined || isGrams(item.weightGrams)));
+}
+
+/**
  * The parcel's weight in grams: each line's unit weight (sent, else the product's; a null or unknown product weight
  * counts as 0 g, D3119) times its quantity. A line with an unreadable quantity or weight gives `NaN`; a sum past the
  * safe integers is left as is. The quote answers both unresolved, never a wrong total.

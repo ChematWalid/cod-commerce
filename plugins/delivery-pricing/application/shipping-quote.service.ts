@@ -4,6 +4,7 @@ import type { ProductWeightsPort } from '../domain/ports/product-weights.port';
 import type { TownReference } from '../domain/ports/town-directory.port';
 import { quoteDelivery, UNRESOLVED_QUOTE } from '../domain/quote';
 import {
+  isReadableParcel,
   parcelWeightOf,
   productsWithoutWeight,
   type ShippingQuoteItem,
@@ -18,8 +19,9 @@ type NamedTown = TownReference | null | undefined;
 /**
  * The store's delivery quote (D3125): the store's default fee group, read only within `(businessId, storeId)`, priced
  * for the wilaya and commune by the pure {@link quoteDelivery}. No default group, a group of another store, an
- * unknown or other-wilaya commune all answer unresolved. Offers (Task 7), the storefront checkout (P3.S3) and the
- * order form (P4.S3) call it; the scope comes from the session or the signed host, never from a request body.
+ * unknown or other-wilaya commune or an unreadable line all answer unresolved. Offers (Task 7), the storefront
+ * checkout (P3.S3) and the order form (P4.S3) call it; the scope comes from the session or the signed host, never from
+ * a request body.
  */
 export class ShippingQuoteService {
   constructor(
@@ -29,7 +31,7 @@ export class ShippingQuoteService {
 
   /** The delivery quote of `request` in the store `scope`, in whole DZD. */
   async quote(ctx: OperationContext, scope: StoreScope, request: ShippingQuoteRequest): Promise<ShippingQuote> {
-    if (!isWilayaCode(request.provinceCode)) return UNRESOLVED_QUOTE;
+    if (!isWilayaCode(request.provinceCode) || !isReadableParcel(request.items)) return UNRESOLVED_QUOTE;
     const groupId = await this.ports.storeDefaults.defaultGroupOf(ctx, scope);
     if (groupId === null) return UNRESOLVED_QUOTE;
     const town = await this.townOf(request);

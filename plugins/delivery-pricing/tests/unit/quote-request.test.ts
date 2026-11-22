@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parcelWeightOf, productsWithoutWeight } from '../../domain/quote-request';
+import { isReadableParcel, parcelWeightOf, productsWithoutWeight } from '../../domain/quote-request';
 
 describe('productsWithoutWeight', () => {
   it('names each product whose line sends no unit weight, once', () => {
@@ -13,6 +13,27 @@ describe('productsWithoutWeight', () => {
 
     // Act and Assert
     expect(productsWithoutWeight(items)).toEqual(['7', '9']);
+  });
+});
+
+describe('isReadableParcel', () => {
+  it('reads whole quantities of at least 1 and whole sent weights of at least 0 g', () => {
+    expect(
+      isReadableParcel([
+        { productId: '7', quantity: 1 },
+        { productId: '8', quantity: 3, weightGrams: 0 },
+      ]),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['a quantity of 0', { productId: '7', quantity: 0 }],
+    ['a negative quantity', { productId: '7', quantity: -3 }],
+    ['a fractional quantity', { productId: '7', quantity: 1.5 }],
+    ['a negative sent weight', { productId: '7', quantity: 1, weightGrams: -1 }],
+    ['a fractional sent weight', { productId: '7', quantity: 1, weightGrams: 1.5 }],
+  ])('refuses a line with %s', (_label, item) => {
+    expect(isReadableParcel([{ productId: '9', quantity: 1 }, item])).toBe(false);
   });
 });
 

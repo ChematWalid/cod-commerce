@@ -153,6 +153,23 @@ describe('ShippingQuoteService', () => {
     expect(weights.asked).toEqual([]);
   });
 
+  it.each([
+    ['a quantity of 0', { productId: '7', quantity: 0 }],
+    ['a negative quantity', { productId: '7', quantity: -3 }],
+    ['a fractional quantity', { productId: '7', quantity: 1.5 }],
+    ['a negative sent weight', { productId: '7', quantity: 1, weightGrams: -1 }],
+  ])('answers unresolved for a line with %s even when the group does not charge overweight', async (_label, item) => {
+    // Arrange
+    const { quotes, weights } = await storeWithGroup(false);
+
+    // Act
+    const quote = await quotes.quote(ctx, STORE_A1, request({ items: [item] }));
+
+    // Assert
+    expect(quote).toEqual(UNRESOLVED_QUOTE);
+    expect(weights.asked).toEqual([]);
+  });
+
   it('answers unresolved for a cart whose weight is safe but whose fee passes the money ceiling', async () => {
     // Arrange: MONEY_MAX_DZD kilograms is a safe weight, but 50 DZD per kilogram over 5 kg is past the ceiling.
     const { quotes } = await storeWithGroup();
