@@ -8,7 +8,7 @@ export * from './platform/health';
 export * from './platform/partitioned-table-schema';
 export * from './platform/platform-staff';
 export * from './platform/platform-defaults';
-export * from './platform/storefront-cache-tags';
+export * from './storefront';
 export * from './statuses/order-statuses';
 export * from './statuses/tracking-statuses';
 export * from './tenancy/tenant-scope';

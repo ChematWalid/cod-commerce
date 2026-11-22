@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STORE_CACHE_TAG_PREFIX, storeCacheTag } from '../src/platform/storefront-cache-tags';
+import { STORE_CACHE_TAG_PREFIX, storeCacheTag } from '../src/storefront/cache-tags';
 
 describe('storefront cache tags', () => {
   it('tags a store as store:{storeId} (the ADR 0006 contract)', () => {
