@@ -10,13 +10,34 @@ interface TruthRow {
   readonly rate: WilayaRateRow;
   readonly town: QuoteTown | null;
   readonly method: DeliveryMethod;
+  /** The commune's price of the method, written out from D3125 (`null`: it inherits). */
+  readonly communePrice: number | null;
+  /** The wilaya's price of the method, written out from D3125. */
+  readonly wilayaPrice: number;
 }
 
-const COMMUNE_PRICES: Readonly<Record<string, Partial<CommuneRateRow> | null>> = {
-  absent: null,
-  'price null': {},
-  'base only': { baseHome: 700, baseDesk: 450 },
-  override: { baseHome: 700, baseDesk: 450, overrideHome: 720, overrideDesk: 470 },
+/** A method's price, written out from D3125. */
+type MethodPrices = Readonly<Record<DeliveryMethod, number>>;
+
+/** A price layer of the matrix: the row fields it sets and the price D3125 says it gives (`null`: it inherits). */
+interface PriceCase<Fields, Expected extends MethodPrices | null> {
+  readonly fields: Fields;
+  readonly expected: Expected;
+}
+
+const COMMUNE_PRICES: Readonly<Record<string, PriceCase<Partial<CommuneRateRow> | null, MethodPrices | null>>> = {
+  absent: { fields: null, expected: null },
+  'price null': { fields: {}, expected: null },
+  'base only': { fields: { baseHome: 700, baseDesk: 450 }, expected: { home: 700, desk: 450 } },
+  override: {
+    fields: { baseHome: 700, baseDesk: 450, overrideHome: 720, overrideDesk: 470 },
+    expected: { home: 720, desk: 470 },
+  },
+};
+/** The wilaya row's prices: its bases (600 / 400) alone, or overridden. */
+const WILAYA_PRICES: Readonly<Record<string, PriceCase<Partial<WilayaRateRow>, MethodPrices>>> = {
+  base: { fields: {}, expected: { home: 600, desk: 400 } },
+  override: { fields: { overrideHome: 650, overrideDesk: 380 }, expected: { home: 650, desk: 380 } },
 };
 const SWITCHES = [null, true, false] as const;
 const TOWNS: Readonly<Record<string, QuoteTown | null>> = {
@@ -36,26 +57,30 @@ function communeRowOf(
   return commune({ ...(prices ?? {}), deliveryEnabled, deskEnabled });
 }
 
-/** Every combination: commune prices × commune switches × wilaya switches × town × method. */
+/** Every combination: commune prices × commune switches × wilaya prices × wilaya switches × town × method. */
 function allRows(): TruthRow[] {
-  return Object.entries(COMMUNE_PRICES).flatMap(([priceLabel, prices]) =>
+  return Object.entries(COMMUNE_PRICES).flatMap(([priceLabel, communePrices]) =>
     SWITCHES.flatMap((delivery) =>
       SWITCHES.flatMap((desk) =>
-        [true, false].flatMap((wilayaDelivery) =>
-          [true, false].flatMap((wilayaDesk) =>
-            Object.entries(TOWNS).flatMap(([townLabel, town]) =>
-              METHODS.map((method) => ({
-                label: [
+        Object.entries(WILAYA_PRICES).flatMap(([wilayaLabel, wilayaPrices]) =>
+          [true, false].flatMap((wilayaDelivery) =>
+            [true, false].flatMap((wilayaDesk) =>
+              Object.entries(TOWNS).flatMap(([townLabel, town]) =>
+                METHODS.map((method) => ({
+                  label: [
+                    method,
+                    `commune ${priceLabel} delivery=${String(delivery)} desk=${String(desk)}`,
+                    `wilaya ${wilayaLabel} delivery=${String(wilayaDelivery)} desk=${String(wilayaDesk)}`,
+                    `town ${townLabel}`,
+                  ].join(', '),
+                  communeRate: communeRowOf(communePrices.fields, delivery, desk),
+                  rate: { ...WILAYA, ...wilayaPrices.fields, deliveryEnabled: wilayaDelivery, deskEnabled: wilayaDesk },
+                  town,
                   method,
-                  `commune ${priceLabel} delivery=${String(delivery)} desk=${String(desk)}`,
-                  `wilaya delivery=${String(wilayaDelivery)} desk=${String(wilayaDesk)}`,
-                  `town ${townLabel}`,
-                ].join(', '),
-                communeRate: communeRowOf(prices, delivery, desk),
-                rate: { ...WILAYA, deliveryEnabled: wilayaDelivery, deskEnabled: wilayaDesk },
-                town,
-                method,
-              })),
+                  communePrice: communePrices.expected?.[method] ?? null,
+                  wilayaPrice: wilayaPrices.expected[method],
+                })),
+              ),
             ),
           ),
         ),
@@ -72,14 +97,6 @@ function isOffered({ communeRate, rate, town, method }: TruthRow): boolean {
   return delivers && deskOn && (town === null || town.isStopdesk);
 }
 
-/** D3125: commune `override ?? base` of the method, `null` when the commune sets no price for it. */
-function communePriceOf({ communeRate, method }: TruthRow): number | null {
-  if (communeRate === null) return null;
-  return method === 'home'
-    ? (communeRate.overrideHome ?? communeRate.baseHome)
-    : (communeRate.overrideDesk ?? communeRate.baseDesk);
-}
-
 /**
  * Every combination of the D3125 dimensions, checked against the truth table read row by row: price = commune
  * `override ?? base` (source commune), else wilaya `override ?? base` (source wilaya); delivery = commune switch ??
@@ -88,8 +105,7 @@ function communePriceOf({ communeRate, method }: TruthRow): number | null {
 describe('quoteDelivery: the whole D3125 truth table', () => {
   it.each(allRows())('$label', (row) => {
     // Arrange
-    const communePrice = communePriceOf(row);
-    const wilayaPrice = row.method === 'home' ? row.rate.baseHome : row.rate.baseDesk;
+    const { communePrice, wilayaPrice } = row;
     const expected = isOffered(row)
       ? { resolved: true, baseFee: communePrice ?? wilayaPrice, source: communePrice === null ? 'wilaya' : 'commune' }
       : UNRESOLVED;
