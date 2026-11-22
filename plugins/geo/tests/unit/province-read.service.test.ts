@@ -175,4 +175,27 @@ describe('ProvinceReadService', () => {
     // Act and Assert
     await expect(service.townsOf('69')).resolves.toEqual([]);
   });
+
+  it("answers a wilaya's commune by its ONS code with its reference flags, from the same single read", async () => {
+    // Arrange
+    const { service, reader } = serviceWith();
+
+    // Act
+    const cheraga = await service.townOf('16', 1652);
+    await service.townsOf('16');
+
+    // Assert
+    expect(cheraga).toMatchObject({ codeOns: 1652, provinceCode: '16', isStopdesk: true, isHomeDelivery: true });
+    expect(reader.reads).toBe(1);
+  });
+
+  it('answers no commune for an unknown code or a commune of another wilaya', async () => {
+    // Arrange
+    const { service } = serviceWith();
+
+    // Act and Assert
+    await expect(service.townOf('16', 999_999)).resolves.toBeUndefined();
+    await expect(service.townOf('01', 1601)).resolves.toBeUndefined();
+    await expect(service.townOf('69', 1601)).resolves.toBeUndefined();
+  });
 });

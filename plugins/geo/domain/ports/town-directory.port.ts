@@ -1,4 +1,4 @@
-import type { WilayaCode } from '@cod/shared';
+import type { Town, WilayaCode } from '@cod/shared';
 
 /**
  * Reads which communes belong to a wilaya, so delivery pricing can validate a commune rate's `codeOns` without a
@@ -7,4 +7,9 @@ import type { WilayaCode } from '@cod/shared';
 export interface TownDirectory {
   /** The ONS codes (`codeOns`) of the wilaya's communes; empty for a wilaya with no communes seeded. */
   townsOf(provinceCode: WilayaCode): Promise<readonly number[]>;
+  /**
+   * The wilaya's commune `codeOns` with its reference flags (`isStopdesk`, `isHomeDelivery`), for the shipping quote
+   * (D3125); `undefined` for an unknown code or a commune of another wilaya.
+   */
+  townOf(provinceCode: WilayaCode, codeOns: number): Promise<Town | undefined>;
 }

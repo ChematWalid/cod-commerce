@@ -1,4 +1,4 @@
-import { parseWilayaCodeParam, type Province, type StoreId, type WilayaCode } from '@cod/shared';
+import { parseWilayaCodeParam, type Province, type StoreId, type Town, type WilayaCode } from '@cod/shared';
 import { GeoStoreNotFoundError, ProvinceNotFoundError } from '../domain/errors';
 import { GeoCatalog, narrowTown } from '../domain/geo-catalog';
 import type { AvailabilityCache } from '../domain/ports/availability-cache.port';
@@ -68,6 +68,12 @@ export class ProvinceReadService implements TownDirectory {
   async townsOf(provinceCode: WilayaCode): Promise<readonly number[]> {
     const province = (await this.catalogOnce()).withTowns(provinceCode);
     return province?.towns?.map((town) => town.codeOns) ?? [];
+  }
+
+  /** The wilaya's commune `codeOns`, or `undefined` when it is unknown or of another wilaya. */
+  async townOf(provinceCode: WilayaCode, codeOns: number): Promise<Town | undefined> {
+    const province = (await this.catalogOnce()).withTowns(provinceCode);
+    return province?.towns?.find((town) => town.codeOns === codeOns);
   }
 
   private async servedStore(raw: unknown): Promise<StoreId> {

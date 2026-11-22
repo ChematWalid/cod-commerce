@@ -33,7 +33,10 @@ describe('GeoPlugin', () => {
 
   it('publishes the town directory port delivery pricing validates communes with', () => {
     // Arrange
-    const directory: TownDirectory = { townsOf: () => Promise.resolve([16001, 16002]) };
+    const directory: TownDirectory = {
+      townsOf: () => Promise.resolve([16001, 16002]),
+      townOf: () => Promise.resolve(undefined),
+    };
 
     // Act
     const description = TOWN_DIRECTORY.description;

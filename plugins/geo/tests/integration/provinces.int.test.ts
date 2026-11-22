@@ -236,4 +236,19 @@ describe('the provinces endpoints over REST', () => {
     const seeded = SEED.towns.filter((town) => town.provinceCode === ALGER).map((town) => town.codeOns);
     expect([...towns].sort((left, right) => left - right)).toEqual(seeded.sort((left, right) => left - right));
   });
+
+  it("answers a seeded commune's reference flags through the town directory, and nothing for another wilaya", async () => {
+    // Arrange
+    const directory = server.app.get<TownDirectory>(TOWN_DIRECTORY);
+    const seeded = SEED.towns.find((town) => town.provinceCode === ALGER);
+    if (seeded === undefined) throw new Error('the seed has no commune in Alger');
+
+    // Act
+    const town = await directory.townOf(ALGER, seeded.codeOns);
+    const elsewhere = await directory.townOf('01', seeded.codeOns);
+
+    // Assert
+    expect(town).toMatchObject({ codeOns: seeded.codeOns, isStopdesk: seeded.isStopdesk });
+    expect(elsewhere).toBeUndefined();
+  });
 });
