@@ -52,7 +52,7 @@ export class DeliveryDefaultsConvergeService {
       stores += page.length;
       linked += await this.convergePage(ctx, page, failures);
       const last = page.at(-1);
-      if (page.length < CONVERGE_PAGE_SIZE || last === undefined) break;
+      if (last === undefined) break;
       afterStoreId = last.scope.storeId;
     }
     if (failures.length > 0) throw new DeliveryDefaultsConvergeFailedError(stores, failures);
@@ -75,9 +75,13 @@ export class DeliveryDefaultsConvergeService {
     return linked;
   }
 
-  /** Answers whether the store had to be linked: its default was missing or not one of its own groups. */
-  private convergeStore(ctx: OperationContext, { scope, defaultGroupId }: StoreLink): Promise<boolean> {
+  /**
+   * Answers whether the store had to be linked: its default was missing or not one of its own groups. The default is
+   * re-read under the store row's lock, not taken from the page, so a group the merchant linked meanwhile is kept.
+   */
+  private convergeStore(ctx: OperationContext, { scope }: StoreLink): Promise<boolean> {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
+      const defaultGroupId = await this.ports.storeDefaults.lockedDefaultGroupOf(tx, scope);
       if (defaultGroupId !== null && (await this.ports.groups.share(tx, scope, defaultGroupId))) return false;
       await this.linkStore(tx, scope);
       return true;

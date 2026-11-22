@@ -18,6 +18,12 @@ export class TenantStoreDeliveryDefaults extends StoreDeliveryDefaults {
     super();
   }
 
+  async lockDefaultDeliveryFeeGroup(ctx: OperationContext, scope: StoreReferenceScope): Promise<Snowflake | null> {
+    const store = await this.stores.findForUpdate(ctx, scope.businessId, scope.storeId);
+    if (store === undefined) throw new StoreNotFoundError();
+    return store.defaultDeliveryFeeGroupId;
+  }
+
   async setDefaultDeliveryFeeGroup(
     ctx: OperationContext,
     scope: StoreReferenceScope,

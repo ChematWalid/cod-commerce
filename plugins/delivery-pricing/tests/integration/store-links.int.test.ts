@@ -2,7 +2,9 @@ import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { WILAYA_CODES } from '@cod/shared';
 import type { StoreFixture } from '@cod/testing';
 import { RequestContextService } from '@vendure/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { STORE_DEFAULTS } from '../../application/tokens';
+import type { StoreDefaultsPort } from '../../domain/ports/store-defaults.port';
 import { asOperationContext, DeliveryDefaultsConvergeService } from '../../index';
 import { deliveryPricingSuite } from './delivery-pricing-kit';
 
@@ -156,6 +158,33 @@ describe('default table converge on migrate (D3112)', () => {
       expect(platformDefaults).toHaveLength(1);
       expect(defaultId).not.toBeNull();
     }
+    const relinked = await linksOf(stores[1]?.id ?? '');
+    expect(relinked.defaultId).toBe(relinked.platformDefaults[0]);
+  });
+
+  it("keeps the group a merchant linked between the converge's page read and the store's transaction", async () => {
+    // Arrange
+    const a1 = suite.fixtures.a.stores[0];
+    await suite.kit.asOwner(suite.fixtures.a, a1);
+    const own = await suite.kit.createGroup('Linked during the converge');
+    await suite.kit.query('UPDATE "store" SET "defaultDeliveryFeeGroupId" = NULL WHERE id = $1', [a1.id]);
+    const storeDefaults = suite.kit.app.get<StoreDefaultsPort>(STORE_DEFAULTS);
+    const readPage = storeDefaults.activeStores.bind(storeDefaults);
+    const spy = vi.spyOn(storeDefaults, 'activeStores').mockImplementation(async (ctx, after, limit) => {
+      const page = await readPage(ctx, after, limit);
+      await suite.kit.query('UPDATE "store" SET "defaultDeliveryFeeGroupId" = $1 WHERE id = $2', [own.id, a1.id]);
+      return page;
+    });
+
+    // Act
+    try {
+      await converge();
+    } finally {
+      spy.mockRestore();
+    }
+
+    // Assert
+    expect((await linksOf(a1.id)).defaultId).toBe(own.id);
   });
 
   it("repairs a dangling id, such as B's group stored on A before #230", async () => {

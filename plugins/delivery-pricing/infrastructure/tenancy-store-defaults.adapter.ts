@@ -31,6 +31,10 @@ export class TenancyStoreDefaults implements StoreDefaultsPort {
     return settings?.defaultDeliveryFeeGroupId ?? null;
   }
 
+  lockedDefaultGroupOf(ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {
+    return this.deliveryDefaults.lockDefaultDeliveryFeeGroup(tenancyContextOf(ctx), scope);
+  }
+
   linkDefaultGroup(ctx: OperationContext, scope: StoreScope, groupId: Snowflake): Promise<void> {
     return this.deliveryDefaults.setDefaultDeliveryFeeGroup(tenancyContextOf(ctx), scope, groupId);
   }

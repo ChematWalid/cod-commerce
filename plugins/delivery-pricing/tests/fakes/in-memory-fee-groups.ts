@@ -143,15 +143,25 @@ export const inlineTransaction: TransactionPort = {
 
 /**
  * {@link StoreDefaultsPort} over a fixed default group per store key. `stores` are the active stores the converge
- * pages through; linking a store in `failing` throws, as a refused write would.
+ * pages through; linking a store in `failing` throws, as a refused write would. `beforeLock` runs as a concurrent
+ * write landing just before the store row is locked; `pageCap` clamps a page as tenancy's directory does.
  */
 export class FixedStoreDefaults implements StoreDefaultsPort {
   readonly defaults = new Map<string, Snowflake>();
   readonly stores: StoreScope[] = [];
   readonly failing = new Set<string>();
   readonly links: string[] = [];
+  readonly locked: string[] = [];
+  beforeLock: ((scope: StoreScope) => void) | undefined;
+  pageCap = Number.POSITIVE_INFINITY;
 
   defaultGroupOf(_ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {
+    return Promise.resolve(this.defaults.get(keyOf(scope)) ?? null);
+  }
+
+  lockedDefaultGroupOf(_ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {
+    this.beforeLock?.(scope);
+    this.locked.push(keyOf(scope));
     return Promise.resolve(this.defaults.get(keyOf(scope)) ?? null);
   }
 
@@ -170,7 +180,7 @@ export class FixedStoreDefaults implements StoreDefaultsPort {
     const page = this.stores
       .filter((scope) => afterStoreId === undefined || BigInt(scope.storeId) > BigInt(afterStoreId))
       .sort((left, right) => (BigInt(left.storeId) < BigInt(right.storeId) ? -1 : 1))
-      .slice(0, limit);
+      .slice(0, Math.min(limit, this.pageCap));
     return Promise.resolve(page.map((scope) => ({ scope, defaultGroupId: this.defaults.get(keyOf(scope)) ?? null })));
   }
 }

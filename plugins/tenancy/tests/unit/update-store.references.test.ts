@@ -58,6 +58,10 @@ class InMemoryStores implements TenantStoresPort {
     return Promise.resolve(this.rows.find((row) => row.id === id));
   }
 
+  findForUpdate(_ctx: unknown, businessId: unknown, id: StoreId): Promise<Store | undefined> {
+    return this.find(_ctx, businessId, id);
+  }
+
   countActive(): Promise<number> {
     return Promise.resolve(this.rows.length);
   }

@@ -52,6 +52,22 @@ describe('DeliveryDefaultsConvergeService.convergeAll (migrate, D3112)', () => {
     expect(storeDefaults.defaults.get(storeKeyOf(STORE_A1))).toBe(own.id);
   });
 
+  it("keeps the merchant's group linked between the page read and the store's transaction", async () => {
+    // Arrange
+    const { converge, saving, storeDefaults } = world();
+    const own = await saving.create(ctx, STORE_A1, groupInput());
+    storeDefaults.stores.push(STORE_A1);
+    storeDefaults.beforeLock = (scope) => storeDefaults.defaults.set(storeKeyOf(scope), own.id);
+
+    // Act
+    const report = await converge.convergeAll(ctx);
+
+    // Assert
+    expect(report).toEqual({ stores: 1, linked: 0 });
+    expect(storeDefaults.defaults.get(storeKeyOf(STORE_A1))).toBe(own.id);
+    expect(storeDefaults.locked).toEqual([storeKeyOf(STORE_A1)]);
+  });
+
   it("repairs a dangling id, such as another business's group stored before #230", async () => {
     // Arrange
     const { converge, saving, groups, storeDefaults } = world();
@@ -89,6 +105,19 @@ describe('DeliveryDefaultsConvergeService.convergeAll (migrate, D3112)', () => {
     });
     expect(storeDefaults.defaults.has(storeKeyOf(STORE_A1))).toBe(true);
     expect(storeDefaults.defaults.has(storeKeyOf(STORE_B1))).toBe(true);
+  });
+
+  it('pages on when the directory answers a page shorter than asked, until a page comes back empty', async () => {
+    // Arrange
+    const { converge, storeDefaults } = world();
+    storeDefaults.stores.push(STORE_A1, STORE_A2, STORE_B1);
+    storeDefaults.pageCap = 2;
+
+    // Act
+    const report = await converge.convergeAll(ctx);
+
+    // Assert
+    expect(report).toEqual({ stores: 3, linked: 3 });
   });
 
   it('pages through more stores than one page holds', async () => {

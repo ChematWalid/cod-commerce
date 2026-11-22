@@ -16,6 +16,7 @@ function storesWith(store: Store): TenantStoresPort {
   return {
     list: () => Promise.resolve([store]),
     find: (_ctx, businessId, id) => Promise.resolve(owned(businessId, id) ? store : undefined),
+    findForUpdate: (_ctx, businessId, id) => Promise.resolve(owned(businessId, id) ? store : undefined),
     countActive: () => Promise.resolve(1),
     update: () => Promise.resolve(),
   };

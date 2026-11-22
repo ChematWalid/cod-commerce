@@ -16,10 +16,18 @@ export interface StoreDefaultsPort {
   /** The store's default fee group id, or `null` when it has none (or the store is not the scope's). */
   defaultGroupOf(ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null>;
   /**
+   * The store's default fee group id (`null` when none is linked), its store row locked `FOR UPDATE` until the
+   * transaction `ctx` carries ends, so a merchant's concurrent link cannot be overwritten (D3112).
+   */
+  lockedDefaultGroupOf(ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null>;
+  /**
    * Makes `groupId` the store's default, in the transaction `ctx` carries; tenancy re-checks the group is the store's.
    * Platform code only: the store-creation hook and the migrate converge (D3112).
    */
   linkDefaultGroup(ctx: OperationContext, scope: StoreScope, groupId: Snowflake): Promise<void>;
-  /** Up to `limit` active stores of every business with an id above `afterStoreId`, in ascending id order. */
+  /**
+   * Up to `limit` active stores of every business with an id above `afterStoreId`, in ascending id order; a page may
+   * hold fewer than `limit` (tenancy caps it), so only an empty page means the end.
+   */
   activeStores(ctx: OperationContext, afterStoreId: StoreId | undefined, limit: number): Promise<readonly StoreLink[]>;
 }
