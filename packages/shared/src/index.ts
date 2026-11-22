@@ -36,3 +36,5 @@ export * from './collections';
 export * from './catalog-packs';
 export * from './catalog-import';
 export * from './pricing';
+export * from './geo';
+export * from './delivery';

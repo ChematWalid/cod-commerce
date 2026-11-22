@@ -216,6 +216,21 @@ const RUNTIME_EXPORTS = [
   'offerListOptionsSchema',
   'generateCodesInputSchema',
   'offerPreviewInputSchema',
+  'parseWilayaCodeParam',
+  'townSchema',
+  'provinceSchema',
+  'FEE_GROUP_NAME_MAX',
+  'MAX_DELIVERY_PRICE',
+  'MAX_OVERWEIGHT_ALLOWANCE_KG',
+  'MAX_OVERWEIGHT_RATE',
+  'DELIVERY_SPEEDS',
+  'DEFAULT_FEE_GROUP_NAME_KEY',
+  'DELIVERY_PRICING_ERROR_CODES',
+  'deliveryFeeRateInputSchema',
+  'deliveryFeeGroupInputSchema',
+  'deliveryFeeRateSchema',
+  'deliveryFeeGroupSchema',
+  'shippingQuoteSchema',
 ] as const;
 
 describe('@cod/shared entry point', () => {
