@@ -5,6 +5,9 @@ import { CORE_ID_COLUMN } from './core-id.column';
 /** The table of the storefront projection (D3205). */
 export const STOREFRONT_PRODUCT_TABLE = 'storefront_product';
 
+/** The trigram index the storefront search reads (migration `StorefrontSearch1795600000001`). */
+export const STOREFRONT_PRODUCT_SEARCH_INDEX = 'storefront_product_search';
+
 /**
  * The `storefront_product` row: one product of a store as its lists, collection pages and search read it (D3205),
  * fed by `product.changed` and `store.changed` and rebuilt per store when empty. `listed` folds visibility and the
@@ -17,6 +20,9 @@ export const STOREFRONT_PRODUCT_TABLE = 'storefront_product';
 @Index('storefront_product_store_slug', ['businessId', 'storeId', 'slug'], { unique: true })
 @Index('storefront_product_listed_newest', ['businessId', 'storeId', 'listed', 'createdAt', 'productId'])
 @Index('storefront_product_listed_price', ['businessId', 'storeId', 'listed', 'price', 'productId'])
+// The trigram index of the search (`btree_gin`: store id, then `searchText gin_trgm_ops`) is an operator-class GIN index
+// TypeORM cannot declare; the migration creates it and TypeORM leaves it alone (ADR 0014).
+@Index(STOREFRONT_PRODUCT_SEARCH_INDEX, { synchronize: false })
 export class StorefrontProductEntity extends TenantEntity {
   @PrimaryColumn({ type: 'bigint' })
   id!: string;

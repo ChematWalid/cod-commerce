@@ -1,3 +1,4 @@
+import type { SearchRequest } from '../application/storefront-search.service';
 import type { RawListingQuery } from '../domain/listing-query';
 
 /** The query string of a storefront list, as Express parsed it: any field may be absent, an array or an object. */
@@ -23,3 +24,6 @@ export function collectionFilterOf(query: RawQuery | undefined): { collection?: 
   const slug = slugOf(raw);
   return slug === undefined ? undefined : { collection: slug };
 }
+
+/** A search request: the raw `q` (a repeated or nested one is not a string, so it searches nothing) and the page. */
+export const searchOf = (query: RawQuery | undefined): SearchRequest => ({ q: query?.['q'], ...listingOf(query) });

@@ -9,8 +9,9 @@ import type {
 import { Controller, Get, Param, Query, UseFilters } from '@nestjs/common';
 import { Allow, Permission, type RequestContext } from '@vendure/core';
 import { StorefrontCatalogService } from '../application/storefront-catalog.service';
+import { StorefrontSearchService } from '../application/storefront-search.service';
 import { asOperationContext } from '../domain/ports/operation-context';
-import { collectionFilterOf, listingOf, type RawQuery, slugOf } from './dto';
+import { collectionFilterOf, listingOf, type RawQuery, searchOf, slugOf } from './dto';
 import { found, StorefrontErrorFilter } from './error-mapping';
 
 /**
@@ -23,7 +24,10 @@ import { found, StorefrontErrorFilter } from './error-mapping';
 @StorefrontScoped()
 @UseFilters(StorefrontErrorFilter)
 export class StorefrontCatalogController {
-  constructor(private readonly catalog: StorefrontCatalogService) {}
+  constructor(
+    private readonly catalog: StorefrontCatalogService,
+    private readonly searches: StorefrontSearchService,
+  ) {}
 
   /** One page of the store's listed products, optionally of one collection (`?collection=<slug>`). */
   @Get('products')
@@ -34,12 +38,15 @@ export class StorefrontCatalogController {
     return found(await this.catalog.listProducts(asOperationContext(ctx), { ...listingOf(query), ...filter }));
   }
 
-  /** A search of the store's listed products (`?q=`); Task 6c fills it. */
+  /**
+   * A search of the store's listed products (`?q=&skip=&take=`, ADR 0014), best match first. A query too short to run
+   * answers an empty page; a long one is cut to its first characters.
+   */
   @Get('product/search')
   @Allow(Permission.Public)
   @RateLimit('storefront-read')
   search(@StorefrontCtx() ctx: RequestContext, @Query() query: RawQuery): Promise<StorefrontProductPage> {
-    return this.catalog.searchProducts(asOperationContext(ctx), listingOf(query));
+    return this.searches.search(asOperationContext(ctx), searchOf(query));
   }
 
   /** The product page of a slug. */

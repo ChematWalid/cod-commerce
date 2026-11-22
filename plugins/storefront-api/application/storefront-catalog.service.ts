@@ -42,14 +42,6 @@ export class StorefrontCatalogService {
     return collection === undefined ? undefined : this.collectionProducts(ctx, collection, query);
   }
 
-  /**
-   * A search of the store's listed products. Task 6c fills it (ADR 0014); until then it answers an empty page, so the
-   * route exists, and is declared before `product/:slug`, from the start.
-   */
-  searchProducts(_ctx: OperationContext, raw: RawListingQuery): Promise<StorefrontProductPage> {
-    return Promise.resolve(emptyProductPage(listingQueryOf(raw)));
-  }
-
   /** The product page of `slug`. */
   productBySlug(ctx: OperationContext, slug: string): Promise<StorefrontProduct | undefined> {
     return this.ports.reads.productBySlug(ctx, slug);

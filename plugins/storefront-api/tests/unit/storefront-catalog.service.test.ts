@@ -95,19 +95,6 @@ describe('StorefrontCatalogService.listProducts', () => {
   });
 });
 
-describe('StorefrontCatalogService.searchProducts', () => {
-  it('answers an empty page until the search lands (Task 6c)', async () => {
-    // Arrange
-    const { service, ctxA } = await setUp();
-
-    // Act
-    const page = await service.searchProducts(ctxA, { take: '5' });
-
-    // Assert
-    expect(page).toEqual({ items: [], totalItems: 0, skip: 0, take: 5 });
-  });
-});
-
 describe('StorefrontCatalogService.collections', () => {
   it('lists the visible collections the reads answer', async () => {
     // Arrange

@@ -10,6 +10,7 @@ import { PROJECTION_BACKFILL_TASK_ID } from './domain/constants';
 import { projectionBackfillTask } from './infrastructure/projection-backfill';
 import { STOREFRONT_API_PROVIDERS } from './infrastructure/storefront-api.providers';
 import { StorefrontProductEntity } from './infrastructure/storefront-product.entity';
+import { StorefrontSearchSynonymEntity } from './infrastructure/storefront-search-synonym.entity';
 
 /** Every REST controller of the plugin. */
 export const STOREFRONT_API_CONTROLLERS = [StorefrontCatalogController];
@@ -31,7 +32,7 @@ export const STOREFRONT_API_CONTROLLERS = [StorefrontCatalogController];
     CatalogPlugin,
     CollectionsRulesPlugin,
   ],
-  entities: [StorefrontProductEntity],
+  entities: [StorefrontProductEntity, StorefrontSearchSynonymEntity],
   configuration: (config) => {
     config.schedulerOptions.tasks = [
       ...config.schedulerOptions.tasks.filter((task) => task.id !== PROJECTION_BACKFILL_TASK_ID),

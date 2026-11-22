@@ -41,7 +41,8 @@ const LISTED_SQL: Readonly<Record<SoldOutBehavior, string>> = {
   hide: '"visible" AND NOT "soldOut"',
 };
 
-const toRow = (entity: StorefrontProductEntity): ProjectionRow => ({
+/** A `storefront_product` row as the domain reads it (the search adapter reads rows the same way). */
+export const toProjectionRow = (entity: StorefrontProductEntity): ProjectionRow => ({
   productId: entity.productId,
   slug: entity.slug,
   name: entity.name,
@@ -125,6 +126,6 @@ export class TypeOrmProjectionRepository implements ProjectionRepositoryPort {
     if (productIds !== undefined) query.andWhere(`${ALIAS}.productId = ANY(:productIds)`, { productIds });
     for (const [column, direction] of ORDERS[listing.sort]) query.addOrderBy(column, direction);
     const [items, totalItems] = await query.offset(listing.skip).limit(listing.take).getManyAndCount();
-    return { items: items.map(toRow), totalItems };
+    return { items: items.map(toProjectionRow), totalItems };
   }
 }

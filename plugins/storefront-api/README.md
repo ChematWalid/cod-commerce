@@ -7,7 +7,7 @@ HMAC-signed REST under `/store` (the internal-only middleware signs every call, 
 | Route | Answers |
 | --- | --- |
 | `GET /store/products?skip&take&sort&collection` | a page of listed products (`StorefrontProductPage`) |
-| `GET /store/product/search?q&skip&take` | search (Task 6c; an empty page until then), declared before `product/:slug` |
+| `GET /store/product/search?q&skip&take` | search (ADR 0014 Phase 1: word similarity over the projection's `searchText`, widened by the business's Darija synonyms; a query under 2 characters answers an empty page), declared before `product/:slug` |
 | `GET /store/product/:slug` | a product page (`StorefrontProduct`) |
 | `GET /store/collections` | the visible collections (`StorefrontCollectionList`) |
 | `GET /store/collection/:slug` | a collection and a page of its products (`StorefrontCollectionPage`) |

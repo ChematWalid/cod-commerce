@@ -1,4 +1,4 @@
-import { COLLECTION_LIST_MAX_TAKE } from '@cod/shared';
+import { COLLECTION_LIST_MAX_TAKE, STOREFRONT_SEARCH_MAX_QUERY } from '@cod/shared';
 
 /** The outbox consumer that keeps the storefront projection up to date: part of every delivery's job id. */
 export const PROJECTION_CONSUMER_NAME = 'storefront-projection';
@@ -17,3 +17,9 @@ export const PROJECTION_BACKFILL_SCHEDULE = '*/15 * * * *';
 
 /** Visible collections the storefront lists in one call: a store's menu, never paged further. */
 export const STOREFRONT_COLLECTIONS_MAX = COLLECTION_LIST_MAX_TAKE;
+
+/** Most texts one search matches: the query and its synonym variants (ADR 0014), so a search stays bounded. */
+export const STOREFRONT_SEARCH_MAX_VARIANTS = 8;
+
+/** Longest synonym term or expansion stored, in characters: a search reads at most this much of a query. */
+export const SEARCH_SYNONYM_MAX_LENGTH = STOREFRONT_SEARCH_MAX_QUERY;

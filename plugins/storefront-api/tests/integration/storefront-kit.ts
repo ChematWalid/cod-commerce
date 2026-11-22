@@ -28,6 +28,7 @@ import { afterAll, afterEach, beforeAll } from 'vitest';
 import { StorefrontApiPlugin } from '../../storefront-api.plugin';
 import { SIGNED_STORE_TEST_HEADER, SignedStoreTestPlugin } from '../fixtures/signed-store.plugin';
 import { aTestQuoteKeyRing } from '../support/quote-keys';
+import { applySearchSchema } from '../support/search-schema';
 
 export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6380';
 const APP_ENV = 'test-storefront-api';
@@ -171,6 +172,7 @@ export function storefrontSuite(snowflakeWorkerId: number, foreign: StorefrontFo
   const suite = {} as StorefrontSuite;
   beforeAll(async () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
+    await applySearchSchema(server.app);
     suite.kit = new StorefrontKit(server.app, adminClient);
     suite.fixtures = await createTwoBusinesses(adminClient);
   });
