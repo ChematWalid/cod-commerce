@@ -1,4 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
+import { GeoPlugin } from '@cod/plugin-geo';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -181,6 +182,18 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(TenancyPlugin);
+  });
+
+  // Every role: `migrate` creates and seeds the geo tables, and the api serves /provinces (D3116).
+  it.each(SERVER_ROLES)('registers GeoPlugin for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins).toContain(GeoPlugin);
   });
 
   it.each(SERVER_ROLES)('registers PlatformJobsPlugin with the pooled queues for the %s role', (role: ServerRole) => {

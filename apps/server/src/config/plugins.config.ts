@@ -4,6 +4,7 @@ import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CatalogImportPlugin } from '@cod/plugin-catalog-import';
 import { CatalogPacksPlugin } from '@cod/plugin-catalog-packs';
 import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
+import { GeoPlugin } from '@cod/plugin-geo';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
@@ -173,9 +174,11 @@ const catalogImportPlugin = (env: AppEnv): VendurePluginEntry =>
  * and registers its order-manager check in the catalog module, so Catalog configures after Auth and before Team
  * (D2137); the offers (D2402) and then the collections (P2.S3) import the catalog module and configure after it.
  * The catalog feature plugins (packs and import) come after Team and write through catalog's exported facade (D2200).
+ * Geo comes first: global reference data, not tenant data (D3103), the wilayas and communes delivery pricing reads.
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
   return [
+    GeoPlugin,
     RbacPlugin,
     authPlugin(env),
     CatalogPlugin,
