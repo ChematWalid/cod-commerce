@@ -43,6 +43,11 @@ export const CATALOG_PACK_PREVIEW_ACTOR_CAPACITY = 600;
  * cached, so every storefront instance shares one high bucket instead of the buyers' per-address ones.
  */
 export const STOREFRONT_RENDER_CAPACITY = 6000;
+/**
+ * Public storefront catalog reads one buyer address may make per minute (D3213): list, product, collection and
+ * search pages behind the storefront's cache, so a real buyer never comes near it.
+ */
+export const STOREFRONT_READ_IP_CAPACITY = 600;
 /** What a signed request without a client address is keyed by, before its key id (D3213). */
 export const INTERNAL_CLIENT_KEY_PREFIX = 'internal:';
 

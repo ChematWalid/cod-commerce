@@ -1,7 +1,7 @@
 import type { TenantContext } from '@cod/shared';
 import { type CanActivate, type ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import type { RequestContext } from '@vendure/core';
-import type { StorefrontContextsPort } from '../application/ports/storefront-contexts.port';
+import type { StorefrontContext, StorefrontContextsPort } from '../application/ports/storefront-contexts.port';
 import { STOREFRONT_CONTEXTS } from '../application/tokens';
 import type { StorefrontStoreContext } from '../domain/storefront-store';
 import { StorefrontStoreRefusedError } from './storefront-store-refused.filter';
@@ -44,11 +44,19 @@ export class StorefrontStoreGuard implements CanActivate {
     const storeId = signedStoreIdOf(req);
     const found = storeId === undefined ? undefined : await this.storefronts.forStore(storeId);
     if (found === undefined) throw new StorefrontStoreRefusedError();
-    rememberTenant(found.ctx, tenantOfStore(found.store));
-    rememberStorefrontStore(found.ctx, found.store);
-    contexts.set(req, found.ctx);
+    contexts.set(req, anchoredStorefrontContext(found));
     return true;
   }
+}
+
+/**
+ * The context of `found` with its store as tenant and as storefront store, so `findTenant`, `storefrontStoreOf` and
+ * the catalog's active-store check all read that one store. Internal to tenancy.
+ */
+export function anchoredStorefrontContext(found: StorefrontContext<RequestContext>): RequestContext {
+  rememberTenant(found.ctx, tenantOfStore(found.store));
+  rememberStorefrontStore(found.ctx, found.store);
+  return found.ctx;
 }
 
 /**

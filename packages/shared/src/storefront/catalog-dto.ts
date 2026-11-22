@@ -92,3 +92,18 @@ export const storefrontCollectionSchema = z.object({
 
 /** A visible collection; see {@link storefrontCollectionSchema}. */
 export type StorefrontCollection = z.output<typeof storefrontCollectionSchema>;
+
+/** The store's visible collections, by position (`GET /store/collections`). */
+export const storefrontCollectionListSchema = z.object({ items: z.array(storefrontCollectionSchema) });
+
+/** The store's visible collections; see {@link storefrontCollectionListSchema}. */
+export type StorefrontCollectionList = z.output<typeof storefrontCollectionListSchema>;
+
+/** A collection page: the collection and one page of its listed products (`GET /store/collection/:slug`). */
+export const storefrontCollectionPageSchema = z.object({
+  collection: storefrontCollectionSchema,
+  products: storefrontProductPageSchema,
+});
+
+/** A collection page; see {@link storefrontCollectionPageSchema}. */
+export type StorefrontCollectionPage = z.output<typeof storefrontCollectionPageSchema>;

@@ -5,6 +5,7 @@ export { platformStaffPermission, tenantBusinessPermission } from './api/permiss
 export { TenantScoped } from './api/tenant-scoped.decorator';
 export { TenantGuard } from './api/tenant.guard';
 export { StorefrontStoreGuard } from './api/storefront-store.guard';
+export { StorefrontStoreContexts } from './api/storefront-store-contexts';
 export { StorefrontCtx, StorefrontScoped } from './api/storefront-ctx.decorator';
 export { storefrontStoreOf } from './api/storefront-store-of';
 export { StorefrontStoreRefusedError } from './api/storefront-store-refused.filter';

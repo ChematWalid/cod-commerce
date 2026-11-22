@@ -47,6 +47,12 @@ export const STOREFRONT_API_ROUTES = {
   collection: '/store/collection',
 } as const;
 
+/**
+ * Product slugs the catalog never stores: `/store/product/search` is declared before `/store/product/:slug`, so a
+ * product with one of these slugs could never be read by its slug.
+ */
+export const STOREFRONT_RESERVED_PRODUCT_SLUGS: readonly string[] = ['search'];
+
 /** The storefront route the api's revalidate worker calls, signed (D3211). */
 export const STOREFRONT_REVALIDATE_PATH = '/api/internal/revalidate';
 

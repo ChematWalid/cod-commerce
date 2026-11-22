@@ -15,6 +15,7 @@ import { parseKekRing, PlatformSecretsPlugin } from '@cod/plugin-platform-secret
 import { PlatformWebhooksPlugin } from '@cod/plugin-platform-webhooks';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
+import { StorefrontApiPlugin } from '@cod/plugin-storefront-api';
 import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
@@ -181,6 +182,8 @@ function memberPlugins(env: AppEnv): VendurePluginEntry[] {
     CatalogPlugin,
     OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
     CollectionsRulesPlugin,
+    // The storefront's public catalog reads the catalog and the collections, so it configures after both (P3.S2).
+    StorefrontApiPlugin,
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
     CatalogPacksPlugin,
     catalogImportPlugin(env),

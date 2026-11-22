@@ -3,6 +3,7 @@ import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } 
 import { Redis } from 'ioredis';
 import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
+import { StorefrontStoreContexts } from './api/storefront-store-contexts';
 import { StorefrontStoreGuard } from './api/storefront-store.guard';
 import { RequestStoreSettings } from './api/request-store-settings';
 import { BusinessResolver } from './api/business.resolver';
@@ -174,6 +175,7 @@ const STORE_USE_CASES = [
     VendureStorefrontContexts,
     { provide: STOREFRONT_CONTEXTS, useExisting: VendureStorefrontContexts },
     StorefrontStoreGuard,
+    StorefrontStoreContexts,
     TenantRepositoryFactory,
     OrderNumberService,
     TenantTransaction,
@@ -242,6 +244,8 @@ const STORE_USE_CASES = [
     // The storefront API reads as the signed store (P3.S2, D3201): the guard runs in its module, so its port goes too.
     StorefrontStoreGuard,
     STOREFRONT_CONTEXTS,
+    // Its outbox consumer and backfill read as the store outside a request (P3.S2).
+    StorefrontStoreContexts,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
     TenantContextResolver,
