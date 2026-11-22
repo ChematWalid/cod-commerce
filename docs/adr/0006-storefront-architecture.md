@@ -118,3 +118,16 @@ Spike F, 2026-11-07, P0.S2a-3. The scratch app is outside the repo and never com
 **Status**: Accepted (2026-11-09, standing user authorization for P1)
 
 **D20 changes item 11.** Sign-up wizard, email verification and email-change confirmation are served by the dashboard as `authenticated: false` extension routes (ADR 0010 addendum), not by `apps/storefront` under `/(platform)/*`. Forgot and reset password are the dashboard's stock pages. The storefront keeps marketing pages on `ourdomain` and `www`; invitation acceptance stays open for P1.S3.
+
+## Addendum (2026-11-22): P3.S2
+
+**Status**: Accepted (2026-11-22, standing user authorization for P3)
+
+What P3.S2 built where this ADR left room, or where the build forced a change. Decision numbers are in `docs/roadmap/P3-decisions.md`.
+
+- **Rewrite shape and host binding (D3202).** The proxy rewrites to `/_t/{locale}/{storeId}/{binding}/…`. `binding` is an HMAC of the store id and the normalised host, derived from each configured internal HMAC key, so no new secret exists. The tenant layout checks it against the store's `primaryHost`. A mismatch renders no store data: a soft 404 with status 200 under Cache Components (`notFound()` streams after the status is sent), marked `noindex`. The binding is visible in the RSC tree, so the proxy's refusal of `/_t`, `/_404`, `/_internal` and `/api/internal` typed by a visitor is the real gate; the binding is the second line.
+- **One root layout (D3221).** A root layout per language (`<html lang dir>` under `app/%5Ft/[locale]`) fails `next build` on Next 16.4.5. `app/layout.tsx` stays the only root layout; the locale layout renders `<div lang dir>` on the server and a small client component sets `<html lang dir>` after hydration. Stores that are not Arabic have a short window before hydration with the wrong document `dir` (tracked as an issue).
+- **Images (D3209).** The API returns Vendure asset preview paths and the storefront's `next/image` loader maps widths to Vendure's presets (50, 150, 300, 500, 800). The WebP derivative job of section 8 is postponed to P3.S5 or P8.
+- **Revalidate route (D3211).** `POST /api/internal/revalidate`, signed with `cod-internal-v1` (HMAC is the gate). A folder named `_internal` is private in the App Router and never routes, and the proxy matcher skips `api/`. The edge blocks `/api/internal/*` (P3.S5 rule).
+- **CDN purge (D3210).** A `CdnPurgePort` with a coalescer (at most one purge per store per 30 s, at most 100 hostnames per request). Only a logging no-op adapter exists until the user supplies the Cloudflare token.
+- **Cache safeguards (D3214, D3216).** Host cache: 10 000 entries, 60 s positive, 15 s negative. Shared cache: 512 KB entry cap; a `cache:writes-off` switch set by a memory guard at 60 % of `maxmemory`, polled lazily at most every 30 s; 250 ms command timeout counted as a miss; tag index as a sorted set pruned on write and on revalidation, and revalidation removes only the members it read.
