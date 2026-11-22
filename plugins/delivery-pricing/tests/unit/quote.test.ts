@@ -1,6 +1,6 @@
 import { MONEY_MAX_DZD, type QuotePriceSource, shippingQuoteSchema } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
-import type { CommuneRateRow } from '../../domain/fee-group';
+import type { CommuneRateRow, WilayaRateRow } from '../../domain/fee-group';
 import { type DeliveryMethod, quoteDelivery } from '../../domain/quote';
 import {
   commune,
@@ -238,6 +238,20 @@ describe('quoteDelivery: overweight (D3121)', () => {
     // Act and Assert
     expect(Number.isSafeInteger(weightGrams)).toBe(true);
     expect(quoteDelivery(input({ group: perKg, weightGrams }))).toEqual(UNRESOLVED);
+  });
+
+  it.each<[string, Partial<WilayaRateRow>, Partial<CommuneRateRow> | null]>([
+    ['a negative wilaya base', { baseHome: -300 }, null],
+    ['a negative wilaya override', { overrideHome: -1 }, null],
+    ['a fractional wilaya price', { baseHome: 600.5 }, null],
+    ['a negative commune price', {}, { baseHome: -300 }],
+  ])('answers unresolved for %s, never a fee that lowers the order total', (_label, rateFields, communeFields) => {
+    // Arrange
+    const rate = { ...WILAYA, ...rateFields };
+    const communeRate = communeFields === null ? null : commune(communeFields);
+
+    // Act and Assert
+    expect(quoteDelivery(input({ rate, communeRate }))).toEqual(UNRESOLVED);
   });
 
   it.each([Number.MAX_SAFE_INTEGER + 1, Number.POSITIVE_INFINITY, Number.NaN, -1, 1.5])(

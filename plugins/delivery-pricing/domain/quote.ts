@@ -88,9 +88,16 @@ export function overweightFeeOf(group: OverweightSettings, weightGrams: number):
 }
 
 /**
+ * Whether an amount is a whole DZD between 0 and `MONEY_MAX_DZD`. A stored price is checked too: the price columns
+ * have no `CHECK (>= 0)` and a carrier sync writes the bases (D3125), so a negative row must never lower an order.
+ */
+const isMoney = (amount: number): boolean => Number.isSafeInteger(amount) && amount >= 0 && amount <= MONEY_MAX_DZD;
+
+/**
  * The delivery quote of one destination and parcel (D3125, D3121, D3113), all in whole DZD. A wilaya without a row,
- * a method not offered, an unreadable weight or a total above `MONEY_MAX_DZD` answer {@link UNRESOLVED_QUOTE}. A
- * waived delivery costs the buyer 0 and reports the base and overweight it waived.
+ * a method not offered, an unreadable weight, a stored price that is not a whole DZD ≥ 0 or a total above
+ * `MONEY_MAX_DZD` answer {@link UNRESOLVED_QUOTE}. A waived delivery costs the buyer 0 and reports the base and
+ * overweight it waived.
  */
 export function quoteDelivery(input: DeliveryQuoteInput): ShippingQuote {
   const { rate, communeRate, method, group, weightGrams, waive } = input;
@@ -98,8 +105,9 @@ export function quoteDelivery(input: DeliveryQuoteInput): ShippingQuote {
   const overweightFee = overweightFeeOf(group, weightGrams);
   if (overweightFee === null) return UNRESOLVED_QUOTE;
   const { price, source } = priceOf(rate, communeRate, method);
+  if (!isMoney(price)) return UNRESOLVED_QUOTE;
   const fee = price + overweightFee;
-  if (!Number.isSafeInteger(fee) || fee > MONEY_MAX_DZD) return UNRESOLVED_QUOTE;
+  if (!isMoney(fee)) return UNRESOLVED_QUOTE;
   return {
     baseFee: price,
     overweightFee,
