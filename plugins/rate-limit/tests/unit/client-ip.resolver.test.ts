@@ -107,7 +107,7 @@ describe('ClientIpResolver', () => {
 });
 
 describe('ClientIpResolver with a signed storefront request (D3213)', () => {
-  const signed = (internalAuth: { kid: string; clientIp?: string }, ip = '10.0.0.7') => ({
+  const signed = (internalAuth: { kid: string; storeId?: string; clientIp?: string }, ip = '10.0.0.7') => ({
     ip,
     headers: { 'cf-connecting-ip': '198.51.100.200' },
     internalAuth,
@@ -138,18 +138,55 @@ describe('ClientIpResolver with a signed storefront request (D3213)', () => {
   });
 
   it.each([
-    ['no client address', { kid: 'k2' }],
-    ['a client address that is not one', { kid: 'k2', clientIp: 'not-an-ip' }],
-  ])('keys a signed request with %s by its key id under storefront-render', (_label, auth) => {
+    ['no client address', { kid: 'k2', storeId: '7340032000000001' }],
+    ['a client address that is not one', { kid: 'k2', storeId: '7340032000000001', clientIp: 'not-an-ip' }],
+  ])('keys a signed storefront-read with %s by key id and store under storefront-render', (_label, auth) => {
     // Arrange
     const resolver = new ClientIpResolver('CF-Connecting-IP');
 
     // Act
-    const limit = resolver.limitKeyOf(signed(auth), 'subdomain-ip');
+    const limit = resolver.limitKeyOf(signed(auth), 'storefront-read');
+
+    // Assert
+    expect(limit).toEqual({ policy: 'storefront-render', key: 'internal:k2:7340032000000001' });
+  });
+
+  it('gives each store its own render bucket so one flooded store cannot starve the others', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const first = resolver.limitKeyOf(signed({ kid: 'k2', storeId: '7340032000000001' }), 'storefront-read');
+    const second = resolver.limitKeyOf(signed({ kid: 'k2', storeId: '7340032000000002' }), 'storefront-read');
+
+    // Assert
+    expect(first.key).not.toBe(second.key);
+  });
+
+  it('keys a signed render that names no store by its key id alone', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const limit = resolver.limitKeyOf(signed({ kid: 'k2' }), 'storefront-read');
 
     // Assert
     expect(limit).toEqual({ policy: 'storefront-render', key: 'internal:k2' });
   });
+
+  it.each(['reset-ip', 'login-ip', 'otp-ip', 'register-ip', 'token-redeem-ip', 'invitation-accept-ip'] as const)(
+    'keeps a signed request without a client address on its strict %s policy',
+    (policy) => {
+      // Arrange
+      const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+      // Act
+      const limit = resolver.limitKeyOf(signed({ kid: 'k2', storeId: '7340032000000001' }), policy);
+
+      // Assert
+      expect(limit).toEqual({ policy, key: '198.51.100.200' });
+    },
+  );
 
   it('keeps req.ip and the handler policy for an unsigned request', () => {
     // Arrange

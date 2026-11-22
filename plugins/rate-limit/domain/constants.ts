@@ -39,8 +39,9 @@ export const CATALOG_BULK_EDIT_BUSINESS_CAPACITY = 600;
 export const CATALOG_PACK_PREVIEW_ACTOR_CAPACITY = 600;
 
 /**
- * Storefront server renders one signing key may make per minute (D3213): signed calls that name no buyer, mostly
- * cached, so every storefront instance shares one high bucket instead of the buyers' per-address ones.
+ * Storefront server renders one signing key may make per minute for one store (D3213): signed catalog reads that
+ * name no buyer, mostly cached. Every storefront instance shares the store's bucket instead of the buyers'
+ * per-address ones, and each store has its own, so one flooded store cannot starve the others.
  */
 export const STOREFRONT_RENDER_CAPACITY = 6000;
 /**
