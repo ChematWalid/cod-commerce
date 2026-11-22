@@ -6,6 +6,7 @@
 // Source, retrieval date and licence: plugins/geo/DATA-SOURCE.md.
 //
 // Usage: node scripts/geo/build-geo-seed.mjs <path to leblad data/WilayaList.json>
+/* global process, console -- Node globals */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -115,8 +116,14 @@ const LAW_26_06_COMMUNES = {
   64: [1409, 1429, 1430, 1435, 1439, 1440],
   65: [1708, 1709, 1711, 1719, 1720, 1721, 1731, 1732, 1733, 1735],
   66: [1706, 1707, 1717, 1718, 1722, 1724, 1729, 1734],
-  67: [2603, 2604, 2608, 2610, 2617, 2618, 2622, 2623, 2625, 2631, 2632, 2635, 2638, 2640, 2641, 2642, 2649, 2651, 2657, 2658, 2664],
-  68: [2807, 2808, 2820, 2821, 2822, 2823, 2824, 2825, 2826, 2827, 2833, 2834, 2835, 2836, 2837, 2838, 2839, 2841, 2842, 2843, 2844, 2846, 2847],
+  67: [
+    2603, 2604, 2608, 2610, 2617, 2618, 2622, 2623, 2625, 2631, 2632, 2635, 2638, 2640, 2641, 2642, 2649, 2651, 2657,
+    2658, 2664,
+  ],
+  68: [
+    2807, 2808, 2820, 2821, 2822, 2823, 2824, 2825, 2826, 2827, 2833, 2834, 2835, 2836, 2837, 2838, 2839, 2841, 2842,
+    2843, 2844, 2846, 2847,
+  ],
   69: [3207, 3208, 3209, 3213, 3214, 3216, 3219],
 };
 
@@ -134,7 +141,9 @@ const PATCHED_COMMUNES = [
 const EXTRA_STOPDESK = new Set([3927, 4702, 3901, 1332]); // 1332 El Aricha, seat of wilaya 63
 const EXPECTED_PROVINCES = 69;
 /** Commune lists of law 26-06 (JO 25/2026), one per wilaya it rewrote: each count must match the seed. */
-const LAW_26_06_ARTICLES = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'law-26-06-articles.json'), 'utf8'));
+const LAW_26_06_ARTICLES = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'law-26-06-articles.json'), 'utf8'),
+);
 const EXPECTED_COMMUNES = 1541;
 
 /** Two-digit wilaya code, as `WilayaCode` in `@cod/shared` (`'01'`–`'58'`). */
@@ -143,20 +152,18 @@ const wilayaCode = (n) => String(n).padStart(2, '0');
 const fold = (s) =>
   s
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\(wilaya d[eé]l[eé]gu[eé]e\)/gi, '')
     .replace(/[-'’]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
 
-const titleCase = (s) =>
-  s
-    .toLowerCase()
-    .replace(/(^|[\s\-'’])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+const titleCase = (s) => s.toLowerCase().replace(/(^|[\s\-'’])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
 
 /** Aliases other than the display name itself (compared folded: matching ignores case and accents). */
-const withoutSelf = (name, aliases) => [...new Set(aliases)].filter((a) => fold(a) !== fold(name) || /\p{Script=Arabic}/u.test(a));
+const withoutSelf = (name, aliases) =>
+  [...new Set(aliases)].filter((a) => fold(a) !== fold(name) || /\p{Script=Arabic}/u.test(a));
 
 /** Wilaya seats (code xx01 in the 48-wilaya numbering) and daira seats get a stop desk by default. */
 const isSeat = (source) => source.code % 100 === 1 || fold(source.name) === fold(source.daira);
@@ -200,7 +207,9 @@ function toTown(source) {
 }
 
 function build(sourcePath) {
-  const towns = readSource(sourcePath).map(toTown).sort((a, b) => a.codeOns - b.codeOns);
+  const towns = readSource(sourcePath)
+    .map(toTown)
+    .sort((a, b) => a.codeOns - b.codeOns);
   const provinces = PROVINCES.map(([code, name, arabicName, extra]) => {
     const own = towns.filter((t) => t.provinceCode === wilayaCode(code));
     if (own.length === 0) throw new Error(`province ${code} has no commune`);
@@ -210,11 +219,17 @@ function build(sourcePath) {
   });
   for (const { article, wilaya, communes } of LAW_26_06_ARTICLES.articles) {
     const actual = towns.filter((t) => t.provinceCode === wilaya).length;
-    if (actual !== communes.length) throw new Error(`wilaya ${wilaya}: ${actual} communes, JO article ${article} lists ${communes.length}`);
+    if (actual !== communes.length)
+      throw new Error(`wilaya ${wilaya}: ${actual} communes, JO article ${article} lists ${communes.length}`);
   }
   if (provinces.length !== EXPECTED_PROVINCES) throw new Error(`expected ${EXPECTED_PROVINCES} provinces`);
-  if (towns.length !== EXPECTED_COMMUNES) throw new Error(`expected ${EXPECTED_COMMUNES} communes, got ${towns.length}`);
-  return { source: 'dzcode-io/leblad@1.0.3 data v1.1 (MIT); 2019 and 2026 (law 26-06) wilaya splits applied', provinces, towns };
+  if (towns.length !== EXPECTED_COMMUNES)
+    throw new Error(`expected ${EXPECTED_COMMUNES} communes, got ${towns.length}`);
+  return {
+    source: 'dzcode-io/leblad@1.0.3 data v1.1 (MIT); 2019 and 2026 (law 26-06) wilaya splits applied',
+    provinces,
+    towns,
+  };
 }
 
 const sourcePath = process.argv[2];
