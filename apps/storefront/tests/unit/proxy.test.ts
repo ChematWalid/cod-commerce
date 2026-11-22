@@ -7,7 +7,7 @@ import { config, proxy } from '../../proxy';
 const STORES: Record<string, object> = {
   'demo.localhost': store('demo', 'ar', 'demo.localhost'),
   'second.localhost': store('second', 'fr', 'second.localhost'),
-  'shop.example.test': store('demo', 'ar', 'demo.localhost'),
+  'shop.localhost': store('demo', 'ar', 'demo.localhost'),
 };
 
 function store(storeId: string, language: string, primaryHost: string): object {
@@ -68,6 +68,17 @@ describe('storefront proxy', () => {
     await expect(rewrittenPath('/', { host: 'nope.localhost' })).resolves.toBe('/_404');
   });
 
+  it('sends a host outside the platform domain to the not-found page without asking the api', async () => {
+    // Arrange
+    const fetchMock = vi.fn(fakeApi);
+    vi.stubGlobal('fetch', fetchMock);
+    // Act
+    const path = await rewrittenPath('/', { host: 'x.example.com' });
+    // Assert
+    expect(path).toBe('/_404');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it.each(['/_t/second/fr', '/%5Ft/second/fr', '/%5ft/second', '/_404', '/_internal/revalidate'])(
     'sends the public internal path %s to the not-found page',
     async (internalPath) => {
@@ -90,7 +101,7 @@ describe('storefront proxy', () => {
 
   it('sends a secondary host to the primary host with a 301, keeping path, query and port', async () => {
     // Arrange
-    const request = storefrontRequest('/p/shoe?ref=ad', { host: 'shop.example.test:3001' });
+    const request = storefrontRequest('/p/shoe?ref=ad', { host: 'shop.localhost:3001' });
 
     // Act
     const response = await proxy(request);
@@ -102,7 +113,7 @@ describe('storefront proxy', () => {
 
   it('redirects to https when the edge terminated TLS, without inventing a port', async () => {
     // Arrange
-    const request = storefrontRequest('/', { host: 'shop.example.test', 'x-forwarded-proto': 'https' });
+    const request = storefrontRequest('/', { host: 'shop.localhost', 'x-forwarded-proto': 'https' });
 
     // Act
     const response = await proxy(request);
@@ -113,14 +124,14 @@ describe('storefront proxy', () => {
   });
 
   it('fails the request instead of showing a 404 when the API is down', async () => {
-    // Arrange
+    // Arrange: a host no other test resolved, so the in-process store cache cannot answer for the API.
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.reject(new Error('connection refused'))),
     );
 
     // Act and Assert
-    await expect(proxy(storefrontRequest('/', { host: 'demo.localhost' }))).rejects.toThrow('connection refused');
+    await expect(proxy(storefrontRequest('/', { host: 'outage.localhost' }))).rejects.toThrow('connection refused');
   });
 
   it.each(['/api/store/cart', '/livez', '/readyz', '/favicon.ico', '/_next/static/x.js', '/_next/image'])(

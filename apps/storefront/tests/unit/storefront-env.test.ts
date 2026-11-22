@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   loadStorefrontEnv,
   readInternalApiUrl,
+  readPlatformDomain,
   readInternalSigningKey,
   STOREFRONT_ENV_KEYS,
   StorefrontEnvError,
@@ -15,6 +16,7 @@ const valid = {
   INTERNAL_HMAC_KEYS:
     'k1:change-me-internal-hmac-000000000000000000000,k2:change-me-internal-hmac-111111111111111111111',
   INTERNAL_HMAC_ACTIVE_KID: 'k2',
+  PLATFORM_DOMAIN: 'souk.example.dz',
 };
 
 function issuesOf(env: NodeJS.Dict<string>): readonly string[] {
@@ -34,6 +36,7 @@ describe('loadStorefrontEnv', () => {
       deploymentId: 'abc1234',
       internalApiUrl: 'http://api:3000',
       internalSigningKey: { kid: 'k2', secret: 'change-me-internal-hmac-111111111111111111111' },
+      platformDomain: 'souk.example.dz',
     });
   });
 
@@ -89,9 +92,9 @@ describe('loadStorefrontEnv', () => {
     const issues = issuesOf(env);
 
     // Assert
-    expect(issues).toHaveLength(5);
+    expect(issues).toHaveLength(6);
     expect(issues.join('\n')).toMatch(
-      /REDIS_URL is required[\s\S]*NEXT_DEPLOYMENT_ID is required[\s\S]*INTERNAL_API_URL[\s\S]*INTERNAL_HMAC_KEYS/,
+      /REDIS_URL is required[\s\S]*NEXT_DEPLOYMENT_ID is required[\s\S]*INTERNAL_API_URL[\s\S]*INTERNAL_HMAC_KEYS[\s\S]*PLATFORM_DOMAIN/,
     );
     expect(issues.join('\n')).not.toContain('not-a-url-with-a-secret');
     expect(issues.join('\n')).not.toContain('short-secret-value');
@@ -104,8 +107,36 @@ describe('loadStorefrontEnv', () => {
       'INTERNAL_HMAC_ACTIVE_KID',
       'INTERNAL_HMAC_KEYS',
       'NEXT_DEPLOYMENT_ID',
+      'PLATFORM_DOMAIN',
       'REDIS_URL',
     ]);
+  });
+});
+
+describe('PLATFORM_DOMAIN', () => {
+  it.each(['staging', 'production'])('is required in %s', (appEnv) => {
+    expect(issuesOf({ ...valid, APP_ENV: appEnv, PLATFORM_DOMAIN: undefined })).toEqual([
+      "PLATFORM_DOMAIN is required when APP_ENV is '" + appEnv + "'",
+    ]);
+  });
+
+  it('defaults to localhost elsewhere, so *.localhost stores work in development', () => {
+    expect(readPlatformDomain({ APP_ENV: 'development' })).toBe('localhost');
+    expect(loadStorefrontEnv({ ...valid, APP_ENV: 'test', PLATFORM_DOMAIN: undefined }).platformDomain).toBe(
+      'localhost',
+    );
+  });
+
+  it.each(['Souk.example.dz', 'souk.example.dz:443', '.souk.dz', 'souk.dz.', 'https://souk.dz'])(
+    'refuses %s, which is not a lowercase DNS name',
+    (domain) => {
+      expect(issuesOf({ ...valid, PLATFORM_DOMAIN: domain })).toEqual(['PLATFORM_DOMAIN must be a lowercase DNS name']);
+    },
+  );
+
+  it('reads the domain per call with the same rules', () => {
+    expect(readPlatformDomain({ APP_ENV: 'production', PLATFORM_DOMAIN: ' souk.example.dz ' })).toBe('souk.example.dz');
+    expect(() => readPlatformDomain({ APP_ENV: 'production' })).toThrow(StorefrontEnvError);
   });
 });
 

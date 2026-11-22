@@ -11,6 +11,7 @@ const complete = {
   INTERNAL_API_URL: 'http://api:3000',
   INTERNAL_HMAC_KEYS: 'k1:change-me-internal-hmac-000000000000000000000',
   INTERNAL_HMAC_ACTIVE_KID: 'k1',
+  PLATFORM_DOMAIN: 'souk.example.dz',
 };
 
 /** Runs the boot check with exit and the log intercepted, and returns the one line it logged. */

@@ -7,9 +7,18 @@ export interface CacheSetOptions {
   readonly expiration: { readonly type: 'EX'; readonly value: number };
 }
 
+/** One member of a sorted set and its score. */
+export interface SortedSetMember {
+  readonly score: number;
+  readonly value: string;
+}
+
 /** A `MULTI` block: the queued commands run together on `exec`. */
 export interface CacheRedisTransaction {
-  sAdd(key: string, members: string | string[]): CacheRedisTransaction;
+  zAdd(key: string, member: SortedSetMember): CacheRedisTransaction;
+  zRemRangeByScore(key: string, min: number | string, max: number | string): CacheRedisTransaction;
+  zRem(key: string, members: string | string[]): CacheRedisTransaction;
+  del(keys: string | string[]): CacheRedisTransaction;
   expire(key: string, seconds: number): CacheRedisTransaction;
   exec(): Promise<unknown>;
 }
@@ -19,15 +28,22 @@ export interface CacheRedisClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, options: CacheSetOptions): Promise<unknown>;
   del(keys: string | string[]): Promise<number>;
-  sMembers(key: string): Promise<string[]>;
+  zRange(key: string, start: number, stop: number): Promise<string[]>;
   mGet(keys: string[]): Promise<(string | null)[]>;
+  info(section: string): Promise<string>;
   multi(): CacheRedisTransaction;
+}
+
+/** Decides whether cache entries may be written now (the writes-off switch, ADR 0006 D4). */
+export interface CacheWriteGate {
+  allowsWrites(client: CacheRedisClient): Promise<boolean>;
 }
 
 /** What both cache handler factories take, so tests can pass a fake client and any deployment id. */
 export interface CacheHandlerDeps {
   readonly getClient: () => Promise<CacheRedisClient | null>;
   readonly deploymentId: string;
+  readonly writeGuard: CacheWriteGate;
 }
 
 /**
@@ -64,7 +80,12 @@ let connection: LazyConnection | null = null;
 
 /** Logs a cache problem as one JSON line; the cache degrades to misses, so this is a warning. */
 export function logCacheWarning(event: string, error: unknown): void {
-  console.warn(JSON.stringify({ level: 'warn', event: `storefront.cache.${event}`, error: errorMessage(error) }));
+  logCacheEvent(event, { error: errorMessage(error) });
+}
+
+/** Logs a cache event that is not an error (an entry skipped, writes switched off) as one JSON line. */
+export function logCacheEvent(event: string, fields: Readonly<Record<string, string | number | boolean>>): void {
+  console.warn(JSON.stringify({ level: 'warn', event: `storefront.cache.${event}`, ...fields }));
 }
 
 const delay = (ms: number): Promise<void> =>

@@ -39,6 +39,7 @@ function startStandalone(port: number, boot: BootEnv): ChildProcess {
   env['INTERNAL_API_URL'] = boot.internalApiUrl ?? '';
   env['INTERNAL_HMAC_KEYS'] = 'hmacKeys' in boot ? (boot.hmacKeys ?? '') : INTERNAL_HMAC_KEYS;
   env['INTERNAL_HMAC_ACTIVE_KID'] = 'k1';
+  env['PLATFORM_DOMAIN'] ??= 'localhost';
   // The standalone server embeds the build's deployment id and overrides this one; it only has to be set.
   env['NEXT_DEPLOYMENT_ID'] ??= 'boot-check';
   return spawn(process.execPath, [STANDALONE_SERVER], { env, stdio: ['ignore', 'ignore', 'pipe'] });

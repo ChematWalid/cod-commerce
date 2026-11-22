@@ -1,4 +1,11 @@
-import { CACHE_KEY_ROOT, ISR_SEGMENT, ISR_TAG_SEGMENT, USE_CACHE_SEGMENT, USE_CACHE_TAG_SEGMENT } from './constants';
+import {
+  CACHE_KEY_ROOT,
+  ISR_SEGMENT,
+  ISR_TAG_SEGMENT,
+  USE_CACHE_SEGMENT,
+  USE_CACHE_TAG_SEGMENT,
+  WRITES_OFF_SEGMENT,
+} from './constants';
 
 /**
  * The Valkey key of an ISR entry. Entries are namespaced by deployment, because the App Shell key has no
@@ -21,4 +28,12 @@ export function useCacheEntryKey(deploymentId: string, key: string): string {
 /** The Valkey key holding a `'use cache'` tag's last revalidation time. Shared by every deployment. */
 export function useCacheTagKey(tag: string): string {
   return `${CACHE_KEY_ROOT}:${USE_CACHE_TAG_SEGMENT}:${tag}`;
+}
+
+/**
+ * The switch that turns cache writes off on every instance of an environment (ADR 0006 D4). Not namespaced
+ * by deployment: the memory it protects is shared by all of them.
+ */
+export function writesOffKey(appEnv: string): string {
+  return `${appEnv}:${WRITES_OFF_SEGMENT}`;
 }

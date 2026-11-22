@@ -39,3 +39,30 @@ export const DEVELOPMENT_APP_ENV = 'development';
 
 /** Milliseconds per second, for the timestamp arithmetic of `'use cache'` entries. */
 export const MS_PER_SECOND = 1000;
+
+/**
+ * The largest serialised entry the cache writes, in bytes (512 KB, ADR 0006 D4). A bigger page is served
+ * uncached: one oversized entry per store would fill the shared `noeviction` Valkey.
+ */
+export const CACHE_ENTRY_MAX_BYTES = 524_288;
+
+/** How long one cache command may take before it counts as a miss (#121): a stalled Valkey never holds a render. */
+export const CACHE_COMMAND_TIMEOUT_MS = 250;
+
+/** At most this many commands wait on one connection; past it new commands fail at once instead of piling up. */
+export const CACHE_COMMANDS_QUEUE_MAX_LENGTH = 1000;
+
+/** Share of `maxmemory` at which the memory guard turns cache writes off (ADR 0006 D4: 60 %, BullMQ needs the rest). */
+export const CACHE_MEMORY_GUARD_RATIO = 0.6;
+
+/** How often the memory guard reads `INFO memory` and the shared writes-off switch. */
+export const CACHE_MEMORY_GUARD_POLL_MS = 30_000;
+
+/** TTL of the shared writes-off switch: it clears itself once no instance sees the memory over the ratio. */
+export const CACHE_WRITES_OFF_TTL_SECONDS = 120;
+
+/** Key segment of the writes-off switch, `{APP_ENV}:cache:writes-off`. */
+export const WRITES_OFF_SEGMENT = 'cache:writes-off';
+
+/** The lowest score bound of a sorted-set range (`ZREMRANGEBYSCORE key -inf …`). */
+export const SCORE_MIN = '-inf';
