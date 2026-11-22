@@ -36,6 +36,7 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - `docs/roadmap/CONTRIBUTING.md`; handoff notes of P1.S1, P1.S5
+- docs/roadmap/plans/P3.S1-plan.md (executable plan)
 - `docs/research/data-model.md` → "Storefront ordering protocol" items 1–2 (`Province`, `towns`, `codeOns`, `isStopdesk`, `isHomeDelivery`, shipping-quote response)
 - `docs/research/dashboard-captures.md` → "Delivery & Shipping" (Delivery Pricing tab, New pricing option form), "Store settings" (Operations → Delivery Fee Group)
 - `docs/research/api-surface.md` → "Delivery" (`/delivery-fees`, `/overrides`, `/sync-default`), `/provinces`
