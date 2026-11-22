@@ -4,3 +4,4 @@ export const FEE_GROUP_TRANSACTION = Symbol('delivery-pricing.Transaction');
 export const STORE_DEFAULTS = Symbol('delivery-pricing.StoreDefaults');
 export const TOWNS = Symbol('delivery-pricing.Towns');
 export const FEE_GROUP_PORTS = Symbol('delivery-pricing.FeeGroupPorts');
+export const PRODUCT_WEIGHTS = Symbol('delivery-pricing.ProductWeights');

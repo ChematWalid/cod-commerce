@@ -14,3 +14,12 @@ export const CONVERGE_PAGE_SIZE = 500;
 
 /** The most failed stores a converge error lists in its message; the migrate logs every one. */
 export const CONVERGE_REPORTED_FAILURES = 20;
+
+/** Grams in a kilogram: product weights are in grams (D2125), the overweight allowance in kg (D3121). */
+export const GRAMS_PER_KG = 1000;
+
+/**
+ * The commune of an offers quote destination, sent as text: an ONS code of one to six digits without a leading zero
+ * (`String(codeOns)`). Anything else answers unresolved, so a bad commune never falls back to the wilaya price.
+ */
+export const TOWN_ONS_PATTERN = /^[1-9]\d{0,5}$/;

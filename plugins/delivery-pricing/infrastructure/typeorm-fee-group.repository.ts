@@ -16,7 +16,12 @@ import type {
   NewFeeGroup,
   WilayaRateRow,
 } from '../domain/fee-group';
-import type { CommuneRowsChange, FeeGroupRepositoryPort } from '../domain/ports/fee-group-repository.port';
+import type {
+  CommuneRowsChange,
+  FeeGroupRepositoryPort,
+  QuoteRows,
+  QuoteRowsQuery,
+} from '../domain/ports/fee-group-repository.port';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import { FeeCommuneRateEntity } from './fee-commune-rate.entity';
@@ -121,6 +126,26 @@ export class TypeOrmFeeGroupRepository implements FeeGroupRepositoryPort {
   async delete(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<void> {
     // The wilaya and commune rows go with their group through the composite foreign keys (ON DELETE CASCADE).
     await this.groups.delete(requestScope(ctx, scope), { ...inStore(scope), id });
+  }
+
+  async quoteRows(
+    ctx: OperationContext,
+    scope: StoreScope,
+    { groupId, provinceCode, codeOns }: QuoteRowsQuery,
+  ): Promise<QuoteRows | undefined> {
+    const tenant = requestScope(ctx, scope);
+    const group = await this.groups.findOne(tenant, { ...inStore(scope), id: groupId });
+    if (group === null) return undefined;
+    const rate = await this.rates.findOne(tenant, { ...inStore(scope), groupId, provinceCode });
+    const commune =
+      codeOns === null
+        ? null
+        : await this.communes.findOne(tenant, { ...inStore(scope), groupId, provinceCode, codeOns });
+    return {
+      group: headerOf(group),
+      rate: rate === null ? null : wilayaRowOf(rate),
+      communeRate: commune === null ? null : communeRowOf(commune),
+    };
   }
 
   async communeRows(

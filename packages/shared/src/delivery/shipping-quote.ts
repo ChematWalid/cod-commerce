@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { moneySchema } from '../catalog/money';
-import { DELIVERY_SPEEDS } from './constants';
+import { DELIVERY_SPEEDS, QUOTE_PRICE_SOURCES } from './constants';
 
 /**
  * A delivery quote (data-model.md, `POST /store/shipping-quote`), in whole DZD. Unresolved (no fee group, wilaya or
  * method off) it carries zero fees, `speed: null` and no offered speeds (D3113). Waived, `totalFee` is 0 and
- * `waivedFee` holds what the buyer would have paid.
+ * `waivedFee` holds what the buyer would have paid. `source` says which layer priced it (D3125): `'commune'` for a
+ * commune row's price, `'wilaya'` for the wilaya row's, `null` when unresolved.
  */
 export const shippingQuoteSchema = z.object({
   baseFee: moneySchema,
@@ -16,6 +17,7 @@ export const shippingQuoteSchema = z.object({
   offeredSpeeds: z.array(z.enum(DELIVERY_SPEEDS)),
   freeShipping: z.boolean(),
   waivedFee: moneySchema,
+  source: z.enum(QUOTE_PRICE_SOURCES).nullable(),
 });
 
 /** A delivery quote. */

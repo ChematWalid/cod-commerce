@@ -8,19 +8,24 @@ import type { FeeGroupPorts } from '../application/fee-group-ports';
 import { FeeGroupReadService } from '../application/fee-group-read.service';
 import { SaveFeeGroupService } from '../application/save-fee-group.service';
 import { SetCommuneRatesService } from '../application/set-commune-rates.service';
+import { ShippingQuoteService } from '../application/shipping-quote.service';
 import {
   FEE_GROUP_PORTS,
   FEE_GROUP_REPOSITORY,
   FEE_GROUP_TRANSACTION,
+  PRODUCT_WEIGHTS,
   STORE_DEFAULTS,
   TOWNS,
 } from '../application/tokens';
 import type { FeeGroupRepositoryPort } from '../domain/ports/fee-group-repository.port';
+import type { ProductWeightsPort } from '../domain/ports/product-weights.port';
 import type { StoreDefaultsPort } from '../domain/ports/store-defaults.port';
 import type { TownDirectoryPort } from '../domain/ports/town-directory.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
+import { CatalogProductWeights } from './catalog-product-weights.adapter';
 import { DeliveryPricingLifecycleHook } from './delivery-pricing-lifecycle.hook';
 import { DeliveryFeeGroupReferenceCheck } from './fee-group-reference.check';
+import { OffersShippingQuoteAdapter } from './offers-shipping-quote.adapter';
 import { TenancyStoreDefaults } from './tenancy-store-defaults.adapter';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmFeeGroupRepository } from './typeorm-fee-group.repository';
@@ -33,13 +38,15 @@ const useCase = (type: new (ports: FeeGroupPorts) => object): Provider => ({
 });
 
 /**
- * Wires the fee-group use cases to their adapters; geo's town directory checks the communes (D3125). The reference
- * check and the lifecycle hook register themselves on tenancy's seams at bootstrap (D3111).
+ * Wires the fee-group use cases to their adapters; geo's town directory checks the communes (D3125) and the catalog's
+ * weight reader weighs a parcel (D3119). The reference check and the lifecycle hook register themselves on tenancy's
+ * seams at bootstrap (D3111), the offers adapter on the offers' shipping quote seam (D2423).
  */
 export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   { provide: FEE_GROUP_TRANSACTION, useClass: TransactionAdapter },
   { provide: STORE_DEFAULTS, useClass: TenancyStoreDefaults },
   { provide: TOWNS, useExisting: TOWN_DIRECTORY },
+  { provide: PRODUCT_WEIGHTS, useClass: CatalogProductWeights },
   {
     provide: FEE_GROUP_REPOSITORY,
     useFactory: (factory: TenantRepositoryFactory, ids: SnowflakeIdGeneratorPort) =>
@@ -62,6 +69,12 @@ export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   useCase(SetCommuneRatesService),
   useCase(DefaultTableService),
   useCase(DeliveryDefaultsConvergeService),
+  {
+    provide: ShippingQuoteService,
+    useFactory: (ports: FeeGroupPorts, weights: ProductWeightsPort) => new ShippingQuoteService(ports, weights),
+    inject: [FEE_GROUP_PORTS, PRODUCT_WEIGHTS],
+  },
   DeliveryFeeGroupReferenceCheck,
   DeliveryPricingLifecycleHook,
+  OffersShippingQuoteAdapter,
 ];

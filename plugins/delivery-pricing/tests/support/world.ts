@@ -13,9 +13,16 @@ import { FeeGroupReadService } from '../../application/fee-group-read.service';
 import type { FeeGroupPorts } from '../../application/fee-group-ports';
 import { SaveFeeGroupService } from '../../application/save-fee-group.service';
 import { SetCommuneRatesService } from '../../application/set-commune-rates.service';
+import { ShippingQuoteService } from '../../application/shipping-quote.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type { StoreScope } from '../../domain/store-scope';
-import { FixedStoreDefaults, FixedTowns, InMemoryFeeGroups, inlineTransaction } from '../fakes/in-memory-fee-groups';
+import {
+  FixedStoreDefaults,
+  FixedTowns,
+  FixedWeights,
+  InMemoryFeeGroups,
+  inlineTransaction,
+} from '../fakes/in-memory-fee-groups';
 
 export const ctx = asOperationContext({});
 export const STORE_A1: StoreScope = {
@@ -69,5 +76,25 @@ export function world() {
     communes: new SetCommuneRatesService(ports),
     defaults: new DefaultTableService(ports),
     converge: new DeliveryDefaultsConvergeService(ports),
+  };
+}
+
+/** The use cases and the shipping quote; Alger's commune 1652 has no reference stop desk, product weights are fixed. */
+export function quoteWorld() {
+  const groups = new InMemoryFeeGroups();
+  const storeDefaults = new FixedStoreDefaults();
+  const weights = new FixedWeights();
+  const ports: FeeGroupPorts = {
+    groups,
+    transaction: inlineTransaction,
+    storeDefaults,
+    towns: new FixedTowns({ '16': [1601, 1652], '01': [101] }, new Set([1652])),
+  };
+  return {
+    storeDefaults,
+    weights,
+    saving: new SaveFeeGroupService(ports),
+    communes: new SetCommuneRatesService(ports),
+    quotes: new ShippingQuoteService(ports, weights),
   };
 }

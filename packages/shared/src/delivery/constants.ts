@@ -16,6 +16,12 @@ export const DELIVERY_SPEEDS = ['standard'] as const;
 /** A delivery speed. */
 export type DeliverySpeed = (typeof DELIVERY_SPEEDS)[number];
 
+/** Where a quote's price came from (D3125): a commune row's price, else the wilaya row's. */
+export const QUOTE_PRICE_SOURCES = ['commune', 'wilaya'] as const;
+
+/** Where a quote's price came from. */
+export type QuotePriceSource = (typeof QUOTE_PRICE_SOURCES)[number];
+
 /** Translation key of the name of the seeded "Platform default prices" fee group (D3110). */
 export const DEFAULT_FEE_GROUP_NAME_KEY = 'delivery-pricing.platform-default-prices';
 

@@ -12,3 +12,8 @@ export {
 } from './application/delivery-defaults-converge.service';
 export { type DeliveryDefaultsConvergeFailure, DeliveryDefaultsConvergeFailedError } from './domain/errors';
 export { asOperationContext } from './domain/ports/operation-context';
+
+// The store's delivery quote (D3125): the storefront checkout (P3.S3) and the order form (P4.S3) inject it by class.
+export { ShippingQuoteService } from './application/shipping-quote.service';
+export type { ShippingQuoteItem, ShippingQuoteRequest } from './domain/quote-request';
+export type { StoreScope as DeliveryStoreScope } from './domain/store-scope';

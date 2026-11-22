@@ -1,4 +1,8 @@
+import { CatalogPlugin } from '@cod/plugin-catalog';
 import { GeoPlugin, GeoSeedService } from '@cod/plugin-geo';
+import { OffersPlugin } from '@cod/plugin-offers';
+import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
+import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
@@ -10,6 +14,7 @@ import {
   toStoreId,
   WILAYA_CODES,
 } from '@cod/shared';
+import { parseQuoteKeys, quoteKeyRing, type QuoteKeyRing } from '@cod/shared/quote-keys';
 import {
   type BusinessFixture,
   createStoreTestEnvironment,
@@ -29,6 +34,19 @@ export const TEST_REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:638
 /** Worker id of every delivery-pricing test server: each file has its own database, so a repeat is harmless. */
 export const DELIVERY_PRICING_WORKER_ID = 962;
 const BOOT_TIMEOUT_MS = 120_000;
+
+/**
+ * The quote keys of the offers the shipping quote registers with (Task 7), read from `QUOTE_HMAC_*` like the server
+ * does (copy of the packs kit): CI sets them, a local run takes them from `apps/server/.env`. No key is made up here.
+ */
+function quoteKeysFromEnv(): QuoteKeyRing {
+  const keys = process.env['QUOTE_HMAC_KEYS'];
+  const activeKid = process.env['QUOTE_HMAC_ACTIVE_KID'];
+  if (keys === undefined || activeKid === undefined) {
+    throw new Error('the delivery-pricing tests need QUOTE_HMAC_KEYS and QUOTE_HMAC_ACTIVE_KID (see .env.example)');
+  }
+  return quoteKeyRing(parseQuoteKeys(keys), activeKid);
+}
 
 export const GROUP_FIELDS = `id name carrierId chargeOverweight overweightAllowanceKg overweightRate isPlatformDefault
   createdAt updatedAt
@@ -147,7 +165,10 @@ export interface DeliveryPricingSuite {
   fixtures: TwoBusinesses;
 }
 
-/** Boots a delivery-pricing test server for the file (geo seeded), makes A and B, stops it after the file. */
+/**
+ * Boots a delivery-pricing test server for the file (geo seeded; catalog and offers for the quote), makes A and B,
+ * stops it after the file.
+ */
 export function deliveryPricingSuite(foreign: DeliveryPricingForeignModules): DeliveryPricingSuite {
   const { server, adminClient } = createStoreTestEnvironment({
     plugins: [
@@ -158,11 +179,17 @@ export function deliveryPricingSuite(foreign: DeliveryPricingForeignModules): De
         platformDomain: 'localhost',
         snowflakeWorkerId: DELIVERY_PRICING_WORKER_ID,
       }),
+      // The catalog writes `product.changed` to the outbox (D2127), whose tables are partitioned.
+      PlatformJobsPlugin.init({ redisUrl: TEST_REDIS_URL, appEnv: 'test-delivery-pricing' }),
+      PlatformOutboxPlugin,
       ...foreign.plugins,
       GeoPlugin,
+      CatalogPlugin,
+      // The shipping quote registers with the offers' shipping quote registrar on bootstrap (Task 7).
+      OffersPlugin.init({ quoteKeys: quoteKeysFromEnv() }),
       DeliveryPricingPlugin,
     ],
-    partitionedSchemas: foreign.partitionedSchemas,
+    partitionedSchemas: [...OUTBOX_SCHEMAS, ...foreign.partitionedSchemas],
     partitionMaintenance: PartitionMaintenanceService,
   });
   const suite = {} as DeliveryPricingSuite;

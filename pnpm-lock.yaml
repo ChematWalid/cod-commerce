@@ -897,9 +897,15 @@ importers:
 
   plugins/delivery-pricing:
     dependencies:
+      '@cod/plugin-catalog':
+        specifier: workspace:*
+        version: link:../catalog
       '@cod/plugin-geo':
         specifier: workspace:*
         version: link:../geo
+      '@cod/plugin-offers':
+        specifier: workspace:*
+        version: link:../offers
       '@cod/plugin-rbac':
         specifier: workspace:*
         version: link:../rbac
@@ -928,6 +934,12 @@ importers:
       '@cod/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@cod/plugin-platform-jobs':
+        specifier: workspace:*
+        version: link:../platform-jobs
+      '@cod/plugin-platform-outbox':
+        specifier: workspace:*
+        version: link:../platform-outbox
       '@cod/plugin-platform-partitions':
         specifier: workspace:*
         version: link:../platform-partitions

@@ -11,6 +11,7 @@ import {
   deliveryFeeGroupInputSchema,
   deliveryFeeGroupSchema,
   shippingQuoteSchema,
+  QUOTE_PRICE_SOURCES,
 } from '../src/index';
 
 const rateOf = (provinceCode: string) => ({
@@ -148,6 +149,7 @@ describe('shippingQuoteSchema', () => {
     offeredSpeeds: ['standard'],
     freeShipping: false,
     waivedFee: 0,
+    source: 'wilaya',
   };
 
   it('parses a resolved quote in the data-model shape', () => {
@@ -157,7 +159,14 @@ describe('shippingQuoteSchema', () => {
   it('parses an unresolved quote with no speed', () => {
     const unresolved = { ...resolved, baseFee: 0, overweightFee: 0, totalFee: 0, resolved: false, speed: null };
 
-    expect(shippingQuoteSchema.parse({ ...unresolved, offeredSpeeds: [] }).speed).toBeNull();
+    expect(shippingQuoteSchema.parse({ ...unresolved, offeredSpeeds: [], source: null }).speed).toBeNull();
+  });
+
+  it('labels where the price came from: a commune, the wilaya or nowhere (D3125)', () => {
+    expect(QUOTE_PRICE_SOURCES).toEqual(['commune', 'wilaya']);
+    expect(shippingQuoteSchema.parse({ ...resolved, source: 'commune' }).source).toBe('commune');
+    expect(shippingQuoteSchema.safeParse({ ...resolved, source: 'zone' }).success).toBe(false);
+    expect(shippingQuoteSchema.safeParse({ ...resolved, source: undefined }).success).toBe(false);
   });
 
   it('refuses an unknown speed and a negative fee', () => {

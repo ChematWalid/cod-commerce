@@ -9,10 +9,16 @@ import type {
   NewFeeGroup,
   WilayaRateRow,
 } from '../../domain/fee-group';
-import type { CommuneRowsChange, FeeGroupRepositoryPort } from '../../domain/ports/fee-group-repository.port';
+import type {
+  CommuneRowsChange,
+  FeeGroupRepositoryPort,
+  QuoteRows,
+  QuoteRowsQuery,
+} from '../../domain/ports/fee-group-repository.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
+import type { ProductWeightsPort } from '../../domain/ports/product-weights.port';
 import type { StoreDefaultsPort, StoreLink } from '../../domain/ports/store-defaults.port';
-import type { TownDirectoryPort } from '../../domain/ports/town-directory.port';
+import type { TownDirectoryPort, TownReference } from '../../domain/ports/town-directory.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
 import type { StoreScope } from '../../domain/store-scope';
 
@@ -98,6 +104,21 @@ export class InMemoryFeeGroups implements FeeGroupRepositoryPort {
     return Promise.resolve();
   }
 
+  quoteRows(
+    _ctx: OperationContext,
+    scope: StoreScope,
+    { groupId, provinceCode, codeOns }: QuoteRowsQuery,
+  ): Promise<QuoteRows | undefined> {
+    const group = this.of(scope).get(groupId);
+    if (group === undefined) return Promise.resolve(undefined);
+    const rate = group.rates.find((row) => row.provinceCode === provinceCode) ?? null;
+    const communeRate =
+      codeOns === null
+        ? null
+        : (group.communeRates.find((row) => row.codeOns === codeOns && row.provinceCode === provinceCode) ?? null);
+    return Promise.resolve({ group, rate, communeRate });
+  }
+
   /** Test arrangement: sets a stored commune row as a carrier sync would (bases included). */
   seedCommuneRow(scope: StoreScope, groupId: Snowflake, row: CommuneRateRow): void {
     const group = this.of(scope).get(groupId);
@@ -152,12 +173,42 @@ export class FixedStoreDefaults implements StoreDefaultsPort {
   }
 }
 
-/** {@link TownDirectoryPort} over a fixed map of wilaya → ONS codes. */
+/** {@link TownDirectoryPort} over a fixed map of wilaya → ONS codes; every commune has a stop desk but `noDesk`. */
 export class FixedTowns implements TownDirectoryPort {
-  constructor(private readonly towns: Readonly<Partial<Record<WilayaCode, readonly number[]>>>) {}
+  constructor(
+    private readonly towns: Readonly<Partial<Record<WilayaCode, readonly number[]>>>,
+    private readonly noDesk: ReadonlySet<number> = new Set(),
+  ) {}
 
   townsOf(provinceCode: WilayaCode): Promise<readonly number[]> {
     return Promise.resolve(this.towns[provinceCode] ?? []);
+  }
+
+  townOf(provinceCode: WilayaCode, codeOns: number): Promise<TownReference | undefined> {
+    const known = (this.towns[provinceCode] ?? []).includes(codeOns);
+    return Promise.resolve(known ? { isStopdesk: !this.noDesk.has(codeOns) } : undefined);
+  }
+}
+
+/** {@link ProductWeightsPort} over a fixed map of product id → grams; records the ids of every read. */
+export class FixedWeights implements ProductWeightsPort {
+  readonly asked: (readonly string[])[] = [];
+  private readonly weights = new Map<string, number | null>();
+
+  set(productId: string, grams: number | null): void {
+    this.weights.set(productId, grams);
+  }
+
+  weightsOf(
+    _ctx: OperationContext,
+    _scope: StoreScope,
+    productIds: readonly string[],
+  ): Promise<ReadonlyMap<string, number | null>> {
+    this.asked.push(productIds);
+    const found = productIds
+      .filter((id) => this.weights.has(id))
+      .map((id) => [id, this.weights.get(id) ?? null] as const);
+    return Promise.resolve(new Map(found));
   }
 }
 

@@ -18,6 +18,20 @@ export interface CommuneRowsChange {
   readonly removals: readonly number[];
 }
 
+/** Which rows one quote reads: the group, the wilaya and, when not null, the commune of that wilaya. */
+export interface QuoteRowsQuery {
+  readonly groupId: Snowflake;
+  readonly provinceCode: WilayaCode;
+  readonly codeOns: number | null;
+}
+
+/** What one quote reads of a group: its header, the wilaya row and the commune row (`null` when absent). */
+export interface QuoteRows {
+  readonly group: FeeGroupHeader;
+  readonly rate: WilayaRateRow | null;
+  readonly communeRate: CommuneRateRow | null;
+}
+
 /**
  * The fee groups of one store and their wilaya and commune rows. Every call is confined to `(businessId, storeId)`:
  * a group of another business or another store of the same business is never read or written (ADR 0002). Every call
@@ -42,6 +56,11 @@ export interface FeeGroupRepositoryPort {
   ): Promise<void>;
   /** Deletes the group; its wilaya and commune rows go with it. */
   delete(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<void>;
+  /**
+   * The rows a quote of the group reads for the wilaya and, when `codeOns` is not null, its commune of that wilaya;
+   * `undefined` when the group is not the store's.
+   */
+  quoteRows(ctx: OperationContext, scope: StoreScope, query: QuoteRowsQuery): Promise<QuoteRows | undefined>;
   communeRows(
     ctx: OperationContext,
     scope: StoreScope,
