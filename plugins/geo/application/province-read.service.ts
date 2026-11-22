@@ -44,20 +44,21 @@ export class ProvinceReadService implements TownDirectory {
 
   /**
    * The wilayas, for a served store: the same list as {@link list}, which carries no delivery flag.
-   * @throws {GeoStoreNotFoundError} unless `rawStoreId` is a served store.
+   * @throws {GeoStoreNotFoundError} unless `rawStoreId` is a served store and `signedStoreId`, when sent, names it.
    */
-  async listForStore(rawStoreId: unknown): Promise<readonly Province[]> {
-    await this.servedStore(rawStoreId);
+  async listForStore(rawStoreId: unknown, signedStoreId?: unknown): Promise<readonly Province[]> {
+    await this.servedStore(rawStoreId, signedStoreId);
     return this.list();
   }
 
   /**
    * The wilaya with its communes as the store offers them: each flag ANDed with the registered availability source.
-   * @throws {GeoStoreNotFoundError} unless `rawStoreId` is a served store, checked before the code.
+   * @throws {GeoStoreNotFoundError} unless `rawStoreId` is a served store and `signedStoreId`, when sent, names it;
+   * checked before the code.
    * @throws {ProvinceNotFoundError} for a code parameter that names no wilaya.
    */
-  async byCodeForStore(rawStoreId: unknown, rawCode: string): Promise<Province> {
-    const storeId = await this.servedStore(rawStoreId);
+  async byCodeForStore(rawStoreId: unknown, rawCode: string, signedStoreId?: unknown): Promise<Province> {
+    const storeId = await this.servedStore(rawStoreId, signedStoreId);
     const province = await this.byCode(rawCode);
     const availability = await this.availabilityOf(storeId, province);
     if (availability === null) return province;
@@ -76,7 +77,12 @@ export class ProvinceReadService implements TownDirectory {
     return province?.towns?.find((town) => town.codeOns === codeOns);
   }
 
-  private async servedStore(raw: unknown): Promise<StoreId> {
+  /**
+   * The served store of the query. A signed request may also carry the store in its signed `x-store-id` header; one
+   * naming another store is refused like an unknown store (D3135), so a signature for one store never reads another.
+   */
+  private async servedStore(raw: unknown, signedStoreId: unknown): Promise<StoreId> {
+    if (signedStoreId !== undefined && signedStoreId !== raw) throw new GeoStoreNotFoundError();
     const storeId = await this.dependencies.stores.servedStore(raw);
     if (storeId === null) throw new GeoStoreNotFoundError();
     return storeId;

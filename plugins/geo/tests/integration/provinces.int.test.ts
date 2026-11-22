@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { asOperationContext, type ProvisionedBusiness, ProvisionBusinessService } from '@cod/plugin-tenancy';
 import { GEO_ERROR_CODES, type Province, type StoreId, WILAYA_COUNT, type WilayaCode } from '@cod/shared';
+import { INTERNAL_AUTH_HEADERS } from '@cod/shared/internal-auth';
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { RequestContextService, TransactionalConnection } from '@vendure/core';
 import gql from 'graphql-tag';
@@ -55,9 +56,9 @@ describe('the provinces endpoints over REST', () => {
   });
   let shop: ProvisionedBusiness;
 
-  async function get(path: string): Promise<Answer> {
+  async function get(path: string, headers: Readonly<Record<string, string>> = {}): Promise<Answer> {
     const { port } = (server.app.getHttpServer() as Server).address() as AddressInfo;
-    const response = await fetch(`http://localhost:${String(port)}${path}`);
+    const response = await fetch(`http://localhost:${String(port)}${path}`, { headers });
     return {
       status: response.status,
       cacheControl: response.headers.get('cache-control'),
@@ -197,6 +198,27 @@ describe('the provinces endpoints over REST', () => {
     expect(status).toBe(404);
     expect(cacheControl).toBe(PRIVATE_CACHE);
     expect(body).toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+  });
+
+  it('answers 404 store-not-found when the signed store header names another store than the query (D3135)', async () => {
+    // Arrange
+    const other = await provision('geoother');
+    const path = `/store/provinces/code/16?storeId=${String(shop.store.id)}`;
+
+    // Act
+    const mismatched = await get(path, { [INTERNAL_AUTH_HEADERS.storeId]: String(other.store.id) });
+    const listMismatched = await get(`/store/provinces?storeId=${String(shop.store.id)}`, {
+      [INTERNAL_AUTH_HEADERS.storeId]: String(other.store.id),
+    });
+    const matching = await get(path, { [INTERNAL_AUTH_HEADERS.storeId]: String(shop.store.id) });
+
+    // Assert
+    expect(mismatched.status).toBe(404);
+    expect(mismatched.cacheControl).toBe(PRIVATE_CACHE);
+    expect(mismatched.body).toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+    expect(listMismatched.status).toBe(404);
+    expect(listMismatched.body).toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+    expect(matching.status).toBe(200);
   });
 
   it('answers 404 store-not-found once the store is archived', async () => {

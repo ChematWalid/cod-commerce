@@ -1,5 +1,6 @@
 import type { Province } from '@cod/shared';
-import { Controller, Get, Param, Query, UseFilters } from '@nestjs/common';
+import { INTERNAL_AUTH_HEADERS } from '@cod/shared/internal-auth';
+import { Controller, Get, Headers, Param, Query, UseFilters } from '@nestjs/common';
 import { Allow, Permission } from '@vendure/core';
 import { ProvinceReadService } from '../application/province-read.service';
 import { CacheControl, PRIVATE_NO_STORE_CACHE_CONTROL } from './cache-control.interceptor';
@@ -16,17 +17,27 @@ import { geoRestCall, GeoRestErrorFilter } from './error-mapping';
 export class StoreProvincesController {
   constructor(private readonly provinces: ProvinceReadService) {}
 
-  /** Every wilaya for a served store; 404 `geo.store-not-found` for any other `storeId`. */
+  /**
+   * Every wilaya for a served store; 404 `geo.store-not-found` for any other `storeId`, or when the signed store
+   * header names another store (D3135).
+   */
   @Get()
   @Allow(Permission.Public)
-  list(@Query('storeId') storeId: unknown): Promise<readonly Province[]> {
-    return geoRestCall(() => this.provinces.listForStore(storeId));
+  list(
+    @Query('storeId') storeId: unknown,
+    @Headers(INTERNAL_AUTH_HEADERS.storeId) signedStoreId: unknown,
+  ): Promise<readonly Province[]> {
+    return geoRestCall(() => this.provinces.listForStore(storeId, signedStoreId));
   }
 
-  /** The wilaya with its communes' flags narrowed by the store's delivery fee table (P3.S1 Task 8). */
+  /** The wilaya with its communes' flags narrowed by the store's delivery fee table (P3.S1 Task 8, D3135). */
   @Get('code/:code')
   @Allow(Permission.Public)
-  byCode(@Query('storeId') storeId: unknown, @Param('code') code: string): Promise<Province> {
-    return geoRestCall(() => this.provinces.byCodeForStore(storeId, code));
+  byCode(
+    @Query('storeId') storeId: unknown,
+    @Param('code') code: string,
+    @Headers(INTERNAL_AUTH_HEADERS.storeId) signedStoreId: unknown,
+  ): Promise<Province> {
+    return geoRestCall(() => this.provinces.byCodeForStore(storeId, code, signedStoreId));
   }
 }

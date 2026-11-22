@@ -145,6 +145,35 @@ describe('ProvinceReadService', () => {
     await expect(service.byCodeForStore(raw, '16')).rejects.toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
   });
 
+  it.each([
+    ['another store', '1000000000000002'],
+    ['an empty header', ''],
+    ['a repeated header', `${STORE}, ${STORE}`],
+  ])('refuses a signed store header naming %s as a store not found (D3135)', async (_label, signed) => {
+    // Arrange
+    const { service, availability } = serviceWith(new Map([[`${STORE}:16`, NO_DESK_IN_ALGER]]));
+
+    // Act and Assert
+    await expect(service.listForStore(STORE, signed)).rejects.toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+    await expect(service.byCodeForStore(STORE, '16', signed)).rejects.toMatchObject({
+      code: GEO_ERROR_CODES.STORE_NOT_FOUND,
+    });
+    expect(availability.calls).toBe(0);
+  });
+
+  it('serves a store whose signed store header names the same store, or that carries none', async () => {
+    // Arrange
+    const { service } = serviceWith(new Map([[`${STORE}:16`, NO_DESK_IN_ALGER]]));
+
+    // Act
+    const signed = await service.byCodeForStore(STORE, '16', STORE);
+    const unsigned = await service.byCodeForStore(STORE, '16', undefined);
+
+    // Assert
+    expect(signed).toEqual(unsigned);
+    await expect(service.listForStore(STORE, STORE)).resolves.toEqual(await service.list());
+  });
+
   it('lists the same wilayas for a served store as for everyone', async () => {
     // Arrange
     const { service } = serviceWith();
