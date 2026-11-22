@@ -1,8 +1,12 @@
 import {
+  ARABIC_ALEF_MAQSURA,
   ARABIC_DIACRITICS,
+  ARABIC_HAA,
   ARABIC_HAMZA_ALEFS,
   ARABIC_PLAIN_ALEF,
+  ARABIC_TAA_MARBUTA,
   ARABIC_TATWEEL,
+  ARABIC_YAA,
   LATIN_COMBINING_MARKS,
   NAME_SEPARATORS,
 } from './constants';
@@ -16,8 +20,9 @@ export interface NamedPlace {
 
 /**
  * A place name reduced for "type to find" matching: lower case, without Latin accents or Arabic diacritics, the
- * tatweel removed, every hamza form of alef written as a plain alef, and hyphens, apostrophes and runs of spaces
- * read as one space. Buyers type "ain temouchent" or "ادرار" for "Aïn Témouchent" or "أدرار".
+ * tatweel removed, every hamza form of alef written as a plain alef, taa marbuta as haa and alef maqsura as yaa, and
+ * hyphens, apostrophes and runs of spaces read as one space. Buyers type "ain temouchent" or "ادرار" for
+ * "Aïn Témouchent" or "أدرار".
  */
 export function fold(name: string): string {
   return name
@@ -26,6 +31,8 @@ export function fold(name: string): string {
     .replace(ARABIC_DIACRITICS, '')
     .replace(ARABIC_TATWEEL, '')
     .replace(ARABIC_HAMZA_ALEFS, ARABIC_PLAIN_ALEF)
+    .replace(ARABIC_TAA_MARBUTA, ARABIC_HAA)
+    .replace(ARABIC_ALEF_MAQSURA, ARABIC_YAA)
     .toLowerCase()
     .replace(NAME_SEPARATORS, ' ')
     .trim();

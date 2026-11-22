@@ -40,6 +40,16 @@ describe('fold', () => {
     expect(withTashkeel).toBe(fold('الجزائر'));
     expect(withTatweel).toBe(fold('وهران'));
   });
+
+  it('reads taa marbuta as haa and alef maqsura as yaa, the endings buyers swap', () => {
+    // Act
+    const taaMarbuta = matchesPlaceName('المسيله', msila);
+    const alefMaqsura = fold('عين الدفلى');
+
+    // Assert
+    expect(taaMarbuta).toBe(true);
+    expect(alefMaqsura).toBe(fold('عين الدفلي'));
+  });
 });
 
 describe('matchesPlaceName', () => {
