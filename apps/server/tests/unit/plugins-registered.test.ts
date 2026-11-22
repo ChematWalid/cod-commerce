@@ -1,5 +1,7 @@
 import { AuthPlugin } from '@cod/plugin-auth';
+import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
 import { GeoPlugin } from '@cod/plugin-geo';
+import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformFlagsPlugin } from '@cod/plugin-platform-flags';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -184,8 +186,8 @@ describe('buildPlugins', () => {
     expect(plugins).toContain(TenancyPlugin);
   });
 
-  // Every role: `migrate` creates and seeds the geo tables, and the api serves /provinces (D3116).
-  it.each(SERVER_ROLES)('registers GeoPlugin for the %s role', (role: ServerRole) => {
+  // Every role: migrate creates the geo (D3116) and fee tables; delivery pricing follows geo and the offers (P3.S1).
+  it.each(SERVER_ROLES)('registers GeoPlugin, the offers, then DeliveryPricingPlugin for the %s role', (role) => {
     // Arrange
     const env = loadEnv({ ...valid, ROLE: role });
 
@@ -194,6 +196,8 @@ describe('buildPlugins', () => {
 
     // Assert
     expect(plugins).toContain(GeoPlugin);
+    expect(plugins.indexOf(OffersPlugin)).toBeGreaterThan(plugins.indexOf(GeoPlugin));
+    expect(plugins.indexOf(DeliveryPricingPlugin)).toBeGreaterThan(plugins.indexOf(OffersPlugin));
   });
 
   it.each(SERVER_ROLES)('registers PlatformJobsPlugin with the pooled queues for the %s role', (role: ServerRole) => {

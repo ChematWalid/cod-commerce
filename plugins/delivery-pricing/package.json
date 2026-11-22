@@ -1,0 +1,39 @@
+{
+  "name": "@cod/plugin-delivery-pricing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Per-store delivery fee groups (pricing options): wilaya and commune prices and the platform default table (P3.S1).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/plugin-geo": "workspace:*",
+    "@cod/plugin-rbac": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@nestjs/graphql": "14.0.3",
+    "@vendure/core": "3.8.1",
+    "graphql-tag": "2.12.7",
+    "typeorm": "0.3.31"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/plugin-platform-partitions": "workspace:*",
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@types/node": "24.19.2",
+    "@vendure/testing": "3.8.1",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

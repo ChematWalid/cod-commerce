@@ -4,6 +4,7 @@ import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CatalogImportPlugin } from '@cod/plugin-catalog-import';
 import { CatalogPacksPlugin } from '@cod/plugin-catalog-packs';
 import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
+import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
 import { GeoPlugin } from '@cod/plugin-geo';
 import { MerchantShellPlugin } from '@cod/plugin-merchant-shell';
 import { OffersPlugin } from '@cod/plugin-offers';
@@ -175,6 +176,7 @@ const catalogImportPlugin = (env: AppEnv): VendurePluginEntry =>
  * (D2137); the offers (D2402) and then the collections (P2.S3) import the catalog module and configure after it.
  * The catalog feature plugins (packs and import) come after Team and write through catalog's exported facade (D2200).
  * Geo comes first: global reference data, not tenant data (D3103), the wilayas and communes delivery pricing reads.
+ * Delivery pricing comes last, after geo and the offers whose seams it uses (P3.S1).
  */
 function memberPlugins(env: AppEnv): VendurePluginEntry[] {
   return [
@@ -187,6 +189,7 @@ function memberPlugins(env: AppEnv): VendurePluginEntry[] {
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
     CatalogPacksPlugin,
     catalogImportPlugin(env),
+    DeliveryPricingPlugin,
   ];
 }
 
