@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { isSnowflake, type Snowflake } from '../ids/snowflake';
+import { idSchema } from '../ids/id-schema';
 import { PLATFORM_LANGUAGE_CODES, type PlatformLanguageCode } from '../platform/platform-defaults';
 import { SOLD_OUT_BEHAVIORS } from '../tenancy/sold-out-behavior';
-import { MAX_BUSINESS_ID, type BusinessId } from '../tenancy/tenant-scope';
+import type { BusinessId } from '../tenancy/tenant-scope';
 
 /** The writing directions a storefront page can take. */
 export const STOREFRONT_DIRECTIONS = ['rtl', 'ltr'] as const;
@@ -13,19 +13,13 @@ export type StorefrontDirection = (typeof STOREFRONT_DIRECTIONS)[number];
 /** The platform languages written right to left. */
 const RTL_LANGUAGES: readonly PlatformLanguageCode[] = ['ar'];
 
-/** Same text form as a snowflake (ADR 0003): decimal, no sign, no leading zero, at most 19 digits. */
-const DECIMAL_ID_FORMAT = /^[1-9][0-9]{0,18}$/;
-
 /** The direction a store's language is written in: Arabic right to left, French and English left to right. */
 export function directionOf(language: PlatformLanguageCode): StorefrontDirection {
   return RTL_LANGUAGES.includes(language) ? 'rtl' : 'ltr';
 }
 
-const snowflakeSchema = z.custom<Snowflake>((value) => typeof value === 'string' && isSnowflake(value));
-
-const businessIdSchema = z.custom<BusinessId>(
-  (value) => typeof value === 'string' && DECIMAL_ID_FORMAT.test(value) && BigInt(value) <= MAX_BUSINESS_ID,
-);
+/** A business id has the text form and range of every ADR 0003 id. */
+const businessIdSchema = z.custom<BusinessId>((value) => idSchema.safeParse(value).success);
 
 /**
  * The store a storefront renders, as `/store/resolve` and `/store/by-id/:id` return it (P3.S2). Fields are additive to
@@ -34,7 +28,7 @@ const businessIdSchema = z.custom<BusinessId>(
  */
 export const storefrontStoreSchema = z
   .object({
-    storeId: snowflakeSchema,
+    storeId: idSchema,
     businessId: businessIdSchema,
     name: z.string().min(1),
     description: z.string(),

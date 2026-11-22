@@ -1,0 +1,2 @@
+export const count = (quantity: string, ids: readonly string[], order: { total: string }): number =>
+  Number(quantity) + Number(ids.length) + parseInt(order.total, 10) + +quantity;

@@ -14,6 +14,7 @@ export * from './statuses/tracking-statuses';
 export * from './tenancy/tenant-scope';
 export * from './wilayas/wilayas';
 export * from './ids/snowflake';
+export * from './ids/id-schema';
 export * from './tenancy/host';
 export * from './tenancy/order-number';
 export * from './tenancy/subdomain';

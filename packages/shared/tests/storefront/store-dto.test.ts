@@ -32,8 +32,15 @@ describe('storefront store contract', () => {
     expect(result.success).toBe(true);
   });
 
-  it.each(['0', '01', '-1', 'demo', '1e3', '99999999999999999999'])('rejects the store id %j', (storeId) => {
-    expect(storefrontStoreSchema.safeParse({ ...ARABIC_STORE, storeId }).success).toBe(false);
+  it.each(['0', '01', '-1', 'demo', '1e3', '99999999999999999999', '9223372036854775808'])(
+    'rejects the store id %j',
+    (storeId) => {
+      expect(storefrontStoreSchema.safeParse({ ...ARABIC_STORE, storeId }).success).toBe(false);
+    },
+  );
+
+  it.each(['0', '9223372036854775808'])('rejects the business id %j', (businessId) => {
+    expect(storefrontStoreSchema.safeParse({ ...ARABIC_STORE, businessId }).success).toBe(false);
   });
 
   it('rejects a numeric store id', () => {

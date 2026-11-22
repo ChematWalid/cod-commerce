@@ -9,6 +9,7 @@ const DECIMAL_DIGITS = /^\d{1,12}$/;
  */
 export function canonicalCoreId(id: string): string | undefined {
   if (!DECIMAL_DIGITS.test(id)) return undefined;
+  // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
   const value = Number(id);
   return value >= 1 && value <= INT_COLUMN_MAX ? String(value) : undefined;
 }

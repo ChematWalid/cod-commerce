@@ -37,3 +37,14 @@ export const lint = (fixture: string, virtualPath: string): Promise<(string | nu
 
 export const lintSource = async (source: string, virtualPath: string): Promise<(string | null)[]> =>
   ruleIds(await eslint.lintText(source, { filePath: join(repoRoot, virtualPath) }));
+
+/** Number conversions of an id, each of which loses digits past 2^53 (ADR 0003). */
+export const ID_NUMBER_CONVERSIONS = [
+  ['Number(orderId)', 'export const n = (orderId: string): number => Number(orderId);\n'],
+  ['parseInt(storeId, 10)', 'export const n = (storeId: string): number => parseInt(storeId, 10);\n'],
+  ['Number.parseInt(id)', 'export const n = (id: string): number => Number.parseInt(id);\n'],
+  ['Number.parseFloat(row.id)', 'export const n = (row: { id: string }): number => Number.parseFloat(row.id);\n'],
+  ['parseFloat(business_id)', 'export const n = (business_id: string): number => parseFloat(business_id);\n'],
+  ['+productId', 'export const n = (productId: string): number => +productId;\n'],
+  ['Number(input.variantId)', 'export const n = (input: { variantId: string }): number => Number(input.variantId);\n'],
+] as const;

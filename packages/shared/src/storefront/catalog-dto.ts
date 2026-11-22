@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { moneySchema } from '../catalog/money';
+import { idSchema } from '../ids/id-schema';
 
 /** Most products one storefront list or search page returns; a larger `take` is clamped to it. */
 export const STOREFRONT_LIST_MAX_TAKE = 48;
@@ -19,8 +20,11 @@ export const STOREFRONT_SORTS = ['newest', 'price-asc', 'price-desc'] as const;
 /** One of the {@link STOREFRONT_SORTS}. */
 export type StorefrontSort = (typeof STOREFRONT_SORTS)[number];
 
-/** A catalog id as the public API writes it: an opaque decimal string (ADR 0003), never a number. */
-export const storefrontIdSchema = z.string().regex(/^[1-9][0-9]{0,18}$/);
+/**
+ * A catalog id as the public API writes it: an opaque decimal string (ADR 0003), never a number. The shared
+ * {@link idSchema}, typed as a plain string because catalog ids are Vendure ids, not snowflakes.
+ */
+export const storefrontIdSchema: z.ZodType<string> = idSchema;
 
 /** A product in a list, search result or grid. Prices are whole DZD, as `VisibleVariant.price` (ADR 0004). */
 export const storefrontProductCardSchema = z.object({

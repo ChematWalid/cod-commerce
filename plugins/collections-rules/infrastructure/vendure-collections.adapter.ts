@@ -22,6 +22,7 @@ import { toRequestContext } from './request-scope';
 import { storedSlug } from './stored-slug';
 
 /** A core id as Vendure's own entities hold it: the integer of its SERIAL column (D2159). */
+// eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
 const engineIdOf = (id: string): number => Number(id);
 
 /**

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   STOREFRONT_CACHE_TAG_PATTERN,
   collectionTag,
+  storefrontCacheTagSchema,
   offersTag,
   productTag,
   storeCacheTag,
@@ -33,6 +34,17 @@ describe('storefront cache tags', () => {
   it.each(['store:0', 'store:01', 'page:1', 'store:1:x', 'STORE:1', ' store:1'])('refuses the tag %j', (tag) => {
     expect(STOREFRONT_CACHE_TAG_PATTERN.test(tag)).toBe(false);
   });
+
+  it('accepts a tag on the largest bigint id', () => {
+    expect(storefrontCacheTagSchema.safeParse('product:9223372036854775807').success).toBe(true);
+  });
+
+  it.each(['store:9223372036854775808', 'store:99999999999999999999', 'store:01', 'page:1'])(
+    'refuses the tag %j as a schema, including an id past the bigint range',
+    (tag) => {
+      expect(storefrontCacheTagSchema.safeParse(tag).success).toBe(false);
+    },
+  );
 });
 
 describe('storefront routes', () => {

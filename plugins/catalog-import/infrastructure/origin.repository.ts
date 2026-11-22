@@ -37,6 +37,7 @@ export class TypeOrmProductOriginWrites implements ProductOriginWrites {
 
   async recordImport(ctx: OperationContext, scope: StoreScope, origin: ImportedOrigin): Promise<void> {
     const tenant = requestScope(ctx, scope);
+    // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
     const productId = Number(origin.productId);
     const at = new Date();
     const change = { importJobId: origin.importJobId, imageUrls: [...origin.imageUrls], updatedAt: at };
@@ -59,6 +60,7 @@ export class TypeOrmProductOriginWrites implements ProductOriginWrites {
     await this.origins.insert(requestScope(ctx, scope), {
       id: this.ids.next(),
       storeId: scope.storeId,
+      // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
       productId: Number(origin.productId),
       source: LINKED,
       importJobId: origin.importJobId,

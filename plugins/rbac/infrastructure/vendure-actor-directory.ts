@@ -37,6 +37,7 @@ export class VendureActorDirectory implements ActorDirectoryPort {
     });
     return new Map(
       administrators.map((administrator) => [
+        // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
         Number(administrator.id),
         `${administrator.firstName} ${administrator.lastName}`.trim(),
       ]),
@@ -57,6 +58,7 @@ export class VendureActorDirectory implements ActorDirectoryPort {
       where: { ...liveOfBusiness(scope), id: In([...ids]) },
       select: { id: true },
     });
+    // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
     return administrators.map((administrator) => Number(administrator.id));
   }
 

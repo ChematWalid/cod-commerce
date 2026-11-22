@@ -56,6 +56,7 @@ export const coreIdOf = (id: ID): CoreId => toCoreId(String(id));
  * A core id as Vendure's own entities hold it: the integer of its SERIAL column. Most services accept the string, but
  * core compares some ids strictly (`samplesEach` in the variant option check), where `"3"` is not `3`.
  */
+// eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
 export const engineIdOf = (id: string): number => Number(id);
 
 /**
@@ -79,6 +80,7 @@ export function nameIn(
 
 const byPosition = <T extends { customFields?: unknown; id: ID }>(left: T, right: T): number =>
   (customOf<PositionFields>(left).position ?? 0) - (customOf<PositionFields>(right).position ?? 0) ||
+  // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
   Number(left.id) - Number(right.id);
 
 const isLive = (entity: { deletedAt?: Date | null }): boolean =>

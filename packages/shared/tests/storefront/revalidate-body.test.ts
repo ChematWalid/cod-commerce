@@ -19,6 +19,7 @@ describe('storefrontRevalidateBodySchema', () => {
     ['an empty list', { tags: [] }],
     ['an unknown kind', { tags: ['user:1'] }],
     ['a leading zero', { tags: ['product:01'] }],
+    ['an id past the bigint range', { tags: ['product:9223372036854775808'] }],
     ['a path-like tag', { tags: ['product:1/../2'] }],
     ['an extra field', { tags: ['store:1'], storeId: STORE }],
     ['no tags field', {}],
