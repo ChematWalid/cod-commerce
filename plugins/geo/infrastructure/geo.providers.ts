@@ -12,6 +12,7 @@ import {
   SERVED_STORES,
   TOWN_AVAILABILITY,
   TOWN_AVAILABILITY_REGISTRAR,
+  TOWN_DIRECTORY,
 } from '../application/tokens';
 import { newTownAvailabilityRegistry } from '../application/town-availability.registry';
 import { GEO_LOG_CONTEXT } from '../domain/constants';
@@ -46,7 +47,10 @@ const SEED_PROVIDERS: Provider[] = [
   },
 ];
 
-/** The read side of the provinces routes: the tables, the served stores, the availability seam and its cache. */
+/**
+ * The read side of the provinces routes: the tables, the served stores, the availability seam and its cache, and the
+ * town directory delivery pricing reads.
+ */
 const READ_PROVIDERS: Provider[] = [
   { provide: TOWN_AVAILABILITY, useFactory: newTownAvailabilityRegistry },
   { provide: TOWN_AVAILABILITY_REGISTRAR, useExisting: TOWN_AVAILABILITY },
@@ -65,6 +69,8 @@ const READ_PROVIDERS: Provider[] = [
     ) => new ProvinceReadService({ reader, stores, availability, cache }),
     inject: [GEO_REFERENCE_READER, SERVED_STORES, TOWN_AVAILABILITY, AVAILABILITY_CACHE],
   },
+  // The read service caches the communes once per process, so the directory shares that one read (D3128).
+  { provide: TOWN_DIRECTORY, useExisting: ProvinceReadService },
 ];
 
 /** Every provider of the geo plugin. */

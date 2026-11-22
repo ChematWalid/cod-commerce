@@ -7,8 +7,9 @@ import { RequestContextService, TransactionalConnection } from '@vendure/core';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GeoSeedService } from '../../application/geo-seed.service';
-import { TOWN_AVAILABILITY_REGISTRAR } from '../../application/tokens';
+import { TOWN_AVAILABILITY_REGISTRAR, TOWN_DIRECTORY } from '../../application/tokens';
 import type { TownAvailability, TownAvailabilityRegistrar } from '../../domain/ports/town-availability.port';
+import type { TownDirectory } from '../../domain/ports/town-directory.port';
 import { loadGeoSeed } from '../../infrastructure/seed/load-geo-seed';
 import { geoTestPlugins } from './geo-test-plugins';
 
@@ -222,5 +223,17 @@ describe('the provinces endpoints over REST', () => {
     // Assert
     expect(status).toBe(404);
     expect(body).toMatchObject({ code: GEO_ERROR_CODES.PROVINCE_NOT_FOUND });
+  });
+
+  it('serves the town directory delivery pricing injects from the seeded communes', async () => {
+    // Arrange
+    const directory = server.app.get<TownDirectory>(TOWN_DIRECTORY);
+
+    // Act
+    const towns = await directory.townsOf(ALGER);
+
+    // Assert
+    const seeded = SEED.towns.filter((town) => town.provinceCode === ALGER).map((town) => town.codeOns);
+    expect([...towns].sort((left, right) => left - right)).toEqual(seeded.sort((left, right) => left - right));
   });
 });

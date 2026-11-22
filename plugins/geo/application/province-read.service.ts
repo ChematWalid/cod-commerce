@@ -1,10 +1,11 @@
-import { parseWilayaCodeParam, type Province, type StoreId } from '@cod/shared';
+import { parseWilayaCodeParam, type Province, type StoreId, type WilayaCode } from '@cod/shared';
 import { GeoStoreNotFoundError, ProvinceNotFoundError } from '../domain/errors';
 import { GeoCatalog, narrowTown } from '../domain/geo-catalog';
 import type { AvailabilityCache } from '../domain/ports/availability-cache.port';
 import type { GeoReferenceReader } from '../domain/ports/geo-reference-reader.port';
 import type { ServedStores } from '../domain/ports/served-stores.port';
 import type { TownAvailability, TownAvailabilitySource } from '../domain/ports/town-availability.port';
+import type { TownDirectory } from '../domain/ports/town-directory.port';
 import type { SourceHolder } from './single-source.registry';
 
 /** What {@link ProvinceReadService} reads through. */
@@ -18,9 +19,9 @@ export interface ProvinceReadDependencies {
 /**
  * The wilayas and communes the provinces routes answer: the public reference data (D3117) and, for a served store,
  * the communes narrowed by its delivery fee table (D3106). The tables are read once per process: they change only on
- * `migrate` (D3116).
+ * `migrate` (D3116). It is also the {@link TownDirectory} delivery pricing validates a commune's wilaya through (D3128).
  */
-export class ProvinceReadService {
+export class ProvinceReadService implements TownDirectory {
   private catalog: Promise<GeoCatalog> | undefined;
 
   constructor(private readonly dependencies: ProvinceReadDependencies) {}
@@ -61,6 +62,12 @@ export class ProvinceReadService {
     const availability = await this.availabilityOf(storeId, province);
     if (availability === null) return province;
     return { ...province, towns: province.towns?.map((town) => narrowTown(town, availability)) };
+  }
+
+  /** The ONS codes of the wilaya's communes, ascending; none for a wilaya the reference data does not hold. */
+  async townsOf(provinceCode: WilayaCode): Promise<readonly number[]> {
+    const province = (await this.catalogOnce()).withTowns(provinceCode);
+    return province?.towns?.map((town) => town.codeOns) ?? [];
   }
 
   private async servedStore(raw: unknown): Promise<StoreId> {

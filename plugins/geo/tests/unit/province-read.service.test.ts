@@ -152,4 +152,27 @@ describe('ProvinceReadService', () => {
     // Act and Assert
     await expect(service.listForStore(STORE)).resolves.toEqual(await service.list());
   });
+
+  it("answers a wilaya's communes as the town directory, from the same single read", async () => {
+    // Arrange
+    const { service, reader } = serviceWith();
+
+    // Act
+    const alger = await service.townsOf('16');
+    const adrar = await service.townsOf('01');
+    await service.list();
+
+    // Assert
+    expect(alger).toEqual([1601, 1652]);
+    expect(adrar).toEqual([]);
+    expect(reader.reads).toBe(1);
+  });
+
+  it('answers no communes for a wilaya the reference does not hold', async () => {
+    // Arrange
+    const { service } = serviceWith();
+
+    // Act and Assert
+    await expect(service.townsOf('69')).resolves.toEqual([]);
+  });
 });

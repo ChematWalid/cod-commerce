@@ -7,7 +7,7 @@ import { ProvincesController } from './api/provinces.controller';
 import { GeoRestI18nMiddleware } from './api/rest-i18n.middleware';
 import { StoreProvincesController } from './api/store-provinces.controller';
 import { GeoSeedService } from './application/geo-seed.service';
-import { TOWN_AVAILABILITY_REGISTRAR } from './application/tokens';
+import { TOWN_AVAILABILITY_REGISTRAR, TOWN_DIRECTORY } from './application/tokens';
 import { GEO_ENTITIES } from './infrastructure/geo-entities';
 import { GEO_PROVIDERS } from './infrastructure/geo.providers';
 
@@ -18,13 +18,13 @@ export const GEO_REST_CONTROLLERS = [ProvincesController, StoreProvincesControll
  * Algeria's geo reference data: the wilayas and communes of law 26-06 (D3123), global tables that are not tenant
  * data (D3103). `GeoSeedService.converge()` upserts the seed on every migrate (D3116); the provinces routes read it.
  * Tenancy finds the stores of the signed route and the rate limiter guards the public one. This module also wires the
- * town availability seam; delivery pricing registers on its registrar token.
+ * town availability seam, on whose registrar token delivery pricing registers, and the town directory it reads.
  */
 @VendurePlugin({
   imports: [PluginCommonModule, RateLimitPlugin, TenancyPlugin],
   entities: GEO_ENTITIES,
   providers: [...GEO_PROVIDERS, GeoTranslations],
-  exports: [TOWN_AVAILABILITY_REGISTRAR, GeoSeedService],
+  exports: [TOWN_AVAILABILITY_REGISTRAR, TOWN_DIRECTORY, GeoSeedService],
   controllers: GEO_REST_CONTROLLERS,
   compatibility: '^3.8.0',
 })
