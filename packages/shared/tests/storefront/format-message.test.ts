@@ -41,6 +41,17 @@ describe('storefront catalogue formatter', () => {
     expect(formatMessage('en', 'search.empty', {})).toContain('{query}');
   });
 
+  it.each(['ar', 'fr', 'en'] as const)('writes the footer year without a thousands separator in %s', (locale) => {
+    // Act
+    const text = formatMessage(locale, 'footer.rights', { year: 2026, store: 'S' });
+    // Assert
+    expect(text).toContain('2026');
+  });
+
+  it('still groups a count placeholder', () => {
+    expect(plainSpaces(formatMessage('fr', 'cart.items', { count: 12500 }))).toContain('12 500');
+  });
+
   it('formats DZD with Latin digits and grouping in Arabic', () => {
     // Act
     const text = formatDzd('ar', 12500);

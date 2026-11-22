@@ -36,6 +36,9 @@ const INTL_LOCALES: Readonly<Record<StorefrontLocale, string>> = { ar: 'ar-DZ', 
 
 const PLACEHOLDER = /\{([a-zA-Z][a-zA-Z0-9]*)\}/g;
 
+/** Number placeholders that are labels, not quantities: a year written `2 026` or `2,026` reads as an amount. */
+const UNGROUPED_NUMBER_PARAMS: ReadonlySet<string> = new Set(['year']);
+
 /** The catalogue of `locale`. */
 export function storefrontMessages(locale: StorefrontLocale): StorefrontMessages {
   return STOREFRONT_CATALOGUES[locale] as StorefrontMessages;
@@ -54,17 +57,22 @@ function pluralText(locale: StorefrontLocale, message: PluralMessage, count: unk
   return message[category] ?? message.other;
 }
 
+function placeholderText(locale: StorefrontLocale, name: string, value: string | number): string {
+  if (typeof value === 'string') return value;
+  return UNGROUPED_NUMBER_PARAMS.has(name) ? String(value) : formatNumber(locale, value);
+}
+
 function fillPlaceholders(locale: StorefrontLocale, text: string, params: MessageParams): string {
   return text.replace(PLACEHOLDER, (whole, name: string) => {
     const value = params[name];
-    if (value === undefined) return whole;
-    return typeof value === 'number' ? formatNumber(locale, value) : value;
+    return value === undefined ? whole : placeholderText(locale, name, value);
   });
 }
 
 /**
  * The text of `key` in `locale`, with the plural form picked by `params.count` (`Intl.PluralRules`, so Arabic gets
- * zero/one/two/few/many/other) and `{name}` placeholders filled. A missing parameter stays visible as `{name}`.
+ * zero/one/two/few/many/other) and `{name}` placeholders filled. Numbers get the language's grouping, except label-like
+ * ones such as `year`. A missing parameter stays visible as `{name}`.
  */
 export function formatMessage(locale: StorefrontLocale, key: StorefrontMessageKey, params: MessageParams = {}): string {
   const message = storefrontMessages(locale)[key];
