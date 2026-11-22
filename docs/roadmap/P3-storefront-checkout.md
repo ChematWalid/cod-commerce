@@ -109,6 +109,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P3.S2-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`; handoff notes of P1.S1, P1.S5, P1.S6, P2.S1; tenancy and storefront ADRs in `docs/adr/`
 - docs/adr/0006-* (storefront) and docs/architecture/system-design.md §2.1, §3
 - `docs/research/data-model.md` → "Product" (options, variants), "Storefront ordering protocol" (host model)
