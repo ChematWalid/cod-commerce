@@ -18,6 +18,11 @@ export interface ShippingQuoteRequest {
   readonly townOns?: number;
   readonly stopdesk: boolean;
   readonly items: readonly ShippingQuoteItem[];
+  /**
+   * Whether an offer waives the delivery fee. Decided server-side by the offer engine (through the offers' shipping
+   * quote seam, D2423) and must never be read from a buyer's request body, or a buyer could price their own delivery
+   * at 0.
+   */
   readonly waive?: boolean;
 }
 
