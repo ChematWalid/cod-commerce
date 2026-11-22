@@ -42,11 +42,21 @@ function logUpstreamFailure(path: string, error: unknown): void {
   console.error(JSON.stringify({ level: 'error', event: 'storefront.store_api.upstream_failed', path, errorClass }));
 }
 
+/** The store of the request's host, or `failed` (logged) when the api could not say: the resolver is upstream too. */
+async function resolvedStoreOf(request: NextRequest, deps: StoreApiDeps): Promise<ResolvedStore | null | 'failed'> {
+  try {
+    return await deps.resolveStore(request);
+  } catch (error) {
+    logUpstreamFailure('resolve', error);
+    return 'failed';
+  }
+}
+
 /**
  * `GET /api/store/<segments>` for the store's own pages: the store comes from the request `Host` through the same
  * resolver as the proxy, the upstream path from a typed table, the query from an allow-list. A path outside the
  * table or an unknown host is 404, a `storeId` of another store 400, all with an empty body and no upstream call;
- * an upstream failure is 502 with an empty body, never the api's error text.
+ * an upstream failure, store resolution included, is 502 with an empty body, never the api's error text.
  */
 export async function handleStoreApiRequest(
   request: NextRequest,
@@ -55,7 +65,8 @@ export async function handleStoreApiRequest(
 ): Promise<Response> {
   const path = upstreamPathOf(segments);
   if (path === null) return emptyResponse(NOT_FOUND);
-  const store = await deps.resolveStore(request);
+  const store = await resolvedStoreOf(request, deps);
+  if (store === 'failed') return emptyResponse(BAD_GATEWAY);
   if (store === null) return emptyResponse(NOT_FOUND);
   const forwarded = forwardedQueryOf(request.nextUrl.searchParams, store.storeId);
   if (!forwarded.ok) return emptyResponse(BAD_REQUEST);

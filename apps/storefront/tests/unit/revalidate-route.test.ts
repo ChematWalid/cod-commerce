@@ -25,7 +25,32 @@ function signedRequest(
     key,
     options.at ?? NOW_SECONDS,
   );
-  return new Request(URL_OF_ROUTE, { method: 'POST', headers, body: options.sentBody ?? body });
+  const sent = options.sentBody ?? body;
+  // The api's revalidator sends Content-Length on the wire; a Request built in a test has to set it itself.
+  const length = String(new TextEncoder().encode(sent).byteLength);
+  return new Request(URL_OF_ROUTE, { method: 'POST', headers: { ...headers, 'content-length': length }, body: sent });
+}
+
+/** A request whose body arrives as chunks with no Content-Length, as with Transfer-Encoding: chunked. */
+function chunkedRequest(chunks: readonly string[], pulled: { count: number }): Request {
+  const encoder = new TextEncoder();
+  let index = 0;
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        const chunk = chunks[index];
+        index += 1;
+        if (chunk === undefined) {
+          controller.close();
+          return;
+        }
+        pulled.count += 1;
+        controller.enqueue(encoder.encode(chunk));
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  return new Request(URL_OF_ROUTE, { method: 'POST', body: stream, duplex: 'half' } as RequestInit);
 }
 
 function setUp() {
@@ -125,6 +150,40 @@ describe('POST /api/internal/revalidate', () => {
     // Assert
     expect(response.status).toBe(404);
     expect(revalidated).toEqual([]);
+  });
+
+  it('refuses a body without Content-Length before reading any of it', async () => {
+    // Arrange
+    const { revalidated, logged, run } = setUp();
+    const pulled = { count: 0 };
+
+    // Act
+    const response = await run(chunkedRequest([bodyOf([STORE_TAG])], pulled));
+
+    // Assert
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('');
+    expect(pulled.count).toBe(0);
+    expect(revalidated).toEqual([]);
+    expect(logged).toEqual(['the body has no content length']);
+  });
+
+  it('stops reading a body that runs past the limit whatever its declared length', async () => {
+    // Arrange
+    const { revalidated, run } = setUp();
+    const chunk = 'x'.repeat(4096);
+    const chunks = Array.from({ length: 64 }, () => chunk);
+    const pulled = { count: 0 };
+    const request = chunkedRequest(chunks, pulled);
+    const lying = new Request(request, { headers: { 'content-length': '10' } });
+
+    // Act
+    const response = await run(lying);
+
+    // Assert
+    expect(response.status).toBe(404);
+    expect(revalidated).toEqual([]);
+    expect(pulled.count).toBeLessThan(chunks.length);
   });
 
   it('answers 404 and logs, without the secret, when the storefront keys are unusable', async () => {

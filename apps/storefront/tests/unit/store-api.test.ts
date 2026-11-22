@@ -146,6 +146,22 @@ describe('same-origin store api', () => {
     expect([broken.status, await broken.text()]).toEqual([502, '']);
   });
 
+  it('answers 502 with an empty body and logs when the store cannot be resolved', async () => {
+    // Arrange
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const resolveStore = vi.fn<StoreApiDeps['resolveStore']>(() => Promise.reject(new Error('api down')));
+    const { deps, fetchUpstream } = depsWith({ resolveStore });
+    const { request, segments } = call('products');
+    // Act
+    const response = await handleStoreApiRequest(request, segments, deps);
+    // Assert
+    expect(response.status).toBe(502);
+    expect(await response.text()).toBe('');
+    expect(fetchUpstream).not.toHaveBeenCalled();
+    expect(errors).toHaveBeenCalledWith(expect.stringContaining('storefront.store_api.upstream_failed'));
+    errors.mockRestore();
+  });
+
   it('sends CF-Connecting-IP as the client ip only when the edge is trusted', async () => {
     // Arrange
     const trusted = depsWith({ trustEdgeIp: () => true });

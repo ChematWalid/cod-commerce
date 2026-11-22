@@ -20,12 +20,43 @@ export interface RevalidateDeps {
 
 const empty = (status: number): Response => new Response(null, { status, headers: { 'cache-control': 'no-store' } });
 
-/** The body as text, or `undefined` when it is larger than {@link REVALIDATE_MAX_BODY_BYTES}. */
-async function cappedBody(request: Request): Promise<string | undefined> {
-  const declared = Number(request.headers.get('content-length') ?? '0');
-  if (declared > REVALIDATE_MAX_BODY_BYTES) return undefined;
-  const bytes = new Uint8Array(await request.arrayBuffer());
-  return bytes.byteLength > REVALIDATE_MAX_BODY_BYTES ? undefined : new TextDecoder().decode(bytes);
+/** Why a body cannot be read, or the body as text. */
+type BodyRead = { readonly ok: true; readonly text: string } | { readonly ok: false; readonly reason: string };
+
+const unreadable = (reason: string): BodyRead => ({ ok: false, reason });
+
+/**
+ * Reads at most {@link REVALIDATE_MAX_BODY_BYTES} of an unverified body. A missing Content-Length (a chunked body) is
+ * refused before anything is read, since the api's revalidator always sends one, and the stream is cancelled as soon
+ * as the running length passes the limit, whatever was declared, so a caller can never make the route buffer more.
+ */
+async function cappedBody(request: Request): Promise<BodyRead> {
+  const declared = request.headers.get('content-length');
+  if (declared === null) return unreadable('the body has no content length');
+  if (Number(declared) > REVALIDATE_MAX_BODY_BYTES) return unreadable('the body is over the limit');
+  if (request.body === null) return { ok: true, text: '' };
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  for (let next = await reader.read(); !next.done; next = await reader.read()) {
+    length += next.value.byteLength;
+    if (length > REVALIDATE_MAX_BODY_BYTES) {
+      await reader.cancel();
+      return unreadable('the body is over the limit');
+    }
+    chunks.push(next.value);
+  }
+  return { ok: true, text: new TextDecoder().decode(concatenated(chunks, length)) };
+}
+
+function concatenated(chunks: readonly Uint8Array[], length: number): Uint8Array {
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 function headersOf(request: Request): Record<string, string | undefined> {
@@ -71,13 +102,13 @@ function tagsOf(body: string): readonly string[] | undefined {
  * (the edge also blocks `/api/internal/*`, P3.S5); a signed call with a malformed body answers an empty 400.
  */
 export async function handleRevalidate(request: Request, deps: RevalidateDeps): Promise<Response> {
-  const body = await cappedBody(request);
-  const refusal = body === undefined ? 'the body is over the limit' : refusalOf(request, body, deps);
-  if (refusal !== undefined || body === undefined) {
+  const read = await cappedBody(request);
+  const refusal = read.ok ? refusalOf(request, read.text, deps) : read.reason;
+  if (refusal !== undefined || !read.ok) {
     deps.refused(refusal ?? 'no body');
     return empty(STATUS_NOT_FOUND);
   }
-  const tags = tagsOf(body);
+  const tags = tagsOf(read.text);
   if (tags === undefined) return empty(STATUS_BAD_REQUEST);
   for (const tag of tags) deps.revalidate(tag);
   return empty(STATUS_OK);
