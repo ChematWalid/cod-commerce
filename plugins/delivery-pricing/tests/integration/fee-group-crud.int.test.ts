@@ -80,6 +80,27 @@ describe('fee-group CRUD over GraphQL', () => {
     expect(updateDeliveryFeeGroup.communeRates).toEqual([expect.objectContaining({ codeOns: 1601, homePrice: 450 })]);
   });
 
+  it('writes back a wilaya row missing from the store, never dropping its rate', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const group = await suite.kit.createGroup('Missing Alger');
+    await suite.kit.query('DELETE FROM "delivery_fee_rate" WHERE "groupId" = $1 AND "provinceCode" = $2', [
+      group.id,
+      '16',
+    ]);
+
+    // Act
+    await suite.kit.gql(UPDATE_GROUP, { id: group.id, input: groupInput('Missing Alger', 450) });
+
+    // Assert
+    const rows = await suite.kit.query<{ provinceCode: string; home: number }>(
+      'SELECT "provinceCode", COALESCE("overrideHome", "baseHome") AS home FROM "delivery_fee_rate" WHERE "groupId" = $1',
+      [group.id],
+    );
+    expect(rows).toHaveLength(WILAYA_COUNT);
+    expect(rows.find((row) => row.provinceCode === '16')?.home).toBe(450);
+  });
+
   it.each([
     ['one rate too few', () => ({ ...groupInput(), rates: groupInput().rates.slice(1) })],
     [

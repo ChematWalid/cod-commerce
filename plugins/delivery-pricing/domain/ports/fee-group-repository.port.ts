@@ -47,7 +47,7 @@ export interface FeeGroupRepositoryPort {
   /** The id of the store's seeded "Platform default prices" group, if it has one. */
   platformDefaultId(ctx: OperationContext, scope: StoreScope): Promise<Snowflake | undefined>;
   insert(ctx: OperationContext, scope: StoreScope, group: NewFeeGroup): Promise<Snowflake>;
-  /** Replaces the group's settings and its wilaya rows; the commune rows stay. */
+  /** Replaces the group's settings and writes each wilaya row given, inserting one the group lacks; commune rows stay. */
   update(
     ctx: OperationContext,
     scope: StoreScope,

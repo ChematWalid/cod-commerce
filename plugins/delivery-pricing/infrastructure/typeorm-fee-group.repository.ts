@@ -117,10 +117,18 @@ export class TypeOrmFeeGroupRepository implements FeeGroupRepositoryPort {
   ): Promise<void> {
     const tenant = requestScope(ctx, scope);
     await this.groups.update(tenant, { ...inStore(scope), id }, { ...change.settings, updatedAt: new Date() });
-    for (const row of change.rates) {
-      const { provinceCode, ...columns } = row;
-      await this.rates.update(tenant, { ...inStore(scope), groupId: id, provinceCode }, columns);
-    }
+    for (const row of change.rates) await this.upsertRate(ctx, scope, id, row);
+  }
+
+  /**
+   * Updates the wilaya row, or inserts it when the group has none, so no rate is silently dropped. The caller holds
+   * the group's `FOR UPDATE` lock, so no other writer can insert the same row between the two statements.
+   */
+  private async upsertRate(ctx: OperationContext, scope: StoreScope, id: Snowflake, row: WilayaRateRow): Promise<void> {
+    const tenant = requestScope(ctx, scope);
+    const { provinceCode, ...columns } = row;
+    const affected = await this.rates.update(tenant, { ...inStore(scope), groupId: id, provinceCode }, columns);
+    if (affected === 0) await this.rates.insert(tenant, { ...inStore(scope), ...wilayaColumnsOf(id, row) });
   }
 
   async delete(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<void> {
