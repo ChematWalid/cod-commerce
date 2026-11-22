@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { GeoPlugin, TOWN_AVAILABILITY_REGISTRAR, TOWN_DIRECTORY, type TownDirectory } from '../../index';
+import {
+  GeoPlugin,
+  GeoProvinceEntity,
+  GeoSeedService,
+  GeoTownEntity,
+  TOWN_AVAILABILITY_REGISTRAR,
+  TOWN_DIRECTORY,
+  type TownDirectory,
+} from '../../index';
 
 /** Nest's module metadata key for `exports`, and Vendure's key for the compatibility range. */
 const EXPORTS_KEY = 'exports';
 const COMPATIBILITY_KEY = 'compatibility';
+const ENTITIES_KEY = 'entities';
 
 describe('GeoPlugin', () => {
   it('declares compatibility ^3.8.0', () => {
@@ -33,5 +42,21 @@ describe('GeoPlugin', () => {
     expect(typeof TOWN_DIRECTORY).toBe('symbol');
     expect(description).toBe('GeoTownDirectory');
     expect(directory.townsOf('16')).toBeInstanceOf(Promise);
+  });
+
+  it('declares the global province and town tables', () => {
+    // Act
+    const entities = Reflect.getMetadata(ENTITIES_KEY, GeoPlugin) as readonly unknown[];
+
+    // Assert
+    expect(entities).toEqual([GeoProvinceEntity, GeoTownEntity]);
+  });
+
+  it('exports the seed service the migrate role converges', () => {
+    // Act
+    const exported = Reflect.getMetadata(EXPORTS_KEY, GeoPlugin) as readonly unknown[];
+
+    // Assert
+    expect(exported).toContain(GeoSeedService);
   });
 });

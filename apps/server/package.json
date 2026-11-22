@@ -16,6 +16,7 @@
     "test:browser": "vitest run --configLoader runner -c vitest.browser.config.ts",
     "migrate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-migrate.ts",
     "seed:demo": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-seed-demo.ts",
+    "seed:geo": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/main-seed-geo.ts",
     "migration:generate": "ROLE=migrate node --env-file-if-exists=.env --conditions=@cod/source -r ts-node/register/transpile-only src/scripts/generate-migration.ts"
   },
   "dependencies": {

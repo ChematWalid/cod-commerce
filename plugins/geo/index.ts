@@ -1,5 +1,10 @@
 export { GeoPlugin } from './geo.plugin';
 
+// The seed the migrate role and `pnpm seed:geo` converge (D3116), and the global tables it writes (D3103).
+export { GeoSeedService, type GeoSeedReport } from './application/geo-seed.service';
+export { GeoProvinceEntity } from './infrastructure/province.entity';
+export { GeoTownEntity } from './infrastructure/town.entity';
+
 // The town availability seam: delivery pricing injects the registrar token and calls `register(source)` on bootstrap.
 export { TOWN_AVAILABILITY_REGISTRAR } from './application/tokens';
 export type {

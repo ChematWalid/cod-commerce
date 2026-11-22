@@ -90,6 +90,8 @@ export const RAW_DATA_ACCESS_FILES = [
   '**/plugins/platform-secrets/infrastructure/retired-kek-scan.ts',
   // `feature_flag` and `feature_flag_override` are platform tables: staff-managed configuration with no owner (D108, D116).
   '**/plugins/platform-flags/infrastructure/typeorm-flag-store.ts',
+  // `geo_province` and `geo_town` are global reference tables with no tenant: the seed upserts them (D3103, D3116).
+  '**/plugins/geo/infrastructure/typeorm-geo-seed.store.ts',
   // Hands the raw connection to the two readiness probes below; it runs no query itself.
   '**/plugins/platform-health/platform-health.plugin.ts',
   // Runs only `SELECT 1`: no table at all.

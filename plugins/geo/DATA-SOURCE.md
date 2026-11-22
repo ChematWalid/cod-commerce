@@ -17,7 +17,7 @@
 1. **69 wilayas.** The source still uses the 48-wilaya layout.
    - The communes of the ten wilayas created in 2019 (49 Timimoun to 58 El Meniaa) move to their own province. The lists are in `NEW_PROVINCE_COMMUNES`.
    - The 108 communes of the eleven wilayas created by law 26-06 (59 Aflou to 69 El Abiodh Sidi Cheikh, articles 52 bis 10–20) move as well. The lists are in `LAW_26_06_COMMUNES`, decision D3123.
-   - A moved commune keeps its ONS code: Timimoun is still `109` with `provinceCode: '49'`, and Bou Saada is still `2807` with `provinceCode: '68'` (decision D3104).
+   - A moved commune keeps its ONS code: Timimoun is still `109` with `provinceCode: '49'`, and Bou Saada is still `2820` with `provinceCode: '68'` (decisions D3104, D3129).
    - The 2026 lists were built by `scripts/geo/match-law-26-06.mjs`. It matched every JO name to a unique commune of its former wilaya. Each non-exact match was reviewed by hand; they were all spelling variants, such as "Abdelkader Azil" for `515 Azil Abedelkader`, or "Deux Bassins" for `2653 El Haoudane` (that wilaya keeps it).
    - The build re-checks every rewritten wilaya's count against its article.
 2. **Six missing communes.** The source's El Bayadh dairas are shifted, and 3207, 3208, 3213, 3218, 3220 and 3221 are missing. `PATCHED_COMMUNES` adds them with their ONS names.

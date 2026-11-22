@@ -6,6 +6,7 @@ import {
   RbacConvergeService,
   SESSION_FLUSH_SETTLE_MS,
 } from '@cod/plugin-rbac';
+import { GeoSeedService } from '@cod/plugin-geo';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
 import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import {
@@ -196,10 +197,16 @@ async function seedFlags(app: INestApplicationContext): Promise<void> {
   await app.get(FlagSeedService).converge();
 }
 
+/** Upserts every wilaya and commune of the geo seed; rows that left the seed stay, orders reference them (D3116). */
+async function seedGeo(app: INestApplicationContext): Promise<void> {
+  await app.get(GeoSeedService).converge();
+}
+
 /**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
- * queue to seed the platform defaults, converge the roles of existing businesses and then their members, and maintain the partitions.
+ * queue to seed the platform defaults, converge the roles of existing businesses and then their members, maintain the
+ * partitions, and converge the flags and the geo seed.
  * Concurrent runs are serialised, so each migration applies once; one that cannot get the lock in time throws
  * {@link MigrationLockTimeoutError}.
  */
@@ -213,6 +220,7 @@ export async function runMigrate(env: AppEnv, options: { lockWaitMs?: number } =
       const teamConverged = await convergeMembers(worker.app);
       await maintainPartitions(worker.app);
       await seedFlags(worker.app);
+      await seedGeo(worker.app);
       return { migrationsRun, seed, rbacConverged, teamConverged };
     } finally {
       await worker.app.close();

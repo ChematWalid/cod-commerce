@@ -40,3 +40,15 @@ export const ARABIC_YAA = 'ي';
  * separator in a folded name.
  */
 export const NAME_SEPARATORS = /[\s\-'’‘`.]+/g;
+
+/** A wilaya code is two digits, `'01'` to the last `WilayaCode`: the `geo_province` key length. */
+export const WILAYA_CODE_LENGTH = 2;
+
+/** The longest place name a geo column holds; the seed's longest is far shorter. */
+export const PLACE_NAME_MAX_LENGTH = 100;
+
+/** Rows per multi-row upsert of the seed: 7 bound values a town keeps a chunk far under Postgres's 65,535 limit. */
+export const GEO_SEED_CHUNK_SIZE = 500;
+
+/** The log context of the geo plugin. */
+export const GEO_LOG_CONTEXT = 'geo';
