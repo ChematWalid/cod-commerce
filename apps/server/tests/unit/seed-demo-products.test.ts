@@ -1,6 +1,8 @@
+import { DemoCatalogSeedService, type DemoSeedExtras, demoCollectionsFor } from '@cod/plugin-catalog';
+import { DemoCollectionSeedService, type DemoCollectionInput } from '@cod/plugin-collections-rules';
 import { type BusinessId, toBusinessId, toStoreId } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
-import { ChannelService, type RequestContext } from '@vendure/core';
+import { ChannelService, type RequestContext, RequestContextService } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 import {
   DemoStoreChannelMissingError,
@@ -87,5 +89,45 @@ describe('demoProductSeedPorts', () => {
     // Assert
     await expect(seeding).rejects.toBeInstanceOf(DemoStoreChannelMissingError);
     await expect(seeding).rejects.toThrow('The demo store channel 11 does not exist');
+  });
+
+  it('seeds the demo collections first, then the products with their images and those collections', async () => {
+    // Arrange
+    const asked: { collections?: readonly DemoCollectionInput[]; language?: string; extras?: DemoSeedExtras } = {};
+    const collectionSeed = {
+      ensureManual: (_ctx: unknown, _scope: unknown, inputs: readonly DemoCollectionInput[]) => {
+        asked.collections = inputs;
+        return Promise.resolve({ idsBySlug: new Map([['malabis', '41']]), created: ['malabis'] });
+      },
+    };
+    const catalogSeed = {
+      seedStore: (_ctx: unknown, _scope: unknown, language: string, extras: DemoSeedExtras) => {
+        asked.language = language;
+        asked.extras = extras;
+        return Promise.resolve(['DEMO-TEE']);
+      },
+    };
+    const services = new Map<unknown, unknown>([
+      [ChannelService, { findOne: () => Promise.resolve({ id: 11 }) }],
+      [RequestContextService, { create: () => Promise.resolve({ channel: { defaultLanguageCode: 'ar' } }) }],
+      [DemoCollectionSeedService, collectionSeed],
+      [DemoCatalogSeedService, catalogSeed],
+    ]);
+    const app = { get: (token: unknown) => services.get(token) } as unknown as INestApplicationContext;
+    const ports = demoProductSeedPorts(app, {} as RequestContext, () => Promise.resolve(undefined));
+
+    // Act
+    const created = await ports.seedStore({
+      businessId: toBusinessId('101'),
+      store: { id: toStoreId('1001'), channelId: 11 },
+    });
+
+    // Assert
+    expect(created).toEqual(['malabis', 'DEMO-TEE']);
+    expect(asked.collections?.map(({ slug }) => slug)).toEqual(demoCollectionsFor('ar').map(({ slug }) => slug));
+    expect(asked.language).toBe('ar');
+    expect(asked.extras?.collectionIdOf?.('apparel')).toBe('41');
+    expect(asked.extras?.collectionIdOf?.('home')).toBeUndefined();
+    expect([...(asked.extras?.imageOf?.('#000000') ?? []).slice(1, 4)]).toEqual([0x50, 0x4e, 0x47]);
   });
 });

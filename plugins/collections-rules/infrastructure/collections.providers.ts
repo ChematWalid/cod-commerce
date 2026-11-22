@@ -4,6 +4,7 @@ import type { CollectionPorts } from '../application/collection-ports';
 import { CollectionMembershipQueries } from '../application/collection-membership-queries.service';
 import { CollectionProductsService } from '../application/collection-products.service';
 import { CreateCollectionService } from '../application/create-collection.service';
+import { DemoCollectionSeedService } from '../application/demo-collection-seed.service';
 import { DeleteCollectionService } from '../application/delete-collection.service';
 import { GetCollectionService } from '../application/get-collection.service';
 import { ListCollectionsService } from '../application/list-collections.service';
@@ -150,6 +151,8 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   // Saves recompute through the save-time service: over the sync cap it queues the store reconcile (D2312).
   savingUseCase(CreateCollectionService),
   savingUseCase(UpdateCollectionService),
+  // The server's demo seed gives the demo stores their collections (P3.S2).
+  savingUseCase(DemoCollectionSeedService),
   useCase(DeleteCollectionService),
   useCase(ListCollectionsService),
   useCase(GetCollectionService),
@@ -177,5 +180,9 @@ export const COLLECTIONS_PROVIDERS: Provider[] = [
   OffersCollectionMembershipSource,
 ];
 
-/** What the plugin module exports to other plugins, through `index.ts` (D2316, D2317). */
-export const COLLECTIONS_EXPORTS = [CatalogCollectionsReadService, CollectionMembershipQueries];
+/** What the plugin module exports to other plugins and the server's demo seed, through `index.ts` (D2316, D2317). */
+export const COLLECTIONS_EXPORTS = [
+  CatalogCollectionsReadService,
+  CollectionMembershipQueries,
+  DemoCollectionSeedService,
+];

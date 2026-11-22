@@ -57,7 +57,7 @@ const matrixParts = (workflow: Workflow): MatrixPart[] =>
 const gateScript = (workflow: Workflow): string => stepsRun(jobOf(workflow, 'build-test')).join('\n');
 
 describe('ci.yml', () => {
-  it('has the seven work jobs and the build-test gate', () => {
+  it('has the eight work jobs and the build-test gate', () => {
     expect(Object.keys(ci.jobs).sort()).toEqual([
       'build',
       'build-test',
@@ -65,6 +65,7 @@ describe('ci.yml', () => {
       'integration',
       'lint',
       'stack',
+      'storefront-smoke',
       'typecheck',
       'unit',
     ]);
@@ -74,15 +75,11 @@ describe('ci.yml', () => {
     const gate = jobOf(ci, 'build-test');
 
     expect(gate.name).toBe('build-test');
-    expect([...(gate.needs ?? [])].sort()).toEqual([
-      'build',
-      'data-services',
-      'integration',
-      'lint',
-      'stack',
-      'typecheck',
-      'unit',
-    ]);
+    expect([...(gate.needs ?? [])].sort()).toEqual(
+      Object.keys(ci.jobs)
+        .filter((name) => name !== 'build-test')
+        .sort(),
+    );
     expect(gate.if).toBe('always()');
     expect(gate.env?.['GH_TOKEN']).toBe('${{ github.token }}');
   });

@@ -1,8 +1,16 @@
-import { asCatalogOperationContext, DemoCatalogSeedService } from '@cod/plugin-catalog';
+import {
+  asCatalogOperationContext,
+  DemoCatalogSeedService,
+  type DemoCollectionKey,
+  type DemoCollectionSpec,
+  demoCollectionsFor,
+} from '@cod/plugin-catalog';
+import { asCollectionsOperationContext, DemoCollectionSeedService } from '@cod/plugin-collections-rules';
 import { asOperationContext, BusinessStoreDirectory } from '@cod/plugin-tenancy';
 import { type BusinessId, type StoreId, toBusinessId } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
 import { ChannelService, type RequestContext, RequestContextService } from '@vendure/core';
+import { demoImagePng } from './demo-image';
 
 /** A demo store's channel is gone: the seed cannot write its catalog anywhere, so the run stops. */
 export class DemoStoreChannelMissingError extends Error {
@@ -30,7 +38,7 @@ export interface DemoProductSeedPorts {
   businessOf(ownerEmail: string): Promise<string | undefined>;
   /** Every store of the business, in any order. */
   storesOf(businessId: BusinessId): Promise<readonly DemoStore[]>;
-  /** Seeds the store and returns the SKUs it created. */
+  /** Seeds the store and returns the collection slugs and SKUs it created. */
   seedStore(target: DemoStoreTarget): Promise<readonly string[]>;
 }
 
@@ -40,10 +48,10 @@ function firstStoreOf(stores: readonly DemoStore[]): DemoStore | undefined {
 }
 
 /**
- * Gives the first store of each demo business its five synthetic products (D2129). The catalog skips what a store
- * already holds, so a second run creates nothing.
+ * Gives the first store of each demo business its two demo collections and ten synthetic products with images (D2129,
+ * P3.S2). The catalog and the collections skip what a store already holds, so a second run creates nothing.
  *
- * @returns the SKUs it created, in business order
+ * @returns the collection slugs and SKUs it created, in business order
  */
 export async function seedDemoProducts(
   ports: DemoProductSeedPorts,
@@ -71,6 +79,37 @@ async function storeContext(
   return app.get(RequestContextService).create({ apiType: 'admin', channelOrToken: channel });
 }
 
+/** The id of each demo collection key, from the ids the collection seed answered by slug. */
+function collectionIdsByKey(
+  specs: readonly DemoCollectionSpec[],
+  idsBySlug: ReadonlyMap<string, string>,
+): (key: DemoCollectionKey) => string | undefined {
+  const byKey = new Map(specs.map((spec) => [spec.key, idsBySlug.get(spec.slug)]));
+  return (key) => byKey.get(key);
+}
+
+/**
+ * The demo collections, then the products in them with their images, in the store channel of `storeCtx` and in the
+ * store's language (D2112): a product names its collections by id, so they must exist first.
+ */
+async function seedStoreCatalog(
+  app: INestApplicationContext,
+  storeCtx: RequestContext,
+  scope: { readonly businessId: BusinessId; readonly storeId: StoreId },
+): Promise<readonly string[]> {
+  const language = storeCtx.channel.defaultLanguageCode;
+  const specs = demoCollectionsFor(language);
+  const inputs = specs.map(({ title, slug, position }) => ({ title, slug, position }));
+  const collections = await app
+    .get(DemoCollectionSeedService)
+    .ensureManual(asCollectionsOperationContext(storeCtx), scope, inputs);
+  const extras = { imageOf: demoImagePng, collectionIdOf: collectionIdsByKey(specs, collections.idsBySlug) };
+  const skus = await app
+    .get(DemoCatalogSeedService)
+    .seedStore(asCatalogOperationContext(storeCtx), scope, language, extras);
+  return [...collections.created, ...skus];
+}
+
 /** {@link DemoProductSeedPorts} on the running server; `businessOf` is the business seed's own owner lookup. */
 export function demoProductSeedPorts(
   app: INestApplicationContext,
@@ -82,9 +121,7 @@ export function demoProductSeedPorts(
     storesOf: (businessId) => app.get(BusinessStoreDirectory).storesOf(asOperationContext(ctx), businessId),
     seedStore: async ({ businessId, store }) => {
       const storeCtx = await storeContext(app, ctx, store.channelId);
-      const scope = { businessId, storeId: store.id };
-      const language = storeCtx.channel.defaultLanguageCode;
-      return app.get(DemoCatalogSeedService).seedStore(asCatalogOperationContext(storeCtx), scope, language);
+      return seedStoreCatalog(app, storeCtx, { businessId, storeId: store.id });
     },
   };
 }
