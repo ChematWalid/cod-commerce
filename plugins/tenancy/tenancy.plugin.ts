@@ -3,6 +3,7 @@ import { Logger, PluginCommonModule, type RuntimeVendureConfig, VendurePlugin } 
 import { Redis } from 'ioredis';
 import { platformStaffPermission, tenantBusinessPermission, tenantStorePermission } from './api/permissions';
 import { TenantGuard } from './api/tenant.guard';
+import { StorefrontStoreGuard } from './api/storefront-store.guard';
 import { RequestStoreSettings } from './api/request-store-settings';
 import { BusinessResolver } from './api/business.resolver';
 import { BusinessLogoUrlResolver, StoreLogoUrlResolver } from './api/logo-url.resolver';
@@ -35,6 +36,7 @@ import {
   PLATFORM_STORE,
   STORE_ADMIN_PORTS,
   STORE_HOST_INVALIDATOR,
+  STOREFRONT_CONTEXTS,
   TENANCY_PORTS,
   TENANT_LIFECYCLE,
   TENANT_LIFECYCLE_REGISTRAR,
@@ -61,6 +63,7 @@ import { hostResolutionProviders } from './infrastructure/host-resolution.provid
 import { StoreEntity } from './infrastructure/store.entity';
 import { TenantStoreSettingsReader } from './infrastructure/store-settings-reader.adapter';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
+import { VendureStorefrontContexts } from './infrastructure/storefront-store-contexts';
 import { OrderNumberService } from './infrastructure/order-number.service';
 import { TenantRepositoryFactory } from './infrastructure/tenant-repository';
 import { TenantStoresAdapter } from './infrastructure/tenant-stores.adapter';
@@ -168,6 +171,9 @@ const STORE_USE_CASES = [
     TenantContextResolver,
     { provide: TENANT_CONTEXT_RESOLVER, useExisting: TenantContextResolver },
     TenantGuard,
+    VendureStorefrontContexts,
+    { provide: STOREFRONT_CONTEXTS, useExisting: VendureStorefrontContexts },
+    StorefrontStoreGuard,
     TenantRepositoryFactory,
     OrderNumberService,
     TenantTransaction,
@@ -233,6 +239,9 @@ const STORE_USE_CASES = [
     // business, jobs through the business they were enqueued for.
     RequestStoreSettings,
     StoreSettingsReader,
+    // The storefront API reads as the signed store (P3.S2, D3201): the guard runs in its module, so its port goes too.
+    StorefrontStoreGuard,
+    STOREFRONT_CONTEXTS,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
     TenantContextResolver,

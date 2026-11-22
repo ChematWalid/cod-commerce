@@ -1,5 +1,6 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { storefrontStoreSchema } from '@cod/shared';
 import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
 import { TransactionalConnection } from '@vendure/core';
 import { Redis } from 'ioredis';
@@ -11,7 +12,20 @@ import { ARCHIVE_STORE, CREATE_STORE, type StoreView } from './admin-api-operati
 import { actAsOwner } from './admin-api-session';
 import { provisionBusiness, TEST_REDIS_URL, tenancyTestPlugins, UPDATE_GLOBAL_LANGUAGES } from './tenant-fixtures';
 
-const FIELD_SET = ['businessId', 'language', 'logo', 'name', 'primaryHost', 'status', 'storeId'];
+const FIELD_SET = [
+  'businessId',
+  'description',
+  'direction',
+  'language',
+  'logo',
+  'logoPath',
+  'name',
+  'primaryHost',
+  'showAddressField',
+  'soldOutBehavior',
+  'status',
+  'storeId',
+];
 const CACHED_HOSTS = [
   'demo.localhost',
   'other.localhost',
@@ -72,10 +86,16 @@ describe('store resolution over REST', () => {
       businessId: demo.business.id,
       language: 'ar',
       name: 'demo store',
+      description: '',
       logo: null,
+      logoPath: null,
+      direction: 'rtl',
       primaryHost: 'demo.localhost',
+      showAddressField: true,
+      soldOutBehavior: 'keep',
       status: 'active',
     });
+    expect(storefrontStoreSchema.safeParse(body).success).toBe(true);
   });
 
   it('keeps each business on its own host', async () => {

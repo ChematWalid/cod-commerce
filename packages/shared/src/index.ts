@@ -30,6 +30,7 @@ export * from './flags';
 export * from './team';
 export * from './tenancy/tenant-key';
 export * from './tenancy/sold-out-behavior';
+export * from './tenancy/store-changed';
 export * from './text/control-characters';
 export * from './text/normalize-for-search';
 export * from './text/search-normal-cases';

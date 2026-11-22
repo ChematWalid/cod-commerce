@@ -7,8 +7,13 @@ const value = (name: string): StoreResolution => ({
   businessId: '2',
   language: 'ar',
   name,
+  description: '',
   logo: null,
+  logoPath: null,
+  direction: 'rtl',
   primaryHost: `${name}.localhost`,
+  showAddressField: true,
+  soldOutBehavior: 'keep',
   status: 'active',
 });
 

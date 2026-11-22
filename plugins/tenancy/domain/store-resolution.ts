@@ -1,31 +1,42 @@
-import { normalizeHost, type NormalizedHost } from '@cod/shared';
+import {
+  normalizeHost,
+  type NormalizedHost,
+  type PlatformLanguageCode,
+  type SoldOutBehavior,
+  type StorefrontDirection,
+  storefrontStoreSchema,
+} from '@cod/shared';
 import { HOST_MAX_LENGTH } from './constants';
 
-/** What a buyer-facing client learns about the store behind a host. */
+/**
+ * What a buyer-facing client learns about the store behind a host: the shared `StorefrontStore` contract (D3203),
+ * plus `logo`, the old name of `logoPath`, kept for one release. Never the channel, seller or subdomain row.
+ */
 export interface StoreResolution {
   readonly storeId: string;
   readonly businessId: string;
-  readonly language: string;
+  readonly language: PlatformLanguageCode;
   readonly name: string;
-  /** The asset's `preview` URL. */
+  readonly description: string;
+  /** The asset's `preview` storage path, never a URL; same value as `logoPath`. */
   readonly logo: string | null;
+  readonly logoPath: string | null;
+  readonly direction: StorefrontDirection;
   readonly primaryHost: string;
+  readonly showAddressField: boolean;
+  readonly soldOutBehavior: SoldOutBehavior;
   readonly status: 'active';
 }
 
-const isString = (value: unknown): value is string => typeof value === 'string';
-
 /**
  * True when `value` has the shape of a {@link StoreResolution}. A cached entry is data from outside the process
- * (another version, another tool, a bad write), so it is checked before it is trusted (TEN-11).
+ * (another version, another tool, a bad write), so it is checked before it is trusted (TEN-11); an entry of an
+ * older shape fails too, and is read again from the database (D3203).
  */
 export function isStoreResolution(value: unknown): value is StoreResolution {
-  if (typeof value !== 'object' || value === null) return false;
-  const entry = value as Record<string, unknown>;
-  const textFields = [entry['storeId'], entry['businessId'], entry['language'], entry['name'], entry['primaryHost']];
-  return (
-    textFields.every(isString) && (entry['logo'] === null || isString(entry['logo'])) && entry['status'] === 'active'
-  );
+  if (!storefrontStoreSchema.safeParse(value).success) return false;
+  const { logo, logoPath } = value as Record<string, unknown>;
+  return logo === logoPath;
 }
 
 const DNS_HOST = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;

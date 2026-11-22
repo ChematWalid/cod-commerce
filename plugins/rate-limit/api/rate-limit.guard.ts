@@ -7,7 +7,10 @@ import { ClientIpResolver } from './client-ip.resolver';
 import { RATE_LIMIT_METADATA } from './rate-limit.metadata';
 import { RateLimitedError } from './rate-limited.error';
 
-/** Takes a token for the policy named by `@RateLimit`, keyed by the client's address, and refuses when none is left. */
+/**
+ * Takes a token for the policy named by `@RateLimit`, keyed by the client's address, and refuses when none is left.
+ * A signed storefront render that names no buyer takes it from its signing key's `storefront-render` bucket (D3213).
+ */
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   constructor(
@@ -22,7 +25,8 @@ export class RateLimitGuard implements CanActivate {
       return true;
     }
     const { req } = parseContext(context);
-    const decision = await this.limiter.consume(policy, this.clientIps.resolve(req));
+    const limit = this.clientIps.limitKeyOf(req, policy);
+    const decision = await this.limiter.consume(limit.policy, limit.key);
     if (!decision.allowed) {
       throw new RateLimitedError(decision.retryAfterSeconds);
     }

@@ -160,9 +160,13 @@ export class PlatformStoreLookup extends BusinessStoreDirectory implements Platf
       .leftJoin(Asset, 'asset', 'asset.id = store.logoAssetId')
       .select('store.id', 'storeId')
       .addSelect('store.businessId', 'businessId')
+      .addSelect('store.channelId', 'channelId')
       .addSelect('store.language', 'language')
       .addSelect('store.name', 'name')
+      .addSelect('store.description', 'description')
       .addSelect('store.subdomain', 'subdomain')
+      .addSelect('store.showAddressField', 'showAddressField')
+      .addSelect('store.soldOutBehavior', 'soldOutBehavior')
       .addSelect('asset.preview', 'logo')
       .where('store.status = :storeStatus', { storeStatus: 'active' })
       .andWhere('business.status = :businessStatus', { businessStatus: 'active' });

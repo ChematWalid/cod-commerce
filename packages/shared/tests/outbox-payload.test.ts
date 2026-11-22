@@ -26,6 +26,7 @@ describe('OUTBOX_TOPICS', () => {
       'offer.applied',
       'platform.demo',
       'collection.changed',
+      'store.changed',
     ]);
   });
 

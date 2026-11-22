@@ -37,6 +37,7 @@ describe('RATE_LIMIT_POLICIES', () => {
       'catalog-bulk-edit-actor': [120, 3600],
       'catalog-bulk-edit-business': [600, 3600],
       'catalog-pack-preview-actor': [600, 3600],
+      'storefront-render': [6000, 60],
     });
   });
 
@@ -45,7 +46,7 @@ describe('RATE_LIMIT_POLICIES', () => {
       .filter(([, policy]) => policy.outage === 'open')
       .map(([name]) => name);
 
-    expect(failOpen.sort()).toEqual(['register-ip', 'subdomain-ip']);
+    expect(failOpen.sort()).toEqual(['register-ip', 'storefront-render', 'subdomain-ip']);
   });
 });
 

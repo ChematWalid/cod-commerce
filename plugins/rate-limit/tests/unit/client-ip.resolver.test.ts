@@ -105,3 +105,60 @@ describe('ClientIpResolver', () => {
     expect(ip).toBe('unknown');
   });
 });
+
+describe('ClientIpResolver with a signed storefront request (D3213)', () => {
+  const signed = (internalAuth: { kid: string; clientIp?: string }, ip = '10.0.0.7') => ({
+    ip,
+    headers: { 'cf-connecting-ip': '198.51.100.200' },
+    internalAuth,
+  });
+
+  it('keys two buyers the signature named by their own addresses, not the storefront’s', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const first = resolver.limitKeyOf(signed({ kid: 'k1', clientIp: '203.0.113.10' }), 'subdomain-ip');
+    const second = resolver.limitKeyOf(signed({ kid: 'k1', clientIp: '2001:db8:1:2::9' }), 'subdomain-ip');
+
+    // Assert
+    expect(first).toEqual({ policy: 'subdomain-ip', key: '203.0.113.10' });
+    expect(second).toEqual({ policy: 'subdomain-ip', key: '2001:db8:1:2::/64' });
+  });
+
+  it('resolves a signed client address before the configured header and req.ip', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const ip = resolver.resolve(signed({ kid: 'k1', clientIp: '203.0.113.10' }));
+
+    // Assert
+    expect(ip).toBe('203.0.113.10');
+  });
+
+  it.each([
+    ['no client address', { kid: 'k2' }],
+    ['a client address that is not one', { kid: 'k2', clientIp: 'not-an-ip' }],
+  ])('keys a signed request with %s by its key id under storefront-render', (_label, auth) => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const limit = resolver.limitKeyOf(signed(auth), 'subdomain-ip');
+
+    // Assert
+    expect(limit).toEqual({ policy: 'storefront-render', key: 'internal:k2' });
+  });
+
+  it('keeps req.ip and the handler policy for an unsigned request', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('');
+
+    // Act
+    const limit = resolver.limitKeyOf(request('203.0.113.5'), 'subdomain-ip');
+
+    // Assert
+    expect(limit).toEqual({ policy: 'subdomain-ip', key: '203.0.113.5' });
+  });
+});
