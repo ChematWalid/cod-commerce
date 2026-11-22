@@ -6,7 +6,7 @@ Detail per screen (fields, columns, dialogs, endpoints): [research/dashboard-cap
 Legend: **C** = Core, **S** = Secondary, **I** = Integration (external service). Checkbox = implemented and verified in our clone.
 Routes are relative to `/[locale]/dashboard/:businessId`. `S:` = `/stores/:storeId`.
 
-Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) → 1..n Stores (storefront on `<sub>.tassyir.io` or a custom domain). Algerian cash-on-delivery: 58 wilayas → communes, home vs stop-desk delivery, DZD. Dashboard in EN/AR (RTL); storefront in AR/FR/EN. The same Next.js app serves the dashboard and the storefronts (by host).
+Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) → 1..n Stores (storefront on `<sub>.tassyir.io` or a custom domain). Algerian cash-on-delivery: 69 wilayas (58 until law 26-06 of April 2026) → communes, home vs stop-desk delivery, DZD. Dashboard in EN/AR (RTL); storefront in AR/FR/EN. The same Next.js app serves the dashboard and the storefronts (by host).
 
 ---
 
@@ -102,7 +102,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Carrier accounts list (agent, system, status), edit, refund rates, delete | C | `/delivery` |
 | [ ] | Connect carrier from catalogue: Yalidine platform (Yalidine, Economiqua, Goupex, WeCan…), Ecotrack platform (DHD, Anderson, TSL, Navex, 48HR…), Maystro, ZR Express, NOEST, Elogistia, Ecom Delivery, Zimou, Osen; Private Courier | I | adapter per "system" |
 | [ ] | Multiple accounts per carrier; choose carrier per order; default per store | C | |
-| [ ] | Delivery pricing options: name, carrier, overweight charge, per-wilaya home and stop-desk prices for 58 wilayas, apply-to-all, per-wilaya delivery toggle, overrides, sync defaults from carrier | C | `/delivery?tab=pricing` |
+| [ ] | Delivery pricing options: name, carrier, overweight charge, per-wilaya home and stop-desk prices for 58 wilayas (69 since law 26-06), apply-to-all, per-wilaya delivery toggle, overrides, sync defaults from carrier | C | `/delivery?tab=pricing` |
 | [ ] | Dispatch to carrier API, tracking number back, carrier rejection reason | I | |
 | [ ] | Status sync from carriers (webhook/polling) | I | |
 | [ ] | Carrier cash collection and payouts tracking | C | finance |

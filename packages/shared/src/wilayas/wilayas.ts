@@ -1,5 +1,5 @@
-/** Number of Algerian wilayas (provinces) since the 2019 reform. */
-export const WILAYA_COUNT = 58;
+/** Number of Algerian wilayas (provinces) since law 26-06 of 4 April 2026 (JO 25/2026): 69 (D3123). */
+export const WILAYA_COUNT = 69;
 
 /** Official two-digit wilaya codes, in order. */
 export const WILAYA_CODES = [
@@ -61,9 +61,20 @@ export const WILAYA_CODES = [
   '56',
   '57',
   '58',
+  '59',
+  '60',
+  '61',
+  '62',
+  '63',
+  '64',
+  '65',
+  '66',
+  '67',
+  '68',
+  '69',
 ] as const satisfies readonly string[] & { length: typeof WILAYA_COUNT };
 
-/** A two-digit wilaya code, `'01'` to `'58'`. */
+/** A two-digit wilaya code, `'01'` to `'69'`. */
 export type WilayaCode = (typeof WILAYA_CODES)[number];
 
 /** Display names of a wilaya. */
@@ -138,6 +149,17 @@ const WILAYA_NAMES: Readonly<Record<WilayaCode, WilayaNames>> = {
   '56': { ar: 'جانت', fr: 'Djanet' },
   '57': { ar: 'المغير', fr: "El M'Ghair" },
   '58': { ar: 'المنيعة', fr: 'El Meniaa' },
+  '59': { ar: 'أفلو', fr: 'Aflou' },
+  '60': { ar: 'بريكة', fr: 'Barika' },
+  '61': { ar: 'القنطرة', fr: 'El Kantara' },
+  '62': { ar: 'بئر العاتر', fr: 'Bir El Ater' },
+  '63': { ar: 'العريشة', fr: 'El Aricha' },
+  '64': { ar: 'قصر الشلالة', fr: 'Ksar Chellala' },
+  '65': { ar: 'عين وسارة', fr: 'Aïn Ouessara' },
+  '66': { ar: 'مسعد', fr: 'Messaad' },
+  '67': { ar: 'قصر البخاري', fr: 'Ksar El Boukhari' },
+  '68': { ar: 'بوسعادة', fr: 'Bou Saâda' },
+  '69': { ar: 'الأبيض سيدي الشيخ', fr: 'El Abiodh Sidi Cheikh' },
 };
 
 /**
@@ -147,7 +169,7 @@ const WILAYA_NAMES: Readonly<Record<WilayaCode, WilayaNames>> = {
  */
 export const WILAYAS: readonly Wilaya[] = WILAYA_CODES.map((code) => ({ code, names: WILAYA_NAMES[code] }));
 
-/** Narrows a string to a {@link WilayaCode}; `'7'` and `'59'` are rejected. */
+/** Narrows a string to a {@link WilayaCode}; `'7'` and `'70'` are rejected. */
 export function isWilayaCode(value: string): value is WilayaCode {
   return (WILAYA_CODES as readonly string[]).includes(value);
 }
@@ -157,7 +179,7 @@ const WILAYA_CODE_PARAM = /^\d{1,2}$/;
 
 /**
  * Reads a wilaya code from a path parameter: `'16'`, `'1'` and `'01'` give `'16'`, `'01'` and `'01'` (D3115). Anything
- * else (`'0'`, `'59'`, `'016'`, `'1.5'`, `'abc'`) gives `null`, which the API answers as "province not found".
+ * else (`'0'`, `'70'`, `'016'`, `'1.5'`, `'abc'`) gives `null`, which the API answers as "province not found".
  */
 export function parseWilayaCodeParam(param: string): WilayaCode | null {
   if (!WILAYA_CODE_PARAM.test(param)) return null;

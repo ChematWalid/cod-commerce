@@ -57,7 +57,7 @@ const feeGroupFields = {
   overweightRate: boundedIntSchema(MAX_OVERWEIGHT_RATE),
 };
 
-/** A whole fee group as the merchant creates or saves it: exactly one rate for each of the 58 wilayas. */
+/** A whole fee group as the merchant creates or saves it: exactly one rate for each wilaya (`WILAYA_COUNT`). */
 export const deliveryFeeGroupInputSchema = z.object(
   {
     ...feeGroupFields,
@@ -81,7 +81,7 @@ export const deliveryFeeRateSchema = deliveryFeeRateInputSchema.extend({
 /** One wilaya of a stored fee group. */
 export type DeliveryFeeRate = z.output<typeof deliveryFeeRateSchema>;
 
-/** A stored fee group ("pricing option") of a store, with its 58 rates; dates are ISO 8601 strings. */
+/** A stored fee group ("pricing option") of a store, with one rate per wilaya; dates are ISO 8601 strings. */
 export const deliveryFeeGroupSchema = z.object({
   ...feeGroupFields,
   id: z.string(),

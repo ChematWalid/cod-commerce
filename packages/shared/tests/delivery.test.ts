@@ -7,6 +7,7 @@ import {
   MAX_OVERWEIGHT_ALLOWANCE_KG,
   MAX_OVERWEIGHT_RATE,
   WILAYA_CODES,
+  WILAYA_COUNT,
   deliveryFeeGroupInputSchema,
   deliveryFeeGroupSchema,
   shippingQuoteSchema,
@@ -47,10 +48,10 @@ describe('constants', () => {
 });
 
 describe('deliveryFeeGroupInputSchema', () => {
-  it('accepts a group with one rate for each of the 58 wilayas', () => {
+  it('accepts a group with one rate for each wilaya', () => {
     const parsed = deliveryFeeGroupInputSchema.parse(validInput());
 
-    expect(parsed.rates).toHaveLength(58);
+    expect(parsed.rates).toHaveLength(WILAYA_COUNT);
     expect(parsed.carrierId).toBeNull();
   });
 
@@ -77,7 +78,7 @@ describe('deliveryFeeGroupInputSchema', () => {
     expect(issuesOf({ ...validInput(), rates })).toEqual([]);
   });
 
-  it('refuses fewer or more than 58 rates', () => {
+  it('refuses fewer or more rates than wilayas', () => {
     expect(issuesOf({ ...validInput(), rates: allRates().slice(1) })).not.toEqual([]);
     expect(issuesOf({ ...validInput(), rates: [...allRates(), rateOf('16')] })).not.toEqual([]);
   });
@@ -89,7 +90,7 @@ describe('deliveryFeeGroupInputSchema', () => {
   });
 
   it('refuses an unknown wilaya code', () => {
-    const rates = allRates().map((rate, index) => (index === 0 ? rateOf('59') : rate));
+    const rates = allRates().map((rate, index) => (index === 0 ? rateOf('70') : rate));
 
     expect(issuesOf({ ...validInput(), rates })).not.toEqual([]);
   });

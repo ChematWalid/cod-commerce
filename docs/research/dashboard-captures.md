@@ -22,7 +22,7 @@ Home · Orders (Customers, Spam) · Tracking (Returns) · Products (Collections,
 ## Orders `/orders`
 - Buttons: Create Order, Watch Tutorial, Export, Dispatch Orders, Assign Orders, Change Status (bulk), Ask Tassya about your orders.
 - Tabs: All, To confirm, Callbacks, Ready to ship (with counts). Date preset "Today".
-- Filters: Store, Status, Stock (All / Short on stock), Date (Last 24h, 7/30/90 days, 1 year, calendar range), Wilaya (58), Product (picker with variants), Assignee, Delivery Type (Stopdesk / Home), Duplicates (All / Only / Hide), Offer, Code (promo code), Has discount, Item Count (range).
+- Filters: Store, Status, Stock (All / Short on stock), Date (Last 24h, 7/30/90 days, 1 year, calendar range), Wilaya (58 as captured; 69 since law 26-06), Product (picker with variants), Assignee, Delivery Type (Stopdesk / Home), Duplicates (All / Only / Hide), Offer, Code (promo code), Has discount, Item Count (range).
 - Status filter options: Pending, Confirmed, Scheduled, Canceled, Abandoned + custom statuses (merchant-defined, e.g. "no answer ×2").
 - Search: order number, customer, phone, product.
 - Columns: Order Number, Customer, Items, Delivery, Status, Assignee, Total, Actions. Row actions: Call, Confirm Order, Edit Order, status pill (inline change), "Returning·N" badge. Pagination, page size 20, row selection.
@@ -134,7 +134,7 @@ Home · Orders (Customers, Spam) · Tracking (Returns) · Products (Collections,
 - Carriers columns: Delivery Agent, System, Status, Created, Actions (Edit, Refund Rates, Delete). Add Delivery Agent.
 - "Connect a delivery agent" picker: Private Courier, Yalidine Express, TSL Express (Ecotrack), DHD Express (Ecotrack), Ecotrack (generic), Elogistia, Anderson (Ecotrack), Maystro Delivery, ZR Express (new), Economiqua (Yalidine platform), Navex Delivery (Ecotrack), NOEST, Goupex (Yalidine platform), 48HR 2 Express (Ecotrack), 48HR Express (Ecotrack), Ecom Delivery V2, WeCan Services (Yalidine platform), Zimou Express, Osen Express. → carrier "systems" = Yalidine API, Ecotrack API, plus custom APIs.
 - Delivery Pricing: Store filter, search, Add pricing option; columns Pricing Option, Delivery Agent, Created, Actions (Edit, Delete).
-- New pricing option: Name, Carrier (or No carrier), Charge overweight to the customer, Prices by wilaya table for all 58 wilayas with Home delivery / Stop desk price, Apply to all, Deliver to every wilaya, Stop desk in every delivered wilaya, per-wilaya stop-desk toggle.
+- New pricing option: Name, Carrier (or No carrier), Charge overweight to the customer, Prices by wilaya table for all 58 wilayas (as captured; 69 since law 26-06 of April 2026) with Home delivery / Stop desk price, Apply to all, Deliver to every wilaya, Stop desk in every delivered wilaya, per-wilaya stop-desk toggle.
 - API: `/delivery-fees/v1?page&limit`, `/delivery-fees`.
 
 ## Apps `/apps`

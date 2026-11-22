@@ -26,8 +26,8 @@ describe('townSchema', () => {
     expect(townSchema.parse(algiersCentre)).toEqual(algiersCentre);
   });
 
-  it('refuses a province code outside 01–58', () => {
-    expect(townSchema.safeParse({ ...algiersCentre, provinceCode: '59' }).success).toBe(false);
+  it('refuses a province code outside 01–69', () => {
+    expect(townSchema.safeParse({ ...algiersCentre, provinceCode: '70' }).success).toBe(false);
   });
 
   it('refuses a non-integer ONS code', () => {
@@ -58,17 +58,18 @@ describe('parseWilayaCodeParam', () => {
     ['1', '01'],
     ['01', '01'],
     ['58', '58'],
+    ['69', '69'],
   ])('reads %s as wilaya %s', (param, code) => {
     expect(parseWilayaCodeParam(param)).toBe(code);
   });
 
-  it.each(['0', '00', '59', '1.5', 'abc', '016', '', ' 16', '+1', '-1', '1e1'])('refuses %j', (param) => {
+  it.each(['0', '00', '70', '1.5', 'abc', '016', '', ' 16', '+1', '-1', '1e1'])('refuses %j', (param) => {
     expect(parseWilayaCodeParam(param)).toBeNull();
   });
 });
 
 describe('WILAYAS', () => {
-  it('names every one of the 58 wilayas', () => {
+  it('names every wilaya', () => {
     expect(WILAYAS).toHaveLength(WILAYA_COUNT);
     expect(WILAYAS.filter((wilaya) => wilaya.names === null)).toEqual([]);
   });
@@ -80,5 +81,14 @@ describe('WILAYAS', () => {
   it('names the 2019 wilayas', () => {
     expect(WILAYAS.find((wilaya) => wilaya.code === '49')?.names).toEqual({ ar: 'تيميمون', fr: 'Timimoun' });
     expect(WILAYAS.find((wilaya) => wilaya.code === '58')?.names).toEqual({ ar: 'المنيعة', fr: 'El Meniaa' });
+  });
+
+  it('names the wilayas of law 26-06 as decree 26-206 does', () => {
+    expect(WILAYAS.find((wilaya) => wilaya.code === '59')?.names).toEqual({ ar: 'أفلو', fr: 'Aflou' });
+    expect(WILAYAS.find((wilaya) => wilaya.code === '68')?.names).toEqual({ ar: 'بوسعادة', fr: 'Bou Saâda' });
+    expect(WILAYAS.find((wilaya) => wilaya.code === '69')?.names).toEqual({
+      ar: 'الأبيض سيدي الشيخ',
+      fr: 'El Abiodh Sidi Cheikh',
+    });
   });
 });
