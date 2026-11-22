@@ -5,6 +5,7 @@ import type { OperationContext } from '../domain/ports/operation-context';
 import type { Store, StoreActor, StorePatch } from '../domain/store';
 import { assertAssetInChannels } from './asset-rules';
 import { requireActiveStore } from './store-access';
+import { assertReferencesOwned } from './store-reference.registry';
 import type { StoreAdminPorts } from './store-admin-ports';
 
 function assertValidPatch({ name, language }: StorePatch): void {
@@ -23,8 +24,8 @@ export class UpdateStoreService {
   /**
    * Applies `patch` in one transaction, so a refused channel update leaves the store unchanged.
    *
-   * @throws {@link NameInvalidError}, {@link UnsupportedStoreLanguageError}, {@link StoreNotFoundError} or
-   * {@link StoreArchivedError}.
+   * @throws {@link NameInvalidError}, {@link UnsupportedStoreLanguageError}, {@link StoreNotFoundError},
+   * {@link StoreArchivedError} or {@link StoreReferenceNotFoundError}.
    */
   async update(ctx: OperationContext, actor: StoreActor, id: StoreId, patch: StorePatch): Promise<Store> {
     assertValidPatch(patch);
@@ -38,6 +39,8 @@ export class UpdateStoreService {
   private async apply(ctx: OperationContext, actor: StoreActor, id: StoreId, patch: StorePatch): Promise<Store> {
     const store = await requireActiveStore(this.ports.stores, ctx, actor, id);
     await this.assertLogoAllowed(ctx, store, patch);
+    // Inside the transaction: the check holds the referenced row FOR SHARE until the store row is written (D3111).
+    await assertReferencesOwned(this.ports.references, ctx, store, patch);
     if (patch.language !== undefined && patch.language !== store.language) {
       await this.ports.channels.updateChannelLanguage(ctx, store.channelId, patch.language);
     }

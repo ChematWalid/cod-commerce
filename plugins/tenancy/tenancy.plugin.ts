@@ -21,6 +21,7 @@ import { StoreNamesService } from './application/store-names.service';
 import { MemberAccountService } from './application/member-account.service';
 import { ProvisionBusinessService } from './application/provision-business.service';
 import type { StoreAdminPorts } from './application/store-admin-ports';
+import type { StoreReferenceChecks } from './application/store-reference.registry';
 import type { TenancyPorts } from './application/tenancy-ports';
 import { type TenantLifecycleRegistrar, TenantLifecycleRegistry } from './application/tenant-lifecycle.registry';
 import { UpdateBusinessService } from './application/update-business.service';
@@ -35,6 +36,8 @@ import {
   PLATFORM_STORE,
   STORE_ADMIN_PORTS,
   STORE_HOST_INVALIDATOR,
+  STORE_REFERENCE_CHECK_REGISTRAR,
+  STORE_REFERENCE_CHECKS,
   TENANCY_PORTS,
   TENANT_LIFECYCLE,
   TENANT_LIFECYCLE_REGISTRAR,
@@ -59,6 +62,7 @@ import { CustomDomainEntity } from './infrastructure/custom-domain.entity';
 import { PlatformStoreLookup } from './infrastructure/platform-store-lookup';
 import { hostResolutionProviders } from './infrastructure/host-resolution.providers';
 import { StoreEntity } from './infrastructure/store.entity';
+import { storeReferenceProviders } from './infrastructure/store-reference.providers';
 import { TenantStoreSettingsReader } from './infrastructure/store-settings-reader.adapter';
 import { TenantContextResolver } from './infrastructure/tenant-context.resolver';
 import { OrderNumberService } from './infrastructure/order-number.service';
@@ -194,14 +198,18 @@ const STORE_USE_CASES = [
     },
     { provide: TENANT_STORES, useClass: TenantStoresAdapter },
     ...hostResolutionProviders(() => requireOptions()),
+    ...storeReferenceProviders,
     {
       provide: STORE_ADMIN_PORTS,
       useFactory: (
-        ports: TenancyPorts,
-        stores: TenantStoresPort,
-        hosts: StoreHostInvalidatorPort,
-      ): StoreAdminPorts => ({ ...ports, stores, hosts }),
-      inject: [TENANCY_PORTS, TENANT_STORES, STORE_HOST_INVALIDATOR],
+        ...[ports, stores, hosts, references]: [
+          TenancyPorts,
+          TenantStoresPort,
+          StoreHostInvalidatorPort,
+          StoreReferenceChecks,
+        ]
+      ): StoreAdminPorts => ({ ...ports, stores, hosts, references }),
+      inject: [TENANCY_PORTS, TENANT_STORES, STORE_HOST_INVALIDATOR, STORE_REFERENCE_CHECKS],
     },
     ...STORE_USE_CASES,
     {
@@ -235,6 +243,8 @@ const STORE_USE_CASES = [
     StoreSettingsReader,
     SuperadminContextFactory,
     TENANT_LIFECYCLE_REGISTRAR,
+    // Delivery-pricing registers its fee-group check, P5.S1 the carrier one (D3111).
+    STORE_REFERENCE_CHECK_REGISTRAR,
     TenantContextResolver,
     TENANT_CONTEXT_RESOLVER,
     TenantGuard,

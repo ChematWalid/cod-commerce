@@ -68,6 +68,18 @@ export class AssetNotAvailableError extends DomainError {
   }
 }
 
+/**
+ * A store setting names a record the store does not own: another business's or another store's, an unknown id, or a
+ * kind no plugin checks yet (D3111). One answer for all of them, so nothing is learned about foreign records.
+ */
+export class StoreReferenceNotFoundError extends DomainError {
+  readonly code = 'tenancy.store-reference-not-found';
+
+  constructor() {
+    super('The linked record does not exist');
+  }
+}
+
 /** Archiving would leave the business with no active store. */
 export class LastStoreError extends DomainError {
   readonly code = 'tenancy.last-store';

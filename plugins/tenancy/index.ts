@@ -4,8 +4,13 @@ export { RequestStoreSettings } from './api/request-store-settings';
 export { platformStaffPermission, tenantBusinessPermission } from './api/permissions';
 export { TenantScoped } from './api/tenant-scoped.decorator';
 export { TenantGuard } from './api/tenant.guard';
-export { ID_GENERATOR as SNOWFLAKE_ID_GENERATOR, TENANT_LIFECYCLE_REGISTRAR } from './application/tokens';
+export {
+  ID_GENERATOR as SNOWFLAKE_ID_GENERATOR,
+  STORE_REFERENCE_CHECK_REGISTRAR,
+  TENANT_LIFECYCLE_REGISTRAR,
+} from './application/tokens';
 export type { TenantLifecycleRegistrar } from './application/tenant-lifecycle.registry';
+export type { StoreReferenceCheckRegistrar } from './application/store-reference.registry';
 export { CreateStoreService } from './application/create-store.service';
 export { GetBusinessService } from './application/get-business.service';
 export { StoreNamesService } from './application/store-names.service';
@@ -19,6 +24,11 @@ export {
 } from './application/provision-business.service';
 export { BusinessStoreDirectory, type BusinessSummary } from './domain/ports/business-store-directory.port';
 export { type StoreSettings, StoreSettingsReader } from './domain/ports/store-settings-reader.port';
+export type {
+  StoreReferenceCheck,
+  StoreReferenceKind,
+  StoreReferenceScope,
+} from './domain/ports/store-reference-check.port';
 export type {
   BusinessProvisionedEvent,
   StoreCreatedEvent,

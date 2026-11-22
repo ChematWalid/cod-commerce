@@ -428,6 +428,10 @@ msgid "tenancy.asset-not-available"
 msgstr "This image cannot be used here. Upload it again."
 
 #. js-lingui-explicit-id
+msgid "tenancy.store-reference-not-found"
+msgstr "This delivery option no longer exists. Choose another one."
+
+#. js-lingui-explicit-id
 msgid "shell.settings.store.show-address"
 msgstr "Show the address field"
 

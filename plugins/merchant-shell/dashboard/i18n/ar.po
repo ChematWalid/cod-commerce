@@ -428,6 +428,10 @@ msgid "tenancy.asset-not-available"
 msgstr "لا يمكن استخدام هذه الصورة هنا. ارفعها مرة أخرى."
 
 #. js-lingui-explicit-id
+msgid "tenancy.store-reference-not-found"
+msgstr "لم يعد خيار التوصيل هذا موجودًا. اختر خيارًا آخر."
+
+#. js-lingui-explicit-id
 msgid "shell.settings.store.show-address"
 msgstr "إظهار حقل العنوان"
 
