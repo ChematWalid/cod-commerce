@@ -1,4 +1,11 @@
-import { DELIVERY_SPEEDS, MONEY_MAX_DZD, type QuotePriceSource, type ShippingQuote } from '@cod/shared';
+import {
+  DELIVERY_SPEEDS,
+  MAX_OVERWEIGHT_ALLOWANCE_KG,
+  MAX_OVERWEIGHT_RATE,
+  MONEY_MAX_DZD,
+  type QuotePriceSource,
+  type ShippingQuote,
+} from '@cod/shared';
 import { GRAMS_PER_KG } from './constants';
 import type { CommuneRateRow, FeeGroupSettings, WilayaRateRow } from './fee-group';
 import { modesOf } from './store-modes';
@@ -75,13 +82,19 @@ function priceOf(
   return { price: wilayaPriceOf(wilaya, method), source: 'wilaya' };
 }
 
+/** Whether a stored value is a whole number between 0 and `max`, as the group's input schema accepts it. */
+const isBoundedInt = (value: number, max: number): boolean => Number.isSafeInteger(value) && value >= 0 && value <= max;
+
 /**
  * The overweight fee in integers (D3121): `ceil(max(0, grams − allowanceKg × 1000) / 1000) × rate`, 0 when the group
- * does not charge it; `null` for a weight that is not a whole, non-negative, safe number of grams.
+ * does not charge it; `null` for a weight that is not a whole, non-negative, safe number of grams, or for a charging
+ * group whose stored allowance or rate is outside its input bounds (checked like a stored price, D3134).
  */
 export function overweightFeeOf(group: OverweightSettings, weightGrams: number): number | null {
   if (!Number.isSafeInteger(weightGrams) || weightGrams < 0) return null;
   if (!group.chargeOverweight) return 0;
+  if (!isBoundedInt(group.overweightAllowanceKg, MAX_OVERWEIGHT_ALLOWANCE_KG)) return null;
+  if (!isBoundedInt(group.overweightRate, MAX_OVERWEIGHT_RATE)) return null;
   const extraGrams = Math.max(0, weightGrams - group.overweightAllowanceKg * GRAMS_PER_KG);
   return Math.ceil(extraGrams / GRAMS_PER_KG) * group.overweightRate;
 }
@@ -90,13 +103,13 @@ export function overweightFeeOf(group: OverweightSettings, weightGrams: number):
  * Whether an amount is a whole DZD between 0 and `MONEY_MAX_DZD`. A stored price is checked too: the price columns
  * have no `CHECK (>= 0)` and a carrier sync writes the bases (D3125), so a negative row must never lower an order.
  */
-const isMoney = (amount: number): boolean => Number.isSafeInteger(amount) && amount >= 0 && amount <= MONEY_MAX_DZD;
+const isMoney = (amount: number): boolean => isBoundedInt(amount, MONEY_MAX_DZD);
 
 /**
  * The delivery quote of one destination and parcel (D3125, D3121, D3113), all in whole DZD. A wilaya without a row,
- * a method not offered, an unreadable weight, a stored price that is not a whole DZD ≥ 0 or a total above
- * `MONEY_MAX_DZD` answer {@link UNRESOLVED_QUOTE}. A waived delivery costs the buyer 0 and reports the base and
- * overweight it waived.
+ * a method not offered, an unreadable weight, a stored price that is not a whole DZD ≥ 0, a stored overweight setting
+ * out of its bounds or a total above `MONEY_MAX_DZD` answer {@link UNRESOLVED_QUOTE}. A waived delivery costs the
+ * buyer 0 and reports the base and overweight it waived.
  */
 export function quoteDelivery(input: DeliveryQuoteInput): ShippingQuote {
   const { rate, communeRate, method, group, weightGrams, waive } = input;
