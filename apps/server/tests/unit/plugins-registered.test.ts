@@ -195,7 +195,7 @@ describe('buildPlugins', () => {
     const plugins = buildPlugins(env, role);
 
     // Assert
-    expect(plugins).toContain(GeoPlugin);
+    expect(plugins).toEqual(expect.arrayContaining([GeoPlugin, OffersPlugin, DeliveryPricingPlugin]));
     expect(plugins.indexOf(OffersPlugin)).toBeGreaterThan(plugins.indexOf(GeoPlugin));
     expect(plugins.indexOf(DeliveryPricingPlugin)).toBeGreaterThan(plugins.indexOf(OffersPlugin));
   });
