@@ -1,4 +1,4 @@
-import { type Snowflake, toSnowflake, type WilayaCode } from '@cod/shared';
+import { type Snowflake, type StoreId, toSnowflake, type WilayaCode } from '@cod/shared';
 import type {
   CommuneRateRow,
   FeeGroupHeader,
@@ -11,7 +11,7 @@ import type {
 } from '../../domain/fee-group';
 import type { CommuneRowsChange, FeeGroupRepositoryPort } from '../../domain/ports/fee-group-repository.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
-import type { StoreDefaultsPort } from '../../domain/ports/store-defaults.port';
+import type { StoreDefaultsPort, StoreLink } from '../../domain/ports/store-defaults.port';
 import type { TownDirectoryPort } from '../../domain/ports/town-directory.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
 import type { StoreScope } from '../../domain/store-scope';
@@ -34,6 +34,10 @@ export class InMemoryFeeGroups implements FeeGroupRepositoryPort {
 
   find(_ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<FeeGroupRecord | undefined> {
     return Promise.resolve(this.of(scope).get(id));
+  }
+
+  share(_ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<boolean> {
+    return Promise.resolve(this.of(scope).has(id));
   }
 
   lock(_ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<FeeGroupHeader | undefined> {
@@ -114,12 +118,37 @@ export const inlineTransaction: TransactionPort = {
   run: (ctx, _scope, work) => work(ctx),
 };
 
-/** {@link StoreDefaultsPort} answering a fixed default group per store key. */
+/**
+ * {@link StoreDefaultsPort} over a fixed default group per store key. `stores` are the active stores the converge
+ * pages through; linking a store in `failing` throws, as a refused write would.
+ */
 export class FixedStoreDefaults implements StoreDefaultsPort {
   readonly defaults = new Map<string, Snowflake>();
+  readonly stores: StoreScope[] = [];
+  readonly failing = new Set<string>();
+  readonly links: string[] = [];
 
   defaultGroupOf(_ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {
     return Promise.resolve(this.defaults.get(keyOf(scope)) ?? null);
+  }
+
+  linkDefaultGroup(_ctx: OperationContext, scope: StoreScope, groupId: Snowflake): Promise<void> {
+    if (this.failing.has(keyOf(scope))) return Promise.reject(new Error(`store ${scope.storeId} refused the link`));
+    this.defaults.set(keyOf(scope), groupId);
+    this.links.push(`${keyOf(scope)}=${groupId}`);
+    return Promise.resolve();
+  }
+
+  activeStores(
+    _ctx: OperationContext,
+    afterStoreId: StoreId | undefined,
+    limit: number,
+  ): Promise<readonly StoreLink[]> {
+    const page = this.stores
+      .filter((scope) => afterStoreId === undefined || BigInt(scope.storeId) > BigInt(afterStoreId))
+      .sort((left, right) => (BigInt(left.storeId) < BigInt(right.storeId) ? -1 : 1))
+      .slice(0, limit);
+    return Promise.resolve(page.map((scope) => ({ scope, defaultGroupId: this.defaults.get(keyOf(scope)) ?? null })));
   }
 }
 

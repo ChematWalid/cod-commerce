@@ -1,4 +1,4 @@
-import type { BusinessId, Snowflake } from '@cod/shared';
+import type { BusinessId, Snowflake, StoreId } from '@cod/shared';
 import type { StoreAccess } from '../store';
 import type { OperationContext } from './operation-context';
 
@@ -10,6 +10,13 @@ export interface BusinessSummary {
   readonly id: BusinessId;
   readonly ownerRoleId: number | null;
   readonly ownerAdministratorId: number | null;
+}
+
+/** An active store and the fee group it uses by default, for delivery-pricing's migrate converge (D3111, D3112). */
+export interface StoreDeliveryLink {
+  readonly businessId: BusinessId;
+  readonly storeId: StoreId;
+  readonly defaultDeliveryFeeGroupId: Snowflake | null;
 }
 
 /**
@@ -32,4 +39,14 @@ export abstract class BusinessStoreDirectory {
     afterId: Snowflake | undefined,
     limit: number,
   ): Promise<readonly BusinessSummary[]>;
+
+  /**
+   * Up to `limit` (at most {@link MAX_BUSINESS_PAGE_SIZE}, at least 1) active stores of every business with an id
+   * above `afterId` (all of them when absent), in ascending id order. Platform code only: the migrate converge.
+   */
+  abstract activeStoreLinks(
+    ctx: OperationContext,
+    afterId: StoreId | undefined,
+    limit: number,
+  ): Promise<readonly StoreDeliveryLink[]>;
 }

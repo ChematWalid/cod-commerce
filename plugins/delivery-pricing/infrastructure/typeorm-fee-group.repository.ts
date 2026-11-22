@@ -79,12 +79,13 @@ export class TypeOrmFeeGroupRepository implements FeeGroupRepositoryPort {
     return { ...headerOf(row), rates: rates.map(wilayaRowOf), communeRates: communes.map(communeRowOf) };
   }
 
+  async share(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<boolean> {
+    const row = await this.byId(ctx, scope, id).setLock('pessimistic_read').getOne();
+    return row !== null;
+  }
+
   async lock(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<FeeGroupHeader | undefined> {
-    const row = await tenantQuery(requestScope(ctx, scope), this.groups, GROUP_ALIAS)
-      .andWhere(`${GROUP_ALIAS}.storeId = :feeGroupStoreId`, { feeGroupStoreId: scope.storeId })
-      .andWhere(`${GROUP_ALIAS}.id = :feeGroupId`, { feeGroupId: id })
-      .setLock('pessimistic_write')
-      .getOne();
+    const row = await this.byId(ctx, scope, id).setLock('pessimistic_write').getOne();
     return row === null ? undefined : headerOf(row);
   }
 
@@ -147,5 +148,12 @@ export class TypeOrmFeeGroupRepository implements FeeGroupRepositoryPort {
     for (const row of change.upserts) {
       await this.communes.insert(tenant, { ...inStore(scope), ...communeColumnsOf(groupId, row) });
     }
+  }
+
+  /** The group `id` of the store, as a tenant query a caller adds its lock to. */
+  private byId(ctx: OperationContext, scope: StoreScope, id: Snowflake) {
+    return tenantQuery(requestScope(ctx, scope), this.groups, GROUP_ALIAS)
+      .andWhere(`${GROUP_ALIAS}.storeId = :feeGroupStoreId`, { feeGroupStoreId: scope.storeId })
+      .andWhere(`${GROUP_ALIAS}.id = :feeGroupId`, { feeGroupId: id });
   }
 }

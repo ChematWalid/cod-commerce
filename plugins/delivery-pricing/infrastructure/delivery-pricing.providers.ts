@@ -3,6 +3,7 @@ import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenantRepository
 import type { Provider } from '@nestjs/common';
 import { DefaultTableService } from '../application/default-table.service';
 import { DeleteFeeGroupService } from '../application/delete-fee-group.service';
+import { DeliveryDefaultsConvergeService } from '../application/delivery-defaults-converge.service';
 import type { FeeGroupPorts } from '../application/fee-group-ports';
 import { FeeGroupReadService } from '../application/fee-group-read.service';
 import { SaveFeeGroupService } from '../application/save-fee-group.service';
@@ -18,6 +19,8 @@ import type { FeeGroupRepositoryPort } from '../domain/ports/fee-group-repositor
 import type { StoreDefaultsPort } from '../domain/ports/store-defaults.port';
 import type { TownDirectoryPort } from '../domain/ports/town-directory.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
+import { DeliveryPricingLifecycleHook } from './delivery-pricing-lifecycle.hook';
+import { DeliveryFeeGroupReferenceCheck } from './fee-group-reference.check';
 import { TenancyStoreDefaults } from './tenancy-store-defaults.adapter';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmFeeGroupRepository } from './typeorm-fee-group.repository';
@@ -29,7 +32,10 @@ const useCase = (type: new (ports: FeeGroupPorts) => object): Provider => ({
   inject: [FEE_GROUP_PORTS],
 });
 
-/** Wires the fee-group use cases to their adapters; geo's town directory checks the communes (D3125). */
+/**
+ * Wires the fee-group use cases to their adapters; geo's town directory checks the communes (D3125). The reference
+ * check and the lifecycle hook register themselves on tenancy's seams at bootstrap (D3111).
+ */
 export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   { provide: FEE_GROUP_TRANSACTION, useClass: TransactionAdapter },
   { provide: STORE_DEFAULTS, useClass: TenancyStoreDefaults },
@@ -55,4 +61,7 @@ export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   useCase(DeleteFeeGroupService),
   useCase(SetCommuneRatesService),
   useCase(DefaultTableService),
+  useCase(DeliveryDefaultsConvergeService),
+  DeliveryFeeGroupReferenceCheck,
+  DeliveryPricingLifecycleHook,
 ];

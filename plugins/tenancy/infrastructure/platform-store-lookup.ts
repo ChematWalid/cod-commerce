@@ -8,6 +8,7 @@ import {
   BusinessStoreDirectory,
   type BusinessSummary,
   MAX_BUSINESS_PAGE_SIZE,
+  type StoreDeliveryLink,
 } from '../domain/ports/business-store-directory.port';
 import type { HostStoreLookupPort, HostStoreRow } from '../domain/ports/host-store-lookup.port';
 import type { OperationContext } from '../domain/ports/operation-context';
@@ -19,6 +20,7 @@ import { CustomDomainEntity } from './custom-domain.entity';
 import { toRequestContext } from './operation-context.adapter';
 import { StoreEntity } from './store.entity';
 import { translateSubdomainConflict } from './subdomain-conflict';
+import { toStore } from './tenant-stores.adapter';
 
 function toBusiness(row: BusinessEntity): Business {
   return {
@@ -76,6 +78,30 @@ export class PlatformStoreLookup extends BusinessStoreDirectory implements Platf
 
   async saveStore(ctx: OperationContext, store: Store): Promise<void> {
     await translateSubdomainConflict(this.repository(ctx, StoreEntity).insert({ ...store }));
+  }
+
+  async findStore(ctx: OperationContext, id: StoreId): Promise<Store | undefined> {
+    const row = await this.repository(ctx, StoreEntity).findOne({ where: { id } });
+    return row === null ? undefined : toStore(row);
+  }
+
+  async activeStoreLinks(
+    ctx: OperationContext,
+    afterId: StoreId | undefined,
+    limit: number,
+  ): Promise<readonly StoreDeliveryLink[]> {
+    const rows = await this.repository(ctx, StoreEntity).find({
+      where: { status: 'active', ...(afterId === undefined ? {} : { id: MoreThan(afterId) }) },
+      select: { id: true, businessId: true, defaultDeliveryFeeGroupId: true },
+      order: { id: 'ASC' },
+      take: Math.min(Math.max(Math.trunc(limit), 1), MAX_BUSINESS_PAGE_SIZE),
+    });
+    return rows.map((row) => ({
+      businessId: toBusinessId(toSnowflake(row.businessId)),
+      storeId: toStoreId(row.id),
+      defaultDeliveryFeeGroupId:
+        row.defaultDeliveryFeeGroupId === null ? null : toSnowflake(row.defaultDeliveryFeeGroupId),
+    }));
   }
 
   async isSubdomainTaken(ctx: OperationContext, subdomain: string): Promise<boolean> {

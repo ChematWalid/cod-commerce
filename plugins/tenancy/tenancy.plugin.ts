@@ -48,6 +48,7 @@ import {
 import type { AssetAccessPort } from './domain/ports/asset-access.port';
 import { BusinessStoreDirectory } from './domain/ports/business-store-directory.port';
 import { StoreSettingsReader } from './domain/ports/store-settings-reader.port';
+import { StoreDeliveryDefaults } from './domain/ports/store-delivery-defaults.port';
 import type { ChannelProvisionerPort } from './domain/ports/channel-provisioner.port';
 import type { IdGeneratorPort } from './domain/ports/id-generator.port';
 import type { MemberAccountPort } from './domain/ports/member-account.port';
@@ -245,6 +246,8 @@ const STORE_USE_CASES = [
     TENANT_LIFECYCLE_REGISTRAR,
     // Delivery-pricing registers its fee-group check, P5.S1 the carrier one (D3111).
     STORE_REFERENCE_CHECK_REGISTRAR,
+    // Delivery-pricing links a new or converged store to its default fee group (D3111, D3112).
+    StoreDeliveryDefaults,
     TenantContextResolver,
     TENANT_CONTEXT_RESOLVER,
     TenantGuard,

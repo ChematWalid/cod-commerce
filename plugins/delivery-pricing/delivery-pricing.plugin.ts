@@ -10,6 +10,7 @@ import { FeeGroupsResolver } from './api/fee-groups.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
 import { deliveryPricingAdminApiSchema } from './api/schema';
 import { DefaultTableService } from './application/default-table.service';
+import { DeliveryDefaultsConvergeService } from './application/delivery-defaults-converge.service';
 import { DELIVERY_PRICING_ENTITIES } from './infrastructure/delivery-pricing-entities';
 import { DELIVERY_PRICING_PROVIDERS } from './infrastructure/delivery-pricing.providers';
 
@@ -25,7 +26,7 @@ export const DELIVERY_PRICING_REST_CONTROLLERS = [FeeGroupsController];
   imports: [PluginCommonModule, TenancyPlugin, GeoPlugin],
   entities: DELIVERY_PRICING_ENTITIES,
   providers: [...DELIVERY_PRICING_PROVIDERS, FeeGroupUseCases, FeeGroupActions, DeliveryPricingTranslations],
-  exports: [DefaultTableService],
+  exports: [DefaultTableService, DeliveryDefaultsConvergeService],
   adminApiExtensions: { schema: deliveryPricingAdminApiSchema, resolvers: [FeeGroupsResolver] },
   controllers: DELIVERY_PRICING_REST_CONTROLLERS,
   compatibility: '^3.8.0',

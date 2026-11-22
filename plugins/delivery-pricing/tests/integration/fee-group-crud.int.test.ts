@@ -52,8 +52,13 @@ describe('fee-group CRUD over GraphQL', () => {
     });
 
     // Assert
-    expect(all.deliveryFeeGroups.items.map((group) => group.name)).toEqual(['Sud', 'Nord 100%']);
-    expect(all.deliveryFeeGroups.totalItems).toBe(2);
+    // The store's seeded table, made when the store was created (D3111), is the oldest.
+    expect(all.deliveryFeeGroups.items.map((group) => group.name)).toEqual([
+      'Sud',
+      'Nord 100%',
+      'Platform default prices',
+    ]);
+    expect(all.deliveryFeeGroups.totalItems).toBe(3);
     expect(searched.deliveryFeeGroups.items.map((group) => group.name)).toEqual(['Nord 100%']);
   });
 

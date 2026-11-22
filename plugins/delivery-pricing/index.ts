@@ -4,3 +4,11 @@ export { DeliveryPricingPlugin } from './delivery-pricing.plugin';
 
 // The store's seeded "Platform default prices" table: the lifecycle hook and the migrate converge call it (D3112).
 export { DefaultTableService } from './application/default-table.service';
+
+// Links every active store to its default table on migrate (D3112); the migrate role calls it with a platform context.
+export {
+  type DeliveryDefaultsConvergeReport,
+  DeliveryDefaultsConvergeService,
+} from './application/delivery-defaults-converge.service';
+export { type DeliveryDefaultsConvergeFailure, DeliveryDefaultsConvergeFailedError } from './domain/errors';
+export { asOperationContext } from './domain/ports/operation-context';

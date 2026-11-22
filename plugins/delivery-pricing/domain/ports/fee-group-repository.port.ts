@@ -26,6 +26,8 @@ export interface CommuneRowsChange {
 export interface FeeGroupRepositoryPort {
   list(ctx: OperationContext, scope: StoreScope, query: FeeGroupListQuery): Promise<FeeGroupPage>;
   find(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<FeeGroupRecord | undefined>;
+  /** Whether the group is the store's; it holds the row `FOR SHARE` until the transaction ends (D3111). */
+  share(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<boolean>;
   /** The group's own row, locked `FOR UPDATE` until the transaction ends. */
   lock(ctx: OperationContext, scope: StoreScope, id: Snowflake): Promise<FeeGroupHeader | undefined>;
   /** The id of the store's seeded "Platform default prices" group, if it has one. */

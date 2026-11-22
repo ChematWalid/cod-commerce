@@ -9,7 +9,8 @@ import { StoreEntity } from './store.entity';
 import { translateSubdomainConflict } from './subdomain-conflict';
 import { type TenantRepository, TenantRepositoryFactory } from './tenant-repository';
 
-function toStore(row: StoreEntity): Store {
+/** A store row as the domain sees it. */
+export function toStore(row: StoreEntity): Store {
   const id = toStoreId(row.id);
   return {
     id,

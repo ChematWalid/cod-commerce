@@ -1,4 +1,5 @@
-import { DELIVERY_PRICING_ERROR_CODES, DomainError } from '@cod/shared';
+import { type BusinessId, DELIVERY_PRICING_ERROR_CODES, DomainError, type StoreId } from '@cod/shared';
+import { CONVERGE_REPORTED_FAILURES } from './constants';
 
 const C = DELIVERY_PRICING_ERROR_CODES;
 
@@ -31,5 +32,31 @@ export class DeliveryCarrierNotFoundError extends DomainError {
   readonly code = C.CARRIER_NOT_FOUND;
   constructor() {
     super('No such carrier');
+  }
+}
+
+/** One store the default-table converge could not link, and why. */
+export interface DeliveryDefaultsConvergeFailure {
+  readonly businessId: BusinessId;
+  readonly storeId: StoreId;
+  readonly reason: string;
+}
+
+/**
+ * Some stores could not be linked to a default table; every other store was committed, and a later migrate retries
+ * these (D3112). A platform fault, not a caller's input, so it is a plain `Error` like rbac's converge failure.
+ */
+export class DeliveryDefaultsConvergeFailedError extends Error {
+  constructor(
+    readonly stores: number,
+    readonly failures: readonly DeliveryDefaultsConvergeFailure[],
+  ) {
+    const listed = failures.slice(0, CONVERGE_REPORTED_FAILURES).map(({ storeId, reason }) => `${storeId}: ${reason}`);
+    const omitted = failures.length - listed.length;
+    const more = omitted > 0 ? `; and ${String(omitted)} more` : '';
+    super(
+      `${String(failures.length)} of ${String(stores)} stores failed to link a default table: ${listed.join('; ')}${more}`,
+    );
+    this.name = 'DeliveryDefaultsConvergeFailedError';
   }
 }

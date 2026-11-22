@@ -7,6 +7,7 @@ import {
   type WilayaCode,
 } from '@cod/shared';
 import { DefaultTableService } from '../../application/default-table.service';
+import { DeliveryDefaultsConvergeService } from '../../application/delivery-defaults-converge.service';
 import { DeleteFeeGroupService } from '../../application/delete-fee-group.service';
 import { FeeGroupReadService } from '../../application/fee-group-read.service';
 import type { FeeGroupPorts } from '../../application/fee-group-ports';
@@ -67,5 +68,6 @@ export function world() {
     deleting: new DeleteFeeGroupService(ports),
     communes: new SetCommuneRatesService(ports),
     defaults: new DefaultTableService(ports),
+    converge: new DeliveryDefaultsConvergeService(ports),
   };
 }

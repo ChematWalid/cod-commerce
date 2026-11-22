@@ -1,3 +1,5 @@
+import { DeliveryDefaultsConvergeService } from '@cod/plugin-delivery-pricing';
+import { GeoSeedService } from '@cod/plugin-geo';
 import { RbacConvergeService } from '@cod/plugin-rbac';
 import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import { Logger, preBootstrapConfig, resetConfig } from '@vendure/core';
@@ -122,6 +124,7 @@ describe('migrate role', () => {
       seed: { changes: [] },
       rbacConverged: { businesses: 0, changed: 0 },
       teamConverged: { businesses: 0, created: 0, skipped: 0 },
+      deliveryDefaults: { stores: 0, linked: 0 },
     });
     const after = await snapshot(url);
     expect(after).toEqual(before);
@@ -154,6 +157,21 @@ describe('migrate role', () => {
     } finally {
       converged.mockRestore();
       maintained.mockRestore();
+    }
+  });
+
+  // D3112: existing stores get their default delivery fee table here, after the geo seed.
+  it('converges the default delivery fee tables once per run, after the geo seed', async () => {
+    const geo = vi.spyOn(GeoSeedService.prototype, 'converge');
+    const linked = vi.spyOn(DeliveryDefaultsConvergeService.prototype, 'convergeAll');
+    try {
+      await runMigrate(env);
+
+      expect(linked).toHaveBeenCalledTimes(1);
+      expect(geo.mock.invocationCallOrder[0]).toBeLessThan(linked.mock.invocationCallOrder[0] ?? 0);
+    } finally {
+      geo.mockRestore();
+      linked.mockRestore();
     }
   });
 

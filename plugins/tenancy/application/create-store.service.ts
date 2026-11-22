@@ -141,6 +141,7 @@ export class CreateStoreService {
       storeId: store.id,
       channelId,
     });
-    return store;
+    // Re-read: a hook may have linked a default, such as delivery-pricing's fee group (D3111).
+    return (await this.ports.platform.findStore(ctx, store.id)) ?? store;
   }
 }

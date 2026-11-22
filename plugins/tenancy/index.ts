@@ -22,7 +22,12 @@ export {
   type ProvisionedBusiness,
   ProvisionBusinessService,
 } from './application/provision-business.service';
-export { BusinessStoreDirectory, type BusinessSummary } from './domain/ports/business-store-directory.port';
+export {
+  BusinessStoreDirectory,
+  type BusinessSummary,
+  type StoreDeliveryLink,
+} from './domain/ports/business-store-directory.port';
+export { StoreDeliveryDefaults } from './domain/ports/store-delivery-defaults.port';
 export { type StoreSettings, StoreSettingsReader } from './domain/ports/store-settings-reader.port';
 export type {
   StoreReferenceCheck,

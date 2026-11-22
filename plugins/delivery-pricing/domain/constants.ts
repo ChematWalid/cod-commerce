@@ -8,3 +8,9 @@ export const PLATFORM_DEFAULT_GROUP_NAME = 'Platform default prices';
 export const DEFAULT_CHARGE_OVERWEIGHT = false;
 export const DEFAULT_OVERWEIGHT_ALLOWANCE_KG = 5;
 export const DEFAULT_OVERWEIGHT_RATE = 50;
+
+/** Stores read per page by the migrate converge of default tables (D3112); tenancy caps a page at 500. */
+export const CONVERGE_PAGE_SIZE = 500;
+
+/** The most failed stores a converge error lists in its message; the migrate logs every one. */
+export const CONVERGE_REPORTED_FAILURES = 20;
