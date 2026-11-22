@@ -95,6 +95,7 @@ const RAW_DATA_ALLOWED_FILES = [
   'plugins/platform-secrets/infrastructure/typeorm-secret.repositories.ts',
   'plugins/platform-flags/infrastructure/typeorm-flag-store.ts',
   'plugins/geo/infrastructure/typeorm-geo-seed.store.ts',
+  'plugins/geo/infrastructure/typeorm-geo-reference.reader.ts',
   'plugins/platform-health/platform-health.plugin.ts',
   'plugins/platform-health/infrastructure/postgres.probe.ts',
   'plugins/platform-health/infrastructure/migrations.probe.ts',

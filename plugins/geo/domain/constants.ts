@@ -52,3 +52,15 @@ export const GEO_SEED_CHUNK_SIZE = 500;
 
 /** The log context of the geo plugin. */
 export const GEO_LOG_CONTEXT = 'geo';
+
+/** How long a store's narrowed wilaya stays in the process cache: a fee-table edit shows within this delay. */
+export const STORE_AVAILABILITY_TTL_MS = 30_000;
+
+/** The most store-and-wilaya answers the process cache keeps; the least recently read leaves first. */
+export const STORE_AVAILABILITY_MAX_ENTRIES = 5_000;
+
+/** How long a browser or CDN may serve the public wilaya data without asking again (D3117). */
+export const PROVINCES_MAX_AGE_SECONDS = 300;
+
+/** How long a CDN may keep serving the public wilaya data while it refreshes it (D3117). */
+export const PROVINCES_STALE_WHILE_REVALIDATE_SECONDS = 86_400;

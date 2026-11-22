@@ -16,6 +16,8 @@
     "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
   },
   "dependencies": {
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
     "@cod/shared": "workspace:*",
     "@nestjs/common": "12.4.0",
     "@vendure/core": "3.8.1",
@@ -26,6 +28,7 @@
     "@cod/config": "workspace:*",
     "@cod/testing": "workspace:*",
     "@types/node": "24.19.2",
+    "graphql-tag": "2.12.7",
     "typescript": "5.9.3",
     "vitest": "5.1.0"
   }

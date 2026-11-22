@@ -3,15 +3,16 @@ import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIA
 import { TransactionalConnection } from '@vendure/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GeoSeedService } from '../../application/geo-seed.service';
-import { GeoPlugin } from '../../geo.plugin';
 import { loadGeoSeed } from '../../infrastructure/seed/load-geo-seed';
+import { geoTestPlugins } from './geo-test-plugins';
 
 const SEED = loadGeoSeed();
 const BOOT_TIMEOUT_MS = 120_000;
+const SNOWFLAKE_WORKER_ID = 961;
 
 describe('geo seed on Postgres', () => {
   const { server } = createPluginTestEnvironment({
-    plugins: [GeoPlugin],
+    plugins: geoTestPlugins(SNOWFLAKE_WORKER_ID),
     db: loadPluginTestDbConfig(process.env),
   });
 

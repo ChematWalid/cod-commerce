@@ -17,6 +17,7 @@ import {
   IP_CAPACITY,
   MINUTE_WINDOW_SECONDS,
   OTP_DAILY_CAPACITY,
+  PROVINCES_IP_CAPACITY,
   REGISTER_IP_CAPACITY,
   TEAM_ACTOR_MAIL_CAPACITY,
   TEAM_INVITE_BUSINESS_CAPACITY,
@@ -70,6 +71,8 @@ export const RATE_LIMIT_POLICIES = {
   'current-password-ip': perMinute(IP_CAPACITY, 'in-process'),
   'register-ip': { capacity: REGISTER_IP_CAPACITY, windowSeconds: HOUR_WINDOW_SECONDS, outage: 'open' },
   'subdomain-ip': perMinute(IP_CAPACITY, 'open'),
+  // Public wilaya and commune reference data (D3117): nothing to guess, so it fails open.
+  'provinces-ip': perMinute(PROVINCES_IP_CAPACITY, 'open'),
   // Team invitations (D205): the public accept and preview routes by address, the mail they send by business and actor.
   'invitation-accept-ip': perMinute(IP_CAPACITY, 'in-process'),
   'team-invite-business': mailPerHour(TEAM_INVITE_BUSINESS_CAPACITY),

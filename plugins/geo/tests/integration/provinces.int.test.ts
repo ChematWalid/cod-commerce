@@ -1,0 +1,226 @@
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { asOperationContext, type ProvisionedBusiness, ProvisionBusinessService } from '@cod/plugin-tenancy';
+import { GEO_ERROR_CODES, type Province, type StoreId, WILAYA_COUNT, type WilayaCode } from '@cod/shared';
+import { createPluginTestEnvironment, loadPluginTestDbConfig, PLUGIN_TEST_INITIAL_DATA } from '@cod/testing';
+import { RequestContextService, TransactionalConnection } from '@vendure/core';
+import gql from 'graphql-tag';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { GeoSeedService } from '../../application/geo-seed.service';
+import { TOWN_AVAILABILITY_REGISTRAR } from '../../application/tokens';
+import type { TownAvailability, TownAvailabilityRegistrar } from '../../domain/ports/town-availability.port';
+import { loadGeoSeed } from '../../infrastructure/seed/load-geo-seed';
+import { geoTestPlugins } from './geo-test-plugins';
+
+const SNOWFLAKE_WORKER_ID = 960;
+const BOOT_TIMEOUT_MS = 120_000;
+const SEED = loadGeoSeed();
+const ALGER: WilayaCode = '16';
+const ALGER_TOWNS = SEED.towns.filter((town) => town.provinceCode === ALGER).length;
+const PUBLIC_CACHE = 'public, max-age=300, stale-while-revalidate=86400';
+const PRIVATE_CACHE = 'private, no-store';
+/** Synthetic: the owner of the fixture business signs in with nothing. */
+const OWNER_PASSWORD = 'synthetic-owner-password';
+
+/** Home everywhere in Alger, no desk, except Cheraga (1652): desk only. */
+const NARROWED_ALGER: TownAvailability = {
+  home: true,
+  desk: false,
+  towns: new Map([[1652, { home: false, desk: true }]]),
+};
+
+const UPDATE_GLOBAL_LANGUAGES = gql`
+  mutation {
+    updateGlobalSettings(input: { availableLanguages: [ar, fr, en] }) {
+      ... on GlobalSettings {
+        id
+      }
+    }
+  }
+`;
+
+interface Answer {
+  readonly status: number;
+  readonly cacheControl: string | null;
+  readonly body: unknown;
+}
+
+// The internal-only guard (D112) is the platform-webhooks plugin's, not registered here: its refusal of an unsigned
+// `/store/provinces` call is proven on the full api config (`apps/server/tests/e2e/internal-only.e2e.test.ts`).
+describe('the provinces endpoints over REST', () => {
+  const { server, adminClient } = createPluginTestEnvironment({
+    plugins: geoTestPlugins(SNOWFLAKE_WORKER_ID),
+    db: loadPluginTestDbConfig(process.env),
+  });
+  let shop: ProvisionedBusiness;
+
+  async function get(path: string): Promise<Answer> {
+    const { port } = (server.app.getHttpServer() as Server).address() as AddressInfo;
+    const response = await fetch(`http://localhost:${String(port)}${path}`);
+    return {
+      status: response.status,
+      cacheControl: response.headers.get('cache-control'),
+      body: await response.json(),
+    };
+  }
+
+  async function provision(slug: string): Promise<ProvisionedBusiness> {
+    const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+    return server.app.get(ProvisionBusinessService).provision(asOperationContext(ctx), {
+      name: `${slug} SARL`,
+      owner: {
+        emailAddress: `${slug}-owner@example.test`,
+        firstName: slug,
+        lastName: 'Owner',
+        password: OWNER_PASSWORD,
+      },
+      store: { name: `${slug} store`, subdomain: slug, language: 'ar' },
+    });
+  }
+
+  beforeAll(async () => {
+    await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
+    await adminClient.asSuperAdmin();
+    await adminClient.query(UPDATE_GLOBAL_LANGUAGES);
+    await server.app.get(GeoSeedService).converge();
+    shop = await provision('geoshop');
+    const narrowed = String(shop.store.id);
+    server.app.get<TownAvailabilityRegistrar>(TOWN_AVAILABILITY_REGISTRAR).register({
+      availabilityFor: (storeId: StoreId, provinceCode: WilayaCode) =>
+        Promise.resolve(storeId === narrowed && provinceCode === ALGER ? NARROWED_ALGER : null),
+    });
+  }, BOOT_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await server.destroy();
+  });
+
+  it('lists every wilaya by code, without communes, cacheable by anyone', async () => {
+    // Act
+    const { status, cacheControl, body } = await get('/provinces');
+
+    // Assert
+    const provinces = body as Province[];
+    expect(status).toBe(200);
+    expect(cacheControl).toBe(PUBLIC_CACHE);
+    expect(provinces).toHaveLength(WILAYA_COUNT);
+    expect(provinces.map((province) => province.code)).toEqual(SEED.provinces.map((p) => p.code).sort());
+    expect(provinces.every((province) => province.towns === undefined && province.id === province.code)).toBe(true);
+  });
+
+  it('answers a wilaya with its communes in the data-model shape', async () => {
+    // Act
+    const { status, body } = await get('/provinces/code/16');
+
+    // Assert
+    const province = body as Province;
+    expect(status).toBe(200);
+    expect(province).toMatchObject({ id: '16', code: '16', name: 'Alger', arabicName: 'الجزائر' });
+    expect(province.towns).toHaveLength(ALGER_TOWNS);
+    expect(province.towns?.find((town) => town.codeOns === 1601)).toEqual({
+      id: '1601',
+      ...SEED.towns.find((town) => town.codeOns === 1601),
+    });
+  });
+
+  it('answers the same wilaya for a code with or without its leading zero', async () => {
+    // Act
+    const short = await get('/provinces/code/1');
+    const padded = await get('/provinces/code/01');
+
+    // Assert
+    expect(short.status).toBe(200);
+    expect(short.body).toEqual(padded.body);
+  });
+
+  it.each(['0', String(WILAYA_COUNT + 1), 'abc', '1.5', '016'])(
+    'answers 404 province-not-found, with the same cache header, for the code %s',
+    async (code) => {
+      // Act
+      const { status, cacheControl, body } = await get(`/provinces/code/${code}`);
+
+      // Assert
+      expect(status).toBe(404);
+      expect(cacheControl).toBe(PUBLIC_CACHE);
+      expect(body).toEqual({
+        statusCode: 404,
+        code: GEO_ERROR_CODES.PROVINCE_NOT_FOUND,
+        message: expect.any(String) as string,
+        path: `/provinces/code/${code}`,
+      });
+    },
+  );
+
+  it('ignores a storeId on the public routes: reference data only', async () => {
+    // Act
+    const withStore = await get(`/provinces/code/16?storeId=${String(shop.store.id)}`);
+    const reference = await get('/provinces/code/16');
+
+    // Assert
+    expect(withStore.body).toEqual(reference.body);
+  });
+
+  it('narrows the communes of a store through the registered availability source, never cached publicly', async () => {
+    // Act
+    const { status, cacheControl, body } = await get(`/store/provinces/code/16?storeId=${String(shop.store.id)}`);
+
+    // Assert
+    const towns = (body as Province).towns ?? [];
+    const flagsOf = (codeOns: number) => towns.find((town) => town.codeOns === codeOns);
+    expect(status).toBe(200);
+    expect(cacheControl).toBe(PRIVATE_CACHE);
+    expect(flagsOf(1601)).toMatchObject({ isHomeDelivery: true, isStopdesk: false });
+    expect(flagsOf(1652)).toMatchObject({ isHomeDelivery: false, isStopdesk: true });
+  });
+
+  it('lists the wilayas for a store as for everyone', async () => {
+    // Act
+    const forStore = await get(`/store/provinces?storeId=${String(shop.store.id)}`);
+    const reference = await get('/provinces');
+
+    // Assert
+    expect(forStore.status).toBe(200);
+    expect(forStore.cacheControl).toBe(PRIVATE_CACHE);
+    expect(forStore.body).toEqual(reference.body);
+  });
+
+  it.each([
+    ['an unknown id', '/store/provinces/code/16?storeId=999999'],
+    ['a malformed id', '/store/provinces/code/16?storeId=abc'],
+    ['no id', '/store/provinces'],
+  ])('answers 404 store-not-found for %s', async (_label, path) => {
+    // Act
+    const { status, cacheControl, body } = await get(path);
+
+    // Assert
+    expect(status).toBe(404);
+    expect(cacheControl).toBe(PRIVATE_CACHE);
+    expect(body).toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+  });
+
+  it('answers 404 store-not-found once the store is archived', async () => {
+    // Arrange
+    const gone = await provision('geogone');
+    await server.app
+      .get(TransactionalConnection)
+      .rawConnection.query(`UPDATE "store" SET "status" = 'archived' WHERE "id" = $1`, [gone.store.id]);
+
+    // Act
+    const { status, body } = await get(`/store/provinces?storeId=${String(gone.store.id)}`);
+
+    // Assert
+    expect(status).toBe(404);
+    expect(body).toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+  });
+
+  it('answers 404 province-not-found for a served store and an invalid code', async () => {
+    // Act
+    const { status, body } = await get(
+      `/store/provinces/code/${String(WILAYA_COUNT + 1)}?storeId=${String(shop.store.id)}`,
+    );
+
+    // Assert
+    expect(status).toBe(404);
+    expect(body).toMatchObject({ code: GEO_ERROR_CODES.PROVINCE_NOT_FOUND });
+  });
+});

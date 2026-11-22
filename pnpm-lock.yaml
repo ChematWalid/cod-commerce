@@ -894,6 +894,12 @@ importers:
 
   plugins/geo:
     dependencies:
+      '@cod/plugin-rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
+      '@cod/plugin-tenancy':
+        specifier: workspace:*
+        version: link:../tenancy
       '@cod/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -919,6 +925,9 @@ importers:
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
+      graphql-tag:
+        specifier: 2.12.7
+        version: 2.12.7(graphql@16.15.0)
       typescript:
         specifier: 5.9.3
         version: 5.9.3

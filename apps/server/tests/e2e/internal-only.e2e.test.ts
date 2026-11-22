@@ -103,6 +103,8 @@ describe('the internal-only guard on the full api config (D112)', () => {
       ['GET', '/store/resolve/?host=guarddemo.localhost'],
       ['GET', '/_internal'],
       ['GET', '/_internal/revalidate'],
+      ['GET', '/store/provinces?storeId=1'],
+      ['GET', '/store/provinces/code/16?storeId=1'],
     ])('answers 404 with an empty body to %s %s', async (method, path) => {
       const response = await call(
         method,
@@ -121,6 +123,13 @@ describe('the internal-only guard on the full api config (D112)', () => {
 
       expect(response.status).toBe(200);
       expect(JSON.parse(response.body)).toMatchObject({ storeId: demo.store.id, primaryHost: 'guarddemo.localhost' });
+    });
+
+    it('answers the per-store wilaya list to the storefront (D3106)', async () => {
+      const response = await signedGet(`/store/provinces?storeId=${String(demo.store.id)}`);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['cache-control']).toBe('private, no-store');
     });
 
     it('answers a Shop API query', async () => {
@@ -199,6 +208,12 @@ describe('the internal-only guard on the full api config (D112)', () => {
   describe('what stays public', () => {
     it.each(HOSTS)('answers 200 to an unsigned subdomain check on Host %s', async (host) => {
       const response = await call('GET', '/stores/subdomain-availability?subdomain=free-name', host);
+
+      expect(response.status).toBe(200);
+    });
+
+    it.each(HOSTS)('answers 200 to an unsigned wilaya list on Host %s (D3117)', async (host) => {
+      const response = await call('GET', '/provinces', host);
 
       expect(response.status).toBe(200);
     });
