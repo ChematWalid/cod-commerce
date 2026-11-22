@@ -14,6 +14,7 @@ const complete = {
   PLATFORM_DOMAIN: 'souk.example.dz',
   // base64 of the 32-byte placeholder 'change-me-server-actions-key-000', never a real key.
   NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: 'Y2hhbmdlLW1lLXNlcnZlci1hY3Rpb25zLWtleS0wMDA=',
+  STOREFRONT_TRUST_EDGE_IP: 'true',
 };
 
 /** Runs the boot check with exit and the log intercepted, and returns the one line it logged. */

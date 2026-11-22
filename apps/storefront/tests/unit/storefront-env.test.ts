@@ -19,6 +19,7 @@ const valid = {
   PLATFORM_DOMAIN: 'souk.example.dz',
   // base64 of the 32-byte placeholder 'change-me-server-actions-key-000', never a real key.
   NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: 'Y2hhbmdlLW1lLXNlcnZlci1hY3Rpb25zLWtleS0wMDA=',
+  STOREFRONT_TRUST_EDGE_IP: 'true',
 };
 
 function issuesOf(env: NodeJS.Dict<string>): readonly string[] {
@@ -102,9 +103,9 @@ describe('loadStorefrontEnv', () => {
     const issues = issuesOf(env);
 
     // Assert
-    expect(issues).toHaveLength(7);
+    expect(issues).toHaveLength(8);
     expect(issues.join('\n')).toMatch(
-      /REDIS_URL is required[\s\S]*NEXT_DEPLOYMENT_ID is required[\s\S]*INTERNAL_API_URL[\s\S]*INTERNAL_HMAC_KEYS[\s\S]*PLATFORM_DOMAIN[\s\S]*NEXT_SERVER_ACTIONS_ENCRYPTION_KEY/,
+      /REDIS_URL is required[\s\S]*NEXT_DEPLOYMENT_ID is required[\s\S]*INTERNAL_API_URL[\s\S]*INTERNAL_HMAC_KEYS[\s\S]*PLATFORM_DOMAIN[\s\S]*STOREFRONT_TRUST_EDGE_IP[\s\S]*NEXT_SERVER_ACTIONS_ENCRYPTION_KEY/,
     );
     expect(issues.join('\n')).not.toContain('not-a-url-with-a-secret');
     expect(issues.join('\n')).not.toContain('short-secret-value');

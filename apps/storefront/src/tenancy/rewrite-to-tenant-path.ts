@@ -1,6 +1,7 @@
 import { tenantRoutePath } from '@cod/shared';
 import { type NextRequest, NextResponse } from 'next/server';
-import { CDN_CACHE_CONTROL_HEADER, cdnCacheControlOf } from './cdn-cache-control';
+import { BUYER_IP_QUERY_PARAM } from '../store-api/client-ip';
+import { CDN_CACHE_CONTROL_HEADER, cdnCacheControlOf, isUncachedPage } from './cdn-cache-control';
 import { normalizeHost, type NormalizedHost } from './host';
 import { isInternalPath, NOT_FOUND_PATH } from './internal-paths';
 import type { ResolvedStore } from './store-resolver';
@@ -32,15 +33,19 @@ function primaryHostUrl(request: NextRequest, store: ResolvedStore): URL {
 /**
  * Answers a request for a store: a 301 to its primary host when asked on another one, otherwise a rewrite to its
  * internal path in the store's default locale, with the edge caching rule of the page and never a cookie. No store,
- * or a public request for an internal or malformed path, rewrites to the not-found page.
+ * or a public request for an internal or malformed path, rewrites to the not-found page. The edge's `buyerIp`, when
+ * trusted, is handed to uncached pages only (search), so they can sign it into their api calls (D3213); a value the
+ * client put in the query is always removed.
  */
 export function rewriteToTenantPath(
   request: NextRequest,
   store: ResolvedStore | null,
   bindHost: HostBinder,
+  buyerIp?: string,
 ): NextResponse {
   const { pathname } = request.nextUrl;
   const url = request.nextUrl.clone();
+  url.searchParams.delete(BUYER_IP_QUERY_PARAM);
   if (!store || isInternalPath(pathname)) {
     url.pathname = NOT_FOUND_PATH;
     return NextResponse.rewrite(url);
@@ -49,6 +54,7 @@ export function rewriteToTenantPath(
     return NextResponse.redirect(primaryHostUrl(request, store), MOVED_PERMANENTLY);
   }
   url.pathname = toTenantPath(store, pathname, bindHost);
+  if (buyerIp !== undefined && isUncachedPage(pathname)) url.searchParams.set(BUYER_IP_QUERY_PARAM, buyerIp);
   const response = NextResponse.rewrite(url);
   response.headers.set(CDN_CACHE_CONTROL_HEADER, cdnCacheControlOf(pathname));
   return response;

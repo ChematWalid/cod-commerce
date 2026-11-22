@@ -110,15 +110,20 @@ export async function loadCollectionPage(
 
 /**
  * One page of search results, read on every request and never stored in the shared cache (D3214). A query too short
- * to run answers an empty page without an api call.
+ * to run answers an empty page without an api call. The buyer's `clientIp`, when known, is signed into the call so
+ * the api limits searches per buyer rather than per store (D3213).
  *
  * @throws CatalogApiError when the api cannot answer
  */
-export async function searchProducts(tenant: VerifiedTenant, search: SearchQuery): Promise<StorefrontProductPage> {
+export async function searchProducts(
+  tenant: VerifiedTenant,
+  search: SearchQuery,
+  clientIp?: string,
+): Promise<StorefrontProductPage> {
   const skip = (search.page - 1) * STOREFRONT_LIST_DEFAULT_TAKE;
   if (search.q.length < STOREFRONT_SEARCH_MIN_QUERY) return emptyPage(skip);
   const query = new URLSearchParams({ q: search.q, skip: String(skip), take: String(STOREFRONT_LIST_DEFAULT_TAKE) });
   const path = `${STOREFRONT_API_ROUTES.productSearch}?${query.toString()}`;
-  const page = (await fetchCatalog(tenant, path, storefrontProductPageSchema)) ?? emptyPage(skip);
+  const page = (await fetchCatalog(tenant, path, storefrontProductPageSchema, clientIp)) ?? emptyPage(skip);
   return pageWithAssetPaths(page);
 }

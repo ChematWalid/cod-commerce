@@ -6,13 +6,27 @@ const PLACEHOLDER_KEY = 'Y2hhbmdlLW1lLXNlcnZlci1hY3Rpb25zLWtleS0wMDA=';
 
 describe('storefront delivery environment', () => {
   it('accepts a deployed environment with a 32-byte base64 server actions key', () => {
-    expect(deliveryEnvIssues({ APP_ENV: 'production', NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: PLACEHOLDER_KEY })).toEqual(
-      [],
-    );
+    const env = {
+      APP_ENV: 'production',
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: PLACEHOLDER_KEY,
+      STOREFRONT_TRUST_EDGE_IP: 'true',
+    };
+    expect(deliveryEnvIssues(env)).toEqual([]);
+  });
+
+  it.each(['staging', 'production'])('requires STOREFRONT_TRUST_EDGE_IP=true when APP_ENV is %s', (appEnv) => {
+    // Act
+    const issues = deliveryEnvIssues({
+      APP_ENV: appEnv,
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: PLACEHOLDER_KEY,
+      STOREFRONT_TRUST_EDGE_IP: 'false',
+    });
+    // Assert
+    expect(issues).toEqual(['STOREFRONT_TRUST_EDGE_IP must be true when APP_ENV is staging or production']);
   });
 
   it.each(['staging', 'production', undefined])('requires the server actions key when APP_ENV is %s', (appEnv) => {
-    expect(deliveryEnvIssues({ APP_ENV: appEnv })).toEqual([
+    expect(deliveryEnvIssues({ APP_ENV: appEnv, STOREFRONT_TRUST_EDGE_IP: 'true' })).toEqual([
       'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is required unless APP_ENV is development or test',
     ]);
   });
@@ -25,7 +39,12 @@ describe('storefront delivery environment', () => {
     'refuses the server actions key %j, which is not 32 bytes of base64, without echoing it',
     (value) => {
       // Act
-      const issues = deliveryEnvIssues({ APP_ENV: 'production', NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: value });
+      const env = {
+        APP_ENV: 'production',
+        NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: value,
+        STOREFRONT_TRUST_EDGE_IP: 'true',
+      };
+      const issues = deliveryEnvIssues(env);
       // Assert
       expect(issues).toEqual(['NEXT_SERVER_ACTIONS_ENCRYPTION_KEY must be 32 bytes encoded in base64']);
       expect(issues.join('')).not.toContain(value);

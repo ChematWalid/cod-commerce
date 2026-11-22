@@ -3,6 +3,7 @@ import { normalizeHost, type NormalizedHost } from '@cod/shared';
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config, proxy } from '../../proxy';
+import { BUYER_IP_QUERY_PARAM } from '../../src/store-api/client-ip';
 import { hostBindingOf } from '../../src/tenancy/host-binding';
 
 const SIGNING_KEY = { kid: 'k1', secret: 'change-me-internal-hmac-000000000000000000000' };
@@ -105,6 +106,44 @@ describe('storefront proxy', () => {
     // Assert
     expect(response.headers.get(CDN_CACHE_HEADER)).toBe('no-store');
     expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
+  describe('buyer address for the search page (D3213)', () => {
+    const rewrittenQuery = async (path: string, headers: Record<string, string>): Promise<URLSearchParams> => {
+      const rewritten = getRewrittenUrl(await proxy(storefrontRequest(path, headers)));
+      return new URL(rewritten ?? 'http://x/').searchParams;
+    };
+    const EDGE = { host: 'demo.localhost', 'cf-connecting-ip': '203.0.113.10' };
+
+    it('hands the edge buyer address to the search page when the edge is trusted', async () => {
+      // Arrange
+      vi.stubEnv('STOREFRONT_TRUST_EDGE_IP', 'true');
+      // Act
+      const query = await rewrittenQuery('/search?q=shoe', EDGE);
+      // Assert
+      expect(query.get(BUYER_IP_QUERY_PARAM)).toBe('203.0.113.10');
+      expect(query.get('q')).toBe('shoe');
+    });
+
+    it('drops a buyer address the client put in the query itself', async () => {
+      // Arrange
+      vi.stubEnv('STOREFRONT_TRUST_EDGE_IP', 'false');
+      // Act
+      const search = await rewrittenQuery(`/search?q=shoe&${BUYER_IP_QUERY_PARAM}=198.51.100.1`, EDGE);
+      const products = await rewrittenQuery(`/products?${BUYER_IP_QUERY_PARAM}=198.51.100.1`, EDGE);
+      // Assert
+      expect(search.get(BUYER_IP_QUERY_PARAM)).toBeNull();
+      expect(products.get(BUYER_IP_QUERY_PARAM)).toBeNull();
+    });
+
+    it('never adds the buyer address to a cached page', async () => {
+      // Arrange
+      vi.stubEnv('STOREFRONT_TRUST_EDGE_IP', 'true');
+      // Act
+      const query = await rewrittenQuery('/products', EDGE);
+      // Assert
+      expect(query.get(BUYER_IP_QUERY_PARAM)).toBeNull();
+    });
   });
 
   it('sends an unknown host to the not-found page', async () => {

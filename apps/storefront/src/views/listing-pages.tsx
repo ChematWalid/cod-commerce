@@ -8,6 +8,7 @@ import type { TenantRouteParams } from '../tenancy/verified-tenant';
 import { renderPage } from '../theme/render-page';
 import { themeSource } from '../theme/theme-source';
 import { basePageData, type PageBodyProps, pageCountOf } from './page-data';
+import { buyerIpOfQuery } from '../store-api/client-ip';
 import { requireTenant } from './require-tenant';
 
 /** The route params of a collection page. */
@@ -71,13 +72,15 @@ export async function CollectionContent({ params, query }: ListingContentProps<C
 
 /**
  * Search results, fetched on every request and never stored in the shared cache; the edge does not store them
- * either (`no-store`, D3214).
+ * either (`no-store`, D3214). The buyer address the proxy handed over is signed into the call, so the api limits
+ * searches per buyer (D3213).
  */
 export async function SearchContent({ params, query }: ListingContentProps<TenantRouteParams>): Promise<ReactNode> {
   const tenant = await requireTenant(await params);
   if (tenant === null) return null;
-  const search = searchQueryOf(await query);
-  const products = await searchProducts(tenant, search);
+  const raw = await query;
+  const search = searchQueryOf(raw);
+  const products = await searchProducts(tenant, search, buyerIpOfQuery(raw));
   const listing = {
     basePath: STOREFRONT_PAGE_PATHS.search,
     page: search.page,

@@ -16,8 +16,12 @@ function isUnder(pathname: string, page: string): boolean {
   return pathname === page || pathname.startsWith(`${page}/`);
 }
 
+/** Whether a buyer path renders per request and is never stored, at the edge or in the shared cache. */
+export function isUncachedPage(pathname: string): boolean {
+  return UNCACHED_PAGE_PATHS.some((page) => isUnder(pathname, page));
+}
+
 /** The edge caching rule of a buyer path. */
 export function cdnCacheControlOf(pathname: string): string {
-  const uncached = UNCACHED_PAGE_PATHS.some((page) => isUnder(pathname, page));
-  return uncached ? UNCACHED_CDN_CACHE_CONTROL : TENANT_PAGE_CDN_CACHE_CONTROL;
+  return isUncachedPage(pathname) ? UNCACHED_CDN_CACHE_CONTROL : TENANT_PAGE_CDN_CACHE_CONTROL;
 }

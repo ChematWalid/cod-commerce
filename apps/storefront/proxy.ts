@@ -1,5 +1,6 @@
 import type { NextRequest, NextResponse } from 'next/server';
-import { internalSigningKey } from './src/config/storefront-env';
+import { internalSigningKey, storefrontTrustEdgeIp } from './src/config/storefront-env';
+import { clientIpOf } from './src/store-api/client-ip';
 import { hostBindingOf } from './src/tenancy/host-binding';
 import { resolveStoreFromHost } from './src/tenancy/resolve-store-from-host';
 import { type HostBinder, rewriteToTenantPath } from './src/tenancy/rewrite-to-tenant-path';
@@ -10,11 +11,12 @@ const bindWithActiveKey: HostBinder = (storeId, host) => hostBindingOf(internalS
 
 /**
  * Resolves the store from the `Host` header and rewrites to its internal path, bound to the host by an HMAC the
- * tenant layout checks (ADR 0006, D3202).
+ * tenant layout checks (ADR 0006, D3202). The trusted edge buyer address goes to uncached pages only (D3213).
  */
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const store = await resolveStoreFromHost(request, storeResolver);
-  return rewriteToTenantPath(request, store, bindWithActiveKey);
+  const buyerIp = clientIpOf(request.headers, storefrontTrustEdgeIp());
+  return rewriteToTenantPath(request, store, bindWithActiveKey, buyerIp);
 }
 
 // API routes, the health probes and static assets answer for any host, without a store. The probes and the

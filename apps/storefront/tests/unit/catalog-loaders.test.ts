@@ -106,4 +106,23 @@ describe('catalog loaders', () => {
     expect(found.items).toHaveLength(1);
     expect(cacheTag).not.toHaveBeenCalled();
   });
+
+  it('signs the buyer address into a search so the api limits it per buyer, not per store', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(Response.json(PAGE));
+    // Act
+    await searchProducts(TENANT, { q: 'kettle', page: 1 }, '203.0.113.10');
+    // Assert
+    expect(requestHeaders().get('x-client-ip')).toBe('203.0.113.10');
+    expect(requestHeaders().get('x-store-id')).toBe(TENANT.storeId);
+  });
+
+  it('sends no buyer address on a search when none is known', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(Response.json(PAGE));
+    // Act
+    await searchProducts(TENANT, { q: 'kettle', page: 1 });
+    // Assert
+    expect(requestHeaders().get('x-client-ip')).toBeNull();
+  });
 });

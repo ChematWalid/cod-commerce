@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it, vi } from 'vitest';
-import { clientIpOf } from '../../src/store-api/client-ip';
+import { BUYER_IP_QUERY_PARAM, buyerIpOfQuery, clientIpOf } from '../../src/store-api/client-ip';
 import { handleStoreApiRequest, type StoreApiDeps } from '../../src/store-api/handle-store-api';
 import { upstreamPathOf } from '../../src/store-api/store-api-route';
 import type { NormalizedHost } from '../../src/tenancy/host';
@@ -194,4 +194,18 @@ describe('client ip of a store api call', () => {
   it('accepts an IPv6 address', () => {
     expect(clientIpOf(new Headers({ 'cf-connecting-ip': '2001:db8::1' }), true)).toBe('2001:db8::1');
   });
+});
+
+describe('buyer address the proxy hands the search page', () => {
+  it('reads one valid address', () => {
+    expect(buyerIpOfQuery({ [BUYER_IP_QUERY_PARAM]: '203.0.113.10' })).toBe('203.0.113.10');
+    expect(buyerIpOfQuery({ [BUYER_IP_QUERY_PARAM]: ['2001:db8::1', '203.0.113.10'] })).toBe('2001:db8::1');
+  });
+
+  it.each([{}, { [BUYER_IP_QUERY_PARAM]: 'not-an-ip' }, { [BUYER_IP_QUERY_PARAM]: '' }])(
+    'reads none from %j',
+    (raw) => {
+      expect(buyerIpOfQuery(raw)).toBeUndefined();
+    },
+  );
 });
