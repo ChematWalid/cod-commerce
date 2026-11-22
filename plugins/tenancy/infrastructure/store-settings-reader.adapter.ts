@@ -20,6 +20,7 @@ export class TenantStoreSettingsReader extends StoreSettingsReader {
       language: store.language,
       channelId: store.channelId,
       status: store.status,
+      defaultDeliveryFeeGroupId: store.defaultDeliveryFeeGroupId,
     };
   }
 }

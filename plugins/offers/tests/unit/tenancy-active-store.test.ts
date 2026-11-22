@@ -24,6 +24,7 @@ const activeSettings: NonNullable<Settings> = {
   language: 'ar',
   channelId: REQUEST_CHANNEL,
   status: 'active',
+  defaultDeliveryFeeGroupId: null,
 };
 
 /** The adapter over a reader answering `settings`. */

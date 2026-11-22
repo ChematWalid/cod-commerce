@@ -13,7 +13,13 @@ const OTHER_STORE_OF_A = toStoreId('44');
 const FOREIGN_STORE = toStoreId('33');
 const STORES_OF_A: readonly StoreId[] = [STORE_A, OTHER_STORE_OF_A];
 
-const SETTINGS: StoreSettings = { soldOutBehavior: 'keep', language: 'ar', channelId: 7, status: 'active' };
+const SETTINGS: StoreSettings = {
+  soldOutBehavior: 'keep',
+  language: 'ar',
+  channelId: 7,
+  status: 'active',
+  defaultDeliveryFeeGroupId: null,
+};
 
 /** Answers for every store of business A, granted to the caller or not, and records the business it was asked for. */
 class RecordingReader extends StoreSettingsReader {
