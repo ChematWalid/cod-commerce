@@ -12,9 +12,10 @@ import type { FeeGroupRepositoryPort } from '../domain/ports/fee-group-repositor
 import { asOperationContext } from '../domain/ports/operation-context';
 
 /**
- * Tenancy's fee-group {@link StoreReferenceCheck} (#230, #153, D3111), registered on bootstrap: a group answers yes
- * only for its own business **and** store, and is held `FOR SHARE` in the store update's transaction, so a
- * concurrent delete (which takes `FOR UPDATE`) cannot leave the store pointing at nothing.
+ * The fee-group {@link StoreReferenceCheck} (#230, #153, D3111). Delivery-pricing owns this check and registers it on
+ * tenancy's registrar on bootstrap; tenancy only declares the port and asks it. A group answers yes only for its own
+ * business **and** store, and is held `FOR SHARE` in the store update's transaction, so a concurrent delete (which
+ * takes `FOR UPDATE`) cannot leave the store pointing at nothing.
  */
 @Injectable()
 export class DeliveryFeeGroupReferenceCheck implements StoreReferenceCheck, OnApplicationBootstrap {
