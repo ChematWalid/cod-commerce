@@ -112,11 +112,39 @@ describe('tenant verifier', () => {
     await expect(verify({ locale: 'ar', storeId: STORE_A, binding })).resolves.toBeNull();
   });
 
-  it("gives no tenant when the locale is not the store's language", async () => {
+  it("renders in the store's language when the path's locale is stale but the binding is valid", async () => {
+    // Arrange: the store switched to Arabic while the edge still holds a French path for a minute.
     const { verify } = verifierWith();
     const binding = hostBindingOf(NEW_KEY, STORE_A, HOST_A);
-    await expect(verify({ locale: 'fr', storeId: STORE_A, binding })).resolves.toBeNull();
+    // Act
+    const tenant = await verify({ locale: 'fr', storeId: STORE_A, binding });
+    // Assert
+    expect(tenant?.locale).toBe('ar');
   });
+
+  it.each(['de', '', 'AR'])('gives no tenant for the locale %j without asking the api', async (locale) => {
+    // Arrange
+    const { verify, loadStore } = verifierWith();
+    const binding = hostBindingOf(NEW_KEY, STORE_A, HOST_A);
+    // Act
+    const tenant = await verify({ locale, storeId: STORE_A, binding });
+    // Assert
+    expect(tenant).toBeNull();
+    expect(loadStore).not.toHaveBeenCalled();
+  });
+
+  it.each(['short', 'a'.repeat(HOST_BINDING_LENGTH + 1), `${'a'.repeat(HOST_BINDING_LENGTH - 1)}=`])(
+    'gives no tenant for the malformed binding %j without asking the api',
+    async (binding) => {
+      // Arrange
+      const { verify, loadStore } = verifierWith();
+      // Act
+      const tenant = await verify({ locale: 'ar', storeId: STORE_A, binding });
+      // Assert
+      expect(tenant).toBeNull();
+      expect(loadStore).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(['prerender-sentinel', '0', '01', 'abc', '1'.repeat(20), '../2002'])(
     'gives no tenant for the store id %j without asking the api',

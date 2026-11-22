@@ -261,6 +261,12 @@ services:
       PLATFORM_DOMAIN: ${PLATFORM_DOMAIN:-platform.invalid}
       # The theme every store renders with, default or compact (D3207).
       STOREFRONT_THEME: ${STOREFRONT_THEME:-default}
+      # Where buyers load images (D3209), the static files' CDN prefix, and whether CF-Connecting-IP is trusted (D3213).
+      STOREFRONT_ASSET_BASE: ${STOREFRONT_ASSET_BASE:-}
+      STOREFRONT_ASSET_PREFIX: ${STOREFRONT_ASSET_PREFIX:-}
+      STOREFRONT_TRUST_EDGE_IP: ${STOREFRONT_TRUST_EDGE_IP:-false}
+      # Required unless APP_ENV is development or test; the boot check refuses a missing or malformed one.
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}
       # No NEXT_DEPLOYMENT_ID here: the image's ENV (from the build arg) is the only source, so the cache keys
       # always match the deployment the assets were built for.
     depends_on:

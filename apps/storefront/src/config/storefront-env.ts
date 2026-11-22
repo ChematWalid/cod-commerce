@@ -1,9 +1,10 @@
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { CacheConfigError, requireDeploymentId, requireRedisUrl } from '../../cache/cache-config';
+import { deliveryEnvIssues, readTrustEdgeIp } from './delivery-env';
 
 /**
  * The storefront's environment, validated once at boot (`instrumentation.ts`). It is hand-written because the
- * storefront has no schema library of its own and four variables do not justify adding one.
+ * storefront has no schema library of its own and a dozen variables do not justify adding one.
  *
  * The cache handlers are compiled apart from the app (`cache/tsconfig.json`) and Next loads them on their own,
  * so the two cache rules stay in `cache/cache-config.ts`; this module applies them and adds the rest.
@@ -19,6 +20,10 @@ export const STOREFRONT_ENV_KEYS = [
   'INTERNAL_HMAC_ACTIVE_KID',
   'PLATFORM_DOMAIN',
   'STOREFRONT_THEME',
+  'STOREFRONT_ASSET_BASE',
+  'STOREFRONT_ASSET_PREFIX',
+  'STOREFRONT_TRUST_EDGE_IP',
+  'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
 ] as const;
 
 /** The themes `STOREFRONT_THEME` can select for every store until P8 stores a theme per store (D3207). */
@@ -153,6 +158,19 @@ export function storefrontThemeName(): StorefrontThemeName {
 }
 
 /**
+ * `STOREFRONT_ASSET_BASE` of this process, trimmed (empty when unset), for building image URLs on the server. Read on
+ * each call; the boot check has already refused a malformed value.
+ */
+export function storefrontAssetBase(): string {
+  return process.env['STOREFRONT_ASSET_BASE']?.trim() ?? '';
+}
+
+/** Whether this process trusts `CF-Connecting-IP` (D3213). Read on each call. */
+export function storefrontTrustEdgeIp(): boolean {
+  return readTrustEdgeIp(process.env);
+}
+
+/**
  * Every configured internal key, for checking host bindings (D3202): a binding signed with any kid still in
  * `INTERNAL_HMAC_KEYS` is valid, so a key rotation does not break cached tenant paths. Read on each call.
  *
@@ -255,6 +273,7 @@ export function loadStorefrontEnv(env: NodeJS.Dict<string>): StorefrontEnv {
     ...presentIssues(internalApiUrlIssue(internalApiUrl)),
     ...signing.issues,
     ...presentIssues(platform.issue, theme.issue),
+    ...deliveryEnvIssues(env),
   );
   if (issues.length > 0 || internalApiUrl === undefined || signing.key === undefined) {
     throw new StorefrontEnvError(issues);

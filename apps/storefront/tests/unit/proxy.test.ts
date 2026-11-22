@@ -12,25 +12,29 @@ function bindingOf(storeId: string, host: string): string {
   return hostBindingOf(SIGNING_KEY, storeId, normalizeHost(host) as NormalizedHost);
 }
 
-const DEMO_BINDING = bindingOf('demo', 'demo.localhost');
-const SECOND_BINDING = bindingOf('second', 'second.localhost');
+const DEMO_BINDING = bindingOf('1001', 'demo.localhost');
+const SECOND_BINDING = bindingOf('2002', 'second.localhost');
 const CDN_CACHE_HEADER = 'cloudflare-cdn-cache-control';
 
 /** The stores the fake API knows, by host. */
 const STORES: Record<string, object> = {
-  'demo.localhost': store('demo', 'ar', 'demo.localhost'),
-  'second.localhost': store('second', 'fr', 'second.localhost'),
-  'shop.localhost': store('demo', 'ar', 'demo.localhost'),
+  'demo.localhost': store('1001', 'ar', 'demo.localhost'),
+  'second.localhost': store('2002', 'fr', 'second.localhost'),
+  'shop.localhost': store('1001', 'ar', 'demo.localhost'),
 };
 
 function store(storeId: string, language: string, primaryHost: string): object {
   return {
     storeId,
-    businessId: `business-${storeId}`,
+    businessId: storeId.slice(0, 1),
+    name: `Store ${storeId}`,
+    description: '',
+    logoPath: null,
     language,
-    name: storeId,
-    logo: null,
+    direction: language === 'ar' ? 'rtl' : 'ltr',
     primaryHost,
+    showAddressField: true,
+    soldOutBehavior: 'keep',
     status: 'active',
   };
 }
@@ -71,11 +75,11 @@ describe('storefront proxy', () => {
     // Act
     const path = await rewrittenPath('/p/shoe', headers);
     // Assert
-    expect(path).toBe(`/_t/ar/demo/${DEMO_BINDING}/p/shoe`);
+    expect(path).toBe(`/_t/ar/1001/${DEMO_BINDING}/p/shoe`);
   });
 
   it('rewrites the root of a known host without a trailing slash', async () => {
-    await expect(rewrittenPath('/', { host: 'second.localhost' })).resolves.toBe(`/_t/fr/second/${SECOND_BINDING}`);
+    await expect(rewrittenPath('/', { host: 'second.localhost' })).resolves.toBe(`/_t/fr/2002/${SECOND_BINDING}`);
   });
 
   it('puts the language of a French store in the tenant path, never the buyer Accept-Language', async () => {
@@ -84,7 +88,7 @@ describe('storefront proxy', () => {
     // Act
     const path = await rewrittenPath('/products', headers);
     // Assert
-    expect(path).toBe(`/_t/fr/second/${SECOND_BINDING}/products`);
+    expect(path).toBe(`/_t/fr/2002/${SECOND_BINDING}/products`);
   });
 
   it('lets the CDN cache a tenant page for a minute and sets no cookie', async () => {
@@ -119,14 +123,14 @@ describe('storefront proxy', () => {
   });
 
   it.each([
-    `/_t/fr/second/${SECOND_BINDING}`,
-    `/%5Ft/fr/second/${SECOND_BINDING}`,
-    '/%5ft/fr/second',
-    '/%255Ft/fr/second',
+    `/_t/fr/2002/${SECOND_BINDING}`,
+    `/%5Ft/fr/2002/${SECOND_BINDING}`,
+    '/%5ft/fr/2002',
+    '/%255Ft/fr/2002',
     '/%255f404',
     '/%25255Ft/fr',
-    '/_T/fr/second',
-    '//_t/fr/second',
+    '/_T/fr/2002',
+    '//_t/fr/2002',
     '/_404',
     '/_internal/revalidate',
     '/_INTERNAL',
@@ -149,7 +153,7 @@ describe('storefront proxy', () => {
   });
 
   it('normalises an uppercase host with a port and a trailing dot', async () => {
-    await expect(rewrittenPath('/', { host: 'DEMO.localhost.:3001' })).resolves.toBe(`/_t/ar/demo/${DEMO_BINDING}`);
+    await expect(rewrittenPath('/', { host: 'DEMO.localhost.:3001' })).resolves.toBe(`/_t/ar/1001/${DEMO_BINDING}`);
   });
 
   it('sends a secondary host to the primary host with a 301, keeping path, query and port', async () => {

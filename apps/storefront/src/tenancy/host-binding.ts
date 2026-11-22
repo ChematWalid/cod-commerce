@@ -28,6 +28,11 @@ export function hostBindingOf(key: InternalSigningKey, storeId: string, host: No
     .slice(0, HOST_BINDING_LENGTH);
 }
 
+/** Whether `binding` has the form of a binding at all: a cheap check that needs no key and no store. */
+export function isHostBindingFormat(binding: string): boolean {
+  return HOST_BINDING_FORMAT.test(binding);
+}
+
 function sameBinding(expected: string, candidate: string): boolean {
   return timingSafeEqual(Buffer.from(expected), Buffer.from(candidate));
 }
@@ -42,6 +47,6 @@ export function isHostBindingValid(
   host: NormalizedHost,
   binding: string,
 ): boolean {
-  if (!HOST_BINDING_FORMAT.test(binding)) return false;
+  if (!isHostBindingFormat(binding)) return false;
   return keys.some((key) => sameBinding(hostBindingOf(key, storeId, host), binding));
 }

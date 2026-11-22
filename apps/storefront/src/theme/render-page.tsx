@@ -1,4 +1,4 @@
-import type { Section, ThemePage, Theme, ThemeTokens } from '@cod/shared';
+import { directionOf, type Section, type ThemePage, type Theme, type ThemeTokens } from '@cod/shared';
 import type { CSSProperties, ReactNode } from 'react';
 import { SECTION_REGISTRY, type SectionRegistry } from './registry';
 import type { ThemePageData } from './section-props';
@@ -50,7 +50,8 @@ function renderSection(page: ThemePage, section: Section, data: ThemePageData, r
 /**
  * Renders a theme page: each section of `theme.pages[page]`, in the theme's order, through its registry component.
  * The order and the settings come from the theme data alone, so a theme swap needs no code change (D3207). A section
- * type without a component is skipped and logged, never a crash.
+ * type without a component is skipped and logged, never a crash. The page carries the store's `lang` and `dir`
+ * itself, so it is right even while the tenant path still names the store's previous language (D3221).
  */
 export function renderPage(
   page: ThemePage,
@@ -59,7 +60,13 @@ export function renderPage(
   registry: SectionRegistry = SECTION_REGISTRY,
 ): ReactNode {
   return (
-    <div className="theme-root" data-page={page} style={tokenStyle(theme.tokens)}>
+    <div
+      className="theme-root"
+      data-page={page}
+      lang={data.locale}
+      dir={directionOf(data.locale)}
+      style={tokenStyle(theme.tokens)}
+    >
       {theme.pages[page].map((section) => renderSection(page, section, data, registry))}
     </div>
   );

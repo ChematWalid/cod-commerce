@@ -17,6 +17,8 @@ const valid = {
     'k1:change-me-internal-hmac-000000000000000000000,k2:change-me-internal-hmac-111111111111111111111',
   INTERNAL_HMAC_ACTIVE_KID: 'k2',
   PLATFORM_DOMAIN: 'souk.example.dz',
+  // base64 of the 32-byte placeholder 'change-me-server-actions-key-000', never a real key.
+  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: 'Y2hhbmdlLW1lLXNlcnZlci1hY3Rpb25zLWtleS0wMDA=',
 };
 
 function issuesOf(env: NodeJS.Dict<string>): readonly string[] {
@@ -100,9 +102,9 @@ describe('loadStorefrontEnv', () => {
     const issues = issuesOf(env);
 
     // Assert
-    expect(issues).toHaveLength(6);
+    expect(issues).toHaveLength(7);
     expect(issues.join('\n')).toMatch(
-      /REDIS_URL is required[\s\S]*NEXT_DEPLOYMENT_ID is required[\s\S]*INTERNAL_API_URL[\s\S]*INTERNAL_HMAC_KEYS[\s\S]*PLATFORM_DOMAIN/,
+      /REDIS_URL is required[\s\S]*NEXT_DEPLOYMENT_ID is required[\s\S]*INTERNAL_API_URL[\s\S]*INTERNAL_HMAC_KEYS[\s\S]*PLATFORM_DOMAIN[\s\S]*NEXT_SERVER_ACTIONS_ENCRYPTION_KEY/,
     );
     expect(issues.join('\n')).not.toContain('not-a-url-with-a-secret');
     expect(issues.join('\n')).not.toContain('short-secret-value');
@@ -115,9 +117,13 @@ describe('loadStorefrontEnv', () => {
       'INTERNAL_HMAC_ACTIVE_KID',
       'INTERNAL_HMAC_KEYS',
       'NEXT_DEPLOYMENT_ID',
+      'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
       'PLATFORM_DOMAIN',
       'REDIS_URL',
+      'STOREFRONT_ASSET_BASE',
+      'STOREFRONT_ASSET_PREFIX',
       'STOREFRONT_THEME',
+      'STOREFRONT_TRUST_EDGE_IP',
     ]);
   });
 });

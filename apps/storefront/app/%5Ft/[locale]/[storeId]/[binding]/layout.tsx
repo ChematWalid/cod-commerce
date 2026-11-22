@@ -1,13 +1,9 @@
 import { PLATFORM_LANGUAGE_CODES } from '@cod/shared';
-import { notFound } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
 import { PRERENDER_SENTINEL_STORE_ID } from '../../../../../src/tenancy/store-resolver';
-import {
-  isPrerenderSentinel,
-  PRERENDER_SENTINEL_BINDING,
-  verifyTenant,
-} from '../../../../../src/tenancy/tenant-verifier-instance';
+import { PRERENDER_SENTINEL_BINDING } from '../../../../../src/tenancy/tenant-verifier-instance';
 import type { TenantRouteParams } from '../../../../../src/tenancy/verified-tenant';
+import { TenantGate } from '../../../../../src/views/tenant-gate';
 
 interface TenantLayoutProps {
   readonly children: ReactNode;
@@ -24,15 +20,6 @@ export function generateStaticParams(): TenantRouteParams[] {
     storeId: PRERENDER_SENTINEL_STORE_ID,
     binding: PRERENDER_SENTINEL_BINDING,
   }));
-}
-
-/** Renders the store's pages only when the path's host binding is the store's own (#209). */
-async function TenantGate({ children, params }: TenantLayoutProps): Promise<ReactNode> {
-  const route = await params;
-  if (isPrerenderSentinel(route)) return null;
-  const tenant = await verifyTenant(route);
-  if (tenant === null) notFound();
-  return children;
 }
 
 /**

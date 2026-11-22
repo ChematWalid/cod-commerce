@@ -119,11 +119,11 @@ describe('theme source', () => {
 
   it('gives every store the default theme when STOREFRONT_THEME is not set', () => {
     vi.stubEnv('STOREFRONT_THEME', '');
-    expect(themeSource.themeFor(STORE)).toEqual(DEFAULT_THEME);
+    expect(themeSource.themeNamed(themeSource.themeNameFor(STORE))).toEqual(DEFAULT_THEME);
   });
 
   it('gives the compact theme when STOREFRONT_THEME is compact', () => {
     vi.stubEnv('STOREFRONT_THEME', 'compact');
-    expect(themeSource.themeFor(STORE)).toEqual(COMPACT_THEME);
+    expect(themeSource.themeNamed(themeSource.themeNameFor(STORE))).toEqual(COMPACT_THEME);
   });
 });

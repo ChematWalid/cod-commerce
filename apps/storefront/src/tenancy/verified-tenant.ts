@@ -1,7 +1,7 @@
 import { isPlatformLanguageCode, isSnowflake, type PlatformLanguageCode, type StorefrontStore } from '@cod/shared';
 import type { InternalSigningKey } from '@cod/shared/internal-auth';
 import { normalizeHost } from './host';
-import { isHostBindingValid } from './host-binding';
+import { isHostBindingFormat, isHostBindingValid } from './host-binding';
 
 /** The route params of a tenant render (`/_t/{locale}/{storeId}/{binding}`), untrusted until verified. */
 export interface TenantRouteParams {
@@ -20,7 +20,7 @@ interface TenantFields {
 }
 
 /**
- * A store whose tenant path carried a valid host binding for its own primary host and its own language (#209).
+ * A store whose tenant path carried a valid host binding for its own primary host (#209), in the store's language.
  * Only {@link createTenantVerifier} produces one, and every storefront data loader takes one, so a crafted path
  * naming another store renders no store data.
  */
@@ -43,17 +43,23 @@ function bindsToOwnHost(store: StorefrontStore, params: TenantRouteParams, deps:
   return isHostBindingValid(deps.verifyKeys(), store.storeId, primaryHost, params.binding);
 }
 
+/** The checks that need no store and no key: a crafted path fails them before any api call. */
+function hasTenantPathFormat(params: TenantRouteParams): boolean {
+  return isSnowflake(params.storeId) && isPlatformLanguageCode(params.locale) && isHostBindingFormat(params.binding);
+}
+
 /**
- * The tenant check of the tenant layout and pages. A malformed store id or locale is refused before any api call
- * (the build's prerender sentinel included); the store must exist, speak the path's locale, and the binding must be
- * the one of its primary host under any configured key.
+ * The tenant check of the tenant layout and pages. A malformed store id, locale or binding is refused before any api
+ * call (the build's prerender sentinel included); the store must exist and the binding must be the one of its primary
+ * host under any configured key. The page renders in the store's current language even when the path still carries
+ * the previous one: the binding does not cover the locale, and refusing would show a soft 404 for as long as the edge
+ * and the host cache hold the old path after a language change (D3221).
  */
 export function createTenantVerifier(deps: TenantVerifierDeps): TenantVerifier {
   return async (params) => {
-    if (!isSnowflake(params.storeId) || !isPlatformLanguageCode(params.locale)) return null;
+    if (!hasTenantPathFormat(params)) return null;
     const store = await deps.loadStore(params.storeId);
-    if (store === null || store.language !== params.locale) return null;
-    if (!bindsToOwnHost(store, params, deps)) return null;
+    if (store === null || !bindsToOwnHost(store, params, deps)) return null;
     const fields: TenantFields = { storeId: store.storeId, locale: store.language, store };
     // The only place a VerifiedTenant is made: the brand exists in the type system alone.
     return fields as VerifiedTenant;

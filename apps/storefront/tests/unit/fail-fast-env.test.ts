@@ -12,6 +12,8 @@ const complete = {
   INTERNAL_HMAC_KEYS: 'k1:change-me-internal-hmac-000000000000000000000',
   INTERNAL_HMAC_ACTIVE_KID: 'k1',
   PLATFORM_DOMAIN: 'souk.example.dz',
+  // base64 of the 32-byte placeholder 'change-me-server-actions-key-000', never a real key.
+  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: 'Y2hhbmdlLW1lLXNlcnZlci1hY3Rpb25zLWtleS0wMDA=',
 };
 
 /** Runs the boot check with exit and the log intercepted, and returns the one line it logged. */
