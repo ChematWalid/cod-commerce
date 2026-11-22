@@ -4,7 +4,7 @@ import { canonicalCoreId } from '../domain/core-id';
 import { InvalidCollectionInputError } from '../domain/errors';
 import type { ActiveStorePort } from '../domain/ports/active-store.port';
 import type { OperationContext } from '../domain/ports/operation-context';
-import type { CollectionImage } from '../domain/ports/vendure-collections.port';
+import type { CollectionImage, CollectionMeta } from '../domain/ports/vendure-collections.port';
 import type { ProductPage, VisibleProductsPort } from '../domain/ports/visible-products.port';
 import type { StoreScope } from '../domain/store-scope';
 import type { CollectionPorts } from './collection-ports';
@@ -82,7 +82,7 @@ export class CollectionsReadService<TContext, TPage> {
   ): Promise<TPage | undefined> {
     if (!isPage(page, CATALOG_MAX_PAGE_SIZE)) throw new InvalidCollectionInputError();
     const scope = await this.stores.activeStoreOf(ctx);
-    const definition = await this.visibleDefinition(ctx, scope, rawCollectionId);
+    const definition = (await this.visibleOne(ctx, scope, rawCollectionId))?.definition;
     if (definition === undefined) return undefined;
     const { collectionId } = definition;
     if (definition.mode === 'manual') {
@@ -95,18 +95,53 @@ export class CollectionsReadService<TContext, TPage> {
     return this.products.newestAmong(ctx, context, { scope, collectionId, productIds: idsOf(members) }, page);
   }
 
-  /** The store's visible definition of a collection whose Vendure collection is still in the store channel. */
-  private async visibleDefinition(
+  /**
+   * The ids of every product in a visible collection of the active store: by hand order for a manual one, newest first
+   * for an automatic one (D2318), with no cap. Membership only: a product the catalog would not show (hidden, draft,
+   * sold out and hidden) is still named, so the caller joins the ids with a visibility-aware read (the storefront
+   * projection, D3206). `undefined` for a hidden, foreign, other-store, unknown or malformed collection id.
+   *
+   * @throws {CollectionsNoActiveStoreError} for a context without an active store on its channel.
+   */
+  async visibleMemberIds(ctx: OperationContext, rawCollectionId: string): Promise<string[] | undefined> {
+    const scope = await this.stores.activeStoreOf(ctx);
+    const visible = await this.visibleOne(ctx, scope, rawCollectionId);
+    if (visible === undefined) return undefined;
+    return idsOf(await this.ports.members.membersOf(ctx, scope, visible.definition.collectionId));
+  }
+
+  /**
+   * The visible collection of the active store whose slug is `slug` (a storefront category URL); `undefined` for a
+   * hidden, other-store, unknown or blank slug.
+   *
+   * @throws {CollectionsNoActiveStoreError} for a context without an active store on its channel.
+   */
+  async findVisibleBySlug(ctx: OperationContext, slug: string): Promise<VisibleCollection | undefined> {
+    const scope = await this.stores.activeStoreOf(ctx);
+    if (slug.trim() === '') return undefined;
+    const collectionId = await this.ports.vendure.findIdBySlug(ctx, slug);
+    if (collectionId === undefined) return undefined;
+    const visible = await this.visibleOne(ctx, scope, collectionId);
+    if (visible === undefined) return undefined;
+    const { definition, meta } = visible;
+    return { id: definition.collectionId, ...meta, position: definition.position };
+  }
+
+  /**
+   * The store's visible definition of a collection whose Vendure collection is still in the store channel, with what
+   * that Vendure collection holds beside it.
+   */
+  private async visibleOne(
     ctx: OperationContext,
     scope: StoreScope,
     rawCollectionId: string,
-  ): Promise<CollectionDefinition | undefined> {
+  ): Promise<{ readonly definition: CollectionDefinition; readonly meta: CollectionMeta } | undefined> {
     const collectionId = canonicalCoreId(rawCollectionId);
     if (collectionId === undefined) return undefined;
     const definition = await this.ports.definitions.findByCollectionId(ctx, scope, collectionId);
     if (definition?.visible !== true) return undefined;
-    const live = await this.ports.vendure.findMany(ctx, [collectionId]);
-    return live.has(collectionId) ? definition : undefined;
+    const meta = (await this.ports.vendure.findMany(ctx, [collectionId])).get(collectionId);
+    return meta === undefined ? undefined : { definition, meta };
   }
 }
 

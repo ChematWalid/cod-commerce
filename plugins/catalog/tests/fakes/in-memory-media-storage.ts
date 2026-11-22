@@ -20,6 +20,10 @@ export class InMemoryMediaStorage implements MediaStoragePort {
   readonly inUse = new Set<CoreId>();
   /** `<store>:<asset>` per share, in order. */
   readonly shares: string[] = [];
+  /** The preview storage path of each asset `previewsOf` knows; a test may add or remove one. */
+  readonly previews = new Map<CoreId, string>();
+  /** The ids each `previewsOf` call asked for, in call order. */
+  readonly previewCalls: (readonly CoreId[])[] = [];
   /** When set, the next store fails like the content guard refusing an undecodable body. */
   refuseContent = false;
 
@@ -36,6 +40,7 @@ export class InMemoryMediaStorage implements MediaStoragePort {
       fileSize: image.bytes.length,
     };
     this.files.set(assetId, stored);
+    this.previews.set(assetId, `preview/${assetId}.${image.format.extension}`);
     this.storedFormats.push(image.format);
     return Promise.resolve(stored);
   }
@@ -44,6 +49,15 @@ export class InMemoryMediaStorage implements MediaStoragePort {
     const found = assetIds.flatMap((id) => {
       const file = this.files.get(id);
       return file === undefined ? [] : [[id, file] as const];
+    });
+    return Promise.resolve(new Map(found));
+  }
+
+  previewsOf(_ctx: OperationContext, assetIds: readonly CoreId[]): Promise<ReadonlyMap<CoreId, string>> {
+    this.previewCalls.push([...assetIds]);
+    const found = assetIds.flatMap((id) => {
+      const preview = this.previews.get(id);
+      return preview === undefined ? [] : [[id, preview] as const];
     });
     return Promise.resolve(new Map(found));
   }

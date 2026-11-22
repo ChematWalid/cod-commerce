@@ -40,8 +40,10 @@ export {
   type CatalogReadOptions,
   CatalogReadService,
   NoActiveStoreError,
+  type VisibleImage,
   type VisibleProduct,
   type VisibleProductPage,
+  type VisibleVariant,
 } from './application/catalog-read.service';
 export { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
 export type { PublicListContext, PublicVisibilityContext } from './domain/visibility';

@@ -91,6 +91,11 @@ export class VendureCollectionsAdapter implements VendureCollectionsPort {
     return new Map(found.map((collection) => [String(collection.id), this.metaOf(request, collection)]));
   }
 
+  async findIdBySlug(ctx: OperationContext, slug: string): Promise<string | undefined> {
+    const holder = await this.collections.findOneBySlug(toRequestContext(ctx), slug, []);
+    return holder === undefined ? undefined : String(holder.id);
+  }
+
   storedSlugOf(slug: string): string {
     return storedSlug(slug);
   }

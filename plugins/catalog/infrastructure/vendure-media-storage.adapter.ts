@@ -65,6 +65,11 @@ export class VendureMediaStorage implements MediaStoragePort {
     return new Map(assets.map((asset) => [coreIdOf(asset.id), this.storedOf(request, asset)]));
   }
 
+  async previewsOf(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<ReadonlyMap<CoreId, string>> {
+    const assets = await this.reads.assetsByIds(toRequestContext(ctx), [...new Set(assetIds)]);
+    return new Map(assets.map((asset) => [coreIdOf(asset.id), asset.preview]));
+  }
+
   async shareWithStore(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<void> {
     const request = toRequestContext(ctx);
     for (const id of assetIds) await this.joinStore(request, id);

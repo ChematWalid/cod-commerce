@@ -1,7 +1,13 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import { describe, expect, it } from 'vitest';
-import { catalogSuite, UPDATE_PRODUCT } from './catalog-kit';
-import { CatalogReadProbePlugin, NO_ACTIVE_STORE_REFUSAL, type ProbedProduct } from './catalog-read-probe';
+import { catalogSuite, rawId, UPDATE_PRODUCT } from './catalog-kit';
+import {
+  CatalogReadProbePlugin,
+  NO_ACTIVE_STORE_REFUSAL,
+  type ProbedProduct,
+  type ProbedShape,
+} from './catalog-read-probe';
+import { createMedia } from './media-kit';
 
 const suite = catalogSuite(1023, {
   plugins: [RbacPlugin, CatalogReadProbePlugin],
@@ -20,6 +26,11 @@ async function listed(context: string): Promise<ProbedProduct[]> {
 async function bySlug(slug: string, context: string): Promise<ProbedProduct | null> {
   const answer = await suite.kit.rest('GET', `/test/catalog-read/slug?slug=${slug}&context=${context}`);
   return answer.body as ProbedProduct | null;
+}
+
+async function shapeOf(slug: string): Promise<ProbedShape | null> {
+  const answer = await suite.kit.rest('GET', `/test/catalog-read/shape?slug=${slug}`);
+  return answer.body as ProbedShape | null;
 }
 
 describe('CatalogReadService on a live server (AC2, AC6, D2109, D2142)', () => {
@@ -99,5 +110,56 @@ describe('CatalogReadService on a live server (AC2, AC6, D2109, D2142)', () => {
     // Assert: 409 only when NoActiveStoreError refused the read; any other fault stays a 500
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ message: NO_ACTIVE_STORE_REFUSAL });
+  });
+
+  it('a product page carries image preview paths, never URLs, and only the option values of shown variants (#246)', async () => {
+    // Arrange
+    const { a } = suite.fixtures;
+    await behave(a.stores[0].id, 'keep');
+    await suite.kit.asOwner(a);
+    const media = await createMedia(suite.kit);
+    const shirt = await suite.kit.createProduct({
+      title: 'Read shirt',
+      slug: 'read-shirt',
+      sku: 'RS',
+      featuredAssetId: media.assetId,
+      assetIds: [media.assetId],
+      optionGroups: [{ name: 'Color', values: ['Red', 'Blue'] }],
+    });
+    const red = shirt.variants.find((variant) => variant.optionValues[0] === 'Red');
+    await suite.kit.gql(UPDATE_PRODUCT, { id: shirt.id, input: { variants: [{ id: red?.id, isHidden: true }] } });
+
+    // Act
+    const shape = await shapeOf('read-shirt');
+
+    // Assert
+    const preview = shape === null ? '' : (shape.featuredAsset?.preview ?? '');
+    expect(preview).not.toMatch(/^https?:/);
+    expect(preview).not.toBe('');
+    expect(media.previewUrl.endsWith(preview)).toBe(true);
+    expect(shape).toEqual({
+      featuredAsset: { id: rawId(media.assetId), preview },
+      assets: [{ id: rawId(media.assetId), preview }],
+      variantPreviews: [null],
+      optionGroups: [{ name: 'Color', values: ['Blue'] }],
+    });
+  });
+
+  it("never shows another business's image preview or product shape", async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.b);
+    const media = await createMedia(suite.kit);
+    await suite.kit.createProduct({
+      title: 'Read foreign image',
+      slug: 'read-foreign-image',
+      featuredAssetId: media.assetId,
+    });
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const shape = await shapeOf('read-foreign-image');
+
+    // Assert
+    expect(shape).toBeNull();
   });
 });
