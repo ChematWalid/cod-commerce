@@ -23,3 +23,24 @@ export const STOREFRONT_SEARCH_MAX_VARIANTS = 8;
 
 /** Longest synonym term or expansion stored, in characters: a search reads at most this much of a query. */
 export const SEARCH_SYNONYM_MAX_LENGTH = STOREFRONT_SEARCH_MAX_QUERY;
+
+/** The outbox consumer that turns catalog and store changes into storefront revalidations (Task 11, D3222). */
+export const REVALIDATE_CONSUMER_NAME = 'storefront-revalidate';
+
+/**
+ * How long a revalidation waits after its outbox delivery: the projection consumer writes the rows of the same event
+ * on its own delivery, so expiring the list pages a little later lets them re-render from the new rows (D3222).
+ */
+export const REVALIDATE_SETTLE_MS = 2_000;
+
+/** How long the revalidate worker waits for the storefront before the job fails and retries. */
+export const REVALIDATE_TIMEOUT_MS = 5_000;
+
+/** At most one CDN purge per store in this window, however often the store publishes (D3210). */
+export const PURGE_WINDOW_MS = 30_000;
+
+/** Most hostnames one CDN purge request carries, across stores (D3210, ADR 0012 limits). */
+export const PURGE_MAX_HOSTNAMES = 100;
+
+/** How often the worker sends the purges a window held back. */
+export const PURGE_FLUSH_INTERVAL_MS = PURGE_WINDOW_MS;

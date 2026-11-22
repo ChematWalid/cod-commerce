@@ -22,6 +22,7 @@ import * as quoteKeys from './quote-keys-env';
 import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
 import { rejectUnsafeTenancySettings } from './tenancy-env';
+import { requireRevalidateSigningKey, storefrontRevalidateEnvShape } from './storefront-revalidate-env';
 import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
@@ -149,6 +150,7 @@ const baseSchema = z.object({
   ...quoteKeys.quoteKeysEnvShape,
   ...authEnvShape,
   ...catalogImportEnvShape,
+  ...storefrontRevalidateEnvShape,
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
@@ -231,6 +233,7 @@ const envSchema = baseSchema
   .superRefine(rejectDemoHandlersInProduction)
   .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
+  .superRefine(requireRevalidateSigningKey)
   .superRefine(requireKnownKekActiveKid)
   .superRefine(requireCatalogImportSettings)
   .superRefine(quoteKeys.requireKnownQuoteActiveKid)

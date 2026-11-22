@@ -29,6 +29,7 @@ import { authEmailTemplates } from '../email';
 import { assetServerPlugin } from './asset-storage.config';
 import { isDeployed } from './deployed-env';
 import { MigrateNoSchedulerPlugin } from './migrate-no-scheduler.plugin';
+import { storefrontTargetOf } from './storefront-revalidate-env';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
 import { bullMqOptions, redisOptionsFromUrl } from './redis.config';
@@ -169,6 +170,15 @@ const catalogImportPlugin = (env: AppEnv): VendurePluginEntry =>
     appEnv: env.APP_ENV,
   });
 
+/** The storefront's public catalog API, with the storefront its revalidations go to and the domain its purges name. */
+const storefrontApiPlugin = (env: AppEnv): VendurePluginEntry => {
+  const storefront = storefrontTargetOf(env);
+  return StorefrontApiPlugin.init({
+    platformDomain: env.PLATFORM_DOMAIN,
+    ...(storefront === undefined ? {} : { storefront }),
+  });
+};
+
 /**
  * RBAC, auth, catalog, offers, collections and Team, in this order: Team builds on the services of the others (D206)
  * and registers its order-manager check in the catalog module, so Catalog configures after Auth and before Team
@@ -182,8 +192,9 @@ function memberPlugins(env: AppEnv): VendurePluginEntry[] {
     CatalogPlugin,
     OffersPlugin.init({ quoteKeys: quoteKeyRing(parseQuoteKeys(env.QUOTE_HMAC_KEYS), env.QUOTE_HMAC_ACTIVE_KID) }),
     CollectionsRulesPlugin,
-    // The storefront's public catalog reads the catalog and the collections, so it configures after both (P3.S2).
-    StorefrontApiPlugin,
+    // The storefront's public catalog reads the catalog and the collections, so it configures after both (P3.S2); it
+    // revalidates the storefront it is pointed at (D3211).
+    storefrontApiPlugin(env),
     TeamPlugin.init({ dashboardUrl: env.AUTH_DASHBOARD_URL }),
     CatalogPacksPlugin,
     catalogImportPlugin(env),

@@ -5,33 +5,20 @@ import {
   OutboxParkError,
 } from '@cod/plugin-platform-outbox';
 import { requestContextOf } from '@cod/plugin-tenancy';
-import {
-  isSnowflake,
-  PRODUCT_CHANGE_KINDS,
-  type QueueName,
-  storeChangedPayloadSchema,
-  type TenantScope,
-  toStoreId,
-} from '@cod/shared';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { type QueueName, storeChangedPayloadSchema, type TenantScope, toStoreId } from '@cod/shared';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Logger, type RequestContext } from '@vendure/core';
-import { z } from 'zod';
 import { ProjectionService, type ProjectionSkip } from '../application/projection.service';
+import { PROJECTION_REBUILD_QUEUE_PORT } from '../application/tokens';
 import { PROJECTION_CONSUMER_NAME } from '../domain/constants';
-import { canonicalCoreId } from '../domain/core-id';
 import { asOperationContext } from '../domain/ports/operation-context';
+import type { ProjectionRebuildQueuePort } from '../domain/ports/projection-rebuild-queue.port';
 import type { StoreScope } from '../domain/store-scope';
+import { isRowStore, productChangedSchema } from './outbox-payloads';
 
 /** The pool the projection's deliveries run on, beside the collections membership (catalog effects, D2312). */
 const PROJECTION_QUEUE: QueueName = 'catalog-effects';
 const LOG_CONTEXT = 'StorefrontProjectionConsumer';
-
-/** The `product.changed` payload (D2127) as this consumer trusts it: ids only, each well formed. */
-const productChangedSchema = z.object({
-  productId: z.string().refine((id) => canonicalCoreId(id) !== undefined),
-  storeId: z.string().refine(isSnowflake),
-  change: z.enum(PRODUCT_CHANGE_KINDS),
-});
 
 /** The outbox handed a delivery without the request context its scope should carry: a wiring fault, retried. */
 export class MissingProjectionContextError extends Error {
@@ -41,13 +28,10 @@ export class MissingProjectionContextError extends Error {
   }
 }
 
-/** The payload's store must be the delivery row's, when the row names one: anything else is a forged delivery. */
-const isRowStore = (delivery: OutboxDelivery, storeId: string): boolean =>
-  delivery.storeId === null || delivery.storeId === storeId;
-
 /**
  * Keeps the storefront projection up to date (D3205): a `product.changed` rewrites (or drops) that one product's
- * row; a `store.changed` of the settings re-applies the store's sold-out behaviour in one `UPDATE`, nothing else. Rows
+ * row; a `store.changed` of the settings re-applies the store's sold-out behaviour in one `UPDATE` and queues a
+ * rebuild of the store's rows, whose names are read in the store language, which the change may have switched. Rows
  * are written in the delivery's transaction; the catalog is read as the store (D3201). A malformed or cross-tenant
  * payload is parked; a missing or inactive store is acknowledged and logged.
  */
@@ -56,6 +40,7 @@ export class StorefrontProjectionConsumer implements OnModuleInit {
   constructor(
     private readonly registry: OutboxConsumerRegistry,
     private readonly projection: ProjectionService,
+    @Inject(PROJECTION_REBUILD_QUEUE_PORT) private readonly rebuilds: ProjectionRebuildQueuePort,
   ) {}
 
   onModuleInit(): void {
@@ -95,10 +80,13 @@ export class StorefrontProjectionConsumer implements OnModuleInit {
     if (!parsed.success || foreign || !isRowStore(delivery, parsed.data.storeId)) {
       throw new OutboxParkError('the store.changed payload is malformed');
     }
-    // Only a settings change can flip the sold-out behaviour; status and domain changes leave the rows as they are.
+    // Only a settings change can flip the sold-out behaviour or the language; status and domain changes leave the rows.
     if (parsed.data.change !== 'settings') return;
     const store: StoreScope = { businessId: scope.businessId, storeId: toStoreId(parsed.data.storeId) };
-    this.logSkip(delivery, store, await this.projection.relistStore(asOperationContext(ctx), store));
+    const skip = await this.projection.relistStore(asOperationContext(ctx), store);
+    this.logSkip(delivery, store, skip);
+    // The settings carry no "what changed", so every settings change rebuilds; merchants rarely save them (D3222).
+    if (skip === undefined) await this.rebuilds.enqueue(store, delivery.outboxId);
   }
 
   private logSkip(delivery: OutboxDelivery, store: StoreScope, skip: ProjectionSkip | undefined): void {

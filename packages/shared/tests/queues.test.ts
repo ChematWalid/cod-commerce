@@ -75,6 +75,22 @@ describe('queue registry', () => {
     expect(durableJobId(DURABLE_JOB_KINDS.collectionsReconcile, '1001', 'v1')).toBe('crs-1001-v1');
   });
 
+  it('puts storefront-projection, the projection rebuild of a store, in the bulk pool (D3222)', () => {
+    expect(QUEUES['storefront-projection']).toEqual({
+      pool: 'bulk',
+      concurrency: 1,
+      attempts: 5,
+      backoff: { type: 'exponential', delayMs: 30_000 },
+    });
+    expect(activeQueuesFor('bulk')).toContain('storefront-projection');
+    expect(durableJobId(DURABLE_JOB_KINDS.storefrontProjectionRebuild, '1001')).toBe('spr-1001');
+  });
+
+  it('keeps storefront-revalidate on the critical pool and names its jobs (D3222)', () => {
+    expect(activeQueuesFor('critical')).toContain('storefront-revalidate');
+    expect(durableJobId(DURABLE_JOB_KINDS.storefrontRevalidate, '1001')).toBe('srv-1001');
+  });
+
   it('rejects names outside the registry', () => {
     expect(isQueueName('nope')).toBe(false);
     expect(isQueueName('toString')).toBe(false);

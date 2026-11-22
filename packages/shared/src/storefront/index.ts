@@ -2,6 +2,7 @@ export * from './store-dto';
 export * from './catalog-dto';
 export * from './cache-tags';
 export * from './routes';
+export * from './revalidate';
 export * from './theme/schema';
 export * from './theme/default-theme';
 export * from './theme/compact-theme';

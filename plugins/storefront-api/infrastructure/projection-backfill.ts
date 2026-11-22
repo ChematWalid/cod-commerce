@@ -3,7 +3,7 @@ import { asOperationContext as asTenancyContext, BusinessStoreDirectory, TenantT
 import { type BusinessId, type Snowflake, toSnowflake } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import { Logger, RequestContextService, type ScheduledTask } from '@vendure/core';
-import { ProjectionService } from '../application/projection.service';
+import { ProjectionService, type ProjectionSkip } from '../application/projection.service';
 import {
   PROJECTION_BACKFILL_BUSINESS_PAGE,
   PROJECTION_BACKFILL_SCHEDULE,
@@ -11,6 +11,7 @@ import {
 } from '../domain/constants';
 import { asOperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
+import type { ProjectionRebuilder } from './projection-rebuild.job';
 
 const LOG_CONTEXT = 'StorefrontProjectionBackfill';
 
@@ -25,10 +26,11 @@ export interface BackfillCounts {
 /**
  * Builds the projection of every active store that has none (D3205): stores that existed before the projection, or
  * whose rows were lost. One transaction per store; a store that fails is logged and left to the next sweep, so one
- * broken store never stops the others. A store with rows is only counted, never re-read.
+ * broken store never stops the others. A store with rows is only counted, never re-read. {@link rebuild} rewrites
+ * one store's rows on the same path, for the rebuild job (D3222).
  */
 @Injectable()
-export class ProjectionBackfill {
+export class ProjectionBackfill implements ProjectionRebuilder {
   constructor(
     private readonly contexts: RequestContextService,
     private readonly directory: BusinessStoreDirectory,
@@ -48,6 +50,12 @@ export class ProjectionBackfill {
       const last = page.at(-1);
       after = last === undefined ? undefined : toSnowflake(last.id);
     }
+  }
+
+  /** Rewrites every row of one store in one transaction; a failure propagates, so the rebuild job retries. */
+  async rebuild(scope: StoreScope): Promise<number | ProjectionSkip> {
+    const ctx = await this.contexts.create({ apiType: 'admin' });
+    return this.transactions.run(ctx, scope, (txCtx) => this.projection.rebuildStore(asOperationContext(txCtx), scope));
   }
 
   private async backfillBusiness(businessId: BusinessId): Promise<BackfillCounts> {
