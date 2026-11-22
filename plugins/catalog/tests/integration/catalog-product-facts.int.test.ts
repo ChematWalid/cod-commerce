@@ -171,6 +171,26 @@ describe('CatalogProductFactsReader (D2308)', () => {
     expect(facts.map((fact) => fact.productId)).toEqual([rawId(own.id)]);
   });
 
+  it("reads the weights of the store's own live products only, null when unset (D3119)", async () => {
+    // Arrange
+    const { a, b } = suite.fixtures;
+    await suite.kit.asOwner(a);
+    const heavy = await suite.kit.createProduct({ title: 'Facts heavy', weight: 2500 });
+    const unweighed = await suite.kit.createProduct({ title: 'Facts unweighed' });
+    await suite.kit.asOwner(a, a.stores[1]);
+    const otherStore = await suite.kit.createProduct({ title: 'Facts other store heavy', weight: 900 });
+    await suite.kit.asOwner(b);
+    const foreign = await suite.kit.createProduct({ title: 'Facts foreign heavy', weight: 700 });
+    const ctx = await contextOn(suite, a.stores[0].channelToken);
+    const asked = [...rawIds([heavy, unweighed, otherStore, foreign]), 'abc'];
+
+    // Act
+    const weights = await suite.reader.weightsOf(ctx, scopeOf(a, a.stores[0]), asked);
+
+    // Assert
+    expect(Object.fromEntries(weights)).toEqual({ [rawId(heavy.id)]: 2500, [rawId(unweighed.id)]: null });
+  });
+
   it('pageIds walks every product once when one is deleted between pages', async () => {
     // Arrange
     const { b } = suite.fixtures;

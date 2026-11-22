@@ -2,6 +2,7 @@ import { PRODUCT_SEARCH_MAX } from '@cod/shared';
 import type { RequestContext } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 import type { CoreId } from '../../domain/core-id';
+import { CatalogStoreChannelMismatchError } from '../../application/product-facts';
 import { InvalidCatalogInputError } from '../../domain/errors';
 import type { BrandRepositoryPort } from '../../domain/ports/brand-repository.port';
 import type { StoreSettingsPort } from '../../domain/ports/store-settings.port';
@@ -18,14 +19,20 @@ const ctx = { apiType: 'admin' } as unknown as RequestContext;
 const PAGE_IDS = ['9', '8'] as CoreId[];
 
 /** A reader over stub ports whose store channel always matches; the query's calls are recorded. */
-function readerOverStubs() {
+function readerOverStubs(channelMatches = true) {
   const query = {
     products: vi.fn(() => Promise.resolve([])),
     variants: vi.fn(() => Promise.resolve([])),
     pageIds: vi.fn(() => Promise.resolve(PAGE_IDS)),
     options: vi.fn(() => Promise.resolve([])),
+    weights: vi.fn(() =>
+      Promise.resolve([
+        { productId: '7' as CoreId, weight: 1200 },
+        { productId: '8' as CoreId, weight: null },
+      ]),
+    ),
   };
-  const stores = { isChannelOf: () => Promise.resolve(true) } as unknown as StoreSettingsPort;
+  const stores = { isChannelOf: () => Promise.resolve(channelMatches) } as unknown as StoreSettingsPort;
   const tags = { tagIdsOfProducts: () => Promise.resolve(new Map()) } as unknown as TagRepositoryPort;
   const reader = new CatalogProductFactsReader(
     query as unknown as VendureProductFactsQuery,
@@ -96,5 +103,58 @@ describe('CatalogProductFactsReader guards', () => {
     // Assert
     expect(query.pageIds).toHaveBeenCalledWith(ctx, { after: '10', limit: 2, search: null });
     expect(page).toEqual({ ids: ['9'], next: '9' });
+  });
+});
+
+describe('CatalogProductFactsReader weights (D3119)', () => {
+  it("answers each live product's weight in grams, null when none is set, from one read of the parsed ids", async () => {
+    // Arrange
+    const { reader, query } = readerOverStubs();
+
+    // Act
+    const weights = await reader.weightsOf(ctx, scopeA, ['7', '8', '07', 'abc']);
+
+    // Assert
+    expect(query.weights).toHaveBeenCalledWith(ctx, ['7', '8']);
+    expect([...weights]).toEqual([
+      ['7', 1200],
+      ['8', null],
+    ]);
+  });
+
+  it('reads nothing for ids that name no product', async () => {
+    // Arrange
+    const { reader, query } = readerOverStubs();
+
+    // Act
+    const weights = await reader.weightsOf(ctx, scopeA, ['abc', '0']);
+
+    // Assert
+    expect(weights.size).toBe(0);
+    expect(query.weights).not.toHaveBeenCalled();
+  });
+
+  it('refuses more than the most ids one read takes, before any query', async () => {
+    // Arrange
+    const { reader, query } = readerOverStubs();
+
+    // Act
+    const read = reader.weightsOf(ctx, scopeA, Array<string>(CATALOG_FACTS_MAX_IDS + 1).fill('1'));
+
+    // Assert
+    await expect(read).rejects.toBeInstanceOf(InvalidCatalogInputError);
+    expect(query.weights).not.toHaveBeenCalled();
+  });
+
+  it("refuses a context that is not on the store's channel", async () => {
+    // Arrange
+    const { reader, query } = readerOverStubs(false);
+
+    // Act
+    const read = reader.weightsOf(ctx, scopeA, ['7']);
+
+    // Assert
+    await expect(read).rejects.toBeInstanceOf(CatalogStoreChannelMismatchError);
+    expect(query.weights).not.toHaveBeenCalled();
   });
 });
