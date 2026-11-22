@@ -9,16 +9,19 @@ import { FeeGroupReadService } from '../application/fee-group-read.service';
 import { SaveFeeGroupService } from '../application/save-fee-group.service';
 import { SetCommuneRatesService } from '../application/set-commune-rates.service';
 import { ShippingQuoteService } from '../application/shipping-quote.service';
+import { TownAvailabilityService } from '../application/town-availability.service';
 import {
   FEE_GROUP_PORTS,
   FEE_GROUP_REPOSITORY,
   FEE_GROUP_TRANSACTION,
   PRODUCT_WEIGHTS,
+  SERVED_STORES,
   STORE_DEFAULTS,
   TOWNS,
 } from '../application/tokens';
 import type { FeeGroupRepositoryPort } from '../domain/ports/fee-group-repository.port';
 import type { ProductWeightsPort } from '../domain/ports/product-weights.port';
+import type { ServedStoresPort } from '../domain/ports/served-stores.port';
 import type { StoreDefaultsPort } from '../domain/ports/store-defaults.port';
 import type { TownDirectoryPort } from '../domain/ports/town-directory.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
@@ -26,7 +29,9 @@ import { CatalogProductWeights } from './catalog-product-weights.adapter';
 import { DeliveryPricingLifecycleHook } from './delivery-pricing-lifecycle.hook';
 import { DeliveryFeeGroupReferenceCheck } from './fee-group-reference.check';
 import { OffersShippingQuoteAdapter } from './offers-shipping-quote.adapter';
+import { TenancyServedStores } from './tenancy-served-stores.adapter';
 import { TenancyStoreDefaults } from './tenancy-store-defaults.adapter';
+import { DeliveryTownAvailabilitySource } from './town-availability.source';
 import { TransactionAdapter } from './transaction.adapter';
 import { TypeOrmFeeGroupRepository } from './typeorm-fee-group.repository';
 
@@ -40,7 +45,8 @@ const useCase = (type: new (ports: FeeGroupPorts) => object): Provider => ({
 /**
  * Wires the fee-group use cases to their adapters; geo's town directory checks the communes (D3125) and the catalog's
  * weight reader weighs a parcel (D3119). The reference check and the lifecycle hook register themselves on tenancy's
- * seams at bootstrap (D3111), the offers adapter on the offers' shipping quote seam (D2423).
+ * seams at bootstrap (D3111), the offers adapter on the offers' shipping quote seam (D2423) and the town availability
+ * source on geo's narrowing seam (D3135).
  */
 export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   { provide: FEE_GROUP_TRANSACTION, useClass: TransactionAdapter },
@@ -74,7 +80,14 @@ export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
     useFactory: (ports: FeeGroupPorts, weights: ProductWeightsPort) => new ShippingQuoteService(ports, weights),
     inject: [FEE_GROUP_PORTS, PRODUCT_WEIGHTS],
   },
+  { provide: SERVED_STORES, useClass: TenancyServedStores },
+  {
+    provide: TownAvailabilityService,
+    useFactory: (ports: FeeGroupPorts, stores: ServedStoresPort) => new TownAvailabilityService(ports, stores),
+    inject: [FEE_GROUP_PORTS, SERVED_STORES],
+  },
   DeliveryFeeGroupReferenceCheck,
   DeliveryPricingLifecycleHook,
   OffersShippingQuoteAdapter,
+  DeliveryTownAvailabilitySource,
 ];

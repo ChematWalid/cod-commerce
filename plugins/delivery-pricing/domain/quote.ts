@@ -1,6 +1,7 @@
 import { DELIVERY_SPEEDS, MONEY_MAX_DZD, type QuotePriceSource, type ShippingQuote } from '@cod/shared';
 import { GRAMS_PER_KG } from './constants';
 import type { CommuneRateRow, FeeGroupSettings, WilayaRateRow } from './fee-group';
+import { modesOf } from './store-modes';
 
 /** How the parcel reaches the buyer: to the door or to a carrier's stop desk. */
 export type DeliveryMethod = 'home' | 'desk';
@@ -46,13 +47,11 @@ export const UNRESOLVED_QUOTE: ShippingQuote = {
 
 const [STANDARD_SPEED] = DELIVERY_SPEEDS;
 
-/** Whether the method is offered (D3125): the commune switch wins over the wilaya one, desk needs a desk town. */
+/** Whether the method is offered (D3125): the switches of {@link modesOf}, and desk needs a desk town. */
 function isOffered({ communeRate, town, method }: DeliveryQuoteInput, wilaya: WilayaRateRow): boolean {
-  const delivers = communeRate?.deliveryEnabled ?? wilaya.deliveryEnabled;
-  if (!delivers) return false;
-  if (method === 'home') return true;
-  const deskOn = communeRate?.deskEnabled ?? wilaya.deskEnabled;
-  return deskOn && (town === null || town.isStopdesk);
+  const modes = modesOf(wilaya, communeRate);
+  if (method === 'home') return modes.home;
+  return modes.desk && (town === null || town.isStopdesk);
 }
 
 /** A commune row's price of the method, `override ?? base`; `null` when it sets none, which inherits (D3125). */

@@ -5,3 +5,4 @@ export const STORE_DEFAULTS = Symbol('delivery-pricing.StoreDefaults');
 export const TOWNS = Symbol('delivery-pricing.Towns');
 export const FEE_GROUP_PORTS = Symbol('delivery-pricing.FeeGroupPorts');
 export const PRODUCT_WEIGHTS = Symbol('delivery-pricing.ProductWeights');
+export const SERVED_STORES = Symbol('delivery-pricing.ServedStores');
