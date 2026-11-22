@@ -6,6 +6,7 @@ import {
   WILAYA_CODES,
   type WilayaCode,
 } from '@cod/shared';
+import { CarrierSyncService } from '../../application/carrier-sync.service';
 import { DefaultTableService } from '../../application/default-table.service';
 import { DeliveryDefaultsConvergeService } from '../../application/delivery-defaults-converge.service';
 import { DeleteFeeGroupService } from '../../application/delete-fee-group.service';
@@ -16,7 +17,9 @@ import { SetCommuneRatesService } from '../../application/set-commune-rates.serv
 import { ShippingQuoteService } from '../../application/shipping-quote.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type { StoreScope } from '../../domain/store-scope';
+import type { CarrierRate } from '../../domain/carrier-prices';
 import {
+  FixedCarrierRates,
   FixedStoreDefaults,
   FixedTowns,
   FixedWeights,
@@ -96,5 +99,24 @@ export function quoteWorld() {
     saving: new SaveFeeGroupService(ports),
     communes: new SetCommuneRatesService(ports),
     quotes: new ShippingQuoteService(ports, weights),
+  };
+}
+
+/** The use cases and the carrier sync over a carrier answering `rates` (`null` = the no-op default). */
+export function syncWorld(rates: readonly CarrierRate[] | null) {
+  const groups = new InMemoryFeeGroups();
+  const carrier = new FixedCarrierRates(rates);
+  const ports: FeeGroupPorts = {
+    groups,
+    transaction: inlineTransaction,
+    storeDefaults: new FixedStoreDefaults(),
+    towns: new FixedTowns({ '16': [1601, 1652], '01': [101] }),
+  };
+  return {
+    groups,
+    carrier,
+    saving: new SaveFeeGroupService(ports),
+    communes: new SetCommuneRatesService(ports),
+    sync: new CarrierSyncService(ports, carrier),
   };
 }

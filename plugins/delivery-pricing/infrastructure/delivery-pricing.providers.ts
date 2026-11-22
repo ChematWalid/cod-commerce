@@ -1,6 +1,7 @@
 import { TOWN_DIRECTORY } from '@cod/plugin-geo';
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
+import { CarrierSyncService } from '../application/carrier-sync.service';
 import { DefaultTableService } from '../application/default-table.service';
 import { DeleteFeeGroupService } from '../application/delete-fee-group.service';
 import { DeliveryDefaultsConvergeService } from '../application/delivery-defaults-converge.service';
@@ -11,6 +12,7 @@ import { SetCommuneRatesService } from '../application/set-commune-rates.service
 import { ShippingQuoteService } from '../application/shipping-quote.service';
 import { TownAvailabilityService } from '../application/town-availability.service';
 import {
+  CARRIER_PRICE_SYNC,
   FEE_GROUP_PORTS,
   FEE_GROUP_REPOSITORY,
   FEE_GROUP_TRANSACTION,
@@ -19,6 +21,7 @@ import {
   STORE_DEFAULTS,
   TOWNS,
 } from '../application/tokens';
+import type { CarrierPriceSyncPort } from '../domain/ports/carrier-price-sync.port';
 import type { FeeGroupRepositoryPort } from '../domain/ports/fee-group-repository.port';
 import type { ProductWeightsPort } from '../domain/ports/product-weights.port';
 import type { ServedStoresPort } from '../domain/ports/served-stores.port';
@@ -27,6 +30,7 @@ import type { TownDirectoryPort } from '../domain/ports/town-directory.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 import { CatalogProductWeights } from './catalog-product-weights.adapter';
 import { DeliveryPricingLifecycleHook } from './delivery-pricing-lifecycle.hook';
+import { NoopCarrierPriceSync } from './noop-carrier-price-sync';
 import { DeliveryFeeGroupReferenceCheck } from './fee-group-reference.check';
 import { OffersShippingQuoteAdapter } from './offers-shipping-quote.adapter';
 import { TenancyServedStores } from './tenancy-served-stores.adapter';
@@ -46,7 +50,7 @@ const useCase = (type: new (ports: FeeGroupPorts) => object): Provider => ({
  * Wires the fee-group use cases to their adapters; geo's town directory checks the communes (D3125) and the catalog's
  * weight reader weighs a parcel (D3119). The reference check and the lifecycle hook register themselves on tenancy's
  * seams at bootstrap (D3111), the offers adapter on the offers' shipping quote seam (D2423) and the town availability
- * source on geo's narrowing seam (D3135).
+ * source on geo's narrowing seam (D3135). The carrier price sync answers nothing until the carrier integrations (D3136).
  */
 export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   { provide: FEE_GROUP_TRANSACTION, useClass: TransactionAdapter },
@@ -79,6 +83,12 @@ export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
     provide: ShippingQuoteService,
     useFactory: (ports: FeeGroupPorts, weights: ProductWeightsPort) => new ShippingQuoteService(ports, weights),
     inject: [FEE_GROUP_PORTS, PRODUCT_WEIGHTS],
+  },
+  { provide: CARRIER_PRICE_SYNC, useClass: NoopCarrierPriceSync },
+  {
+    provide: CarrierSyncService,
+    useFactory: (ports: FeeGroupPorts, carrier: CarrierPriceSyncPort) => new CarrierSyncService(ports, carrier),
+    inject: [FEE_GROUP_PORTS, CARRIER_PRICE_SYNC],
   },
   { provide: SERVED_STORES, useClass: TenancyServedStores },
   {

@@ -60,3 +60,14 @@ export class DeliveryDefaultsConvergeFailedError extends Error {
     this.name = 'DeliveryDefaultsConvergeFailedError';
   }
 }
+
+/**
+ * A carrier answered rates a sync cannot merge (a bad price, wilaya or commune, a key named twice, a commune of another
+ * wilaya); nothing is written. A carrier adapter's fault, not a caller's input, so a plain `Error`.
+ */
+export class InvalidCarrierRatesError extends Error {
+  constructor(readonly reason: string) {
+    super(`Carrier rates refused: ${reason}`);
+    this.name = 'InvalidCarrierRatesError';
+  }
+}

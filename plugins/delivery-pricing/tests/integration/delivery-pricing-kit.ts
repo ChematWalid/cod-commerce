@@ -85,6 +85,8 @@ export interface CommuneResult {
   readonly codeOns: number;
   readonly homePrice: number | null;
   readonly deskPrice: number | null;
+  readonly baseHomePrice: number | null;
+  readonly baseDeskPrice: number | null;
   readonly deliveryEnabled: boolean | null;
   readonly deskEnabled: boolean | null;
   readonly overridden: boolean;

@@ -15,6 +15,8 @@ import type {
   QuoteRows,
   QuoteRowsQuery,
 } from '../../domain/ports/fee-group-repository.port';
+import type { CarrierRate } from '../../domain/carrier-prices';
+import type { CarrierPriceSyncPort } from '../../domain/ports/carrier-price-sync.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { ProductWeightsPort } from '../../domain/ports/product-weights.port';
 import type { StoreDefaultsPort, StoreLink } from '../../domain/ports/store-defaults.port';
@@ -209,6 +211,22 @@ export class FixedWeights implements ProductWeightsPort {
       .filter((id) => this.weights.has(id))
       .map((id) => [id, this.weights.get(id) ?? null] as const);
     return Promise.resolve(new Map(found));
+  }
+}
+
+/** {@link CarrierPriceSyncPort} answering fixed rates (`null` = the no-op default); records each carrier id asked. */
+export class FixedCarrierRates implements CarrierPriceSyncPort {
+  readonly asked: (Snowflake | null)[] = [];
+
+  constructor(private readonly rates: readonly CarrierRate[] | null) {}
+
+  ratesFor(
+    _ctx: OperationContext,
+    _scope: StoreScope,
+    carrierId: Snowflake | null,
+  ): Promise<readonly CarrierRate[] | null> {
+    this.asked.push(carrierId);
+    return Promise.resolve(this.rates);
   }
 }
 
