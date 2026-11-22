@@ -182,11 +182,18 @@ describe('shipping quote isolation (ADR 0002)', () => {
       store.id,
     ]);
 
-    // Act
-    const quote = await quoteIn(a, store, { townOns: ALGER_CENTRE });
-    await suite.kit.query('UPDATE "store" SET "defaultDeliveryFeeGroupId" = $1 WHERE id = $2', [ownDefault, store.id]);
+    try {
+      // Act
+      const quote = await quoteIn(a, store, { townOns: ALGER_CENTRE });
 
-    // Assert
-    expect(quote).toMatchObject({ resolved: false, baseFee: 0, totalFee: 0, source: null });
+      // Assert
+      expect(quote).toMatchObject({ resolved: false, baseFee: 0, totalFee: 0, source: null });
+    } finally {
+      // A failed Act must not leave A1 pointing at a foreign group for the next tests of the file.
+      await suite.kit.query('UPDATE "store" SET "defaultDeliveryFeeGroupId" = $1 WHERE id = $2', [
+        ownDefault,
+        store.id,
+      ]);
+    }
   });
 });
