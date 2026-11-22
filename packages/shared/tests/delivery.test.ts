@@ -118,7 +118,20 @@ describe('deliveryFeeGroupSchema', () => {
       isPlatformDefault: true,
       createdAt: '2026-11-22T10:00:00.000Z',
       updatedAt: '2026-11-22T10:00:00.000Z',
-      rates: allRates().map((rate) => ({ ...rate, baseHomePrice: 600, baseDeskPrice: 400 })),
+      rates: allRates().map((rate) => ({ ...rate, baseHomePrice: 600, baseDeskPrice: 400, overridden: false })),
+      communeRates: [
+        {
+          codeOns: 1601,
+          provinceCode: '16',
+          homePrice: 450,
+          deskPrice: null,
+          baseHomePrice: null,
+          baseDeskPrice: null,
+          deliveryEnabled: null,
+          deskEnabled: false,
+          overridden: true,
+        },
+      ],
     };
 
     expect(deliveryFeeGroupSchema.parse(group)).toEqual(group);

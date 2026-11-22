@@ -1,24 +1,9 @@
 import { z } from 'zod';
 import { CATALOG_ID_MAX_LENGTH } from '../catalog/constants';
-import { hasBidiControl, hasControlCharacter, hasLoneSurrogate } from '../text/control-characters';
 import { WILAYA_CODES, WILAYA_COUNT } from '../wilayas/wilayas';
-import { FEE_GROUP_NAME_MAX, MAX_DELIVERY_PRICE, MAX_OVERWEIGHT_ALLOWANCE_KG, MAX_OVERWEIGHT_RATE } from './constants';
-import { DELIVERY_PRICING_ERROR_CODES } from './error-codes';
-
-/**
- * The issue of every shape refusal of a fee-group body: a code string, not a `{ message }` object, since Zod rewrites
- * a shared params object in place (see `invalidCollectionInput`).
- */
-const issue = DELIVERY_PRICING_ERROR_CODES.INVALID_INPUT;
-
-const isCleanLine = (value: string): boolean =>
-  !hasControlCharacter(value) && !hasBidiControl(value) && !hasLoneSurrogate(value);
-
-/** A whole number from 0 to `max`. */
-const boundedIntSchema = (max: number) => z.number(issue).int(issue).min(0, issue).max(max, issue);
-
-/** A home or stop-desk price of one wilaya, in whole DZD (ADR 0004). */
-const deliveryPriceSchema = boundedIntSchema(MAX_DELIVERY_PRICE);
+import { deliveryFeeCommuneRateSchema } from './commune-rate';
+import { FEE_GROUP_NAME_MAX, MAX_OVERWEIGHT_ALLOWANCE_KG, MAX_OVERWEIGHT_RATE } from './constants';
+import { boundedIntSchema, deliveryIssue as issue, deliveryPriceSchema, isCleanLine } from './schema-parts';
 
 /** The prices and switches of one wilaya in a fee group (D3120: desk is offered only when delivery is on too). */
 export const deliveryFeeRateInputSchema = z.object(
@@ -70,18 +55,23 @@ export const deliveryFeeGroupInputSchema = z.object(
 export type DeliveryFeeGroupInput = z.output<typeof deliveryFeeGroupInputSchema>;
 
 /**
- * One wilaya of a stored fee group: the effective prices plus the base ones (platform default or carrier sync). A
- * price that differs from its base is a merchant override (D3107).
+ * One wilaya of a stored fee group: the effective prices (override ?? base) plus the base ones (platform default or
+ * carrier sync). `overridden` says a merchant override is stored (D3107, D3125), never "price ≠ base", so a carrier
+ * price equal to the override still shows it.
  */
 export const deliveryFeeRateSchema = deliveryFeeRateInputSchema.extend({
   baseHomePrice: deliveryPriceSchema,
   baseDeskPrice: deliveryPriceSchema,
+  overridden: z.boolean(),
 });
 
 /** One wilaya of a stored fee group. */
 export type DeliveryFeeRate = z.output<typeof deliveryFeeRateSchema>;
 
-/** A stored fee group ("pricing option") of a store, with one rate per wilaya; dates are ISO 8601 strings. */
+/**
+ * A stored fee group ("pricing option") of a store, with one rate per wilaya and its sparse commune rows (D3125);
+ * dates are ISO 8601 strings.
+ */
 export const deliveryFeeGroupSchema = z.object({
   ...feeGroupFields,
   id: z.string(),
@@ -89,6 +79,7 @@ export const deliveryFeeGroupSchema = z.object({
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   rates: z.array(deliveryFeeRateSchema).length(WILAYA_COUNT).refine(hasDistinctProvinces),
+  communeRates: z.array(deliveryFeeCommuneRateSchema),
 });
 
 /** A stored fee group of a store. */
