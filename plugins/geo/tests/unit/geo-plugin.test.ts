@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GeoPlugin, TOWN_AVAILABILITY_REGISTRAR } from '../../index';
+import { GeoPlugin, TOWN_AVAILABILITY_REGISTRAR, TOWN_DIRECTORY, type TownDirectory } from '../../index';
 
 /** Nest's module metadata key for `exports`, and Vendure's key for the compatibility range. */
 const EXPORTS_KEY = 'exports';
@@ -20,5 +20,18 @@ describe('GeoPlugin', () => {
 
     // Assert
     expect(exported).toContain(TOWN_AVAILABILITY_REGISTRAR);
+  });
+
+  it('publishes the town directory port delivery pricing validates communes with', () => {
+    // Arrange
+    const directory: TownDirectory = { townsOf: () => Promise.resolve([16001, 16002]) };
+
+    // Act
+    const description = TOWN_DIRECTORY.description;
+
+    // Assert
+    expect(typeof TOWN_DIRECTORY).toBe('symbol');
+    expect(description).toBe('GeoTownDirectory');
+    expect(directory.townsOf('16')).toBeInstanceOf(Promise);
   });
 });

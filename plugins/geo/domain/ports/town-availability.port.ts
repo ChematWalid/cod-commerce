@@ -1,11 +1,20 @@
 import type { StoreId, WilayaCode } from '@cod/shared';
 
-/** Which delivery modes a store offers in one wilaya. */
-export interface TownAvailability {
+/** Which delivery modes are offered in one place (a wilaya or a commune). */
+export interface ModeAvailability {
   /** Home delivery is offered. */
   readonly home: boolean;
   /** Stop-desk pickup is offered. */
   readonly desk: boolean;
+}
+
+/** Which delivery modes a store offers in one wilaya, and in the communes of it that differ (D3125). */
+export interface TownAvailability extends ModeAvailability {
+  /**
+   * The communes whose modes differ from the wilaya's, keyed by ONS code (`codeOns`). It only holds those communes:
+   * a commune absent from the map has the wilaya's `home` and `desk`.
+   */
+  readonly towns: ReadonlyMap<number, ModeAvailability>;
 }
 
 /**
@@ -13,7 +22,7 @@ export interface TownAvailability {
  * pricing registers it on `TOWN_AVAILABILITY_REGISTRAR`; until then nothing is narrowed.
  */
 export interface TownAvailabilitySource {
-  /** The store's delivery modes in the wilaya, or `null` when the store does not narrow it. */
+  /** The store's modes in the wilaya and its differing communes, or `null` when the store does not narrow it. */
   availabilityFor(storeId: StoreId, provinceCode: WilayaCode): Promise<TownAvailability | null>;
 }
 
