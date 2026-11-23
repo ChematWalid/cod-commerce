@@ -352,6 +352,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P3.S5a-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`; handoffs `P0.S2b.md`, `P1.S6.md`, `P3.S2.md`; `docs/adr/` 0011 (hosting in Algeria, provider selection method), 0012, 0013, 0015, 0016 §6 (and 0006 for the spike F items left "pending" in P0.S2a).
 - `docs/architecture/infrastructure.md` §1.1, §2 (§5 costs are superseded by ADR 0011); `docs/architecture/system-design.md` §3, §8, §9.
 
