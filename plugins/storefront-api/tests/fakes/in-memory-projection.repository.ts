@@ -41,6 +41,14 @@ export class InMemoryProjectionRepository implements ProjectionRepositoryPort {
     return Promise.resolve();
   }
 
+  removeAllExcept(_ctx: OperationContext, scope: StoreScope, keptProductIds: readonly string[]): Promise<number> {
+    const kept = new Set(keptProductIds);
+    const rows = this.rowsOf(scope);
+    const stale = [...rows.keys()].filter((id) => !kept.has(id));
+    for (const id of stale) rows.delete(id);
+    return Promise.resolve(stale.length);
+  }
+
   relist(_ctx: OperationContext, scope: StoreScope, soldOutBehavior: SoldOutBehavior): Promise<number> {
     this.relists.push({ scope, soldOutBehavior });
     const rows = this.rowsOf(scope);

@@ -148,3 +148,54 @@ describe('ProjectionService.backfillIfEmpty', () => {
     expect(catalog.reads.length).toBe(readsBefore);
   });
 });
+
+describe('ProjectionService.rebuildStore', () => {
+  it('drops the rows of products the catalog walk no longer finds, and leaves B alone', async () => {
+    // Arrange: product 8's `deleted` delivery was missed, so its row outlived it.
+    const { catalog, projection, service } = setUp();
+    catalog.put(STORE_A, source('7')).put(STORE_A, source('8'));
+    catalog.put(STORE_B, source('8'));
+    await service.refreshProduct(WRITE_CTX, STORE_A, '7');
+    await service.refreshProduct(WRITE_CTX, STORE_A, '8');
+    await service.refreshProduct(WRITE_CTX, STORE_B, '8');
+    catalog.drop(STORE_A, '8');
+
+    // Act
+    const read = await service.rebuildStore(WRITE_CTX, STORE_A);
+
+    // Assert
+    expect(read).toBe(1);
+    expect(ids(projection, STORE_A)).toEqual(['7']);
+    expect(ids(projection, STORE_B)).toEqual(['8']);
+  });
+
+  it('drops every row of a store whose catalog is now empty', async () => {
+    // Arrange
+    const { catalog, projection, service } = setUp();
+    catalog.put(STORE_A, source('7'));
+    await service.refreshProduct(WRITE_CTX, STORE_A, '7');
+    catalog.drop(STORE_A, '7');
+
+    // Act
+    const read = await service.rebuildStore(WRITE_CTX, STORE_A);
+
+    // Assert
+    expect(read).toBe(0);
+    expect(ids(projection, STORE_A)).toEqual([]);
+  });
+
+  it('drops no row of a store it cannot read', async () => {
+    // Arrange
+    const { catalog, projection, service } = setUp();
+    catalog.put(STORE_A, source('7'));
+    await service.refreshProduct(WRITE_CTX, STORE_A, '7');
+    catalog.drop(STORE_A, '7');
+
+    // Act
+    const skip = await service.rebuildStore(WRITE_CTX, { ...STORE_A, businessId: STORE_B.businessId });
+
+    // Assert
+    expect(skip).toBe('store-unavailable');
+    expect(ids(projection, STORE_A)).toEqual(['7']);
+  });
+});

@@ -1,4 +1,5 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
+import { toBusinessId, toStoreId } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import { ProjectionBackfill } from '../../infrastructure/projection-backfill';
 import { idsOf, storefrontSuite } from './storefront-kit';
@@ -85,5 +86,39 @@ describe('the storefront projection', () => {
       [fixtures.a.businessId],
     );
     expect(after).toEqual(before);
+  });
+
+  it("drops a ghost row on a store rebuild, keeps the live products, and leaves the other business's rows alone", async () => {
+    // Arrange: a row of a product the catalog no longer has, as a missed `deleted` delivery would leave.
+    const { kit, fixtures } = suite;
+    const store = fixtures.a.stores[0];
+    await kit.asOwner(fixtures.a, store);
+    const product = await kit.product('Burnous rebuilt');
+    await kit.storeUntil('/store/products', store.id, (answer) => idsOf(answer).includes(product.id));
+    const ghostProductId = String(Number(product.id) + 1_000_000);
+    await kit.query(
+      `INSERT INTO storefront_product (id, "businessId", "storeId", "productId", slug, name, "searchText", price,
+         "oldPrice", "imagePath", visible, "soldOut", listed, "createdAt", "updatedAt")
+       SELECT id + 1000000, "businessId", "storeId", $2, slug || '-ghost', 'Ghost product', "searchText", price,
+         "oldPrice", "imagePath", visible, "soldOut", listed, "createdAt", "updatedAt"
+       FROM storefront_product WHERE "productId" = $1 AND "storeId" = $3`,
+      [product.id, ghostProductId, store.id],
+    );
+    const countOfB = () =>
+      kit.query<{ n: number }>('SELECT count(*)::int AS n FROM storefront_product WHERE "businessId" = $1', [
+        fixtures.b.businessId,
+      ]);
+    const before = await countOfB();
+    expect(await rowOf(ghostProductId)).toMatchObject({ name: 'Ghost product' });
+
+    // Act
+    const scope = { businessId: toBusinessId(fixtures.a.businessId), storeId: toStoreId(store.id) };
+    const read = await kit.app.get(ProjectionBackfill).rebuild(scope);
+
+    // Assert
+    expect(typeof read).toBe('number');
+    expect(await rowOf(ghostProductId)).toBeUndefined();
+    expect(await rowOf(product.id)).toMatchObject({ name: 'Burnous rebuilt', listed: true });
+    expect(await countOfB()).toEqual(before);
   });
 });

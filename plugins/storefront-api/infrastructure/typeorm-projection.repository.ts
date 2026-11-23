@@ -1,7 +1,7 @@
 import type { SnowflakeIdGeneratorPort, TenantRepository, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import { tenantQuery } from '@cod/plugin-tenancy';
 import type { SoldOutBehavior, StorefrontSort } from '@cod/shared';
-import { Not } from 'typeorm';
+import { Not, Raw } from 'typeorm';
 import { canonicalCoreId, canonicalCoreIds } from '../domain/core-id';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type {
@@ -102,6 +102,13 @@ export class TypeOrmProjectionRepository implements ProjectionRepositoryPort {
     const canonical = canonicalCoreId(productId);
     if (canonical === undefined) return;
     await this.rows.delete(requestScope(ctx, scope), { storeId: scope.storeId, productId: canonical });
+  }
+
+  /** One array parameter, however many products the store keeps: never an unbounded bind list (#251). */
+  removeAllExcept(ctx: OperationContext, scope: StoreScope, keptProductIds: readonly string[]): Promise<number> {
+    const kept = canonicalCoreIds(keptProductIds);
+    const notKept = Raw((column) => `${column} <> ALL(:keptProductIds)`, { keptProductIds: kept });
+    return this.rows.delete(requestScope(ctx, scope), { storeId: scope.storeId, productId: notKept });
   }
 
   relist(ctx: OperationContext, scope: StoreScope, soldOutBehavior: SoldOutBehavior): Promise<number> {

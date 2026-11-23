@@ -62,19 +62,24 @@ export class ProjectionService {
     return this.rebuildStore(writeCtx, scope);
   }
 
-  /** Rewrites the row of every live product of the store, page by page; answers how many products were read. */
+  /**
+   * Rewrites the row of every live product of the store, page by page, then drops the rows of products the walk did
+   * not meet, in the same transaction: a missed `deleted` delivery must not leave a ghost listed product. Answers how
+   * many products were read.
+   */
   async rebuildStore(writeCtx: OperationContext, scope: StoreScope): Promise<number | ProjectionSkip> {
     const store = await this.storeFor(scope);
     if (store === undefined) return 'store-unavailable';
-    let read = 0;
+    const walked: string[] = [];
     let after: string | null = null;
     do {
       const page = await this.ports.source.productIds(store.ctx, scope, after, PROJECTION_REBUILD_PAGE_SIZE);
       for (const productId of page.ids) await this.writeProduct(writeCtx, store, productId);
-      read += page.ids.length;
+      walked.push(...page.ids);
       after = page.next;
     } while (after !== null);
-    return read;
+    await this.ports.projection.removeAllExcept(writeCtx, store.scope, walked);
+    return walked.length;
   }
 
   private async writeProduct(writeCtx: OperationContext, store: ReadableStore, productId: string): Promise<void> {

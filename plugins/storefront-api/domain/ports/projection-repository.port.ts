@@ -27,6 +27,9 @@ export interface ProjectionRepositoryPort {
   /** Drops the row of `productId`, if any. */
   remove(ctx: OperationContext, scope: StoreScope, productId: string): Promise<void>;
 
+  /** Drops every row of the store whose product is not in `keptProductIds`, in one statement; answers rows dropped. */
+  removeAllExcept(ctx: OperationContext, scope: StoreScope, keptProductIds: readonly string[]): Promise<number>;
+
   /** Recomputes `listed` of every row of the store under `soldOutBehavior`, in one statement; answers rows touched. */
   relist(ctx: OperationContext, scope: StoreScope, soldOutBehavior: SoldOutBehavior): Promise<number>;
 
