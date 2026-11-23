@@ -262,7 +262,7 @@ services:
       # The theme every store renders with, default or compact (D3207).
       STOREFRONT_THEME: ${STOREFRONT_THEME:-default}
       # Where buyers load images (D3209), the static files' CDN prefix, and whether CF-Connecting-IP is trusted (D3213;
-      # required true in staging and production, and only with the origin locked to Cloudflare).
+      # required true unless APP_ENV is development or test, and only with the origin locked to Cloudflare).
       STOREFRONT_ASSET_BASE: ${STOREFRONT_ASSET_BASE:-}
       STOREFRONT_ASSET_PREFIX: ${STOREFRONT_ASSET_PREFIX:-}
       STOREFRONT_TRUST_EDGE_IP: ${STOREFRONT_TRUST_EDGE_IP:-false}

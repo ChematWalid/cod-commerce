@@ -4,11 +4,11 @@
  * (`loadStorefrontEnv`); issues name variables and rules, never values.
  */
 
-/** The environments where Next may generate the Server Actions key itself, per build. */
+/**
+ * The local environments: Next may generate the Server Actions key itself, per build, and no edge sits in front.
+ * Every other value, unset included, counts as deployed (D3223 h).
+ */
 const LOCAL_APP_ENVS: readonly string[] = ['development', 'test'];
-
-/** The deployed environments, which run behind the edge. */
-const DEPLOYED_APP_ENVS: readonly string[] = ['staging', 'production'];
 
 /** The Server Actions key is AES-256-GCM: 32 bytes. */
 const SERVER_ACTIONS_KEY_BYTES = 32;
@@ -18,6 +18,7 @@ const URL_PROTOCOLS: readonly string[] = ['http:', 'https:'];
 const BOOLEAN_VALUES: readonly string[] = ['true', 'false'];
 
 const valueOf = (env: NodeJS.Dict<string>, key: string): string => env[key]?.trim() ?? '';
+const isLocal = (env: NodeJS.Dict<string>): boolean => LOCAL_APP_ENVS.includes(env['APP_ENV'] ?? '');
 
 /** An optional URL or same-origin path (`/assets`); unset is fine. */
 function urlOrPathIssue(env: NodeJS.Dict<string>, key: string): string | undefined {
@@ -28,14 +29,15 @@ function urlOrPathIssue(env: NodeJS.Dict<string>, key: string): string | undefin
 }
 
 /**
- * Staging and production run behind Cloudflare with the origin locked to it, and must forward the buyer address:
- * without it every uncached catalog read of a store shares the store's render bucket at the api (D3213).
+ * Deployed environments (an unset `APP_ENV` included, D3223 h) run behind Cloudflare with the origin locked to it,
+ * and must forward the buyer address: without it every uncached catalog read of a store shares the store's render
+ * bucket at the api (D3213).
  */
 function trustEdgeIpIssue(env: NodeJS.Dict<string>): string | undefined {
   const value = valueOf(env, 'STOREFRONT_TRUST_EDGE_IP');
   if (value !== '' && !BOOLEAN_VALUES.includes(value)) return 'STOREFRONT_TRUST_EDGE_IP must be true or false';
-  if (DEPLOYED_APP_ENVS.includes(env['APP_ENV'] ?? '') && value !== 'true') {
-    return 'STOREFRONT_TRUST_EDGE_IP must be true when APP_ENV is staging or production';
+  if (!isLocal(env) && value !== 'true') {
+    return 'STOREFRONT_TRUST_EDGE_IP must be true unless APP_ENV is development or test';
   }
   return undefined;
 }
@@ -47,7 +49,7 @@ function trustEdgeIpIssue(env: NodeJS.Dict<string>): string | undefined {
 function serverActionsKeyIssue(env: NodeJS.Dict<string>): string | undefined {
   const value = valueOf(env, 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY');
   if (value === '') {
-    if (LOCAL_APP_ENVS.includes(env['APP_ENV'] ?? '')) return undefined;
+    if (isLocal(env)) return undefined;
     return 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is required unless APP_ENV is development or test';
   }
   const isKey = BASE64_FORMAT.test(value) && Buffer.from(value, 'base64').length === SERVER_ACTIONS_KEY_BYTES;

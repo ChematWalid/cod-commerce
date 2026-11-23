@@ -23,6 +23,9 @@ const INTERNAL_API_URL = 'http://127.0.0.1:3100';
 /** Synthetic keys of the internal HMAC (D111); boot only checks their shape. */
 const INTERNAL_HMAC_KEYS = 'k1:change-me-internal-hmac-000000000000000000000';
 
+/** base64 of the 32-byte placeholder 'change-me-server-actions-key-000', never a real key. */
+const SERVER_ACTIONS_KEY_PLACEHOLDER = 'Y2hhbmdlLW1lLXNlcnZlci1hY3Rpb25zLWtleS0wMDA=';
+
 /** The variables a test can leave out; undefined starts the server without that one. */
 interface BootEnv {
   readonly redisUrl: string | undefined;
@@ -40,6 +43,9 @@ function startStandalone(port: number, boot: BootEnv): ChildProcess {
   env['INTERNAL_HMAC_KEYS'] = 'hmacKeys' in boot ? (boot.hmacKeys ?? '') : INTERNAL_HMAC_KEYS;
   env['INTERNAL_HMAC_ACTIVE_KID'] = 'k1';
   env['PLATFORM_DOMAIN'] ??= 'localhost';
+  // Production requires both delivery settings (D3223 h, D3226 d); the key is the unit tests' placeholder.
+  env['STOREFRONT_TRUST_EDGE_IP'] = 'true';
+  env['NEXT_SERVER_ACTIONS_ENCRYPTION_KEY'] ||= SERVER_ACTIONS_KEY_PLACEHOLDER;
   // The standalone server embeds the build's deployment id and overrides this one; it only has to be set.
   env['NEXT_DEPLOYMENT_ID'] ??= 'boot-check';
   return spawn(process.execPath, [STANDALONE_SERVER], { env, stdio: ['ignore', 'ignore', 'pipe'] });

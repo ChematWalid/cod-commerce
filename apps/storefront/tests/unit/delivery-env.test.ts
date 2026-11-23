@@ -14,15 +14,25 @@ describe('storefront delivery environment', () => {
     expect(deliveryEnvIssues(env)).toEqual([]);
   });
 
-  it.each(['staging', 'production'])('requires STOREFRONT_TRUST_EDGE_IP=true when APP_ENV is %s', (appEnv) => {
-    // Act
+  it.each([
+    ['staging', 'false'],
+    ['production', 'false'],
+    ['production', undefined],
+    [undefined, 'false'],
+    [undefined, undefined],
+  ])('requires STOREFRONT_TRUST_EDGE_IP=true when APP_ENV is %s (it is %s)', (appEnv, trustEdgeIp) => {
+    // Act: an unset APP_ENV counts as deployed, as for the server actions key (D3223 h).
     const issues = deliveryEnvIssues({
       APP_ENV: appEnv,
       NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: PLACEHOLDER_KEY,
-      STOREFRONT_TRUST_EDGE_IP: 'false',
+      STOREFRONT_TRUST_EDGE_IP: trustEdgeIp,
     });
     // Assert
-    expect(issues).toEqual(['STOREFRONT_TRUST_EDGE_IP must be true when APP_ENV is staging or production']);
+    expect(issues).toEqual(['STOREFRONT_TRUST_EDGE_IP must be true unless APP_ENV is development or test']);
+  });
+
+  it.each(['development', 'test'])('leaves STOREFRONT_TRUST_EDGE_IP false when APP_ENV is %s', (appEnv) => {
+    expect(deliveryEnvIssues({ APP_ENV: appEnv, STOREFRONT_TRUST_EDGE_IP: 'false' })).toEqual([]);
   });
 
   it.each(['staging', 'production', undefined])('requires the server actions key when APP_ENV is %s', (appEnv) => {
