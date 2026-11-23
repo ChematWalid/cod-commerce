@@ -175,8 +175,13 @@ function publicFieldsOf({ b, victim }: Probe): unknown {
     businessId: b.businessId,
     language: 'ar',
     name: `${victim === b.stores[0] ? 'b1' : 'b2'} store`,
+    description: '',
     logo: null,
+    logoPath: null,
+    direction: 'rtl',
     primaryHost: hostOf(victim),
+    showAddressField: true,
+    soldOutBehavior: 'keep',
     status: 'active',
   };
 }
