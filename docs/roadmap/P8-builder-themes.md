@@ -6,7 +6,7 @@
 **Session order / lanes**
 - Lane A (critical): P8.S1 (Opus) → P8.S2 → { P8.S3, P8.S4, P8.S5 in parallel } → P8.S6.
 - Lane B: P8.S7 (needs only P8.S1, so it can start right after S1, in parallel with S2–S6) → P8.S8.
-- Lane C: P8.S9 (needs only P3.S2 and the P3.S5 staging environment) can run at any time, in parallel with everything in P8.
+- Lane C: P8.S9 (needs only P3.S2 and the P3.S5b staging environment) can run at any time, in parallel with everything in P8.
 - P8.S1 is the only session that must run alone inside P8. P8 sessions can also run next to P6.* and P7.*.
 
 **Shared conventions for the whole phase** (P8.S1 creates them, later sessions follow them)
@@ -581,10 +581,10 @@ link and stop without merging.
 | **Goal** | Let merchants change their free subdomain and connect, verify and promote custom domains, with host routing and automatic TLS through Cloudflare for SaaS. |
 | **Branch** | `feat/p8-s9-domains` |
 | **GitHub issue** | `P8.S9 Subdomains & custom domains` (label `phase-8`, milestone `P8 Builder & themes`) |
-| **Prerequisites** | P3.S2, P3.S5 |
+| **Prerequisites** | P3.S2, P3.S5b |
 | **Parallel-safe** | Yes — with all P8 sessions. Owns `plugins/domains/**`, the store-settings "Domains" tab, the `apps/storefront` host-resolution module used by `proxy.ts` (`src/host/**`), and deploy/cloudflare/** (custom-hostname client + docs). |
 | **Model / size** | Opus · M |
-| **External needs** | 🔑 The staging environment from P3.S5 and a Cloudflare API token scoped to custom hostnames on the staging zone. Until provided: `*.localhost` plus a manual-verification stub that marks a domain verified from a dev-only endpoint, and the mocked Cloudflare client. |
+| **External needs** | 🔑 The staging environment from P3.S5b and a Cloudflare API token scoped to custom hostnames on the staging zone. Until provided: `*.localhost` plus a manual-verification stub that marks a domain verified from a dev-only endpoint, and the mocked Cloudflare client. |
 
 **Inventory rows covered** (exact text from `docs/feature-inventory.md`):
 - Free subdomain (availability check, change)
@@ -596,7 +596,7 @@ link and stop without merging.
 - `docs/roadmap/CONTRIBUTING.md`; handoffs `P3.S2` (host resolution), `P1.S1` (stores and hosts)
 - `docs/research/dashboard-captures.md` → "Store settings `/stores/:storeId/store_settings`" → Domains (`/domains?storeId`, subdomain Change, Connect domain)
 - `docs/research/second-pass.md` → "Onboarding" (live "is available" subdomain check); `docs/feature-inventory.md` section X (Custom domain inline connect)
-- ADRs on multi-tenancy and host routing in `docs/adr/`: 0002, 0006 (host map), 0012 (edge, TLS, custom domains); handoff `P3.S5` (Cloudflare modules, staging zone); `docs/architecture/system-design.md` §3 (edge), `infrastructure.md` §2
+- ADRs on multi-tenancy and host routing in `docs/adr/`: 0002, 0006 (host map), 0012 (edge, TLS, custom domains); handoff `P3.S5a` (Cloudflare modules, staging zone); `docs/architecture/system-design.md` §3 (edge), `infrastructure.md` §2
 
 **Audit issues to close** (from `docs/audits/P1-audit.md`; the session fixes each one, test first, or moves it to a named later session with the reason in its handoff)
 - #159 TEN-12 (low): fix(tenancy): tighten the custom_domain stub and index it
@@ -620,7 +620,7 @@ link and stop without merging.
 - [ ] Make primary redirects other hosts to it; disable makes the host return 404; re-enable restores it.
 - [ ] A custom hostname is created at Cloudflare only after the domain passes our ownership TXT check; disabling a domain removes routing immediately and deletes the Cloudflare hostname after 7 days.
 - [ ] A domain already attached to another business cannot be connected (clear error, no leak of who owns it).
-- [ ] On the P3.S5 staging zone (when the token is available) a verified custom domain is served over HTTPS with a Cloudflare-issued certificate; result documented with evidence.
+- [ ] On the P3.S5b staging zone (when the token is available) a verified custom domain is served over HTTPS with a Cloudflare-issued certificate; result documented with evidence.
 - [ ] Without the staging domain, the `*.localhost` flow and the manual verification stub pass.
 
 **Verification**
@@ -629,7 +629,7 @@ link and stop without merging.
 - Multi-tenant: business B cannot list, verify, delete or hijack business A's domains; host routing never serves store A for B's host.
 
 **Out of scope**
-- Domain purchase/registrar integration; email hosting; production zone, fallback origin and custom-hostname setup (P10.S3); staging infrastructure itself (P3.S5).
+- Domain purchase/registrar integration; email hosting; production zone, fallback origin and custom-hostname setup (P10.S3); staging infrastructure itself (P3.S5a, P3.S5b).
 
 **Kickoff prompt** (paste into a fresh Claude session in the repo)
 ```

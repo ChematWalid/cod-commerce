@@ -116,7 +116,7 @@ link and stop without merging.
 | **Branch** | `feat/p2-s2-packs-import` |
 | **GitHub issue** | `P2.S2 Packs, import & export` (label `phase-2`, milestone `P2 Catalog & offers`) |
 | **Prerequisites** | P2.S1 merged. |
-| **Parallel-safe** | Yes with P2.S3, P2.S4, P3.S5. Owns `plugins/catalog-packs/` (new folder; do not edit `plugins/catalog` beyond registering the type) and `plugins/catalog-import/`. |
+| **Parallel-safe** | Yes with P2.S3, P2.S4, P3.S5a, P3.S5b. Owns `plugins/catalog-packs/` (new folder; do not edit `plugins/catalog` beyond registering the type) and `plugins/catalog-import/`. |
 | **Model / size** | Sonnet · M |
 | **External needs** | None. Link import uses a fixture HTML scraper; AI polish and image clean-up are no-op hooks for P9.S7b. |
 
@@ -188,7 +188,7 @@ link and stop without merging.
 | **Branch** | `feat/p2-s3-collections` |
 | **GitHub issue** | `P2.S3 Collections with conditions` (label `phase-2`, milestone `P2 Catalog & offers`) |
 | **Prerequisites** | P2.S1 merged. |
-| **Parallel-safe** | Yes with P2.S2, P2.S4, P3.S5. Owns `plugins/collections-rules/`. |
+| **Parallel-safe** | Yes with P2.S2, P2.S4, P3.S5a, P3.S5b. Owns `plugins/collections-rules/`. |
 | **Model / size** | Sonnet · S |
 | **External needs** | None. |
 
@@ -256,7 +256,7 @@ link and stop without merging.
 | **Branch** | `feat/p2-s4-offer-engine` |
 | **GitHub issue** | `P2.S4 Pricing & offer engine core` (label `phase-2`, milestone `P2 Catalog & offers`) |
 | **Prerequisites** | P2.S1 merged. |
-| **Parallel-safe** | Yes with P2.S2, P2.S3, P3.S5. Owns `plugins/offers/` (entity, engine, token) and `packages/shared/src/pricing.ts`. No HTTP endpoints. |
+| **Parallel-safe** | Yes with P2.S2, P2.S3, P3.S5a, P3.S5b. Owns `plugins/offers/` (entity, engine, token) and `packages/shared/src/pricing.ts`. No HTTP endpoints. |
 | **Model / size** | Opus · L |
 | **External needs** | None. Shipping quote is an injectable function (real one from P3.S1). |
 
@@ -330,7 +330,7 @@ link and stop without merging.
 | **Branch** | `feat/p2-s5-offers-admin` |
 | **GitHub issue** | `P2.S5 Offer kinds BXGY/add-on & offers admin` (label `phase-2`, milestone `P2 Catalog & offers`) |
 | **Prerequisites** | P2.S4 merged. |
-| **Parallel-safe** | Yes with P2.S2, P2.S3, P3.S2, P3.S5. Owns `plugins/offers/src/kinds/{bxgy,addon}`, `plugins/offers/dashboard/`. |
+| **Parallel-safe** | Yes with P2.S2, P2.S3, P3.S2, P3.S5a, P3.S5b. Owns `plugins/offers/src/kinds/{bxgy,addon}`, `plugins/offers/dashboard/`. |
 | **Model / size** | Sonnet · L |
 | **External needs** | None. |
 

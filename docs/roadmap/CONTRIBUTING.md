@@ -11,7 +11,7 @@
   - `apps/storefront`: Next.js multi-tenant storefront and builder runtime
   - `plugins/<name>`: one folder per feature plugin (server + dashboard UI). "`plugins/<name>/dashboard/`" in briefs means the dashboard code path fixed by ADR 0010 (Vendure dashboard extension, or the mapped folder of our own admin app).
   - `packages/shared`: shared TypeScript types, schemas and constants (wilayas, statuses, permission catalog, queue names). Briefs write `packages/shared/<x>`; the real path is `packages/shared/src/<x>` (e.g. events in `packages/shared/src/events/`).
-  - `infra/` (OpenTofu), `deploy/` (Kamal), `load/` (k6): infrastructure, deploy and load-test code (P3.S5 onwards)
+  - `infra/` (OpenTofu), `deploy/` (Kamal), `load/` (k6): infrastructure, deploy and load-test code (P3.S5a onwards)
   - `patches/`: reviewed `pnpm patch` files only (empty by default)
   - `docs/`: research, roadmap, architecture, ADRs (`docs/adr/`), handoff notes
 - Upgrading Vendure is its own session (`M.S1`) on its own branch, never mixed with feature work: bump every `@vendure/*` pin to the same exact version, re-validate or drop each `patches/` entry, generate and review the core migration, read the changelog for breaking changes.
@@ -60,7 +60,7 @@
 - **Phase branches (user, 2026-11-13, ADR 0018):** from P2 on, session branches start from `phase/P{n}` and their PRs target it (`gh pr create --base phase/P{n}`); they are squash-merged at once, without waiting for CI. A red CI run blocks nothing: the next session or a fixer fixes it forward in its own PR. The phase ends with one `phase/P{n}` → `main` PR, merged only when CI and the browser tests are fully green.
 
 ## CI
-GitHub Actions on every PR (into `main` or a phase branch) and on every push to `main` and `phase/**`: install → lint → typecheck → unit/integration tests (Postgres service container) → build, plus the `attribution-check` job. The browser tests run on pushes to `main` and `phase/**`, nightly and on demand. Runs on a phase branch are background feedback; only the phase-end PR into `main` waits for them (ADR 0018). Locally, sessions run only lint, typecheck and unit tests of what they changed. From P3.S5, a merge to `main` also builds the image and deploys staging. E2E (Playwright) is added in P10.S1.
+GitHub Actions on every PR (into `main` or a phase branch) and on every push to `main` and `phase/**`: install → lint → typecheck → unit/integration tests (Postgres service container) → build, plus the `attribution-check` job. The browser tests run on pushes to `main` and `phase/**`, nightly and on demand. Runs on a phase branch are background feedback; only the phase-end PR into `main` waits for them (ADR 0018). Locally, sessions run only lint, typecheck and unit tests of what they changed. From P3.S5b, a merge to `main` also builds the image and deploys staging. E2E (Playwright) is added in P10.S1.
 
 ## Issues, milestones, releases
 - One issue per session: title `P{n}.S{m} <Title>`, label `phase-{n}`, milestone `P{n} <phase name>`, body = the session brief link.

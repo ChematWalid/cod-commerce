@@ -46,7 +46,7 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 **Working agreement (user, 2026-11-07):** the agent merges its own PRs and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. **From P2 on (user, 2026-11-13, ADR 0018):** session PRs target `phase/P{n}` and merge at once while CI runs in the background; only the phase-end PR into `main` waits for green CI and browser tests. Decisions so far:
 - P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007).
 - No Cloudflare staging zone or latency probes for P0.S2a-3.
-- **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5.
+- **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5b.
 - Platform domain `.com.dz`; everything through Cloudflare.
 - Legal questions parked until before production (ADR 0011 §8).
 - P0.S2a-3 ADRs (0006, 0011, 0012, 0014, 0015) accepted; **all 16 ADRs are Accepted**.
@@ -78,14 +78,14 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 - **External access the user may provide:**
   - a Cloudflare staging zone, for spike F items (f) and (g);
   - latency probes, for spike G.
-  - Without them, record those items as `pending` and name the session that re-runs them (P3.S5 / before P10.S3).
+  - Without them, record those items as `pending` and name the session that re-runs them (P3.S5b / before P10.S3).
 
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
 3. **P2 is complete** (2026-11-21): P2.S1-S5 are on `main` via the phase PR #277. Next is **P3**: create `phase/P3` from `main` (ADR 0018) and follow its brief. Read the P2 handoffs and `P2-decisions.md` first. Awaiting the user's acceptance: the ADR 0002 §2 addendum (D2117), the ADR 0004 amendments (P2.S4 D2421/D2445/D2446, P2.S5), and the ADR 0013 and 0016 amendments (P2.S3). Open `after-P2` follow-ups: #245-#251, #254, #261 (items 2, 4, 5), #262, #264-#267, #270, #273; from P1: #230 (P3.S1), #231 (P10.S2).
 4. Open items for later sessions, flagged while applying the ADRs:
-   - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
+   - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Split on 2026-11-23 into P3.S5a (no accounts) and P3.S5b (accounts, go-live); see the P3 brief and D3500.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
    - **P10.S1/S2 load targets** still use the old capacity figures (infrastructure §3); re-check them once the Algerian provider is benchmarked.
    - **The ADR 0006 cache handler** is adopted in P0.S2b and wired into caching in P3.S2; P3.S2 must not redo the adoption.
