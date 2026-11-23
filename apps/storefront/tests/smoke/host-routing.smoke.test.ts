@@ -13,6 +13,13 @@ const CDN_HEADER = 'cloudflare-cdn-cache-control';
 const TENANT_PAGE_CDN_CACHE_CONTROL = 'max-age=60, stale-while-revalidate=600';
 const NOT_FOUND_MARKER = 'data-testid="not-found"';
 /**
+ * Under Cache Components a `notFound()` inside a Suspense boundary streams: the 404 fallback digest plus the
+ * not-found tree in the RSC payload (escaped inside a script string), which the browser renders (a soft 404, D3223 d).
+ */
+const STREAMED_NOT_FOUND_DIGEST = 'NEXT_HTTP_ERROR_FALLBACK;404';
+const STREAMED_NOT_FOUND_TREE = String.raw`\"data-testid\":\"not-found\"`;
+const NOINDEX_META = '<meta name="robots" content="noindex"/>';
+/**
  * The forms of a tenant path a buyer may send: as written, `_` percent-encoded (the app folder's literal name), in
  * lower case, double-encoded, re-cased and behind a doubled slash. `tail` is `{locale}/{storeId}/{binding}` (D3202).
  */
@@ -79,9 +86,11 @@ describe('storefront host routing (against next start)', () => {
   it("answers the not-found page for the demo store's product slug on the second host", async () => {
     // Act
     const res = await httpGetWithHost(url(`/product/${encodeURIComponent(demoStore.productSlug)}`), second.primaryHost);
-    // Assert: a soft 404 under Cache Components (D3202) or a real one, never the demo store's product.
+    // Assert: the streamed soft 404 (D3223 d), never the demo store's product.
     expect([200, 404]).toContain(res.status);
-    expect(res.body).toContain(NOT_FOUND_MARKER);
+    expect(res.body).toContain(STREAMED_NOT_FOUND_DIGEST);
+    expect(res.body).toContain(STREAMED_NOT_FOUND_TREE);
+    expect(res.body).toContain(NOINDEX_META);
     expect(res.body).not.toContain(demoStore.productName);
   });
 
