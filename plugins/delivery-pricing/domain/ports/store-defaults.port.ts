@@ -2,12 +2,6 @@ import type { Snowflake, StoreId } from '@cod/shared';
 import type { StoreScope } from '../store-scope';
 import type { OperationContext } from './operation-context';
 
-/** An active store and the fee group it uses by default (`null` when none is linked). */
-export interface StoreLink {
-  readonly scope: StoreScope;
-  readonly defaultGroupId: Snowflake | null;
-}
-
 /**
  * Which fee group a store uses by default: tenancy's `StoreSettings.defaultDeliveryFeeGroupId`, written through its
  * `StoreDeliveryDefaults` and listed through its store directory (D3111).
@@ -26,8 +20,9 @@ export interface StoreDefaultsPort {
    */
   linkDefaultGroup(ctx: OperationContext, scope: StoreScope, groupId: Snowflake): Promise<void>;
   /**
-   * Up to `limit` active stores of every business with an id above `afterStoreId`, in ascending id order; a page may
-   * hold fewer than `limit` (tenancy caps it), so only an empty page means the end.
+   * The scopes of up to `limit` active stores of every business with an id above `afterStoreId`, in ascending id
+   * order; a page may hold fewer than `limit` (tenancy caps it), so only an empty page means the end. The converge
+   * reads each store's default under its lock, never from this page (D3112).
    */
-  activeStores(ctx: OperationContext, afterStoreId: StoreId | undefined, limit: number): Promise<readonly StoreLink[]>;
+  activeStores(ctx: OperationContext, afterStoreId: StoreId | undefined, limit: number): Promise<readonly StoreScope[]>;
 }

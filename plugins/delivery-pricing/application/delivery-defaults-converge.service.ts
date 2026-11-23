@@ -2,7 +2,6 @@ import type { Snowflake, StoreId } from '@cod/shared';
 import { CONVERGE_PAGE_SIZE } from '../domain/constants';
 import { type DeliveryDefaultsConvergeFailure, DeliveryDefaultsConvergeFailedError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
-import type { StoreLink } from '../domain/ports/store-defaults.port';
 import type { StoreScope } from '../domain/store-scope';
 import { DefaultTableService } from './default-table.service';
 import type { FeeGroupPorts } from './fee-group-ports';
@@ -53,7 +52,7 @@ export class DeliveryDefaultsConvergeService {
       linked += await this.convergePage(ctx, page, failures);
       const last = page.at(-1);
       if (last === undefined) break;
-      afterStoreId = last.scope.storeId;
+      afterStoreId = last.storeId;
     }
     if (failures.length > 0) throw new DeliveryDefaultsConvergeFailedError(stores, failures);
     return { stores, linked };
@@ -61,15 +60,15 @@ export class DeliveryDefaultsConvergeService {
 
   private async convergePage(
     ctx: OperationContext,
-    page: readonly StoreLink[],
+    page: readonly StoreScope[],
     failures: DeliveryDefaultsConvergeFailure[],
   ): Promise<number> {
     let linked = 0;
-    for (const link of page) {
+    for (const scope of page) {
       try {
-        if (await this.convergeStore(ctx, link)) linked += 1;
+        if (await this.convergeStore(ctx, scope)) linked += 1;
       } catch (error: unknown) {
-        failures.push({ businessId: link.scope.businessId, storeId: link.scope.storeId, reason: reasonOf(error) });
+        failures.push({ businessId: scope.businessId, storeId: scope.storeId, reason: reasonOf(error) });
       }
     }
     return linked;
@@ -79,7 +78,7 @@ export class DeliveryDefaultsConvergeService {
    * Answers whether the store had to be linked: its default was missing or not one of its own groups. The default is
    * re-read under the store row's lock, not taken from the page, so a group the merchant linked meanwhile is kept.
    */
-  private convergeStore(ctx: OperationContext, { scope }: StoreLink): Promise<boolean> {
+  private convergeStore(ctx: OperationContext, scope: StoreScope): Promise<boolean> {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       const defaultGroupId = await this.ports.storeDefaults.lockedDefaultGroupOf(tx, scope);
       if (defaultGroupId !== null && (await this.ports.groups.share(tx, scope, defaultGroupId))) return false;

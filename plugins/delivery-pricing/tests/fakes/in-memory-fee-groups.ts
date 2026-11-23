@@ -19,7 +19,7 @@ import type { CarrierRate } from '../../domain/carrier-prices';
 import type { CarrierPriceSyncPort } from '../../domain/ports/carrier-price-sync.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
 import type { ProductWeightsPort } from '../../domain/ports/product-weights.port';
-import type { StoreDefaultsPort, StoreLink } from '../../domain/ports/store-defaults.port';
+import type { StoreDefaultsPort } from '../../domain/ports/store-defaults.port';
 import type { TownDirectoryPort, TownReference } from '../../domain/ports/town-directory.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
 import type { StoreScope } from '../../domain/store-scope';
@@ -176,12 +176,12 @@ export class FixedStoreDefaults implements StoreDefaultsPort {
     _ctx: OperationContext,
     afterStoreId: StoreId | undefined,
     limit: number,
-  ): Promise<readonly StoreLink[]> {
+  ): Promise<readonly StoreScope[]> {
     const page = this.stores
       .filter((scope) => afterStoreId === undefined || BigInt(scope.storeId) > BigInt(afterStoreId))
       .sort((left, right) => (BigInt(left.storeId) < BigInt(right.storeId) ? -1 : 1))
       .slice(0, Math.min(limit, this.pageCap));
-    return Promise.resolve(page.map((scope) => ({ scope, defaultGroupId: this.defaults.get(keyOf(scope)) ?? null })));
+    return Promise.resolve(page);
   }
 }
 

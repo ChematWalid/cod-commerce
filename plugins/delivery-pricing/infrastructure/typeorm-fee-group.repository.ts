@@ -6,6 +6,7 @@ import {
 } from '@cod/plugin-tenancy';
 import { type Snowflake, toSnowflake, type WilayaCode } from '@cod/shared';
 import { In } from 'typeorm';
+import { DeliveryFeeGroupNotFoundError } from '../domain/errors';
 import type {
   CommuneRateRow,
   FeeGroupHeader,
@@ -116,7 +117,13 @@ export class TypeOrmFeeGroupRepository implements FeeGroupRepositoryPort {
     change: { readonly settings: FeeGroupSettings; readonly rates: readonly WilayaRateRow[] },
   ): Promise<void> {
     const tenant = requestScope(ctx, scope);
-    await this.groups.update(tenant, { ...inStore(scope), id }, { ...change.settings, updatedAt: new Date() });
+    const touched = await this.groups.update(
+      tenant,
+      { ...inStore(scope), id },
+      { ...change.settings, updatedAt: new Date() },
+    );
+    // Defence in depth: callers hold the group's lock, but a wilaya row must never land under a group not the store's.
+    if (touched !== 1) throw new DeliveryFeeGroupNotFoundError();
     for (const row of change.rates) await this.upsertRate(ctx, scope, id, row);
   }
 

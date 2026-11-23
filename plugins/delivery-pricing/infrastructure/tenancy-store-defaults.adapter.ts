@@ -7,7 +7,7 @@ import {
 import type { Snowflake, StoreId } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
 import type { OperationContext } from '../domain/ports/operation-context';
-import type { StoreDefaultsPort, StoreLink } from '../domain/ports/store-defaults.port';
+import type { StoreDefaultsPort } from '../domain/ports/store-defaults.port';
 import type { StoreScope } from '../domain/store-scope';
 import { toRequestContext } from './request-scope';
 
@@ -43,11 +43,8 @@ export class TenancyStoreDefaults implements StoreDefaultsPort {
     ctx: OperationContext,
     afterStoreId: StoreId | undefined,
     limit: number,
-  ): Promise<readonly StoreLink[]> {
+  ): Promise<readonly StoreScope[]> {
     const links = await this.directory.activeStoreLinks(tenancyContextOf(ctx), afterStoreId, limit);
-    return links.map(({ businessId, storeId, defaultDeliveryFeeGroupId }) => ({
-      scope: { businessId, storeId },
-      defaultGroupId: defaultDeliveryFeeGroupId,
-    }));
+    return links.map(({ businessId, storeId }) => ({ businessId, storeId }));
   }
 }
