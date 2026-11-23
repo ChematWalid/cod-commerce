@@ -2,7 +2,7 @@ import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
 import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P3_ISOLATION_CASES } from '../isolation/cases';
-import { ANY_CARRIER_ID } from '../isolation/cases/delivery-pricing';
+import { ANY_CARRIER_ID, STORE_REFERENCE_NOT_FOUND } from '../isolation/cases/delivery-pricing';
 import { DELIVERY_PRICING_OPERATIONS, DELIVERY_PRICING_ROUTES } from '../isolation/delivery-pricing-operations';
 import {
   DELIVERY_PRICING_WORLDS,
@@ -19,7 +19,6 @@ type Handler = (...args: never[]) => unknown;
 
 const ROOT_TYPES = new Set(['Query', 'Mutation']);
 const REQUEST_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
-const STORE_REFERENCE_NOT_FOUND = 'tenancy.store-reference-not-found';
 
 const handlersOf = (type: Class): Handler[] =>
   Object.getOwnPropertyNames(type.prototype)

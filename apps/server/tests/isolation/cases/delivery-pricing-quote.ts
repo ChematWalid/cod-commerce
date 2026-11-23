@@ -121,5 +121,18 @@ export function describeDeliveryPricingIsolation({ world, app, signedGet }: Deli
         expect((JSON.parse(control.body) as { code?: string }).code).toBe(ALGER);
       },
     );
+
+    it.each(PAIRS)(
+      "refuses %s's second store id under its first store's signed header (D3135)",
+      async (_label, attackerOf) => {
+        const attacker = attackerOf(world());
+        const [signed, other] = [attacker.stores[0].id, attacker.stores[1].id];
+
+        const answer = await signedGet(`/store/provinces/code/${ALGER}?storeId=${other}`, signed);
+
+        expect(answer.status).toBe(NOT_FOUND);
+        expect((JSON.parse(answer.body) as { code?: string }).code).toBe(GEO_ERROR_CODES.STORE_NOT_FOUND);
+      },
+    );
   });
 }
