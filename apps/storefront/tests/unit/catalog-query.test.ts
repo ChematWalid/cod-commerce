@@ -9,9 +9,12 @@ describe('storefront slugs', () => {
 
   // The catalog keeps the letters of the title in a slug it derives (D2103), so an Arabic store's products have Arabic
   // slugs: the demo seed's "صندل جلدي تجريبي" is served at /product/صندل-جلدي-تجريبي.
-  it.each(['صندل-جلدي-تجريبي', 'ك', 'قَمِيص', 'سروال-2', 'été-2026'])('accepts the letters of any language: %j', (slug) => {
-    expect(isStorefrontSlug(slug)).toBe(true);
-  });
+  it.each(['صندل-جلدي-تجريبي', 'ك', 'قَمِيص', 'سروال-2', 'été-2026'])(
+    'accepts the letters of any language: %j',
+    (slug) => {
+      expect(isStorefrontSlug(slug)).toBe(true);
+    },
+  );
 
   it.each([
     '',
