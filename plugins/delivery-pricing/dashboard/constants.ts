@@ -40,6 +40,7 @@ export const PRICING_EMPTY_TEST_ID = 'delivery-pricing-empty';
 export const ADD_PRICING_TEST_ID = 'delivery-pricing-add';
 export const PRICING_EDITOR_TEST_ID = 'delivery-pricing-editor';
 export const PRICING_SAVE_TEST_ID = 'delivery-pricing-save';
+export const PRICING_BACK_TEST_ID = 'delivery-pricing-back';
 export const PRICING_NAME_TEST_ID = 'delivery-pricing-name';
 export const APPLY_HOME_TEST_ID = 'delivery-pricing-apply-home';
 export const APPLY_DESK_TEST_ID = 'delivery-pricing-apply-desk';

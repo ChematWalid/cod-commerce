@@ -9,6 +9,7 @@ import {
   DELIVER_EVERYWHERE_TEST_ID,
   DELIVERY_TABS_TEST_ID,
   DESK_EVERYWHERE_TEST_ID,
+  PRICING_BACK_TEST_ID,
   PRICING_EDITOR_TEST_ID,
   PRICING_LIST_TEST_ID,
   PRICING_NAME_TEST_ID,
@@ -149,5 +150,17 @@ describe('delivery pricing tab', () => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(0);
     await expect(byTestId(page, ADD_PRICING_TEST_ID).count()).resolves.toBe(0);
+  });
+
+  it('keeps Back to pricing next to Save in the page header on a phone', async () => {
+    await page.setViewportSize(PHONE);
+
+    await open(page, NEW_PRICING_PATH);
+    await byTestId(page, PRICING_EDITOR_TEST_ID).waitFor();
+
+    await expect(byTestId(page, PRICING_SAVE_TEST_ID).isVisible()).resolves.toBe(true);
+    await expect(byTestId(page, PRICING_BACK_TEST_ID).isVisible()).resolves.toBe(true);
+    await byTestId(page, PRICING_BACK_TEST_ID).click();
+    await byTestId(page, PRICING_LIST_TEST_ID).waitFor();
   });
 });

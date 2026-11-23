@@ -17,6 +17,7 @@ import {
   CREATE_PRICING_KEY,
   DELIVERY_PATH,
   EDIT_PRICING_KEY,
+  PRICING_BACK_TEST_ID,
   PRICING_EDITOR_PAGE_ID,
   PRICING_EDITOR_TEST_ID,
   PRICING_SAVE_TEST_ID,
@@ -63,23 +64,30 @@ function useEditor({ store, scope, group, initial }: EditorProps) {
   return { form, setForm, errors, save, canSave };
 }
 
-/** Back to the list, and Save for a caller who may save; a direct child of the page, as the title row needs. */
+/**
+ * Back to the list, and Save for a caller who may save; a direct child of the page, as the title row needs. Both sit
+ * in one action bar item: on a phone the Vendure bar keeps only its last item, which would drop Back.
+ */
 function EditorActions(props: { readonly canSave: boolean; readonly busy: boolean; readonly onSave: () => void }) {
   const { i18n } = useLingui();
   return (
     <PageActionBar>
-      <ActionBarItem itemId="delivery-pricing-back">
-        <Button variant="outline" render={<Link to={DELIVERY_PATH} search={{ tab: 'pricing' }} />}>
-          {i18n._('delivery-pricing.back')}
-        </Button>
-      </ActionBarItem>
-      {props.canSave && (
-        <ActionBarItem itemId="delivery-pricing-save">
-          <Button data-testid={PRICING_SAVE_TEST_ID} disabled={props.busy} onClick={props.onSave}>
-            {i18n._('delivery-pricing.save')}
+      <ActionBarItem itemId="delivery-pricing-actions">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            data-testid={PRICING_BACK_TEST_ID}
+            variant="outline"
+            render={<Link to={DELIVERY_PATH} search={{ tab: 'pricing' }} />}
+          >
+            {i18n._('delivery-pricing.back')}
           </Button>
-        </ActionBarItem>
-      )}
+          {props.canSave && (
+            <Button data-testid={PRICING_SAVE_TEST_ID} disabled={props.busy} onClick={props.onSave}>
+              {i18n._('delivery-pricing.save')}
+            </Button>
+          )}
+        </div>
+      </ActionBarItem>
     </PageActionBar>
   );
 }
