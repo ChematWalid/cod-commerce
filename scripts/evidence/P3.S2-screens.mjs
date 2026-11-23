@@ -17,7 +17,8 @@ const root = fileURLToPath(new URL('../..', import.meta.url));
 const { chromium } = createRequire(join(root, 'apps/storefront/package.json'))('playwright-core');
 
 const [port, outDir, mode] = process.argv.slice(2);
-if (!port || !outDir || !['stores', 'compact'].includes(mode ?? '')) throw new Error('usage: see the header of this file');
+if (!port || !outDir || !['stores', 'compact'].includes(mode ?? ''))
+  throw new Error('usage: see the header of this file');
 
 const MAX_BYTES = 300 * 1024;
 const STEP_TIMEOUT_MS = 30_000;
@@ -42,7 +43,8 @@ function fail(message) {
 }
 const env = (name) => process.env[name] ?? fail(`${name} must be set`);
 const stores = JSON.parse(readFileSync(env('EV_STORES_JSON'), 'utf8'));
-const catalogue = (locale) => JSON.parse(readFileSync(join(root, `packages/shared/src/storefront/i18n/${locale}.json`), 'utf8'));
+const catalogue = (locale) =>
+  JSON.parse(readFileSync(join(root, `packages/shared/src/storefront/i18n/${locale}.json`), 'utf8'));
 const passed = new Set();
 const note = (line) => {
   if (!passed.has(line)) {
@@ -63,7 +65,9 @@ async function settle(page) {
   });
   await page.evaluate(() =>
     Promise.all(
-      [...document.images].map((img) => (img.complete ? null : new Promise((resolve) => img.addEventListener('load', resolve, { once: true })))),
+      [...document.images].map((img) =>
+        img.complete ? null : new Promise((resolve) => img.addEventListener('load', resolve, { once: true })),
+      ),
     ),
   );
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -85,11 +89,12 @@ async function commonChecks(page, store, label) {
   const key = RAW_MESSAGE_KEY.exec(facts.text);
   if (key) fail(`${label}: raw message key '${key[0]}' on the page`);
   if (RAW_ID.test(facts.text)) fail(`${label}: a raw id is on the page`);
-  if (BANNED_NAMES.test(facts.text) || BANNED_NAMES.test(facts.title)) fail(`${label}: a third-party name is on the page`);
+  if (BANNED_NAMES.test(facts.text) || BANNED_NAMES.test(facts.title))
+    fail(`${label}: a third-party name is on the page`);
   if (facts.overflow > 1) fail(`${label}: the page scrolls sideways by ${facts.overflow}px`);
   if (facts.broken.length > 0) fail(`${label}: images failed to load: ${facts.broken.join(', ')}`);
   note(
-    'every page: <html> lang/dir of the store (ar rtl, fr and en ltr), no other store\'s name, no raw message key or snowflake id, no third-party product or framework name, no sideways scroll, every image loaded',
+    "every page: <html> lang/dir of the store (ar rtl, fr and en ltr), no other store's name, no raw message key or snowflake id, no third-party product or framework name, no sideways scroll, every image loaded",
   );
 }
 
@@ -122,12 +127,13 @@ async function storePages(browser, store, vp) {
     const shown = (await visibleText(page, '[data-testid="store-name"]')).trim();
     if (shown !== store.name) fail(`${name('home')}: store name '${shown}', expected '${store.name}'`);
     await commonChecks(page, store, name('home'));
-    note('home: the store name in the header is the store\'s own');
+    note("home: the store name in the header is the store's own");
     await shoot(page, name('home'));
 
     await open(page, store, '/products', name('products'));
     const listing = await page.evaluate(() => document.body.innerText);
-    if (!store.productNames.some((n) => listing.includes(n))) fail(`${name('products')}: none of the store's products shown`);
+    if (!store.productNames.some((n) => listing.includes(n)))
+      fail(`${name('products')}: none of the store's products shown`);
     if (!listing.includes(t['products.title'])) fail(`${name('products')}: no '${t['products.title']}' heading`);
     await commonChecks(page, store, name('products'));
     note('products: the localized "All products" heading and the store\'s own products');
@@ -138,14 +144,20 @@ async function storePages(browser, store, vp) {
     if (h1 !== store.productName) fail(`${name('product')}: h1 '${h1}', expected '${store.productName}'`);
     const option = page.locator('.option-group').first().getByRole('button', { name: store.secondOption, exact: true });
     await option.click({ timeout: STEP_TIMEOUT_MS });
-    if ((await option.getAttribute('aria-pressed')) !== 'true') fail(`${name('product')}: '${store.secondOption}' is not pressed`);
+    if ((await option.getAttribute('aria-pressed')) !== 'true')
+      fail(`${name('product')}: '${store.secondOption}' is not pressed`);
     const price = (await visibleText(page, '[data-testid="variant-price"]')).trim();
     if (!/\d/.test(price)) fail(`${name('product')}: the price '${price}' has no amount`);
     // The click leaves the picker in view; the shot starts at the product's name so name, image, price and options show.
-    await page.locator('.product-info h1').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await page
+      .locator('.product-info h1')
+      .first()
+      .evaluate((el) => el.scrollIntoView({ block: 'start' }));
     await settle(page);
     await commonChecks(page, store, name('product'));
-    note('product: h1 is the product\'s name; the second option of the first group is pressed after a click and a price shows');
+    note(
+      "product: h1 is the product's name; the second option of the first group is pressed after a click and a price shows",
+    );
     await shoot(page, name('product'));
     await page.getByRole('button', { name: t['product.addToCart'], exact: true }).click({ timeout: STEP_TIMEOUT_MS });
     const stored = await page.evaluate(() => window.localStorage.getItem('cod.cart.v1'));
@@ -156,30 +168,36 @@ async function storePages(browser, store, vp) {
     const category = await page.evaluate(() => document.body.innerText);
     if (!category.includes(store.categoryTitle)) fail(`${name('category')}: no '${store.categoryTitle}'`);
     await commonChecks(page, store, name('category'));
-    note('category: the collection\'s title');
+    note("category: the collection's title");
     await shoot(page, name('category'));
 
     await open(page, store, `/search?q=${encodeURIComponent(store.searchTerm)}`, name('search'));
     const results = await page.evaluate(() => document.body.innerText);
-    if (!store.productNames.some((n) => results.includes(n))) fail(`${name('search')}: no result for '${store.searchTerm}'`);
+    if (!store.productNames.some((n) => results.includes(n)))
+      fail(`${name('search')}: no result for '${store.searchTerm}'`);
     await commonChecks(page, store, name('search'));
-    note('search: a query in the store\'s language finds one of its products');
+    note("search: a query in the store's language finds one of its products");
     await shoot(page, name('search'));
 
     await open(page, store, '/cart', name('cart'));
-    await page.locator('.cart-lines li[data-variant-id]').first().waitFor({ state: 'visible', timeout: STEP_TIMEOUT_MS });
+    await page
+      .locator('.cart-lines li[data-variant-id]')
+      .first()
+      .waitFor({ state: 'visible', timeout: STEP_TIMEOUT_MS });
     await commonChecks(page, store, name('cart'));
     note('cart: the line added on the product page is listed');
     await shoot(page, name('cart'));
 
     await open(page, store, '/checkout', name('checkout'));
-    if (!(await page.evaluate(() => document.body.innerText)).includes(t['checkout.title'])) fail(`${name('checkout')}: no title`);
+    if (!(await page.evaluate(() => document.body.innerText)).includes(t['checkout.title']))
+      fail(`${name('checkout')}: no title`);
     await commonChecks(page, store, name('checkout'));
     note('checkout: the localized checkout title (the disabled shell of P3.S2)');
     await shoot(page, name('checkout'));
 
     await open(page, store, '/success', name('success'));
-    if (!(await page.evaluate(() => document.body.innerText)).includes(t['success.title'])) fail(`${name('success')}: no title`);
+    if (!(await page.evaluate(() => document.body.innerText)).includes(t['success.title']))
+      fail(`${name('success')}: no title`);
     await commonChecks(page, store, name('success'));
     note('success: the localized thank-you title');
     await shoot(page, name('success'));
@@ -187,7 +205,8 @@ async function storePages(browser, store, vp) {
     const status = await open(page, store, MISSING_PATH, name('404'), [200, 404]);
     const marker = await visibleText(page, '[data-testid="not-found"]');
     if (!marker.includes(t['notFound.title'])) fail(`${name('404')}: no '${t['notFound.title']}'`);
-    if (otherNamesPattern(store).test(await page.evaluate(() => document.body.innerText))) fail(`${name('404')}: another store`);
+    if (otherNamesPattern(store).test(await page.evaluate(() => document.body.innerText)))
+      fail(`${name('404')}: another store`);
     note(`404: ${MISSING_PATH} answers the not-found page (HTTP ${status}) with the message in the store's language`);
     await shoot(page, name('404'));
   } finally {
@@ -201,12 +220,18 @@ async function compactHome(browser, store, vp) {
   try {
     await open(page, store, '/', `compact-${store.key}-home-${vp}`);
     const sections = await page.evaluate(() =>
-      [...document.querySelectorAll('.theme-root[data-page="home"] > [data-section]')].map((s) => s.getAttribute('data-section')),
+      [...document.querySelectorAll('.theme-root[data-page="home"] > [data-section]')].map((s) =>
+        s.getAttribute('data-section'),
+      ),
     );
     if (sections.join() !== COMPACT_HOME_SECTIONS.join())
-      fail(`compact-${store.key}-home-${vp}: sections ${sections.join(', ')}, expected ${COMPACT_HOME_SECTIONS.join(', ')}`);
+      fail(
+        `compact-${store.key}-home-${vp}: sections ${sections.join(', ')}, expected ${COMPACT_HOME_SECTIONS.join(', ')}`,
+      );
     await commonChecks(page, store, `compact-${store.key}-home-${vp}`);
-    note(`compact: the home page renders exactly the compact theme's sections (${COMPACT_HOME_SECTIONS.join(', ')}) with STOREFRONT_THEME=compact on the same image`);
+    note(
+      `compact: the home page renders exactly the compact theme's sections (${COMPACT_HOME_SECTIONS.join(', ')}) with STOREFRONT_THEME=compact on the same image`,
+    );
     await shoot(page, `compact-${store.key}-home-${vp}`);
   } finally {
     await context.close();
