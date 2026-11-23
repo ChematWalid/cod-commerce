@@ -3,11 +3,33 @@ import { listingApiQuery, listingQueryOf, MAX_LISTING_PAGE, searchQueryOf } from
 import { isStorefrontSlug } from '../../src/catalog/slug';
 
 describe('storefront slugs', () => {
-  it.each(['kettle', 'a', 'wool-scarf-2', '9lives', 'a'.repeat(128)])('accepts %j', (slug) => {
+  it.each(['kettle', 'a', 'wool-scarf-2', '9lives', 'a'.repeat(255)])('accepts %j', (slug) => {
     expect(isStorefrontSlug(slug)).toBe(true);
   });
 
-  it.each(['', '-a', 'A', 'a.b', 'a/b', '../x', 'a%2Fb', 'a b', 'a'.repeat(129), 'ك'])('refuses %j', (slug) => {
+  // The catalog keeps the letters of the title in a slug it derives (D2103), so an Arabic store's products have Arabic
+  // slugs: the demo seed's "صندل جلدي تجريبي" is served at /product/صندل-جلدي-تجريبي.
+  it.each(['صندل-جلدي-تجريبي', 'ك', 'قَمِيص', 'سروال-2', 'été-2026'])('accepts the letters of any language: %j', (slug) => {
+    expect(isStorefrontSlug(slug)).toBe(true);
+  });
+
+  it.each([
+    '',
+    '-a',
+    'A',
+    'Été',
+    'a.b',
+    'a/b',
+    '../x',
+    'a%2Fb',
+    'a b',
+    'a?b',
+    'a#b',
+    'a'.repeat(256),
+    'ك\u200fx',
+    'ك\u202ex',
+    '\u064ex',
+  ])('refuses %j', (slug) => {
     expect(isStorefrontSlug(slug)).toBe(false);
   });
 });
