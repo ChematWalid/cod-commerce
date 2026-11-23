@@ -3,7 +3,8 @@
 // A1's delivery to Alger-Centre through the delivery-pricing service (the call P3.S3's checkout makes) and through the
 // offers' scoped pricing core, whose shipping seam delivery pricing fills (D2423). There is no HTTP route before P3.S3,
 // so a transcript shows the in-process call, its input and its output, never a status line. Every `quoteToken` is cut
-// to `qt1.<payload>.[REDACTED]` before anything is written. Run from the server package (workspace packages resolve):
+// to `qt1.[PAYLOAD REDACTED].[REDACTED]` before anything is written: its base64url payload carries the real business and
+// store ids, which the placeholders below cannot reach inside the encoding. Run from the server package (workspace packages resolve):
 //
 //   pnpm exec node --conditions=@cod/source -r ts-node/register/transpile-only \
 //     ../../scripts/evidence/P3.S1-quote.ts <world.json> <transcript dir>
@@ -47,7 +48,7 @@ const outDir: string = outArg;
 const world = JSON.parse(readFileSync(worldArg, 'utf8')) as World;
 const ALGER = '16';
 const ALGER_CENTRE = 1601;
-const TOKEN = /^qt1\.([^.]+)\.(.+)$/;
+const TOKEN = /^qt1\.[^.]+\..+$/;
 const STORE_LABEL = 'A1 (business A, store `demo`)';
 
 const placeholders = new Map<string, string>([
@@ -59,9 +60,9 @@ function check(name: string, condition: boolean, value: unknown): void {
   if (!condition) throw new Error(`P3.S1-quote: ${name} does not hold for ${JSON.stringify(value)}`);
 }
 
-/** A token keeps its prefix and payload (what it commits to) and loses its signature. */
+/** A token keeps its prefix and loses its payload (which encodes the real ids) and its signature. */
 function redacted(value: unknown): unknown {
-  if (typeof value === 'string') return value.replace(TOKEN, 'qt1.$1.[REDACTED]');
+  if (typeof value === 'string') return value.replace(TOKEN, 'qt1.[PAYLOAD REDACTED].[REDACTED]');
   if (Array.isArray(value)) return value.map(redacted);
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, redacted(inner)]));

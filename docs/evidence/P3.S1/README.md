@@ -27,7 +27,8 @@ Compose project `cod-evidence`.
 | [`api/shipping-quote-commune.md`](api/shipping-quote-commune.md) | in process: `ShippingQuoteService.quote` to Alger-Centre, 777 with `source: 'commune'` |
 | [`api/offers-quote-delivery.md`](api/offers-quote-delivery.md) | in process: `PricingService.quoteForScope` carrying the fee through the offers' shipping seam, 4,900 + 777 |
 
-Fee-group, business and store ids are placeholders (`<GROUP_EVIDENCE>`, …); every assertion ran on the real values.
+Fee-group, business and store ids are placeholders (`<GROUP_EVIDENCE>`, …), and a `quoteToken` keeps only its
+`qt1` prefix (its payload encodes the real ids); every assertion ran on the real values.
 Wilaya rows are cut to three of 69 and communes to a few in the transcripts (`ratesShown`, `townsShown`).
 
 ## Screenshots
@@ -37,6 +38,31 @@ language, on the Arabic demo store: `pricing-list` (Delivery → Delivery pricin
 `new-pricing-table` (the New pricing option form's settings and its wilaya table), `edit-override` (the saved option
 with Alger's Edited mark), `edit-communes` (Alger expanded to its communes) and `store-settings-fee-group` (the store
 card's Default pricing option). 24 files.
+
+- [`screens/edit-communes-ar-desktop.png`](screens/edit-communes-ar-desktop.png)
+- [`screens/edit-communes-ar-mobile.png`](screens/edit-communes-ar-mobile.png)
+- [`screens/edit-communes-en-desktop.png`](screens/edit-communes-en-desktop.png)
+- [`screens/edit-communes-en-mobile.png`](screens/edit-communes-en-mobile.png)
+- [`screens/edit-override-ar-desktop.png`](screens/edit-override-ar-desktop.png)
+- [`screens/edit-override-ar-mobile.png`](screens/edit-override-ar-mobile.png)
+- [`screens/edit-override-en-desktop.png`](screens/edit-override-en-desktop.png)
+- [`screens/edit-override-en-mobile.png`](screens/edit-override-en-mobile.png)
+- [`screens/new-pricing-table-ar-desktop.png`](screens/new-pricing-table-ar-desktop.png)
+- [`screens/new-pricing-table-ar-mobile.png`](screens/new-pricing-table-ar-mobile.png)
+- [`screens/new-pricing-table-en-desktop.png`](screens/new-pricing-table-en-desktop.png)
+- [`screens/new-pricing-table-en-mobile.png`](screens/new-pricing-table-en-mobile.png)
+- [`screens/new-pricing-top-ar-desktop.png`](screens/new-pricing-top-ar-desktop.png)
+- [`screens/new-pricing-top-ar-mobile.png`](screens/new-pricing-top-ar-mobile.png)
+- [`screens/new-pricing-top-en-desktop.png`](screens/new-pricing-top-en-desktop.png)
+- [`screens/new-pricing-top-en-mobile.png`](screens/new-pricing-top-en-mobile.png)
+- [`screens/pricing-list-ar-desktop.png`](screens/pricing-list-ar-desktop.png)
+- [`screens/pricing-list-ar-mobile.png`](screens/pricing-list-ar-mobile.png)
+- [`screens/pricing-list-en-desktop.png`](screens/pricing-list-en-desktop.png)
+- [`screens/pricing-list-en-mobile.png`](screens/pricing-list-en-mobile.png)
+- [`screens/store-settings-fee-group-ar-desktop.png`](screens/store-settings-fee-group-ar-desktop.png)
+- [`screens/store-settings-fee-group-ar-mobile.png`](screens/store-settings-fee-group-ar-mobile.png)
+- [`screens/store-settings-fee-group-en-desktop.png`](screens/store-settings-fee-group-en-desktop.png)
+- [`screens/store-settings-fee-group-en-mobile.png`](screens/store-settings-fee-group-en-mobile.png)
 
 ## Browser assertions in `scripts/evidence/P3.S1-screens.mjs`
 

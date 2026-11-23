@@ -315,7 +315,8 @@ Compose project \`cod-evidence\`.
 | [\`api/shipping-quote-commune.md\`](api/shipping-quote-commune.md) | in process: \`ShippingQuoteService.quote\` to Alger-Centre, 777 with \`source: 'commune'\` |
 | [\`api/offers-quote-delivery.md\`](api/offers-quote-delivery.md) | in process: \`PricingService.quoteForScope\` carrying the fee through the offers' shipping seam, 4,900 + 777 |
 
-Fee-group, business and store ids are placeholders (\`<GROUP_EVIDENCE>\`, …); every assertion ran on the real values.
+Fee-group, business and store ids are placeholders (\`<GROUP_EVIDENCE>\`, …), and a \`quoteToken\` keeps only its
+\`qt1\` prefix (its payload encodes the real ids); every assertion ran on the real values.
 Wilaya rows are cut to three of 69 and communes to a few in the transcripts (\`ratesShown\`, \`townsShown\`).
 
 ## Screenshots
@@ -325,6 +326,8 @@ language, on the Arabic demo store: \`pricing-list\` (Delivery → Delivery pric
 \`new-pricing-table\` (the New pricing option form's settings and its wilaya table), \`edit-override\` (the saved option
 with Alger's Edited mark), \`edit-communes\` (Alger expanded to its communes) and \`store-settings-fee-group\` (the store
 card's Default pricing option). $shot_count files.
+
+$(for f in "$out"/screens/*.png; do b=$(basename "$f"); echo "- [\`screens/$b\`](screens/$b)"; done)
 
 ## Browser assertions in \`scripts/evidence/P3.S1-screens.mjs\`
 
@@ -344,6 +347,8 @@ for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done
 if command grep -rEn 'qt1\.[^.]+\.[A-Za-z0-9_-]{20,}' "$out"; then fail 'token signature in evidence'; fi
+# A token payload is base64url JSON holding the real ids, out of reach of the placeholders above.
+if command grep -rEn 'qt1\.eyJ' "$out"; then fail 'token payload in evidence'; fi
 ((${#session_tokens[@]} >= SIGN_IN_COUNT)) || fail "the redaction check would be vacuous"
 for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" "$SUPERADMIN_PASSWORD" "${session_tokens[@]}" "${cookies[@]}" "$demo" "$second"; do
   if command grep -rqaF -- "$secret" "$out/api" "$out/README.md"; then fail "a raw secret or token appears in $out"; fi

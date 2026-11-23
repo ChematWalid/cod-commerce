@@ -64,7 +64,7 @@ The offers' scoped pricing core (D2408) asks its shipping seam for the fee; deli
   "available": true,
   "orderPricingMode": "quote",
   "unavailableVariantIds": [],
-  "quoteToken": "qt1.eyJhIjpbXSwiYiI6IjI1MDQ1MzY2MjI2MDc5NzQ0MCIsImQiOltdLCJleHAiOjE3OTU0MDMzNDIsImgiOiIwMGY2YzY5MmUzMmQ0MjIwNDAyMDU3Y2E0NTc0MGJkYTM1NWIzNzM0Y2ZmNjdiZGMzMTI3NzY2OWZlZjkwMDZkIiwia2lkIjoiazEiLCJsIjpbeyJvZmZlcklkcyI6W10sIm9yaWdpbmFsUHJpY2UiOjQ5MDAsInF0eSI6MSwidW5pdFByaWNlIjo0OTAwLCJ2YXJpYW50SWQiOiIxNyJ9XSwibiI6IkJHWlZmcHl2enFoZ3ZDeWgiLCJvIjpbXSwicCI6MCwicyI6IjI1MDQ1MzY2MjUwNDA2NzA3MiIsInNoIjo3NzcsInQiOjU2NzcsInYiOjF9.[REDACTED]",
+  "quoteToken": "qt1.[PAYLOAD REDACTED].[REDACTED]",
   "expiresAt": "2026-11-23T03:09:02.000Z"
 }
 ```
