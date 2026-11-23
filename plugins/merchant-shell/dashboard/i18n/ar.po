@@ -452,5 +452,21 @@ msgid "shell.settings.store.sold-out-hide"
 msgstr "إخفاؤها من القوائم وصفحات المنتجات"
 
 #. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group"
+msgstr "خيار التسعير الافتراضي"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group-hint"
+msgstr "أسعار التوصيل التي يستعملها الطلب الجديد حين لا ينطبق أي خيار تسعير آخر."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group-set"
+msgstr "محدّد"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group-not-set"
+msgstr "غير محدّد"
+
+#. js-lingui-explicit-id
 msgid "shell.store.create.recheck"
 msgstr "تحقّق مرة أخرى"

@@ -452,5 +452,21 @@ msgid "shell.settings.store.sold-out-hide"
 msgstr "Hide them from lists and product pages"
 
 #. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group"
+msgstr "Default pricing option"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group-hint"
+msgstr "The delivery prices a new order uses when no other pricing option applies."
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group-set"
+msgstr "Set"
+
+#. js-lingui-explicit-id
+msgid "shell.settings.store.fee-group-not-set"
+msgstr "Not set"
+
+#. js-lingui-explicit-id
 msgid "shell.store.create.recheck"
 msgstr "Check again"

@@ -15,6 +15,8 @@ export interface StoreDraft {
   readonly logoAssetId: string | null;
   readonly showAddressField: boolean;
   readonly soldOutBehavior: SoldOutBehavior;
+  /** The pricing option a shipping quote uses when nothing narrower applies (D3114); null when none is set. */
+  readonly defaultDeliveryFeeGroupId: string | null;
 }
 
 /** The fields {@link businessPatchOf} may send, mirroring `UpdateBusinessInput`. */
@@ -32,7 +34,16 @@ export const draftOfStore = ({
   logoAssetId,
   showAddressField,
   soldOutBehavior,
-}: StoreRecord): StoreDraft => ({ name, description, language, logoAssetId, showAddressField, soldOutBehavior });
+  defaultDeliveryFeeGroupId,
+}: StoreRecord): StoreDraft => ({
+  name,
+  description,
+  language,
+  logoAssetId,
+  showAddressField,
+  soldOutBehavior,
+  defaultDeliveryFeeGroupId,
+});
 
 /** The draft with the name trimmed, as it is saved. */
 export const trimmed = <T extends { readonly name: string }>(draft: T): T => ({ ...draft, name: draft.name.trim() });
