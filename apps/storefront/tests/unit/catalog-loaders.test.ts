@@ -71,6 +71,37 @@ describe('catalog loaders', () => {
     },
   );
 
+  // Next hands the page a non-ASCII segment percent-encoded: the slug is decoded once, then encoded once for the api.
+  it.each([
+    ['as Next hands it', encodeURIComponent('صندل-جلدي')],
+    ['decoded', 'صندل-جلدي'],
+  ])('reads an Arabic product slug %s with one encoding on the api path', async (_form, slug) => {
+    // Arrange
+    fetchMock.mockResolvedValue(Response.json(productFixture()));
+    // Act
+    const product = await loadProduct(TENANT, slug);
+    // Assert
+    expect(product).not.toBeNull();
+    expect(requested().pathname).toBe(`/store/product/${encodeURIComponent('صندل-جلدي')}`);
+  });
+
+  it.each(['%E0%A4%A', '%25D8%25B5', 'a%2e%2eb'])(
+    'answers no product for the malformed or doubly encoded slug %j without an api call',
+    async (slug) => {
+      await expect(loadProduct(TENANT, slug)).resolves.toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('reads an encoded Arabic collection slug with one encoding on the api path', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(Response.json({ collection: collectionFixture(), products: PAGE }));
+    // Act
+    await loadCollectionPage(TENANT, encodeURIComponent('ملابس'), { page: 1, sort: 'newest' });
+    // Assert
+    expect(requested().pathname).toBe(`/store/collection/${encodeURIComponent('ملابس')}`);
+  });
+
   it('answers no product for a 404', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 404 }));
     await expect(loadProduct(TENANT, 'gone')).resolves.toBeNull();

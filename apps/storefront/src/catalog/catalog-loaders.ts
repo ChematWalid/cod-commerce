@@ -26,7 +26,7 @@ import {
   productWithAssetPaths,
 } from './catalog-images';
 import { type ListingQuery, listingApiQuery, type SearchQuery } from './listing-query';
-import { isStorefrontSlug } from './slug';
+import { routeSlugOf } from './slug';
 
 /** A page with no products, for a listing the api has nothing for. */
 function emptyPage(skip = 0): StorefrontProductPage {
@@ -54,8 +54,8 @@ export async function loadProductPage(tenant: VerifiedTenant, query: ListingQuer
 }
 
 /**
- * The product page of `slug`, or `null` for a slug that is malformed (no api call), unknown or hidden. Tagged with
- * the product and the store's offers, which the product page shows (P3.S3).
+ * The product page of the route segment `slug` (decoded once), or `null` for a slug that is malformed (no api call),
+ * unknown or hidden. Tagged with the product and the store's offers, which the product page shows (P3.S3).
  *
  * @throws CatalogApiError when the api cannot answer
  */
@@ -63,8 +63,9 @@ export async function loadProduct(tenant: VerifiedTenant, slug: string): Promise
   'use cache';
   cacheTag(storeTag(tenant.storeId), offersTag(tenant.storeId));
   cacheLife('hours');
-  if (!isStorefrontSlug(slug)) return null;
-  const product = await fetchCatalog(tenant, storefrontApiPath('product', slug), storefrontProductSchema);
+  const routeSlug = routeSlugOf(slug);
+  if (routeSlug === null) return null;
+  const product = await fetchCatalog(tenant, storefrontApiPath('product', routeSlug), storefrontProductSchema);
   if (product === null) return null;
   cacheTag(productTag(product.id));
   return productWithAssetPaths(product);
@@ -99,8 +100,9 @@ export async function loadCollectionPage(
   'use cache';
   cacheTag(storeTag(tenant.storeId));
   cacheLife('hours');
-  if (!isStorefrontSlug(slug)) return null;
-  const path = `${storefrontApiPath('collection', slug)}?${listingApiQuery(query)}`;
+  const routeSlug = routeSlugOf(slug);
+  if (routeSlug === null) return null;
+  const path = `${storefrontApiPath('collection', routeSlug)}?${listingApiQuery(query)}`;
   const page = await fetchCatalog(tenant, path, storefrontCollectionPageSchema);
   if (page === null) return null;
   cacheTag(collectionTag(page.collection.id));

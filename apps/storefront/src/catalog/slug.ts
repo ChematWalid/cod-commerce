@@ -15,3 +15,20 @@ export const STOREFRONT_SLUG_PATTERN = new RegExp(
 export function isStorefrontSlug(value: string): boolean {
   return STOREFRONT_SLUG_PATTERN.test(value);
 }
+
+/**
+ * The slug of a route segment, or `null` when it is not one. Next hands a page a non-ASCII segment percent-encoded
+ * (`/product/صندل` arrives as `%D8%B5…`), so the segment is decoded exactly once before the check: a doubly encoded or
+ * malformed segment, or one that decodes to a `/`, `.` or `%`, is refused.
+ */
+export function routeSlugOf(segment: string): string | null {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch (error: unknown) {
+    // A malformed escape is a crafted or broken URL: no page, nothing worth logging.
+    if (error instanceof URIError) return null;
+    throw error;
+  }
+  return isStorefrontSlug(decoded) ? decoded : null;
+}
