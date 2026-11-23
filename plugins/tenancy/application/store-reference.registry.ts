@@ -1,5 +1,5 @@
 import { type Snowflake, toBusinessId } from '@cod/shared';
-import { StoreReferenceNotFoundError } from '../domain/errors';
+import { StoreReferenceNotFoundError, StoreReferenceRequiredError } from '../domain/errors';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type {
   StoreReferenceCheck,
@@ -67,10 +67,20 @@ function changedReferences(
 }
 
 /**
+ * Refuses to clear the store's default fee group once it has one (D3108): the quote and the town list read it, and
+ * a store without one would price every delivery as unresolved until the next converge. The carrier stays optional.
+ */
+function assertRequiredKept(store: Store, patch: StorePatch): void {
+  if (patch.defaultDeliveryFeeGroupId === null && store.defaultDeliveryFeeGroupId !== null) {
+    throw new StoreReferenceRequiredError();
+  }
+}
+
+/**
  * Asserts every reference `patch` changes belongs to `store` (#230, #153), one after another on the transaction's
- * one connection.
+ * one connection, and that a required reference is not cleared.
  *
- * @throws {@link StoreReferenceNotFoundError}
+ * @throws {@link StoreReferenceNotFoundError} or {@link StoreReferenceRequiredError}
  */
 export async function assertReferencesOwned(
   checks: StoreReferenceChecks,
@@ -78,6 +88,7 @@ export async function assertReferencesOwned(
   store: Store,
   patch: StorePatch,
 ): Promise<void> {
+  assertRequiredKept(store, patch);
   const scope: StoreReferenceScope = { businessId: toBusinessId(store.businessId), storeId: store.id };
   for (const reference of changedReferences(store, patch)) {
     await assertReferenceOwned(checks, ctx, scope, reference);

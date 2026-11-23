@@ -25,7 +25,7 @@ export class UpdateStoreService {
    * Applies `patch` in one transaction, so a refused channel update leaves the store unchanged.
    *
    * @throws {@link NameInvalidError}, {@link UnsupportedStoreLanguageError}, {@link StoreNotFoundError},
-   * {@link StoreArchivedError} or {@link StoreReferenceNotFoundError}.
+   * {@link StoreArchivedError}, {@link StoreReferenceNotFoundError} or {@link StoreReferenceRequiredError}.
    */
   async update(ctx: OperationContext, actor: StoreActor, id: StoreId, patch: StorePatch): Promise<Store> {
     assertValidPatch(patch);

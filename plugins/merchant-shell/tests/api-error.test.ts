@@ -26,6 +26,7 @@ describe('settingsErrorMessageId', () => {
     expect(settingsErrorMessageId(coded('tenancy.store-reference-not-found'))).toBe(
       'tenancy.store-reference-not-found',
     );
+    expect(settingsErrorMessageId(coded('tenancy.store-reference-required'))).toBe('tenancy.store-reference-required');
   });
 
   it('falls back for a refusal without a sentence', () => {

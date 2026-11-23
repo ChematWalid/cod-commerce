@@ -432,6 +432,10 @@ msgid "tenancy.store-reference-not-found"
 msgstr "لم يعد خيار التوصيل هذا موجودًا. اختر خيارًا آخر."
 
 #. js-lingui-explicit-id
+msgid "tenancy.store-reference-required"
+msgstr "لا يمكن إزالة خيار التسعير الافتراضي. اختر خيارًا آخر بدلًا منه."
+
+#. js-lingui-explicit-id
 msgid "shell.settings.store.show-address"
 msgstr "إظهار حقل العنوان"
 

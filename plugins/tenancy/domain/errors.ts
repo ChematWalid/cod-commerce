@@ -80,6 +80,18 @@ export class StoreReferenceNotFoundError extends DomainError {
   }
 }
 
+/**
+ * A store setting that must keep a record once it has one, set to null: the default delivery fee group (D3108), so
+ * every store always has a fee table to quote from.
+ */
+export class StoreReferenceRequiredError extends DomainError {
+  readonly code = 'tenancy.store-reference-required';
+
+  constructor() {
+    super('This linked record cannot be removed, only replaced');
+  }
+}
+
 /** Archiving would leave the business with no active store. */
 export class LastStoreError extends DomainError {
   readonly code = 'tenancy.last-store';

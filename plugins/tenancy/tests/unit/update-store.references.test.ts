@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { StoreAdminPorts } from '../../application/store-admin-ports';
 import { StoreReferenceRegistry } from '../../application/store-reference.registry';
 import { UpdateStoreService } from '../../application/update-store.service';
-import { StoreReferenceNotFoundError } from '../../domain/errors';
+import { StoreReferenceNotFoundError, StoreReferenceRequiredError } from '../../domain/errors';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type {
   StoreReferenceCheck,
@@ -157,18 +157,44 @@ describe('UpdateStoreService store references (#230, #153, D3111)', () => {
     await expect(refusal).rejects.toBeInstanceOf(StoreReferenceNotFoundError);
   });
 
-  it('clears both ids on null without asking any check', async () => {
+  it('clears the carrier id on null without asking any check', async () => {
     // Arrange
     const check = new RecordingCheck('deliveryFeeGroup', false);
     const { stores, service } = setUp([check], { defaultDeliveryFeeGroupId: GROUP, defaultCarrierId: CARRIER });
 
     // Act
-    const updated = await update(service, { defaultDeliveryFeeGroupId: null, defaultCarrierId: null });
+    const updated = await update(service, { defaultCarrierId: null });
 
     // Assert
-    expect(updated).toMatchObject({ defaultDeliveryFeeGroupId: null, defaultCarrierId: null });
+    expect(updated).toMatchObject({ defaultDeliveryFeeGroupId: GROUP, defaultCarrierId: null });
     expect(stores.writes).toHaveLength(1);
     expect(check.asked).toEqual([]);
+  });
+
+  it('refuses to clear the default fee group of a store that has one, so it always keeps a fee table (D3108)', async () => {
+    // Arrange
+    const check = new RecordingCheck('deliveryFeeGroup', true);
+    const { stores, service } = setUp([check], { defaultDeliveryFeeGroupId: GROUP });
+
+    // Act
+    const refusal = update(service, { defaultDeliveryFeeGroupId: null, name: 'not saved' });
+
+    // Assert
+    await expect(refusal).rejects.toBeInstanceOf(StoreReferenceRequiredError);
+    await expect(refusal).rejects.toMatchObject({ code: 'tenancy.store-reference-required' });
+    expect(stores.writes).toEqual([]);
+  });
+
+  it('accepts a null fee group on a store that has none yet', async () => {
+    // Arrange
+    const { stores, service } = setUp([new RecordingCheck('deliveryFeeGroup', false)]);
+
+    // Act
+    const updated = await update(service, { defaultDeliveryFeeGroupId: null, name: 'Renamed' });
+
+    // Assert
+    expect(updated).toMatchObject({ defaultDeliveryFeeGroupId: null, name: 'Renamed' });
+    expect(stores.writes).toHaveLength(1);
   });
 
   it('skips the check for an id that does not change', async () => {

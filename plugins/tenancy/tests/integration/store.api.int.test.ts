@@ -123,23 +123,26 @@ describe('Store Admin API', () => {
     expect(await rows().findOneByOrFail({ id: api.alpha.store.id })).toEqual(before);
   });
 
-  it('clears a nullable setting on null and keeps it when omitted', async () => {
+  it('clears the carrier on null, keeps an omitted setting, and refuses to clear the fee group (D3108)', async () => {
     // Arrange
     await asAlpha();
-    // A dangling id, as an update before #230 could store: null must still clear it.
+    // Dangling ids, as an update before #230 could store: null must still clear the carrier.
     await rows().update({ id: api.alpha.store.id }, { defaultCarrierId: '7', defaultDeliveryFeeGroupId: '8' });
     await adminClient.query(UPDATE_STORE, { id: api.alpha.store.id, input: { description: 'kept' } });
 
     // Act
     const { updateStore } = await adminClient.query<{ updateStore: StoreView }>(UPDATE_STORE, {
       id: api.alpha.store.id,
-      input: { defaultCarrierId: null, defaultDeliveryFeeGroupId: null },
+      input: { defaultCarrierId: null },
     });
+    const refusal = await failureOf(
+      adminClient.query(UPDATE_STORE, { id: api.alpha.store.id, input: { defaultDeliveryFeeGroupId: null } }),
+    );
 
     // Assert
-    expect(updateStore.defaultCarrierId).toBeNull();
-    expect(updateStore.defaultDeliveryFeeGroupId).toBeNull();
-    expect(updateStore.description).toBe('kept');
+    expect(updateStore).toMatchObject({ defaultCarrierId: null, defaultDeliveryFeeGroupId: '8', description: 'kept' });
+    expect(refusal.codes).toEqual(['tenancy.store-reference-required']);
+    expect((await rows().findOneByOrFail({ id: api.alpha.store.id })).defaultDeliveryFeeGroupId).toBe('8');
   });
 
   it('moves the channel to the new store language (D7)', async () => {
