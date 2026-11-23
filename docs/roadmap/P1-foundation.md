@@ -8,7 +8,7 @@
 - P1.S1 (tenancy) first, alone.
 - Then four lanes in parallel worktrees: **P1.S2 (auth)**, **P1.S3 (RBAC)**, **P1.S5 (admin shell)**, **P1.S6 (platform plumbing: outbox, webhook gateway, queues, secrets, flags, partitions)**.
 - P1.S4 (team) starts after both P1.S2 and P1.S3 are merged; it may run alongside P1.S5 and P1.S6.
-- P1.S6 is not needed by P2 but must be merged before P3.S4 (outbox) and P3.S5 (staging); start it early so it never blocks the critical path.
+- P1.S6 is not needed by P2 but must be merged before P3.S4 (outbox) and P3.S5a (staging code); start it early so it never blocks the critical path.
 - Shared files that parallel sessions touch only by appending a registration line: `apps/server/src/vendure-config.ts` (plugin list), `packages/shared/src/index.ts` (exports), `apps/server/migrations`. Keep both lines on conflict.
 
 Brief structure: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING.md](CONTRIBUTING.md). ADRs in `docs/adr/` (0002 tenancy, 0003 ids, 0005 i18n, 0007 branding, 0008 public API auth, 0013 queues, 0016 data lifecycle) are binding; architecture reference: [../architecture/README.md](../architecture/README.md).
@@ -476,7 +476,7 @@ link and stop without merging.
 - Browser check: staff flags screen only (no reference-product screen to compare; note it).
 - Multi-tenant: two-business tests for secrets, flags, outbox payload `businessId`, gateway account resolution (a webhook for business A's account key never touches business B's data).
 
-**Out of scope:** real carrier/payment handlers (P5, P9), CAPI/webhook consumers (P9.S3, P9.S8a), intake spool (P3.S4), staging deployment (P3.S5).
+**Out of scope:** real carrier/payment handlers (P5, P9), CAPI/webhook consumers (P9.S3, P9.S8a), intake spool (P3.S4), staging deployment (P3.S5a, P3.S5b).
 
 **Kickoff prompt** (paste into a fresh Claude session in the repo)
 ```
