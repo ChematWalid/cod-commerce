@@ -17,3 +17,29 @@ export { asOperationContext } from './domain/ports/operation-context';
 export { ShippingQuoteService } from './application/shipping-quote.service';
 export type { ShippingQuoteItem, ShippingQuoteRequest } from './domain/quote-request';
 export type { StoreScope as DeliveryStoreScope } from './domain/store-scope';
+
+// The dashboard's route paths and test ids, for the browser spec and the evidence script (framework-free).
+export {
+  ADD_PRICING_TEST_ID,
+  APPLY_ALL_TEST_ID,
+  APPLY_DESK_TEST_ID,
+  APPLY_HOME_TEST_ID,
+  CARRIERS_PLACEHOLDER_TEST_ID,
+  COMMUNE_PANEL_TEST_ID,
+  COMMUNE_ROW_TEST_ID,
+  COMMUNES_SAVE_FIRST_TEST_ID,
+  DELIVER_EVERYWHERE_TEST_ID,
+  DELIVERY_PAGE_TEST_ID,
+  DELIVERY_PATH,
+  DELIVERY_TABS_TEST_ID,
+  DESK_EVERYWHERE_TEST_ID,
+  NEW_PRICING_PATH,
+  PRICING_EDITOR_TEST_ID,
+  PRICING_EMPTY_TEST_ID,
+  PRICING_LIST_TEST_ID,
+  PRICING_NAME_TEST_ID,
+  PRICING_ROW_TEST_ID,
+  PRICING_SAVE_TEST_ID,
+  pricingPathOf,
+  WILAYA_ROW_TEST_ID,
+} from './dashboard/constants';

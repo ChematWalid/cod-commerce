@@ -33,6 +33,7 @@ export const DELIVERY_PRICING_REST_CONTROLLERS = [FeeGroupsController];
   exports: [DefaultTableService, DeliveryDefaultsConvergeService, ShippingQuoteService],
   adminApiExtensions: { schema: deliveryPricingAdminApiSchema, resolvers: [FeeGroupsResolver] },
   controllers: DELIVERY_PRICING_REST_CONTROLLERS,
+  dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',
 })
 export class DeliveryPricingPlugin implements NestModule {

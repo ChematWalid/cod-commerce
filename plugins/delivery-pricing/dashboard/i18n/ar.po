@@ -1,0 +1,272 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: ar\n"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.page-title"
+msgstr "التوصيل والشحن"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.tab-carriers"
+msgstr "شركات التوصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.tab-pricing"
+msgstr "أسعار التوصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.loading"
+msgstr "جارٍ التحميل…"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.store-filter"
+msgstr "المتجر"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.search"
+msgstr "ابحث في خيارات التسعير"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.add"
+msgstr "إضافة خيار تسعير"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.empty"
+msgstr "لا توجد خيارات تسعير بعد."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.no-match"
+msgstr "لا يوجد خيار تسعير يطابق هذا البحث."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-name"
+msgstr "خيار التسعير"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-carrier"
+msgstr "شركة التوصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-created"
+msgstr "تاريخ الإنشاء"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.row-actions"
+msgstr "الإجراءات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-edit"
+msgstr "تعديل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-view"
+msgstr "عرض"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-delete"
+msgstr "حذف"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.platform-badge"
+msgstr "الافتراضي للمنصة"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.no-carrier"
+msgstr "بدون شركة توصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.carrier-unknown"
+msgstr "شركة توصيل غير معروفة"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.page-previous"
+msgstr "السابق"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.page-next"
+msgstr "التالي"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.delete-heading"
+msgstr "حذف خيار التسعير هذا؟"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.delete-body"
+msgstr "سيُحذف {name} مع أسعار الولايات والبلديات الخاصة به. لا يمكن التراجع عن ذلك."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.cancel"
+msgstr "إلغاء"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.deleted"
+msgstr "تم حذف خيار التسعير."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.saved"
+msgstr "تم حفظ خيار التسعير."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-saved"
+msgstr "تم حفظ أسعار البلديات."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.fix-errors"
+msgstr "صحّح الحقول المحددة ثم احفظ مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-generic"
+msgstr "حدث خطأ ما. حاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-forbidden"
+msgstr "ليست لديك صلاحية للقيام بذلك في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-store-switched"
+msgstr "تغيّر المتجر النشط. أعد تحميل الصفحة وحاول مرة أخرى."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-name"
+msgstr "أدخل اسمًا من 80 حرفًا على الأكثر في سطر واحد."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-number"
+msgstr "أدخل عددًا صحيحًا ضمن المجال المسموح."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-price"
+msgstr "أدخل أسعارًا صحيحة بالدينار من 0 إلى 100,000."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.new-heading"
+msgstr "خيار تسعير جديد"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.back"
+msgstr "العودة إلى الأسعار"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.save"
+msgstr "حفظ"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.settings-title"
+msgstr "خيار التسعير"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.bulk-title"
+msgstr "تطبيق على الكل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.wilayas-title"
+msgstr "الأسعار حسب الولاية"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-name"
+msgstr "الاسم"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-carrier"
+msgstr "شركة التوصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-charge-overweight"
+msgstr "تحميل الوزن الزائد على الزبون"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-charge-overweight-hint"
+msgstr "يُضاف السعر إلى رسوم التوصيل عن كل كيلوغرام بدأ فوق الوزن المسموح."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-allowance"
+msgstr "الوزن المسموح (كغ)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-rate"
+msgstr "السعر لكل كغ إضافي (د.ج)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.apply-to-all"
+msgstr "تطبيق على الكل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.deliver-everywhere"
+msgstr "التوصيل إلى كل الولايات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.desk-everywhere"
+msgstr "مكتب التوصيل في كل ولاية يتم التوصيل إليها"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-wilaya"
+msgstr "الولاية"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-home"
+msgstr "التوصيل للمنزل (د.ج)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-desk"
+msgstr "مكتب التوصيل (د.ج)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-delivery"
+msgstr "التوصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-desk-switch"
+msgstr "مكتب التوصيل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes"
+msgstr "البلديات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-hint"
+msgstr "السعر الفارغ يأخذ السعر الأساسي للبلدية ثم سعر الولاية. يتبع المفتاح الولاية حتى تغيّره."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-save"
+msgstr "حفظ أسعار البلديات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-save-first"
+msgstr "احفظ خيار التسعير هذا أولًا لتحديد أسعار البلديات."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-still-on"
+msgstr "البلديات المفعّلة في هذه الولاية تبقى قيد التوصيل: {count}"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.overridden"
+msgstr "معدّل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.reset-default"
+msgstr "إعادة إلى الافتراضي"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.template-missing"
+msgstr "لا يملك المتجر أسعارًا افتراضية للمنصة للبدء منها."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.not-found-page"
+msgstr "خيار التسعير هذا غير موجود في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.invalid-input"
+msgstr "بعض القيم غير صالحة. تحقّق من الأسعار والإعدادات."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.not-found"
+msgstr "خيار التسعير هذا غير موجود في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.group-in-use"
+msgstr "خيار التسعير هذا هو الافتراضي للمتجر أو جدول المنصة الافتراضي ولا يمكن حذفه. اختر خيارًا افتراضيًا آخر أولًا."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.carrier-not-found"
+msgstr "شركة التوصيل هذه غير موجودة في هذا المتجر."
