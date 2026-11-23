@@ -17,6 +17,13 @@ const rates = codes.map((provinceCode) => ({
 }));
 console.log(JSON.stringify({ name: e.N, carrierId: null, chargeOverweight: true, overweightAllowanceKg: 5, overweightRate: 50, rates }));'
 }
+base_body() { # base_body <name> <alger home> <created group json>: every wilaya back at its base price, Alger at <alger home>
+  N="$1" A="$2" node -e '
+const e = process.env; const g = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const rates = g.rates.map((r) => ({ provinceCode: r.provinceCode, homePrice: r.provinceCode === "16" ? Number(e.A) : r.baseHomePrice,
+  deskPrice: r.baseDeskPrice, deliveryEnabled: true, deskEnabled: true }));
+console.log(JSON.stringify({ name: e.N, carrierId: null, chargeOverweight: true, overweightAllowanceKg: 5, overweightRate: 50, rates }));' "$3"
+}
 communes_body() { # communes_body: Alger-Centre home 777, Casbah delivery off (the narrowing shows it)
   echo "{\"rows\":[{\"codeOns\":$ALGER_CENTRE,\"homePrice\":777,\"deskPrice\":null,\"deliveryEnabled\":null,\"deskEnabled\":null},{\"codeOns\":$CASBAH,\"homePrice\":null,\"deskPrice\":null,\"deliveryEnabled\":false,\"deskEnabled\":null}]}"
 }
@@ -87,6 +94,7 @@ body=$(group_body 'خيار التسعير للأدلة' 650)
 rest POST /delivery-fees "$body" "$owner" "$demo"; expect_status "create group" 201
 assert_js "created" "b.name==='خيار التسعير للأدلة' && b.rates.length===69 && b.isPlatformDefault===false" "$work/b"
 pricing_group=$(js 'b.id' "$work/b"); remember_id GROUP_EVIDENCE "$pricing_group"
+command cp "$work/b" "$work/created.json"
 cut_rates
 emit_rest "$f" "POST /delivery-fees" POST /delivery-fees "$(shown_group "$body")"
 Q="mutation (\$input: DeliveryFeeGroupInput!) { createDeliveryFeeGroup(input: \$input) { $PRICING_FIELDS } }"
@@ -109,8 +117,8 @@ emit "$f" "deliveryFeeGroups (search)" "$Q" '{}' "$owner" "$demo"
 
 # --- fee-group-update.md --------------------------------------------------------------------------
 f="$out/api/fee-group-update.md"
-begin "$f" "Edit a pricing option" "Every row is sent; a price different from its base is stored as an override (D3107): Alger at 750 is \`overridden\`, the other wilayas stay on base."
-body=$(group_body 'خيار التسعير للأدلة' 650 750)
+begin "$f" "Edit a pricing option" "Every row is sent; a price different from its base (the platform default table) is stored as an override (D3107). The option created at 650 everywhere is sent back at each wilaya's base price with Alger at 750: Alger is \`overridden\`, the wilayas at their base are not."
+body=$(base_body 'خيار التسعير للأدلة' 750 "$work/created.json")
 rest PUT "/delivery-fees/$pricing_group" "$body" "$owner" "$demo"; expect_status "update group" 200
 assert_js "Alger overridden" "b.rates.find((r)=>r.provinceCode==='16').homePrice===750 && b.rates.find((r)=>r.provinceCode==='16').overridden===true && b.rates.find((r)=>r.provinceCode==='01').overridden===false" "$work/b"
 cut_rates

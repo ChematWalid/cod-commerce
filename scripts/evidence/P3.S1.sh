@@ -52,6 +52,8 @@ MIN_PLACEHOLDER_VALUE_LENGTH=16
 TRANSCRIPT_COUNT=14
 # 6 screens x {ar, en} x {desktop, mobile}.
 SCREEN_COUNT=24
+# The two owners' API sign-ins (the screens sign in on their own): the redaction check needs both tokens to mean anything.
+SIGN_IN_COUNT=2
 
 OWNER=owner@demo.example.test SECOND_OWNER=owner@second.example.test
 
@@ -289,7 +291,7 @@ shot_count=$(command ls "$out"/screens/*.png | command wc -l)
 Transcripts and screenshots from a live stack (CLAUDE.md §3a.14), produced by \`scripts/evidence/P3.S1.sh\`. Data is
 synthetic: the demo seed's two businesses, the 69 wilayas and 1,541 communes the \`migrate\` role converges (D3123), each
 store's seeded "Platform default prices" table (D3112), and what the script creates in store A1 (\`demo\`, Arabic): a
-pricing option at 650 DZD home everywhere, Alger overridden to 750, Alger-Centre to 777 and the Casbah without home
+pricing option created at 650 DZD home everywhere, then edited back to each wilaya's base price with Alger overridden to 750, Alger-Centre to 777 and the Casbah without home
 delivery, linked as the store default, a spare option (deleted) and one product at 4,900 DZD. Image built from a tree
 with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit \`$image_commit\`.
 Compose project \`cod-evidence\`.
@@ -342,7 +344,7 @@ for f in "$out"/screens/*.png; do
   (($(command stat -c %s "$f") <= 300 * 1024)) || fail "$f is over 300 KB"
 done
 if command grep -rEn 'qt1\.[^.]+\.[A-Za-z0-9_-]{20,}' "$out"; then fail 'token signature in evidence'; fi
-((${#session_tokens[@]} >= 3)) || fail "the redaction check would be vacuous"
+((${#session_tokens[@]} >= SIGN_IN_COUNT)) || fail "the redaction check would be vacuous"
 for secret in "${secret_values[@]}" "$AUTH_TOKEN_SECRET" "$DEMO_OWNER_PASSWORD" "$SUPERADMIN_PASSWORD" "${session_tokens[@]}" "${cookies[@]}" "$demo" "$second"; do
   if command grep -rqaF -- "$secret" "$out/api" "$out/README.md"; then fail "a raw secret or token appears in $out"; fi
 done
