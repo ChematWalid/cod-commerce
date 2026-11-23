@@ -18,6 +18,8 @@ import {
   MINUTE_WINDOW_SECONDS,
   OTP_DAILY_CAPACITY,
   REGISTER_IP_CAPACITY,
+  STOREFRONT_READ_IP_CAPACITY,
+  STOREFRONT_RENDER_CAPACITY,
   TEAM_ACTOR_MAIL_CAPACITY,
   TEAM_INVITE_BUSINESS_CAPACITY,
 } from './constants';
@@ -91,6 +93,10 @@ export const RATE_LIMIT_POLICIES = {
   'catalog-bulk-edit-actor': perHour(CATALOG_BULK_EDIT_ACTOR_CAPACITY),
   'catalog-bulk-edit-business': perHour(CATALOG_BULK_EDIT_BUSINESS_CAPACITY),
   'catalog-pack-preview-actor': perHour(CATALOG_PACK_PREVIEW_ACTOR_CAPACITY),
+  // Signed storefront renders that name no buyer, keyed by signing key (D3213); reads only, so they fail open.
+  'storefront-render': perMinute(STOREFRONT_RENDER_CAPACITY, 'open'),
+  // Public storefront catalog reads by buyer address (D3213); reads only, so they fail open.
+  'storefront-read': perMinute(STOREFRONT_READ_IP_CAPACITY, 'open'),
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** One of the {@link RATE_LIMIT_POLICIES}. */

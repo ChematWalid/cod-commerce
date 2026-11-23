@@ -45,3 +45,6 @@ export const PLATFORM_DOMAIN: unique symbol = Symbol('TenancyPlatformDomain');
 
 /** Injection token of the `MemberAccountPort` adapter. */
 export const MEMBER_ACCOUNTS: unique symbol = Symbol('TenancyMemberAccounts');
+
+/** Injection token of the `StorefrontContextsPort` adapter the storefront store guard builds its context with. */
+export const STOREFRONT_CONTEXTS: unique symbol = Symbol('TenancyStorefrontContexts');

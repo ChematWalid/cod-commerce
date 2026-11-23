@@ -22,6 +22,7 @@ import { toRequestContext } from './request-scope';
 import { storedSlug } from './stored-slug';
 
 /** A core id as Vendure's own entities hold it: the integer of its SERIAL column (D2159). */
+// eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
 const engineIdOf = (id: string): number => Number(id);
 
 /**
@@ -89,6 +90,11 @@ export class VendureCollectionsAdapter implements VendureCollectionsPort {
     const request = toRequestContext(ctx);
     const found = await this.collections.findByIds(request, collectionIds.map(engineIdOf), ['featuredAsset']);
     return new Map(found.map((collection) => [String(collection.id), this.metaOf(request, collection)]));
+  }
+
+  async findIdBySlug(ctx: OperationContext, slug: string): Promise<string | undefined> {
+    const holder = await this.collections.findOneBySlug(toRequestContext(ctx), slug, []);
+    return holder === undefined ? undefined : String(holder.id);
   }
 
   storedSlugOf(slug: string): string {

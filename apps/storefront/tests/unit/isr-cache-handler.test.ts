@@ -1,14 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { CACHE_ENTRY_MAX_TTL_SECONDS } from '../../cache/constants';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CACHE_COMMAND_TIMEOUT_MS, CACHE_ENTRY_MAX_BYTES, CACHE_ENTRY_MAX_TTL_SECONDS } from '../../cache/constants';
 import { createIsrCacheHandler, type IsrCacheHandler } from '../../cache/isr-cache-handler';
+import { writesOffKey } from '../../cache/keys';
 import { CacheUnavailableError } from '../../cache/redis-connection';
+import { CacheWriteGuard } from '../../cache/write-guard';
 import { FakeCacheRedis } from '../support/fake-cache-redis';
+
+/** How much later than the command timeout a stalled read may settle (timer and scheduling jitter). */
+const TIMEOUT_SLACK_MS = 150;
 
 const PAGE_KEY = '/route-cache/APP_PAGE/_t/demo/ar';
 const STORE_TAG = 'store:demo';
 
 function handlerFor(redis: FakeCacheRedis | null, deploymentId: string): IsrCacheHandler {
-  const Handler = createIsrCacheHandler({ getClient: () => Promise.resolve(redis), deploymentId });
+  const Handler = createIsrCacheHandler({
+    getClient: () => Promise.resolve(redis),
+    deploymentId,
+    writeGuard: new CacheWriteGuard({ appEnv: 'test' }),
+  });
   return new Handler({});
 }
 
@@ -24,6 +33,10 @@ function appPageEntry(html: string): Record<string, unknown> {
 }
 
 describe('ISR cache handler', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('revalidating a tag removes the entry of every deployment', async () => {
     // Arrange
     const redis = new FakeCacheRedis();
@@ -86,15 +99,19 @@ describe('ISR cache handler', () => {
       CACHE_ENTRY_MAX_TTL_SECONDS,
       60,
     ]);
-    expect([...redis.sets.keys()].sort()).toEqual(['next:tag:_N_T_/layout', 'next:tag:fetch:c', 'next:tag:store:demo']);
-    for (const tagKey of redis.sets.keys()) {
+    expect([...redis.sortedSets.keys()].sort()).toEqual([
+      'next:tag:_N_T_/layout',
+      'next:tag:fetch:c',
+      'next:tag:store:demo',
+    ]);
+    for (const tagKey of redis.sortedSets.keys()) {
       const expires = redis.recordedExpires.filter(({ key }) => key === tagKey);
       expect(expires.length).toBeGreaterThan(0);
       expect(Math.max(...expires.map(({ seconds }) => seconds))).toBeLessThanOrEqual(CACHE_ENTRY_MAX_TTL_SECONDS);
     }
   });
 
-  it('writes the tag index, SADD and EXPIRE in one transaction, before the entry', async () => {
+  it('writes the tag index, ZADD, pruning and EXPIRE in one transaction, before the entry', async () => {
     // Arrange
     const redis = new FakeCacheRedis();
     const handler = handlerFor(redis, 'v1');
@@ -102,8 +119,8 @@ describe('ISR cache handler', () => {
     await handler.set(PAGE_KEY, appPageEntry('one'));
     // Assert: a crash between the two writes can leave an unindexed tag, never an entry revalidation misses.
     expect(redis.operations).toEqual([
-      'multi[sAdd next:tag:store:demo, expire next:tag:store:demo]',
-      'multi[sAdd next:tag:_N_T_/layout, expire next:tag:_N_T_/layout]',
+      'multi[zAdd next:tag:store:demo, zRemRangeByScore next:tag:store:demo, expire next:tag:store:demo]',
+      'multi[zAdd next:tag:_N_T_/layout, zRemRangeByScore next:tag:_N_T_/layout, expire next:tag:_N_T_/layout]',
       `set next:v1:isr:${PAGE_KEY}`,
     ]);
   });
@@ -118,5 +135,69 @@ describe('ISR cache handler', () => {
     // Assert
     await expect(handler.get(PAGE_KEY)).resolves.toBeNull();
     expect(redis.recordedSets).toEqual([]);
+  });
+
+  it('does not write an entry over 512 KB, so a read misses', async () => {
+    // Arrange
+    const redis = new FakeCacheRedis();
+    const handler = handlerFor(redis, 'v1');
+    // Act
+    await handler.set(PAGE_KEY, appPageEntry('x'.repeat(CACHE_ENTRY_MAX_BYTES)));
+    // Assert
+    await expect(handler.get(PAGE_KEY)).resolves.toBeNull();
+    expect(redis.operations).toEqual([]);
+  });
+
+  it('writes neither the entry nor its tags while the writes-off switch is set', async () => {
+    // Arrange
+    const redis = new FakeCacheRedis();
+    redis.strings.set(writesOffKey('test'), '1');
+    const handler = handlerFor(redis, 'v1');
+    // Act
+    await handler.set(PAGE_KEY, appPageEntry('one'));
+    // Assert
+    expect(redis.operations).toEqual([]);
+    expect(redis.sortedSets.size).toBe(0);
+  });
+
+  it('settles a read from a Valkey that never answers as a miss within the command timeout', async () => {
+    // Arrange
+    const redis = new FakeCacheRedis();
+    redis.hang = true;
+    const handler = handlerFor(redis, 'v1');
+    const startedAt = performance.now();
+    // Act
+    const hit = await handler.get(PAGE_KEY);
+    // Assert
+    expect(hit).toBeNull();
+    expect(performance.now() - startedAt).toBeLessThan(CACHE_COMMAND_TIMEOUT_MS + TIMEOUT_SLACK_MS);
+  });
+
+  it('prunes an expired entry from the tag index on the next write', async () => {
+    // Arrange
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const redis = new FakeCacheRedis();
+    const handler = handlerFor(redis, 'v1');
+    await handler.set('/old', appPageEntry('old'), { cacheControl: { expire: 60 } });
+    vi.setSystemTime(Date.now() + 61_000);
+    // Act
+    await handler.set('/new', appPageEntry('new'), { cacheControl: { expire: 60 } });
+    // Assert
+    expect(redis.members('next:tag:store:demo')).toEqual(['next:v1:isr:/new']);
+  });
+
+  it('revalidates a tag in one transaction that deletes its entries and their index members', async () => {
+    // Arrange
+    const redis = new FakeCacheRedis();
+    const handler = handlerFor(redis, 'v1');
+    await handler.set(PAGE_KEY, appPageEntry('one'));
+    redis.operations.length = 0;
+    // Act
+    await handler.revalidateTag(STORE_TAG);
+    // Assert
+    expect(redis.operations).toEqual([
+      `multi[del next:v1:isr:${PAGE_KEY}, zRem next:tag:store:demo, zRemRangeByScore next:tag:store:demo]`,
+    ]);
+    expect(redis.members('next:tag:store:demo')).toEqual([]);
   });
 });

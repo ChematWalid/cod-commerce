@@ -7,6 +7,7 @@ import { ACCOUNT_USER_ID_MAX } from './constants';
  * @throws RangeError for anything else, rather than storing a rounded or foreign id.
  */
 export function accountUserId(id: string | number): number {
+  // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
   const value = Number(id);
   if (!Number.isInteger(value) || value < 1 || value > ACCOUNT_USER_ID_MAX) {
     throw new RangeError('A user id is outside the range account tokens can hold');

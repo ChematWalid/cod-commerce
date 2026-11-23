@@ -1,4 +1,12 @@
-import { hostOfSubdomain, InvalidSnowflakeError, type Snowflake, subdomainOfHost, toSnowflake } from '@cod/shared';
+import {
+  directionOf,
+  hostOfSubdomain,
+  InvalidSnowflakeError,
+  isPlatformLanguageCode,
+  type Snowflake,
+  subdomainOfHost,
+  toSnowflake,
+} from '@cod/shared';
 import type { HostCachePort } from '../domain/ports/host-cache.port';
 import type { HostStoreLookupPort, HostStoreRow } from '../domain/ports/host-store-lookup.port';
 import { type StoreResolution, toLookupHost } from '../domain/store-resolution';
@@ -35,8 +43,8 @@ export class ResolveHostService {
     const cached = await this.fromCaches(host);
     if (cached !== null) return cached;
     const row = await this.lookUp(host);
-    if (row === null) return null;
-    const resolution = this.toResolution(row);
+    const resolution = row === null ? null : this.toResolution(row);
+    if (resolution === null) return null;
     // Not awaited: the adapter logs its own failures, and a buyer's request must not wait on the cache write.
     void this.dependencies.shared.set(host, resolution);
     await this.dependencies.local.set(host, resolution);
@@ -66,8 +74,24 @@ export class ResolveHostService {
     return subdomain === null ? lookup.findByCustomDomain(host) : lookup.findBySubdomain(subdomain);
   }
 
-  private toResolution({ subdomain, ...row }: HostStoreRow): StoreResolution {
-    // The subdomain stays the primary host until P8.S9 lets a merchant promote a custom domain.
-    return { ...row, primaryHost: hostOfSubdomain(subdomain, this.dependencies.platformDomain), status: 'active' };
+  /** Field by field, so an internal column added to the row (the channel) never leaves through the public API. */
+  private toResolution(row: HostStoreRow): StoreResolution | null {
+    // Languages are checked on every write; a row outside the platform's can be rendered by no storefront.
+    if (!isPlatformLanguageCode(row.language)) return null;
+    return {
+      storeId: row.storeId,
+      businessId: row.businessId,
+      language: row.language,
+      name: row.name,
+      description: row.description,
+      logo: row.logo,
+      logoPath: row.logo,
+      direction: directionOf(row.language),
+      // The subdomain stays the primary host until P8.S9 lets a merchant promote a custom domain.
+      primaryHost: hostOfSubdomain(row.subdomain, this.dependencies.platformDomain),
+      showAddressField: row.showAddressField,
+      soldOutBehavior: row.soldOutBehavior,
+      status: 'active',
+    };
   }
 }

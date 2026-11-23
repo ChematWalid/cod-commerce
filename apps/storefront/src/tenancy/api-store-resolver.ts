@@ -1,6 +1,6 @@
+import { storefrontStoreSchema } from '@cod/shared';
 import { internalFetch } from '../lib/internal-api';
 import { normalizeHost, type NormalizedHost } from './host';
-import { toStoreLocale } from './store-locale';
 import type { ResolvedStore, StoreResolver } from './store-resolver';
 
 const NOT_FOUND = 404;
@@ -13,36 +13,21 @@ export class StoreResolverError extends Error {
   }
 }
 
-/** The body of `GET /store/resolve` and `GET /store/by-id/:storeId`. */
-interface StoreResponse {
-  readonly storeId: string;
-  readonly businessId: string;
-  readonly language: string;
-  readonly name: string;
-  readonly logo: string | null;
-  readonly primaryHost: string;
-  readonly status: string;
-}
-
-function isStoreResponse(body: unknown): body is StoreResponse {
-  if (typeof body !== 'object' || body === null) return false;
-  const fields = body as Record<string, unknown>;
-  const strings = ['storeId', 'businessId', 'language', 'name', 'primaryHost', 'status'];
-  return strings.every((key) => typeof fields[key] === 'string');
-}
-
+/** Reads a store body with the shared store contract, the one `loadStore` reads too (D3203). */
 function toResolvedStore(body: unknown): ResolvedStore {
-  if (!isStoreResponse(body)) throw new StoreResolverError('the API answered with an unexpected store shape');
-  const primaryHost: NormalizedHost | null = normalizeHost(body.primaryHost);
-  if (primaryHost === null) throw new StoreResolverError(`store ${body.storeId} has no primary host`);
+  const parsed = storefrontStoreSchema.safeParse(body);
+  if (!parsed.success) throw new StoreResolverError('the API answered with an unexpected store shape');
+  const store = parsed.data;
+  const primaryHost: NormalizedHost | null = normalizeHost(store.primaryHost);
+  if (primaryHost === null) throw new StoreResolverError(`store ${store.storeId} has no primary host`);
   return {
-    storeId: body.storeId,
-    businessId: body.businessId,
-    name: body.name,
-    logo: body.logo,
-    defaultLocale: toStoreLocale(body.language),
+    storeId: store.storeId,
+    businessId: store.businessId,
+    name: store.name,
+    logo: store.logoPath,
+    defaultLocale: store.language,
     primaryHost,
-    status: body.status === 'active' ? 'active' : 'disabled',
+    status: store.status,
   };
 }
 

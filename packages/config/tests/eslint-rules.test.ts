@@ -7,7 +7,9 @@ import {
   DASHBOARD_PAGE,
   eslint,
   eslintAsCi,
+  ID_NUMBER_CONVERSIONS,
   lint,
+  lintSource,
   lintWith,
   loadConfig,
   PLUGIN,
@@ -110,6 +112,38 @@ describe('root ESLint config', () => {
 
   it('lints every layer of a plugin: limits apply to dashboard .tsx files', async () => {
     expect(await lintWith(eslintAsCi, 'long-function.ts.txt', DASHBOARD_PAGE)).toContain('max-lines-per-function');
+  });
+});
+
+describe('ids stay strings (ADR 0003)', () => {
+  const RULE = 'cod-ids/no-numeric-id';
+  const GUARDED_FILES = [
+    `${PLUGIN}/application/x.service.ts`,
+    `${PLUGIN}/api/x.controller.ts`,
+    'packages/shared/src/x.ts',
+    'apps/server/src/x.ts',
+    'apps/storefront/src/x.ts',
+  ] as const;
+
+  beforeAll(loadConfig, CONFIG_LOAD_TIMEOUT_MS);
+
+  it.each(ID_NUMBER_CONVERSIONS)('reports %s', async (_name, source) => {
+    expect(await lintSource(source, `${PLUGIN}/application/x.service.ts`)).toContain(RULE);
+  });
+
+  it.each(GUARDED_FILES)('reports a number conversion of an id in %s', async (file) => {
+    expect(await lintSource(ID_NUMBER_CONVERSIONS[0][1], file)).toContain(RULE);
+  });
+
+  it('lets a number conversion of a quantity, a length or a total through', async () => {
+    expect(await lint('id-number-ok.ts.txt', `${PLUGIN}/application/x.service.ts`)).not.toContain(RULE);
+  });
+
+  it('reports a conversion exactly as `pnpm lint` runs', async () => {
+    const [, source] = ID_NUMBER_CONVERSIONS[0];
+    const [result] = await eslintAsCi.lintText(source, { filePath: join(repoRoot, 'apps/server/src/x.ts') });
+
+    expect(result?.messages.map((message) => message.ruleId)).toContain(RULE);
   });
 });
 

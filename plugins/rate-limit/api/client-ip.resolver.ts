@@ -1,11 +1,37 @@
 import { isIP, isIPv4 } from 'node:net';
-import { UNKNOWN_CLIENT } from '../domain/constants';
+import { INTERNAL_CLIENT_KEY_PREFIX, UNKNOWN_CLIENT } from '../domain/constants';
+import type { RateLimitPolicyName } from '../domain/policies';
+
+/** What the internal-only middleware verified about a signed request (D111): its key id, store and named buyer. */
+export interface SignedClient {
+  readonly kid: string;
+  readonly storeId?: string;
+  readonly clientIp?: string;
+}
 
 /** The parts of an HTTP request the resolver reads; Express's `Request` fits. */
 export interface ClientRequest {
   readonly ip: string | undefined;
   readonly headers: Readonly<Record<string, string | string[] | undefined>>;
+  /** Set only by the internal-only middleware once the signature verified; never a header a client sends. */
+  readonly internalAuth?: SignedClient;
 }
+
+/** The bucket a request takes its token from. */
+export interface RateLimitKey {
+  readonly policy: RateLimitPolicyName;
+  readonly key: string;
+}
+
+/** The policy of signed requests that name no buyer (D3213). */
+const SIGNED_RENDER_POLICY: RateLimitPolicyName = 'storefront-render';
+
+/**
+ * The handler policies a signed request that names no buyer may move onto the render bucket (D3213). Only cacheable
+ * catalog reads opt in: a strict policy (login, reset, OTP, tokens, sign-up) must never be loosened to the render
+ * capacity just because the storefront sent no buyer address.
+ */
+const RENDER_REMAPPABLE: ReadonlySet<RateLimitPolicyName> = new Set<RateLimitPolicyName>(['storefront-read']);
 
 const IPV6_GROUPS = 8;
 /** An IPv6 network is 64 bits: the first four of eight 16-bit groups. A household or host gets the whole /64. */
@@ -58,6 +84,13 @@ function canonical(address: string): string {
     .join(':')}::/64`;
 }
 
+/** The render bucket of a signer: per key id and, when the signature named one, per store. */
+function renderKeyOf(signer: SignedClient): string {
+  const storeId = signer.storeId?.trim();
+  const base = `${INTERNAL_CLIENT_KEY_PREFIX}${signer.kid}`;
+  return storeId === undefined || storeId === '' ? base : `${base}:${storeId}`;
+}
+
 /**
  * Decides which address a request is limited by (D31). `req.ip` is what Express derives with `trustProxy: 1`:
  * the last `X-Forwarded-For` hop when the header is present (a client can prepend entries but not change that
@@ -73,13 +106,39 @@ export class ClientIpResolver {
     this.header = header.trim().toLowerCase();
   }
 
-  /** The address to key `request` by. */
+  /**
+   * The address to key `request` by. A signed storefront call names its buyer in `internalAuth.clientIp`, covered by
+   * the signature, and that address wins: otherwise every buyer would share the storefront's address (D3213).
+   */
   resolve(request: ClientRequest): string {
+    const signed = this.signedClientIp(request);
+    if (signed !== undefined) {
+      return signed;
+    }
     const fromHeader = this.fromHeader(request);
     if (fromHeader !== undefined) {
       return fromHeader;
     }
     return request.ip === undefined || request.ip === '' ? UNKNOWN_CLIENT : canonical(request.ip);
+  }
+
+  /**
+   * The bucket of `request` under the handler's `policy`. A signed catalog read that names no buyer is a storefront
+   * server render: it is keyed by its signing key and store under the high `storefront-render` policy, so renders
+   * never spend a buyer's tokens and one flooded store cannot drain another store's renders (D3213). Every other
+   * policy keeps its own capacity, keyed as usual.
+   */
+  limitKeyOf(request: ClientRequest, policy: RateLimitPolicyName): RateLimitKey {
+    const signer = request.internalAuth;
+    if (signer !== undefined && RENDER_REMAPPABLE.has(policy) && this.signedClientIp(request) === undefined) {
+      return { policy: SIGNED_RENDER_POLICY, key: renderKeyOf(signer) };
+    }
+    return { policy, key: this.resolve(request) };
+  }
+
+  private signedClientIp(request: ClientRequest): string | undefined {
+    const candidate = request.internalAuth?.clientIp?.trim();
+    return candidate === undefined || isIP(candidate) === 0 ? undefined : canonical(candidate);
   }
 
   private fromHeader(request: ClientRequest): string | undefined {

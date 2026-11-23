@@ -9,6 +9,7 @@ import {
   NoActiveStoreError,
   type PublicListContext,
   type PublicVisibilityContext,
+  type VisibleProduct,
   type VisibleProductPage,
 } from '../../index';
 
@@ -24,6 +25,24 @@ const PAGE = { skip: 0, take: 100 };
 /** What the untenanted route answers when the read refused for want of an active store, and only then. */
 export const NO_ACTIVE_STORE_REFUSAL = 'no-active-store';
 const probed = ({ title, soldOut, orderable }: ProbedProduct): ProbedProduct => ({ title, soldOut, orderable });
+
+/** The images and options a product page shows, as the probe answers them (#246, P3.S2 previews). */
+export interface ProbedShape {
+  readonly featuredAsset: VisibleProduct['featuredAsset'];
+  readonly assets: VisibleProduct['assets'];
+  readonly variantPreviews: readonly (string | null)[];
+  readonly optionGroups: readonly { readonly name: string; readonly values: readonly string[] }[];
+}
+
+const shapeOf = (product: VisibleProduct): ProbedShape => ({
+  featuredAsset: product.featuredAsset,
+  assets: product.assets,
+  variantPreviews: product.variants.map((variant) => variant.featuredAssetPreview),
+  optionGroups: product.optionGroups.map((group) => ({
+    name: group.name,
+    values: group.values.map((value) => value.name),
+  })),
+});
 
 /** What the probe answers for a page of the products among given ids (D2310). */
 export interface ProbedIdPage {
@@ -64,6 +83,15 @@ class CatalogReadProbeController {
   ): Promise<ProbedProduct | null> {
     const found = await this.reads.findBySlug(asCatalogOperationContext(ctx), slug, context);
     return found === undefined ? null : probed(found);
+  }
+
+  /** The images and options the product page of `slug` shows. */
+  @Get('shape')
+  @Allow(Permission.Authenticated)
+  @TenantScoped()
+  async shape(@Ctx() ctx: RequestContext, @Query('slug') slug: string): Promise<ProbedShape | null> {
+    const found = await this.reads.findBySlug(asCatalogOperationContext(ctx), slug, 'productPage');
+    return found === undefined ? null : shapeOf(found);
   }
 
   /** The products among `ids` the context lists, in the given order (manual collections, D2310). */

@@ -1,5 +1,6 @@
 import type {
   BusinessProvisionedEvent,
+  StoreChangedEvent,
   StoreCreatedEvent,
   TenantLifecycleHook,
 } from '../domain/ports/tenant-lifecycle.port';
@@ -32,6 +33,12 @@ export class TenantLifecycleRegistry implements TenantLifecycleHook, TenantLifec
   async storeCreated(ctx: OperationContext, event: StoreCreatedEvent): Promise<void> {
     for (const hook of this.hooks) {
       await hook.storeCreated(ctx, event);
+    }
+  }
+
+  async storeChanged(ctx: OperationContext, event: StoreChangedEvent): Promise<void> {
+    for (const hook of this.hooks) {
+      await hook.storeChanged?.(ctx, event);
     }
   }
 }

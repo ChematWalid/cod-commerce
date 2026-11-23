@@ -2,6 +2,7 @@
 // loaded at runtime) and next is pinned exactly, so an upgrade that moves it fails the typecheck, not production.
 import type { CacheEntry, CacheHandler } from 'next/dist/server/lib/cache-handlers/types';
 import { processCacheConfig } from './cache-config';
+import { boundedClientOf } from './command-timeout';
 import { MS_PER_SECOND } from './constants';
 // Aliased: react-hooks/rules-of-hooks takes any `use…` call for a React hook.
 import { useCacheEntryKey as entryKeyOf, useCacheTagKey as tagKeyOf } from './keys';
@@ -11,8 +12,10 @@ import {
   CacheUnavailableError,
   cacheSetOptions,
   getCacheRedisClient,
+  logCacheEvent,
   logCacheWarning,
 } from './redis-connection';
+import { fitsEntryLimit, processCacheWriteGuard } from './write-guard';
 
 /** Next's `'use cache'` handler interface (`cacheHandlers`, plural). */
 export type UseCacheHandler = CacheHandler;
@@ -60,7 +63,7 @@ const toCacheEntry = (stored: StoredUseCacheEntry): CacheEntry => ({
 });
 
 async function readEntry(deps: CacheHandlerDeps, cacheKey: string): Promise<CacheEntry | undefined> {
-  const client = await deps.getClient();
+  const client = await boundedClientOf(deps.getClient);
   if (!client) return undefined;
   const stored = await readStored(client, entryKeyOf(deps.deploymentId, cacheKey));
   if (!stored || isExpired(stored)) return undefined;
@@ -80,13 +83,18 @@ async function drain(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
 }
 
 async function writeEntry(deps: CacheHandlerDeps, cacheKey: string, pending: Promise<CacheEntry>): Promise<void> {
-  const client = await deps.getClient();
+  const client = await boundedClientOf(deps.getClient);
   if (!client) return;
   const entry = await pending;
   const bytes = await drain(entry.value);
-  const stored: StoredUseCacheEntry = { ...entry, value: bytes.toString('base64') };
+  const text = JSON.stringify({ ...entry, value: bytes.toString('base64') } satisfies StoredUseCacheEntry);
+  if (!fitsEntryLimit(text)) {
+    logCacheEvent('entry_too_large', { kind: 'use_cache', bytes: Buffer.byteLength(text, 'utf8') });
+    return;
+  }
+  if (!(await deps.writeGuard.allowsWrites(client))) return;
   try {
-    await client.set(entryKeyOf(deps.deploymentId, cacheKey), JSON.stringify(stored), cacheSetOptions(entry.expire));
+    await client.set(entryKeyOf(deps.deploymentId, cacheKey), text, cacheSetOptions(entry.expire));
   } catch (error) {
     logCacheWarning('use_cache_set_failed', error);
   }
@@ -96,7 +104,7 @@ async function writeEntry(deps: CacheHandlerDeps, cacheKey: string, pending: Pro
 // cannot answer it reports "just now", so Next regenerates rather than serving a possibly revalidated entry.
 async function latestRevalidation(deps: CacheHandlerDeps, tags: string[]): Promise<number> {
   if (tags.length === 0) return 0;
-  const client = await deps.getClient();
+  const client = await boundedClientOf(deps.getClient);
   if (!client) return Date.now();
   try {
     const timestamps = (await client.mGet(tags.map(tagKeyOf))).filter((time) => time !== null).map(Number);
@@ -108,7 +116,7 @@ async function latestRevalidation(deps: CacheHandlerDeps, tags: string[]): Promi
 }
 
 async function recordRevalidation(deps: CacheHandlerDeps, tags: string[]): Promise<void> {
-  const client = await deps.getClient();
+  const client = await boundedClientOf(deps.getClient);
   if (!client) throw new CacheUnavailableError();
   const now = String(Date.now());
   // One key per tag, overwritten in place, with the cap TTL: entries are capped too, so a timestamp always
@@ -134,4 +142,5 @@ export function createUseCacheHandler(deps: CacheHandlerDeps): UseCacheHandler {
 export default createUseCacheHandler({
   getClient: getCacheRedisClient,
   deploymentId: processCacheConfig().deploymentId,
+  writeGuard: processCacheWriteGuard(),
 });

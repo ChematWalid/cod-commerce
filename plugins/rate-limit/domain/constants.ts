@@ -38,6 +38,20 @@ export const CATALOG_BULK_EDIT_BUSINESS_CAPACITY = 600;
 /** Pack price previews one administrator may ask for per hour, as the editor recomputes (D2217). */
 export const CATALOG_PACK_PREVIEW_ACTOR_CAPACITY = 600;
 
+/**
+ * Storefront server renders one signing key may make per minute for one store (D3213): signed catalog reads that
+ * name no buyer, mostly cached. Every storefront instance shares the store's bucket instead of the buyers'
+ * per-address ones, and each store has its own, so one flooded store cannot starve the others.
+ */
+export const STOREFRONT_RENDER_CAPACITY = 6000;
+/**
+ * Public storefront catalog reads one buyer address may make per minute (D3213): list, product, collection and
+ * search pages behind the storefront's cache, so a real buyer never comes near it.
+ */
+export const STOREFRONT_READ_IP_CAPACITY = 600;
+/** What a signed request without a client address is keyed by, before its key id (D3213). */
+export const INTERNAL_CLIENT_KEY_PREFIX = 'internal:';
+
 /** Wrong or right code guesses per day one account may make, whatever the resends (D44). */
 export const OTP_DAILY_CAPACITY = 50;
 

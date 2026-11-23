@@ -10,6 +10,7 @@ export const OUTBOX_TOPICS = [
   'offer.applied',
   'platform.demo',
   'collection.changed',
+  'store.changed',
 ] as const;
 
 /** One of {@link OUTBOX_TOPICS}. */

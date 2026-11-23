@@ -31,6 +31,7 @@ export class ArchiveStoreService {
     const now = this.ports.clock();
     const write = { status: 'archived', archivedAt: now, updatedAt: now } as const;
     await this.ports.stores.update(ctx, actor.businessId, id, write);
+    await this.ports.lifecycle.storeChanged?.(ctx, { businessId: actor.businessId, storeId: id, change: 'status' });
     return { ...store, ...write };
   }
 }

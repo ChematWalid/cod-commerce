@@ -82,6 +82,23 @@ class CollectionsReadProbeController {
     return page === undefined ? null : probedProducts(page);
   }
 
+  /** Every member id of a visible collection, `null` when the store shows no such collection (P3.S2, D3206). */
+  @Get('visible-members')
+  @Allow(Permission.Authenticated)
+  @TenantScoped()
+  async visibleMembers(@Ctx() ctx: RequestContext, @Query('id') id: string): Promise<string[] | null> {
+    return (await this.reads.visibleMemberIds(asCollectionsOperationContext(ctx), id)) ?? null;
+  }
+
+  /** The visible collection of the store whose slug is `slug`, its id only, or `null`. */
+  @Get('by-slug')
+  @Allow(Permission.Authenticated)
+  @TenantScoped()
+  async bySlug(@Ctx() ctx: RequestContext, @Query('slug') slug: string | undefined): Promise<string | null> {
+    const found = await this.reads.findVisibleBySlug(asCollectionsOperationContext(ctx), slug ?? '');
+    return found === undefined ? null : found.id;
+  }
+
   /** The caller's tenant on the channel of `token`, another store's: the read must refuse it (D2142). */
   @Get('other-channel')
   @Allow(Permission.Authenticated)

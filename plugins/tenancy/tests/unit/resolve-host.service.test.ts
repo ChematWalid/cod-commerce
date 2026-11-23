@@ -8,10 +8,14 @@ import type { StoreResolution } from '../../domain/store-resolution';
 const row: HostStoreRow = {
   storeId: '100',
   businessId: '200',
+  channelId: 7,
   language: 'ar',
   name: 'Demo Store',
-  logo: null,
+  description: 'Synthetic demo store',
+  logo: 'source/ab/logo.png',
   subdomain: 'demo',
+  showAddressField: false,
+  soldOutBehavior: 'hide',
 };
 
 const resolution: StoreResolution = {
@@ -19,8 +23,13 @@ const resolution: StoreResolution = {
   businessId: '200',
   language: 'ar',
   name: 'Demo Store',
-  logo: null,
+  description: 'Synthetic demo store',
+  logo: 'source/ab/logo.png',
+  logoPath: 'source/ab/logo.png',
+  direction: 'rtl',
   primaryHost: 'demo.localhost',
+  showAddressField: false,
+  soldOutBehavior: 'hide',
   status: 'active',
 };
 
@@ -196,6 +205,51 @@ describe('ResolveHostService', () => {
     // Assert
     expect(found).toBeNull();
     expect(lookup.reads).toBe(0);
+  });
+
+  it('carries the description, address field, sold-out behaviour, logo path and direction, never the channel', async () => {
+    // Arrange
+    const { service, lookup } = setup();
+    lookup.bySubdomain.set('demo', row);
+
+    // Act
+    const found = await service.resolve('demo.localhost');
+
+    // Assert
+    expect(found).toMatchObject({
+      description: 'Synthetic demo store',
+      showAddressField: false,
+      soldOutBehavior: 'hide',
+      logoPath: 'source/ab/logo.png',
+      direction: 'rtl',
+    });
+    expect(found).not.toHaveProperty('channelId');
+    expect(found).not.toHaveProperty('subdomain');
+  });
+
+  it('writes French stores left to right', async () => {
+    // Arrange
+    const { service, lookup } = setup();
+    lookup.bySubdomain.set('demo', { ...row, language: 'fr' });
+
+    // Act
+    const found = await service.resolve('demo.localhost');
+
+    // Assert
+    expect(found?.direction).toBe('ltr');
+  });
+
+  it('serves no store whose language the platform does not support', async () => {
+    // Arrange
+    const { service, local, lookup } = setup();
+    lookup.bySubdomain.set('demo', { ...row, language: 'de' });
+
+    // Act
+    const found = await service.resolve('demo.localhost');
+
+    // Assert
+    expect(found).toBeNull();
+    expect(local.entries.size).toBe(0);
   });
 
   it('finds an active store by id', async () => {

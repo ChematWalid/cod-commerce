@@ -21,7 +21,8 @@ export class UpdateStoreService {
   constructor(private readonly ports: StoreAdminPorts) {}
 
   /**
-   * Applies `patch` in one transaction, so a refused channel update leaves the store unchanged.
+   * Applies `patch` in one transaction, so a refused channel update leaves the store unchanged. `store.changed` is
+   * announced in the same transaction (D3204).
    *
    * @throws {@link NameInvalidError}, {@link UnsupportedStoreLanguageError}, {@link StoreNotFoundError} or
    * {@link StoreArchivedError}.
@@ -43,6 +44,7 @@ export class UpdateStoreService {
     }
     const write = { ...patch, updatedAt: this.ports.clock() };
     await this.ports.stores.update(ctx, actor.businessId, id, write);
+    await this.ports.lifecycle.storeChanged?.(ctx, { businessId: actor.businessId, storeId: id, change: 'settings' });
     return { ...store, ...write };
   }
 

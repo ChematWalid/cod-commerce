@@ -122,6 +122,12 @@ describe('browser.yml', () => {
     expect(read('.env.example')).toContain(`S3_BUCKET_PRIVATE=${job.env?.['S3_BUCKET_PRIVATE'] ?? 'missing'}`);
   });
 
+  it('starts the object storage before the seed, which uploads the demo product images (P3.S2)', () => {
+    const garage = index('docker compose --env-file .env.example up -d --wait garage');
+
+    expect(garage).toBeLessThan(index('apps/server/dist/main-seed-demo.js'));
+  });
+
   it('signs the browser upload and download links on the endpoint the browser reaches (D2208)', () => {
     expect(job.env?.['S3_PUBLIC_ENDPOINT']).toBe('http://localhost:3900');
   });

@@ -1,42 +1,57 @@
-import { parseInternalKeys, signInternalRequest } from '@cod/shared/internal-auth';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { httpGetWithHost, STOREFRONT_URL, waitForHttp } from '../support/http-get-with-host';
+import { httpGetWithHost, httpRequestWithHost, STOREFRONT_URL, waitForHttp } from '../support/http-get-with-host';
+import { smokeBindingOf, type SmokeStore, smokeStoreOf } from '../support/smoke-api';
 
 const STARTUP_TIMEOUT_MS = 30_000;
+/** The start-up probe, then each demo store's wait for its projected products (`smokeStoreOf`). */
+const SETUP_TIMEOUT_MS = 240_000;
 /** The demo seed's stores (`pnpm --filter @cod/server seed:demo`). */
 const demo = { name: 'Demo Store', primaryHost: 'demo.localhost' };
 const second = { name: 'Second Store', primaryHost: 'second.localhost', defaultLocale: 'fr' };
-const API_URL = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3100';
-const url = (path: string): string => new URL(path, STOREFRONT_URL).toString();
-
-/** The second store's id, as the API knows it: its internal path needs a real id. */
-async function secondStoreId(): Promise<string> {
-  const path = `/store/resolve?host=${second.primaryHost}`;
-  const key = parseInternalKeys(process.env['INTERNAL_HMAC_KEYS'] ?? '').find(
-    (candidate) => candidate.kid === process.env['INTERNAL_HMAC_ACTIVE_KID'],
-  );
-  if (key === undefined)
-    throw new Error('INTERNAL_HMAC_KEYS and INTERNAL_HMAC_ACTIVE_KID must be set for the smoke run');
-  const headers = signInternalRequest({ method: 'GET', pathWithQuery: path, body: '' }, key, Date.now() / 1000);
-  const response = await fetch(`${API_URL}${path}`, { headers });
-  if (!response.ok) throw new Error(`the demo seed has not run: ${String(response.status)}`);
-  return ((await response.json()) as { storeId: string }).storeId;
-}
+/** What a tenant page tells Cloudflare to keep (ADR 0006 §4); browsers never read it. */
+const CDN_HEADER = 'cloudflare-cdn-cache-control';
+const TENANT_PAGE_CDN_CACHE_CONTROL = 'max-age=60, stale-while-revalidate=600';
+const NOT_FOUND_MARKER = 'data-testid="not-found"';
+/**
+ * Under Cache Components a `notFound()` inside a Suspense boundary streams: the 404 fallback digest plus the
+ * not-found tree in the RSC payload (escaped inside a script string), which the browser renders (a soft 404, D3223 d).
+ */
+const STREAMED_NOT_FOUND_DIGEST = 'NEXT_HTTP_ERROR_FALLBACK;404';
+const STREAMED_NOT_FOUND_TREE = String.raw`\"data-testid\":\"not-found\"`;
+const NOINDEX_META = '<meta name="robots" content="noindex"/>';
+/**
+ * The forms of a tenant path a buyer may send: as written, `_` percent-encoded (the app folder's literal name), in
+ * lower case, double-encoded, re-cased and behind a doubled slash. `tail` is `{locale}/{storeId}/{binding}` (D3202).
+ */
+const TENANT_PATH_VARIANTS: readonly (readonly [string, (tail: string) => string])[] = [
+  ['as written', (tail) => `/_t/${tail}`],
+  ['%5F', (tail) => `/%5Ft/${tail}`],
+  ['%5f', (tail) => `/%5ft/${tail}`],
+  ['%255F', (tail) => `/%255Ft/${tail}`],
+  ['re-cased', (tail) => `/_T/${tail}`],
+  ['doubled slash', (tail) => `//_t/${tail}`],
+];
+/** `url` as written: `new URL()` would read a path such as `//_t/…` as a host. */
+const url = (path: string): string => `${STOREFRONT_URL.replace(/\/$/, '')}${path}`;
 
 describe('storefront host routing (against next start)', () => {
-  /** The second store's internal route, which only a rewrite from its own host may reach. */
-  let secondInternalPath: string;
-  /** The same path with `_` percent-encoded (%5F), the literal name of the app folder. */
-  let secondEncodedInternalPath: string;
+  let demoStore: SmokeStore;
+  let secondStore: SmokeStore;
+  /**
+   * The tail of the second store's tenant path, `{locale}/{storeId}/{binding}`, with the real binding of its own host.
+   * The proxy refuses the `/_t` prefix from outside before the tenant layout's binding gate ever runs, so every form
+   * answers the root 404 even though the binding itself is valid.
+   */
+  let secondTenantTail: string;
 
   beforeAll(async () => {
     await waitForHttp(url('/livez'), 200, STARTUP_TIMEOUT_MS);
-    const storeId = await secondStoreId();
-    secondInternalPath = `/_t/${storeId}/${second.defaultLocale}`;
-    secondEncodedInternalPath = `/%5Ft/${storeId}/${second.defaultLocale}`;
-  });
+    demoStore = await smokeStoreOf(demo.primaryHost);
+    secondStore = await smokeStoreOf(second.primaryHost);
+    secondTenantTail = `${second.defaultLocale}/${secondStore.storeId}/${smokeBindingOf(secondStore)}`;
+  }, SETUP_TIMEOUT_MS);
 
-  it('renders the demo store hello page', async () => {
+  it('renders the demo store home page', async () => {
     // Act
     const res = await httpGetWithHost(url('/'), demo.primaryHost);
     // Assert
@@ -53,26 +68,81 @@ describe('storefront host routing (against next start)', () => {
     expect(res.body).not.toContain(demo.name);
   });
 
+  it('marks a tenant page for the edge cache and sets no cookie', async () => {
+    // Act
+    const res = await httpGetWithHost(url('/products'), demo.primaryHost);
+    // Assert
+    expect(res.status).toBe(200);
+    expect(res.headers[CDN_HEADER]).toBe(TENANT_PAGE_CDN_CACHE_CONTROL);
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
   it('returns the not-found page for an unknown host', async () => {
     const res = await httpGetWithHost(url('/'), 'nope.localhost');
     expect(res.status).toBe(404);
-    expect(res.body).toContain('data-testid="not-found"');
+    expect(res.body).toContain(NOT_FOUND_MARKER);
   });
 
-  it('returns 404 for a cross-tenant internal path', async () => {
-    // Act: the demo host asks for the second store's internal path.
-    const res = await httpGetWithHost(url(secondInternalPath), demo.primaryHost);
-    // Assert
-    expect(res.status).toBe(404);
-    expect(res.body).not.toContain(second.name);
+  it("answers the not-found page for the demo store's product slug on the second host", async () => {
+    // Act
+    const res = await httpGetWithHost(url(`/product/${encodeURIComponent(demoStore.productSlug)}`), second.primaryHost);
+    // Assert: the streamed soft 404 (D3223 d), never the demo store's product.
+    expect([200, 404]).toContain(res.status);
+    expect(res.body).toContain(STREAMED_NOT_FOUND_DIGEST);
+    expect(res.body).toContain(STREAMED_NOT_FOUND_TREE);
+    expect(res.body).toContain(NOINDEX_META);
+    expect(res.body).not.toContain(demoStore.productName);
   });
 
-  it('returns 404 for the percent-encoded cross-tenant internal path', async () => {
-    // Act: the encoded form must not slip past the proxy's guard on the internal prefix.
-    const res = await httpGetWithHost(url(secondEncodedInternalPath), demo.primaryHost);
+  it("never answers the demo store's products to a search on the second host", async () => {
+    // Arrange
+    const term = demoStore.productName.split(' ')[0] ?? demoStore.productName;
+    // Act
+    const res = await httpGetWithHost(url(`/search?q=${encodeURIComponent(term)}`), second.primaryHost);
+    // Assert
+    expect(res.status).toBe(200);
+    expect(demoStore.productNames.filter((name) => res.body.includes(name))).toEqual([]);
+  });
+
+  it.each(TENANT_PATH_VARIANTS)(
+    "returns 404 for the second store's tenant path (%s) on the demo host",
+    async (_form, pathOf) => {
+      // Act: the demo host asks for the second store's tenant path.
+      const res = await httpGetWithHost(url(pathOf(secondTenantTail)), demo.primaryHost);
+      // Assert
+      expect(res.status).toBe(404);
+      expect(res.body).not.toContain(second.name);
+      expect(secondStore.productNames.filter((name) => res.body.includes(name))).toEqual([]);
+    },
+  );
+
+  it("answers the demo store's own products on /api/store, and 400 for another store's id", async () => {
+    // Act
+    const own = await httpGetWithHost(url('/api/store/products'), demo.primaryHost);
+    const mismatch = await httpGetWithHost(url(`/api/store/products?storeId=${demoStore.storeId}`), second.primaryHost);
+    // Assert
+    expect(own.status).toBe(200);
+    expect(own.body).toContain(demoStore.productName);
+    expect(mismatch.status).toBe(400);
+    expect(mismatch.body).toBe('');
+  });
+
+  it('refuses a dot-segment path on /api/store with an empty 404', async () => {
+    const res = await httpGetWithHost(url('/api/store/product/..%2F..%2Fshop-api'), demo.primaryHost);
+    expect(res.status).toBe(404);
+    expect(res.body).toBe('');
+  });
+
+  it('refuses an unsigned revalidation with an empty 404', async () => {
+    // Act
+    const res = await httpRequestWithHost(url('/api/internal/revalidate'), demo.primaryHost, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tags: [`store:${demoStore.storeId}`] }),
+    });
     // Assert
     expect(res.status).toBe(404);
-    expect(res.body).not.toContain(second.name);
+    expect(res.body).toBe('');
   });
 
   it('ignores a spoofed X-Forwarded-Host', async () => {

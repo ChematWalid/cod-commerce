@@ -1,4 +1,4 @@
-export { type ClientRequest, ClientIpResolver } from './api/client-ip.resolver';
+export { type ClientRequest, ClientIpResolver, type RateLimitKey, type SignedClient } from './api/client-ip.resolver';
 export { RateLimit } from './api/rate-limit.decorator';
 export { RateLimitGuard } from './api/rate-limit.guard';
 export { RateLimitedError } from './api/rate-limited.error';

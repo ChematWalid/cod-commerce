@@ -1,4 +1,4 @@
-import { SLUG_MAX } from '@cod/shared';
+import { SLUG_MAX, STOREFRONT_RESERVED_PRODUCT_SLUGS } from '@cod/shared';
 import { normalizeString } from '@vendure/common/lib/normalize-string';
 import { InvalidCatalogInputError } from '../domain/errors';
 
@@ -10,20 +10,24 @@ const FALLBACK_SLUG = 'product';
 /** `raw` as Vendure stores a slug (NFD, so an Arabic NFC and NFD slug are the same slug, D2103). */
 export const normalisedSlug = (raw: string): string => normalizeString(raw, SLUG_SPACE);
 
+/** A slug the storefront routes keep for themselves (`/store/product/search`, P3.S2): no product may hold it. */
+const isReserved = (slug: string): boolean => STOREFRONT_RESERVED_PRODUCT_SLUGS.includes(slug);
+
 /**
  * A slug the merchant typed, as stored. NFD can make Arabic text longer (a hamza letter is two code points), so the
  * stored form is checked against the column, never only the typed one.
  *
- * @throws {InvalidCatalogInputError} when the stored slug is empty or longer than `SLUG_MAX`.
+ * @throws {InvalidCatalogInputError} when the stored slug is empty, longer than `SLUG_MAX` or reserved.
  */
 export function merchantSlug(raw: string): string {
   const slug = normalisedSlug(raw);
-  if (slug === '' || slug.length > SLUG_MAX) throw new InvalidCatalogInputError();
+  if (slug === '' || slug.length > SLUG_MAX || isReserved(slug)) throw new InvalidCatalogInputError();
   return slug;
 }
 
-/** A slug made from the title when the merchant gave none: cut to the column, never empty. */
+/** A slug made from the title when the merchant gave none: cut to the column, never empty, never reserved. */
 export function derivedSlug(title: string): string {
   const slug = normalisedSlug(title).slice(0, SLUG_MAX);
-  return slug === '' ? FALLBACK_SLUG : slug;
+  if (slug === '') return FALLBACK_SLUG;
+  return isReserved(slug) ? `${slug}${SLUG_SPACE}${FALLBACK_SLUG}` : slug;
 }

@@ -75,7 +75,17 @@ export const CATALOG_IMPORT_TABLE_COUNTS = {
   catalog_product_origin: BY_BUSINESS('catalog_product_origin'),
 } as const;
 
-/** Every counted table: P1's, the catalog's, the offers', the collections', the packs' and the import's. */
+/**
+ * The storefront tables (P3.S2, D3205, D3220): the P3 world's products reach the per-store projection through the
+ * outbox, and its first storefront search seeds the business's Darija synonyms. Only the P3 census expects them filled:
+ * the P2 world never searches.
+ */
+export const STOREFRONT_TABLE_COUNTS = {
+  storefront_product: BY_BUSINESS('storefront_product'),
+  storefront_search_synonym: BY_BUSINESS('storefront_search_synonym'),
+} as const;
+
+/** Every counted table: P1's, the catalog's, the offers', the collections', the packs', the import's and P3's. */
 const ALL_TABLE_COUNTS = {
   ...TENANT_TABLE_COUNTS,
   ...CATALOG_TABLE_COUNTS,
@@ -84,6 +94,8 @@ const ALL_TABLE_COUNTS = {
   // P2.S2: the packs' and the import's.
   ...CATALOG_PACKS_TABLE_COUNTS,
   ...CATALOG_IMPORT_TABLE_COUNTS,
+  // P3.S2: the storefront's.
+  ...STOREFRONT_TABLE_COUNTS,
 };
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
@@ -97,12 +109,15 @@ export const RETIRED_TABLES: readonly TenantTable[] = ['catalog_product_collecti
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
+/** The storefront tables (P3.S2): the P3 world fills each. */
+export const P3_TENANT_TABLES = Object.keys(STOREFRONT_TABLE_COUNTS) as TenantTable[];
+
 /**
- * The P1 tables, the catalog's, the offers', the collections', the packs' and the import's, less the retired ones: the
- * P2 world fills each.
+ * The P1 tables, the catalog's, the offers', the collections', the packs' and the import's, less the retired ones and
+ * the storefront's: the P2 world fills each.
  */
 export const P2_TENANT_TABLES = (Object.keys(ALL_TABLE_COUNTS) as TenantTable[]).filter(
-  (table) => !RETIRED_TABLES.includes(table),
+  (table) => !RETIRED_TABLES.includes(table) && !P3_TENANT_TABLES.includes(table),
 );
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */
