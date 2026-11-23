@@ -1,5 +1,6 @@
 import type { IsolationCase } from '../matrix';
 import { CATALOG_MEDIA_CASES } from './catalog-media';
+import { DELIVERY_PRICING_CASES } from './delivery-pricing';
 import { CATALOG_PRODUCT_CASES } from './catalog-products';
 import { CATALOG_SOLD_OUT_CASES } from './catalog-sold-out';
 import { CATALOG_STOCK_CASES } from './catalog-stock';
@@ -55,3 +56,9 @@ export const P2_ISOLATION_CASES: readonly IsolationCase[] = [
   ...IMPORT_EXPORT_CASES,
   ...OFFERS_COLLECTION_TARGET_CASES,
 ];
+
+/**
+ * Every cell of the P3 isolation matrix (P3.S1 delivery pricing): kept apart from {@link P2_ISOLATION_CASES}, whose
+ * world seeds no fee group of its own.
+ */
+export const P3_ISOLATION_CASES: readonly IsolationCase[] = [...DELIVERY_PRICING_CASES];
