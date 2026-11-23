@@ -146,6 +146,30 @@ describe('StorefrontRevalidateConsumer', () => {
     await expect(run).rejects.toBeInstanceOf(OutboxParkError);
   });
 
+  it.each([
+    ['product.changed', { productId: '12', storeId: STORE_B.storeId, change: 'updated' }],
+    ['collection.changed', { collectionId: '3', storeId: STORE_B.storeId, change: 'membership' }],
+  ] as const)('parks a %s payload of another store, whose tags it never expires', async (topic, payload) => {
+    // Act
+    const run = consumer.handle(deliveryOf(topic, payload, STORE_A.storeId), scopeA);
+
+    // Assert
+    await expect(run).rejects.toBeInstanceOf(OutboxParkError);
+    expect(queue.jobs).toEqual([]);
+  });
+
+  it.each([
+    ['product.changed', { productId: '12', storeId: STORE_A.storeId, change: 'updated' }],
+    ['collection.changed', { collectionId: '3', storeId: STORE_A.storeId, change: 'membership' }],
+  ] as const)('parks a %s delivery whose row names no store', async (topic, payload) => {
+    // Act: a row without a store cannot vouch for the payload's store id.
+    const run = consumer.handle(deliveryOf(topic, payload, null), scopeA);
+
+    // Assert
+    await expect(run).rejects.toBeInstanceOf(OutboxParkError);
+    expect(queue.jobs).toEqual([]);
+  });
+
   it('parks a topic it does not follow', async () => {
     // Act
     const run = consumer.handle(deliveryOf('offer.applied', {}, STORE_A.storeId), scopeA);

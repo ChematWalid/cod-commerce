@@ -16,7 +16,7 @@ import { REVALIDATE_CONSUMER_NAME, REVALIDATE_SETTLE_MS } from '../domain/consta
 import { canonicalCoreId } from '../domain/core-id';
 import type { RevalidationQueuePort } from '../domain/ports/revalidation-queue.port';
 import { type RevalidationTarget, revalidationTagsOf } from '../domain/revalidation-target';
-import { isRowStore, productChangedSchema } from './outbox-payloads';
+import { isNamedRowStore, isRowStore, productChangedSchema } from './outbox-payloads';
 
 /**
  * The pool the deliveries run on: the projection consumer's, so a product change is usually written to the
@@ -31,7 +31,8 @@ const park = (topic: string): never => {
 /**
  * Turns `product.changed`, `collection.changed` and `store.changed` into a `storefront-revalidate` job with the cache
  * tags they expire (ADR 0006, Task 11). No database work and no call to the storefront happen in the delivery's
- * transaction. A malformed, cross-store or cross-business payload is parked.
+ * transaction. A malformed, cross-store or cross-business payload is parked, and so is a product or collection
+ * delivery whose row names no store: a foreign store id must never expire another tenant's tags.
  */
 @Injectable()
 export class StorefrontRevalidateConsumer implements OnModuleInit {
@@ -73,7 +74,7 @@ function targetOf(delivery: OutboxDelivery, scope: TenantScope): RevalidationTar
 function productTarget(delivery: OutboxDelivery): RevalidationTarget {
   const parsed = productChangedSchema.safeParse(delivery.payload);
   const productId = parsed.success ? canonicalCoreId(parsed.data.productId) : undefined;
-  if (!parsed.success || productId === undefined || !isRowStore(delivery, parsed.data.storeId)) {
+  if (!parsed.success || productId === undefined || !isNamedRowStore(delivery, parsed.data.storeId)) {
     return park(delivery.topic);
   }
   return { kind: 'product', storeId: parsed.data.storeId, productId };
@@ -82,7 +83,7 @@ function productTarget(delivery: OutboxDelivery): RevalidationTarget {
 function collectionTarget(delivery: OutboxDelivery): RevalidationTarget {
   const parsed = collectionChangedPayloadSchema.safeParse(delivery.payload);
   const collectionId = parsed.success ? canonicalCoreId(parsed.data.collectionId) : undefined;
-  if (!parsed.success || collectionId === undefined || !isRowStore(delivery, parsed.data.storeId)) {
+  if (!parsed.success || collectionId === undefined || !isNamedRowStore(delivery, parsed.data.storeId)) {
     return park(delivery.topic);
   }
   return { kind: 'collection', storeId: parsed.data.storeId, collectionId };
