@@ -122,7 +122,7 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [x] | Offers: quantity offer, free delivery, product discount, discount codes, buy X get Y, order discount, add-on (pre/post purchase upsell) | C | `S:/offers` |
 | [ ] | A/B tests: landing page vs product page, lifecycle | S | `S:/ab-tests` |
 | [ ] | Landing pages per product (plan-limited) | C | builder `product` pages |
-| [ ] | Sold-out behaviour: keep showing or hide; stop/resume orders | C | store settings |
+| [x] | Sold-out behaviour: keep showing or hide; stop/resume orders | C | store settings |
 
 ## 8. Store, themes, builder, storefront
 
