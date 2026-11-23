@@ -27,6 +27,7 @@ import { ASSET_KEY_PREFIX, ASSET_ROUTE } from '../../src/config/asset-storage.co
 import { PrefixedAssetStorage } from '../../src/config/prefixed-asset-storage';
 import { TenantAssetNamingStrategy } from '../../src/config/tenant-asset-naming.strategy';
 import { demoProductSeedPorts, seedDemoProducts } from '../../src/seed/seed-demo-products';
+import { demoOwnerUserOf } from '../../src/seed/seed-demo-businesses';
 import { afterE2eInit, buildE2eConfig, E2E_INITIAL_DATA, e2eBullPrefix, removeBullKeys } from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
 import { type RawResponse, sendRaw } from './support/signed-request';
@@ -116,7 +117,12 @@ describe('P3 isolation: a store serves only its own storefront catalog', () => {
 
   async function seed(): Promise<readonly string[]> {
     const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
-    const ports = demoProductSeedPorts(server.app, ctx, (email) => Promise.resolve(businessByOwner.get(email)));
+    const ports = demoProductSeedPorts(
+      server.app,
+      ctx,
+      (email) => Promise.resolve(businessByOwner.get(email)),
+      (email) => demoOwnerUserOf(server.app, email),
+    );
     return seedDemoProducts(ports, [...businessByOwner.keys()]);
   }
 
