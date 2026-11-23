@@ -1,5 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { httpGetWithHost, httpRequestWithHost, STOREFRONT_URL, waitForHttp } from '../support/http-get-with-host';
+import {
+  httpGetWithHost,
+  httpRequestWithHost,
+  type HttpResult,
+  STOREFRONT_URL,
+  waitForHttp,
+} from '../support/http-get-with-host';
 import { smokeBindingOf, type SmokeStore, smokeStoreOf } from '../support/smoke-api';
 
 const STARTUP_TIMEOUT_MS = 30_000;
@@ -33,6 +39,16 @@ const TENANT_PATH_VARIANTS: readonly (readonly [string, (tail: string) => string
 ];
 /** `url` as written: `new URL()` would read a path such as `//_t/…` as a host. */
 const url = (path: string): string => `${STOREFRONT_URL.replace(/\/$/, '')}${path}`;
+
+/** Follows one redirect that stays on the storefront under test; any other answer is returned as is. */
+async function followSameHostRedirect(res: HttpResult, host: string): Promise<HttpResult> {
+  const location = res.headers['location'];
+  if (res.status !== 308 && res.status !== 301) return res;
+  expect(location).toBeDefined();
+  const target = new URL(location ?? '', `http://${host}`);
+  expect(target.hostname).toBe(new URL(`http://${host}`).hostname);
+  return httpGetWithHost(url(`${target.pathname}${target.search}`), host);
+}
 
 describe('storefront host routing (against next start)', () => {
   let demoStore: SmokeStore;
@@ -107,8 +123,10 @@ describe('storefront host routing (against next start)', () => {
   it.each(TENANT_PATH_VARIANTS)(
     "returns 404 for the second store's tenant path (%s) on the demo host",
     async (_form, pathOf) => {
-      // Act: the demo host asks for the second store's tenant path.
-      const res = await httpGetWithHost(url(pathOf(secondTenantTail)), demo.primaryHost);
+      // Act: the demo host asks for the second store's tenant path. Next answers a doubled slash with a same-host 308
+      // to the collapsed path before the proxy runs, so follow one same-host redirect and judge the final answer.
+      const first = await httpGetWithHost(url(pathOf(secondTenantTail)), demo.primaryHost);
+      const res = await followSameHostRedirect(first, demo.primaryHost);
       // Assert
       expect(res.status).toBe(404);
       expect(res.body).not.toContain(second.name);
