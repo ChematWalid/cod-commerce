@@ -3,16 +3,16 @@ import {
   DEFAULT_CHARGE_OVERWEIGHT,
   DEFAULT_OVERWEIGHT_ALLOWANCE_KG,
   DEFAULT_OVERWEIGHT_RATE,
-  PLATFORM_DEFAULT_GROUP_NAME,
 } from '../domain/constants';
+import { platformDefaultGroupName } from '../domain/default-group-name';
 import { defaultRates } from '../domain/default-prices';
 import type { OperationContext } from '../domain/ports/operation-context';
 import type { StoreScope } from '../domain/store-scope';
 import type { FeeGroupPorts } from './fee-group-ports';
 
 /**
- * The store's seeded "Platform default prices" fee group (D3124): one row per wilaya, all enabled, the default prices
- * as base and no override. The store lifecycle hook and the migrate converge call it (Task 6).
+ * The store's seeded "Platform default prices" fee group (D3124), named in the store's language: one row per wilaya,
+ * all enabled, the default prices as base and no override. The store lifecycle hook and the migrate converge call it (Task 6).
  */
 export class DefaultTableService {
   constructor(private readonly ports: FeeGroupPorts) {}
@@ -22,8 +22,9 @@ export class DefaultTableService {
     return this.ports.transaction.run(ctx, scope, async (tx) => {
       const existing = await this.ports.groups.platformDefaultId(tx, scope);
       if (existing !== undefined) return existing;
+      const language = await this.ports.storeDefaults.languageOf(tx, scope);
       return this.ports.groups.insert(tx, scope, {
-        name: PLATFORM_DEFAULT_GROUP_NAME,
+        name: platformDefaultGroupName(language),
         carrierId: null,
         chargeOverweight: DEFAULT_CHARGE_OVERWEIGHT,
         overweightAllowanceKg: DEFAULT_OVERWEIGHT_ALLOWANCE_KG,

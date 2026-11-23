@@ -210,9 +210,37 @@ describe('DefaultTableService', () => {
 
     // Assert
     const group = await reads.get(ctx, STORE_A1, id);
-    expect(group).toMatchObject({ name: 'Platform default prices', isPlatformDefault: true, chargeOverweight: false });
+    expect(group).toMatchObject({ name: 'أسعار المنصة الافتراضية', isPlatformDefault: true, chargeOverweight: false });
     expect(group?.rates).toHaveLength(WILAYA_CODES.length);
     expect(group?.rates.every((row) => row.deliveryEnabled && row.deskEnabled && row.overrideHome === null)).toBe(true);
+  });
+
+  it.each([
+    ['ar', 'أسعار المنصة الافتراضية'],
+    ['fr', 'Prix par défaut de la plateforme'],
+    ['en', 'Platform default prices'],
+  ])('names the table in the store language %s', async (language, name) => {
+    // Arrange
+    const { defaults, reads, storeDefaults } = world();
+    storeDefaults.languages.set(storeKeyOf(STORE_A1), language);
+
+    // Act
+    const id = await defaults.ensureFor(ctx, STORE_A1);
+
+    // Assert
+    expect((await reads.get(ctx, STORE_A1, id))?.name).toBe(name);
+  });
+
+  it('names the table in English when the store language is unknown', async () => {
+    // Arrange
+    const { defaults, reads, storeDefaults } = world();
+    storeDefaults.languages.set(storeKeyOf(STORE_A1), null);
+
+    // Act
+    const id = await defaults.ensureFor(ctx, STORE_A1);
+
+    // Assert
+    expect((await reads.get(ctx, STORE_A1, id))?.name).toBe('Platform default prices');
   });
 
   it('is idempotent and per store', async () => {

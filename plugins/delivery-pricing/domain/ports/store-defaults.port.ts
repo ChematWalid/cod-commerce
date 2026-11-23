@@ -9,6 +9,8 @@ import type { OperationContext } from './operation-context';
 export interface StoreDefaultsPort {
   /** The store's default fee group id, or `null` when it has none (or the store is not the scope's). */
   defaultGroupOf(ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null>;
+  /** The store's content language, which names its seeded table (D3124), or `null` when the store is not the scope's. */
+  languageOf(ctx: OperationContext, scope: StoreScope): Promise<string | null>;
   /**
    * The store's default fee group id (`null` when none is linked), its store row locked `FOR UPDATE` until the
    * transaction `ctx` carries ends, so a merchant's concurrent link cannot be overwritten (D3112).

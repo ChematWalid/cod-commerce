@@ -56,7 +56,7 @@ describe('fee-group CRUD over GraphQL', () => {
     expect(all.deliveryFeeGroups.items.map((group) => group.name)).toEqual([
       'Sud',
       'Nord 100%',
-      'Platform default prices',
+      'أسعار المنصة الافتراضية',
     ]);
     expect(all.deliveryFeeGroups.totalItems).toBe(3);
     expect(searched.deliveryFeeGroups.items.map((group) => group.name)).toEqual(['Nord 100%']);
@@ -259,7 +259,8 @@ describe('the platform default table', () => {
 
     // Assert
     expect(again).toBe(first);
-    expect(group).toMatchObject({ name: 'Platform default prices', isPlatformDefault: true });
+    // Fixture stores are Arabic, so the seeded table is named in Arabic (D3124).
+    expect(group).toMatchObject({ name: 'أسعار المنصة الافتراضية', isPlatformDefault: true });
     expect(group?.rates).toHaveLength(WILAYA_COUNT);
     expect(group?.rates.every((rate) => rate.deliveryEnabled && rate.deskEnabled && !rate.overridden)).toBe(true);
     expect(group?.rates.find((rate) => rate.provinceCode === '16')).toMatchObject({ homePrice: 500, deskPrice: 400 });

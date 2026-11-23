@@ -148,6 +148,8 @@ export const inlineTransaction: TransactionPort = {
  */
 export class FixedStoreDefaults implements StoreDefaultsPort {
   readonly defaults = new Map<string, Snowflake>();
+  /** Each store's language; a store not listed is Arabic, like the platform's demo stores, and `null` is unknown. */
+  readonly languages = new Map<string, string | null>();
   readonly stores: StoreScope[] = [];
   readonly failing = new Set<string>();
   readonly links: string[] = [];
@@ -157,6 +159,11 @@ export class FixedStoreDefaults implements StoreDefaultsPort {
 
   defaultGroupOf(_ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {
     return Promise.resolve(this.defaults.get(keyOf(scope)) ?? null);
+  }
+
+  languageOf(_ctx: OperationContext, scope: StoreScope): Promise<string | null> {
+    const key = keyOf(scope);
+    return Promise.resolve(this.languages.has(key) ? (this.languages.get(key) ?? null) : 'ar');
   }
 
   lockedDefaultGroupOf(_ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {

@@ -31,6 +31,11 @@ export class TenancyStoreDefaults implements StoreDefaultsPort {
     return settings?.defaultDeliveryFeeGroupId ?? null;
   }
 
+  async languageOf(ctx: OperationContext, scope: StoreScope): Promise<string | null> {
+    const settings = await this.settings.settingsOf(tenancyContextOf(ctx), scope.businessId, scope.storeId);
+    return settings?.language ?? null;
+  }
+
   lockedDefaultGroupOf(ctx: OperationContext, scope: StoreScope): Promise<Snowflake | null> {
     return this.deliveryDefaults.lockDefaultDeliveryFeeGroup(tenancyContextOf(ctx), scope);
   }

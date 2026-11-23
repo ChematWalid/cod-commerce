@@ -1,3 +1,5 @@
+import type { PlatformLanguageCode } from '../platform/platform-defaults';
+
 /** Longest name of a delivery fee group ("pricing option"). */
 export const FEE_GROUP_NAME_MAX = 80;
 
@@ -24,6 +26,16 @@ export type QuotePriceSource = (typeof QUOTE_PRICE_SOURCES)[number];
 
 /** Translation key of the name of the seeded "Platform default prices" fee group (D3110). */
 export const DEFAULT_FEE_GROUP_NAME_KEY = 'delivery-pricing.platform-default-prices';
+
+/**
+ * The name the seeded "Platform default prices" fee group gets, in its store's language (D3124): stored once at seed
+ * time, so a merchant can rename it like any other group.
+ */
+export const PLATFORM_DEFAULT_FEE_GROUP_NAMES: Readonly<Record<PlatformLanguageCode, string>> = {
+  ar: 'أسعار المنصة الافتراضية',
+  fr: 'Prix par défaut de la plateforme',
+  en: 'Platform default prices',
+};
 
 /** An upper bound on the commune rows of one wilaya in a call, above the largest wilaya (Tizi Ouzou, 67 communes). */
 export const MAX_COMMUNE_RATES_PER_WILAYA = 100;
