@@ -66,6 +66,11 @@ describe('the provinces endpoints over REST', () => {
     };
   }
 
+  /** The signed store header the storefront sends with every `/store/provinces` call (D3135). */
+  const signedFor = (storeId: unknown): Record<string, string> => ({
+    [INTERNAL_AUTH_HEADERS.storeId]: String(storeId),
+  });
+
   async function provision(slug: string): Promise<ProvisionedBusiness> {
     const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
     return server.app.get(ProvisionBusinessService).provision(asOperationContext(ctx), {
@@ -164,7 +169,10 @@ describe('the provinces endpoints over REST', () => {
 
   it('narrows the communes of a store through the registered availability source, never cached publicly', async () => {
     // Act
-    const { status, cacheControl, body } = await get(`/store/provinces/code/16?storeId=${String(shop.store.id)}`);
+    const { status, cacheControl, body } = await get(
+      `/store/provinces/code/16?storeId=${String(shop.store.id)}`,
+      signedFor(shop.store.id),
+    );
 
     // Assert
     const towns = (body as Province).towns ?? [];
@@ -177,7 +185,7 @@ describe('the provinces endpoints over REST', () => {
 
   it('lists the wilayas for a store as for everyone', async () => {
     // Act
-    const forStore = await get(`/store/provinces?storeId=${String(shop.store.id)}`);
+    const forStore = await get(`/store/provinces?storeId=${String(shop.store.id)}`, signedFor(shop.store.id));
     const reference = await get('/provinces');
 
     // Assert
@@ -187,12 +195,13 @@ describe('the provinces endpoints over REST', () => {
   });
 
   it.each([
-    ['an unknown id', '/store/provinces/code/16?storeId=999999'],
-    ['a malformed id', '/store/provinces/code/16?storeId=abc'],
-    ['no id', '/store/provinces'],
-  ])('answers 404 store-not-found for %s', async (_label, path) => {
+    ['an unknown id', '/store/provinces/code/16?storeId=999999', signedFor('999999')],
+    ['a malformed id', '/store/provinces/code/16?storeId=abc', signedFor('abc')],
+    ['no id', '/store/provinces', {}],
+    ['a served id without the signed store header', '/store/provinces/code/16?storeId=SHOP', {}],
+  ])('answers 404 store-not-found for %s', async (_label, rawPath, headers) => {
     // Act
-    const { status, cacheControl, body } = await get(path);
+    const { status, cacheControl, body } = await get(rawPath.replace('SHOP', String(shop.store.id)), headers);
 
     // Assert
     expect(status).toBe(404);
@@ -206,11 +215,9 @@ describe('the provinces endpoints over REST', () => {
     const path = `/store/provinces/code/16?storeId=${String(shop.store.id)}`;
 
     // Act
-    const mismatched = await get(path, { [INTERNAL_AUTH_HEADERS.storeId]: String(other.store.id) });
-    const listMismatched = await get(`/store/provinces?storeId=${String(shop.store.id)}`, {
-      [INTERNAL_AUTH_HEADERS.storeId]: String(other.store.id),
-    });
-    const matching = await get(path, { [INTERNAL_AUTH_HEADERS.storeId]: String(shop.store.id) });
+    const mismatched = await get(path, signedFor(other.store.id));
+    const listMismatched = await get(`/store/provinces?storeId=${String(shop.store.id)}`, signedFor(other.store.id));
+    const matching = await get(path, signedFor(shop.store.id));
 
     // Assert
     expect(mismatched.status).toBe(404);
@@ -229,7 +236,7 @@ describe('the provinces endpoints over REST', () => {
       .rawConnection.query(`UPDATE "store" SET "status" = 'archived' WHERE "id" = $1`, [gone.store.id]);
 
     // Act
-    const { status, body } = await get(`/store/provinces?storeId=${String(gone.store.id)}`);
+    const { status, body } = await get(`/store/provinces?storeId=${String(gone.store.id)}`, signedFor(gone.store.id));
 
     // Assert
     expect(status).toBe(404);
@@ -240,6 +247,7 @@ describe('the provinces endpoints over REST', () => {
     // Act
     const { status, body } = await get(
       `/store/provinces/code/${String(WILAYA_COUNT + 1)}?storeId=${String(shop.store.id)}`,
+      signedFor(shop.store.id),
     );
 
     // Assert

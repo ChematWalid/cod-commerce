@@ -51,8 +51,10 @@ describe('the internal-only guard on the full api config (D112)', () => {
     extra: { body?: string; headers?: Record<string, string> } = {},
   ): Promise<RawResponse> => sendRaw({ port: PORT, method, path, host, ...extra });
 
-  const signedGet = (path: string): Promise<RawResponse> =>
-    call('GET', path, 'api.localhost', { headers: signedHeaders(KEY, { method: 'GET', path }) });
+  const signedGet = (path: string, storeId?: string): Promise<RawResponse> =>
+    call('GET', path, 'api.localhost', {
+      headers: signedHeaders(KEY, { method: 'GET', path }, storeId === undefined ? undefined : { storeId }),
+    });
 
   const signedPost = (
     path: string,
@@ -126,7 +128,7 @@ describe('the internal-only guard on the full api config (D112)', () => {
     });
 
     it('answers the per-store wilaya list to the storefront (D3106)', async () => {
-      const response = await signedGet(`/store/provinces?storeId=${String(demo.store.id)}`);
+      const response = await signedGet(`/store/provinces?storeId=${String(demo.store.id)}`, String(demo.store.id));
 
       expect(response.status).toBe(200);
       expect(response.headers['cache-control']).toBe('private, no-store');

@@ -97,7 +97,7 @@ describe('ProvinceReadService', () => {
     const { service } = serviceWith(new Map([[`${STORE}:16`, NO_DESK_IN_ALGER]]));
 
     // Act
-    const province = await service.byCodeForStore(STORE, '16');
+    const province = await service.byCodeForStore(STORE, '16', STORE);
 
     // Assert
     expect(
@@ -113,7 +113,7 @@ describe('ProvinceReadService', () => {
     const { service } = serviceWith();
 
     // Act
-    const narrowed = await service.byCodeForStore(STORE, '16');
+    const narrowed = await service.byCodeForStore(STORE, '16', STORE);
     const reference = await service.byCode('16');
 
     // Assert
@@ -125,8 +125,8 @@ describe('ProvinceReadService', () => {
     const { service, availability } = serviceWith(new Map([[`${STORE}:16`, NO_DESK_IN_ALGER]]));
 
     // Act
-    await service.byCodeForStore(STORE, '16');
-    await service.byCodeForStore(STORE, '16');
+    await service.byCodeForStore(STORE, '16', STORE);
+    await service.byCodeForStore(STORE, '16', STORE);
 
     // Assert
     expect(availability.calls).toBe(1);
@@ -141,8 +141,10 @@ describe('ProvinceReadService', () => {
     const { service } = serviceWith();
 
     // Act and Assert
-    await expect(service.listForStore(raw)).rejects.toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
-    await expect(service.byCodeForStore(raw, '16')).rejects.toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+    await expect(service.listForStore(raw, raw)).rejects.toMatchObject({ code: GEO_ERROR_CODES.STORE_NOT_FOUND });
+    await expect(service.byCodeForStore(raw, '16', raw)).rejects.toMatchObject({
+      code: GEO_ERROR_CODES.STORE_NOT_FOUND,
+    });
   });
 
   it.each([
@@ -161,16 +163,29 @@ describe('ProvinceReadService', () => {
     expect(availability.calls).toBe(0);
   });
 
-  it('serves a store whose signed store header names the same store, or that carries none', async () => {
+  it('refuses a store query without the signed store header, so a signature never reads any store (D3135)', async () => {
+    // Arrange
+    const { service, availability } = serviceWith(new Map([[`${STORE}:16`, NO_DESK_IN_ALGER]]));
+
+    // Act and Assert
+    await expect(service.listForStore(STORE, undefined)).rejects.toMatchObject({
+      code: GEO_ERROR_CODES.STORE_NOT_FOUND,
+    });
+    await expect(service.byCodeForStore(STORE, '16', undefined)).rejects.toMatchObject({
+      code: GEO_ERROR_CODES.STORE_NOT_FOUND,
+    });
+    expect(availability.calls).toBe(0);
+  });
+
+  it('serves a store whose signed store header names the same store', async () => {
     // Arrange
     const { service } = serviceWith(new Map([[`${STORE}:16`, NO_DESK_IN_ALGER]]));
 
     // Act
     const signed = await service.byCodeForStore(STORE, '16', STORE);
-    const unsigned = await service.byCodeForStore(STORE, '16', undefined);
 
     // Assert
-    expect(signed).toEqual(unsigned);
+    expect(signed.towns?.find((town) => town.codeOns === 1652)).toMatchObject({ isHomeDelivery: false });
     await expect(service.listForStore(STORE, STORE)).resolves.toEqual(await service.list());
   });
 
@@ -179,7 +194,7 @@ describe('ProvinceReadService', () => {
     const { service } = serviceWith();
 
     // Act and Assert
-    await expect(service.listForStore(STORE)).resolves.toEqual(await service.list());
+    await expect(service.listForStore(STORE, STORE)).resolves.toEqual(await service.list());
   });
 
   it("answers a wilaya's communes as the town directory, from the same single read", async () => {

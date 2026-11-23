@@ -19,7 +19,7 @@ export class StoreProvincesController {
 
   /**
    * Every wilaya for a served store; 404 `geo.store-not-found` for any other `storeId`, or when the signed store
-   * header names another store (D3135).
+   * header is missing or names another store (D3135).
    */
   @Get()
   @Allow(Permission.Public)
