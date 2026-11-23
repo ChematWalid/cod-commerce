@@ -321,7 +321,7 @@ jobs:
           ROLE=api API_PORT=3100 setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-api.js > api.log 2>&1 &
           source scripts/lib/wait-http.sh
           wait_http 200 http://localhost:3100/readyz 120
-      # Delivers the seed's outbox events, which fill the storefront projection the smoke reads (D3205).
+      # The seed builds the storefront projection the smoke reads; the worker delivers its outbox events (D3205).
       - name: Start the worker
         run: |
           ROLE=worker setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-worker.js > worker.log 2>&1 &
