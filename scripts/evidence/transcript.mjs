@@ -20,6 +20,8 @@ const KEEP = new Set([
   'referrer-policy',
   'etag',
   'content-disposition',
+  // What a storefront tenant page tells the edge to keep (ADR 0006 §4, P3.S2).
+  'cloudflare-cdn-cache-control',
 ]);
 
 /** Header value as it may be printed: tokens and cookie values never leave this function. */
