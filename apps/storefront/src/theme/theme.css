@@ -121,6 +121,17 @@ body {
   text-decoration: none;
 }
 
+/* The image fills the card's column and the name sits under it, also in a wide column (the compact theme's two). */
+.product-card > a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.product-card img {
+  inline-size: 100%;
+}
+
 .theme-root img {
   max-inline-size: 100%;
   block-size: auto;
