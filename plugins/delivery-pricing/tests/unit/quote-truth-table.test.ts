@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { CommuneRateRow, WilayaRateRow } from '../../domain/fee-group';
 import { type DeliveryMethod, quoteDelivery, type QuoteTown } from '../../domain/quote';
-import { commune, HOME_ONLY_TOWN, input, STOPDESK_TOWN, UNRESOLVED, WILAYA } from '../support/quote-fixtures';
+import {
+  commune,
+  DESK_ONLY_TOWN,
+  HOME_ONLY_TOWN,
+  input,
+  STOPDESK_TOWN,
+  UNRESOLVED,
+  WILAYA,
+} from '../support/quote-fixtures';
 
 /** One combination of the D3125 dimensions. */
 interface TruthRow {
@@ -44,6 +52,7 @@ const TOWNS: Readonly<Record<string, QuoteTown | null>> = {
   none: null,
   stopdesk: STOPDESK_TOWN,
   'home only': HOME_ONLY_TOWN,
+  'desk only': DESK_ONLY_TOWN,
 };
 const METHODS: readonly DeliveryMethod[] = ['home', 'desk'];
 
@@ -89,18 +98,25 @@ function allRows(): TruthRow[] {
   );
 }
 
-/** D3125, read row by row: home = delivery; desk = delivery && desk switch && (no town or a stop-desk town). */
+/**
+ * D3125, read row by row: home = delivery && (no town or a home-delivery town), as geo narrows the commune list
+ * (D3133); desk = delivery && desk switch && (no town or a stop-desk town).
+ */
 function isOffered({ communeRate, rate, town, method }: TruthRow): boolean {
   const delivers = communeRate?.deliveryEnabled ?? rate.deliveryEnabled;
-  if (method === 'home') return delivers;
+  if (method === 'home') return delivers && townAllows(town, 'isHomeDelivery');
   const deskOn = communeRate?.deskEnabled ?? rate.deskEnabled;
-  return delivers && deskOn && (town === null || town.isStopdesk);
+  return delivers && deskOn && townAllows(town, 'isStopdesk');
 }
+
+/** No named commune allows every method; a named one only those its reference flag says. */
+const townAllows = (town: QuoteTown | null, flag: keyof QuoteTown): boolean => town === null || town[flag];
 
 /**
  * Every combination of the D3125 dimensions, checked against the truth table read row by row: price = commune
  * `override ?? base` (source commune), else wilaya `override ?? base` (source wilaya); delivery = commune switch ??
- * wilaya switch; desk = delivery && (commune desk ?? wilaya desk) && (no town or the town's stop desk); home = delivery.
+ * wilaya switch; desk = delivery && (commune desk ?? wilaya desk) && (no town or the town's stop desk); home = delivery
+ * && (no town or the town's home delivery).
  */
 describe('quoteDelivery: the whole D3125 truth table', () => {
   it.each(allRows())('$label', (row) => {

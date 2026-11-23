@@ -13,9 +13,10 @@ import { modesOf } from './store-modes';
 /** How the parcel reaches the buyer: to the door or to a carrier's stop desk. */
 export type DeliveryMethod = 'home' | 'desk';
 
-/** What the quote reads of a named commune in the geo reference data: whether a carrier desk is there. */
+/** What the quote reads of a named commune in the geo reference data: whether a carrier desk and home delivery are there. */
 export interface QuoteTown {
   readonly isStopdesk: boolean;
+  readonly isHomeDelivery: boolean;
 }
 
 /** The group's overweight settings: the only ones there are, no wilaya or commune has its own (D3125). */
@@ -54,10 +55,13 @@ export const UNRESOLVED_QUOTE: ShippingQuote = {
 
 const [STANDARD_SPEED] = DELIVERY_SPEEDS;
 
-/** Whether the method is offered (D3125): the switches of {@link modesOf}, and desk needs a desk town. */
+/**
+ * Whether the method is offered (D3125): the switches of {@link modesOf}; home needs a home-delivery town and desk a
+ * desk town, the same AND geo applies to the commune list (D3133), so the list and the quote never disagree.
+ */
 function isOffered({ communeRate, town, method }: DeliveryQuoteInput, wilaya: WilayaRateRow): boolean {
   const modes = modesOf(wilaya, communeRate);
-  if (method === 'home') return modes.home;
+  if (method === 'home') return modes.home && (town === null || town.isHomeDelivery);
   return modes.desk && (town === null || town.isStopdesk);
 }
 

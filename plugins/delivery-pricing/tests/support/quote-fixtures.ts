@@ -13,8 +13,10 @@ export const WILAYA: WilayaRateRow = {
 };
 export const NO_OVERWEIGHT = { chargeOverweight: false, overweightAllowanceKg: 5, overweightRate: 50 };
 export const OVERWEIGHT = { ...NO_OVERWEIGHT, chargeOverweight: true };
-export const STOPDESK_TOWN: QuoteTown = { isStopdesk: true };
-export const HOME_ONLY_TOWN: QuoteTown = { isStopdesk: false };
+export const STOPDESK_TOWN: QuoteTown = { isStopdesk: true, isHomeDelivery: true };
+export const HOME_ONLY_TOWN: QuoteTown = { isStopdesk: false, isHomeDelivery: true };
+/** A commune whose reference says no home delivery, as a carrier sync may write it (P5). */
+export const DESK_ONLY_TOWN: QuoteTown = { isStopdesk: true, isHomeDelivery: false };
 
 /** A commune row of Alger Centre (1601) that inherits everything unless `fields` set it. */
 export const commune = (fields: Partial<CommuneRateRow> = {}): CommuneRateRow => ({

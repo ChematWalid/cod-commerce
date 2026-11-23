@@ -1,8 +1,9 @@
 import type { WilayaCode } from '@cod/shared';
 
-/** What the quote reads of a commune in geo's reference data: whether a carrier stop desk is there (D3125). */
+/** What the quote reads of a commune in geo's reference data: whether a stop desk and home delivery are there (D3125). */
 export interface TownReference {
   readonly isStopdesk: boolean;
+  readonly isHomeDelivery: boolean;
 }
 
 /** Which communes belong to a wilaya: geo's `TownDirectory`, so a commune row needs no database FK (D3125). */

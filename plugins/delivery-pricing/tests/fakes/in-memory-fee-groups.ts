@@ -205,7 +205,7 @@ export class FixedTowns implements TownDirectoryPort {
 
   townOf(provinceCode: WilayaCode, codeOns: number): Promise<TownReference | undefined> {
     const known = (this.towns[provinceCode] ?? []).includes(codeOns);
-    return Promise.resolve(known ? { isStopdesk: !this.noDesk.has(codeOns) } : undefined);
+    return Promise.resolve(known ? { isStopdesk: !this.noDesk.has(codeOns), isHomeDelivery: true } : undefined);
   }
 }
 
