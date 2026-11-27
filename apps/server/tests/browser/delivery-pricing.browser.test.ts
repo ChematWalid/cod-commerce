@@ -157,6 +157,9 @@ describe('delivery pricing tab', () => {
 
     await open(page, NEW_PRICING_PATH);
     await byTestId(page, PRICING_EDITOR_TEST_ID).waitFor();
+    // The header actions can paint just after the editor body: wait for them, then assert, instead of one snapshot.
+    await byTestId(page, PRICING_SAVE_TEST_ID).waitFor({ state: 'visible' });
+    await byTestId(page, PRICING_BACK_TEST_ID).waitFor({ state: 'visible' });
 
     await expect(byTestId(page, PRICING_SAVE_TEST_ID).isVisible()).resolves.toBe(true);
     await expect(byTestId(page, PRICING_BACK_TEST_ID).isVisible()).resolves.toBe(true);

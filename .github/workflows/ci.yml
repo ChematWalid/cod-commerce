@@ -142,7 +142,7 @@ jobs:
       matrix:
         include:
           - part: others
-            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags --filter=!@cod/plugin-catalog --filter=!@cod/plugin-catalog-packs --filter=!@cod/plugin-catalog-import --filter=!@cod/plugin-collections-rules --filter=!@cod/plugin-offers
+            command: pnpm test:integration --filter=!@cod/server --filter=!@cod/plugin-tenancy --filter=!@cod/plugin-auth --filter=!@cod/plugin-rbac --filter=!@cod/plugin-platform-jobs --filter=!@cod/plugin-platform-partitions --filter=!@cod/plugin-platform-outbox --filter=!@cod/plugin-platform-secrets --filter=!@cod/plugin-platform-webhooks --filter=!@cod/plugin-platform-flags --filter=!@cod/plugin-catalog --filter=!@cod/plugin-catalog-packs --filter=!@cod/plugin-catalog-import --filter=!@cod/plugin-collections-rules --filter=!@cod/plugin-offers --filter=!@cod/plugin-geo --filter=!@cod/plugin-delivery-pricing
           - part: server-e2e
             command: pnpm exec turbo run test:integration --filter=@cod/server
           - part: tenancy-1
@@ -173,6 +173,12 @@ jobs:
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-catalog-packs
           - part: catalog-import
             command: pnpm exec turbo run test:integration --filter=@cod/plugin-catalog-import
+          - part: geo
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-geo
+          - part: delivery-pricing-1
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-delivery-pricing -- --shard=1/2
+          - part: delivery-pricing-2
+            command: pnpm exec turbo run test:integration --filter=@cod/plugin-delivery-pricing -- --shard=2/2
     # Same images as docker-compose.yml (a test pins them equal). Valkey's default eviction policy is already noeviction.
     services:
       postgres:
