@@ -270,3 +270,115 @@ msgstr "خيار التسعير هذا هو الافتراضي للمتجر أو
 #. js-lingui-explicit-id
 msgid "delivery-pricing.carrier-not-found"
 msgstr "شركة التوصيل هذه غير موجودة في هذا المتجر."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.select-wilaya"
+msgstr "تحديد الولاية"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.select-all"
+msgstr "تحديد كل الولايات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.selected-count"
+msgstr "المحدد: {count}"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.save-first-bulk"
+msgstr "احفظ تغييراتك أولًا لرفع الأسعار أو خفضها."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-open"
+msgstr "رفع/خفض بمقدار…"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-heading"
+msgstr "رفع الأسعار أو خفضها"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-body"
+msgstr "يُطبَّق على الولايات المحددة: {count}."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-direction"
+msgstr "التغيير"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-raise"
+msgstr "رفع"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-lower"
+msgstr "خفض"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-kind"
+msgstr "حسب"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-amount"
+msgstr "مبلغ (د.ج)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-percent"
+msgstr "نسبة مئوية (%)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-value"
+msgstr "القيمة"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-include-communes"
+msgstr "تضمين البلديات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-communes-note"
+msgstr "أسعار البلديات المحددة يدويًا تبقى كما هي ما لم تُحدَّد \"تضمين البلديات\". تُقرَّب الأسعار إلى أقرب دينار ولا تنزل أبدًا تحت 0."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-invalid"
+msgstr "أدخل عددًا صحيحًا (خفض بنسبة 100 % كحد أقصى) واختر سعرًا واحدًا على الأقل."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-apply"
+msgstr "تطبيق"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjusted"
+msgstr "تم تحديث الأسعار."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-title"
+msgstr "تحديد السعر لكل البلديات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-apply"
+msgstr "تطبيق على كل البلديات"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-hint"
+msgstr "السعر الفارغ يبقى كما هو في كل بلدية."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-saved"
+msgstr "تم تحديد السعر لكل البلديات."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-copy"
+msgstr "نسخ"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copy-heading"
+msgstr "نسخ خيار التسعير"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copy-name"
+msgstr "نسخة من {name}"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copy-name-label"
+msgstr "اسم النسخة"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copied"
+msgstr "تم نسخ خيار التسعير."

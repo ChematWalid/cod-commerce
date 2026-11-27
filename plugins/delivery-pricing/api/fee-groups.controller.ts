@@ -76,6 +76,34 @@ export class FeeGroupsController {
     return restCall(() => this.actions.setCommuneRates(ctx, id, provinceCode, fieldOf(body, 'rows')));
   }
 
+  /** "Raise/lower by…" the selected wilayas; the body is the adjustment (delivery.pricing.edit, D3140). */
+  @Post(':id/adjust')
+  @HttpCode(HttpStatus.OK)
+  @requirePermission(P.edit)
+  adjustPrices(@Ctx() ctx: RequestContext, @Param('id') id: string, @Body() body: unknown): Promise<DeliveryFeeGroup> {
+    return restCall(() => this.actions.adjustPrices(ctx, id, body));
+  }
+
+  /** One price for every commune of a wilaya; the body is `{ homePrice?, deskPrice? }` (delivery.pricing.edit). */
+  @Put(':id/communes/:provinceCode/prices')
+  @requirePermission(P.edit)
+  setCommunePrices(
+    @Ctx() ctx: RequestContext,
+    @Param('id') id: string,
+    @Param('provinceCode') provinceCode: string,
+    @Body() body: unknown,
+  ): Promise<DeliveryFeeGroup> {
+    return restCall(() => this.actions.setCommunePrices(ctx, id, provinceCode, body));
+  }
+
+  /** Copies a group; the body is `{ name }` (delivery.pricing.create, D3140); 201 with the copy. */
+  @Post(':id/duplicate')
+  @HttpCode(HttpStatus.CREATED)
+  @requirePermission(P.create)
+  duplicate(@Ctx() ctx: RequestContext, @Param('id') id: string, @Body() body: unknown): Promise<DeliveryFeeGroup> {
+    return restCall(() => this.actions.duplicate(ctx, id, fieldOf(body, 'name')));
+  }
+
   /** Deletes a group (delivery.pricing.delete); 409 `delivery-pricing.group-in-use` for a default (D3108). */
   @Delete(':id')
   @requirePermission(P.delete)

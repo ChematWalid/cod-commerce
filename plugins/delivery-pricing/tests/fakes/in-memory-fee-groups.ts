@@ -73,7 +73,15 @@ export class InMemoryFeeGroups implements FeeGroupRepositoryPort {
     change: { settings: FeeGroupSettings; rates: readonly WilayaRateRow[] },
   ): Promise<void> {
     const group = this.of(scope).get(id);
-    if (group !== undefined) this.of(scope).set(id, { ...group, ...change.settings, rates: change.rates });
+    if (group === undefined) return Promise.resolve();
+    // As the port says: each row given is written (or inserted), the rows not given stay.
+    const given = new Map(change.rates.map((row) => [row.provinceCode, row]));
+    const kept = group.rates.filter((row) => !given.has(row.provinceCode));
+    const rates = [...kept, ...given.values()].sort((left, right) =>
+      left.provinceCode.localeCompare(right.provinceCode),
+    );
+    this.clock += 1000;
+    this.of(scope).set(id, { ...group, ...change.settings, rates, updatedAt: new Date(this.clock) });
     return Promise.resolve();
   }
 

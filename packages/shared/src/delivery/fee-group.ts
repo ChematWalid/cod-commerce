@@ -33,8 +33,16 @@ const carrierIdSchema = z
   .nullish()
   .transform((id) => id ?? null);
 
+/** The name of a fee group ("pricing option"): one clean line, trimmed, 1 to {@link FEE_GROUP_NAME_MAX} characters. */
+export const feeGroupNameSchema = z
+  .string(issue)
+  .trim()
+  .min(1, issue)
+  .max(FEE_GROUP_NAME_MAX, issue)
+  .refine(isCleanLine, issue);
+
 const feeGroupFields = {
-  name: z.string(issue).trim().min(1, issue).max(FEE_GROUP_NAME_MAX, issue).refine(isCleanLine, issue),
+  name: feeGroupNameSchema,
   carrierId: carrierIdSchema,
   chargeOverweight: z.boolean(issue),
   overweightAllowanceKg: boundedIntSchema(MAX_OVERWEIGHT_ALLOWANCE_KG),

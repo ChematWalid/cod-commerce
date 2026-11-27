@@ -1,13 +1,16 @@
 import { TOWN_DIRECTORY } from '@cod/plugin-geo';
 import { type SnowflakeIdGeneratorPort, SNOWFLAKE_ID_GENERATOR, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
+import { AdjustPricesService } from '../application/adjust-prices.service';
 import { CarrierSyncService } from '../application/carrier-sync.service';
 import { DefaultTableService } from '../application/default-table.service';
 import { DeleteFeeGroupService } from '../application/delete-fee-group.service';
 import { DeliveryDefaultsConvergeService } from '../application/delivery-defaults-converge.service';
+import { DuplicateFeeGroupService } from '../application/duplicate-fee-group.service';
 import type { FeeGroupPorts } from '../application/fee-group-ports';
 import { FeeGroupReadService } from '../application/fee-group-read.service';
 import { SaveFeeGroupService } from '../application/save-fee-group.service';
+import { SetCommunePricesService } from '../application/set-commune-prices.service';
 import { SetCommuneRatesService } from '../application/set-commune-rates.service';
 import { ShippingQuoteService } from '../application/shipping-quote.service';
 import { TownAvailabilityService } from '../application/town-availability.service';
@@ -77,6 +80,9 @@ export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   useCase(SaveFeeGroupService),
   useCase(DeleteFeeGroupService),
   useCase(SetCommuneRatesService),
+  useCase(AdjustPricesService),
+  useCase(SetCommunePricesService),
+  useCase(DuplicateFeeGroupService),
   useCase(DefaultTableService),
   useCase(DeliveryDefaultsConvergeService),
   {

@@ -15,6 +15,9 @@ interface WilayaTableProps {
   readonly groupId: string | null;
   /** The option's stored commune rows, for the warning when a wilaya goes off; none on a new option. */
   readonly communeRates: readonly CommuneRateDto[];
+  /** The wilayas ticked for "Raise/lower by…" (D3140). */
+  readonly selection: ReadonlySet<WilayaCode>;
+  readonly onSelect: (provinceCode: WilayaCode, on: boolean) => void;
   readonly onForm: (update: (form: PricingForm) => PricingForm) => void;
 }
 
@@ -58,6 +61,8 @@ export function WilayaTable(props: WilayaTableProps): ReactNode {
           disabled={props.disabled}
           communesOn={communesSwitchedOn(props.communeRates, row.provinceCode)}
           expanded={expanded === row.provinceCode}
+          selected={props.selection.has(row.provinceCode)}
+          onSelect={props.onSelect}
           onExpand={(code) => {
             setExpanded((current) => (current === code ? null : code));
           }}

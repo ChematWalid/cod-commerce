@@ -14,6 +14,7 @@ import {
 } from '../model/commune-form';
 import type { PricingRow } from '../model/pricing-form';
 import { useFeeGroup, useTowns } from '../queries';
+import { CommunePricesTool } from './commune-prices-tool';
 import { CommuneRow } from './commune-row';
 
 interface CommunePanelProps {
@@ -100,7 +101,10 @@ export function CommunePanel(props: CommunePanelProps): ReactNode {
   else body = <CommuneEditor key={group.data.updatedAt} {...props} initial={communeRowsOf(towns.data, own)} />;
   return (
     <div data-testid={COMMUNE_PANEL_TEST_ID} className="bg-muted/40 rounded-md p-3">
-      <p className="text-muted-foreground mb-2 text-xs">{i18n._('delivery-pricing.communes-hint')}</p>
+      {!props.disabled && (
+        <CommunePricesTool scope={props.scope} groupId={props.groupId} provinceCode={props.wilaya.provinceCode} />
+      )}
+      <p className="text-muted-foreground my-2 text-xs">{i18n._('delivery-pricing.communes-hint')}</p>
       {body}
     </div>
   );

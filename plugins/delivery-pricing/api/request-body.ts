@@ -1,10 +1,16 @@
 import {
+  type DeliveryFeeCommunePricesInput,
+  deliveryFeeCommunePricesInputSchema,
   type DeliveryFeeCommuneRatesInput,
   deliveryFeeCommuneRatesInputSchema,
   type DeliveryFeeGroupInput,
+  type DeliveryFeeGroupDuplicateInput,
+  deliveryFeeGroupDuplicateInputSchema,
   deliveryFeeGroupInputSchema,
   type DeliveryFeeGroupListQuery,
   deliveryFeeGroupListQuerySchema,
+  type DeliveryFeePriceAdjustmentInput,
+  deliveryFeePriceAdjustmentInputSchema,
 } from '@cod/shared';
 import { InvalidDeliveryFeeInputError } from '../domain/errors';
 
@@ -24,6 +30,18 @@ export const parseFeeGroupInput = (input: unknown): DeliveryFeeGroupInput => par
 /** The communes of one wilaya to merge. @throws {InvalidDeliveryFeeInputError} otherwise. */
 export const parseCommuneRatesInput = (provinceCode: unknown, rows: unknown): DeliveryFeeCommuneRatesInput =>
   parsed(deliveryFeeCommuneRatesInputSchema, { provinceCode, rows });
+
+/** A "Raise/lower by…" of the selected wilayas (D3140). @throws {InvalidDeliveryFeeInputError} otherwise. */
+export const parsePriceAdjustmentInput = (input: unknown): DeliveryFeePriceAdjustmentInput =>
+  parsed(deliveryFeePriceAdjustmentInputSchema, input);
+
+/** The prices for every commune of one wilaya (D3140). @throws {InvalidDeliveryFeeInputError} otherwise. */
+export const parseCommunePricesInput = (provinceCode: unknown, prices: unknown): DeliveryFeeCommunePricesInput =>
+  parsed(deliveryFeeCommunePricesInputSchema, { provinceCode, prices });
+
+/** The name of a copy (D3140). @throws {InvalidDeliveryFeeInputError} otherwise. */
+export const parseDuplicateInput = (name: unknown): DeliveryFeeGroupDuplicateInput =>
+  parsed(deliveryFeeGroupDuplicateInputSchema, { name });
 
 /** A list page query (GraphQL options or a REST query string). @throws {InvalidDeliveryFeeInputError} otherwise. */
 export const parseListQuery = (input: unknown): DeliveryFeeGroupListQuery =>

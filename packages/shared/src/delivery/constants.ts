@@ -48,3 +48,21 @@ export const FEE_GROUP_LIST_PAGE_SIZE = 20;
 
 /** Most fee groups one page of the list may hold. */
 export const FEE_GROUP_LIST_MAX_TAKE = 100;
+
+/**
+ * An upper bound on the wilayas one price adjustment names, above the wilaya count; the API checks each one against the
+ * group's stored rows, so the bound is never the count itself.
+ */
+export const MAX_ADJUST_PROVINCES = 100;
+
+/** Lowest percent a price adjustment takes: -100 % brings a price to 0. */
+export const MIN_PRICE_ADJUST_PERCENT = -100;
+
+/** Highest percent a price adjustment takes (an elevenfold price); the result is clamped to `MAX_DELIVERY_PRICE`. */
+export const MAX_PRICE_ADJUST_PERCENT = 1000;
+
+/** How a price adjustment reads its value: whole DZD added, or a percent of the price (rounded half up). */
+export const PRICE_ADJUSTMENT_KINDS = ['amount', 'percent'] as const;
+
+/** A kind of price adjustment. */
+export type PriceAdjustmentKind = (typeof PRICE_ADJUSTMENT_KINDS)[number];

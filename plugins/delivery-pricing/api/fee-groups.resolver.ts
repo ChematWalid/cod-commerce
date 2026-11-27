@@ -62,4 +62,38 @@ export class FeeGroupsResolver {
   ): Promise<DeliveryFeeGroup> {
     return withDeliveryPricingErrors(() => this.actions.setCommuneRates(ctx, groupId, provinceCode, rows));
   }
+
+  /** Raises or lowers the selected wilayas' prices by DZD or % as overrides (delivery.pricing.edit, D3140). */
+  @Mutation()
+  @requirePermission(P.edit)
+  adjustDeliveryFeeGroupPrices(
+    @Ctx() ctx: RequestContext,
+    @Args('groupId') groupId: unknown,
+    @Args('input') input: unknown,
+  ): Promise<DeliveryFeeGroup> {
+    return withDeliveryPricingErrors(() => this.actions.adjustPrices(ctx, groupId, input));
+  }
+
+  /** Gives every commune of one wilaya the same prices (delivery.pricing.edit, D3140). */
+  @Mutation()
+  @requirePermission(P.edit)
+  setDeliveryFeeProvinceCommunePrices(
+    @Ctx() ctx: RequestContext,
+    @Args('groupId') groupId: unknown,
+    @Args('provinceCode') provinceCode: unknown,
+    @Args('input') input: unknown,
+  ): Promise<DeliveryFeeGroup> {
+    return withDeliveryPricingErrors(() => this.actions.setCommunePrices(ctx, groupId, provinceCode, input));
+  }
+
+  /** Copies a fee group with its wilaya and commune rows under a new name (delivery.pricing.create, D3140). */
+  @Mutation()
+  @requirePermission(P.create)
+  duplicateDeliveryFeeGroup(
+    @Ctx() ctx: RequestContext,
+    @Args('groupId') groupId: unknown,
+    @Args('name') name: unknown,
+  ): Promise<DeliveryFeeGroup> {
+    return withDeliveryPricingErrors(() => this.actions.duplicate(ctx, groupId, name));
+  }
 }

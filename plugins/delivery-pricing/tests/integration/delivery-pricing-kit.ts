@@ -68,6 +68,16 @@ export const SET_COMMUNES = `mutation ($groupId: String!, $provinceCode: String!
   setDeliveryFeeCommuneRates(groupId: $groupId, provinceCode: $provinceCode, rows: $rows) { ${GROUP_FIELDS} }
 }`;
 
+export const ADJUST_PRICES = `mutation ($groupId: String!, $input: DeliveryFeePriceAdjustmentInput!) {
+  adjustDeliveryFeeGroupPrices(groupId: $groupId, input: $input) { ${GROUP_FIELDS} }
+}`;
+export const SET_COMMUNE_PRICES = `mutation ($groupId: String!, $provinceCode: String!, $input: DeliveryFeeCommunePricesInput!) {
+  setDeliveryFeeProvinceCommunePrices(groupId: $groupId, provinceCode: $provinceCode, input: $input) { ${GROUP_FIELDS} }
+}`;
+export const DUPLICATE_GROUP = `mutation ($groupId: String!, $name: String!) {
+  duplicateDeliveryFeeGroup(groupId: $groupId, name: $name) { ${GROUP_FIELDS} }
+}`;
+
 /** One wilaya row as the tests read it. */
 export interface RateResult {
   readonly provinceCode: string;
@@ -127,6 +137,16 @@ export const communeRow = (codeOns: number, homePrice: number | null = null): Re
   deskPrice: null,
   deliveryEnabled: null,
   deskEnabled: null,
+});
+
+/** A price adjustment of the merge input: Alger's home price raised by 10 %, communes left as they are. */
+export const priceAdjustment = (fields: Record<string, unknown> = {}): Record<string, unknown> => ({
+  provinceCodes: ['16'],
+  kind: 'percent',
+  value: 10,
+  home: true,
+  desk: false,
+  ...fields,
 });
 
 /** The delivery-pricing kit: the generic store kit plus the fee-group calls the tests arrange with. */

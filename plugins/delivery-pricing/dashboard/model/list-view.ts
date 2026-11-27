@@ -1,5 +1,5 @@
 import { DELIVERY_PRICING_ERROR_CODES, FEE_GROUP_LIST_PAGE_SIZE } from '@cod/shared';
-import { DELETE_PRICING_KEY, EDIT_PRICING_KEY, VIEW_PRICING_KEY } from '../constants';
+import { CREATE_PRICING_KEY, DELETE_PRICING_KEY, EDIT_PRICING_KEY, VIEW_PRICING_KEY } from '../constants';
 
 export const GENERIC_ERROR_MESSAGE_ID = 'delivery-pricing.error-generic';
 export const FORBIDDEN_MESSAGE_ID = 'delivery-pricing.error-forbidden';
@@ -9,12 +9,13 @@ export const NO_CARRIER_MESSAGE_ID = 'delivery-pricing.no-carrier';
 /** A carrier id the dashboard cannot name yet: carriers arrive with P5.S1 (D3109). */
 export const UNKNOWN_CARRIER_MESSAGE_ID = 'delivery-pricing.carrier-unknown';
 
-/** What a row of the list offers: open the editor to save (edit) or to read (view), and delete. */
-export type PricingRowAction = 'edit' | 'view' | 'delete';
+/** What a row of the list offers: open the editor to save (edit) or to read (view), copy (D3140) and delete. */
+export type PricingRowAction = 'edit' | 'view' | 'copy' | 'delete';
 
 export const ROW_ACTION_LABEL_IDS: Readonly<Record<PricingRowAction, string>> = {
   edit: 'delivery-pricing.action-edit',
   view: 'delivery-pricing.action-view',
+  copy: 'delivery-pricing.action-copy',
   delete: 'delivery-pricing.action-delete',
 };
 
@@ -23,6 +24,7 @@ export function rowActionsOf(held: ReadonlySet<string>): PricingRowAction[] {
   const actions: PricingRowAction[] = [];
   if (held.has(EDIT_PRICING_KEY)) actions.push('edit');
   else if (held.has(VIEW_PRICING_KEY)) actions.push('view');
+  if (held.has(CREATE_PRICING_KEY)) actions.push('copy');
   if (held.has(DELETE_PRICING_KEY)) actions.push('delete');
   return actions;
 }

@@ -4,7 +4,15 @@ import type { RequestContext } from '@vendure/core';
 import { asOperationContext } from '../domain/ports/operation-context';
 import { toGroupDto, toPageDto } from './dto';
 import { FeeGroupUseCases } from './fee-group-use-cases';
-import { idArgOf, parseCommuneRatesInput, parseFeeGroupInput, parseListQuery } from './request-body';
+import {
+  idArgOf,
+  parseCommunePricesInput,
+  parseCommuneRatesInput,
+  parseDuplicateInput,
+  parseFeeGroupInput,
+  parseListQuery,
+  parsePriceAdjustmentInput,
+} from './request-body';
 import { scopeOf } from './store-scope-of';
 
 /**
@@ -56,6 +64,35 @@ export class FeeGroupActions {
     const scope = scopeOf(ctx);
     const parsed = parseCommuneRatesInput(provinceCode, rows);
     const group = await this.useCases.communes.set(asOperationContext(ctx), scope, idArgOf(id), parsed);
+    return toGroupDto(group);
+  }
+
+  /** "Raise/lower by…" the selected wilayas of the store's group `id` (D3140). */
+  async adjustPrices(ctx: RequestContext, id: unknown, input: unknown): Promise<DeliveryFeeGroup> {
+    const scope = scopeOf(ctx);
+    const parsed = parsePriceAdjustmentInput(input);
+    const group = await this.useCases.adjusting.adjust(asOperationContext(ctx), scope, idArgOf(id), parsed);
+    return toGroupDto(group);
+  }
+
+  /** "Set price for all communes" of one wilaya of the store's group `id` (D3140). */
+  async setCommunePrices(
+    ctx: RequestContext,
+    id: unknown,
+    provinceCode: unknown,
+    prices: unknown,
+  ): Promise<DeliveryFeeGroup> {
+    const scope = scopeOf(ctx);
+    const parsed = parseCommunePricesInput(provinceCode, prices);
+    const group = await this.useCases.communePrices.set(asOperationContext(ctx), scope, idArgOf(id), parsed);
+    return toGroupDto(group);
+  }
+
+  /** "Copy" the store's group `id` into a new group named `name` (D3140). */
+  async duplicate(ctx: RequestContext, id: unknown, name: unknown): Promise<DeliveryFeeGroup> {
+    const scope = scopeOf(ctx);
+    const parsed = parseDuplicateInput(name);
+    const group = await this.useCases.duplicating.duplicate(asOperationContext(ctx), scope, idArgOf(id), parsed);
     return toGroupDto(group);
   }
 }

@@ -67,3 +67,12 @@ export interface FeeGroupListQuery {
   readonly take: number;
   readonly search?: string;
 }
+
+/** The settings of a stored group, as an update or a copy writes them back. */
+export const settingsOfGroup = (group: FeeGroupSettings): FeeGroupSettings => ({
+  name: group.name,
+  carrierId: group.carrierId,
+  chargeOverweight: group.chargeOverweight,
+  overweightAllowanceKg: group.overweightAllowanceKg,
+  overweightRate: group.overweightRate,
+});

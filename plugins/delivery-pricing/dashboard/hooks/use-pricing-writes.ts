@@ -28,7 +28,7 @@ const messageIdOf = (error: unknown): string =>
   error instanceof FormInvalid ? FIX_ERRORS_MESSAGE_ID : failureMessageIdOf(error);
 
 /** Every cached read a write can change: the list, the option and the template. */
-function useRefreshAll() {
+export function useRefreshAll() {
   const queryClient = useQueryClient();
   return async (): Promise<void> => {
     for (const queryKey of [FEE_GROUPS_QUERY_KEY, FEE_GROUP_QUERY_KEY, PRICING_TEMPLATE_QUERY_KEY])

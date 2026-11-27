@@ -3,7 +3,7 @@
  * what another business gets back. The coverage test, the isolation sweep and the permission suite read it.
  */
 import { DELIVERY_PRICING_ERROR_CODES, type PermissionKey } from '@cod/shared';
-import { communeRow, groupInput } from './delivery-pricing-kit';
+import { communeRow, groupInput, priceAdjustment } from './delivery-pricing-kit';
 
 const D = DELIVERY_PRICING_ERROR_CODES;
 
@@ -92,6 +92,34 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     }`,
     variables: (ids) => ({ groupId: ids.groupId, rows: [communeRow(1601, 450)] }),
   },
+  {
+    operation: 'adjustDeliveryFeeGroupPrices',
+    access: 'delivery.pricing.edit',
+    foreign: 'not-found',
+    notFound: D.NOT_FOUND,
+    document: `mutation ($groupId: String!, $input: DeliveryFeePriceAdjustmentInput!) {
+      adjustDeliveryFeeGroupPrices(groupId: $groupId, input: $input) { id }
+    }`,
+    variables: (ids) => ({ groupId: ids.groupId, input: priceAdjustment() }),
+  },
+  {
+    operation: 'setDeliveryFeeProvinceCommunePrices',
+    access: 'delivery.pricing.edit',
+    foreign: 'not-found',
+    notFound: D.NOT_FOUND,
+    document: `mutation ($groupId: String!, $input: DeliveryFeeCommunePricesInput!) {
+      setDeliveryFeeProvinceCommunePrices(groupId: $groupId, provinceCode: "16", input: $input) { id }
+    }`,
+    variables: (ids) => ({ groupId: ids.groupId, input: { homePrice: 450 } }),
+  },
+  {
+    operation: 'duplicateDeliveryFeeGroup',
+    access: 'delivery.pricing.create',
+    foreign: 'not-found',
+    notFound: D.NOT_FOUND,
+    document: 'mutation ($groupId: String!) { duplicateDeliveryFeeGroup(groupId: $groupId, name: "Copied") { id } }',
+    variables: (ids) => ({ groupId: ids.groupId }),
+  },
 ];
 
 /** Every REST route the plugin's controllers declare. */
@@ -127,6 +155,30 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     byId: true,
     url: (ids) => `/delivery-fees/${ids.groupId}/communes/16`,
     body: () => ({ rows: [communeRow(1601, 450)] }),
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/adjust',
+    access: 'delivery.pricing.edit',
+    byId: true,
+    url: (ids) => `/delivery-fees/${ids.groupId}/adjust`,
+    body: () => priceAdjustment(),
+  },
+  {
+    method: 'PUT',
+    route: '/delivery-fees/:id/communes/:provinceCode/prices',
+    access: 'delivery.pricing.edit',
+    byId: true,
+    url: (ids) => `/delivery-fees/${ids.groupId}/communes/16/prices`,
+    body: () => ({ homePrice: 450 }),
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/duplicate',
+    access: 'delivery.pricing.create',
+    byId: true,
+    url: (ids) => `/delivery-fees/${ids.groupId}/duplicate`,
+    body: () => ({ name: 'Copied over REST' }),
   },
   {
     method: 'DELETE',

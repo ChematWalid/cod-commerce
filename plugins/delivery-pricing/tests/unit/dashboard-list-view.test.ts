@@ -58,7 +58,7 @@ describe('delivery page tabs', () => {
 });
 
 describe('pricing list', () => {
-  it('offers Edit with the edit key, View with the view key alone, and Delete with the delete key', () => {
+  it('offers Edit with the edit key, View with the view key alone, Copy with the create key, Delete with the delete key', () => {
     // Arrange
     const editor = new Set([VIEW_PRICING_KEY, EDIT_PRICING_KEY, DELETE_PRICING_KEY]);
     const viewer = new Set([VIEW_PRICING_KEY, CREATE_PRICING_KEY]);
@@ -67,7 +67,7 @@ describe('pricing list', () => {
     const actions = [rowActionsOf(editor), rowActionsOf(viewer), rowActionsOf(new Set<string>())];
 
     // Assert
-    expect(actions).toEqual([['edit', 'delete'], ['view'], []]);
+    expect(actions).toEqual([['edit', 'delete'], ['view', 'copy'], []]);
   });
 
   it('asks one page by name search, and keeps the page within the total after a delete', () => {

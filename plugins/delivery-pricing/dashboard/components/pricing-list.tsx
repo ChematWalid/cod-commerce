@@ -13,9 +13,11 @@ import {
   pricingPathOf,
 } from '../constants';
 import type { FeeGroupSummaryDto } from '../dto';
+import { useDuplicatePricing } from '../hooks/use-bulk-writes';
 import { useDeletePricing } from '../hooks/use-pricing-writes';
 import { errorMessageIdOf, pageWithin, type PricingListQuery, type PricingRowAction } from '../model/list-view';
 import { useFeeGroups } from '../queries';
+import { CopyDialog } from './copy-dialog';
 import { DeleteDialog } from './delete-dialog';
 import { LtrRun } from './ltr-run';
 import { PricingTable } from './pricing-table';
@@ -90,18 +92,23 @@ function ListBody({ groups, searched, held, onAction }: ListBodyProps): ReactNod
   return <PricingTable groups={groups.data.items} held={held} onAction={onAction} />;
 }
 
-/** Edit and View open the editor; Delete asks first. */
+/** Edit and View open the editor; Copy asks the copy's name (D3140); Delete asks first. */
 function useRowActions(store: SwitchableStoreView, scope: StoreScope | null) {
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState<FeeGroupSummaryDto | null>(null);
+  const [copying, setCopying] = useState<FeeGroupSummaryDto | null>(null);
   const remove = useDeletePricing(scope, () => {
     setDeleting(null);
   });
+  const copy = useDuplicatePricing(scope, () => {
+    setCopying(null);
+  });
   const onAction = (action: PricingRowAction, group: FeeGroupSummaryDto): void => {
     if (action === 'delete') setDeleting(group);
+    else if (action === 'copy') setCopying(group);
     else void navigate({ to: storePathFor(pricingPathOf(group.id), store.id) });
   };
-  return { onAction, deleting, setDeleting, remove };
+  return { onAction, deleting, setDeleting, remove, copying, setCopying, copy };
 }
 
 /** A delete can empty the last page: the list then shows the new last page, not an empty state. */
@@ -178,6 +185,19 @@ export function PricingList({ store, scope, held }: PricingListProps): ReactNode
           setQuery({ ...query, page });
         }}
       />
+      {rows.copying !== null && (
+        <CopyDialog
+          key={rows.copying.id}
+          group={rows.copying}
+          pending={rows.copy.isPending}
+          onConfirm={(name) => {
+            if (rows.copying !== null) rows.copy.mutate({ groupId: rows.copying.id, name });
+          }}
+          onClose={() => {
+            rows.setCopying(null);
+          }}
+        />
+      )}
       <DeleteDialog
         group={rows.deleting}
         pending={rows.remove.isPending}

@@ -1,8 +1,10 @@
 import { getApiBaseUrl } from '@/vdb/utils/config-utils.js';
 import { readRequestToken, sendForStore, type StoreScope, storeQuery } from '@cod/plugin-merchant-shell/shell-api';
 import {
+  type DeliveryFeeCommunePricesInput,
   type DeliveryFeeCommuneRatesInput,
   type DeliveryFeeGroupInput,
+  type DeliveryFeePriceAdjustmentInput,
   FEE_GROUP_LIST_MAX_TAKE,
   type Province,
   type Town,
@@ -17,7 +19,7 @@ import {
   PROVINCE_BY_CODE_ENDPOINT,
   TOWNS_QUERY_KEY,
 } from './constants';
-import type { FeeGroupDto, FeeGroupPageDto } from './dto';
+import type { FeeGroupDto, FeeGroupPageDto, FeeGroupSummaryDto } from './dto';
 import { listInputOf, type PricingListQuery } from './model/list-view';
 import { findPlatformDefaultId } from './model/template';
 
@@ -40,6 +42,15 @@ const DELETE_MUTATION = 'mutation DeliveryFeeGroupDelete($id: String!) { deleteD
 const COMMUNES_MUTATION = `mutation DeliveryFeeCommunesSet($groupId: String!, $provinceCode: String!,
   $rows: [DeliveryFeeCommuneRateInput!]!) {
   setDeliveryFeeCommuneRates(groupId: $groupId, provinceCode: $provinceCode, rows: $rows) { ${GROUP_FIELDS} } }`;
+
+const ADJUST_MUTATION = `mutation DeliveryFeeGroupAdjust($groupId: String!, $input: DeliveryFeePriceAdjustmentInput!) {
+  adjustDeliveryFeeGroupPrices(groupId: $groupId, input: $input) { ${GROUP_FIELDS} } }`;
+const COMMUNE_PRICES_MUTATION = `mutation DeliveryFeeCommunePricesSet($groupId: String!, $provinceCode: String!,
+  $input: DeliveryFeeCommunePricesInput!) {
+  setDeliveryFeeProvinceCommunePrices(groupId: $groupId, provinceCode: $provinceCode, input: $input) {
+    ${GROUP_FIELDS} } }`;
+const DUPLICATE_MUTATION = `mutation DeliveryFeeGroupDuplicate($groupId: String!, $name: String!) {
+  duplicateDeliveryFeeGroup(groupId: $groupId, name: $name) { id name carrierId isPlatformDefault createdAt } }`;
 
 /** A write sent only while requests go to `scope`'s store; the answer's shape is the document's. */
 async function mutate<T>(scope: StoreScope | null, document: string, variables: object): Promise<T> {
@@ -114,3 +125,39 @@ export const setCommuneRates = async (
 ): Promise<FeeGroupDto> =>
   (await mutate<{ readonly setDeliveryFeeCommuneRates: FeeGroupDto }>(scope, COMMUNES_MUTATION, { groupId, ...input }))
     .setDeliveryFeeCommuneRates;
+
+/** "Raise/lower by…" the selected wilayas of a pricing option (D3140). */
+export const adjustFeeGroupPrices = async (
+  scope: StoreScope | null,
+  groupId: string,
+  input: DeliveryFeePriceAdjustmentInput,
+): Promise<FeeGroupDto> =>
+  (await mutate<{ readonly adjustDeliveryFeeGroupPrices: FeeGroupDto }>(scope, ADJUST_MUTATION, { groupId, input }))
+    .adjustDeliveryFeeGroupPrices;
+
+/** "Set price for all communes" of one wilaya of a pricing option (D3140). */
+export const setProvinceCommunePrices = async (
+  scope: StoreScope | null,
+  groupId: string,
+  { provinceCode, prices }: DeliveryFeeCommunePricesInput,
+): Promise<FeeGroupDto> =>
+  (
+    await mutate<{ readonly setDeliveryFeeProvinceCommunePrices: FeeGroupDto }>(scope, COMMUNE_PRICES_MUTATION, {
+      groupId,
+      provinceCode,
+      input: prices,
+    })
+  ).setDeliveryFeeProvinceCommunePrices;
+
+/** "Copy" a pricing option under a new name (D3140). */
+export const duplicateFeeGroup = async (
+  scope: StoreScope | null,
+  groupId: string,
+  name: string,
+): Promise<FeeGroupSummaryDto> =>
+  (
+    await mutate<{ readonly duplicateDeliveryFeeGroup: FeeGroupSummaryDto }>(scope, DUPLICATE_MUTATION, {
+      groupId,
+      name,
+    })
+  ).duplicateDeliveryFeeGroup;

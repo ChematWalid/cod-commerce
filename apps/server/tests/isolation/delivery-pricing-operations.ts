@@ -68,6 +68,24 @@ export const SET_COMMUNES = `mutation ($groupId: String!, $provinceCode: String!
   setDeliveryFeeCommuneRates(groupId: $groupId, provinceCode: $provinceCode, rows: $rows) { id }
 }`;
 
+/** A "Raise/lower by…" of Alger's home price by 10 %, commune overrides left as they are (D3140). */
+export const priceAdjustment = (): Record<string, unknown> => ({
+  provinceCodes: [ALGER],
+  kind: 'percent',
+  value: 10,
+  home: true,
+  desk: false,
+});
+export const ADJUST_PRICES = `mutation ($groupId: String!, $input: DeliveryFeePriceAdjustmentInput!) {
+  adjustDeliveryFeeGroupPrices(groupId: $groupId, input: $input) { id }
+}`;
+export const SET_COMMUNE_PRICES = `mutation ($groupId: String!, $provinceCode: String!, $input: DeliveryFeeCommunePricesInput!) {
+  setDeliveryFeeProvinceCommunePrices(groupId: $groupId, provinceCode: $provinceCode, input: $input) { id }
+}`;
+export const DUPLICATE_GROUP = `mutation ($groupId: String!, $name: String!) {
+  duplicateDeliveryFeeGroup(groupId: $groupId, name: $name) { id name }
+}`;
+
 export const DELIVERY_PRICING_OPERATIONS: readonly SweptOperation<FeeGroupTarget>[] = [
   {
     name: 'deliveryFeeGroups',
@@ -114,6 +132,27 @@ export const DELIVERY_PRICING_OPERATIONS: readonly SweptOperation<FeeGroupTarget
     }),
     foreign: { kind: 'code', code: D.NOT_FOUND },
   },
+  {
+    name: 'adjustDeliveryFeeGroupPrices',
+    entity: 'delivery fee group',
+    document: ADJUST_PRICES,
+    variables: (t) => ({ groupId: t.groupId, input: priceAdjustment() }),
+    foreign: { kind: 'code', code: D.NOT_FOUND },
+  },
+  {
+    name: 'setDeliveryFeeProvinceCommunePrices',
+    entity: 'delivery fee commune rate',
+    document: SET_COMMUNE_PRICES,
+    variables: (t) => ({ groupId: t.groupId, provinceCode: ALGER, input: { homePrice: WRITTEN_COMMUNE_PRICE } }),
+    foreign: { kind: 'code', code: D.NOT_FOUND },
+  },
+  {
+    name: 'duplicateDeliveryFeeGroup',
+    entity: 'delivery fee group',
+    document: DUPLICATE_GROUP,
+    variables: (t) => ({ groupId: t.groupId, name: 'Copied by the matrix' }),
+    foreign: { kind: 'code', code: D.NOT_FOUND },
+  },
 ];
 
 const notFound = { kind: 'status', status: NOT_FOUND, code: D.NOT_FOUND } as const;
@@ -148,6 +187,30 @@ export const DELIVERY_PRICING_ROUTES: readonly SweptRoute<FeeGroupTarget>[] = [
     entity: 'delivery fee commune rate',
     path: (t) => `/delivery-fees/${t.groupId}/communes/${ALGER}`,
     body: () => ({ rows: [communeRow(ALGER_CENTRE, WRITTEN_COMMUNE_PRICE)] }),
+    foreign: notFound,
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/adjust',
+    entity: 'delivery fee group',
+    path: (t) => `/delivery-fees/${t.groupId}/adjust`,
+    body: () => priceAdjustment(),
+    foreign: notFound,
+  },
+  {
+    method: 'PUT',
+    route: '/delivery-fees/:id/communes/:provinceCode/prices',
+    entity: 'delivery fee commune rate',
+    path: (t) => `/delivery-fees/${t.groupId}/communes/${ALGER}/prices`,
+    body: () => ({ homePrice: WRITTEN_COMMUNE_PRICE }),
+    foreign: notFound,
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/duplicate',
+    entity: 'delivery fee group',
+    path: (t) => `/delivery-fees/${t.groupId}/duplicate`,
+    body: () => ({ name: 'Copied by the matrix over REST' }),
     foreign: notFound,
   },
   {

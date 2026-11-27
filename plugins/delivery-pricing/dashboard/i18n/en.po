@@ -270,3 +270,115 @@ msgstr "This pricing option is the store's default or the platform default table
 #. js-lingui-explicit-id
 msgid "delivery-pricing.carrier-not-found"
 msgstr "This carrier does not exist in this store."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.select-wilaya"
+msgstr "Select wilaya"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.select-all"
+msgstr "Select all wilayas"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.selected-count"
+msgstr "Selected: {count}"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.save-first-bulk"
+msgstr "Save your changes first to raise or lower prices."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-open"
+msgstr "Raise/lower by…"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-heading"
+msgstr "Raise or lower prices"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-body"
+msgstr "Applies to the selected wilayas: {count}."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-direction"
+msgstr "Change"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-raise"
+msgstr "Raise"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-lower"
+msgstr "Lower"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-kind"
+msgstr "By"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-amount"
+msgstr "Amount (DZD)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-percent"
+msgstr "Percentage (%)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-value"
+msgstr "Value"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-include-communes"
+msgstr "Include communes"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-communes-note"
+msgstr "Commune prices set by hand stay as they are unless \"Include communes\" is ticked. Prices are rounded to the nearest dinar and never go below 0."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-invalid"
+msgstr "Enter a whole number (a cut of at most 100 %) and choose at least one price."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjust-apply"
+msgstr "Apply"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.adjusted"
+msgstr "Prices updated."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-title"
+msgstr "Set price for all communes"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-apply"
+msgstr "Set for all communes"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-hint"
+msgstr "A blank price is left as each commune has it."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.commune-prices-saved"
+msgstr "Prices set for every commune."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-copy"
+msgstr "Copy"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copy-heading"
+msgstr "Copy pricing option"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copy-name"
+msgstr "Copy of {name}"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copy-name-label"
+msgstr "Name of the copy"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.copied"
+msgstr "Pricing option copied."

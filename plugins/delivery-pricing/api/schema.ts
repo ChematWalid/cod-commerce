@@ -88,6 +88,22 @@ export const deliveryPricingAdminApiSchema = gql`
     deskEnabled: Boolean
   }
 
+  "Raise/lower by... (D3140): kind is amount (whole DZD) or percent; includeCommunes defaults to false."
+  input DeliveryFeePriceAdjustmentInput {
+    provinceCodes: [String!]!
+    kind: String!
+    value: Int!
+    home: Boolean!
+    desk: Boolean!
+    includeCommunes: Boolean
+  }
+
+  "Set price for all communes (D3140): an absent price is left as stored, a null one clears the overrides."
+  input DeliveryFeeCommunePricesInput {
+    homePrice: Int
+    deskPrice: Int
+  }
+
   extend type Query {
     deliveryFeeGroups(options: DeliveryFeeGroupListInput): DeliveryFeeGroupPage!
     deliveryFeeGroup(id: String!): DeliveryFeeGroup
@@ -102,5 +118,12 @@ export const deliveryPricingAdminApiSchema = gql`
       provinceCode: String!
       rows: [DeliveryFeeCommuneRateInput!]!
     ): DeliveryFeeGroup!
+    adjustDeliveryFeeGroupPrices(groupId: String!, input: DeliveryFeePriceAdjustmentInput!): DeliveryFeeGroup!
+    setDeliveryFeeProvinceCommunePrices(
+      groupId: String!
+      provinceCode: String!
+      input: DeliveryFeeCommunePricesInput!
+    ): DeliveryFeeGroup!
+    duplicateDeliveryFeeGroup(groupId: String!, name: String!): DeliveryFeeGroup!
   }
 `;

@@ -1,9 +1,9 @@
 import type { StoreScope } from '@cod/plugin-merchant-shell/shell-api';
 import type { WilayaCode } from '@cod/shared';
 import { useLingui } from '@lingui/react';
-import { Badge, Button, Input, Switch } from '@vendure/dashboard';
+import { Badge, Button, Checkbox, Input, Switch } from '@vendure/dashboard';
 import type { ReactNode } from 'react';
-import { COMMUNES_SAVE_FIRST_TEST_ID, WILAYA_ROW_TEST_ID } from '../constants';
+import { COMMUNES_SAVE_FIRST_TEST_ID, WILAYA_ROW_TEST_ID, WILAYA_SELECT_TEST_ID } from '../constants';
 import { communePanelOf } from '../model/commune-form';
 import { wilayaNameOf } from '../model/place-names';
 import { type PricingRow, type RowChange, rowOverridden } from '../model/pricing-form';
@@ -23,6 +23,9 @@ export interface WilayaRowProps {
   /** Communes of the wilaya explicitly switched on: they still deliver when it goes off (D3125). */
   readonly communesOn: number;
   readonly expanded: boolean;
+  /** Ticked for "Raise/lower by…" (D3140). */
+  readonly selected: boolean;
+  readonly onSelect: (provinceCode: WilayaCode, on: boolean) => void;
   readonly onExpand: (provinceCode: WilayaCode) => void;
   readonly onChange: (provinceCode: WilayaCode, change: RowChange) => void;
   readonly onReset: (provinceCode: WilayaCode) => void;
@@ -71,13 +74,25 @@ function SwitchCell(props: { label: string; checked: boolean; disabled: boolean;
   );
 }
 
-function NameCell({ row, disabled, onReset }: Pick<WilayaRowProps, 'row' | 'disabled' | 'onReset'>): ReactNode {
+type NameCellProps = Pick<WilayaRowProps, 'row' | 'disabled' | 'selected' | 'onSelect' | 'onReset'>;
+
+function NameCell({ row, disabled, selected, onSelect, onReset }: NameCellProps): ReactNode {
   const { i18n } = useLingui();
   const overridden = rowOverridden(row);
+  const name = wilayaNameOf(row.provinceCode, i18n.locale);
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Checkbox
+        data-testid={WILAYA_SELECT_TEST_ID}
+        aria-label={`${i18n._('delivery-pricing.select-wilaya')}: ${name}`}
+        checked={selected}
+        disabled={disabled}
+        onCheckedChange={(on) => {
+          onSelect(row.provinceCode, on);
+        }}
+      />
       <LtrRun>{row.provinceCode}</LtrRun>
-      <span className="font-medium">{wilayaNameOf(row.provinceCode, i18n.locale)}</span>
+      <span className="font-medium">{name}</span>
       {overridden && <Badge variant="warning">{i18n._('delivery-pricing.overridden')}</Badge>}
       {overridden && !disabled && (
         <Button
@@ -190,7 +205,13 @@ export function WilayaRow(props: WilayaRowProps): ReactNode {
       data-province-code={row.provinceCode}
       className={`${WILAYA_GRID} border-b py-3`}
     >
-      <NameCell row={row} disabled={disabled} onReset={props.onReset} />
+      <NameCell
+        row={row}
+        disabled={disabled}
+        selected={props.selected}
+        onSelect={props.onSelect}
+        onReset={props.onReset}
+      />
       <PriceCells row={row} refused={props.refused} disabled={disabled} onChange={props.onChange} />
       <SwitchCells row={row} disabled={disabled} onChange={props.onChange} />
       <Button

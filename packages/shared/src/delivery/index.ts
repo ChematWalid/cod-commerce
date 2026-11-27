@@ -1,3 +1,4 @@
+export * from './bulk-prices';
 export * from './commune-rate';
 export * from './constants';
 export * from './error-codes';

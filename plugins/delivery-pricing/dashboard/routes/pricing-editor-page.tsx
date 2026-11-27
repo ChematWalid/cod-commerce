@@ -11,6 +11,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { ActionBarItem, Button, Page, PageActionBar, PageBlock, PageLayout, PageTitle } from '@vendure/dashboard';
 import { type ReactNode, useState } from 'react';
 import { BulkCard } from '../components/bulk-card';
+import { SelectionBar } from '../components/selection-bar';
 import { SettingsCard } from '../components/settings-card';
 import { WilayaTable } from '../components/wilaya-table';
 import {
@@ -24,9 +25,11 @@ import {
   pricingPathOf,
   VIEW_PRICING_KEY,
 } from '../constants';
+import type { WilayaCode } from '@cod/shared';
 import type { CommuneRateDto, FeeGroupDto } from '../dto';
 import { usePricingSave } from '../hooks/use-pricing-writes';
 import { errorMessageIdOf } from '../model/list-view';
+import { sameForm, withSelected } from '../model/price-tools';
 import { newPricingFormOf, type PricingForm, pricingFormOf } from '../model/pricing-form';
 import { useFeeGroup, usePricingTemplate } from '../queries';
 
@@ -50,18 +53,34 @@ function useEditor({ store, scope, group, initial }: EditorProps) {
   const navigate = useNavigate();
   const held = useHeldPermissions(scope);
   const [form, setForm] = useState(initial);
+  // The form as last saved or written by a bulk tool: a server-side tool works on these prices, not unsaved edits.
+  const [saved, setSaved] = useState(initial);
   const [errors, setErrors] = useState<ReadonlySet<string>>(new Set());
+  const onWritten = (written: FeeGroupDto): void => {
+    const next = pricingFormOf(written);
+    setForm(next);
+    setSaved(next);
+  };
   const save = usePricingSave({
     scope,
     groupId: group?.id ?? null,
     onErrors: setErrors,
-    onSaved: (saved) => {
-      if (group === null) void navigate({ to: storePathFor(pricingPathOf(saved.id), store.id) });
-      else setForm(pricingFormOf(saved));
+    onSaved: (written) => {
+      if (group === null) void navigate({ to: storePathFor(pricingPathOf(written.id), store.id) });
+      else onWritten(written);
     },
   });
   const canSave = held.has(group === null ? CREATE_PRICING_KEY : EDIT_PRICING_KEY);
-  return { form, setForm, errors, save, canSave };
+  return { form, setForm, errors, save, canSave, unsaved: !sameForm(form, saved), onWritten };
+}
+
+/** The wilayas ticked for "Raise/lower by…" (D3140) and how one is ticked. */
+function useSelection() {
+  const [selection, setSelection] = useState<ReadonlySet<WilayaCode>>(new Set());
+  const onSelect = (code: WilayaCode, on: boolean): void => {
+    setSelection((current) => withSelected(current, code, on));
+  };
+  return { selection, setSelection, onSelect };
 }
 
 /**
@@ -94,7 +113,8 @@ function EditorActions(props: { readonly canSave: boolean; readonly busy: boolea
 
 function EditorPage(props: EditorProps): ReactNode {
   const { i18n } = useLingui();
-  const { form, setForm, errors, save, canSave } = useEditor(props);
+  const { form, setForm, errors, save, canSave, unsaved, onWritten } = useEditor(props);
+  const { selection, setSelection, onSelect } = useSelection();
   const disabled = !canSave;
   const onChange = (change: Partial<PricingForm>): void => {
     setForm((current) => ({ ...current, ...change }));
@@ -117,8 +137,20 @@ function EditorPage(props: EditorProps): ReactNode {
           <BulkCard form={form} disabled={disabled} onForm={setForm} />
         </PageBlock>
         <PageBlock column="main" blockId={BLOCK_IDS.table} title={i18n._('delivery-pricing.wilayas-title')}>
+          <SelectionBar
+            scope={props.scope}
+            groupId={props.group?.id ?? null}
+            codes={form.rows.map((row) => row.provinceCode)}
+            selection={selection}
+            unsaved={unsaved}
+            disabled={disabled}
+            onSelection={setSelection}
+            onAdjusted={onWritten}
+          />
           <WilayaTable
             form={form}
+            selection={selection}
+            onSelect={onSelect}
             errors={errors}
             disabled={disabled}
             scope={props.scope}
