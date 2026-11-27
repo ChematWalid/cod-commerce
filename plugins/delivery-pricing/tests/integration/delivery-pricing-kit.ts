@@ -186,13 +186,17 @@ export class DeliveryPricingKit extends StoreKit {
     return { status: response.status, body: JSON.parse(text) as GraphqlAnswer, text };
   }
 
-  /** A REST call whose body is raw CSV (`Content-Type: text/csv`), with the client's session and channel. */
-  async restCsv(path: string, bytes: Uint8Array, contentType = 'text/csv'): Promise<StoreRestAnswer> {
+  /**
+   * A REST call whose body is raw CSV (`Content-Type: text/csv`, or `contentType`; `null` sends none), with the
+   * client's session and channel. The client's own `fetch` always adds a JSON content type, so this one is plain.
+   */
+  async restCsv(path: string, bytes: Uint8Array, contentType: string | null = 'text/csv'): Promise<StoreRestAnswer> {
     const { port } = (this.app.getHttpServer() as Server).address() as AddressInfo;
-    const response = await this.client.fetch(`http://localhost:${String(port)}${path}`, {
+    const { headers } = this.client as unknown as ClientInternals;
+    const response = await fetch(`http://localhost:${String(port)}${path}`, {
       method: 'POST',
       body: Buffer.from(bytes),
-      headers: { 'Content-Type': contentType },
+      headers: contentType === null ? headers : { ...headers, 'Content-Type': contentType },
     });
     const text = await response.text();
     return { status: response.status, body: text === '' ? null : (JSON.parse(text) as unknown), text };

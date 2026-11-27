@@ -130,7 +130,7 @@ describe('pricing CSV import', () => {
     expect(result?.group?.communeRates.map((row) => row.codeOns).sort()).toEqual([1601, 1652]);
   });
 
-  it('applies a raw text/csv body over REST with ?dryRun=false', async () => {
+  it('applies a raw text/csv body over REST with ?dryRun=false, the media type in any case with a charset', async () => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
     const group = await pricedGroup();
@@ -139,6 +139,7 @@ describe('pricing CSV import', () => {
     const answer = await suite.kit.restCsv(
       `/delivery-fees/${group.id}/import?dryRun=false`,
       pricingCsv('wilaya,16,,700,400,true,true'),
+      'Text/CSV; charset=utf-8',
     );
 
     // Assert
@@ -226,7 +227,7 @@ describe('pricing CSV import', () => {
 
   it.each([
     ['a dry-run flag that is no boolean', '?dryRun=maybe', 'text/csv', D.INVALID_INPUT],
-    ['a JSON body, which is no CSV', '', 'application/json', null],
+    ['a JSON body, which is no CSV', '', 'application/json', D.CSV_INVALID_FILE],
   ])('refuses %s over REST', async (_label, query, contentType, code) => {
     // Arrange
     await suite.kit.asOwner(suite.fixtures.a);
@@ -237,8 +238,28 @@ describe('pricing CSV import', () => {
     const answer = await suite.kit.restCsv(`/delivery-fees/${group.id}/import${query}`, body, contentType);
 
     // Assert
-    expect(answer.status).toBe(400);
-    if (code !== null) expect(answer.body).toMatchObject({ code });
+    expect(answer).toMatchObject({ status: 400, body: { code } });
+  });
+
+  it.each([
+    ['text/plain, which a cross-site form may send without a preflight', 'text/plain'],
+    ['a body with no content type', null],
+  ])('refuses %s and writes nothing, though the body is a valid CSV', async (_label, contentType) => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const group = await pricedGroup();
+    const before = await suite.kit.group(group.id);
+
+    // Act
+    const answer = await suite.kit.restCsv(
+      `/delivery-fees/${group.id}/import?dryRun=false`,
+      pricingCsv('wilaya,16,,700,400,true,true'),
+      contentType,
+    );
+
+    // Assert
+    expect(answer).toMatchObject({ status: 400, body: { code: D.CSV_INVALID_FILE } });
+    expect(await suite.kit.group(group.id)).toEqual(before);
   });
 
   it.each([
