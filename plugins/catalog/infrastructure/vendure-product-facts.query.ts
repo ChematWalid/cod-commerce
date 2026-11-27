@@ -30,6 +30,19 @@ JOIN "product_channels_channel" pc ON pc."productId" = p."id" AND pc."channelId"
 WHERE p."id" = ANY($3::int[]) AND p."deletedAt" IS NULL
 ORDER BY p."id" DESC`;
 
+/** The weight in grams (`null` when unset) of the live products of the channel `$1` among the ids `$2` (D3119). */
+const WEIGHTS_SQL = `
+SELECT p."id"::text AS "productId", p."customFieldsWeight" AS "weight"
+FROM "product" p
+JOIN "product_channels_channel" pc ON pc."productId" = p."id" AND pc."channelId" = $1
+WHERE p."id" = ANY($2::int[]) AND p."deletedAt" IS NULL`;
+
+/** A live product's weight in grams, `null` when none is set. */
+export interface ProductWeightRow {
+  readonly productId: CoreId;
+  readonly weight: number | null;
+}
+
 /**
  * The live options of the variant `v` whose option and option group are live and the product's own, in order. An
  * option or group without any translation is left out, as `OPTIONS_SQL` leaves it out of the picker: no rule names it.
@@ -136,6 +149,12 @@ export class VendureProductFactsQuery {
     const pattern = search === null ? null : likePattern(search);
     const rows = await this.run<{ id: string }>(ctx, PAGE_SQL, [after, pattern, limit]);
     return rows.map((row) => toCoreId(row.id));
+  }
+
+  /** The weight of each live product of the context's channel among `ids` (D3119, the shipping quote). */
+  async weights(ctx: RequestContext, ids: readonly CoreId[]): Promise<readonly ProductWeightRow[]> {
+    const rows = await this.run<{ productId: string; weight: number | null }>(ctx, WEIGHTS_SQL, [[...ids]]);
+    return rows.map((row) => ({ productId: toCoreId(row.productId), weight: row.weight }));
   }
 
   /** Every distinct option name and value of the context's channel. */

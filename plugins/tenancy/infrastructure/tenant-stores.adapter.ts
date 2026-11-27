@@ -7,9 +7,10 @@ import { toRequestContext } from './operation-context.adapter';
 import { RequestTenantScope } from './request-tenant-scope';
 import { StoreEntity } from './store.entity';
 import { translateSubdomainConflict } from './subdomain-conflict';
-import { type TenantRepository, TenantRepositoryFactory } from './tenant-repository';
+import { type TenantRepository, TenantRepositoryFactory, tenantQuery } from './tenant-repository';
 
-function toStore(row: StoreEntity): Store {
+/** A store row as the domain sees it. */
+export function toStore(row: StoreEntity): Store {
   const id = toStoreId(row.id);
   return {
     id,
@@ -50,6 +51,14 @@ export class TenantStoresAdapter implements TenantStoresPort {
 
   async find(ctx: OperationContext, businessId: BusinessId, id: StoreId): Promise<Store | undefined> {
     const row = await this.stores.findOne(this.scope(ctx, businessId), { id });
+    return row === null ? undefined : toStore(row);
+  }
+
+  async findForUpdate(ctx: OperationContext, businessId: BusinessId, id: StoreId): Promise<Store | undefined> {
+    const row = await tenantQuery(this.scope(ctx, businessId), this.stores, 'store')
+      .andWhere('store.id = :id', { id })
+      .setLock('pessimistic_write')
+      .getOne();
     return row === null ? undefined : toStore(row);
   }
 

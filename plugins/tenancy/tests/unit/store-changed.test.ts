@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ArchiveStoreService } from '../../application/archive-store.service';
 import { ChangeSubdomainService } from '../../application/change-subdomain.service';
 import type { StoreAdminPorts } from '../../application/store-admin-ports';
+import { StoreReferenceRegistry } from '../../application/store-reference.registry';
 import { TenantLifecycleRegistry } from '../../application/tenant-lifecycle.registry';
 import { UpdateStoreService } from '../../application/update-store.service';
 import { asOperationContext, type OperationContext } from '../../domain/ports/operation-context';
@@ -48,6 +49,10 @@ class JournalingStores implements TenantStoresPort {
 
   find(_ctx: OperationContext, _businessId: BusinessId, id: StoreId): Promise<Store | undefined> {
     return Promise.resolve(this.rows.get(id));
+  }
+
+  findForUpdate(ctx: OperationContext, businessId: BusinessId, id: StoreId): Promise<Store | undefined> {
+    return this.find(ctx, businessId, id);
   }
 
   countActive(): Promise<number> {
@@ -105,6 +110,7 @@ function setUp(options: { fail?: boolean } = {}) {
     clock: (): Date => NOW,
     stores,
     hosts,
+    references: new StoreReferenceRegistry(),
   };
   return { journal, probe, ports, hosts };
 }

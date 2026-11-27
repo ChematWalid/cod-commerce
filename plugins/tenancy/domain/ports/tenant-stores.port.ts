@@ -9,6 +9,8 @@ export type StoreWrite = Partial<Omit<Store, 'id' | 'businessId' | 'storeId' | '
 export interface TenantStoresPort {
   list(ctx: OperationContext, businessId: BusinessId): Promise<readonly Store[]>;
   find(ctx: OperationContext, businessId: BusinessId, id: StoreId): Promise<Store | undefined>;
+  /** Like {@link find}, with the store row locked `FOR UPDATE` until the transaction `ctx` carries ends. */
+  findForUpdate(ctx: OperationContext, businessId: BusinessId, id: StoreId): Promise<Store | undefined>;
   countActive(ctx: OperationContext, businessId: BusinessId): Promise<number>;
   /** @throws {SubdomainTakenError} when `write.subdomain` loses a race for the unique subdomain. */
   update(ctx: OperationContext, businessId: BusinessId, id: StoreId, write: StoreWrite): Promise<void>;

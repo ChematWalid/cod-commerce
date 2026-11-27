@@ -3,6 +3,7 @@ import type { Expectation, IsolationCase } from './matrix';
 import { CATALOG_IMPORT_WORLDS, catalogImportFingerprints } from './catalog-import-world';
 import { CATALOG_WORLDS, catalogFingerprints } from './catalog-world';
 import { COLLECTION_WORLDS, collectionsFingerprints } from './collections-world';
+import { DELIVERY_PRICING_WORLDS, deliveryPricingFingerprints } from './delivery-pricing-rows';
 import { OFFERS_WORLDS, offersFingerprints } from './offers-rows';
 import { TEAM_WORLDS, teamFingerprints } from './team-world';
 import type { BusinessWorld, World } from './world-types';
@@ -33,6 +34,7 @@ export function fingerprintsOf(victim: BusinessWorld): string[] {
   const collections = COLLECTION_WORLDS.get(victim.label);
   const offers = OFFERS_WORLDS.get(victim.label);
   const imported = CATALOG_IMPORT_WORLDS.get(victim.label);
+  const pricing = DELIVERY_PRICING_WORLDS.get(victim.label);
   return [
     ...allValuesOf(victim),
     ...(team === undefined ? [] : teamFingerprints(team)),
@@ -40,6 +42,7 @@ export function fingerprintsOf(victim: BusinessWorld): string[] {
     ...(collections === undefined ? [] : collectionsFingerprints(collections)),
     ...(offers === undefined ? [] : offersFingerprints(offers)),
     ...(imported === undefined ? [] : catalogImportFingerprints(imported)),
+    ...(pricing === undefined ? [] : deliveryPricingFingerprints(pricing)),
   ].filter((value) => value.length >= MIN_FINGERPRINT_LENGTH);
 }
 

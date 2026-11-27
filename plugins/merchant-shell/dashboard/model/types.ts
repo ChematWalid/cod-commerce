@@ -53,4 +53,5 @@ export interface StoreRecord {
   readonly logoUrl: string | null;
   readonly showAddressField: boolean;
   readonly soldOutBehavior: SoldOutBehavior;
+  readonly defaultDeliveryFeeGroupId: string | null;
 }

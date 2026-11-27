@@ -21,4 +21,6 @@ export const E2E_PORTS = {
   isolation: 3064,
   p2Isolation: 3065,
   p3Isolation: 3066,
+  /** P3.S1's delivery-pricing rows: their own world, so their own file and port (merged next to P3.S2's). */
+  p3DeliveryPricingIsolation: 3067,
 } as const;

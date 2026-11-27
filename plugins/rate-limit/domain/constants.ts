@@ -6,6 +6,11 @@ const DAY_SECONDS = 86_400;
 export const ACCOUNT_CAPACITY = 10;
 /** Requests per minute one client IP may make to an account-facing endpoint; high for shared mobile networks (D29). */
 export const IP_CAPACITY = 60;
+/**
+ * Reads per minute one client IP may make of the public wilaya list (D3117): a buyer's page reads the list and a
+ * wilaya or two, behind shared mobile addresses; the storefront server reads the signed route, which is not limited.
+ */
+export const PROVINCES_IP_CAPACITY = 120;
 /** Sign-ups per hour from one IP (D29). */
 export const REGISTER_IP_CAPACITY = 20;
 

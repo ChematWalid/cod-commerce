@@ -80,7 +80,7 @@ describe('Store Admin API', () => {
     expect(failure.codes).toEqual(['ids.invalid-snowflake']);
   });
 
-  it('round-trips all eight store settings', async () => {
+  it('round-trips the six store settings that name no other record', async () => {
     // Arrange
     await asAlpha();
     const logoAssetId = await seedAsset(server.app, api.alpha.store.channelId);
@@ -89,8 +89,6 @@ describe('Store Admin API', () => {
       description: 'A description',
       logoAssetId,
       language: 'fr',
-      defaultDeliveryFeeGroupId: '9007199254740993',
-      defaultCarrierId: '9007199254740995',
       showAddressField: false,
       soldOutBehavior: 'hide',
     };
@@ -107,23 +105,44 @@ describe('Store Admin API', () => {
     expect(store).toMatchObject(settings);
   });
 
-  it('clears a nullable setting on null and keeps it when omitted', async () => {
+  it.each([
+    ['delivery fee group', { defaultDeliveryFeeGroupId: '9007199254740993' }],
+    ['carrier', { defaultCarrierId: '9007199254740995' }],
+  ])('refuses any %s id while no plugin checks it (#230, #153)', async (_kind, input) => {
     // Arrange
     await asAlpha();
-    await adminClient.query(UPDATE_STORE, {
-      id: api.alpha.store.id,
-      input: { defaultCarrierId: '7', description: 'kept' },
-    });
+    const before = await rows().findOneByOrFail({ id: api.alpha.store.id });
+
+    // Act
+    const failure = await failureOf(
+      adminClient.query(UPDATE_STORE, { id: api.alpha.store.id, input: { ...input, name: 'not saved' } }),
+    );
+
+    // Assert
+    expect(failure.codes).toEqual(['tenancy.store-reference-not-found']);
+    expect(await rows().findOneByOrFail({ id: api.alpha.store.id })).toEqual(before);
+  });
+
+  it('clears the carrier on null, keeps an omitted setting, and refuses to clear the fee group (D3108)', async () => {
+    // Arrange
+    await asAlpha();
+    // Dangling ids, as an update before #230 could store: null must still clear the carrier.
+    await rows().update({ id: api.alpha.store.id }, { defaultCarrierId: '7', defaultDeliveryFeeGroupId: '8' });
+    await adminClient.query(UPDATE_STORE, { id: api.alpha.store.id, input: { description: 'kept' } });
 
     // Act
     const { updateStore } = await adminClient.query<{ updateStore: StoreView }>(UPDATE_STORE, {
       id: api.alpha.store.id,
       input: { defaultCarrierId: null },
     });
+    const refusal = await failureOf(
+      adminClient.query(UPDATE_STORE, { id: api.alpha.store.id, input: { defaultDeliveryFeeGroupId: null } }),
+    );
 
     // Assert
-    expect(updateStore.defaultCarrierId).toBeNull();
-    expect(updateStore.description).toBe('kept');
+    expect(updateStore).toMatchObject({ defaultCarrierId: null, defaultDeliveryFeeGroupId: '8', description: 'kept' });
+    expect(refusal.codes).toEqual(['tenancy.store-reference-required']);
+    expect((await rows().findOneByOrFail({ id: api.alpha.store.id })).defaultDeliveryFeeGroupId).toBe('8');
   });
 
   it('moves the channel to the new store language (D7)', async () => {

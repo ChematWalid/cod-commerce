@@ -76,6 +76,16 @@ export const CATALOG_IMPORT_TABLE_COUNTS = {
 } as const;
 
 /**
+ * The delivery-pricing tables (P3.S1, D3125): the P3 world creates two groups with their wilaya rows and a commune
+ * override on each business's first store. The geo tables are global reference data (D3103), outside the census.
+ */
+export const DELIVERY_PRICING_TABLE_COUNTS = {
+  delivery_fee_group: BY_BUSINESS('delivery_fee_group'),
+  delivery_fee_rate: BY_BUSINESS('delivery_fee_rate'),
+  delivery_fee_commune_rate: BY_BUSINESS('delivery_fee_commune_rate'),
+} as const;
+
+/**
  * The storefront tables (P3.S2, D3205, D3220): the P3 world's products reach the per-store projection through the
  * outbox, and its first storefront search seeds the business's Darija synonyms. Only the P3 census expects them filled:
  * the P2 world never searches.
@@ -85,8 +95,8 @@ export const STOREFRONT_TABLE_COUNTS = {
   storefront_search_synonym: BY_BUSINESS('storefront_search_synonym'),
 } as const;
 
-/** Every counted table: P1's, the catalog's, the offers', the collections', the packs', the import's and P3's. */
-const ALL_TABLE_COUNTS = {
+/** The tables the P2 world fills: P1's, the catalog's, the offers', the collections', the packs' and the import's. */
+const P2_TABLE_COUNTS = {
   ...TENANT_TABLE_COUNTS,
   ...CATALOG_TABLE_COUNTS,
   ...OFFERS_TABLE_COUNTS,
@@ -94,9 +104,13 @@ const ALL_TABLE_COUNTS = {
   // P2.S2: the packs' and the import's.
   ...CATALOG_PACKS_TABLE_COUNTS,
   ...CATALOG_IMPORT_TABLE_COUNTS,
-  // P3.S2: the storefront's.
-  ...STOREFRONT_TABLE_COUNTS,
 };
+
+/** The tables only the P3 world fills: the delivery pricing's (P3.S1) and the storefront's (P3.S2). */
+const P3_TABLE_COUNTS = { ...DELIVERY_PRICING_TABLE_COUNTS, ...STOREFRONT_TABLE_COUNTS };
+
+/** Every counted table: the P2 world's and the P3 world's. */
+const ALL_TABLE_COUNTS = { ...P2_TABLE_COUNTS, ...P3_TABLE_COUNTS };
 
 export type TenantTable = keyof typeof ALL_TABLE_COUNTS;
 
@@ -109,16 +123,22 @@ export const RETIRED_TABLES: readonly TenantTable[] = ['catalog_product_collecti
 /** The P1 tenant tables: the P1 world fills each. */
 export const TENANT_TABLES = Object.keys(TENANT_TABLE_COUNTS) as TenantTable[];
 
-/** The storefront tables (P3.S2): the P3 world fills each. */
-export const P3_TENANT_TABLES = Object.keys(STOREFRONT_TABLE_COUNTS) as TenantTable[];
-
 /**
- * The P1 tables, the catalog's, the offers', the collections', the packs' and the import's, less the retired ones and
- * the storefront's: the P2 world fills each.
+ * The P1 tables, the catalog's, the offers', the collections', the packs' and the import's, less the retired ones: the
+ * P2 world fills each.
  */
-export const P2_TENANT_TABLES = (Object.keys(ALL_TABLE_COUNTS) as TenantTable[]).filter(
-  (table) => !RETIRED_TABLES.includes(table) && !P3_TENANT_TABLES.includes(table),
+export const P2_TENANT_TABLES = (Object.keys(P2_TABLE_COUNTS) as TenantTable[]).filter(
+  (table) => !RETIRED_TABLES.includes(table),
 );
+
+/** The delivery-pricing tables (P3.S1): the delivery-pricing P3 world fills each. */
+export const DELIVERY_PRICING_TABLES = Object.keys(DELIVERY_PRICING_TABLE_COUNTS) as TenantTable[];
+
+/** The storefront tables (P3.S2): the storefront P3 world fills each. */
+export const STOREFRONT_TABLES = Object.keys(STOREFRONT_TABLE_COUNTS) as TenantTable[];
+
+/** The delivery-pricing (P3.S1) and storefront (P3.S2) tables: each P3 world fills its own lane's, none is in P2's. */
+export const P3_TENANT_TABLES = Object.keys(P3_TABLE_COUNTS) as TenantTable[];
 
 /** Runs one SQL statement with parameters; the e2e test passes TypeORM's, the evidence runner a `pg` client's. */
 export interface SqlRunner {

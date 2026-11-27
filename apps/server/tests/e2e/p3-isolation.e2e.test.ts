@@ -22,7 +22,7 @@ import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { STOREFRONT_ISOLATION_CASES, type StorefrontHoldings } from '../isolation/cases/storefront-catalog';
 import { runStorefrontMatrix, type StorefrontOutcome, storefrontHeadersOf } from '../isolation/storefront-run';
-import { P3_TENANT_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
+import { STOREFRONT_TABLES, tenantRowCounts } from '../isolation/tenant-tables';
 import { ASSET_KEY_PREFIX, ASSET_ROUTE } from '../../src/config/asset-storage.config';
 import { PrefixedAssetStorage } from '../../src/config/prefixed-asset-storage';
 import { TenantAssetNamingStrategy } from '../../src/config/tenant-asset-naming.strategy';
@@ -222,11 +222,11 @@ describe('P3 isolation: a store serves only its own storefront catalog', () => {
     const counts = await tenantRowCounts(
       sql(),
       [provisioned.get('A')?.business.id ?? '', provisioned.get('B')?.business.id ?? ''],
-      P3_TENANT_TABLES,
+      STOREFRONT_TABLES,
     );
 
     // Assert
-    const empty = P3_TENANT_TABLES.filter((table) => (counts[table]?.a ?? 0) === 0 || (counts[table]?.b ?? 0) === 0);
+    const empty = STOREFRONT_TABLES.filter((table) => (counts[table]?.a ?? 0) === 0 || (counts[table]?.b ?? 0) === 0);
     expect(empty).toEqual([]);
   });
 });

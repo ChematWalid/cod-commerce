@@ -23,6 +23,10 @@ describe('settingsErrorMessageId', () => {
   it('is the server code itself when the catalogue has a sentence for it', () => {
     expect(settingsErrorMessageId(coded('tenancy.name-invalid'))).toBe('tenancy.name-invalid');
     expect(settingsErrorMessageId(coded('tenancy.store-archived'))).toBe('tenancy.store-archived');
+    expect(settingsErrorMessageId(coded('tenancy.store-reference-not-found'))).toBe(
+      'tenancy.store-reference-not-found',
+    );
+    expect(settingsErrorMessageId(coded('tenancy.store-reference-required'))).toBe('tenancy.store-reference-required');
   });
 
   it('falls back for a refusal without a sentence', () => {

@@ -26,6 +26,7 @@ const UPDATE_STORE_MUTATION = /* GraphQL */ `
       logoUrl
       showAddressField
       soldOutBehavior
+      defaultDeliveryFeeGroupId
     }
   }
 `;

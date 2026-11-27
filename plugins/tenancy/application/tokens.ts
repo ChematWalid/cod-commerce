@@ -46,5 +46,11 @@ export const PLATFORM_DOMAIN: unique symbol = Symbol('TenancyPlatformDomain');
 /** Injection token of the `MemberAccountPort` adapter. */
 export const MEMBER_ACCOUNTS: unique symbol = Symbol('TenancyMemberAccounts');
 
+/** Injection token of the `StoreReferenceRegistry`; internal, since holding it means reading every check. */
+export const STORE_REFERENCE_CHECKS: unique symbol = Symbol('TenancyStoreReferenceChecks');
+
+/** Injection token of the register-only `StoreReferenceCheckRegistrar` other plugins add their checks through. */
+export const STORE_REFERENCE_CHECK_REGISTRAR: unique symbol = Symbol('TenancyStoreReferenceCheckRegistrar');
+
 /** Injection token of the `StorefrontContextsPort` adapter the storefront store guard builds its context with. */
 export const STOREFRONT_CONTEXTS: unique symbol = Symbol('TenancyStorefrontContexts');

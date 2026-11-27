@@ -1,5 +1,5 @@
-/** Number of Algerian wilayas (provinces) since the 2019 reform. */
-export const WILAYA_COUNT = 58;
+/** Number of Algerian wilayas (provinces) since law 26-06 of 4 April 2026 (JO 25/2026): 69 (D3123). */
+export const WILAYA_COUNT = 69;
 
 /** Official two-digit wilaya codes, in order. */
 export const WILAYA_CODES = [
@@ -61,9 +61,20 @@ export const WILAYA_CODES = [
   '56',
   '57',
   '58',
+  '59',
+  '60',
+  '61',
+  '62',
+  '63',
+  '64',
+  '65',
+  '66',
+  '67',
+  '68',
+  '69',
 ] as const satisfies readonly string[] & { length: typeof WILAYA_COUNT };
 
-/** A two-digit wilaya code, `'01'` to `'58'`. */
+/** A two-digit wilaya code, `'01'` to `'69'`. */
 export type WilayaCode = (typeof WILAYA_CODES)[number];
 
 /** Display names of a wilaya. */
@@ -72,28 +83,106 @@ export interface WilayaNames {
   readonly fr: string;
 }
 
-/** A wilaya and, when known, its names. */
+/** A wilaya and its names. */
 export interface Wilaya {
   readonly code: WilayaCode;
   readonly names: WilayaNames | null;
 }
 
-const KNOWN_NAMES: Readonly<Partial<Record<WilayaCode, WilayaNames>>> = {
+/** Arabic and French name of every wilaya, as in the geo seed (`plugins/geo/infrastructure/seed/geo-seed.json`). */
+const WILAYA_NAMES: Readonly<Record<WilayaCode, WilayaNames>> = {
   '01': { ar: 'أدرار', fr: 'Adrar' },
+  '02': { ar: 'الشلف', fr: 'Chlef' },
+  '03': { ar: 'الأغواط', fr: 'Laghouat' },
+  '04': { ar: 'أم البواقي', fr: 'Oum El Bouaghi' },
+  '05': { ar: 'باتنة', fr: 'Batna' },
+  '06': { ar: 'بجاية', fr: 'Béjaïa' },
+  '07': { ar: 'بسكرة', fr: 'Biskra' },
+  '08': { ar: 'بشار', fr: 'Béchar' },
   '09': { ar: 'البليدة', fr: 'Blida' },
+  '10': { ar: 'البويرة', fr: 'Bouira' },
+  '11': { ar: 'تمنراست', fr: 'Tamanrasset' },
+  '12': { ar: 'تبسة', fr: 'Tébessa' },
+  '13': { ar: 'تلمسان', fr: 'Tlemcen' },
+  '14': { ar: 'تيارت', fr: 'Tiaret' },
+  '15': { ar: 'تيزي وزو', fr: 'Tizi Ouzou' },
   '16': { ar: 'الجزائر', fr: 'Alger' },
+  '17': { ar: 'الجلفة', fr: 'Djelfa' },
+  '18': { ar: 'جيجل', fr: 'Jijel' },
+  '19': { ar: 'سطيف', fr: 'Sétif' },
+  '20': { ar: 'سعيدة', fr: 'Saïda' },
+  '21': { ar: 'سكيكدة', fr: 'Skikda' },
+  '22': { ar: 'سيدي بلعباس', fr: 'Sidi Bel Abbès' },
+  '23': { ar: 'عنابة', fr: 'Annaba' },
+  '24': { ar: 'قالمة', fr: 'Guelma' },
   '25': { ar: 'قسنطينة', fr: 'Constantine' },
+  '26': { ar: 'المدية', fr: 'Médéa' },
+  '27': { ar: 'مستغانم', fr: 'Mostaganem' },
+  '28': { ar: 'المسيلة', fr: "M'Sila" },
+  '29': { ar: 'معسكر', fr: 'Mascara' },
+  '30': { ar: 'ورقلة', fr: 'Ouargla' },
   '31': { ar: 'وهران', fr: 'Oran' },
+  '32': { ar: 'البيض', fr: 'El Bayadh' },
+  '33': { ar: 'إليزي', fr: 'Illizi' },
+  '34': { ar: 'برج بوعريريج', fr: 'Bordj Bou Arréridj' },
+  '35': { ar: 'بومرداس', fr: 'Boumerdès' },
+  '36': { ar: 'الطارف', fr: 'El Tarf' },
+  '37': { ar: 'تندوف', fr: 'Tindouf' },
+  '38': { ar: 'تيسمسيلت', fr: 'Tissemsilt' },
+  '39': { ar: 'الوادي', fr: 'El Oued' },
+  '40': { ar: 'خنشلة', fr: 'Khenchela' },
+  '41': { ar: 'سوق أهراس', fr: 'Souk Ahras' },
+  '42': { ar: 'تيبازة', fr: 'Tipaza' },
+  '43': { ar: 'ميلة', fr: 'Mila' },
+  '44': { ar: 'عين الدفلى', fr: 'Aïn Defla' },
+  '45': { ar: 'النعامة', fr: 'Naâma' },
+  '46': { ar: 'عين تموشنت', fr: 'Aïn Témouchent' },
+  '47': { ar: 'غرداية', fr: 'Ghardaïa' },
+  '48': { ar: 'غليزان', fr: 'Relizane' },
+  '49': { ar: 'تيميمون', fr: 'Timimoun' },
+  '50': { ar: 'برج باجي مختار', fr: 'Bordj Badji Mokhtar' },
+  '51': { ar: 'أولاد جلال', fr: 'Ouled Djellal' },
+  '52': { ar: 'بني عباس', fr: 'Béni Abbès' },
+  '53': { ar: 'عين صالح', fr: 'In Salah' },
+  '54': { ar: 'عين قزام', fr: 'In Guezzam' },
+  '55': { ar: 'تقرت', fr: 'Touggourt' },
+  '56': { ar: 'جانت', fr: 'Djanet' },
+  '57': { ar: 'المغير', fr: "El M'Ghair" },
+  '58': { ar: 'المنيعة', fr: 'El Meniaa' },
+  '59': { ar: 'أفلو', fr: 'Aflou' },
+  '60': { ar: 'بريكة', fr: 'Barika' },
+  '61': { ar: 'القنطرة', fr: 'El Kantara' },
+  '62': { ar: 'بئر العاتر', fr: 'Bir El Ater' },
+  '63': { ar: 'العريشة', fr: 'El Aricha' },
+  '64': { ar: 'قصر الشلالة', fr: 'Ksar Chellala' },
+  '65': { ar: 'عين وسارة', fr: 'Aïn Ouessara' },
+  '66': { ar: 'مسعد', fr: 'Messaad' },
+  '67': { ar: 'قصر البخاري', fr: 'Ksar El Boukhari' },
+  '68': { ar: 'بوسعادة', fr: 'Bou Saâda' },
+  '69': { ar: 'الأبيض سيدي الشيخ', fr: 'El Abiodh Sidi Cheikh' },
 };
 
 /**
- * Every wilaya, in code order.
+ * Every wilaya, in code order, with its names.
  *
- * @remarks Stub — owner: P3.S1. Only 01, 09, 16, 25 and 31 carry names; the others have `names: null`.
+ * @remarks Every wilaya has names since P3.S1 (D3115); `names` stays nullable so existing callers keep compiling.
  */
-export const WILAYAS: readonly Wilaya[] = WILAYA_CODES.map((code) => ({ code, names: KNOWN_NAMES[code] ?? null }));
+export const WILAYAS: readonly Wilaya[] = WILAYA_CODES.map((code) => ({ code, names: WILAYA_NAMES[code] }));
 
-/** Narrows a string to a {@link WilayaCode}; `'7'` and `'59'` are rejected. */
+/** Narrows a string to a {@link WilayaCode}; `'7'` and `'70'` are rejected. */
 export function isWilayaCode(value: string): value is WilayaCode {
   return (WILAYA_CODES as readonly string[]).includes(value);
+}
+
+/** A wilaya code as a URL path writes it: one or two decimal digits, `1`, `01` or `16`. */
+const WILAYA_CODE_PARAM = /^\d{1,2}$/;
+
+/**
+ * Reads a wilaya code from a path parameter: `'16'`, `'1'` and `'01'` give `'16'`, `'01'` and `'01'` (D3115). Anything
+ * else (`'0'`, `'70'`, `'016'`, `'1.5'`, `'abc'`) gives `null`, which the API answers as "province not found".
+ */
+export function parseWilayaCodeParam(param: string): WilayaCode | null {
+  if (!WILAYA_CODE_PARAM.test(param)) return null;
+  const code = param.padStart(2, '0');
+  return isWilayaCode(code) ? code : null;
 }

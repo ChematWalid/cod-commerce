@@ -1,4 +1,5 @@
 import type { IForbiddenRuleType } from 'dependency-cruiser' with { 'resolution-mode': 'import' };
+import { featureEntryInfraOnly } from './feature-entry-rule';
 
 /** Framework modules that domain code and `@cod/shared` never depend on, resolved or not (CLAUDE.md §3a.1). */
 const FRAMEWORK_MODULES = '^(@nestjs|@vendure)/|^typeorm(/|$)|node_modules/(@nestjs|@vendure|typeorm)/';
@@ -30,6 +31,12 @@ const OFFERS_ENTRY = '^plugins/offers/index[.]ts$';
 /** The catalog-packs entry point that exposes its module and the pack price resolver (D2200, D2204). */
 const CATALOG_PACKS_ENTRY = '^plugins/catalog-packs/index[.]ts$';
 
+/** The geo entry point that exposes its module, the town availability registrar and the town directory (D3118). */
+const GEO_ENTRY = '^plugins/geo/index[.]ts$';
+
+/** The delivery-pricing entry point that exposes its module and, later, the shipping quote service (D3118). */
+const DELIVERY_PRICING_ENTRY = '^plugins/delivery-pricing/index[.]ts$';
+
 /** The catalog-import entry point that exposes its module and the imports-exports job registrar (D2200, D2212). */
 const CATALOG_IMPORT_ENTRY = '^plugins/catalog-import/index[.]ts$';
 
@@ -38,26 +45,6 @@ const SHELL_API_FILE = 'merchant-shell/$2/shell-api[.]ts';
 
 /** The dashboard files a plugin's entry point may re-export: route paths, test ids and language lists. */
 const SERVER_SHARED_DASHBOARD_FILES = 'dashboard/(constants|document-lang)[.]ts$';
-
-/**
- * A rule keeping a feature plugin's entry (Nest services and its module) to adapters: outside `owner` only an
- * infrastructure/ file, a plugin's root *.plugin.ts module file, a test kit or apps/server may import `entry`.
- */
-const featureEntryInfraOnly = (name: string, owner: string, entry: string, comment: string): IForbiddenRuleType => ({
-  name,
-  comment,
-  severity: 'error',
-  from: {
-    pathNot: [
-      '^plugins/[^/]+/infrastructure/',
-      '^plugins/[^/]+/[^/]+[.]plugin[.]ts$',
-      '^plugins/[^/]+/tests/',
-      `^plugins/${owner}/`,
-      '^apps/server/',
-    ],
-  },
-  to: { path: entry },
-});
 
 /**
  * The dependency rules of CLAUDE.md §3a.1–2, checked by dependency-cruiser.
@@ -110,7 +97,7 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
   {
     name: 'no-cross-plugin-internals',
     comment:
-      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the collections entry (D2317), the offers entry (D2402), the catalog-packs and catalog-import entries (D2200), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
+      'A plugin never imports another plugin, except the tenancy (D10) and rate-limit (D28) entry points, the platform entry points (D121), the rbac guard entry (D58), the rbac member-access and auth invitations entries (D206), the catalog entry (D2104), the collections entry (D2317), the offers entry (D2402), the catalog-packs and catalog-import entries (D2200), the geo and delivery-pricing entries (D3118), and a dashboard may import the merchant shell\'s shell-api (D83); it uses @cod/shared contracts or domain events. $2 is "dashboard" for a dashboard file and empty otherwise, so only a dashboard matches the shell-api exception.',
     severity: 'error',
     from: { path: '^plugins/([^/]+)/(?:(dashboard)/)?' },
     to: {
@@ -128,6 +115,8 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
         OFFERS_ENTRY,
         CATALOG_PACKS_ENTRY,
         CATALOG_IMPORT_ENTRY,
+        GEO_ENTRY,
+        DELIVERY_PRICING_ENTRY,
         `^plugins/${SHELL_API_FILE}$`,
       ],
     },
@@ -264,6 +253,18 @@ export const ARCHITECTURE_RULES: IForbiddenRuleType[] = [
     'catalog-import',
     CATALOG_IMPORT_ENTRY,
     "The catalog-import entry exports Nest services, its module and the imports-exports job registrar: outside catalog-import only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D2200, D2212, D2104 pattern). Frontend apps never import it (ADR 0017).",
+  ),
+  featureEntryInfraOnly(
+    'geo-entry-infra-only',
+    'geo',
+    GEO_ENTRY,
+    "The geo entry exports Nest services, its module, the town availability registrar and the town directory token: outside geo only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D3118, D2104 pattern). Frontend apps never import it (ADR 0017).",
+  ),
+  featureEntryInfraOnly(
+    'delivery-pricing-entry-infra-only',
+    'delivery-pricing',
+    DELIVERY_PRICING_ENTRY,
+    "The delivery-pricing entry exports Nest services and its module: outside delivery-pricing only an adapter (infrastructure/), a plugin's root *.plugin.ts module file, a test kit or the server app may import it; application/, domain/ and api/ reach it through their own ports (D3118, D2104 pattern). Frontend apps never import it (ADR 0017).",
   ),
   {
     name: 'apps-no-plugin-internals',

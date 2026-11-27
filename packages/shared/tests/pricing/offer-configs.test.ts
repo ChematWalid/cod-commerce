@@ -182,6 +182,6 @@ describe('offerInputSchema', () => {
         endsAt: '2026-11-01T00:00:00.000Z',
       }).success,
     ).toBe(false);
-    expect(offerInputSchema.safeParse({ ...base, eligibility: { wilayas: ['59'] } }).success).toBe(false);
+    expect(offerInputSchema.safeParse({ ...base, eligibility: { wilayas: ['70'] } }).success).toBe(false);
   });
 });

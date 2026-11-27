@@ -17,6 +17,7 @@ const SAVED = draftOfStore({
   logoUrl: null,
   showAddressField: true,
   soldOutBehavior: 'keep',
+  defaultDeliveryFeeGroupId: '5',
 });
 
 const SAVED_BUSINESS = draftOfBusiness({ id: '9', name: 'Demo', logoAssetId: '7', logoUrl: 'https://x.test/l.png' });
@@ -59,6 +60,20 @@ describe('storePatchOf', () => {
     expect(both).toEqual({ soldOutBehavior: 'hide', showAddressField: false });
   });
 
+  it('includes the default delivery fee group only when another one is chosen', () => {
+    // Arrange
+    const unchanged = { ...SAVED, defaultDeliveryFeeGroupId: '5' };
+    const changed = { ...SAVED, defaultDeliveryFeeGroupId: '6' };
+
+    // Act
+    const none = storePatchOf(unchanged, SAVED);
+    const chosen = storePatchOf(changed, SAVED);
+
+    // Assert
+    expect(none).toEqual({});
+    expect(chosen).toEqual({ defaultDeliveryFeeGroupId: '6' });
+  });
+
   it('includes logoAssetId when the logo is replaced', () => {
     // Arrange
     const draft = { ...SAVED, logoAssetId: '42' };
@@ -92,6 +107,7 @@ describe('canSaveStore', () => {
     expect(canSaveStore(SAVED, SAVED)).toBe(false);
     expect(canSaveStore({ ...SAVED, language: 'en' }, SAVED)).toBe(true);
     expect(canSaveStore({ ...SAVED, soldOutBehavior: 'hide' }, SAVED)).toBe(true);
+    expect(canSaveStore({ ...SAVED, defaultDeliveryFeeGroupId: '6' }, SAVED)).toBe(true);
   });
 
   it('is off for a blank name', () => {
