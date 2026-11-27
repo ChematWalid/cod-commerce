@@ -96,7 +96,7 @@ export class FeeGroupsController {
     return restCall(() => this.actions.setCommunePrices(ctx, id, provinceCode, body));
   }
 
-  /** Copies a group; the body is `{ name }` (delivery.pricing.create, D3140); 201 with the copy. */
+  /** Copies a group; the body is `{ name }` (delivery.pricing.create and view, D3143); 201 with the copy. */
   @Post(':id/duplicate')
   @HttpCode(HttpStatus.CREATED)
   @requirePermission(P.create)

@@ -1,9 +1,10 @@
-import type { DeliveryFeeGroup, DeliveryFeeGroupPage } from '@cod/shared';
+import { type DeliveryFeeGroup, type DeliveryFeeGroupPage, vendurePermissionName } from '@cod/shared';
 import { Injectable } from '@nestjs/common';
-import type { RequestContext } from '@vendure/core';
+import { ForbiddenError, type Permission, type RequestContext } from '@vendure/core';
 import { asOperationContext } from '../domain/ports/operation-context';
 import { toGroupDto, toPageDto } from './dto';
 import { FeeGroupBulkUseCases, FeeGroupUseCases } from './fee-group-use-cases';
+import { DELIVERY_PRICING_PERMISSIONS as P } from './permissions';
 import {
   idArgOf,
   parseCommunePricesInput,
@@ -91,8 +92,15 @@ export class FeeGroupActions {
     return toGroupDto(group);
   }
 
-  /** "Copy" the store's group `id` into a new group named `name` (D3140). */
+  /**
+   * "Copy" the store's group `id` into a new group named `name` (D3140). The copy answers the source's prices, so the
+   * caller needs `delivery.pricing.view` besides the `create` key its `@Allow` checks (D3143).
+   *
+   * @throws {ForbiddenError} when the caller lacks `delivery.pricing.view` on the active store, checked first.
+   */
   async duplicate(ctx: RequestContext, id: unknown, name: unknown): Promise<DeliveryFeeGroup> {
+    // Custom permissions extend the enum at runtime only, so the compiler cannot know this name.
+    if (!ctx.userHasPermissions([vendurePermissionName(P.view) as unknown as Permission])) throw new ForbiddenError();
     const scope = scopeOf(ctx);
     const parsed = parseDuplicateInput(name);
     const group = await this.bulk.duplicating.duplicate(asOperationContext(ctx), scope, idArgOf(id), parsed);

@@ -86,7 +86,7 @@ export class FeeGroupsResolver {
     return withDeliveryPricingErrors(() => this.actions.setCommunePrices(ctx, groupId, provinceCode, input));
   }
 
-  /** Copies a fee group with its wilaya and commune rows under a new name (delivery.pricing.create, D3140). */
+  /** Copies a fee group with its wilaya and commune rows under a new name (delivery.pricing.create and view, D3143). */
   @Mutation()
   @requirePermission(P.create)
   duplicateDeliveryFeeGroup(

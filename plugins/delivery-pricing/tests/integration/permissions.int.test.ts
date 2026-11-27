@@ -1,4 +1,5 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
+import type { PermissionKey } from '@cod/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { deliveryPricingSuite } from './delivery-pricing-kit';
 import { OPERATION_REGISTRY, ROUTE_REGISTRY, type TargetIds } from './endpoint-registry';
@@ -13,6 +14,14 @@ const PRICING_KEYS = [
   'delivery.pricing.edit',
   'delivery.pricing.delete',
 ] as const;
+
+/** The keys a handler needs: its `@Allow` one and any it checks besides. */
+const keysOf = (entry: { readonly access: PermissionKey; readonly alsoRequires?: readonly PermissionKey[] }) => [
+  entry.access,
+  ...(entry.alsoRequires ?? []),
+];
+const NEEDS_MORE = OPERATION_REGISTRY.filter((entry) => entry.alsoRequires !== undefined);
+const ROUTES_NEEDING_MORE = ROUTE_REGISTRY.filter((entry) => entry.alsoRequires !== undefined);
 
 /** Every pricing key but the one a handler requires, plus the carriers keys: a role that can do everything else. */
 const allKeysBut = (access: string) => [
@@ -75,11 +84,36 @@ describe('fee-group handlers refuse a role that lacks their key', () => {
     expect(answer.status).toBe(FORBIDDEN_STATUS);
   });
 
-  it.each(OPERATION_REGISTRY)(
-    '$operation succeeds for a member holding only its key (positive control)',
+  it.each(NEEDS_MORE)('$operation is FORBIDDEN for a member holding its @Allow key alone', async (entry) => {
+    // Arrange
+    await suite.kit.signInAsMember(suite.fixtures.a, [entry.access]);
+
+    // Act
+    const outcome = await callOperation(suite.kit, entry, ids);
+
+    // Assert
+    expect(outcome.codes).toEqual([FORBIDDEN]);
+  });
+
+  it.each(ROUTES_NEEDING_MORE)(
+    '$method $route answers 403 for a member holding its @Allow key alone',
     async (entry) => {
       // Arrange
       await suite.kit.signInAsMember(suite.fixtures.a, [entry.access]);
+
+      // Act
+      const answer = await callRoute(suite.kit, entry, ids);
+
+      // Assert
+      expect(answer.status).toBe(FORBIDDEN_STATUS);
+    },
+  );
+
+  it.each(OPERATION_REGISTRY)(
+    '$operation succeeds for a member holding only its keys (positive control)',
+    async (entry) => {
+      // Arrange
+      await suite.kit.signInAsMember(suite.fixtures.a, keysOf(entry));
 
       // Act
       const outcome = await callOperation(suite.kit, entry, ids);

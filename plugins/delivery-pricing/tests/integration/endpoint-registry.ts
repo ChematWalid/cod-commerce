@@ -24,6 +24,8 @@ export interface OperationEntry {
   /** Names a second call of the same operation the isolation sweep also makes (the import's dry run). */
   readonly variant?: string;
   readonly access: PermissionKey;
+  /** Keys the handler checks besides its `@Allow` one (the copy answers the source's prices, so it needs view). */
+  readonly alsoRequires?: readonly PermissionKey[];
   readonly foreign: ForeignOutcome;
   readonly notFound: string;
   readonly document: string;
@@ -39,6 +41,8 @@ export interface RouteEntry {
   /** Names a second call of the same route the isolation sweep also makes (the import's dry run). */
   readonly variant?: string;
   readonly access: PermissionKey;
+  /** Keys the handler checks besides its `@Allow` one, as {@link OperationEntry.alsoRequires}. */
+  readonly alsoRequires?: readonly PermissionKey[];
   /** Whether the route names a group id, so another store's id answers 404. */
   readonly byId: boolean;
   readonly url: (ids: TargetIds) => string;
@@ -126,6 +130,7 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
   {
     operation: 'duplicateDeliveryFeeGroup',
     access: 'delivery.pricing.create',
+    alsoRequires: ['delivery.pricing.view'],
     foreign: 'not-found',
     notFound: D.NOT_FOUND,
     document: 'mutation ($groupId: String!) { duplicateDeliveryFeeGroup(groupId: $groupId, name: "Copied") { id } }',
@@ -206,6 +211,7 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     method: 'POST',
     route: '/delivery-fees/:id/duplicate',
     access: 'delivery.pricing.create',
+    alsoRequires: ['delivery.pricing.view'],
     byId: true,
     url: (ids) => `/delivery-fees/${ids.groupId}/duplicate`,
     body: () => ({ name: 'Copied over REST' }),
