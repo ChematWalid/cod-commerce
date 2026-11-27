@@ -1,0 +1,249 @@
+{
+  "root_group": {
+    "checks": [
+      {
+        "id": "1a07ff3c6eb63671194c064c0e3fa775",
+        "passes": 3,
+        "fails": 0,
+        "name": "readyz answers 200",
+        "path": "::readyz answers 200"
+      },
+      {
+        "passes": 3,
+        "fails": 0,
+        "name": "home answers 200",
+        "path": "::home answers 200",
+        "id": "2b486a65a4d503991f4af883bfe58f7a"
+      },
+      {
+        "id": "db0e3435ad815a0173a51d6fc4d91806",
+        "passes": 3,
+        "fails": 0,
+        "name": "product list answers 200",
+        "path": "::product list answers 200"
+      },
+      {
+        "name": "store api products answers 200",
+        "path": "::store api products answers 200",
+        "id": "01a27c84cd99d822f19d627496f73107",
+        "passes": 3,
+        "fails": 0
+      },
+      {
+        "name": "product page answers 200",
+        "path": "::product page answers 200",
+        "id": "39ffcb36757fbb4d03c31c683709bfea",
+        "passes": 3,
+        "fails": 0
+      }
+    ],
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [
+      {
+        "id": "5c0f8025f7e0b6654089e5b00e950f1a",
+        "groups": [],
+        "checks": [
+            {
+              "id": "72f936fc7581c23bece4227ca8069f7b",
+              "passes": 1,
+              "fails": 0,
+              "name": "store api products answers 200",
+              "path": "::setup::store api products answers 200"
+            }
+          ],
+        "name": "setup",
+        "path": "::setup"
+      }
+    ]
+  },
+  "options": {
+    "summaryTrendStats": [
+      "med",
+      "p(95)",
+      "p(99)",
+      "max"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 972.637584
+  },
+  "metrics": {
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 16,
+        "fails": 0
+      },
+      "thresholds": {
+        "rate==1": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration": {
+      "values": {
+        "p(95)": 170.87540175,
+        "p(99)": 243.01845794999994,
+        "max": 261.054222,
+        "med": 40.001746499999996
+      },
+      "thresholds": {
+        "p(95)<2000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_connecting": {
+      "values": {
+        "med": 0,
+        "p(95)": 0.19454075,
+        "p(99)": 0.28401935,
+        "max": 0.306389
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_tls_handshaking": {
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      },
+      "type": "trend"
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 0.06498029999999999,
+        "max": 0.066339,
+        "med": 0.019373500000000002,
+        "p(95)": 0.0595455
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 16,
+        "rate": 16.450114886779865
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 40.001746499999996,
+        "p(95)": 170.87540175,
+        "p(99)": 243.01845794999994,
+        "max": 261.054222
+      }
+    },
+    "iterations": {
+      "contains": "default",
+      "values": {
+        "count": 3,
+        "rate": 3.084396541271224
+      },
+      "type": "counter"
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 16
+      },
+      "thresholds": {
+        "rate==0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 226.778164,
+        "med": 15.638124,
+        "p(95)": 162.11982325000002,
+        "p(99)": 213.84649584999997
+      }
+    },
+    "data_received": {
+      "values": {
+        "count": 368215,
+        "rate": 378573.690814728
+      },
+      "type": "counter",
+      "contains": "data"
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 189.474002,
+        "p(95)": 471.59564119999993,
+        "p(99)": 496.67312024,
+        "max": 502.94249
+      }
+    },
+    "server_errors": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 0.26026024999999997,
+        "p(99)": 0.3558960499999999,
+        "max": 0.379805,
+        "med": 0.0064139999999999996
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 23.8299295,
+        "p(95)": 76.8152125,
+        "p(99)": 107.28078489999999,
+        "max": 114.897178
+      }
+    },
+    "data_sent": {
+      "contains": "data",
+      "values": {
+        "count": 1565,
+        "rate": 1609.0268623631555
+      },
+      "type": "counter"
+    }
+  },
+  "setup_data": {
+    "slug": "فستان-صيفي-تجريبي"
+  }
+}
