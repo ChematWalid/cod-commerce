@@ -37,6 +37,7 @@
 # sudo only when logged in as the operator: a fresh image may lack sudo, and root needs none.
 - name: Operator account
   hosts: staging
+  force_handlers: true
   become: "{{ (ansible_user | default('root')) != 'root' }}"
   roles:
     - role: base
@@ -58,6 +59,7 @@
 
 - name: Hardening, Docker and data tier
   hosts: staging
+  force_handlers: true
   become: "{{ (ansible_user | default('root')) != 'root' }}"
   roles:
     - role: ssh

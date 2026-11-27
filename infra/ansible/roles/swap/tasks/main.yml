@@ -8,9 +8,11 @@
   args:
     creates: '{{ swap_file }}'
   register: swap_allocated
-  notify:
-    - Format the swap file
-    - Turn the swap on
+
+# In --check a new file is only announced, not allocated.
+- name: Note whether the swap file is on disk
+  ansible.builtin.set_fact:
+    swap_file_present: '{{ swap_file_stat.stat.exists or (swap_allocated is changed and not ansible_check_mode) }}'
 
 - name: Restrict the swap file to root
   ansible.builtin.file:
@@ -18,8 +20,34 @@
     owner: root
     group: root
     mode: '0600'
-  # In --check a new file is only announced, not allocated.
-  when: swap_file_stat.stat.exists or (swap_allocated is changed and not ansible_check_mode)
+  when: swap_file_present | bool
+
+# Formatting and enabling follow the file's state, not a handler: a run that failed after the allocation must still
+# format and enable the file on the next run. blkid exits 2 when the file holds no signature yet.
+- name: Read the swap file signature
+  ansible.builtin.command: 'blkid -o value -s TYPE {{ swap_file }}'
+  register: swap_signature
+  changed_when: false
+  failed_when: swap_signature.rc not in [0, 2]
+  check_mode: false
+  when: swap_file_present | bool
+
+- name: Format the swap file
+  ansible.builtin.command: 'mkswap {{ swap_file }}'
+  changed_when: true
+  when: swap_file_present | bool and swap_signature.stdout != 'swap'
+
+- name: List the active swap
+  ansible.builtin.command: swapon --show=NAME --noheadings
+  register: swap_active
+  changed_when: false
+  check_mode: false
+  when: swap_file_present | bool
+
+- name: Turn the swap on
+  ansible.builtin.command: 'swapon {{ swap_file }}'
+  changed_when: true
+  when: swap_file_present | bool and swap_file not in swap_active.stdout_lines
 
 - name: Mount the swap file at boot
   ansible.builtin.lineinfile:

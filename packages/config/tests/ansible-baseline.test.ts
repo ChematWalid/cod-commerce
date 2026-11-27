@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
@@ -6,10 +7,28 @@ import { parse } from 'yaml';
 const ANSIBLE = resolve(__dirname, '../../../infra/ansible');
 
 type Task = Record<string, unknown> & { name?: string };
-type Play = { name: string; roles?: Array<{ role: string }>; post_tasks?: Task[] };
+type Play = { name: string; force_handlers?: boolean; roles?: Array<{ role: string }>; post_tasks?: Task[] };
 
 const read = (path: string): string => readFileSync(join(ANSIBLE, path), 'utf8');
 const tasksOf = (path: string): Task[] => parse(read(path)) as Task[];
+const isTrackedByGit = (path: string): boolean => {
+  try {
+    execFileSync('git', ['ls-files', '--error-unmatch', path], { cwd: ANSIBLE, stdio: 'ignore' });
+    return true;
+  } catch {
+    // git exits non-zero for an untracked path: that is the answer, not an error.
+    return false;
+  }
+};
+const isIgnoredByGit = (path: string): boolean => {
+  try {
+    execFileSync('git', ['check-ignore', '--no-index', '--quiet', path], { cwd: ANSIBLE, stdio: 'ignore' });
+    return true;
+  } catch {
+    // git check-ignore exits 1 when the path is not ignored.
+    return false;
+  }
+};
 const indexOfTask = (tasks: Task[], name: string): number => {
   const index = tasks.findIndex((task) => task.name === name);
   expect(index, `task "${name}"`).toBeGreaterThanOrEqual(0);
@@ -31,6 +50,35 @@ describe('infra/ansible server baseline', () => {
     expect(plays[operatorPlay]?.post_tasks?.some((task) => task['ansible.builtin.meta'] === 'reset_connection')).toBe(
       true,
     );
+  });
+
+  it('runs notified handlers even when a later role fails, so a rerun cannot skip them', () => {
+    const config = read('ansible.cfg');
+    const rolePlays = plays.filter((play) => (play.roles ?? []).length > 0);
+
+    expect(config).toMatch(/^\[defaults\][^[]*^force_handlers = True$/m);
+    expect(rolePlays.every((play) => play.force_handlers === true)).toBe(true);
+  });
+
+  it('tests and restarts sshd at the end of the ssh role, before any other role can fail', () => {
+    const tasks = tasksOf('roles/ssh/tasks/main.yml');
+
+    expect(tasks.at(-1)?.['ansible.builtin.meta']).toBe('flush_handlers');
+  });
+
+  it('formats and enables the swap file from its current state, not from a one-shot handler', () => {
+    const tasks = tasksOf('roles/swap/tasks/main.yml');
+    const format = tasks[indexOfTask(tasks, 'Format the swap file')];
+    const enable = tasks[indexOfTask(tasks, 'Turn the swap on')];
+    const signature = tasks[indexOfTask(tasks, 'Read the swap file signature')];
+    const active = tasks[indexOfTask(tasks, 'List the active swap')];
+
+    expect(tasks.some((task) => 'notify' in task)).toBe(false);
+    expect(String(signature?.['ansible.builtin.command'])).toMatch(/^blkid -o value -s TYPE /);
+    expect(String(active?.['ansible.builtin.command'])).toBe('swapon --show=NAME --noheadings');
+    expect(format?.['when']).toContain("swap_signature.stdout != 'swap'");
+    expect(enable?.['when']).toContain('swap_file not in swap_active.stdout_lines');
+    expect(indexOfTask(tasks, 'Format the swap file')).toBeLessThan(indexOfTask(tasks, 'Turn the swap on'));
   });
 
   it('installs Docker before the firewall, so DOCKER-USER exists when the edge chain is built', () => {
@@ -96,6 +144,7 @@ describe('infra/ansible server baseline', () => {
     expect(read('.gitignore')).toMatch(/^group_vars\/\*\/vault\.yml$/m);
     expect(read('.gitignore')).toMatch(/^inventory\/staging\.yml$/m);
     expect(Object.values(vaultExample).every((value) => value === 'CHANGE_ME')).toBe(true);
-    expect(existsSync(join(ANSIBLE, 'group_vars/staging/vault.yml'))).toBe(false);
+    expect(isIgnoredByGit('group_vars/staging/vault.yml')).toBe(true);
+    expect(isTrackedByGit('group_vars/staging/vault.yml')).toBe(false);
   });
 });

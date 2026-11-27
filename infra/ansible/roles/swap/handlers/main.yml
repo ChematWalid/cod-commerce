@@ -1,8 +1,0 @@
-# Notified only when the swap file was just allocated (never in --check, where nothing is allocated).
-- name: Format the swap file
-  ansible.builtin.command: 'mkswap {{ swap_file }}'
-  changed_when: true
-
-- name: Turn the swap on
-  ansible.builtin.command: 'swapon {{ swap_file }}'
-  changed_when: true

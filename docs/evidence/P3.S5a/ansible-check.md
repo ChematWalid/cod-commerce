@@ -1,11 +1,11 @@
-# Ansible baseline check (scripts/ops/ansible-check.sh, 2026-11-27T15:23Z, commit 2c82dc17)
+# Ansible baseline check (scripts/ops/ansible-check.sh, 2026-11-27T16:01Z, commit 4df5b91d)
 
 | Check | Result |
 |---|---|
 | Collections (requirements.yml) | community.general, community.docker installed at their pinned versions |
 | ansible-playbook --syntax-check | site.yml and tests/edge-firewall.yml pass |
-| ansible-lint (production profile) | Passed: 0 failure(s), 0 warning(s) in 46 files processed of 52 encountered. Profile 'production' was required, and it passed. |
-| site.yml `--check --diff` on Debian 12.12 | `cod-ansible-check-target : ok=40 changed=24 unreachable=0 failed=0 skipped=16 rescued=0 ignored=0 ` |
+| ansible-lint (production profile) | Passed: 0 failure(s), 0 warning(s) in 45 files processed of 51 encountered. Profile 'production' was required, and it passed. |
+| site.yml `--check --diff` on Debian 12.12 | `cod-ansible-check-target : ok=41 changed=24 unreachable=0 failed=0 skipped=18 rescued=0 ignored=0 ` |
 | Vault values in the `--diff` output | none |
 | Before the chain, port 80 | answers |
 | Edge chain apply (Cloudflare ranges only) | `cod-ansible-edge-target : ok=11 changed=4 unreachable=0 failed=0 skipped=2 rescued=0 ignored=0 ` |

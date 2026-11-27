@@ -84,7 +84,7 @@ Not exercised in a container (they need a kernel or systemd of their own), so fi
 |---|---|
 | ufw rules and `ufw enable` | tag `firewall-ufw` |
 | `sysctl -p` | tag `host-kernel` |
-| allocating, formatting and turning on the swap file | `--check` (handlers of the allocation) |
+| allocating, formatting and turning on the swap file | `--check` (no swap file exists, so the state checks skip) |
 | sshd, docker restarts; enabling `cod-edge-firewall.service` | `when: service_mgr == 'systemd'` |
 | login as the new operator | `when: not ansible_check_mode` (the account is not created in `--check`) |
 | Docker CE install and the data tier start | `--check` on a host without the Docker repository |

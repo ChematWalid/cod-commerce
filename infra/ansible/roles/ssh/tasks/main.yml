@@ -25,3 +25,8 @@
   notify:
     - Check the whole sshd configuration
     - Restart sshd
+
+# Test and restart sshd here, not at the end of the play: root and password logins are closed even if a later role
+# fails.
+- name: Apply the sshd settings now
+  ansible.builtin.meta: flush_handlers
