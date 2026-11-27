@@ -1,0 +1,161 @@
+# Kamal 2 deploy of the app roles (ADR 0013). One image, three long-running roles; migrate runs from the
+# pre-deploy hook (.kamal/hooks/pre-deploy, D3504). The data tier (Postgres, PgBouncer, Valkey, Garage) is not
+# Kamal's: it runs from docker-compose.yml under the project name `cod` (Ansible data_tier role), and every role
+# joins its network, cod_default, next to Kamal's own `kamal` network (deploy/README.md).
+#
+# Environment-specific values (hosts, domains, APP_ENV) live in config/deploy.<destination>.yml; every command
+# needs -d <destination>. Secrets are names only: .kamal/secrets.<destination> maps each to the environment.
+# Run Kamal only through scripts/ops/tool.sh kamal … (pinned image, D3503).
+service: platform
+# ghcr.io/<owner>/platform, built and pushed by CI (image.yml); deploys use --skip-push --version=<sha>.
+image: '<%= ENV.fetch("GITHUB_REPOSITORY_OWNER").downcase %>/platform'
+require_destination: true
+primary_role: api
+
+# Ansible's operator account (infra/ansible users role); root and password logins are off after the baseline.
+ssh:
+  user: cod
+
+registry:
+  server: ghcr.io
+  username: '<%= ENV.fetch("KAMAL_REGISTRY_USERNAME") %>'
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# Kamal requires a builder section; CI builds the image (Dockerfile) and the deploy never builds or pushes.
+builder:
+  arch: amd64
+
+# Boot of the worker includes Vendure's bootstrap and the image HEALTHCHECK start period (30 s); 120 s of room.
+deploy_timeout: 120
+# The worker is stopped with `docker stop -t <drain_timeout>`: above its 65 s watchdog (60 s job drain + close,
+# ADR 0013, D3508). kamal-proxy also waits up to this long for in-flight requests of an old api/storefront.
+drain_timeout: 75
+retain_containers: 3
+
+logging:
+  options:
+    max-size: 10m
+    max-file: '3'
+
+# Server roles share one environment shape; the storefront gets its own, with none of the server's secrets.
+x-server-env-secret: &server-secrets
+  - DATABASE_URL
+  - DATABASE_URL_DIRECT
+  - S3_ACCESS_KEY
+  - S3_SECRET_KEY
+  - COOKIE_SECRET
+  - AUTH_TOKEN_SECRET
+  - SUPERADMIN_PASSWORD
+  - INTERNAL_HMAC_KEYS
+  - INTERNAL_HMAC_ACTIVE_KID
+  - TENANT_SECRET_KEKS
+  - TENANT_SECRET_ACTIVE_KID
+  - QUOTE_HMAC_KEYS
+  - QUOTE_HMAC_ACTIVE_KID
+  - SMTP_USERNAME
+  - SMTP_PASSWORD
+  # Optional: an empty value keeps the CDN purge a no-op (D3210).
+  - CLOUDFLARE_API_TOKEN
+
+# The proxy's TLS for app hosts: the Cloudflare Origin CA certificate (Full (strict), OpenTofu output kept in
+# encrypted state); both proxied roles load it from secrets. ssl_redirect off: Cloudflare only ever connects over
+# 443, and the node-internal hosts (api.internal, storefront.internal) are plain HTTP on the kamal network.
+x-origin-tls: &origin-tls
+  certificate_pem: ORIGIN_CA_CERTIFICATE_PEM
+  private_key_pem: ORIGIN_CA_PRIVATE_KEY_PEM
+
+servers:
+  api:
+    # Hosts come from the destination file.
+    hosts: []
+    options:
+      network: cod_default
+      memory: 1000m
+      cpu-shares: 1024
+      # kamal-proxy drains a proxied role, then Kamal runs `docker stop` without -t: this is the grace that applies.
+      # Above the api's 25 s request drain + close (ADR 0013), so a stop never ends in SIGKILL.
+      stop-timeout: 35
+    env:
+      clear:
+        ROLE: api
+        API_PORT: 3000
+        NODE_OPTIONS: --max-old-space-size=768
+        # docs/ops/capacity.md: the api's pool against PgBouncer's 20 server connections.
+        DB_POOL_MAX: 10
+      secret: *server-secrets
+    proxy:
+      app_port: 3000
+      ssl: *origin-tls
+      ssl_redirect: false
+      # Each container must answer /readyz before kamal-proxy moves traffic to it.
+      healthcheck:
+        path: /readyz
+        interval: 2
+        timeout: 3
+      # system-design §7: 30 s for the api; imports go to object storage by presigned upload, so 10 MB bodies.
+      response_timeout: 30
+      buffering:
+        requests: true
+        responses: true
+        max_request_body: 10_000_000
+      # kamal-proxy terminates TLS and sets X-Forwarded-For/Proto itself (TRUSTED_PROXY_HOPS=1); the client IP
+      # comes from CF-Connecting-IP (CLIENT_IP_HEADER), trusted because the firewall admits Cloudflare only.
+      forward_headers: false
+
+  worker:
+    hosts: []
+    options:
+      network: cod_default
+      memory: 1000m
+      cpus: 1.0
+      # Yields CPU to the api and storefront (infrastructure.md §1.1 node budget).
+      cpu-shares: 512
+    env:
+      clear:
+        ROLE: worker
+        WORKER_HEALTH_PORT: 3020
+        # critical | bulk | all (D100). One worker runs every pool at Launch.
+        WORKER_POOL: all
+        NODE_OPTIONS: --max-old-space-size=768
+        # docs/ops/capacity.md: one connection per job the pools can run at once, plus an export's read burst.
+        DB_POOL_MAX: 66
+      secret: *server-secrets
+    # No proxy: Kamal waits for the image HEALTHCHECK (healthcheck.js on port 3020) to report healthy.
+
+  storefront:
+    hosts: []
+    options:
+      network: cod_default
+      memory: 700m
+      cpu-shares: 1024
+      # Same grace as the api, so a slow render is never cut by SIGKILL.
+      stop-timeout: 35
+    env:
+      clear:
+        ROLE: storefront
+        NODE_OPTIONS: --max-old-space-size=512
+        # The node-local api through kamal-proxy (network alias api.internal), never the edge (D3511).
+        INTERNAL_API_URL: http://api.internal
+      secret:
+        - INTERNAL_HMAC_KEYS
+        - INTERNAL_HMAC_ACTIVE_KID
+        - NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+    proxy:
+      app_port: 3001
+      ssl: *origin-tls
+      ssl_redirect: false
+      # The container's own check. /api/readyz (storefront and node-local api) is for a node-level load balancer.
+      healthcheck:
+        path: /readyz
+        interval: 2
+        timeout: 3
+      response_timeout: 15
+      forward_headers: false
+
+# Clear settings every role shares; per-role and destination values add to these.
+env:
+  clear:
+    TZ: UTC
+    # The compose data tier on cod_default (service names resolve there).
+    REDIS_URL: redis://valkey:6379

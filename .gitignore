@@ -33,6 +33,10 @@ apps/storefront/next-env.d.ts
 static/assets/
 uploads/
 
+# Kamal secrets files (references only, but a value pasted in must never be committed); the example is kept
+.kamal/secrets*
+!.kamal/secrets.example
+
 # Infrastructure state
 *.tfstate
 *.tfstate.*

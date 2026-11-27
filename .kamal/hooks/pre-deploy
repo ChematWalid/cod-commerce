@@ -1,0 +1,18 @@
+#!/bin/sh
+# Runs the new version's migrations to completion before Kamal starts any api, worker or storefront container
+# of that version (ADR 0013, D3504). A failed migration fails the hook, and Kamal aborts the deploy.
+#
+# Kamal runs this hook on the deploying machine (inside the pinned kamal image, scripts/ops/tool.sh) with
+# KAMAL_VERSION, KAMAL_DESTINATION and every secret in its environment: never add `set -x` or print the env.
+#
+# `kamal app exec` without --reuse starts one new container per role on each selected host. --primary keeps it to
+# the primary host and --roles=api to one container, which gets the api's network, env file and limits; ROLE is
+# then overridden to migrate. --skip-hooks: the nested kamal must not rerun the connection hooks.
+set -eu
+
+: "${KAMAL_VERSION:?Kamal sets KAMAL_VERSION for its hooks}"
+
+# shellcheck disable=SC2086 # the destination flag is empty or two words on purpose.
+exec kamal app exec --primary --roles=api --version="$KAMAL_VERSION" --skip-hooks \
+  ${KAMAL_DESTINATION:+--destination "$KAMAL_DESTINATION"} \
+  'env ROLE=migrate sh /app/scripts/docker-entrypoint.sh'

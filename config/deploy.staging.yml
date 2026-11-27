@@ -1,0 +1,74 @@
+# Staging destination: kamal … -d staging. Merged over config/deploy.yml (hashes deep-merged, lists replaced).
+# Every ENV.fetch without a default fails the render at once when its variable is missing (no silent fallback);
+# the deploy workflow sets them from the `staging` environment's variables (deploy/README.md).
+# ERB locals (the comment keeps the raw file valid YAML for packages/config/tests/kamal-deploy.test.ts):
+# <% base_domain = ENV.fetch("STAGING_BASE_DOMAIN") %>
+# <% host = ENV.fetch("STAGING_HOST") %>
+
+x-staging-server-clear: &server-clear
+  APP_ENV: staging
+  PLATFORM_DOMAIN: '<%= base_domain %>'
+  AUTH_DASHBOARD_URL: 'https://app.<%= base_domain %>/dashboard'
+  LOG_LEVEL: info
+  # Cloudflare → kamal-proxy → api: one proxy we control (kamal-proxy). The client address is Cloudflare's
+  # CF-Connecting-IP, believed only because the firewall admits Cloudflare's ranges alone (D3226 d, D3514).
+  TRUSTED_PROXY_HOPS: 1
+  CLIENT_IP_HEADER: CF-Connecting-IP
+  # Garage on the compose network; S3_PUBLIC_ENDPOINT is the https address browsers reach it on.
+  S3_ENDPOINT: http://garage:3900
+  S3_REGION: garage
+  S3_FORCE_PATH_STYLE: true
+  S3_BUCKET_PRIVATE: cod-private
+  S3_PUBLIC_ENDPOINT: '<%= ENV.fetch("STAGING_S3_PUBLIC_ENDPOINT") %>'
+  SMTP_HOST: '<%= ENV.fetch("STAGING_SMTP_HOST") %>'
+  SMTP_PORT: '<%= ENV.fetch("STAGING_SMTP_PORT") %>'
+  SMTP_FROM: '<%= ENV.fetch("STAGING_SMTP_FROM") %>'
+  SMTP_TLS: 'true'
+  # The worker revalidates the storefront through kamal-proxy (network alias storefront.internal, D3211).
+  STOREFRONT_INTERNAL_URL: http://storefront.internal
+  # Off while blank (ADR 0015, D3210).
+  OTEL_EXPORTER_OTLP_ENDPOINT: '<%= ENV.fetch("STAGING_OTEL_EXPORTER_OTLP_ENDPOINT", "") %>'
+  SENTRY_DSN: '<%= ENV.fetch("STAGING_SENTRY_DSN", "") %>'
+  CLOUDFLARE_ZONE_ID: '<%= ENV.fetch("STAGING_CLOUDFLARE_ZONE_ID", "") %>'
+
+servers:
+  api:
+    hosts:
+      - '<%= host %>'
+    env:
+      clear: *server-clear
+    proxy:
+      hosts:
+        - 'app.<%= base_domain %>'
+        - 'api.<%= base_domain %>'
+        - api.internal
+  worker:
+    hosts:
+      - '<%= host %>'
+    env:
+      clear: *server-clear
+  storefront:
+    hosts:
+      - '<%= host %>'
+    env:
+      clear:
+        APP_ENV: staging
+        PLATFORM_DOMAIN: '<%= base_domain %>'
+        STOREFRONT_THEME: default
+        # Product images from the api's public asset route (D3209).
+        STOREFRONT_ASSET_BASE: 'https://api.<%= base_domain %>/assets'
+        # Must equal the build arg the image was built with (the standalone build embeds it); blank serves the
+        # static files from the store host.
+        STOREFRONT_ASSET_PREFIX: '<%= ENV.fetch("STOREFRONT_ASSET_PREFIX", "") %>'
+        # Requires the origin locked to Cloudflare's ranges (Ansible firewall role, applied before the first
+        # deploy): otherwise a direct hit could forge CF-Connecting-IP (D3213, D3226 d).
+        STOREFRONT_TRUST_EDGE_IP: true
+        OTEL_EXPORTER_OTLP_ENDPOINT: '<%= ENV.fetch("STAGING_OTEL_EXPORTER_OTLP_ENDPOINT", "") %>'
+        SENTRY_DSN: '<%= ENV.fetch("STAGING_STOREFRONT_SENTRY_DSN", "") %>'
+    proxy:
+      # Store subdomains and the marketing root. kamal-proxy prefers an exact host (app., api.) over the
+      # wildcard [BK, verify on the P3.S5b server]. Custom domains (Cloudflare for SaaS) are a P3.S5b decision.
+      hosts:
+        - '*.<%= base_domain %>'
+        - '<%= base_domain %>'
+        - storefront.internal
