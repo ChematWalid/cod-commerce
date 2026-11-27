@@ -131,7 +131,8 @@ wait_healthy api worker
 wait_http 200 "$api/readyz" 120 || fail "api /readyz"
 wait_http 200 "$api/dashboard/" 60 || fail "api /dashboard/"
 
-timeout 300 docker compose run --rm --no-deps -e DEMO_OWNER_PASSWORD --entrypoint node migrate apps/server/dist/main-seed-demo.js \
+# A loaded host can take minutes to boot the seed and close it (as in P3.S2.sh).
+timeout 900 docker compose run --rm --no-deps -e DEMO_OWNER_PASSWORD --entrypoint node migrate apps/server/dist/main-seed-demo.js \
   >"$work/seed.log" 2>&1 || fail "the demo seed failed: $(command tail -20 "$work/seed.log")"
 
 reset_limits() { # Every call from this host shares one client address.
