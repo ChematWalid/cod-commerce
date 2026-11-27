@@ -118,13 +118,20 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       TZ: ${TZ:-UTC}
+      # WAL archiving through pgBackRest (P3.S5a Task 7): off here; deploy/postgres/compose.yml swaps in the image
+      # with pgBackRest and turns it on (deploy/pgbackrest/README.md). Another name inside the container: pgBackRest
+      # reads every PGBACKREST_* variable as one of its options.
+      COD_WAL_ARCHIVE: ${PGBACKREST_ENABLED:-false}
     # pg_stat_statements on every environment (ADR 0015): exact per-statement DB time, read by the dashboards and
     # scripts/ops/slow-queries.sh. The init script creates the extension on a new volume only; an existing one gets it
     # from slow-queries.sh or the runbook (CREATE EXTENSION IF NOT EXISTS).
+    entrypoint: ['sh', '/usr/local/bin/cod-postgres-start.sh']
     command: ['postgres', '-c', 'shared_preload_libraries=pg_stat_statements', '-c', 'pg_stat_statements.track=top']
     configs:
       - source: pg_stat_statements_sql
         target: /docker-entrypoint-initdb.d/10-pg-stat-statements.sql
+      - source: postgres_start_sh
+        target: /usr/local/bin/cod-postgres-start.sh
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -352,6 +359,16 @@ configs:
   pg_stat_statements_sql:
     content: |
       CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+  # Adds WAL archiving to the postgres command line when PGBACKREST_ENABLED=true, then runs the image's entry point.
+  # archive_timeout bounds how old the newest unarchived WAL can get on a quiet database (the backup RPO).
+  postgres_start_sh:
+    content: |
+      set -eu
+      if [ "$${COD_WAL_ARCHIVE:-false}" = true ]; then
+        command -v pgbackrest >/dev/null || { echo "PGBACKREST_ENABLED=true needs the deploy/postgres image" >&2; exit 1; }
+        set -- "$$@" -c archive_mode=on -c 'archive_command=pgbackrest --stanza=cod archive-push %p' -c archive_timeout=60
+      fi
+      exec docker-entrypoint.sh "$$@"
   # A copy of otel/collector.yaml with every `$` doubled for compose (otel-collector.test.ts keeps them equal).
   otel_collector_yaml:
     content: |

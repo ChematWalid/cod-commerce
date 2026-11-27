@@ -1,0 +1,30 @@
+# pgBackRest on a deployed node (P3.S5b writes it to /etc/pgbackrest/pgbackrest.conf through Ansible).
+# Every <placeholder> is filled per environment. Credentials and the cipher pass are never in this file: pgBackRest
+# reads them from the postgres container's environment (Ansible Vault -> the data tier's .env):
+#   PGBACKREST_REPO1_S3_KEY, PGBACKREST_REPO1_S3_KEY_SECRET, PGBACKREST_REPO1_CIPHER_PASS
+# repo1 is the off-site copy on the SECOND Algerian provider (ADR 0011). Never R2: R2 holds public assets only
+# (ADR 0012). repo2 is the node-local copy on the pgbackrestrepo volume (fast restores, scripts/ops/restore-test.sh).
+
+[global]
+repo1-type=s3
+repo1-s3-endpoint=<second-provider-s3-endpoint>
+repo1-s3-bucket=<backup-bucket>
+repo1-s3-region=<region>
+repo1-s3-uri-style=path
+repo1-path=/cod/<environment>
+# Weekly full backups, four kept (about a month of point-in-time recovery off-site).
+repo1-retention-full=4
+repo1-cipher-type=aes-256-cbc
+
+repo2-type=posix
+repo2-path=/var/lib/pgbackrest
+repo2-retention-full=2
+
+start-fast=y
+compress-type=zst
+process-max=2
+log-level-console=info
+log-level-file=off
+
+[cod]
+pg1-path=/var/lib/postgresql/data
