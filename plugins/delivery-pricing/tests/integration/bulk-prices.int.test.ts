@@ -79,6 +79,20 @@ describe('adjustDeliveryFeeGroupPrices', () => {
     expect(rateOf(adjusted, '16')?.homePrice).toBe(0);
   });
 
+  it('declares the kind as an introspectable enum of amount and percent', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+
+    // Act
+    const { __type: kind } = await suite.kit.gql<{ __type: { enumValues: readonly { name: string }[] } | null }>(
+      `query { __type(name: "DeliveryFeePriceAdjustmentKind") { enumValues { name } } }`,
+      {},
+    );
+
+    // Assert
+    expect(kind?.enumValues.map((value) => value.name)).toEqual(['amount', 'percent']);
+  });
+
   it.each([
     ['neither price', { home: false, desk: false }],
     ['a percent below -100', { value: -101 }],

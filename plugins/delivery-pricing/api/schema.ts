@@ -88,10 +88,16 @@ export const deliveryPricingAdminApiSchema = gql`
     deskEnabled: Boolean
   }
 
-  "Raise/lower by... (D3140): kind is amount (whole DZD) or percent; includeCommunes defaults to false."
+  "How Raise/lower by... moves a price (D3140): by whole DZD or by a whole percent."
+  enum DeliveryFeePriceAdjustmentKind {
+    amount
+    percent
+  }
+
+  "Raise/lower by... (D3140): includeCommunes defaults to false."
   input DeliveryFeePriceAdjustmentInput {
     provinceCodes: [String!]!
-    kind: String!
+    kind: DeliveryFeePriceAdjustmentKind!
     value: Int!
     home: Boolean!
     desk: Boolean!
