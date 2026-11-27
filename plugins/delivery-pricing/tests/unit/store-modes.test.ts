@@ -1,5 +1,7 @@
+import { MONEY_MAX_DZD } from '@cod/shared';
 import { describe, expect, it } from 'vitest';
 import type { CommuneRateRow, WilayaRateRow } from '../../domain/fee-group';
+import { isQuotablePrice, quoteDelivery } from '../../domain/quote';
 import { modesOf, NOTHING_OFFERED, storeModesOf } from '../../domain/store-modes';
 
 const wilaya = (deliveryEnabled: boolean, deskEnabled: boolean): WilayaRateRow => ({
@@ -96,5 +98,65 @@ describe('storeModesOf', () => {
     // Assert
     expect(modes).toMatchObject({ home: false, desk: false });
     expect(modes.towns.get(1601)).toEqual({ home: true, desk: false });
+  });
+});
+
+describe('storeModesOf offers only the modes the quote can price (#294)', () => {
+  const UNPRICEABLE: readonly number[] = [-300, 1.5, MONEY_MAX_DZD + 1];
+
+  it.each(UNPRICEABLE)('refuses a stored price of %s, as the quote does', (price) => {
+    // Act and Assert
+    expect(isQuotablePrice(price)).toBe(false);
+  });
+
+  it.each([0, 600, MONEY_MAX_DZD])('accepts a stored price of %s', (price) => {
+    // Act and Assert
+    expect(isQuotablePrice(price)).toBe(true);
+  });
+
+  it.each(UNPRICEABLE)('does not offer home in a wilaya whose home price is %s, agreeing with the quote', (price) => {
+    // Arrange
+    const row: WilayaRateRow = { ...wilaya(true, true), baseHome: price };
+    const group = { chargeOverweight: false, overweightAllowanceKg: 5, overweightRate: 50 };
+    const quoteInput = { group, rate: row, communeRate: null, town: null, weightGrams: 0, waive: false };
+
+    // Act
+    const modes = storeModesOf(row, []);
+    const homeQuote = quoteDelivery({ ...quoteInput, method: 'home' });
+    const deskQuote = quoteDelivery({ ...quoteInput, method: 'desk' });
+
+    // Assert
+    expect(modes).toMatchObject({ home: false, desk: true });
+    expect(homeQuote.resolved).toBe(false);
+    expect(deskQuote.resolved).toBe(true);
+  });
+
+  it.each(UNPRICEABLE)('does not offer desk in a commune whose desk price is %s', (price) => {
+    // Arrange
+    const row: CommuneRateRow = { ...commune(1601, null, null), overrideDesk: price };
+
+    // Act
+    const modes = storeModesOf(wilaya(true, true), [row]);
+
+    // Assert
+    expect(modes).toMatchObject({ home: true, desk: true });
+    expect(modes.towns.get(1601)).toEqual({ home: true, desk: false });
+  });
+
+  it('offers a commune with its own valid price inside a wilaya whose price is unpriceable', () => {
+    // Arrange
+    const row: WilayaRateRow = { ...wilaya(true, true), baseHome: -300 };
+
+    // Act
+    const modes = storeModesOf(row, [commune(1601, null, null, 750)]);
+
+    // Assert
+    expect(modes.home).toBe(false);
+    expect(modes.towns.get(1601)).toEqual({ home: true, desk: true });
+  });
+
+  it('keeps a valid row unchanged', () => {
+    // Act and Assert
+    expect(storeModesOf(wilaya(true, true), [])).toEqual({ home: true, desk: true, towns: new Map() });
   });
 });

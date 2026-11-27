@@ -1,17 +1,10 @@
-import {
-  DELIVERY_SPEEDS,
-  MAX_OVERWEIGHT_ALLOWANCE_KG,
-  MAX_OVERWEIGHT_RATE,
-  MONEY_MAX_DZD,
-  type QuotePriceSource,
-  type ShippingQuote,
-} from '@cod/shared';
+import { DELIVERY_SPEEDS, MAX_OVERWEIGHT_ALLOWANCE_KG, MAX_OVERWEIGHT_RATE, type ShippingQuote } from '@cod/shared';
 import { GRAMS_PER_KG } from './constants';
 import type { CommuneRateRow, FeeGroupSettings, WilayaRateRow } from './fee-group';
+import { type DeliveryMethod, isBoundedInt, isQuotablePrice, methodPriceOf } from './method-price';
 import { modesOf } from './store-modes';
 
-/** How the parcel reaches the buyer: to the door or to a carrier's stop desk. */
-export type DeliveryMethod = 'home' | 'desk';
+export { type DeliveryMethod, isQuotablePrice } from './method-price';
 
 /** What the quote reads of a named commune in the geo reference data: whether a carrier desk and home delivery are there. */
 export interface QuoteTown {
@@ -56,7 +49,7 @@ export const UNRESOLVED_QUOTE: ShippingQuote = {
 const [STANDARD_SPEED] = DELIVERY_SPEEDS;
 
 /**
- * Whether the method is offered (D3125): the switches of {@link modesOf}; home needs a home-delivery town and desk a
+ * Whether the method is offered (D3125): the switches and price validity of {@link modesOf}; home needs a home-delivery town and desk a
  * desk town, the same AND geo applies to the commune list (D3133), so the list and the quote never disagree.
  */
 function isOffered({ communeRate, town, method }: DeliveryQuoteInput, wilaya: WilayaRateRow): boolean {
@@ -64,30 +57,6 @@ function isOffered({ communeRate, town, method }: DeliveryQuoteInput, wilaya: Wi
   if (method === 'home') return modes.home && (town === null || town.isHomeDelivery);
   return modes.desk && (town === null || town.isStopdesk);
 }
-
-/** A commune row's price of the method, `override ?? base`; `null` when it sets none, which inherits (D3125). */
-function communePriceOf(row: CommuneRateRow | null, method: DeliveryMethod): number | null {
-  if (row === null) return null;
-  return method === 'home' ? (row.overrideHome ?? row.baseHome) : (row.overrideDesk ?? row.baseDesk);
-}
-
-/** The wilaya row's price of the method, `override ?? base` (D3107). */
-const wilayaPriceOf = (row: WilayaRateRow, method: DeliveryMethod): number =>
-  method === 'home' ? (row.overrideHome ?? row.baseHome) : (row.overrideDesk ?? row.baseDesk);
-
-/** The method's price and its layer (D3125): the commune's when it sets one, else the wilaya's. */
-function priceOf(
-  wilaya: WilayaRateRow,
-  communeRate: CommuneRateRow | null,
-  method: DeliveryMethod,
-): { readonly price: number; readonly source: QuotePriceSource } {
-  const communePrice = communePriceOf(communeRate, method);
-  if (communePrice !== null) return { price: communePrice, source: 'commune' };
-  return { price: wilayaPriceOf(wilaya, method), source: 'wilaya' };
-}
-
-/** Whether a stored value is a whole number between 0 and `max`, as the group's input schema accepts it. */
-const isBoundedInt = (value: number, max: number): boolean => Number.isSafeInteger(value) && value >= 0 && value <= max;
 
 /**
  * The overweight fee in integers (D3121): `ceil(max(0, grams − allowanceKg × 1000) / 1000) × rate`, 0 when the group
@@ -104,12 +73,6 @@ export function overweightFeeOf(group: OverweightSettings, weightGrams: number):
 }
 
 /**
- * Whether an amount is a whole DZD between 0 and `MONEY_MAX_DZD`. A stored price is checked too: the price columns
- * have no `CHECK (>= 0)` and a carrier sync writes the bases (D3125), so a negative row must never lower an order.
- */
-const isMoney = (amount: number): boolean => isBoundedInt(amount, MONEY_MAX_DZD);
-
-/**
  * The delivery quote of one destination and parcel (D3125, D3121, D3113), all in whole DZD. A wilaya without a row,
  * a method not offered, an unreadable weight, a stored price that is not a whole DZD ≥ 0, a stored overweight setting
  * out of its bounds or a total above `MONEY_MAX_DZD` answer {@link UNRESOLVED_QUOTE}. A waived delivery costs the
@@ -120,10 +83,10 @@ export function quoteDelivery(input: DeliveryQuoteInput): ShippingQuote {
   if (rate === null || !isOffered(input, rate)) return UNRESOLVED_QUOTE;
   const overweightFee = overweightFeeOf(group, weightGrams);
   if (overweightFee === null) return UNRESOLVED_QUOTE;
-  const { price, source } = priceOf(rate, communeRate, method);
-  if (!isMoney(price)) return UNRESOLVED_QUOTE;
+  const { price, source } = methodPriceOf(rate, communeRate, method);
+  if (!isQuotablePrice(price)) return UNRESOLVED_QUOTE;
   const fee = price + overweightFee;
-  if (!isMoney(fee)) return UNRESOLVED_QUOTE;
+  if (!isQuotablePrice(fee)) return UNRESOLVED_QUOTE;
   return {
     baseFee: price,
     overweightFee,

@@ -1,6 +1,9 @@
 /** The log context of the delivery-pricing API's fault reports. */
 export const DELIVERY_PRICING_LOG_CONTEXT = 'DeliveryPricingApi';
 
+/** The log context of the delivery quote's adapters (a weights read refused off the store's channel, #293). */
+export const DELIVERY_QUOTE_LOG_CONTEXT = 'DeliveryPricingQuote';
+
 /** The overweight settings of a seeded fee group (D3110): off, 5 kg allowance, 50 DZD per started extra kg. */
 export const DEFAULT_CHARGE_OVERWEIGHT = false;
 export const DEFAULT_OVERWEIGHT_ALLOWANCE_KG = 5;

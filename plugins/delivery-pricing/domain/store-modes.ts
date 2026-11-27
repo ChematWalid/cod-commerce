@@ -1,4 +1,5 @@
 import type { CommuneRateRow, WilayaRateRow } from './fee-group';
+import { type DeliveryMethod, isQuotablePrice, methodPriceOf } from './method-price';
 
 /** Which delivery methods a store offers in one place, by its fee table's switches. */
 export interface DeliveryModes {
@@ -20,15 +21,23 @@ export interface StoreModes extends DeliveryModes {
 /** Nothing offered anywhere in the wilaya: what the quote answers there too (unresolved). */
 export const NOTHING_OFFERED: StoreModes = { home: false, desk: false, towns: new Map() };
 
+/** Whether the method's stored price at the place is one the quote can charge (#294). */
+const isPriceable = (wilaya: WilayaRateRow, commune: CommuneRateRow | null, method: DeliveryMethod): boolean =>
+  isQuotablePrice(methodPriceOf(wilaya, commune, method).price);
+
 /**
  * The switches of D3125 at one place: *delivery* = commune `deliveryEnabled ?? wilaya deliveryEnabled`, *home* =
- * delivery, *desk* = delivery && (commune `deskEnabled ?? wilaya deskEnabled`). The town's reference stop desk is not
- * read here: the quote and geo's narrowing each AND it in.
+ * delivery, *desk* = delivery && (commune `deskEnabled ?? wilaya deskEnabled`), each only when its stored price there
+ * is one the quote can charge, so availability never offers a mode the quote answers unresolved (#294). The town's
+ * reference stop desk is not read here: the quote and geo's narrowing each AND it in.
  */
 export function modesOf(wilaya: WilayaRateRow, commune: CommuneRateRow | null): DeliveryModes {
   const delivers = commune?.deliveryEnabled ?? wilaya.deliveryEnabled;
   const deskOn = commune?.deskEnabled ?? wilaya.deskEnabled;
-  return { home: delivers, desk: delivers && deskOn };
+  return {
+    home: delivers && isPriceable(wilaya, commune, 'home'),
+    desk: delivers && deskOn && isPriceable(wilaya, commune, 'desk'),
+  };
 }
 
 const sameModes = (left: DeliveryModes, right: DeliveryModes): boolean =>

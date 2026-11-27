@@ -18,7 +18,7 @@ import type {
 import type { CarrierRate } from '../../domain/carrier-prices';
 import type { CarrierPriceSyncPort } from '../../domain/ports/carrier-price-sync.port';
 import type { OperationContext } from '../../domain/ports/operation-context';
-import type { ProductWeightsPort } from '../../domain/ports/product-weights.port';
+import type { ProductWeights, ProductWeightsPort } from '../../domain/ports/product-weights.port';
 import type { StoreDefaultsPort } from '../../domain/ports/store-defaults.port';
 import type { TownDirectoryPort, TownReference } from '../../domain/ports/town-directory.port';
 import type { TransactionPort } from '../../domain/ports/transaction.port';
@@ -209,21 +209,22 @@ export class FixedTowns implements TownDirectoryPort {
   }
 }
 
-/** {@link ProductWeightsPort} over a fixed map of product id → grams; records the ids of every read. */
+/**
+ * {@link ProductWeightsPort} over a fixed map of product id → grams; records the ids of every read. `unreadable`
+ * makes every read answer `'unreadable'`, as the catalog does for a context off the store's channel.
+ */
 export class FixedWeights implements ProductWeightsPort {
   readonly asked: (readonly string[])[] = [];
+  unreadable = false;
   private readonly weights = new Map<string, number | null>();
 
   set(productId: string, grams: number | null): void {
     this.weights.set(productId, grams);
   }
 
-  weightsOf(
-    _ctx: OperationContext,
-    _scope: StoreScope,
-    productIds: readonly string[],
-  ): Promise<ReadonlyMap<string, number | null>> {
+  weightsOf(_ctx: OperationContext, _scope: StoreScope, productIds: readonly string[]): Promise<ProductWeights> {
     this.asked.push(productIds);
+    if (this.unreadable) return Promise.resolve('unreadable');
     const found = productIds
       .filter((id) => this.weights.has(id))
       .map((id) => [id, this.weights.get(id) ?? null] as const);

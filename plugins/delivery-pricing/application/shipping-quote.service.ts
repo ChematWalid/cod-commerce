@@ -1,8 +1,8 @@
 import { isWilayaCode, type ShippingQuote } from '@cod/shared';
 import type { OperationContext } from '../domain/ports/operation-context';
-import type { ProductWeightsPort } from '../domain/ports/product-weights.port';
+import type { ProductWeights, ProductWeightsPort } from '../domain/ports/product-weights.port';
 import type { TownReference } from '../domain/ports/town-directory.port';
-import { quoteDelivery, UNRESOLVED_QUOTE } from '../domain/quote';
+import { type OverweightSettings, quoteDelivery, UNRESOLVED_QUOTE } from '../domain/quote';
 import {
   isReadableParcel,
   parcelWeightOf,
@@ -19,9 +19,9 @@ type NamedTown = TownReference | null | undefined;
 /**
  * The store's delivery quote (D3125): the store's default fee group, read only within `(businessId, storeId)`, priced
  * for the wilaya and commune by the pure {@link quoteDelivery}. No default group, a group of another store, an
- * unknown or other-wilaya commune or an unreadable line all answer unresolved. Offers (Task 7), the storefront
- * checkout (P3.S3) and the order form (P4.S3) call it; the scope comes from the session or the signed host, never from
- * a request body.
+ * unknown or other-wilaya commune, an unreadable line or the store's products unreadable in `ctx` all answer
+ * unresolved. Offers (Task 7), the storefront checkout (P3.S3) and the order form (P4.S3) call it; the scope comes
+ * from the session or the signed host, never from a request body.
  */
 export class ShippingQuoteService {
   constructor(
@@ -43,7 +43,8 @@ export class ShippingQuoteService {
       codeOns: request.townOns ?? null,
     });
     if (rows === undefined) return UNRESOLVED_QUOTE;
-    const weightGrams = rows.group.chargeOverweight ? await this.weightOf(ctx, scope, request.items) : 0;
+    const weightGrams = await this.weightOf(ctx, scope, rows.group, request.items);
+    if (weightGrams === 'unreadable') return UNRESOLVED_QUOTE;
     return quoteDelivery({
       group: rows.group,
       rate: rows.rate,
@@ -60,11 +61,21 @@ export class ShippingQuoteService {
     return this.ports.towns.townOf(provinceCode, townOns);
   }
 
-  /** Only the products of lines without a sent weight are read, in one batch. */
-  private async weightOf(ctx: OperationContext, scope: StoreScope, items: readonly ShippingQuoteItem[]) {
+  /**
+   * The parcel weight, 0 for a group that does not charge overweight. Only the products of lines without a sent weight
+   * are read, in one batch; `'unreadable'` passes through (#293).
+   */
+  private async weightOf(
+    ctx: OperationContext,
+    scope: StoreScope,
+    group: OverweightSettings,
+    items: readonly ShippingQuoteItem[],
+  ): Promise<number | 'unreadable'> {
+    if (!group.chargeOverweight) return 0;
     const missing = productsWithoutWeight(items);
-    const weights =
+    const weights: ProductWeights =
       missing.length === 0 ? new Map<string, number | null>() : await this.weights.weightsOf(ctx, scope, missing);
+    if (weights === 'unreadable') return weights;
     return parcelWeightOf(items, weights);
   }
 }

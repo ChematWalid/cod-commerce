@@ -129,6 +129,15 @@ describe('ShippingQuoteService', () => {
     expect(weights.asked).toEqual([['7']]);
   });
 
+  it("answers unresolved when the store's product weights are unreadable (#293)", async () => {
+    // Arrange
+    const { quotes, weights } = await storeWithGroup();
+    weights.unreadable = true;
+
+    // Act and Assert
+    await expect(quotes.quote(ctx, STORE_A1, request())).resolves.toEqual(UNRESOLVED_QUOTE);
+  });
+
   it('counts a product without a weight as 0 g', async () => {
     // Arrange
     const { quotes, weights } = await storeWithGroup();
