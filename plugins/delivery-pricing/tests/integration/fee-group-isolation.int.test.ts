@@ -59,18 +59,29 @@ async function groupsOf(owner: typeof suite.fixtures.a, store: StoreFixture): Pr
   return { groupId: group.id, spareGroupId: spare.id };
 }
 
-/** Row counts of the victim group in every table, so a refused write is proven to change nothing. */
-async function rowsOf(ids: TargetIds): Promise<Record<string, number>> {
-  const counts: Record<string, number> = {};
+/** The victim groups' rows in one table: their count and a digest of every column, `updatedAt` included. */
+interface TableSnapshot {
+  readonly n: number;
+  readonly digest: string;
+}
+
+/**
+ * The victim groups' rows in every table, so a refused write is proven to change nothing: a count alone would miss
+ * an in-place UPDATE or a delete-and-reinsert landing on the victim.
+ */
+async function rowsOf(ids: TargetIds): Promise<Record<string, TableSnapshot>> {
+  const snapshot: Record<string, TableSnapshot> = {};
   for (const table of TABLES) {
     const column = table === 'delivery_fee_group' ? 'id' : 'groupId';
-    const [row] = await suite.kit.query<{ n: number }>(
-      `SELECT count(*)::int AS n FROM "${table}" WHERE "${column}" IN ($1, $2)`,
+    const [row] = await suite.kit.query<TableSnapshot>(
+      `SELECT count(*)::int AS n,
+              coalesce(md5(string_agg(to_jsonb(t)::text, ',' ORDER BY to_jsonb(t)::text)), '') AS digest
+         FROM "${table}" t WHERE t."${column}" IN ($1, $2)`,
       [ids.groupId, ids.spareGroupId],
     );
-    counts[table] = row?.n ?? 0;
+    snapshot[table] = row ?? { n: 0, digest: '' };
   }
-  return counts;
+  return snapshot;
 }
 
 describe.each([
@@ -78,7 +89,7 @@ describe.each([
   ['another store of the same business (A2)', () => [suite.fixtures.a, suite.fixtures.a.stores[1]] as const],
 ])('fee-group isolation against %s', (_label, victim) => {
   let ids: TargetIds;
-  let before: Record<string, number>;
+  let before: Record<string, TableSnapshot>;
 
   beforeAll(async () => {
     const [owner, store] = victim();
