@@ -1,0 +1,132 @@
+# promtool unit tests of rules.yml (scripts/ops/alerts-check.sh). Synthetic series only: each test proves an
+# alert fires on the condition it describes and stays quiet just below it.
+rule_files:
+  - rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: Valkey memory notifies above 60 % and pages above 80 %
+    interval: 1m
+    input_series:
+      - series: 'redis_memory_used_bytes{job="otelcol"}'
+        values: '100x10 180x10 210x10'
+      - series: 'redis_maxmemory_bytes{job="otelcol"}'
+        values: '256x30'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: ValkeyMemoryHigh
+        exp_alerts: []
+      - eval_time: 18m
+        alertname: ValkeyMemoryHigh
+        exp_alerts:
+          - exp_labels:
+              severity: notify
+            exp_annotations:
+              summary: Valkey uses more than 60 % of maxmemory
+              description: Cache writes are switched off. Look for a growing queue or key set before it reaches 80 %.
+      - eval_time: 18m
+        alertname: ValkeyMemoryCritical
+        exp_alerts: []
+      - eval_time: 28m
+        alertname: ValkeyMemoryCritical
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: Valkey uses more than 80 % of maxmemory
+              description: Valkey is close to refusing writes (noeviction), which stops queues. Drain or raise maxmemory.
+
+  - name: The worker is absent after 10 minutes without gauges
+    interval: 1m
+    input_series:
+      - series: 'queue_pool_jobs{job="cod/cod-worker", pool="critical", state="waiting"}'
+        values: '0x5 _x20'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: WorkerAbsent
+        exp_alerts: []
+      - eval_time: 18m
+        alertname: WorkerAbsent
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              job: cod/cod-worker
+            exp_annotations:
+              summary: No worker has reported for 10 minutes
+              description: Jobs, the outbox and scheduled tasks are not running. Check the worker container and its logs.
+
+  - name: A readyz that stops answering 2xx pages after 2 minutes, despite an older series with other labels
+    interval: 30s
+    input_series:
+      - series: 'httpcheck_status{http_url="http://api:3000/readyz", http_status_class="2xx", http_status_code="200"}'
+        values: '1x10 _x20'
+      - series: 'httpcheck_status{http_url="http://api:3000/readyz", http_status_class="2xx", http_status_code="503"}'
+        values: '_x10 0x20'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: ReadyzDown
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: ReadyzDown
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              http_url: http://api:3000/readyz
+            exp_annotations:
+              summary: A role's /readyz has not answered 2xx for 2 minutes
+              description: The role is down or not ready (Postgres, Valkey or migrations). Its /readyz body names the failing check.
+
+  - name: Outbox lag and webhook backlog page past 5 minutes, during the day
+    interval: 1m
+    input_series:
+      - series: 'outbox_oldest_age_seconds{job="cod/cod-worker"}'
+        values: '0+60x10'
+      - series: 'queue_oldest_waiting_age_seconds{job="cod/cod-worker", pool="critical", queue="inbound-webhooks"}'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: OutboxLag
+        exp_alerts: []
+      - eval_time: 9m
+        alertname: OutboxLag
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              page_hours: daytime
+            exp_annotations:
+              summary: The oldest pending outbox event is older than 5 minutes
+              description: Side effects (CAPI, notifications, webhooks) are stalled. Check the worker and the outbox-relay queue.
+      - eval_time: 9m
+        alertname: WebhookBacklog
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              page_hours: daytime
+            exp_annotations:
+              summary: An inbound webhook has waited more than 5 minutes
+              description: Parcel statuses go stale. Check the worker and the inbound-webhooks queue.
+      - eval_time: 9m
+        alertname: QueueOldestWaitingCritical
+        exp_alerts: []
+
+  - name: The api pages when more than 2 % of its answers are 5xx
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="cod/cod-api", http_response_status_code="200"}'
+        values: '0+600x20'
+      - series: 'http_server_request_duration_seconds_count{job="cod/cod-api", http_response_status_code="500"}'
+        values: '0+6x10 60+30x10'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ApiServerErrorRate
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ApiServerErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              job: cod/cod-api
+            exp_annotations:
+              summary: More than 2 % of api requests answer 5xx
+              description: Buyers may not be able to order. Check the api logs and Sentry, then /readyz reasons.

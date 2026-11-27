@@ -19,6 +19,10 @@ receivers:
   redis:
     endpoint: ${env:COLLECTOR_REDIS_ENDPOINT}
     collection_interval: 60s
+    metrics:
+      # Off by default in the receiver; the alerts divide memory used by it (ops/alerts/rules.yml).
+      redis.maxmemory:
+        enabled: true
   postgresql:
     endpoint: ${env:COLLECTOR_POSTGRES_ENDPOINT}
     transport: tcp
@@ -27,6 +31,14 @@ receivers:
     collection_interval: 60s
     tls:
       insecure: true
+  # Each role's /readyz from inside the node, for the "readyz down" alert (ops/alerts/rules.yml). The public uptime
+  # check (ADR 0015, tool pending) sees only the edge; this one names the role that is not ready.
+  httpcheck/readyz:
+    collection_interval: 30s
+    targets:
+      - endpoint: ${env:COLLECTOR_API_READYZ_URL}
+      - endpoint: ${env:COLLECTOR_WORKER_READYZ_URL}
+      - endpoint: ${env:COLLECTOR_STOREFRONT_READYZ_URL}
 
 processors:
   # Below the container's 150 MB hard limit (infrastructure.md "Launch node budget").
@@ -112,7 +124,7 @@ service:
       processors: [memory_limiter, transform/scrub, tail_sampling, batch]
       exporters: [debug]
     metrics:
-      receivers: [otlp, redis, postgresql]
+      receivers: [otlp, redis, postgresql, httpcheck/readyz]
       processors: [memory_limiter, transform/scrub, batch]
       exporters: [debug]
     logs:

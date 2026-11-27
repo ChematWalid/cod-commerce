@@ -1,0 +1,148 @@
+# Alert rules as code (ADR 0015, system-design §8). Prometheus rule format, loaded into Grafana Cloud's
+# Mimir-backed data source (ops/README.md, P3.S5b). Metric names are the Prometheus names Grafana Cloud stores for
+# what otel/collector.yaml exports (OTLP → Prometheus: dots become `_`, unit words and `_total` are appended);
+# packages/config/tests/ops-observability.test.ts checks every name against what the code and the collector emit.
+# Each OTLP resource becomes `job="<service.namespace>/<service.name>"`, so `cod/cod-api`, `cod/cod-worker`.
+#
+# Levels (label `severity`): `page` wakes the on-call (Telegram with sound), `notify` goes to the working-hours
+# channel. `page_hours: daytime` pages only 08:00-23:00 Africa/Algiers and notifies otherwise: that split is a
+# Grafana notification policy with a mute timing, not a rule. Annotations are static, so promtool's unit tests
+# (rules.test.yml) can compare them; the value is on the alert itself.
+# Check: scripts/ops/alerts-check.sh (promtool check rules + test rules).
+groups:
+  - name: cod-buying
+    rules:
+      # Intake failing (§8): more than 2 % of api answers are 5xx over 5 min. The rate floor keeps a single 500 on a
+      # quiet night from paging.
+      - alert: ApiServerErrorRate
+        expr: |
+          (
+            sum by (job) (rate(http_server_request_duration_seconds_count{job="cod/cod-api", http_response_status_code=~"5.."}[5m]))
+              /
+            sum by (job) (rate(http_server_request_duration_seconds_count{job="cod/cod-api"}[5m]))
+          ) > 0.02
+          and
+          sum by (job) (rate(http_server_request_duration_seconds_count{job="cod/cod-api"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: More than 2 % of api requests answer 5xx
+          description: Buyers may not be able to order. Check the api logs and Sentry, then /readyz reasons.
+      # A role's /readyz, probed every 30 s on the node by the collector's httpcheck receiver: the 2xx class is 0 on a
+      # non-2xx answer and on a refused or timed-out request. The 1 min window lets a series whose labels changed
+      # (a collector restart, another receiver version adding labels) age out at once instead of after 5 min.
+      - alert: ReadyzDown
+        expr: max by (http_url) (max_over_time(httpcheck_status{http_status_class="2xx"}[1m])) == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: A role's /readyz has not answered 2xx for 2 minutes
+          description: The role is down or not ready (Postgres, Valkey or migrations). Its /readyz body names the failing check.
+      # Orders accepted while Postgres was unreachable wait in the spool (P3.S4); 0 until then.
+      - alert: IntakeSpoolNonEmpty
+        expr: max(intake_spool_length) > 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: Orders are waiting in the intake spool
+          description: Postgres is unreachable or slow; spooled orders are not yet written.
+
+  - name: cod-pipeline
+    rules:
+      - alert: OutboxLag
+        expr: max(outbox_oldest_age_seconds) > 300
+        for: 2m
+        labels:
+          severity: page
+          page_hours: daytime
+        annotations:
+          summary: The oldest pending outbox event is older than 5 minutes
+          description: Side effects (CAPI, notifications, webhooks) are stalled. Check the worker and the outbox-relay queue.
+      - alert: WebhookBacklog
+        expr: max(queue_oldest_waiting_age_seconds{queue="inbound-webhooks"}) > 300
+        for: 2m
+        labels:
+          severity: page
+          page_hours: daytime
+        annotations:
+          summary: An inbound webhook has waited more than 5 minutes
+          description: Parcel statuses go stale. Check the worker and the inbound-webhooks queue.
+      # Any other critical queue: its jobs are meant to run within seconds (ADR 0013).
+      - alert: QueueOldestWaitingCritical
+        expr: max by (queue) (queue_oldest_waiting_age_seconds{pool="critical", queue!="inbound-webhooks"}) > 300
+        for: 10m
+        labels:
+          severity: notify
+        annotations:
+          summary: A critical queue's oldest waiting job is older than 5 minutes
+          description: The critical pool is saturated or stuck. Check worker concurrency and the queue's failures.
+      # Bulk queues (imports, CAPI retries, AI) may wait; half an hour means the pool is not keeping up.
+      - alert: QueueOldestWaitingBulk
+        expr: max by (queue) (queue_oldest_waiting_age_seconds{pool="bulk"}) > 1800
+        for: 15m
+        labels:
+          severity: notify
+        annotations:
+          summary: A bulk queue's oldest waiting job is older than 30 minutes
+          description: The bulk pool is not keeping up. Check worker load and long-running jobs.
+      # DLQ growth (§8): the pool's failed set grew by more than 100 jobs in an hour.
+      - alert: FailedJobsGrowth
+        expr: max by (pool) (delta(queue_pool_jobs{state="failed"}[1h])) > 100
+        labels:
+          severity: notify
+        annotations:
+          summary: More than 100 jobs failed in the last hour
+          description: Poison messages or a provider outage. Inspect the failed set in Bull Board.
+      # Scheduler stalled (§8): no success for 3 intervals (outbox-sweeper every minute, job-reconciler every 5).
+      # carrier-poll-tick joins when its task exists.
+      - alert: SchedulerStalled
+        expr: |
+          max by (task) (scheduler_task_last_success_age_seconds{task="outbox-sweeper"}) > 180
+          or
+          max by (task) (scheduler_task_last_success_age_seconds{task="job-reconciler"}) > 900
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: A critical scheduled task has not succeeded for 3 intervals
+          description: No worker is alive or the task lock is stuck.
+      # Only the worker reports the platform gauges (D3518): no point for 10 minutes means no worker.
+      - alert: WorkerAbsent
+        expr: absent_over_time(queue_pool_jobs{job="cod/cod-worker"}[10m])
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: No worker has reported for 10 minutes
+          description: Jobs, the outbox and scheduled tasks are not running. Check the worker container and its logs.
+
+  - name: cod-data-tier
+    rules:
+      # Above 60 % the cache stops writing to Valkey so queues keep room (ADR 0015); 80 % risks a queue OOM.
+      - alert: ValkeyMemoryHigh
+        expr: max(redis_memory_used_bytes / (redis_maxmemory_bytes > 0)) > 0.6
+        for: 5m
+        labels:
+          severity: notify
+        annotations:
+          summary: Valkey uses more than 60 % of maxmemory
+          description: Cache writes are switched off. Look for a growing queue or key set before it reaches 80 %.
+      - alert: ValkeyMemoryCritical
+        expr: max(redis_memory_used_bytes / (redis_maxmemory_bytes > 0)) > 0.8
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: Valkey uses more than 80 % of maxmemory
+          description: Valkey is close to refusing writes (noeviction), which stops queues. Drain or raise maxmemory.
+      - alert: PostgresConnectionsHigh
+        expr: max(sum(postgresql_backends) / max(postgresql_connection_max)) > 0.8
+        for: 10m
+        labels:
+          severity: notify
+        annotations:
+          summary: Postgres uses more than 80 % of max_connections
+          description: Check PgBouncer pool sizes (docs/ops/capacity.md) and long-held connections.
