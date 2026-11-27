@@ -1,0 +1,6 @@
+# Provider caches of module test runs; the environment roots commit their lock file.
+modules/*/.terraform/
+modules/*/.terraform.lock.hcl
+envs/*/backend.hcl
+envs/*/terraform.tfvars
+envs/*/*.tfplan

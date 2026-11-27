@@ -1,0 +1,3 @@
+# Copy to backend.hcl (git-ignored) and fill in. Not secret, but account-specific.
+bucket    = "cod-tofu-state"
+endpoints = { s3 = "https://<cloudflare-account-id>.r2.cloudflarestorage.com" }

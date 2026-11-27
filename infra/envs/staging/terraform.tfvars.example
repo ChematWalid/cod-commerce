@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. No secret goes here: the API token is CLOUDFLARE_API_TOKEN,
+# the state passphrase TF_VAR_state_encryption_passphrase, the R2 state key AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY.
+cloudflare_account_id = "<cloudflare-account-id>"
+cloudflare_zone_id    = "<zone-id>"
+base_domain           = "staging.example.dz"
+origin_ipv4           = "192.0.2.10"
+# origin_ipv6         = "2001:db8::10"
