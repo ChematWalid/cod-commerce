@@ -11,6 +11,7 @@ export class DrainService implements DrainSignal {
   private deadlineArmed = false;
   private active = 0;
   private readonly idleWaiters = new Set<() => void>();
+  private readonly beginListeners: (() => void)[] = [];
 
   constructor(
     private readonly plan: DrainPlan,
@@ -27,11 +28,23 @@ export class DrainService implements DrainSignal {
     return this.active;
   }
 
-  /** Starts the drain; later calls do nothing. */
+  /** Starts the drain and runs the {@link onBegin} listeners; later calls do nothing. */
   begin(reason: string): void {
     if (this.draining) return;
     this.draining = true;
     this.logger.info(`Draining (${reason}): /readyz now answers 503`, LOGGER_CONTEXT);
+    this.beginListeners.splice(0).forEach((listener) => {
+      listener();
+    });
+  }
+
+  /** Runs `listener` once when the drain begins, or at once when it already has. */
+  onBegin(listener: () => void): void {
+    if (this.draining) {
+      listener();
+      return;
+    }
+    this.beginListeners.push(listener);
   }
 
   /**

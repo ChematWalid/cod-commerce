@@ -93,8 +93,9 @@ const DRAIN_SIGNAL = 'SIGTERM';
  * Readiness (`/readyz`: Postgres, Valkey, pending migrations) and liveness (`/livez`: event-loop lag) probes.
  * The api role answers them on its own port; the worker role on `workerHealthPort`. Every role refuses to
  * boot when Valkey may evict keys; an unreachable Valkey only logs a warning and keeps `/readyz` not ready.
- * On SIGTERM the api and worker drain (ADR 0013): `/readyz` answers 503 at once, then the shutdown waits for the
- * api's in-flight requests (25 s) and the worker's active jobs (Vendure's queue stop, bounded at 60 s).
+ * On SIGTERM the api and worker drain (ADR 0013): `/readyz` answers 503 at once and the api's HTTP server stops
+ * accepting connections (`trackInFlightRequests`), then the shutdown waits for the api's in-flight requests (25 s)
+ * and the worker's active jobs (Vendure's queue stop, bounded at 60 s).
  */
 @VendurePlugin({
   imports: [PluginCommonModule],

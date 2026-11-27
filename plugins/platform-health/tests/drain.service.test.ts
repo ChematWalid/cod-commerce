@@ -151,11 +151,29 @@ describe('ProcessShutdownWatchdog', () => {
   });
 });
 
+/** A Node HTTP server stand-in: request events, plus the listener and idle-socket closes the drain calls. */
+class FakeServer extends EventEmitter {
+  readonly close = vi.fn();
+  readonly closeIdleConnections = vi.fn();
+}
+
+/** A Node HTTP response stand-in: its close event and the headers set on it. */
+class FakeResponse extends EventEmitter {
+  readonly headers = new Map<string, string>();
+  constructor(public headersSent = false) {
+    super();
+  }
+  setHeader(name: string, value: string): this {
+    this.headers.set(name.toLowerCase(), value);
+    return this;
+  }
+}
+
 describe('trackInFlightRequests', () => {
   it('counts a request from its arrival until its response closes', () => {
     const drain = apiDrain();
-    const server = new EventEmitter();
-    const response = new EventEmitter();
+    const server = new FakeServer();
+    const response = new FakeResponse();
 
     trackInFlightRequests(server, drain);
     server.emit('request', {}, response);
@@ -164,5 +182,98 @@ describe('trackInFlightRequests', () => {
 
     expect(during).toBe(1);
     expect(drain.inFlight).toBe(0);
+  });
+
+  it('keeps connections alive while the process is not draining', () => {
+    const server = new FakeServer();
+    const response = new FakeResponse();
+
+    trackInFlightRequests(server, apiDrain());
+    server.emit('request', {}, response);
+
+    expect(response.headers.has('connection')).toBe(false);
+    expect(server.close).not.toHaveBeenCalled();
+  });
+
+  it('stops accepting connections and closes the idle ones as soon as the drain begins', () => {
+    const drain = apiDrain();
+    const server = new FakeServer();
+
+    trackInFlightRequests(server, drain);
+    drain.onStopSignal('SIGTERM');
+    drain.begin('shutdown');
+
+    expect(server.close).toHaveBeenCalledOnce();
+    expect(server.closeIdleConnections).toHaveBeenCalledOnce();
+  });
+
+  it('closes the connection of a request that arrives on a kept-alive socket after the drain began', () => {
+    const drain = apiDrain();
+    const server = new FakeServer();
+    const late = new FakeResponse();
+
+    trackInFlightRequests(server, drain);
+    drain.begin('shutdown');
+    server.emit('request', {}, late);
+
+    expect(late.headers.get('connection')).toBe('close');
+  });
+
+  it('closes the connection of each request in flight when the drain begins, so its socket carries no other', () => {
+    const drain = apiDrain();
+    const server = new FakeServer();
+    const pending = new FakeResponse();
+    const streaming = new FakeResponse();
+    const done = new FakeResponse();
+
+    trackInFlightRequests(server, drain);
+    server.emit('request', {}, pending);
+    server.emit('request', {}, streaming);
+    server.emit('request', {}, done);
+    done.emit('close');
+    streaming.headersSent = true;
+    drain.begin('shutdown');
+
+    expect(pending.headers.get('connection')).toBe('close');
+    expect(streaming.headers.has('connection')).toBe(false);
+    expect(done.headers.has('connection')).toBe(false);
+  });
+
+  it('ends the request drain once the in-flight requests finish, since no new connection is accepted', async () => {
+    vi.useFakeTimers();
+    try {
+      const drain = apiDrain();
+      const server = new FakeServer();
+      const response = new FakeResponse();
+      trackInFlightRequests(server, drain);
+      server.emit('request', {}, response);
+
+      drain.begin('shutdown');
+      const waiting = drain.waitForRequests();
+      await vi.advanceTimersByTimeAsync(100);
+      response.emit('close');
+      await waiting;
+
+      expect(drain.inFlight).toBe(0);
+      expect(server.close).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('DrainService.onBegin', () => {
+  it('runs a listener when the drain begins, once, and at once when it has already begun', () => {
+    const drain = apiDrain();
+    const before = vi.fn();
+    const after = vi.fn();
+
+    drain.onBegin(before);
+    drain.begin('SIGTERM');
+    drain.begin('shutdown');
+    drain.onBegin(after);
+
+    expect(before).toHaveBeenCalledOnce();
+    expect(after).toHaveBeenCalledOnce();
   });
 });
