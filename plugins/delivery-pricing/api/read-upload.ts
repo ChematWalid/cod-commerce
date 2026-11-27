@@ -1,5 +1,6 @@
 // `readAtMost` is copied from plugins/catalog/api/read-upload.ts: a plugin never imports another plugin's internals
 // (§3a.2). `readBodyAtMost` is its variant for a raw request body (D3142).
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Readable } from 'node:stream';
 
 /** Reads `stream` until it ends or holds more than `limit` bytes; answers the bytes and whether it stopped early. */
@@ -28,10 +29,23 @@ export async function readAtMost(stream: Readable, limit: number): Promise<Buffe
   return bytes;
 }
 
+/** A request as Express hands it on: `res` is the response it will be answered with. */
+export interface BodyRequest extends IncomingMessage {
+  readonly res?: ServerResponse;
+}
+
 /**
  * Reads a raw request body up to `limit` bytes, as {@link readAtMost}, but leaves the request open: destroying it
- * would close the socket before the answer, and Node discards an unread body once the answer is sent.
+ * would close the socket before the answer. Past the limit the request is resumed, so the rest of the body is
+ * discarded instead of leaving the keep-alive socket wedged on a paused request (Node only drains a body nobody
+ * started reading), and the answer carries `Connection: close`, so the socket goes once answered and the discarding
+ * is bounded (D3143).
  */
-export async function readBodyAtMost(request: Readable, limit: number): Promise<Buffer> {
-  return (await collect(request.iterator({ destroyOnReturn: false }), limit)).bytes;
+export async function readBodyAtMost(request: BodyRequest, limit: number): Promise<Buffer> {
+  const { bytes, over } = await collect(request.iterator({ destroyOnReturn: false }), limit);
+  if (over) {
+    request.res?.setHeader('Connection', 'close');
+    request.resume();
+  }
+  return bytes;
 }

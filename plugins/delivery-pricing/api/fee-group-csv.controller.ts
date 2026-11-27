@@ -1,4 +1,3 @@
-import type { IncomingMessage } from 'node:http';
 import { requirePermission } from '@cod/plugin-rbac/guard';
 import { PRICING_CSV_MAX_BYTES } from '@cod/shared';
 import {
@@ -19,7 +18,7 @@ import type { DeliveryFeeCsvImportDto } from './csv-dto';
 import { DeliveryPricingRestErrorFilter, restCall } from './error-mapping';
 import { FeeGroupCsvActions } from './fee-group-csv-actions';
 import { DELIVERY_PRICING_PERMISSIONS as P } from './permissions';
-import { readBodyAtMost } from './read-upload';
+import { type BodyRequest, readBodyAtMost } from './read-upload';
 
 /** The type of the export, which Excel opens as UTF-8 thanks to its byte order mark. */
 const CSV_CONTENT_TYPE = 'text/csv; charset=utf-8';
@@ -66,7 +65,7 @@ export class FeeGroupCsvController {
     @Ctx() ctx: RequestContext,
     @Param('id') id: string,
     @Query('dryRun') dryRun: unknown,
-    @Req() request: IncomingMessage,
+    @Req() request: BodyRequest,
   ): Promise<DeliveryFeeCsvImportDto> {
     return restCall(async () => {
       if (!isCsvMediaType(request.headers['content-type'])) throw new InvalidPricingCsvFileError();
