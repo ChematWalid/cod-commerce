@@ -2,9 +2,10 @@
 # Proof-of-working evidence for P3.S1 (CLAUDE.md §3a.14), copied from P2.S5.sh: runs the real compose stack under its own
 # project (cod-evidence, host ports +20000), whose `migrate` converges the 69 wilayas and every store's default table
 # (D3116, D3112), seeds the demo businesses, records the public and signed wilaya endpoints and every fee-group endpoint
-# over REST and GraphQL with the store links and cross-business refusals, quotes a delivery in process through the
-# delivery-pricing service and the offers' pricing core (P3.S1-quote.ts), takes the Delivery Pricing and store settings
-# screenshots and tears the project down. Never touches `cod` or `cod-verify`.
+# over REST and GraphQL with the store links and cross-business refusals (Part 2: Raise/lower by, Set price for all
+# communes, Copy, the CSV export and import, P3.S1-api-bulk.sh), quotes a delivery in process through the
+# delivery-pricing service and the offers' pricing core (P3.S1-quote.ts), takes the Delivery Pricing, bulk-tool and store
+# settings screenshots and tears the project down. Never touches `cod` or `cod-verify`.
 #
 #   flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 2400 scripts/evidence/P3.S1.sh
 #   EV_SKIP_BUILD=1 flock -w 3600 /tmp/cod-heavy-jobs.lock timeout 2400 scripts/evidence/P3.S1.sh
@@ -48,10 +49,10 @@ work=$(mktemp -d)
 SNOWFLAKE_RE='^[1-9][0-9]{15,18}$'
 # Values are replaced anywhere in a transcript, so a short one would corrupt status codes and other digits.
 MIN_PLACEHOLDER_VALUE_LENGTH=16
-# 12 over HTTP (P3.S1-api.sh) and 2 in process (P3.S1-quote.ts).
-TRANSCRIPT_COUNT=14
-# 6 screens x {ar, en} x {desktop, mobile}.
-SCREEN_COUNT=24
+# 12 over HTTP (P3.S1-api.sh), 6 over HTTP for part 2 (P3.S1-api-bulk.sh) and 2 in process (P3.S1-quote.ts).
+TRANSCRIPT_COUNT=20
+# 10 screens x {ar, en} x {desktop, mobile}.
+SCREEN_COUNT=40
 # The two owners' API sign-ins (the screens sign in on their own): the redaction check needs both tokens to mean anything.
 SIGN_IN_COUNT=2
 
@@ -246,6 +247,8 @@ remember_id BUSINESS_DEMO "$demo_business"; remember_id BUSINESS_SECOND "$second
 
 # shellcheck source=P3.S1-api.sh
 . scripts/evidence/P3.S1-api.sh
+# shellcheck source=P3.S1-api-bulk.sh
+. scripts/evidence/P3.S1-api-bulk.sh
 
 # --- shipping quotes, in process on the host (as P2.S4.sh) -------------------------------------
 Q_PRODUCT='mutation ($input: CreateCatalogProductInput!) { createCatalogProduct(input: $input) { product { id variants { id price } } } }'
@@ -277,7 +280,7 @@ transcripts=$(command ls "$out"/api/*.md | command wc -l)
 
 # --- screens ----------------------------------------------------------------------------------
 reset_limits
-EV_GROUP_ID=$pricing_group EV_GROUP_NAME='خيار التسعير للأدلة' timeout 1200 \
+EV_GROUP_ID=$pricing_group EV_GROUP_NAME='خيار التسعير للأدلة' EV_IMPORT_CSV=$screens_csv timeout 1200 \
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evidence/P3.S1-screens.mjs \
   "$api/dashboard" "$work/shots" >"$work/shots.txt" 2> >(command tee "$work/screens.log" >&2)
 command cp "$work"/shots/*.png "$out/screens/"
@@ -313,12 +316,20 @@ Compose project \`cod-evidence\`.
 | [\`api/store-provinces-narrowed.md\`](api/store-provinces-narrowed.md) | signed \`GET /store/provinces/code/16?storeId=\`: the Casbah without home delivery; B's store id under A's signed store header 404 (D3135); unsigned 404 (D112) |
 | [\`api/isolation-b-group-from-a.md\`](api/isolation-b-group-from-a.md) | A's owner on B's option: \`GET\`/\`PUT\`/\`communes\` 404, \`deliveryFeeGroup\` null, B's option unchanged |
 | [\`api/update-store-refused-references.md\`](api/update-store-refused-references.md) | \`updateStore\` with B's option (#230) or any carrier id (#153): \`tenancy.store-reference-not-found\`, the default kept |
+| [\`api/fee-group-duplicate.md\`](api/fee-group-duplicate.md) | \`POST /delivery-fees/:id/duplicate\` (201) and \`duplicateDeliveryFeeGroup\`: the copy keeps every rate and commune row; an empty name 400 (D3140, D3143) |
+| [\`api/fee-group-adjust.md\`](api/fee-group-adjust.md) | \`POST /delivery-fees/:id/adjust\` (+100 DZD) and \`adjustDeliveryFeeGroupPrices\` (+10%): overrides of the kept base; no wilaya 400 (D3140) |
+| [\`api/fee-group-commune-prices.md\`](api/fee-group-commune-prices.md) | \`PUT /delivery-fees/:id/communes/16/prices\` and \`setDeliveryFeeProvinceCommunePrices\`: one price for every commune of Alger; no price 400 |
+| [\`api/fee-group-csv-export.md\`](api/fee-group-csv-export.md) | \`GET /delivery-fees/:id/export\` (UTF-8 with a byte order mark, attachment) and \`deliveryFeeGroupCsv\` (D3142) |
+| [\`api/fee-group-csv-import.md\`](api/fee-group-csv-import.md) | \`POST /delivery-fees/:id/import\` dry run, apply and a \`text/plain\` refusal (400, D3143); \`importDeliveryFeeGroupCsv\` dry run, apply, a refused row listed and its apply refused |
+| [\`api/fee-group-bulk-isolation.md\`](api/fee-group-bulk-isolation.md) | A's owner on B's option through adjust, duplicate, export, import and \`adjustDeliveryFeeGroupPrices\`: 404 \`not-found\`, B unchanged |
 | [\`api/shipping-quote-commune.md\`](api/shipping-quote-commune.md) | in process: \`ShippingQuoteService.quote\` to Alger-Centre, 777 with \`source: 'commune'\` |
 | [\`api/offers-quote-delivery.md\`](api/offers-quote-delivery.md) | in process: \`PricingService.quoteForScope\` carrying the fee through the offers' shipping seam, 4,900 + 777 |
 
 Fee-group, business and store ids are placeholders (\`<GROUP_EVIDENCE>\`, …), and a \`quoteToken\` keeps only its
 \`qt1\` prefix (its payload encodes the real ids); every assertion ran on the real values.
-Wilaya rows are cut to three of 69 and communes to a few in the transcripts (\`ratesShown\`, \`townsShown\`).
+Wilaya rows are cut to the few a call touches (of 69) and communes to three in the transcripts (\`ratesShown\`,
+\`communeRatesShown\`, \`townsShown\`), a CSV to its header and a few rows. Part 2's calls run on a copy of the evidence option, which keeps
+the pricing option the quotes and the screens use as it was.
 
 ## Screenshots
 
@@ -326,7 +337,10 @@ Wilaya rows are cut to three of 69 and communes to a few in the transcripts (\`r
 language, on the Arabic demo store: \`pricing-list\` (Delivery → Delivery pricing), \`new-pricing-top\` and
 \`new-pricing-table\` (the New pricing option form's settings and its wilaya table), \`edit-override\` (the saved option
 with Alger's Edited mark), \`edit-communes\` (Alger expanded to its communes) and \`store-settings-fee-group\` (the store
-card's Default pricing option). $shot_count files.
+card's Default pricing option). Part 2 adds \`bulk-adjust-dialog\` (three wilayas ticked, the Raise/lower by dialog open),
+\`bulk-commune-prices\` (Alger expanded, Set price for all communes filled in, not applied), \`copy-dialog\` (the Copy action
+of the list) and \`csv-import-preview\` (the Import CSV dialog after choosing a file: its dry-run table of changed rows).
+$shot_count files.
 
 $(for f in "$out"/screens/*.png; do b=$(basename "$f"); echo "- [\`screens/$b\`](screens/$b)"; done)
 

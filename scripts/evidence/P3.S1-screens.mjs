@@ -1,27 +1,40 @@
 // Browser part of scripts/evidence/P3.S1.sh: the Delivery Pricing list, the new pricing option form (its top, then its
 // wilaya table), the saved option with Alger's override, the saved option with Alger expanded to its communes, and the
-// store settings card with its Default pricing option field, for {desktop 1280, mobile 390} x {ar, en}, on the Arabic
-// demo store. Copied from P2.S5-screens.mjs (the same checks on every shot).
+// store settings card with its Default pricing option field, and part 2's tools (the Raise/lower by dialog over three
+// ticked wilayas, Set price for all communes in an expanded wilaya, the Copy dialog of the list, the Import CSV dialog
+// with its dry-run preview), for {desktop 1280, mobile 390} x {ar, en}, on the Arabic demo store. Copied from P2.S5-screens.mjs (the same checks on every shot).
 //
 //   node P3.S1-screens.mjs <dashboard-url> <out-dir>
 //
 // Env: DEMO_OWNER_PASSWORD (read by the session helper, never printed), EV_GROUP_ID (the pricing option the API part
-// created, edited and linked as the store default), EV_GROUP_NAME (its name).
+// created, edited and linked as the store default), EV_GROUP_NAME (its name), EV_IMPORT_CSV (the CSV file the import
+// dialog chooses: that option's export with three rows changed).
 /* global process, console, URL, document, window, NodeFilter, getComputedStyle, requestAnimationFrame */
 import { mkdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  ADJUST_DIALOG_TEST_ID,
+  ADJUST_OPEN_TEST_ID,
+  ADJUST_VALUE_TEST_ID,
   COMMUNE_PANEL_TEST_ID,
+  COMMUNE_PRICES_TEST_ID,
   COMMUNE_ROW_TEST_ID,
+  COPY_DIALOG_TEST_ID,
+  CSV_IMPORT_DIALOG_TEST_ID,
+  CSV_IMPORT_FILE_TEST_ID,
+  CSV_IMPORT_OPEN_TEST_ID,
+  CSV_PREVIEW_TEST_ID,
   DELIVERY_PATH,
   NEW_PRICING_PATH,
   PRICING_EDITOR_TEST_ID,
   PRICING_LIST_TEST_ID,
   PRICING_ROW_TEST_ID,
   pricingPathOf,
+  SELECT_ALL_TEST_ID,
   WILAYA_ROW_TEST_ID,
+  WILAYA_SELECT_TEST_ID,
 } from '../../plugins/delivery-pricing/dashboard/constants.ts';
 import {
   SETTINGS_PATH,
@@ -39,6 +52,7 @@ const base = baseArg.replace(/\/$/, '');
 const env = (name) => process.env[name] ?? fail(`${name} must be set`);
 const GROUP_ID = env('EV_GROUP_ID');
 const GROUP_NAME = env('EV_GROUP_NAME');
+const IMPORT_CSV = env('EV_IMPORT_CSV');
 
 const MAX_BYTES = 300 * 1024;
 /** The tallest shot; a list or a settings card fits in it. */
@@ -53,8 +67,14 @@ const OWNER = 'owner@demo.example.test';
 const STORE_PAGES = '/stores/active/';
 /** Every wilaya of the 2026 law (D3123): the form lists each. */
 const WILAYA_COUNT = 69;
-/** The demo store's pricing options after the API part: its platform table and the evidence option (a spare deleted). */
-const LISTED_GROUPS = 2;
+/** The demo store's pricing options after the API part: its platform table, the evidence option and its copy. */
+const LISTED_GROUPS = 3;
+/** The wilayas ticked for "Raise/lower by…", the first three rows; the amount typed into its dialog. */
+const TICKED_WILAYAS = ['01', '02', '03'];
+const ADJUST_AMOUNT = '100';
+/** What "Set price for all communes" shows typed in (never applied). */
+const COMMUNE_HOME_PRICE = '500';
+const COMMUNE_DESK_PRICE = '300';
 const ALGER = '16';
 const LICENCE_NOTICE = '[data-vendure-branding]';
 /** The framework's name; only the licence notice may show it on a merchant's screen (ADR 0007, D79). */
@@ -257,6 +277,44 @@ async function shootSaved(page, t, tag, lang) {
   );
   await toTop(alger);
   await shoot(page, `edit-communes-${tag}`, lang, { viewport: true });
+
+  const prices = byTestId(page, COMMUNE_PRICES_TEST_ID);
+  await prices.locator('input').nth(0).fill(COMMUNE_HOME_PRICE);
+  await prices.locator('input').nth(1).fill(COMMUNE_DESK_PRICE);
+  await toTop(prices);
+  await shoot(page, `bulk-commune-prices-${tag}`, lang, { viewport: true });
+}
+
+async function shootAdjust(page, tag, lang) {
+  await open(page, `${STORE_PAGES}${pricingPathOf(GROUP_ID)}`);
+  await waitForForm(page);
+  for (const code of TICKED_WILAYAS)
+    await wilayaRow(page, code).locator(`[data-testid="${WILAYA_SELECT_TEST_ID}"]`).click();
+  await byTestId(page, ADJUST_OPEN_TEST_ID).click();
+  await byTestId(page, ADJUST_DIALOG_TEST_ID).waitFor();
+  await byTestId(page, ADJUST_VALUE_TEST_ID).fill(ADJUST_AMOUNT);
+  await toTop(byTestId(page, SELECT_ALL_TEST_ID));
+  await shoot(page, `bulk-adjust-dialog-${tag}`, lang, { viewport: true });
+}
+
+async function shootCopy(page, t, tag, lang) {
+  await open(page, `${DELIVERY_PATH}?tab=pricing`);
+  await byTestId(page, PRICING_LIST_TEST_ID).waitFor();
+  const row = page.locator(`[data-testid="${PRICING_ROW_TEST_ID}"]`, { hasText: GROUP_NAME });
+  await row.getByRole('button', { name: t('delivery-pricing.row-actions'), exact: true }).click();
+  await page.getByRole('menuitem', { name: t('delivery-pricing.action-copy'), exact: true }).click();
+  await byTestId(page, COPY_DIALOG_TEST_ID).waitFor();
+  await shoot(page, `copy-dialog-${tag}`, lang, { viewport: true });
+}
+
+async function shootCsvImport(page, tag, lang) {
+  await open(page, `${STORE_PAGES}${pricingPathOf(GROUP_ID)}`);
+  await waitForForm(page);
+  await byTestId(page, CSV_IMPORT_OPEN_TEST_ID).click();
+  await byTestId(page, CSV_IMPORT_DIALOG_TEST_ID).waitFor();
+  await byTestId(page, CSV_IMPORT_FILE_TEST_ID).setInputFiles(IMPORT_CSV);
+  await byTestId(page, CSV_PREVIEW_TEST_ID).waitFor();
+  await shoot(page, `csv-import-preview-${tag}`, lang, { viewport: true });
 }
 
 async function shootSettings(page, tag, lang) {
@@ -279,6 +337,9 @@ async function shootAll(browser, lang, vp) {
     await shootList(page, tag, lang);
     await shootNewForm(page, tag, lang);
     await shootSaved(page, t, tag, lang);
+    await shootAdjust(page, tag, lang);
+    await shootCopy(page, t, tag, lang);
+    await shootCsvImport(page, tag, lang);
     await shootSettings(page, tag, lang);
   } finally {
     await page.context().close();
@@ -302,6 +363,9 @@ async function main() {
     proved(`The new pricing option form lists all ${WILAYA_COUNT} wilayas.`);
     proved("The saved option's Alger row shows the Edited mark of its override.");
     proved("Alger's Communes button opens its commune panel with its communes listed.");
+    proved('The Raise/lower by dialog opens over three ticked wilayas, with its amount typed.');
+    proved('Set price for all communes shows in an expanded wilaya, filled in and not applied.');
+    proved("The list row's Copy action opens the Copy dialog, and the Import CSV dialog shows its dry-run preview.");
     proved("The store settings card's Default pricing option field names the evidence option.");
   } finally {
     await browser.close();
