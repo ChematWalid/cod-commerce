@@ -11,7 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"1d3-SShS1zt6izYG2A7Jw9lka4zi9JM"
+etag: W/"1e8-epWqMowiCeOqyXONsUiGE+Rc1KM"
 
 {
   "items": [
@@ -20,21 +20,21 @@ etag: W/"1d3-SShS1zt6izYG2A7Jw9lka4zi9JM"
       "name": "خيار احتياطي",
       "carrierId": null,
       "isPlatformDefault": false,
-      "createdAt": "2026-11-23T02:53:38.780Z"
+      "createdAt": "2026-11-27T12:23:32.643Z"
     },
     {
       "id": "<GROUP_EVIDENCE>",
       "name": "خيار التسعير للأدلة",
       "carrierId": null,
       "isPlatformDefault": false,
-      "createdAt": "2026-11-23T02:53:38.402Z"
+      "createdAt": "2026-11-27T12:23:32.216Z"
     },
     {
       "id": "<GROUP_PLATFORM_DEFAULT>",
-      "name": "Platform default prices",
+      "name": "أسعار المنصة الافتراضية",
       "carrierId": null,
       "isPlatformDefault": true,
-      "createdAt": "2026-11-23T02:53:26.357Z"
+      "createdAt": "2026-11-27T12:21:56.693Z"
     }
   ],
   "totalItems": 3
@@ -57,7 +57,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"9e-7UdRna/To98PgTOjU6M1+sBjmjg"
+etag: W/"9e-m0nHPBy+I3dCl4HZlll2uYX+tk4"
 
 {
   "data": {

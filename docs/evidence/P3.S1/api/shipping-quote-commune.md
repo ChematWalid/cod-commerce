@@ -14,7 +14,7 @@ Store A1's default pricing option overrides Alger-Centre's home price; the quote
   "stopdesk": false,
   "items": [
     {
-      "productId": "11",
+      "productId": "21",
       "quantity": 1
     }
   ]

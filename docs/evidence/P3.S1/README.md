@@ -5,7 +5,7 @@ synthetic: the demo seed's two businesses, the 69 wilayas and 1,541 communes the
 store's seeded "Platform default prices" table (D3112), and what the script creates in store A1 (`demo`, Arabic): a
 pricing option created at 650 DZD home everywhere, then edited back to each wilaya's base price with Alger overridden to 750, Alger-Centre to 777 and the Casbah without home
 delivery, linked as the store default, a spare option (deleted) and one product at 4,900 DZD. Image built from a tree
-with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit `934a7d7d625b48b32be4a7035e842bbfa7f89a46`.
+with no uncommitted change outside the evidence folders and browser tests, last image-relevant commit `b1e3242cca97ea72780e092602975359b8f44725`.
 Compose project `cod-evidence`.
 
 ## API transcripts

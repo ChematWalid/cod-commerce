@@ -12,7 +12,7 @@ The offers' scoped pricing core (D2408) asks its shipping seam for the fee; deli
   "channel": "storefront",
   "lines": [
     {
-      "variantId": "17",
+      "variantId": "35",
       "quantity": 1
     }
   ],
@@ -31,9 +31,9 @@ The offers' scoped pricing core (D2408) asks its shipping seam for the fee; deli
   "currency": "DZD",
   "lines": [
     {
-      "key": "17",
-      "productId": "11",
-      "variantId": "17",
+      "key": "35",
+      "productId": "21",
+      "variantId": "35",
       "quantity": 1,
       "originalPrice": 4900,
       "unitPrice": 4900,
@@ -65,6 +65,6 @@ The offers' scoped pricing core (D2408) asks its shipping seam for the fee; deli
   "orderPricingMode": "quote",
   "unavailableVariantIds": [],
   "quoteToken": "qt1.[PAYLOAD REDACTED].[REDACTED]",
-  "expiresAt": "2026-11-23T03:09:02.000Z"
+  "expiresAt": "2026-11-27T12:39:37.000Z"
 }
 ```

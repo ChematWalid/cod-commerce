@@ -11,7 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"87-Q5+HbGIP7B3EuHmZaKeRCnQyYw0"
+etag: W/"87-6v83iTPPG9k7dCHYEorbm+Yexsg"
 
 {
   "statusCode": 404,
@@ -56,7 +56,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"87-Q5+HbGIP7B3EuHmZaKeRCnQyYw0"
+etag: W/"87-6v83iTPPG9k7dCHYEorbm+Yexsg"
 
 {
   "statusCode": 404,
@@ -95,7 +95,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 404 Not Found
 content-type: application/json; charset=utf-8
-etag: W/"93-GF7hckLhzZWQFTJ+zvoglsS098U"
+etag: W/"93-WKlbnI1CTQ2kV5ZAIlvqXjp6EtU"
 
 {
   "statusCode": 404,

@@ -23,7 +23,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"66-99r8c9gvkX+AfEW24joPIXg1vlI"
+etag: W/"66-+ObYykqWapUAhp60JhhymCq978Q"
 
 {
   "data": {

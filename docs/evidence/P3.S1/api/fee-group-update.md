@@ -37,7 +37,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 200 OK
 content-type: application/json; charset=utf-8
-etag: W/"2b08-LNRXKkOI9xIpJUWPbtA5YE5VaaQ"
+etag: W/"2b08-+g/ZWxEwdrZTY8m1woQxefPiHMg"
 
 {
   "id": "<GROUP_EVIDENCE>",
@@ -47,8 +47,8 @@ etag: W/"2b08-LNRXKkOI9xIpJUWPbtA5YE5VaaQ"
   "overweightAllowanceKg": 5,
   "overweightRate": 50,
   "isPlatformDefault": false,
-  "createdAt": "2026-11-23T02:53:38.402Z",
-  "updatedAt": "2026-11-23T02:53:39.491Z",
+  "createdAt": "2026-11-27T12:23:32.216Z",
+  "updatedAt": "2026-11-27T12:23:33.304Z",
   "rates": [
     {
       "provinceCode": "01",
@@ -128,7 +128,7 @@ vendure-token: [REDACTED]
 HTTP/1.1 200 OK
 cache-control: no-store
 content-type: application/json; charset=utf-8
-etag: W/"df-A7K2oQt7MSQ2w5yFcHqHdSciMM4"
+etag: W/"df-IKyT1lk/NLPNWiezFQhst7dZg2Q"
 
 {
   "data": {

@@ -11,7 +11,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
-etag: W/"ba-2QwhmjjqTn0YLVOdl2mHxtvNJW4"
+etag: W/"ba-QXe7KEz0/bBhqQGjEE/fdLUDtps"
 
 {
   "statusCode": 409,
@@ -30,7 +30,7 @@ vendure-token: [REDACTED]
 
 HTTP/1.1 409 Conflict
 content-type: application/json; charset=utf-8
-etag: W/"ba-BbnJXeF3/HMrwI8sWJchG7hY01E"
+etag: W/"ba-HyR7sjIwylM/sVgHTFgurEcy+yc"
 
 {
   "statusCode": 409,
