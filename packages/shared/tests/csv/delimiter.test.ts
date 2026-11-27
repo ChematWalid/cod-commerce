@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDelimiter } from '../../domain/delimiter';
+import { detectDelimiter } from '../../src/csv/delimiter';
 
 describe('detectDelimiter (D2209, Review Focus 1)', () => {
   it('a comma file is comma-separated', () => {

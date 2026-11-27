@@ -62,3 +62,15 @@ export const COMMUNE_PRICES_APPLY_TEST_ID = 'delivery-pricing-commune-prices-app
 export const COPY_DIALOG_TEST_ID = 'delivery-pricing-copy-dialog';
 export const COPY_NAME_TEST_ID = 'delivery-pricing-copy-name';
 export const COPY_CONFIRM_TEST_ID = 'delivery-pricing-copy-confirm';
+
+/** The most changed rows the CSV import preview lists; the rest are counted. */
+export const CSV_PREVIEW_MAX_ROWS = 200;
+/** The type of the downloaded export. */
+export const CSV_DOWNLOAD_TYPE = 'text/csv;charset=utf-8';
+export const CSV_EXPORT_TEST_ID = 'delivery-pricing-csv-export';
+export const CSV_IMPORT_OPEN_TEST_ID = 'delivery-pricing-csv-import-open';
+export const CSV_IMPORT_DIALOG_TEST_ID = 'delivery-pricing-csv-import-dialog';
+export const CSV_IMPORT_FILE_TEST_ID = 'delivery-pricing-csv-import-file';
+export const CSV_PREVIEW_TEST_ID = 'delivery-pricing-csv-preview';
+export const CSV_ISSUES_TEST_ID = 'delivery-pricing-csv-issues';
+export const CSV_APPLY_TEST_ID = 'delivery-pricing-csv-apply';

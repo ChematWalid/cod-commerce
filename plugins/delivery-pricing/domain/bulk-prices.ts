@@ -1,4 +1,5 @@
 import { MAX_DELIVERY_PRICE, PERCENT_BASE, type PriceAdjustmentKind, roundHalfUp, type WilayaCode } from '@cod/shared';
+import { isEmptyCommuneRow, sameCommuneRow } from './commune-rows';
 import type { CommuneRateRow, WilayaRateRow } from './fee-group';
 import { communeOverrideOf, wilayaOverrideOf } from './override-rules';
 import type { CommuneRowsChange } from './ports/fee-group-repository.port';
@@ -16,21 +17,6 @@ export interface CommunePrices {
   readonly homePrice?: number | null;
   readonly deskPrice?: number | null;
 }
-
-/** The stored fields of a commune row besides its keys. */
-const COMMUNE_FIELDS = [
-  'baseHome',
-  'baseDesk',
-  'overrideHome',
-  'overrideDesk',
-  'deliveryEnabled',
-  'deskEnabled',
-] as const satisfies readonly (keyof CommuneRateRow)[];
-
-const sameCommuneRow = (left: CommuneRateRow, right: CommuneRateRow | undefined): boolean =>
-  right !== undefined && COMMUNE_FIELDS.every((field) => left[field] === right[field]);
-
-const isEmptyCommuneRow = (row: CommuneRateRow): boolean => COMMUNE_FIELDS.every((field) => row[field] === null);
 
 const clampPrice = (price: number): number => Math.min(Math.max(price, 0), MAX_DELIVERY_PRICE);
 

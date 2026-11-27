@@ -3,7 +3,7 @@
  * what another business gets back. The coverage test, the isolation sweep and the permission suite read it.
  */
 import { DELIVERY_PRICING_ERROR_CODES, type PermissionKey } from '@cod/shared';
-import { communeRow, groupInput, priceAdjustment } from './delivery-pricing-kit';
+import { communeRow, groupInput, priceAdjustment, pricingCsv } from './delivery-pricing-kit';
 
 const D = DELIVERY_PRICING_ERROR_CODES;
 
@@ -26,6 +26,8 @@ export interface OperationEntry {
   readonly notFound: string;
   readonly document: string;
   readonly variables: (ids: TargetIds) => Readonly<Record<string, unknown>>;
+  /** The file of a multipart upload at `$file` (the CSV import, D3142); absent for a JSON call. */
+  readonly upload?: () => Uint8Array;
 }
 
 /** One REST route of the plugin, with a call aimed at a target's ids. */
@@ -37,7 +39,12 @@ export interface RouteEntry {
   readonly byId: boolean;
   readonly url: (ids: TargetIds) => string;
   readonly body?: () => Readonly<Record<string, unknown>>;
+  /** A raw `text/csv` body in place of JSON (the CSV import, D3142). */
+  readonly csv?: () => Uint8Array;
 }
+
+/** The CSV every import call sends: Alger's home price and an Alger-Centre override, applied unless refused. */
+export const importedCsv = (): Uint8Array => pricingCsv('wilaya,16,,650,400,true,true', 'commune,16,1601,450,,,');
 
 /** Every Admin API operation the plugin's resolvers declare. */
 export const OPERATION_REGISTRY: readonly OperationEntry[] = [
@@ -120,6 +127,25 @@ export const OPERATION_REGISTRY: readonly OperationEntry[] = [
     document: 'mutation ($groupId: String!) { duplicateDeliveryFeeGroup(groupId: $groupId, name: "Copied") { id } }',
     variables: (ids) => ({ groupId: ids.groupId }),
   },
+  {
+    operation: 'deliveryFeeGroupCsv',
+    access: 'delivery.pricing.view',
+    foreign: 'null',
+    notFound: D.NOT_FOUND,
+    document: 'query ($id: String!) { deliveryFeeGroupCsv(id: $id) { fileName content } }',
+    variables: (ids) => ({ id: ids.groupId }),
+  },
+  {
+    operation: 'importDeliveryFeeGroupCsv',
+    access: 'delivery.pricing.edit',
+    foreign: 'not-found',
+    notFound: D.NOT_FOUND,
+    document: `mutation ($groupId: String!, $file: Upload!) {
+      importDeliveryFeeGroupCsv(groupId: $groupId, file: $file, dryRun: false) { applied }
+    }`,
+    variables: (ids) => ({ groupId: ids.groupId }),
+    upload: importedCsv,
+  },
 ];
 
 /** Every REST route the plugin's controllers declare. */
@@ -179,6 +205,21 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     byId: true,
     url: (ids) => `/delivery-fees/${ids.groupId}/duplicate`,
     body: () => ({ name: 'Copied over REST' }),
+  },
+  {
+    method: 'GET',
+    route: '/delivery-fees/:id/export',
+    access: 'delivery.pricing.view',
+    byId: true,
+    url: (ids) => `/delivery-fees/${ids.groupId}/export`,
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/import',
+    access: 'delivery.pricing.edit',
+    byId: true,
+    url: (ids) => `/delivery-fees/${ids.groupId}/import?dryRun=false`,
+    csv: importedCsv,
   },
   {
     method: 'DELETE',

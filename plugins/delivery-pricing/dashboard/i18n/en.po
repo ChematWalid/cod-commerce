@@ -382,3 +382,131 @@ msgstr "Name of the copy"
 #. js-lingui-explicit-id
 msgid "delivery-pricing.copied"
 msgstr "Pricing option copied."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-title"
+msgstr "CSV file"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-intro"
+msgstr "Export this pricing option to edit it in a spreadsheet, then import it back. An import changes only the rows the file lists."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-export"
+msgstr "Export CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-import"
+msgstr "Import CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-save-first"
+msgstr "Save your changes before importing a file."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-import-heading"
+msgstr "Import a CSV file"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-import-body"
+msgstr "Choose a CSV file saved from an export. You will see what it changes before anything is saved. Wilayas and communes the file does not list stay as they are."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-file-label"
+msgstr "CSV file"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-summary"
+msgstr "Rows read: {rows}. Changes: {changes}."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issues"
+msgstr "Rows refused: {count}. Fix them in the file and choose it again."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-row"
+msgstr "Row {row}, column {column}:"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-more"
+msgstr "More changes not shown: {count}."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-no-change"
+msgstr "This file changes nothing."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-apply"
+msgstr "Apply"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-applied"
+msgstr "The file was imported."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-on"
+msgstr "On"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-off"
+msgstr "Off"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-inherit"
+msgstr "As the wilaya"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-column-commune"
+msgstr "Commune"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-invalid-level"
+msgstr "the level must be wilaya or commune."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-unknown-wilaya"
+msgstr "this wilaya is not in the pricing option."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-unknown-commune"
+msgstr "this commune does not exist."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-commune-not-in-wilaya"
+msgstr "this commune belongs to another wilaya."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-unexpected-commune"
+msgstr "a wilaya row takes no commune code."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-duplicate-key"
+msgstr "this wilaya or commune is already listed above."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-invalid-price"
+msgstr "a price must be a whole number of dinars from 0 to 100,000."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-invalid-switch"
+msgstr "a switch must be true or false."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-missing-value"
+msgstr "a wilaya row needs this value."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-invalid-file"
+msgstr "The file is not a pricing CSV: save it as CSV UTF-8 with the columns of an export."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-too-large"
+msgstr "The file is too large for a pricing CSV."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-too-many-rows"
+msgstr "The file has more rows than this pricing option's wilayas and communes."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-invalid-rows"
+msgstr "Some rows of the file are not valid: check them with a preview first."

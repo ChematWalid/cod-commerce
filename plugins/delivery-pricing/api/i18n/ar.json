@@ -4,6 +4,10 @@
     "delivery-pricing-not-found": "خيار التسعير غير موجود.",
     "delivery-pricing-group-in-use": "خيار التسعير هذا مستخدم: اختر خيارًا افتراضيًا آخر قبل حذفه.",
     "delivery-pricing-carrier-not-found": "شركة التوصيل غير موجودة.",
+    "delivery-pricing-csv-invalid-file": "هذا الملف ليس ملف CSV لأسعار التوصيل: احفظه بصيغة CSV UTF-8 بأعمدة ملف التصدير.",
+    "delivery-pricing-csv-too-large": "حجم الملف أكبر من المسموح لملف CSV لأسعار التوصيل.",
+    "delivery-pricing-csv-too-many-rows": "عدد صفوف الملف أكبر من عدد ولايات وبلديات خيار التسعير هذا.",
+    "delivery-pricing-csv-invalid-rows": "بعض صفوف الملف غير صالحة: تحقّق منها بالمعاينة أولًا.",
     "delivery-pricing-internal": "تعذّر إكمال الطلب."
   }
 }

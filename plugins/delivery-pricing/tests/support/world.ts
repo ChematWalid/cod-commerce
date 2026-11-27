@@ -13,6 +13,8 @@ import { DeliveryDefaultsConvergeService } from '../../application/delivery-defa
 import { DeleteFeeGroupService } from '../../application/delete-fee-group.service';
 import { DuplicateFeeGroupService } from '../../application/duplicate-fee-group.service';
 import { FeeGroupReadService } from '../../application/fee-group-read.service';
+import { PricingCsvExportService } from '../../application/pricing-csv-export.service';
+import { PricingCsvImportService } from '../../application/pricing-csv-import.service';
 import type { FeeGroupPorts } from '../../application/fee-group-ports';
 import { SaveFeeGroupService } from '../../application/save-fee-group.service';
 import { SetCommunePricesService } from '../../application/set-commune-prices.service';
@@ -21,6 +23,7 @@ import { ShippingQuoteService } from '../../application/shipping-quote.service';
 import { asOperationContext } from '../../domain/ports/operation-context';
 import type { StoreScope } from '../../domain/store-scope';
 import type { CarrierRate } from '../../domain/carrier-prices';
+import { CsvPricingFile } from '../../infrastructure/csv-pricing-file';
 import {
   FixedCarrierRates,
   FixedStoreDefaults,
@@ -83,6 +86,8 @@ export function world() {
     adjusting: new AdjustPricesService(ports),
     communePrices: new SetCommunePricesService(ports),
     duplicating: new DuplicateFeeGroupService(ports),
+    csvExport: new PricingCsvExportService(ports, new CsvPricingFile()),
+    csvImport: new PricingCsvImportService(ports, new CsvPricingFile()),
     defaults: new DefaultTableService(ports),
     converge: new DeliveryDefaultsConvergeService(ports),
   };

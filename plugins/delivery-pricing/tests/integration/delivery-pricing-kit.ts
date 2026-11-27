@@ -6,9 +6,12 @@ import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbo
 import { PartitionMaintenanceService, PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import {
   type DeliveryFeeGroupInput,
   type PartitionedTableSchema,
+  PRICING_CSV_COLUMNS,
   toBusinessId,
   toSnowflake,
   toStoreId,
@@ -23,6 +26,7 @@ import {
   PLUGIN_TEST_INITIAL_DATA,
   StoreKit,
   type StoreFixture,
+  type StoreRestAnswer,
   type TwoBusinesses,
 } from '@cod/testing';
 import { RequestContextService, type VendureConfig } from '@vendure/core';
@@ -150,8 +154,50 @@ export const priceAdjustment = (fields: Record<string, unknown> = {}): Record<st
   ...fields,
 });
 
+/** A pricing CSV: the export's header, then `rows` (D3142). */
+export const pricingCsv = (...rows: string[]): Uint8Array =>
+  new TextEncoder().encode([PRICING_CSV_COLUMNS.join(','), ...rows].join('\r\n'));
+
+/** What the test client sends with every call: its endpoint, session and active channel (as the catalog's media kit). */
+interface ClientInternals {
+  readonly apiUrl: string;
+  readonly headers: Record<string, string>;
+}
+
+/** A GraphQL answer as JSON. */
+export interface GraphqlAnswer {
+  readonly data?: Record<string, unknown> | null;
+  readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[];
+}
+
 /** The delivery-pricing kit: the generic store kit plus the fee-group calls the tests arrange with. */
 export class DeliveryPricingKit extends StoreKit {
+  /** A GraphQL multipart call (`graphql-multipart-request-spec`) with `bytes` at `variables.file`. */
+  async upload(document: string, variables: Record<string, unknown>, bytes: Uint8Array): Promise<StoreRestAnswer> {
+    const { apiUrl, headers } = this.client as unknown as ClientInternals;
+    const form = new FormData();
+    form.set('operations', JSON.stringify({ query: document, variables: { ...variables, file: null } }));
+    form.set('map', JSON.stringify({ '0': ['variables.file'] }));
+    form.set('0', new Blob([new Uint8Array(bytes)], { type: 'text/csv' }), 'pricing.csv');
+    // Apollo refuses a multipart request without this header (its CSRF prevention).
+    const sent = { ...headers, 'apollo-require-preflight': 'true' };
+    const response = await fetch(apiUrl, { method: 'POST', headers: sent, body: form });
+    const text = await response.text();
+    return { status: response.status, body: JSON.parse(text) as GraphqlAnswer, text };
+  }
+
+  /** A REST call whose body is raw CSV (`Content-Type: text/csv`), with the client's session and channel. */
+  async restCsv(path: string, bytes: Uint8Array, contentType = 'text/csv'): Promise<StoreRestAnswer> {
+    const { port } = (this.app.getHttpServer() as Server).address() as AddressInfo;
+    const response = await this.client.fetch(`http://localhost:${String(port)}${path}`, {
+      method: 'POST',
+      body: Buffer.from(bytes),
+      headers: { 'Content-Type': contentType },
+    });
+    const text = await response.text();
+    return { status: response.status, body: text === '' ? null : (JSON.parse(text) as unknown), text };
+  }
+
   /** Creates a group in the signed-in caller's active store. */
   async createGroup(name = 'Standard', homePrice = 600): Promise<GroupResult> {
     const { createDeliveryFeeGroup } = await this.gql<{ createDeliveryFeeGroup: GroupResult }>(CREATE_GROUP, {

@@ -14,8 +14,8 @@ import {
   PRODUCT_TITLE_MAX,
   type ProductStatus,
   SKU_MAX,
+  unguardCell,
 } from '@cod/shared';
-import { unguardCell } from './cell-guard';
 import { parseImageUrls } from './image-urls';
 import type { ImportOption, ImportRowValues, RawImportRow, ValidatedRow } from './import-row';
 import { splitListCell } from './list-cell';

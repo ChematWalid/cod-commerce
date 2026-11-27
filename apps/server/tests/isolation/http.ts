@@ -61,7 +61,8 @@ export class IsolationHttp {
     if (request.upload !== undefined) return this.sendUpload(request, request.upload);
     const headers: Record<string, string> = { ...request.headers };
     const body = request.rawBody ?? (request.body === undefined ? undefined : JSON.stringify(request.body));
-    if (body !== undefined) headers['content-type'] = 'application/json';
+    // A raw body keeps the content type its request names (a CSV import); everything else is JSON.
+    if (body !== undefined && headers['content-type'] === undefined) headers['content-type'] = 'application/json';
     const response = await fetch(new URL(request.path, this.baseUrl), {
       method: request.method,
       headers: { ...headers, ...this.sessionHeaders(request) },

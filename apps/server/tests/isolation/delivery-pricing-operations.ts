@@ -1,4 +1,4 @@
-import { DELIVERY_PRICING_ERROR_CODES, WILAYA_CODES } from '@cod/shared';
+import { DELIVERY_PRICING_ERROR_CODES, PRICING_CSV_COLUMNS, WILAYA_CODES } from '@cod/shared';
 import { deliveryPricingOf } from './delivery-pricing-rows';
 import type { SweptEndpoints, SweptOperation, SweptRoute } from './endpoint-sweep';
 import type { BusinessWorld } from './world-types';
@@ -86,6 +86,17 @@ export const DUPLICATE_GROUP = `mutation ($groupId: String!, $name: String!) {
   duplicateDeliveryFeeGroup(groupId: $groupId, name: $name) { id name }
 }`;
 
+/** A pricing CSV (D3142) raising Alger's home price and Alger-Centre's: an import that would write if not refused. */
+export const PRICING_CSV = [
+  PRICING_CSV_COLUMNS.join(','),
+  `wilaya,${ALGER},,${String(WRITTEN_HOME_PRICE)},${String(DESK_PRICE)},true,true`,
+  `commune,${ALGER},${String(ALGER_CENTRE)},${String(WRITTEN_COMMUNE_PRICE)},,,`,
+].join('\r\n');
+export const EXPORT_CSV = 'query ($id: String!) { deliveryFeeGroupCsv(id: $id) { fileName content } }';
+export const IMPORT_CSV = `mutation ($groupId: String!, $file: Upload!) {
+  importDeliveryFeeGroupCsv(groupId: $groupId, file: $file, dryRun: false) { applied }
+}`;
+
 export const DELIVERY_PRICING_OPERATIONS: readonly SweptOperation<FeeGroupTarget>[] = [
   {
     name: 'deliveryFeeGroups',
@@ -153,6 +164,21 @@ export const DELIVERY_PRICING_OPERATIONS: readonly SweptOperation<FeeGroupTarget
     variables: (t) => ({ groupId: t.groupId, name: 'Copied by the matrix' }),
     foreign: { kind: 'code', code: D.NOT_FOUND },
   },
+  {
+    name: 'deliveryFeeGroupCsv',
+    entity: 'delivery fee group',
+    document: EXPORT_CSV,
+    variables: (t) => ({ id: t.groupId }),
+    foreign: { kind: 'null', field: 'deliveryFeeGroupCsv' },
+  },
+  {
+    name: 'importDeliveryFeeGroupCsv',
+    entity: 'delivery fee group',
+    document: IMPORT_CSV,
+    variables: (t) => ({ groupId: t.groupId }),
+    upload: () => ({ bytes: Buffer.from(PRICING_CSV), name: 'pricing.csv' }),
+    foreign: { kind: 'code', code: D.NOT_FOUND },
+  },
 ];
 
 const notFound = { kind: 'status', status: NOT_FOUND, code: D.NOT_FOUND } as const;
@@ -211,6 +237,21 @@ export const DELIVERY_PRICING_ROUTES: readonly SweptRoute<FeeGroupTarget>[] = [
     entity: 'delivery fee group',
     path: (t) => `/delivery-fees/${t.groupId}/duplicate`,
     body: () => ({ name: 'Copied by the matrix over REST' }),
+    foreign: notFound,
+  },
+  {
+    method: 'GET',
+    route: '/delivery-fees/:id/export',
+    entity: 'delivery fee group',
+    path: (t) => `/delivery-fees/${t.groupId}/export`,
+    foreign: notFound,
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/import',
+    entity: 'delivery fee group',
+    path: (t) => `/delivery-fees/${t.groupId}/import?dryRun=false`,
+    raw: () => ({ body: PRICING_CSV, contentType: 'text/csv' }),
     foreign: notFound,
   },
   {

@@ -1,25 +1,19 @@
-import { DomainError } from '@cod/shared';
+import { detectDelimiter, DomainError, strictUtf8Text } from '@cod/shared';
 import { CsvError, parse } from 'csv-parse/sync';
 import type { ReadLimits, SheetRows, SpreadsheetReader } from '../application/ports/spreadsheet-format.port';
 import { IMPORT_MAX_RECORD_CHARS } from '../domain/constants';
-import { detectDelimiter } from '../domain/delimiter';
 import { FileTypeError } from '../domain/errors';
 import { SheetCollector } from './sheet-limits';
 
-const UTF8_BOM = '\uFEFF';
 /** The text the delimiter is detected on: enough for the header window. */
 const DELIMITER_SAMPLE_CHARS = 65_536;
 
-/** Strict UTF-8 text without its byte order mark. */
+/** Strict UTF-8 text without its byte order mark (shared with delivery pricing, D3142). */
 function textOf(bytes: Uint8Array): string {
-  try {
-    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
-    return text.startsWith(UTF8_BOM) ? text.slice(UTF8_BOM.length) : text;
-  } catch (error: unknown) {
-    // A decoding failure is a TypeError: the bytes are not the UTF-8 CSV the import reads.
-    if (error instanceof TypeError) throw new FileTypeError();
-    throw error;
-  }
+  const text = strictUtf8Text(bytes);
+  // Bytes that are not UTF-8 are not the CSV the import reads.
+  if (text === undefined) throw new FileTypeError();
+  return text;
 }
 
 /** A stop signal from `on_record` once the row cap is passed; csv-parse carries it out of `parse`. */

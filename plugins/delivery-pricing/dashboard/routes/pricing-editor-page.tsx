@@ -11,6 +11,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { ActionBarItem, Button, Page, PageActionBar, PageBlock, PageLayout, PageTitle } from '@vendure/dashboard';
 import { type ReactNode, useState } from 'react';
 import { BulkCard } from '../components/bulk-card';
+import { CsvCard } from '../components/csv-card';
 import { SelectionBar } from '../components/selection-bar';
 import { SettingsCard } from '../components/settings-card';
 import { WilayaTable } from '../components/wilaya-table';
@@ -36,6 +37,7 @@ import { useFeeGroup, usePricingTemplate } from '../queries';
 const BLOCK_IDS = {
   settings: 'delivery-pricing-settings',
   bulk: 'delivery-pricing-bulk',
+  csv: 'delivery-pricing-csv',
   table: 'delivery-pricing-wilayas',
 };
 const NO_COMMUNE_RATES: readonly CommuneRateDto[] = [];
@@ -71,8 +73,13 @@ function useEditor({ store, scope, group, initial }: EditorProps) {
     },
   });
   const canSave = held.has(group === null ? CREATE_PRICING_KEY : EDIT_PRICING_KEY);
-  return { form, setForm, errors, save, canSave, unsaved: !sameForm(form, saved), onWritten };
+  const onChange = (change: Partial<PricingForm>): void => {
+    setForm((current) => ({ ...current, ...change }));
+  };
+  return { form, setForm, onChange, errors, save, canSave, unsaved: !sameForm(form, saved), onWritten };
 }
+
+type Editor = ReturnType<typeof useEditor>;
 
 /** The wilayas ticked for "Raise/lower by…" (D3140) and how one is ticked. */
 function useSelection() {
@@ -152,13 +159,28 @@ function WilayasBlock(props: WilayasBlockProps): ReactNode {
   );
 }
 
+/** A layout block (it carries `column` and `blockId`): the CSV export and import of a saved option (D3142). */
+function CsvBlock(props: EditorProps & { readonly editor: Editor; readonly column: 'main'; readonly blockId: string }) {
+  const { i18n } = useLingui();
+  if (props.group === null) return null;
+  const { canSave, unsaved, onWritten } = props.editor;
+  return (
+    <PageBlock column={props.column} blockId={props.blockId} title={i18n._('delivery-pricing.csv-title')}>
+      <CsvCard
+        scope={props.scope}
+        groupId={props.group.id}
+        canImport={canSave}
+        unsaved={unsaved}
+        onApplied={onWritten}
+      />
+    </PageBlock>
+  );
+}
+
 function EditorPage(props: EditorProps): ReactNode {
   const { i18n } = useLingui();
-  const { form, setForm, errors, save, canSave, unsaved, onWritten } = useEditor(props);
-  const disabled = !canSave;
-  const onChange = (change: Partial<PricingForm>): void => {
-    setForm((current) => ({ ...current, ...change }));
-  };
+  const editor = useEditor(props);
+  const { form, setForm, onChange, errors, save, canSave, unsaved, onWritten } = editor;
   return (
     <Page pageId={PRICING_EDITOR_PAGE_ID}>
       <PageTitle>{props.group?.name ?? i18n._('delivery-pricing.new-heading')}</PageTitle>
@@ -171,18 +193,19 @@ function EditorPage(props: EditorProps): ReactNode {
       />
       <PageLayout>
         <PageBlock column="main" blockId={BLOCK_IDS.settings} title={i18n._('delivery-pricing.settings-title')}>
-          <SettingsCard form={form} errors={errors} disabled={disabled} onChange={onChange} />
+          <SettingsCard form={form} errors={errors} disabled={!canSave} onChange={onChange} />
         </PageBlock>
         <PageBlock column="main" blockId={BLOCK_IDS.bulk} title={i18n._('delivery-pricing.bulk-title')}>
-          <BulkCard form={form} disabled={disabled} onForm={setForm} />
+          <BulkCard form={form} disabled={!canSave} onForm={setForm} />
         </PageBlock>
+        <CsvBlock column="main" blockId={BLOCK_IDS.csv} editor={editor} {...props} />
         <PageBlock column="main" blockId={BLOCK_IDS.table} title={i18n._('delivery-pricing.wilayas-title')}>
           <WilayasBlock
             scope={props.scope}
             group={props.group}
             form={form}
             errors={errors}
-            disabled={disabled}
+            disabled={!canSave}
             unsaved={unsaved}
             onForm={setForm}
             onWritten={onWritten}

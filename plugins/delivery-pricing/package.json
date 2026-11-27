@@ -30,6 +30,8 @@
     "@tanstack/react-router": "1.170.46",
     "@vendure/core": "3.8.1",
     "@vendure/dashboard": "3.8.1",
+    "csv-parse": "7.0.2",
+    "csv-stringify": "6.9.0",
     "graphql-tag": "2.12.7",
     "react": "19.3.0",
     "typeorm": "0.3.31"

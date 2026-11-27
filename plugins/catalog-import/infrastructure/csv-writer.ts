@@ -1,6 +1,6 @@
 import { stringify } from 'csv-stringify/sync';
 import type { SpreadsheetWriter } from '../application/ports/spreadsheet-format.port';
-import { guardCell } from '../domain/cell-guard';
+import { guardCell } from '@cod/shared';
 import type { ExportCell } from '../domain/export-row';
 
 const utf8 = new TextEncoder();

@@ -1,6 +1,5 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import type { StoreFixture } from '@cod/testing';
-import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { communeRow, deliveryPricingSuite, type GroupResult, LIST_GROUPS, SET_COMMUNES } from './delivery-pricing-kit';
 import {
@@ -10,12 +9,12 @@ import {
   ROUTE_REGISTRY,
   type TargetIds,
 } from './endpoint-registry';
+import { callOperation as callRegistryOperation, callRoute } from './registry-calls';
 
 const suite = deliveryPricingSuite({ plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const MALFORMED_IDS = ['abc', '-1', '99999999999999999999', ''];
 /** Text no answer may carry: SQL, entity names, stacks, the victim's group name or price (D2136). */
 const LEAKS = [/select /i, /QueryFailedError/, /delivery_fee/, /EntityNotFound/, /Victim/, /4321/];
-const NO_CODE = 'NO_CODE';
 const BY_ID = OPERATION_REGISTRY.filter((entry) => entry.foreign !== 'none');
 const ROUTES_BY_ID = ROUTE_REGISTRY.filter((entry) => entry.byId);
 const TABLES = ['delivery_fee_group', 'delivery_fee_rate', 'delivery_fee_commune_rate'] as const;
@@ -26,22 +25,9 @@ interface Outcome {
   readonly text: string;
 }
 
-interface ClientErrorShape {
-  readonly response?: { readonly errors?: readonly { readonly extensions?: { readonly code?: string } }[] };
-}
-
 async function callOperation(entry: OperationEntry, ids: TargetIds): Promise<Outcome> {
-  try {
-    const data = await suite.kit.client.query<Record<string, unknown>>(gql(entry.document), entry.variables(ids));
-    return { code: undefined, data: data[entry.operation], text: JSON.stringify(data) };
-  } catch (error: unknown) {
-    const { response } = error as ClientErrorShape;
-    return {
-      code: response?.errors?.[0]?.extensions?.code ?? NO_CODE,
-      data: null,
-      text: JSON.stringify(response ?? null),
-    };
-  }
+  const { codes, data, text } = await callRegistryOperation(suite.kit, entry, ids);
+  return { code: codes[0], data, text };
 }
 
 function expectForeign(entry: OperationEntry, outcome: Outcome): void {
@@ -116,7 +102,7 @@ describe.each([
       await suite.kit.asOwner(suite.fixtures.a);
 
       // Act
-      const answer = await suite.kit.rest(entry.method, entry.url(ids), entry.body?.());
+      const answer = await callRoute(suite.kit, entry, ids);
 
       // Assert
       expect(answer).toMatchObject({ status: 404, body: { code: 'delivery-pricing.not-found' } });

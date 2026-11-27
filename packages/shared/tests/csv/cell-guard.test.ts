@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guardCell, unguardCell } from '../../domain/cell-guard';
+import { guardCell, unguardCell } from '../../src/csv/cell-guard';
 
 describe('the formula guard of exported cells (D2209, Review Focus 2)', () => {
   it.each(['=1+1', '+1', '-1', '@SUM(A1)', '\t=1', '\r=1', '=HYPERLINK("x")'])(

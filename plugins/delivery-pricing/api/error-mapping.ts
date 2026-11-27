@@ -32,6 +32,10 @@ const STATUS_OF_CODE: ReadonlyMap<string, HttpStatus> = new Map([
   [D.CARRIER_NOT_FOUND, HttpStatus.NOT_FOUND],
   [D.INVALID_INPUT, HttpStatus.BAD_REQUEST],
   [D.GROUP_IN_USE, HttpStatus.CONFLICT],
+  [D.CSV_INVALID_FILE, HttpStatus.BAD_REQUEST],
+  [D.CSV_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE],
+  [D.CSV_TOO_MANY_ROWS, HttpStatus.BAD_REQUEST],
+  [D.CSV_INVALID_ROWS, HttpStatus.BAD_REQUEST],
 ]);
 
 /** The `api/i18n` key of a code. i18next reads dots as nesting, so the dot becomes a dash. */

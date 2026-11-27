@@ -1,7 +1,7 @@
 import { PassThrough } from 'node:stream';
 import ExcelJS from 'exceljs';
 import type { SpreadsheetWriter } from '../application/ports/spreadsheet-format.port';
-import { guardCell } from '../domain/cell-guard';
+import { guardCell } from '@cod/shared';
 import type { ExportCell } from '../domain/export-row';
 import { collectBytes } from './object-bytes';
 

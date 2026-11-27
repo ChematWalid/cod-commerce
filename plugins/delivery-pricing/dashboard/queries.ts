@@ -19,7 +19,7 @@ import {
   PROVINCE_BY_CODE_ENDPOINT,
   TOWNS_QUERY_KEY,
 } from './constants';
-import type { FeeGroupDto, FeeGroupPageDto, FeeGroupSummaryDto } from './dto';
+import type { CsvFileDto, CsvImportDto, FeeGroupDto, FeeGroupPageDto, FeeGroupSummaryDto } from './dto';
 import { listInputOf, type PricingListQuery } from './model/list-view';
 import { findPlatformDefaultId } from './model/template';
 
@@ -49,6 +49,13 @@ const COMMUNE_PRICES_MUTATION = `mutation DeliveryFeeCommunePricesSet($groupId: 
   $input: DeliveryFeeCommunePricesInput!) {
   setDeliveryFeeProvinceCommunePrices(groupId: $groupId, provinceCode: $provinceCode, input: $input) {
     ${GROUP_FIELDS} } }`;
+const EXPORT_QUERY = `query DeliveryFeeGroupCsvExport($id: String!) { deliveryFeeGroupCsv(id: $id) { fileName content } }`;
+const CSV_VALUES = 'homePrice deskPrice deliveryEnabled deskEnabled';
+const IMPORT_MUTATION = `mutation DeliveryFeeGroupCsvImport($groupId: String!, $file: Upload!, $dryRun: Boolean!) {
+  importDeliveryFeeGroupCsv(groupId: $groupId, file: $file, dryRun: $dryRun) {
+    dryRun applied rows totalIssues issues { row column issue }
+    changes { level provinceCode codeOns before { ${CSV_VALUES} } after { ${CSV_VALUES} } }
+    group { ${GROUP_FIELDS} } } }`;
 const DUPLICATE_MUTATION = `mutation DeliveryFeeGroupDuplicate($groupId: String!, $name: String!) {
   duplicateDeliveryFeeGroup(groupId: $groupId, name: $name) { id name carrierId isPlatformDefault createdAt } }`;
 
@@ -161,3 +168,25 @@ export const duplicateFeeGroup = async (
       name,
     })
   ).duplicateDeliveryFeeGroup;
+
+/** A pricing option as CSV (D3142), read in `scope`'s store; `null` when the store has no such option. */
+export async function exportFeeGroupCsv(scope: StoreScope | null, groupId: string): Promise<CsvFileDto | null> {
+  const answer = await sendForStore(scope?.channelToken ?? null, readRequestToken, () =>
+    api.query<{ readonly deliveryFeeGroupCsv: CsvFileDto | null }>(EXPORT_QUERY, { id: groupId }),
+  );
+  return answer.deliveryFeeGroupCsv;
+}
+
+/** Previews (`dryRun`) or applies a CSV file to a pricing option (D3142). */
+export const importFeeGroupCsv = async (
+  scope: StoreScope | null,
+  groupId: string,
+  { file, dryRun }: { readonly file: File; readonly dryRun: boolean },
+): Promise<CsvImportDto> =>
+  (
+    await mutate<{ readonly importDeliveryFeeGroupCsv: CsvImportDto }>(scope, IMPORT_MUTATION, {
+      groupId,
+      file,
+      dryRun,
+    })
+  ).importDeliveryFeeGroupCsv;

@@ -20,3 +20,10 @@ export const GRAMS_PER_KG = 1000;
  * (`String(codeOns)`). Anything else answers unresolved, so a bad commune never falls back to the wilaya price.
  */
 export const TOWN_ONS_PATTERN = /^[1-9]\d{0,5}$/;
+
+/** The export file of a pricing option is `delivery-pricing-<group id>.csv` (D3142). */
+export const PRICING_CSV_FILE_PREFIX = 'delivery-pricing-';
+export const PRICING_CSV_FILE_SUFFIX = '.csv';
+
+/** The longest CSV record a pricing import reads, in characters: a row is a few dozen, so a huge one is refused. */
+export const PRICING_CSV_MAX_RECORD_CHARS = 4096;

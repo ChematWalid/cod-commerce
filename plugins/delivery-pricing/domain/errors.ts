@@ -35,6 +35,38 @@ export class DeliveryCarrierNotFoundError extends DomainError {
   }
 }
 
+/** A pricing CSV that is not strict UTF-8 CSV text with each expected column once (D3142); nothing is quoted back. */
+export class InvalidPricingCsvFileError extends DomainError {
+  readonly code = C.CSV_INVALID_FILE;
+  constructor() {
+    super('Invalid pricing CSV file');
+  }
+}
+
+/** A pricing CSV above `PRICING_CSV_MAX_BYTES` (D3142). */
+export class PricingCsvTooLargeError extends DomainError {
+  readonly code = C.CSV_TOO_LARGE;
+  constructor() {
+    super('The pricing CSV file is too large');
+  }
+}
+
+/** A pricing CSV with more rows than the option's wilayas and their communes, plus the header (D3142). */
+export class PricingCsvTooManyRowsError extends DomainError {
+  readonly code = C.CSV_TOO_MANY_ROWS;
+  constructor() {
+    super('The pricing CSV file has too many rows');
+  }
+}
+
+/** An apply of a pricing CSV with refused rows; nothing is written and a dry run lists the rows (D3142). */
+export class InvalidPricingCsvRowsError extends DomainError {
+  readonly code = C.CSV_INVALID_ROWS;
+  constructor() {
+    super('The pricing CSV file has refused rows');
+  }
+}
+
 /** One store the default-table converge could not link, and why. */
 export interface DeliveryDefaultsConvergeFailure {
   readonly businessId: BusinessId;

@@ -1,4 +1,4 @@
-import type { Caller, MatrixRequest } from './http';
+import type { Caller, MatrixRequest, UploadedFile } from './http';
 import { type Expectation, type IsolationCase, type IsolationEntity, ownChannel, victimChannel } from './matrix';
 import type { BusinessWorld } from './world-types';
 
@@ -21,6 +21,8 @@ export interface SweptOperation<T> {
   readonly variables: (target: T) => Record<string, unknown>;
   /** What the attacker gets back naming the victim's rows; absent for an operation that names no row. */
   readonly foreign?: Expectation;
+  /** A file sent as a GraphQL multipart upload at `$file` (a CSV import, D3142); absent for a JSON call. */
+  readonly upload?: () => UploadedFile;
 }
 
 /** One REST route, aimed at the rows of `T`. */
@@ -31,6 +33,8 @@ export interface SweptRoute<T> {
   readonly entity: IsolationEntity;
   readonly path: (target: T) => string;
   readonly body?: (target: T) => Record<string, unknown>;
+  /** A raw body and its content type in place of JSON (a CSV import, D3142). */
+  readonly raw?: () => { readonly body: string; readonly contentType: string };
   /** What the attacker gets back naming the victim's rows; absent for a route that names no row. */
   readonly foreign?: Expectation;
 }
@@ -58,15 +62,29 @@ export const operationRequest = (
   { caller, channel }: { readonly caller: Caller; readonly channel: Channel },
 ): MatrixRequest => ({ method: 'POST', path: '/admin-api', caller, channel, body: { query: document, variables } });
 
+/** A swept operation as `caller` on `channel`, naming `target`'s rows; a multipart upload when it sends a file. */
+function sweptOperationRequest<T>(
+  op: SweptOperation<T>,
+  target: T,
+  who: { readonly caller: Caller; readonly channel: Channel },
+): MatrixRequest {
+  const request = operationRequest(op.document, op.variables(target), who);
+  if (op.upload === undefined) return request;
+  const body = { query: op.document, variables: { ...op.variables(target), file: null } };
+  return { ...request, body, upload: op.upload() };
+}
+
 /** A route as `caller` on `channel`, naming `target`'s rows. */
 function routeRequest<T>(route: SweptRoute<T>, target: T, who: { caller: Caller; channel: Channel }): MatrixRequest {
-  return {
+  const request: MatrixRequest = {
     method: route.method,
     path: route.path(target),
     caller: who.caller,
     channel: who.channel,
     body: route.body?.(target),
   };
+  const raw = route.raw?.();
+  return raw === undefined ? request : { ...request, rawBody: raw.body, headers: { 'content-type': raw.contentType } };
 }
 
 /** A route as the matrix and the unit test name it: `METHOD /path`. */
@@ -129,7 +147,7 @@ function notFoundCells<T>(endpoints: SweptEndpoints<T>, family: NotFoundFamily):
       title: titleOf(op.name, op.entity),
       request: (a, b) => {
         const { caller, channel, target } = family.reach(a, b);
-        return operationRequest(op.document, op.variables(targetOf(target)), { caller, channel });
+        return sweptOperationRequest(op, targetOf(target), { caller, channel });
       },
       expect: foreign,
       reverse: true,
@@ -181,7 +199,7 @@ function refusedCells<T>(endpoints: SweptEndpoints<T>, refusal: Refusal): Isolat
     title: `${refusal.who} calls ${op.name}: FORBIDDEN`,
     request: (a, b) => {
       const { caller, channel, target } = refusal.reach(a, b);
-      return operationRequest(op.document, op.variables(targetOf(target)), { caller, channel });
+      return sweptOperationRequest(op, targetOf(target), { caller, channel });
     },
     expect: { kind: 'forbidden' },
     reverse: true,

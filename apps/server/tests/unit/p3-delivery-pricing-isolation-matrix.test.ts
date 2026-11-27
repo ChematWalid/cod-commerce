@@ -3,7 +3,11 @@ import { getMetadataArgsStorage } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { P3_ISOLATION_CASES } from '../isolation/cases';
 import { ANY_CARRIER_ID, STORE_REFERENCE_NOT_FOUND } from '../isolation/cases/delivery-pricing';
-import { DELIVERY_PRICING_OPERATIONS, DELIVERY_PRICING_ROUTES } from '../isolation/delivery-pricing-operations';
+import {
+  DELIVERY_PRICING_OPERATIONS,
+  DELIVERY_PRICING_ROUTES,
+  PRICING_CSV,
+} from '../isolation/delivery-pricing-operations';
 import {
   DELIVERY_PRICING_WORLDS,
   deliveryPricingFingerprints,
@@ -166,6 +170,25 @@ describe('P3 delivery-pricing isolation matrix', () => {
       variables: { id: world.a.stores[storeIndex].id, input: { defaultDeliveryFeeGroupId: groupId } },
     });
     expect(request?.channel?.token).toBe(world.a.stores[storeIndex].channelToken);
+  });
+
+  it("sends the CSV import as a multipart upload and a raw text/csv body naming B's group (D3142)", () => {
+    // Arrange
+    const upload = P3_ISOLATION_CASES.find((c) => c.id === 'deliveryPricing.importDeliveryFeeGroupCsv.foreign-id');
+    const rest = P3_ISOLATION_CASES.find((c) => c.id === 'deliveryPricing.post-/delivery-fees/:id/import.foreign-id');
+
+    // Act
+    const uploadRequest = upload?.request(world.a, world.b, world);
+    const restRequest = rest?.request(world.a, world.b, world);
+
+    // Assert
+    expect(uploadRequest?.upload?.bytes.toString()).toBe(PRICING_CSV);
+    expect(uploadRequest?.body).toMatchObject({ variables: { groupId: deliveryPricingOf('B').groupId, file: null } });
+    expect(restRequest).toMatchObject({
+      path: `/delivery-fees/${deliveryPricingOf('B').groupId}/import?dryRun=false`,
+      rawBody: PRICING_CSV,
+      headers: { 'content-type': 'text/csv' },
+    });
   });
 
   it('refuses any carrier id on updateStore until P5.S1 (D3109)', () => {

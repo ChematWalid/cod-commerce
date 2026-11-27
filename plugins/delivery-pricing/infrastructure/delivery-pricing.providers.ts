@@ -9,6 +9,8 @@ import { DeliveryDefaultsConvergeService } from '../application/delivery-default
 import { DuplicateFeeGroupService } from '../application/duplicate-fee-group.service';
 import type { FeeGroupPorts } from '../application/fee-group-ports';
 import { FeeGroupReadService } from '../application/fee-group-read.service';
+import { PricingCsvExportService } from '../application/pricing-csv-export.service';
+import { PricingCsvImportService } from '../application/pricing-csv-import.service';
 import { SaveFeeGroupService } from '../application/save-fee-group.service';
 import { SetCommunePricesService } from '../application/set-commune-prices.service';
 import { SetCommuneRatesService } from '../application/set-commune-rates.service';
@@ -19,6 +21,7 @@ import {
   FEE_GROUP_PORTS,
   FEE_GROUP_REPOSITORY,
   FEE_GROUP_TRANSACTION,
+  PRICING_CSV,
   PRODUCT_WEIGHTS,
   SERVED_STORES,
   STORE_DEFAULTS,
@@ -26,12 +29,14 @@ import {
 } from '../application/tokens';
 import type { CarrierPriceSyncPort } from '../domain/ports/carrier-price-sync.port';
 import type { FeeGroupRepositoryPort } from '../domain/ports/fee-group-repository.port';
+import type { PricingCsvPort } from '../domain/ports/pricing-csv.port';
 import type { ProductWeightsPort } from '../domain/ports/product-weights.port';
 import type { ServedStoresPort } from '../domain/ports/served-stores.port';
 import type { StoreDefaultsPort } from '../domain/ports/store-defaults.port';
 import type { TownDirectoryPort } from '../domain/ports/town-directory.port';
 import type { TransactionPort } from '../domain/ports/transaction.port';
 import { CatalogProductWeights } from './catalog-product-weights.adapter';
+import { CsvPricingFile } from './csv-pricing-file';
 import { DeliveryPricingLifecycleHook } from './delivery-pricing-lifecycle.hook';
 import { NoopCarrierPriceSync } from './noop-carrier-price-sync';
 import { DeliveryFeeGroupReferenceCheck } from './fee-group-reference.check';
@@ -83,6 +88,17 @@ export const DELIVERY_PRICING_PROVIDERS: Provider[] = [
   useCase(AdjustPricesService),
   useCase(SetCommunePricesService),
   useCase(DuplicateFeeGroupService),
+  { provide: PRICING_CSV, useClass: CsvPricingFile },
+  {
+    provide: PricingCsvExportService,
+    useFactory: (ports: FeeGroupPorts, csv: PricingCsvPort) => new PricingCsvExportService(ports, csv),
+    inject: [FEE_GROUP_PORTS, PRICING_CSV],
+  },
+  {
+    provide: PricingCsvImportService,
+    useFactory: (ports: FeeGroupPorts, csv: PricingCsvPort) => new PricingCsvImportService(ports, csv),
+    inject: [FEE_GROUP_PORTS, PRICING_CSV],
+  },
   useCase(DefaultTableService),
   useCase(DeliveryDefaultsConvergeService),
   {

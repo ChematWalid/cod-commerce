@@ -1,4 +1,5 @@
 import type { DeliveryFeeCommuneRateInput, DeliveryFeeRateInput, WilayaCode } from '@cod/shared';
+import { isEmptyCommuneRow } from './commune-rows';
 import type { DefaultPrice } from './default-prices';
 import type { CommuneRateRow, WilayaRateRow } from './fee-group';
 
@@ -33,11 +34,6 @@ export function wilayaRowsOf(
     };
   });
 }
-
-const isEmptyCommuneRow = (row: CommuneRateRow): boolean =>
-  [row.baseHome, row.baseDesk, row.overrideHome, row.overrideDesk, row.deliveryEnabled, row.deskEnabled].every(
-    (value) => value === null,
-  );
 
 /**
  * One commune merged with the merchant's edit (`setDeliveryFeeCommuneRates`, D3125): the overrides and switches are

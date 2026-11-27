@@ -6,7 +6,10 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { DeliveryPricingTranslations } from './api/delivery-pricing-translations';
 import { FeeGroupActions } from './api/fee-group-actions';
-import { FeeGroupBulkUseCases, FeeGroupUseCases } from './api/fee-group-use-cases';
+import { FeeGroupCsvActions } from './api/fee-group-csv-actions';
+import { FeeGroupCsvController } from './api/fee-group-csv.controller';
+import { FeeGroupCsvResolver } from './api/fee-group-csv.resolver';
+import { FeeGroupBulkUseCases, FeeGroupCsvUseCases, FeeGroupUseCases } from './api/fee-group-use-cases';
 import { FeeGroupsController } from './api/fee-groups.controller';
 import { FeeGroupsResolver } from './api/fee-groups.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
@@ -18,7 +21,7 @@ import { DELIVERY_PRICING_ENTITIES } from './infrastructure/delivery-pricing-ent
 import { DELIVERY_PRICING_PROVIDERS } from './infrastructure/delivery-pricing.providers';
 
 /** Every REST controller of the plugin. */
-export const DELIVERY_PRICING_REST_CONTROLLERS = [FeeGroupsController];
+export const DELIVERY_PRICING_REST_CONTROLLERS = [FeeGroupsController, FeeGroupCsvController];
 
 /**
  * Per-store delivery fee groups ("pricing options", D3125): one row per wilaya with base and override prices, a
@@ -33,11 +36,13 @@ export const DELIVERY_PRICING_REST_CONTROLLERS = [FeeGroupsController];
     ...DELIVERY_PRICING_PROVIDERS,
     FeeGroupUseCases,
     FeeGroupBulkUseCases,
+    FeeGroupCsvUseCases,
     FeeGroupActions,
+    FeeGroupCsvActions,
     DeliveryPricingTranslations,
   ],
   exports: [DefaultTableService, DeliveryDefaultsConvergeService, ShippingQuoteService],
-  adminApiExtensions: { schema: deliveryPricingAdminApiSchema, resolvers: [FeeGroupsResolver] },
+  adminApiExtensions: { schema: deliveryPricingAdminApiSchema, resolvers: [FeeGroupsResolver, FeeGroupCsvResolver] },
   controllers: DELIVERY_PRICING_REST_CONTROLLERS,
   dashboard: './dashboard/index.tsx',
   compatibility: '^3.8.0',

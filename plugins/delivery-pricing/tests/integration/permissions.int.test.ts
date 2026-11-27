@@ -1,9 +1,8 @@
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
-import { failureOf } from '@cod/testing';
-import gql from 'graphql-tag';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { deliveryPricingSuite } from './delivery-pricing-kit';
 import { OPERATION_REGISTRY, ROUTE_REGISTRY, type TargetIds } from './endpoint-registry';
+import { callOperation, callRoute } from './registry-calls';
 
 const suite = deliveryPricingSuite({ plugins: [RbacPlugin], partitionedSchemas: [ACTIVITY_LOG_SCHEMA] });
 const FORBIDDEN = 'FORBIDDEN';
@@ -37,10 +36,10 @@ describe('fee-group handlers refuse a role that lacks their key', () => {
     await suite.kit.signInAsMember(suite.fixtures.a, []);
 
     // Act
-    const failure = await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)));
+    const outcome = await callOperation(suite.kit, entry, ids);
 
     // Assert
-    expect(failure.codes).toEqual([FORBIDDEN]);
+    expect(outcome.codes).toEqual([FORBIDDEN]);
   });
 
   it.each(OPERATION_REGISTRY)('$operation is FORBIDDEN for a role holding every other delivery key', async (entry) => {
@@ -48,10 +47,10 @@ describe('fee-group handlers refuse a role that lacks their key', () => {
     await suite.kit.signInAsMember(suite.fixtures.a, allKeysBut(entry.access));
 
     // Act
-    const failure = await failureOf(suite.kit.client.query(gql(entry.document), entry.variables(ids)));
+    const outcome = await callOperation(suite.kit, entry, ids);
 
     // Assert
-    expect(failure.codes).toEqual([FORBIDDEN]);
+    expect(outcome.codes).toEqual([FORBIDDEN]);
   });
 
   it.each(ROUTE_REGISTRY)('$method $route answers 403 for a member with no role', async (entry) => {
@@ -59,7 +58,7 @@ describe('fee-group handlers refuse a role that lacks their key', () => {
     await suite.kit.signInAsMember(suite.fixtures.a, []);
 
     // Act
-    const answer = await suite.kit.rest(entry.method, entry.url(ids), entry.body?.());
+    const answer = await callRoute(suite.kit, entry, ids);
 
     // Assert
     expect(answer.status).toBe(FORBIDDEN_STATUS);
@@ -70,7 +69,7 @@ describe('fee-group handlers refuse a role that lacks their key', () => {
     await suite.kit.signInAsMember(suite.fixtures.a, allKeysBut(entry.access));
 
     // Act
-    const answer = await suite.kit.rest(entry.method, entry.url(ids), entry.body?.());
+    const answer = await callRoute(suite.kit, entry, ids);
 
     // Assert
     expect(answer.status).toBe(FORBIDDEN_STATUS);
@@ -83,10 +82,11 @@ describe('fee-group handlers refuse a role that lacks their key', () => {
       await suite.kit.signInAsMember(suite.fixtures.a, [entry.access]);
 
       // Act
-      const data = await suite.kit.client.query<Record<string, unknown>>(gql(entry.document), entry.variables(ids));
+      const outcome = await callOperation(suite.kit, entry, ids);
 
       // Assert
-      expect(data[entry.operation]).not.toBeNull();
+      expect(outcome.codes).toEqual([]);
+      expect(outcome.data).not.toBeNull();
     },
   );
 });

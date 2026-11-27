@@ -110,9 +110,57 @@ export const deliveryPricingAdminApiSchema = gql`
     deskPrice: Int
   }
 
+  "A pricing option as CSV (D3142): content is the file's UTF-8 text, its byte order mark included."
+  type DeliveryFeeGroupCsv {
+    fileName: String!
+    content: String!
+  }
+
+  "What a CSV row prices (D3142)."
+  enum DeliveryFeeCsvLevel {
+    wilaya
+    commune
+  }
+
+  "A row's effective prices and switches; a null on a commune row inherits the wilaya's."
+  type DeliveryFeeCsvValues {
+    homePrice: Int
+    deskPrice: Int
+    deliveryEnabled: Boolean
+    deskEnabled: Boolean
+  }
+
+  "One row an import changes: before is null for a commune with no row yet, after is null for a row that goes."
+  type DeliveryFeeCsvChange {
+    level: DeliveryFeeCsvLevel!
+    provinceCode: String!
+    codeOns: Int
+    before: DeliveryFeeCsvValues
+    after: DeliveryFeeCsvValues
+  }
+
+  "One refused row: row counts records with the header as 1; issue is a stable code such as unknown-commune."
+  type DeliveryFeeCsvIssue {
+    row: Int!
+    column: String
+    issue: String!
+  }
+
+  "What a CSV import did or would do; issues are capped, totalIssues counts them all; group is set once applied."
+  type DeliveryFeeCsvImportResult {
+    dryRun: Boolean!
+    applied: Boolean!
+    rows: Int!
+    changes: [DeliveryFeeCsvChange!]!
+    issues: [DeliveryFeeCsvIssue!]!
+    totalIssues: Int!
+    group: DeliveryFeeGroup
+  }
+
   extend type Query {
     deliveryFeeGroups(options: DeliveryFeeGroupListInput): DeliveryFeeGroupPage!
     deliveryFeeGroup(id: String!): DeliveryFeeGroup
+    deliveryFeeGroupCsv(id: String!): DeliveryFeeGroupCsv
   }
 
   extend type Mutation {
@@ -131,5 +179,7 @@ export const deliveryPricingAdminApiSchema = gql`
       input: DeliveryFeeCommunePricesInput!
     ): DeliveryFeeGroup!
     duplicateDeliveryFeeGroup(groupId: String!, name: String!): DeliveryFeeGroup!
+    "Previews (dryRun, the default) or applies a pricing CSV (D3142)."
+    importDeliveryFeeGroupCsv(groupId: String!, file: Upload!, dryRun: Boolean = true): DeliveryFeeCsvImportResult!
   }
 `;

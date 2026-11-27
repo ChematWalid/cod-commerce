@@ -382,3 +382,131 @@ msgstr "اسم النسخة"
 #. js-lingui-explicit-id
 msgid "delivery-pricing.copied"
 msgstr "تم نسخ خيار التسعير."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-title"
+msgstr "ملف CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-intro"
+msgstr "صدّر خيار التسعير هذا لتعديله في جدول بيانات، ثم استورده من جديد. لا يغيّر الاستيراد إلا الصفوف الموجودة في الملف."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-export"
+msgstr "تصدير CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-import"
+msgstr "استيراد CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-save-first"
+msgstr "احفظ تغييراتك قبل استيراد ملف."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-import-heading"
+msgstr "استيراد ملف CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-import-body"
+msgstr "اختر ملف CSV محفوظًا من ملف تصدير. سترى ما سيتغيّر قبل حفظ أي شيء. الولايات والبلديات غير الموجودة في الملف تبقى كما هي."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-file-label"
+msgstr "ملف CSV"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-summary"
+msgstr "الصفوف المقروءة: {rows}. التغييرات: {changes}."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issues"
+msgstr "الصفوف المرفوضة: {count}. صحّحها في الملف ثم اختره من جديد."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-row"
+msgstr "الصف {row}، العمود {column}:"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-more"
+msgstr "تغييرات أخرى غير معروضة: {count}."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-no-change"
+msgstr "هذا الملف لا يغيّر شيئًا."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-apply"
+msgstr "تطبيق"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-applied"
+msgstr "تم استيراد الملف."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-on"
+msgstr "مفعّل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-off"
+msgstr "معطّل"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-inherit"
+msgstr "مثل الولاية"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-column-commune"
+msgstr "البلدية"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-invalid-level"
+msgstr "يجب أن يكون المستوى wilaya أو commune."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-unknown-wilaya"
+msgstr "هذه الولاية غير موجودة في خيار التسعير."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-unknown-commune"
+msgstr "هذه البلدية غير موجودة."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-commune-not-in-wilaya"
+msgstr "هذه البلدية تابعة لولاية أخرى."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-unexpected-commune"
+msgstr "صف الولاية لا يقبل رمز بلدية."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-duplicate-key"
+msgstr "هذه الولاية أو البلدية مذكورة سابقًا في الملف."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-invalid-price"
+msgstr "يجب أن يكون السعر عددًا صحيحًا من الدنانير بين 0 و100000."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-invalid-switch"
+msgstr "يجب أن تكون قيمة التفعيل true أو false."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-issue-missing-value"
+msgstr "صف الولاية يحتاج إلى هذه القيمة."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-invalid-file"
+msgstr "هذا الملف ليس ملف CSV لأسعار التوصيل: احفظه بصيغة CSV UTF-8 بأعمدة ملف التصدير."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-too-large"
+msgstr "حجم الملف أكبر من المسموح لملف CSV لأسعار التوصيل."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-too-many-rows"
+msgstr "عدد صفوف الملف أكبر من عدد ولايات وبلديات خيار التسعير هذا."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.csv-invalid-rows"
+msgstr "بعض صفوف الملف غير صالحة: تحقّق منها بالمعاينة أولًا."

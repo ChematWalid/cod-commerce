@@ -58,3 +58,21 @@ export function fieldOf(body: unknown, name: string): unknown {
     ? (body as Record<string, unknown>)[name]
     : undefined;
 }
+
+/** How a REST query string spells a dry-run flag. */
+const QUERY_BOOLEANS: ReadonlyMap<unknown, boolean> = new Map([
+  ['true', true],
+  ['false', false],
+]);
+
+/**
+ * Whether a CSV import is only a dry run (D3142): absent means yes, so no call writes by default; a boolean as sent, or
+ * `true`/`false` from a REST query. @throws {InvalidDeliveryFeeInputError} otherwise.
+ */
+export function parseDryRun(input: unknown): boolean {
+  if (input === undefined || input === null) return true;
+  if (typeof input === 'boolean') return input;
+  const parsedFlag = QUERY_BOOLEANS.get(input);
+  if (parsedFlag === undefined) throw new InvalidDeliveryFeeInputError();
+  return parsedFlag;
+}

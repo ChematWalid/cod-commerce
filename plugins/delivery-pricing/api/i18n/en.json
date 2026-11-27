@@ -4,6 +4,10 @@
     "delivery-pricing-not-found": "Pricing option not found.",
     "delivery-pricing-group-in-use": "This pricing option is in use: choose another default before deleting it.",
     "delivery-pricing-carrier-not-found": "Carrier not found.",
+    "delivery-pricing-csv-invalid-file": "The file is not a pricing CSV: save it as CSV UTF-8 with the columns of an export.",
+    "delivery-pricing-csv-too-large": "The file is too large for a pricing CSV.",
+    "delivery-pricing-csv-too-many-rows": "The file has more rows than this pricing option's wilayas and communes.",
+    "delivery-pricing-csv-invalid-rows": "Some rows of the file are not valid: check them with a preview first.",
     "delivery-pricing-internal": "The request could not be completed."
   }
 }
