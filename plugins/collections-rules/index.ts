@@ -4,6 +4,11 @@ export { CollectionsRulesPlugin } from './collections-rules.plugin';
 export { CatalogCollectionsReadService as CollectionsReadService } from './infrastructure/catalog-collections-read';
 export type { VisibleCollection, VisibleCollectionPage } from './application/collections-read.service';
 export { CollectionMembershipQueries } from './application/collection-membership-queries.service';
+export {
+  type DemoCollectionInput,
+  DemoCollectionSeedService,
+  type DemoCollectionsSeeded,
+} from './application/demo-collection-seed.service';
 export { CollectionsNoActiveStoreError } from './domain/no-active-store.error';
 export type { StoreScope as CollectionsStoreScope } from './domain/store-scope';
 export {

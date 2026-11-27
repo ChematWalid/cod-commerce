@@ -30,12 +30,14 @@ export class TypeOrmPackRepository implements PackRepositoryPort {
 
   async findByProduct(ctx: OperationContext, scope: StoreScope, productId: string): Promise<PackRecord | undefined> {
     const tenant = requestScope(ctx, scope);
+    // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
     const row = await this.packs.findOne(tenant, { ...inStore(scope), productId: Number(productId) });
     return row === null ? undefined : this.recordOf(ctx, scope, row);
   }
 
   async holding(ctx: OperationContext, scope: StoreScope, productId: string): Promise<readonly PackRecord[]> {
     const tenant = requestScope(ctx, scope);
+    // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
     const lines = await this.components.find(tenant, { where: { ...inStore(scope), productId: Number(productId) } });
     const packIds = [...new Set(lines.map((line) => line.packId))];
     if (packIds.length === 0) return [];
@@ -48,6 +50,7 @@ export class TypeOrmPackRepository implements PackRepositoryPort {
 
   async save(ctx: OperationContext, scope: StoreScope, pack: PackSave): Promise<PackRecord> {
     const tenant = requestScope(ctx, scope);
+    // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
     const productId = Number(pack.productId);
     const existing = await this.packs.findOne(tenant, { ...inStore(scope), productId });
     const now = new Date();
@@ -72,6 +75,7 @@ export class TypeOrmPackRepository implements PackRepositoryPort {
 
   async deleteByProduct(ctx: OperationContext, scope: StoreScope, productId: string): Promise<void> {
     const tenant = requestScope(ctx, scope);
+    // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
     const row = await this.packs.findOne(tenant, { ...inStore(scope), productId: Number(productId) });
     if (row === null) return;
     await this.components.delete(tenant, { ...inStore(scope), packId: row.id });
@@ -90,7 +94,9 @@ export class TypeOrmPackRepository implements PackRepositoryPort {
         ...inStore(scope),
         packId,
         position,
+        // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
         productId: Number(line.productId),
+        // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
         variantId: line.variantId === null ? null : Number(line.variantId),
         quantity: line.quantity,
       });

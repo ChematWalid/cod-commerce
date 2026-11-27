@@ -14,6 +14,7 @@ export const DOMAIN_EVENT_NAMES = {
   ProductChanged: 'product.changed',
   CollectionChanged: 'collection.changed',
   OfferApplied: 'offer.applied',
+  StoreChanged: 'store.changed',
 } as const;
 
 /** One of the {@link DOMAIN_EVENT_NAMES} values. */

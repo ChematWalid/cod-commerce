@@ -58,4 +58,5 @@ export function collectionRefIdListSchema(max: number, tooMany: CollectionIssue 
 export const vendureIdStringSchema = z
   .string(invalidCollectionInput)
   .regex(DECIMAL_ID, invalidCollectionInput)
+  // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
   .refine((id) => Number(id) <= INT_COLUMN_MAX, invalidCollectionInput);

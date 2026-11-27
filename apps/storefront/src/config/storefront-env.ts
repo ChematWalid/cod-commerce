@@ -1,9 +1,10 @@
 import { InvalidInternalKeysError, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { CacheConfigError, requireDeploymentId, requireRedisUrl } from '../../cache/cache-config';
+import { deliveryEnvIssues, readTrustEdgeIp } from './delivery-env';
 
 /**
  * The storefront's environment, validated once at boot (`instrumentation.ts`). It is hand-written because the
- * storefront has no schema library of its own and four variables do not justify adding one.
+ * storefront has no schema library of its own and a dozen variables do not justify adding one.
  *
  * The cache handlers are compiled apart from the app (`cache/tsconfig.json`) and Next loads them on their own,
  * so the two cache rules stay in `cache/cache-config.ts`; this module applies them and adds the rest.
@@ -17,11 +18,30 @@ export const STOREFRONT_ENV_KEYS = [
   'INTERNAL_API_URL',
   'INTERNAL_HMAC_KEYS',
   'INTERNAL_HMAC_ACTIVE_KID',
+  'PLATFORM_DOMAIN',
+  'STOREFRONT_THEME',
+  'STOREFRONT_ASSET_BASE',
+  'STOREFRONT_ASSET_PREFIX',
+  'STOREFRONT_TRUST_EDGE_IP',
+  'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
 ] as const;
+
+/** The themes `STOREFRONT_THEME` can select for every store until P8 stores a theme per store (D3207). */
+export const STOREFRONT_THEME_NAMES = ['default', 'compact'] as const;
+
+/** One of the {@link STOREFRONT_THEME_NAMES}. */
+export type StorefrontThemeName = (typeof STOREFRONT_THEME_NAMES)[number];
 
 const APP_ENVS: readonly string[] = ['development', 'test', 'staging', 'production'];
 const API_URL_PROTOCOLS: readonly string[] = ['http:', 'https:'];
 const REDIS_URL_PROTOCOLS: readonly string[] = ['redis:', 'rediss:'];
+/** The environments that serve real stores: they must name their platform domain, never fall back. */
+const DEPLOYED_APP_ENVS: readonly string[] = ['staging', 'production'];
+/** The platform domain outside staging and production, so `*.localhost` stores work in development and CI. */
+export const DEFAULT_PLATFORM_DOMAIN = 'localhost';
+/** Lowercase DNS labels of 1-63 characters, dot-separated: no port, no trailing dot (the server's rule). */
+const DNS_NAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+const DNS_NAME_MAX_LENGTH = 253;
 
 /** The validated, typed environment of the storefront. */
 export interface StorefrontEnv {
@@ -31,6 +51,10 @@ export interface StorefrontEnv {
   readonly internalApiUrl: string;
   /** The key the storefront signs its API calls with (D111): the active kid of `INTERNAL_HMAC_KEYS`. */
   readonly internalSigningKey: InternalSigningKey;
+  /** Stores live on `<label>.<platformDomain>`; any other host is answered 404 without an api call (D3214). */
+  readonly platformDomain: string;
+  /** The theme every store renders with (D3207). */
+  readonly themeName: StorefrontThemeName;
 }
 
 /** The environment is invalid. The issues name variables and rules, never values: a URL can hold a password. */
@@ -74,6 +98,93 @@ export function readInternalApiUrl(env: NodeJS.Dict<string>): string {
  */
 export function internalApiUrl(): string {
   return readInternalApiUrl(process.env);
+}
+
+/** The platform domain and its issue, if any; the default applies outside staging and production. */
+function platformDomainOf(env: NodeJS.Dict<string>): { domain: string; issue: string | undefined } {
+  const domain = env['PLATFORM_DOMAIN']?.trim() ?? '';
+  if (domain === '') {
+    const appEnv = env['APP_ENV'] ?? '';
+    if (!DEPLOYED_APP_ENVS.includes(appEnv)) return { domain: DEFAULT_PLATFORM_DOMAIN, issue: undefined };
+    return { domain, issue: `PLATFORM_DOMAIN is required when APP_ENV is '${appEnv}'` };
+  }
+  if (domain.length > DNS_NAME_MAX_LENGTH || !DNS_NAME.test(domain)) {
+    return { domain, issue: 'PLATFORM_DOMAIN must be a lowercase DNS name' };
+  }
+  return { domain, issue: undefined };
+}
+
+/**
+ * `PLATFORM_DOMAIN` alone, validated like the boot check validates it.
+ *
+ * @throws StorefrontEnvError when it is missing in staging or production, or not a lowercase DNS name
+ */
+export function readPlatformDomain(env: NodeJS.Dict<string>): string {
+  const { domain, issue } = platformDomainOf(env);
+  if (issue !== undefined) throw new StorefrontEnvError([issue]);
+  return domain;
+}
+
+/**
+ * The platform domain of this process, for the store resolver. Read on each call, for the reason
+ * {@link internalApiUrl} is.
+ *
+ * @throws StorefrontEnvError see {@link readPlatformDomain}
+ */
+export function platformDomain(): string {
+  return readPlatformDomain(process.env);
+}
+
+const isThemeName = (value: string): value is StorefrontThemeName =>
+  (STOREFRONT_THEME_NAMES as readonly string[]).includes(value);
+
+/** The theme name and its issue, if any; unset means `default`. */
+function themeNameOf(env: NodeJS.Dict<string>): { name: StorefrontThemeName; issue: string | undefined } {
+  const value = env['STOREFRONT_THEME']?.trim() ?? '';
+  if (value === '') return { name: 'default', issue: undefined };
+  if (isThemeName(value)) return { name: value, issue: undefined };
+  return { name: 'default', issue: `STOREFRONT_THEME must be one of ${STOREFRONT_THEME_NAMES.join(', ')}` };
+}
+
+/**
+ * The theme of this process. Read on each call, for the reason {@link internalApiUrl} is.
+ *
+ * @throws StorefrontEnvError when `STOREFRONT_THEME` is set to an unknown theme
+ */
+export function storefrontThemeName(): StorefrontThemeName {
+  const { name, issue } = themeNameOf(process.env);
+  if (issue !== undefined) throw new StorefrontEnvError([issue]);
+  return name;
+}
+
+/**
+ * `STOREFRONT_ASSET_BASE` of this process, trimmed (empty when unset), for building image URLs on the server. Read on
+ * each call; the boot check has already refused a malformed value.
+ */
+export function storefrontAssetBase(): string {
+  return process.env['STOREFRONT_ASSET_BASE']?.trim() ?? '';
+}
+
+/** Whether this process trusts `CF-Connecting-IP` (D3213). Read on each call. */
+export function storefrontTrustEdgeIp(): boolean {
+  return readTrustEdgeIp(process.env);
+}
+
+/**
+ * Every configured internal key, for checking host bindings (D3202): a binding signed with any kid still in
+ * `INTERNAL_HMAC_KEYS` is valid, so a key rotation does not break cached tenant paths. Read on each call.
+ *
+ * @throws StorefrontEnvError when `INTERNAL_HMAC_KEYS` is missing or invalid (the message holds no secret)
+ */
+export function internalVerifyKeys(): readonly InternalSigningKey[] {
+  const value = process.env['INTERNAL_HMAC_KEYS']?.trim();
+  if (!value) throw new StorefrontEnvError(['INTERNAL_HMAC_KEYS is required']);
+  try {
+    return parseInternalKeys(value);
+  } catch (error) {
+    if (!(error instanceof InvalidInternalKeysError)) throw error;
+    throw new StorefrontEnvError([`INTERNAL_HMAC_KEYS is invalid (${error.message})`]);
+  }
 }
 
 /** The signing key and the issues of `INTERNAL_HMAC_KEYS` and `INTERNAL_HMAC_ACTIVE_KID`; issues never hold a secret. */
@@ -123,6 +234,10 @@ export function internalSigningKey(): InternalSigningKey {
   return readInternalSigningKey(process.env);
 }
 
+/** The issues among `candidates` that are set. */
+const presentIssues = (...candidates: (string | undefined)[]): string[] =>
+  candidates.filter((issue): issue is string => issue !== undefined);
+
 /** Runs a cache rule, turning its typed error into an issue; any other error is a bug and propagates. */
 function cacheValue(read: () => string, issues: string[]): string {
   try {
@@ -151,12 +266,24 @@ export function loadStorefrontEnv(env: NodeJS.Dict<string>): StorefrontEnv {
   }
   const deploymentId = cacheValue(() => requireDeploymentId(env), issues);
   const internalApiUrl = env['INTERNAL_API_URL']?.trim();
-  const apiIssue = internalApiUrlIssue(internalApiUrl);
-  if (apiIssue !== undefined) issues.push(apiIssue);
   const signing = signingKeyOf(env);
-  issues.push(...signing.issues);
+  const platform = platformDomainOf(env);
+  const theme = themeNameOf(env);
+  issues.push(
+    ...presentIssues(internalApiUrlIssue(internalApiUrl)),
+    ...signing.issues,
+    ...presentIssues(platform.issue, theme.issue),
+    ...deliveryEnvIssues(env),
+  );
   if (issues.length > 0 || internalApiUrl === undefined || signing.key === undefined) {
     throw new StorefrontEnvError(issues);
   }
-  return { redisUrl, deploymentId, internalApiUrl, internalSigningKey: signing.key };
+  return {
+    redisUrl,
+    deploymentId,
+    internalApiUrl,
+    internalSigningKey: signing.key,
+    platformDomain: platform.domain,
+    themeName: theme.name,
+  };
 }

@@ -1,5 +1,11 @@
 # Evidence for P0.S2b-5 (storefront)
 
+> **Superseded (2026-11-23, #181).** This folder shows the P0 storefront: a bare page per host and the stub store
+> resolver, which P1 and P3.S2 replaced with the api-backed resolver, the catalog pages, the tenant path with a host
+> binding and the shared Valkey cache. Current evidence of the storefront lives in
+> [`docs/evidence/P3.S2`](../P3.S2/README.md). The files below are kept as the P0 record and are no longer regenerated;
+> `scripts/evidence/P0.S2b-5.sh` describes the P0 pages and is not maintained.
+
 Screenshots and request/response transcripts of the real storefront (Next.js 16, `apps/storefront`) running as the
 `storefront` role of the compose stack (CLAUDE.md §3a.14). Produced by `scripts/evidence/P0.S2b-5.sh`; nothing here is
 hand-written. Data is synthetic: the storefront's two stub stores (placeholders from `.env.example` for the rest).

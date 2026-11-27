@@ -1,4 +1,5 @@
 import { AuthPlugin } from '@cod/plugin-auth';
+import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
 import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
 import { GeoPlugin } from '@cod/plugin-geo';
 import { OffersPlugin } from '@cod/plugin-offers';
@@ -9,6 +10,7 @@ import { PlatformPartitionsPlugin } from '@cod/plugin-platform-partitions';
 import { PlatformSecretsPlugin } from '@cod/plugin-platform-secrets';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { RbacPlugin } from '@cod/plugin-rbac';
+import { StorefrontApiPlugin } from '@cod/plugin-storefront-api';
 import { TeamPlugin } from '@cod/plugin-team';
 import { TemplatePlugin } from '@cod/plugin-template';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
@@ -198,6 +200,18 @@ describe('buildPlugins', () => {
     expect(plugins).toEqual(expect.arrayContaining([GeoPlugin, OffersPlugin, DeliveryPricingPlugin]));
     expect(plugins.indexOf(OffersPlugin)).toBeGreaterThan(plugins.indexOf(GeoPlugin));
     expect(plugins.indexOf(DeliveryPricingPlugin)).toBeGreaterThan(plugins.indexOf(OffersPlugin));
+  });
+
+  // On every role: `migrate` creates its table and the worker feeds it; it reads the collections, so it comes after.
+  it.each(SERVER_ROLES)('registers StorefrontApiPlugin after the collections for the %s role', (role: ServerRole) => {
+    // Arrange
+    const env = loadEnv({ ...valid, ROLE: role });
+
+    // Act
+    const plugins = buildPlugins(env, role);
+
+    // Assert
+    expect(plugins.indexOf(StorefrontApiPlugin)).toBeGreaterThan(Math.max(plugins.indexOf(CollectionsRulesPlugin), 0));
   });
 
   it.each(SERVER_ROLES)('registers PlatformJobsPlugin with the pooled queues for the %s role', (role: ServerRole) => {

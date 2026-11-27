@@ -2,16 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StorefrontEnvError } from '../../src/config/storefront-env';
 import { ApiStoreResolver, StoreResolverError } from '../../src/tenancy/api-store-resolver';
 import type { NormalizedHost } from '../../src/tenancy/host';
-import { InvalidStoreLocaleError } from '../../src/tenancy/store-locale';
 
 const HOST = 'demo.localhost' as NormalizedHost;
 const BODY = {
   storeId: '100',
   businessId: '200',
-  language: 'ar',
   name: 'Demo Store',
+  description: '',
+  logoPath: null,
   logo: null,
+  language: 'ar',
+  direction: 'rtl',
   primaryHost: 'demo.localhost',
+  showAddressField: true,
+  soldOutBehavior: 'keep',
   status: 'active',
 };
 
@@ -114,10 +118,29 @@ describe('ApiStoreResolver', () => {
 
   it('rejects a language the platform does not offer', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(Response.json({ ...BODY, language: 'de' }));
+    fetchMock.mockResolvedValue(Response.json({ ...BODY, language: 'de', direction: 'ltr' }));
 
     // Act and Assert
-    await expect(new ApiStoreResolver().resolveByHost(HOST)).rejects.toThrow(InvalidStoreLocaleError);
+    await expect(new ApiStoreResolver().resolveByHost(HOST)).rejects.toThrow(StoreResolverError);
+  });
+
+  it('rejects a store body the shared store contract refuses, such as a direction that is not its language', async () => {
+    // Arrange: the same contract load-store reads (storefrontStoreSchema), so the two never disagree.
+    fetchMock.mockResolvedValue(Response.json({ ...BODY, direction: 'ltr' }));
+
+    // Act and Assert
+    await expect(new ApiStoreResolver().resolveByHost(HOST)).rejects.toThrow(StoreResolverError);
+  });
+
+  it('takes the logo from logoPath, the field that replaces logo (D3203)', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(Response.json({ ...BODY, logoPath: 'b/1/s/100/preview/logo.png', logo: undefined }));
+
+    // Act
+    const store = await new ApiStoreResolver().resolveByHost(HOST);
+
+    // Assert
+    expect(store?.logo).toBe('b/1/s/100/preview/logo.png');
   });
 
   it('reads INTERNAL_API_URL at call time and throws when it is missing', async () => {

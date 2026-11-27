@@ -12,6 +12,22 @@ const RESOLUTION: StoreResolution = {
   businessId: '100',
   language: 'ar',
   name: 'Atlas',
+  description: '',
+  logo: null,
+  logoPath: null,
+  direction: 'rtl',
+  primaryHost: HOST,
+  showAddressField: true,
+  soldOutBehavior: 'keep',
+  status: 'active',
+};
+
+/** An entry an older release wrote: no description, address field, sold-out behaviour, logo path or direction. */
+const OLD_SHAPE = {
+  storeId: '500',
+  businessId: '100',
+  language: 'ar',
+  name: 'Atlas',
   logo: null,
   primaryHost: HOST,
   status: 'active',
@@ -65,6 +81,11 @@ describe('ValkeyHostCache', () => {
     ['an archived store', JSON.stringify({ ...RESOLUTION, status: 'archived' })],
     ['a missing field', JSON.stringify({ ...RESOLUTION, name: undefined })],
     ['a logo that is not a string', JSON.stringify({ ...RESOLUTION, logo: 5 })],
+    // D3203: an entry of the shape before P3.S2 is re-read, never served without the new fields.
+    ['an entry of the old shape', JSON.stringify(OLD_SHAPE)],
+    ['a direction that does not match the language', JSON.stringify({ ...RESOLUTION, direction: 'ltr' })],
+    ['an unknown sold-out behaviour', JSON.stringify({ ...RESOLUTION, soldOutBehavior: 'show' })],
+    ['a logo alias that differs from the logo path', JSON.stringify({ ...RESOLUTION, logo: 'a.png' })],
     // Already a miss before TEN-11, kept so it stays one.
     ['a non-JSON value', 'not json'],
     ['null', 'null'],

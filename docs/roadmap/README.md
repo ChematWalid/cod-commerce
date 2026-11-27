@@ -54,15 +54,16 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | P1.S5 | Admin shell, navigation & Arabic RTL | `feat/p1-s5-admin-shell` | P1.S1 | P1.S2, P1.S3, P1.S4, P1.S6 | S | M | |
 | P1.S6 | Platform plumbing: outbox, webhook gateway, queues, secrets, flags | `feat/p1-s6-platform-plumbing` | P1.S1 | P1.S2, P1.S3, P1.S4, P1.S5, P2.S1, P3.S1 | O | L | |
 | P2.S1 | Products & variants | `feat/p2-s1-products` | P1.S5 | P3.S1, P1.S6 | S | L | |
-| P2.S2 | Packs, import & export | `feat/p2-s2-packs-import` | P2.S1 | P2.S3, P2.S4, P3.S5 | S | M | |
-| P2.S3 | Collections with conditions | `feat/p2-s3-collections` | P2.S1 | P2.S2, P2.S4, P3.S5 | S | S | |
-| P2.S4 | Pricing & offer engine core | `feat/p2-s4-offer-engine` | P2.S1 | P2.S2, P2.S3, P3.S5 | O | L | |
-| P2.S5 | Offer kinds BXGY/add-on & offers admin | `feat/p2-s5-offers-admin` | P2.S4 | P2.S2, P2.S3, P3.S2, P3.S5 | S | L | |
+| P2.S2 | Packs, import & export | `feat/p2-s2-packs-import` | P2.S1 | P2.S3, P2.S4, P3.S5a, P3.S5b | S | M | |
+| P2.S3 | Collections with conditions | `feat/p2-s3-collections` | P2.S1 | P2.S2, P2.S4, P3.S5a, P3.S5b | S | S | |
+| P2.S4 | Pricing & offer engine core | `feat/p2-s4-offer-engine` | P2.S1 | P2.S2, P2.S3, P3.S5a, P3.S5b | O | L | |
+| P2.S5 | Offer kinds BXGY/add-on & offers admin | `feat/p2-s5-offers-admin` | P2.S4 | P2.S2, P2.S3, P3.S2, P3.S5a, P3.S5b | S | L | |
 | P3.S1 | Wilaya/commune data & delivery pricing | `feat/p3-s1-geo-delivery-pricing` | P1.S5 | P2.*, P3.S2, P1.S6 | S | M | |
 | P3.S2 | Multi-tenant storefront skeleton | `feat/p3-s2-storefront-skeleton` | P2.S1, P1.S6 | P2.S4, P2.S5, P3.S1 | O | L | |
-| P3.S3 | Product page, COD form, cart & checkout | `feat/p3-s3-cod-checkout` | P3.S1, P3.S2, P2.S4 | P2.S5, P3.S5 | S | L | |
-| P3.S4 | Order intake & abandoned checkouts | `feat/p3-s4-order-intake` | P3.S3, P1.S6 | P3.S5 | O | L | 🔑 Turnstile keys (Cloudflare test keys) |
-| P3.S5 | Staging environment, IaC & observability baseline | `chore/p3-s5-staging` | P3.S2, P1.S6 | P2.*, P3.S3, P3.S4 | O | L | 🔑 Algerian VPS trials + chosen provider, second provider for backups, Cloudflare account, staging zone |
+| P3.S3 | Product page, COD form, cart & checkout | `feat/p3-s3-cod-checkout` | P3.S1, P3.S2, P2.S4 | P2.S5, P3.S5a, P3.S5b | S | L | |
+| P3.S4 | Order intake & abandoned checkouts | `feat/p3-s4-order-intake` | P3.S3, P1.S6 | P3.S5a, P3.S5b | O | L | 🔑 Turnstile keys (Cloudflare test keys) |
+| P3.S5a | Image, ops code, IaC & observability as code (no accounts) | `chore/p3-s5-staging` | P3.S2, P1.S6 | P3.S3, P3.S4 | O | L | none (local verification only) |
+| P3.S5b | Provider trial & staging go-live | `chore/p3-s5b-staging-live` | P3.S5a (+ P3.S4 for the spool chaos and flash-sale checks) | P3.S3, P3.S4, P4.* | O | M | 🔑 Algerian VPS trials + chosen provider, second provider for backups, Cloudflare account + staging zone + API token, R2, GitHub staging environment secrets, Grafana Cloud, Sentry, uptime tool |
 | P4.S1 | Order state machine & actions | `feat/p4-s1-order-states` | P3.S4 | P4.S5 | O | L | |
 | P4.S2 | Orders list, filters, bulk & export | `feat/p4-s2-orders-list` | P4.S1 | P4.S3, P4.S4, P4.S5, P4.S7 | S | L | |
 | P4.S3 | Order detail, create/edit & agent upsell | `feat/p4-s3-order-detail` | P4.S1, P2.S5 | P4.S2, P4.S4, P4.S5, P4.S7 | S | L | |
@@ -93,7 +94,7 @@ Model: **O** = Opus (architecture, tricky logic), **S** = Sonnet (well-specified
 | P8.S6 | Themes: presets, apply, history | `feat/p8-s6-themes` | P8.S3, P8.S4, P8.S5 | P8.S7–S9 | S | M | |
 | P8.S7 | Landing pages & block editor | `feat/p8-s7-landing-pages` | P8.S1 | P8.S2–S6, P8.S9 | S | L | |
 | P8.S8 | A/B tests | `feat/p8-s8-ab-tests` | P8.S7 | P8.S6, P8.S9 | S | M | |
-| P8.S9 | Subdomains & custom domains | `feat/p8-s9-domains` | P3.S2, P3.S5 | P8.* | O | M | 🔑 Cloudflare API token (custom hostnames) on the P3.S5 staging zone |
+| P8.S9 | Subdomains & custom domains | `feat/p8-s9-domains` | P3.S2, P3.S5b | P8.* | O | M | 🔑 Cloudflare API token (custom hostnames) on the P3.S5b staging zone |
 | P9.S1 | Plans, trial, quotas & feature gates | `feat/p9-s1-plans-quotas` | P1.S4, P3.S4 | P9.S3, P9.S5, P9.S6, P9.S8a, P9.S8b, P9.S9 | O | L | |
 | P9.S2 | Payments (Chargily/SlickPay/Stripe) & AI credits | `feat/p9-s2-payments-credits` | P9.S1 | P9.S3–S6, P9.S8a, P9.S8b, P9.S9 | S | L | 🔑 sandbox keys |
 | P9.S3 | Pixels, CAPI & catalog feed | `feat/p9-s3-pixels-capi` | P5.S3 | P9.S1, P9.S2, P9.S5, P9.S6, P9.S7a, P9.S8a, P9.S8b, P9.S9 | S | M | 🔑 test pixels/tokens |
@@ -144,9 +145,10 @@ flowchart LR
   P3S2 --> P3S3
   P2S4 --> P3S3
   P3S3 --> P3S4[P3.S4 order intake]
-  P3S2 --> P3S5[P3.S5 staging + IaC]
-  P1S6 --> P3S5
-  P3S5 --> P8S9
+  P3S2 --> P3S5a[P3.S5a image + IaC as code]
+  P1S6 --> P3S5a
+  P3S5a --> P3S5b[P3.S5b provider trial + staging go-live]
+  P3S5b --> P8S9
   P3S4 --> P4S1[P4.S1 order states]
   P3S4 --> P4S5[P4.S5 spam engine]
   P4S1 --> P4S2[P4.S2 orders list]
@@ -220,13 +222,13 @@ flowchart LR
   P10S2 --> P10S3[P10.S3 deploy]
 ```
 
-**Critical path (core COD loop, 17 sessions):** P0.S1 → P0.S2a-1 → P0.S2a-2 → P0.S2b-1 → P0.S2b-2 → P0.S2b-3 → P0.S2b-4 → P0.S2b-5 → P0.S2b-6 → P1.S1 → P1.S5 → P2.S1 → P2.S4 → P3.S3 → P3.S4 → P4.S1 → P5.S1 → P5.S2 → P5.S3 → P6.S1 → P6.S3 → P6.S4 (profit). The launch path then runs P6.S3 → P7.S1 → P9.S7a → P9.S7b → P10.S1 → P10.S2 → P10.S3 (the AI lane is the longest tail; start P9.S1/P9.S2 early). The two infrastructure sessions are off the critical path but gate it: **P1.S6** (platform plumbing) must merge before P3.S2, P3.S4 and P5.S1 — start it right after P1.S1, in parallel with P1.S2–S5 (P1.S1 → P1.S6 is one L session against P1.S5 → P2.S1 on the critical path, so it has about one session of slack); **P3.S5** (staging) must merge before P8.S9 and, through P10.S1, before P10.S3 — start it right after P3.S2. P0.S2a (now L, then split into three L sessions because its plan measured ≈ 13.7 h; P0.S2a-3 runs in parallel with P0.S2a-2) and P3.S4 (now L) lengthen the critical path by about 5.5 h. After P3.S4 the work fans out widely (P4, P5 carriers, P8 builder, P9 integrations all run in parallel lanes). P10 starts only when every P1–P9 session is merged.
+**Critical path (core COD loop, 17 sessions):** P0.S1 → P0.S2a-1 → P0.S2a-2 → P0.S2b-1 → P0.S2b-2 → P0.S2b-3 → P0.S2b-4 → P0.S2b-5 → P0.S2b-6 → P1.S1 → P1.S5 → P2.S1 → P2.S4 → P3.S3 → P3.S4 → P4.S1 → P5.S1 → P5.S2 → P5.S3 → P6.S1 → P6.S3 → P6.S4 (profit). The launch path then runs P6.S3 → P7.S1 → P9.S7a → P9.S7b → P10.S1 → P10.S2 → P10.S3 (the AI lane is the longest tail; start P9.S1/P9.S2 early). The two infrastructure sessions are off the critical path but gate it: **P1.S6** (platform plumbing) must merge before P3.S2, P3.S4 and P5.S1 — start it right after P1.S1, in parallel with P1.S2–S5 (P1.S1 → P1.S6 is one L session against P1.S5 → P2.S1 on the critical path, so it has about one session of slack); **P3.S5a** (ops code, no accounts) can start right after P3.S2; **P3.S5b** (provider trial and staging go-live, split 2026-11-23, D3500) must merge before P8.S9 and, through P10.S1, before P10.S3 — start its provider trial as early as possible, because it needs calendar time. P0.S2a (now L, then split into three L sessions because its plan measured ≈ 13.7 h; P0.S2a-3 runs in parallel with P0.S2a-2) and P3.S4 (now L) lengthen the critical path by about 5.5 h. After P3.S4 the work fans out widely (P4, P5 carriers, P8 builder, P9 integrations all run in parallel lanes). P10 starts only when every P1–P9 session is merged.
 
 **Parallel-safe rule:** two sessions may run at once only if each owns separate plugin folders/app routes listed in its brief and neither modifies a shared file (root `vendure-config.ts`, shared types package) beyond appending its own registration line. Merge conflicts on those registration lines are expected and trivial; resolve by keeping both lines.
 
 ## Estimate
-- 66 sessions = 3 S + 23 M + 40 L ≈ **202 hours of agent work** at S 1.5 h, M 2.5 h, L 3.5 h (range **≈ 169–235 h** with S 1–2 h, M 2–3 h, L 3–4 h; M.S1 extra, ~1 h each time). Changes since the 62-session plan: P0.S2a M → L (spikes C–G), then split into P0.S2a-1/-2/-3 (L each; its executable plan measured ≈ 13.7 h, see `plans/P0.S2a-plan.md`), P3.S4 M → L (Turnstile, read model, outbox, intake spool), new P1.S6 (L) and P3.S5 (L).
-- At 2–3 sessions per day (5-hour usage windows, plus your reviews) and running parallel lanes after P1.S1 and P3: **about 7–10 weeks calendar** (P1.S6 and P3.S5 run in parallel lanes). The core COD loop (through P6.S4) is 17 serial sessions (3 M + 14 L ≈ 57 h) ≈ **3–4 weeks**.
+- 67 sessions = 3 S + 24 M + 40 L ≈ **204.5 hours of agent work** at S 1.5 h, M 2.5 h, L 3.5 h (range **≈ 171–238 h** with S 1–2 h, M 2–3 h, L 3–4 h; M.S1 extra, ~1 h each time). Changes since the 62-session plan: P0.S2a M → L (spikes C–G), then split into P0.S2a-1/-2/-3 (L each; its executable plan measured ≈ 13.7 h, see `plans/P0.S2a-plan.md`), P3.S4 M → L (Turnstile, read model, outbox, intake spool), new P1.S6 (L), then P3.S5 (L) split on 2026-11-23 into P3.S5a (L) and P3.S5b (M).
+- At 2–3 sessions per day (5-hour usage windows, plus your reviews) and running parallel lanes after P1.S1 and P3: **about 7–10 weeks calendar** (P1.S6, P3.S5a and P3.S5b run in parallel lanes). The core COD loop (through P6.S4) is 17 serial sessions (3 M + 14 L ≈ 57 h) ≈ **3–4 weeks**.
 
 ## Shared contracts (who owns what across sessions)
 These are the cross-session seams; the owning session defines them, later sessions only consume or register.
@@ -275,17 +277,22 @@ These are the cross-session seams; the owning session defines them, later sessio
 | `TenantSecretService` (envelope encryption, write-only fields) | P1.S6 | P5.S1 carrier credentials, P9.S2–S6 tokens |
 | `flags.isEnabled(ctx, key)` operational flags/kill switches | P1.S6 | P3.S4 (`intake.spool.enabled`), P5.*, P9.* |
 | Partition helper + `partition-maintenance` task | P1.S6 | P4.S1 (`order_event`), P5.S2 (`parcel_event`), P6.S1 (`stock_movement`), P3.S4 (`visitor_event`), P9.S3/S8a (delivery logs) |
-| Storefront cache contract: `'use cache'` tags (`store:`, `product:`, `theme:`, `offers:`), shared Redis cache handler, `POST /_internal/revalidate`, same-origin `/api/store/*` | P3.S2 | P3.S3, P8.* (publish → revalidate), P8.S8 (`no-store` for tested pages), P8.S9 (purge by hostname) |
+| Storefront cache contract: `'use cache'` tags (`store:`, `product:`, `theme:`, `offers:`), shared Redis cache handler, `POST /api/internal/revalidate`, same-origin `/api/store/*` | P3.S2 | P3.S3, P8.* (publish → revalidate), P8.S8 (`no-store` for tested pages), P8.S9 (purge by hostname) |
 | COD read model `cod_order` / `cod_order_item` / `order_counter` (same-transaction projection) | P3.S4 (create) → P4.S1 (transitions) → P4.S2 (indexes) | P4.*, P5.*, P7.S1, P9.S5 |
-| Intake spool (degraded mode): Valkey stream `{env}:intake:spool`, `202` answer, `intake-spool-replay` task, `intake_spool_length` metric | P3.S4 | P3.S5 (chaos check, alert), P10.S3 (alert), M.S1 (maintenance window) |
+| Intake spool (degraded mode): Valkey stream `{env}:intake:spool`, `202` answer, `intake-spool-replay` task, `intake_spool_length` metric | P3.S4 | P3.S5a (alert code, local chaos), P3.S5b (chaos on staging), P10.S3 (alert), M.S1 (maintenance window) |
 | Shared `applyParcelEvent` (dedupe, ordering, read-model update, outbox) | P5.S2 | P5.S4–S7 (webhooks and polling) |
-| `/readyz` + `/livez` (api, worker, storefront); probes never use Vendure's `/health` (ADR 0015) | P0.S2b | P3.S5, P10.S3 |
-| Compose stack that runs unchanged on one VPS; `DATABASE_URL` (PgBouncer) + `DATABASE_URL_DIRECT`; `migrate` before api/worker; `TZ=UTC` (ADR 0011, 0013, 0016) | P0.S2b | P3.S5, P10.S3, every session's tests |
-| Deploy pipeline, `ROLE` image, Kamal config, server runbook/Ansible, OpenTofu modules (Cloudflare/DNS only, ADR 0011) | P3.S5 | P8.S9, P10.S3, M.S1 |
+| `/readyz` + `/livez` (api, worker, storefront); probes never use Vendure's `/health` (ADR 0015) | P0.S2b | P3.S5a, P10.S3 |
+| Compose stack that runs unchanged on one VPS; `DATABASE_URL` (PgBouncer) + `DATABASE_URL_DIRECT`; `migrate` before api/worker; `TZ=UTC` (ADR 0011, 0013, 0016) | P0.S2b | P3.S5a, P10.S3, every session's tests |
+| Deploy pipeline, `ROLE` image, Kamal config, server runbook/Ansible, OpenTofu modules (Cloudflare/DNS only, ADR 0011) | P3.S5a | P8.S9, P10.S3, M.S1 |
 | `@cod/plugin-catalog` public entry (`plugins/catalog/index.ts`; imported only from another plugin's `infrastructure/`, its `*.plugin.ts` or tests, rule `catalog-entry-infra-only`): `CatalogPlugin`, `CatalogProductQueries`, `CatalogReadService` (the only storefront read path, D2109) with `asCatalogOperationContext`/`NoActiveStoreError`, `SOLD_OUT_SOURCE_REGISTRAR`/`SoldOutSource`, `ORDER_MANAGER_CHECK_REGISTRAR`/`OrderManagerCheck`, `CoreId`/`parseCoreId`/`toCoreId`, `DemoCatalogSeedService` | P2.S1 | P2.S2, P2.S3, P2.S4, P2.S5, P3.S2, P3.S3, P3.S4, P6.S1 (registers its sold-out source), P8.S7 |
 | `product.changed` outbox topic + `ProductChangedPayload` (`packages/shared/src/catalog/product-changed.ts`, D2127): ids and kind of change only | P2.S1 | P3.S2 (revalidate `product:` tags), P6.S1, P8.S7 |
 | Product editor page and block ids (`CATALOG_PRODUCT_EDITOR_PAGE_ID`, `CATALOG_EDITOR_BLOCK_IDS` in `packages/shared/src/catalog/editor-ids.ts`) for dashboard extensions | P2.S1 | P2.S2 (pack, AI polish hooks), P2.S3 (collections), P2.S5, P9.S7b |
 | `@cod/shared` collections contracts (`packages/shared/src/collections/`): rule schema `{ version: 1, match, conditions }` with the per-field operators, `normalForMatch` (NFC, case fold, Arabic harakat, tatweel and letter variants, D2305), create, update, set and preview input schemas, `COLLECTIONS_ERROR_CODES`, caps (`COLLECTION_RULE_MAX_CONDITIONS`, `COLLECTION_MAX_MANUAL_PRODUCTS`, `COLLECTION_SYNC_MAX_PRODUCTS`) | P2.S3 | P2.S2 (import/export), P2.S5, P3.S2, P8.S3, the storefront |
+| Outbox topic `store.changed` `{storeId, businessId, change: settings\|status\|domain}`, written in the store-settings transaction (D3204, D3218) | P3.S2 | P3.S5a (CDN purge client), P8.* (domains, themes), P3.S3 (store language and name) |
+| Queue `storefront-projection` (bulk pool) and durable job kinds `srv` (`storefrontRevalidate`) and `spr` (`storefrontProjectionRebuild`) in `packages/shared/src/queues.ts` (D3222) | P3.S2 | P3.S3, P8.* |
+| `@cod/shared` storefront contracts (`packages/shared/src/storefront/`): store and catalog DTOs with zod schemas, theme JSON v0 (`DEFAULT_THEME`, `COMPACT_THEME`, schema), cache tags (`store:`, `product:`, `collection:`, `storefrontCacheTagSchema`), route helpers, revalidate body, i18n catalogues `ar`/`fr`/`en` (D3203, D3207, D3212, D3224) | P3.S2 | P3.S3, P3.S5a, P8.S1 (theme storage), P8.* |
+| `normalizeForSearch` (`packages/shared/src/text/normalize-for-search.ts`) with the SQL twin `cod_normalize_for_search` and the shared parity table (D3220) | P3.S2 | P2.S5, P4.S2 (customer and order search), P9.* |
+| `idSchema` (`packages/shared/src/ids/id-schema.ts`, ADR 0003) and the `cod-ids/no-numeric-id` lint rule (D3224): every public contract validates ids as exact strings | P3.S2 | every session that adds an id to a DTO |
 | Queue `catalog-effects` (bulk pool, membership recompute) and `catalog-reconcile`; outbox topic `collection.changed` (create, update, delete, membership change, D2335) | P2.S3 | P3.S2 storefront revalidation, P8.S3 |
 | `@cod/plugin-collections-rules` public entry (imported only from another plugin's `infrastructure/`, its `*.plugin.ts` or tests, rule `collections-entry-infra-only`): `CollectionsReadService` (the only buyer-facing collection read, D2316: visible collections by position, products through catalog visibility) and `CollectionMembershipQueries` (merchant-level: `productIdsOf`, batch `collectionIdsOfProducts`, `isMember`, `existingCollectionIds`; D2317). Membership ignores product status (D2306) and lags product edits by the outbox delay (seconds) | P2.S3 | P2.S4 (offers seam, D2341), P2.S5, P3.S2, P8.S3 |
 | Catalog additions for collection rules: `CatalogProductFactsReader` (batched facts and keyset `pageIds`, D2308), `COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR` / `CollectionMembershipSource` (D2309), `CatalogReadService.listVisibleAmong` (D2310), `catalogCollectionOptions` (list filter, D2324) | P2.S1 (owner) / P2.S3 (added) | P2.S2, P3.S2 |
@@ -300,20 +307,20 @@ When a coverage row lists several sessions, each brief states which part it does
 | Session | What you need to provide | Mock used until then |
 |---|---|---|
 | P0.S1 | `gh auth login --scopes workflow` (you run it); GitHub Pro (or Team) if you want real branch protection on a private repo | Free plan: pre-push hook + "never push to main" rule (P0.S1 step 7) |
-| P0.S2a-3 | Cloudflare staging zone (spike F edge items); latency probes from Algerian networks (spike G) | Items recorded as "pending" in ADR 0006/0011; re-run in P3.S5 (F) and before P10.S3 (G) |
+| P0.S2a-3 | Cloudflare staging zone (spike F edge items); latency probes from Algerian networks (spike G) | Items recorded as "pending" in ADR 0006/0011; re-run in P3.S5b (F) and before P10.S3 (G) |
 | P1.S2 | Google & Facebook OAuth apps | Mocked OAuth provider in tests; buttons hidden behind a flag |
 | P1.S4, P7.S3 | SMTP for real email | Mailpit in docker-compose |
 | P3.S4 | Cloudflare Turnstile site/secret key | Cloudflare's published Turnstile test keys (always-pass / always-fail) |
-| P3.S5 | Trial VPSs at the shortlisted Algerian providers, an account at the chosen one and at a second Algerian provider (backups), Cloudflare account with the `.com.dz` domain (staging zone), GitHub environment secrets (ADR 0011) | — (session stops at a "needs you" checklist) |
+| P3.S5b | Trial VPSs at the shortlisted Algerian providers, an account at the chosen one and at a second Algerian provider (backups), Cloudflare account with the `.com.dz` domain (staging zone), GitHub environment secrets (ADR 0011) | — (session stops at a "needs you" checklist) |
 | P5.S4–S7 | Carrier API credentials (Yalidine, Ecotrack, ZR, NOEST, Maystro, Elogistia, Ecom Delivery, Zimou, Osen) | Contract-test mock servers per carrier (recorded request/response fixtures) |
-| P8.S9 | The P3.S5 staging environment and a Cloudflare API token scoped to custom hostnames on the staging zone | `*.localhost` + manual DNS verification stub + mocked Cloudflare client |
+| P8.S9 | The P3.S5b staging environment and a Cloudflare API token scoped to custom hostnames on the staging zone | `*.localhost` + manual DNS verification stub + mocked Cloudflare client |
 | P9.S2 | Chargily, SlickPay, Stripe sandbox keys | Fake payment provider that auto-confirms |
 | P9.S3, P9.S4 | Test pixels, CAPI tokens, Meta/TikTok developer apps | Event recorder endpoint; fixture spend data |
 | P9.S5 | Google Cloud OAuth app; WhatsApp Business/Cloud API | In-memory sheet adapter; console WhatsApp adapter |
 | P9.S6 | Shopify partner app, YouCan/Woo/Ayor/Order Dz accounts | Fixture webhooks |
 | P9.S7a, P9.S7b | Anthropic API key (Claude); for P9.S7b also an image background-removal provider (an LLM cannot edit images) | Stubbed LLM responses in tests; image clean-up returns the input image |
 | P10.S2 | Approval to scale staging for the load-test window (if a Growth-spike target needs it) | Load test on staging as provisioned; size recorded with the results |
-| P10.S3 | Production VPS(s) at the Algerian provider chosen in P3.S5 and backup storage at the second provider, the `.com.dz` platform domain on Cloudflare, Cloudflare for SaaS enabled, GitHub environment secrets; spike G probes; answers to the pre-production legal checklist (ANPDP, ARPCE, Law 18-05; ADR 0011) | — (session stops at a "needs you" checklist) |
+| P10.S3 | Production VPS(s) at the Algerian provider chosen in P3.S5b and backup storage at the second provider, the `.com.dz` platform domain on Cloudflare, Cloudflare for SaaS enabled, GitHub environment secrets; spike G probes; answers to the pre-production legal checklist (ANPDP, ARPCE, Law 18-05; ADR 0011) | — (session stops at a "needs you" checklist) |
 
 ## Coverage table (inventory row → session)
 Rows refer to [../feature-inventory.md](../feature-inventory.md). Inventory text mentions "Tassyir"/"Tassya" because it describes the reference product; our product uses its own names (ADR 0007), e.g. the default delivery table is seeded as "Platform default prices". Section numbers match the inventory; "X" = the "Added from the second pass" table. Out of scope for v1: section 15 (mobile app, Chrome extension) and Tassyir staff back-office.

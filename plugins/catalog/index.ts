@@ -40,10 +40,20 @@ export {
   type CatalogReadOptions,
   CatalogReadService,
   NoActiveStoreError,
+  type VisibleImage,
   type VisibleProduct,
   type VisibleProductPage,
+  type VisibleVariant,
 } from './application/catalog-read.service';
-export { DemoCatalogSeedService } from './application/demo-catalog-seed.service';
+export { DemoCatalogSeedService, type DemoSeedExtras } from './application/demo-catalog-seed.service';
+export {
+  DEMO_COLLECTION_KEYS,
+  type DemoCollectionKey,
+  type DemoCollectionSpec,
+  demoCollectionsFor,
+  demoProductsFor,
+  type DemoProductSpec,
+} from './domain/demo-products';
 export type { PublicListContext, PublicVisibilityContext } from './domain/visibility';
 export {
   COLLECTION_MEMBERSHIP_SOURCE_REGISTRAR,

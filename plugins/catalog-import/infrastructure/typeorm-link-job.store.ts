@@ -38,6 +38,7 @@ export class TypeOrmLinkJobStore implements LinkJobStore {
       kind: LINK,
       status: LINK_IMPORT_STATUS,
       sourceUrl: job.sourceUrl,
+      // eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
       productId: Number(job.productId),
       rowCount: 1,
       progress: PROGRESS_DONE,

@@ -5,6 +5,8 @@ import { DEV_DEPLOYMENT_ID, DEV_REDIS_URL, DEVELOPMENT_APP_ENV } from './constan
 export interface CacheConfig {
   readonly redisUrl: string;
   readonly deploymentId: string;
+  /** `APP_ENV`, which namespaces the writes-off switch; `development` when unset, as everywhere else. */
+  readonly appEnv: string;
 }
 
 /** The environment cannot run the shared cache (a missing deployment id or Valkey URL outside development). */
@@ -55,7 +57,12 @@ export function requireRedisUrl(env: NodeJS.Dict<string>): string {
  * @throws CacheConfigError see {@link requireDeploymentId} and {@link requireRedisUrl}
  */
 export function readCacheConfig(env: NodeJS.Dict<string>): CacheConfig {
-  return { redisUrl: requireRedisUrl(env), deploymentId: requireDeploymentId(env) };
+  const appEnv = env['APP_ENV']?.trim() ?? '';
+  return {
+    redisUrl: requireRedisUrl(env),
+    deploymentId: requireDeploymentId(env),
+    appEnv: appEnv === '' ? DEVELOPMENT_APP_ENV : appEnv,
+  };
 }
 
 /**

@@ -37,4 +37,13 @@ describe('stored slugs', () => {
     expect(() => merchantSlug('???')).toThrow(InvalidCatalogInputError);
     expect(derivedSlug('???')).toBe('product');
   });
+
+  // `/store/product/search` is declared before `/store/product/:slug` (P3.S2): a product slug `search` would be unreachable.
+  it('refuses the reserved slug search in any case and derives another one from a title that would give it', () => {
+    // Act / Assert
+    expect(() => merchantSlug('search')).toThrow(InvalidCatalogInputError);
+    expect(() => merchantSlug('SEARCH')).toThrow(InvalidCatalogInputError);
+    expect(derivedSlug('Search')).toBe('search-product');
+    expect(merchantSlug('search-shoes')).toBe('search-shoes');
+  });
 });

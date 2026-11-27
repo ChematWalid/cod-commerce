@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 import { processCacheConfig } from './cache-config';
+import { CACHE_COMMANDS_QUEUE_MAX_LENGTH, CONNECT_TIMEOUT_MS } from './constants';
 
 /** The message of anything thrown, for log lines. */
 export function errorMessage(error: unknown): string {
@@ -31,8 +32,29 @@ export function createDistinctErrorLogger(write: (error: unknown) => void): Dist
   };
 }
 
-// disableOfflineQueue: commands fail at once while the connection is down instead of queueing until it is back.
-const newRedisClient = (url: string) => createClient({ url, disableOfflineQueue: true });
+/** The options every storefront Valkey client is created with. */
+export interface RedisClientOptions {
+  readonly url: string;
+  readonly disableOfflineQueue: true;
+  readonly commandsQueueMaxLength: number;
+  readonly socket: { readonly connectTimeout: number };
+}
+
+/**
+ * Commands fail at once while the connection is down instead of queueing until it is back
+ * (`disableOfflineQueue`); a socket that cannot connect gives up after {@link CONNECT_TIMEOUT_MS}; and a
+ * Valkey that accepts commands but stalls cannot pile up more than {@link CACHE_COMMANDS_QUEUE_MAX_LENGTH} (#121).
+ */
+export function redisClientOptions(url: string): RedisClientOptions {
+  return {
+    url,
+    disableOfflineQueue: true,
+    commandsQueueMaxLength: CACHE_COMMANDS_QUEUE_MAX_LENGTH,
+    socket: { connectTimeout: CONNECT_TIMEOUT_MS },
+  };
+}
+
+const newRedisClient = (url: string) => createClient(redisClientOptions(url));
 
 /** A `redis@6.3.1` client as {@link openLazyRedisConnection} creates it. */
 export type LazyRedisClient = ReturnType<typeof newRedisClient>;

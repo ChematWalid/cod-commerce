@@ -62,6 +62,8 @@ export const QUEUES = {
   'catalog-effects': exponential('bulk', 3, 8, 1_000),
   // The store reconcile of collections (D2336): a whole-store walk, one at a time per worker; a lost run heals nightly.
   'catalog-reconcile': exponential('bulk', 1, 5, 30_000),
+  // The rebuild of one store's storefront projection after a settings change (D3222): a whole-store walk, off critical.
+  'storefront-projection': exponential('bulk', 1, 5, 30_000),
 } as const satisfies Record<string, QueueSpec>;
 
 export type QueueName = keyof typeof QUEUES;
@@ -98,6 +100,9 @@ export const DURABLE_JOB_KINDS = {
   // The `imports-exports` jobs of catalog-import (D2212).
   catalogImport: 'cim',
   catalogExport: 'cex',
+  // The storefront revalidation and the projection rebuild of plugins/storefront-api (D3222).
+  storefrontRevalidate: 'srv',
+  storefrontProjectionRebuild: 'spr',
 } as const;
 export type DurableJobKind = (typeof DURABLE_JOB_KINDS)[keyof typeof DURABLE_JOB_KINDS];
 

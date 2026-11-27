@@ -4,6 +4,7 @@ import prettierConfig from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 import { LINT_LIMITS } from './lint-limits.mjs';
+import { numericIdConfig } from './numeric-id.mjs';
 import { PLUGIN_ENTRY_IMPORT_PATTERNS, PLUGIN_ENTRY_SYNTAX, pluginEntryConfig } from './plugin-entry.mjs';
 import { pluginStaticOptionsConfig } from './plugin-static-options.mjs';
 import { processEnvConfig } from './process-env.mjs';
@@ -252,6 +253,7 @@ export function codEslintConfig({ tsconfigRootDir }) {
       serverAppGatesConfig,
       pluginStaticOptionsConfig,
       processEnvConfig,
+      numericIdConfig,
       frameworkFree(DOMAIN_FILES, DOMAIN_PURITY_MESSAGE, RAW_DATA_GATE),
       frameworkFree(SHARED_FILES, DOMAIN_PURITY_MESSAGE, PLUGIN_ENTRY_GATE),
       frameworkFree(APPLICATION_FILES, APPLICATION_PURITY_MESSAGE, RAW_DATA_GATE),

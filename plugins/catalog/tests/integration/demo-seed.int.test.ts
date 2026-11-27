@@ -52,7 +52,7 @@ async function titlesSeenBy(business: TwoBusinesses['a'], storeIndex: 0 | 1): Pr
 }
 
 describe('demo catalog seed on a store channel (D2129)', () => {
-  it('creates the five demo products once, in the store language and only in that store', async () => {
+  it('creates the ten demo products once, in the store language and only in that store', async () => {
     // Act
     const first = await seedFirstStoreOfA();
     const second = await seedFirstStoreOfA();

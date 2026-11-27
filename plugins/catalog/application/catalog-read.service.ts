@@ -18,9 +18,9 @@ import {
 } from '../domain/visibility';
 import type { ProductPorts } from './catalog-ports';
 import { viewOf } from './product-view';
-import { type VisibleProduct, visibleProductOf } from './visible-product';
+import { imageIdsOf, type ImagePreviews, type VisibleProduct, visibleProductOf } from './visible-product';
 
-export type { VisibleProduct, VisibleProductSettings, VisibleVariant } from './visible-product';
+export type { VisibleImage, VisibleProduct, VisibleProductSettings, VisibleVariant } from './visible-product';
 
 /** One page of the products a public context shows, and how many it shows in all. */
 export interface VisibleProductPage {
@@ -174,20 +174,26 @@ export class CatalogReadService {
     }
   }
 
+  /** The public shape of `records`, with their sold-out state and image previews each read once for the page. */
   private async visibleOf(
     ctx: OperationContext,
     { scope }: ActiveStore,
     records: readonly ProductRecord[],
   ): Promise<VisibleProduct[]> {
+    if (records.length === 0) return [];
     const ids = records.map((record) => record.id);
-    const soldOut =
-      ids.length === 0 ? new Set<string>() : await this.ports.soldOut.soldOutIds(ctx, scope, scope.storeId, ids);
-    return Promise.all(
-      records.map(async (record) => {
-        const view = await viewOf(this.ports, ctx, scope, record);
-        const state = { soldOut: soldOut.has(record.id), allowOutOfStockOrders: view.settings.allowOutOfStockOrders };
-        return visibleProductOf(view, { soldOut: state.soldOut, orderable: isOrderable(state) });
-      }),
-    );
+    const soldOut = await this.ports.soldOut.soldOutIds(ctx, scope, scope.storeId, ids);
+    const views = await Promise.all(records.map((record) => viewOf(this.ports, ctx, scope, record)));
+    const previews = await this.previewsOf(ctx, views.flatMap(imageIdsOf));
+    return views.map((view) => {
+      const state = { soldOut: soldOut.has(view.id), allowOutOfStockOrders: view.settings.allowOutOfStockOrders };
+      return visibleProductOf(view, { soldOut: state.soldOut, orderable: isOrderable(state) }, previews);
+    });
+  }
+
+  /** One storage read for every image of a page; a page without images reads nothing. */
+  private previewsOf(ctx: OperationContext, imageIds: readonly CoreId[]): Promise<ImagePreviews> {
+    const unique = [...new Set(imageIds)];
+    return unique.length === 0 ? Promise.resolve(new Map()) : this.ports.storage.previewsOf(ctx, unique);
   }
 }

@@ -5,10 +5,11 @@ import {
   ProvisionBusinessService,
   SubdomainTakenError,
 } from '@cod/plugin-tenancy';
+import { ProjectionBackfill } from '@cod/plugin-storefront-api';
 import { asOperationContext as asTeamContext, TeamConvergeService } from '@cod/plugin-team';
 import { type Snowflake, toSnowflake } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
-import { Administrator, type RequestContext, TransactionalConnection } from '@vendure/core';
+import { Administrator, type RequestContext, TransactionalConnection, type User } from '@vendure/core';
 import type { AppEnv } from '../config/env';
 import { seedDemoMembers } from './seed-demo-members';
 import { demoProductSeedPorts, seedDemoProducts } from './seed-demo-products';
@@ -73,6 +74,16 @@ async function existingBusinessId(app: INestApplicationContext, emailAddress: st
   return fields?.businessId ?? undefined;
 }
 
+/** The administrator user of a demo owner, with the roles a request context needs, or `undefined`. */
+export async function demoOwnerUserOf(app: INestApplicationContext, emailAddress: string): Promise<User | undefined> {
+  const administrators = app.get(TransactionalConnection).rawConnection.getRepository(Administrator);
+  const owner = await administrators.findOne({
+    where: { emailAddress },
+    relations: { user: { roles: { channels: true } } },
+  });
+  return owner?.user ?? undefined;
+}
+
 /** Opens the store unless a previous run already did. */
 async function ensureStore(
   app: INestApplicationContext,
@@ -109,7 +120,7 @@ async function ensureBusiness(
 
 /**
  * Creates the two synthetic businesses local stacks and browser tests run on, their members and the demo products of
- * their first stores. Safe to run again: what exists is left alone, and a run interrupted between stores finishes the
+ * their first stores, then builds the storefront projection of every store that has none. Safe to run again: what exists is left alone, and a run interrupted between stores finishes the
  * job.
  *
  * @throws {@link DemoSeedRefusedError} when `APP_ENV` is production or `DEMO_OWNER_PASSWORD` is missing.
@@ -124,12 +135,20 @@ export async function seedDemoBusinesses(app: INestApplicationContext, env: AppE
   created.push(...(await seedDemoMembers(app, ctx, DEMO_OWNER_EMAIL, password)));
   // The seed runs after `migrate`, so its members are made team members here rather than on the next deploy (D215).
   await app.get(TeamConvergeService).convergeMembers(asTeamContext(ctx));
-  const products = demoProductSeedPorts(app, ctx, (email) => existingBusinessId(app, email));
+  const products = demoProductSeedPorts(
+    app,
+    ctx,
+    (email) => existingBusinessId(app, email),
+    (email) => demoOwnerUserOf(app, email),
+  );
   created.push(
     ...(await seedDemoProducts(
       products,
       DEMO_BUSINESSES.map((demo) => demo.ownerEmail),
     )),
   );
+  // The worker fills the projection from the outbox later; building the empty stores' rows here makes a fresh stack
+  // (CI's storefront smoke, verify-stack, the evidence scripts) list the demo products at once (D3205).
+  await app.get(ProjectionBackfill).run();
   return { created };
 }

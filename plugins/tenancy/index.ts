@@ -4,6 +4,12 @@ export { RequestStoreSettings } from './api/request-store-settings';
 export { platformStaffPermission, tenantBusinessPermission } from './api/permissions';
 export { TenantScoped } from './api/tenant-scoped.decorator';
 export { TenantGuard } from './api/tenant.guard';
+export { StorefrontStoreGuard } from './api/storefront-store.guard';
+export { StorefrontStoreContexts } from './api/storefront-store-contexts';
+export { StorefrontCtx, StorefrontScoped } from './api/storefront-ctx.decorator';
+export { storefrontStoreOf } from './api/storefront-store-of';
+export { StorefrontStoreRefusedError } from './api/storefront-store-refused.filter';
+export type { StorefrontStoreContext } from './domain/storefront-store';
 export {
   ID_GENERATOR as SNOWFLAKE_ID_GENERATOR,
   STORE_REFERENCE_CHECK_REGISTRAR,
@@ -36,6 +42,7 @@ export type {
 } from './domain/ports/store-reference-check.port';
 export type {
   BusinessProvisionedEvent,
+  StoreChangedEvent,
   StoreCreatedEvent,
   TenantLifecycleHook,
 } from './domain/ports/tenant-lifecycle.port';

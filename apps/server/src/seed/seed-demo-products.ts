@@ -1,8 +1,24 @@
-import { asCatalogOperationContext, DemoCatalogSeedService } from '@cod/plugin-catalog';
+import {
+  asCatalogOperationContext,
+  DemoCatalogSeedService,
+  type DemoCollectionKey,
+  type DemoCollectionSpec,
+  demoCollectionsFor,
+} from '@cod/plugin-catalog';
+import { asCollectionsOperationContext, DemoCollectionSeedService } from '@cod/plugin-collections-rules';
 import { asOperationContext, BusinessStoreDirectory } from '@cod/plugin-tenancy';
 import { type BusinessId, type StoreId, toBusinessId } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
-import { ChannelService, type RequestContext, RequestContextService } from '@vendure/core';
+import { ChannelService, type RequestContext, RequestContextService, type User } from '@vendure/core';
+import { demoImagePng } from './demo-image';
+
+/** A demo business's owner has no administrator user: the seed cannot act as them, so the run stops. */
+export class DemoOwnerMissingError extends Error {
+  constructor(readonly ownerEmail: string) {
+    super(`The demo owner ${ownerEmail} has no administrator user`);
+    this.name = 'DemoOwnerMissingError';
+  }
+}
 
 /** A demo store's channel is gone: the seed cannot write its catalog anywhere, so the run stops. */
 export class DemoStoreChannelMissingError extends Error {
@@ -22,6 +38,8 @@ export interface DemoStore {
 export interface DemoStoreTarget {
   readonly businessId: BusinessId;
   readonly store: DemoStore;
+  /** The owner the seed acts as: the media library lets only a member with access to the store reach its images. */
+  readonly ownerEmail: string;
 }
 
 /** What the product seed reads and writes through; the server wires it to tenancy and the catalog. */
@@ -30,7 +48,7 @@ export interface DemoProductSeedPorts {
   businessOf(ownerEmail: string): Promise<string | undefined>;
   /** Every store of the business, in any order. */
   storesOf(businessId: BusinessId): Promise<readonly DemoStore[]>;
-  /** Seeds the store and returns the SKUs it created. */
+  /** Seeds the store and returns the collection slugs and SKUs it created. */
   seedStore(target: DemoStoreTarget): Promise<readonly string[]>;
 }
 
@@ -40,10 +58,10 @@ function firstStoreOf(stores: readonly DemoStore[]): DemoStore | undefined {
 }
 
 /**
- * Gives the first store of each demo business its five synthetic products (D2129). The catalog skips what a store
- * already holds, so a second run creates nothing.
+ * Gives the first store of each demo business its two demo collections and ten synthetic products with images (D2129,
+ * P3.S2). The catalog and the collections skip what a store already holds, so a second run creates nothing.
  *
- * @returns the SKUs it created, in business order
+ * @returns the collection slugs and SKUs it created, in business order
  */
 export async function seedDemoProducts(
   ports: DemoProductSeedPorts,
@@ -55,36 +73,78 @@ export async function seedDemoProducts(
     if (businessId === undefined) continue;
     const store = firstStoreOf(await ports.storesOf(toBusinessId(businessId)));
     if (store === undefined) continue;
-    created.push(...(await ports.seedStore({ businessId: toBusinessId(businessId), store })));
+    created.push(...(await ports.seedStore({ businessId: toBusinessId(businessId), store, ownerEmail: email })));
   }
   return created;
 }
 
-/** A context in the store's channel, so the catalog writes there and in the store's language (D2112). */
+/** Finds the administrator user of a demo owner, or `undefined` when there is none. */
+export type DemoOwnerUserOf = (ownerEmail: string) => Promise<User | undefined>;
+
+/**
+ * A context in the store's channel, so the catalog writes there and in the store's language (D2112), acting as the
+ * business owner: a context without a user reaches no store's media, so the product would not find its own image.
+ */
 async function storeContext(
   app: INestApplicationContext,
   ctx: RequestContext,
-  channelId: number,
+  target: DemoStoreTarget,
+  ownerUserOf: DemoOwnerUserOf,
 ): Promise<RequestContext> {
-  const channel = await app.get(ChannelService).findOne(ctx, channelId);
-  if (channel === undefined) throw new DemoStoreChannelMissingError(channelId);
-  return app.get(RequestContextService).create({ apiType: 'admin', channelOrToken: channel });
+  const channel = await app.get(ChannelService).findOne(ctx, target.store.channelId);
+  if (channel === undefined) throw new DemoStoreChannelMissingError(target.store.channelId);
+  const user = await ownerUserOf(target.ownerEmail);
+  if (user === undefined) throw new DemoOwnerMissingError(target.ownerEmail);
+  return app.get(RequestContextService).create({ apiType: 'admin', channelOrToken: channel, user });
 }
 
-/** {@link DemoProductSeedPorts} on the running server; `businessOf` is the business seed's own owner lookup. */
+/** The id of each demo collection key, from the ids the collection seed answered by slug. */
+function collectionIdsByKey(
+  specs: readonly DemoCollectionSpec[],
+  idsBySlug: ReadonlyMap<string, string>,
+): (key: DemoCollectionKey) => string | undefined {
+  const byKey = new Map(specs.map((spec) => [spec.key, idsBySlug.get(spec.slug)]));
+  return (key) => byKey.get(key);
+}
+
+/**
+ * The demo collections, then the products in them with their images, in the store channel of `storeCtx` and in the
+ * store's language (D2112): a product names its collections by id, so they must exist first.
+ */
+async function seedStoreCatalog(
+  app: INestApplicationContext,
+  storeCtx: RequestContext,
+  scope: { readonly businessId: BusinessId; readonly storeId: StoreId },
+): Promise<readonly string[]> {
+  const language = storeCtx.channel.defaultLanguageCode;
+  const specs = demoCollectionsFor(language);
+  const inputs = specs.map(({ title, slug, position }) => ({ title, slug, position }));
+  const collections = await app
+    .get(DemoCollectionSeedService)
+    .ensureManual(asCollectionsOperationContext(storeCtx), scope, inputs);
+  const extras = { imageOf: demoImagePng, collectionIdOf: collectionIdsByKey(specs, collections.idsBySlug) };
+  const skus = await app
+    .get(DemoCatalogSeedService)
+    .seedStore(asCatalogOperationContext(storeCtx), scope, language, extras);
+  return [...collections.created, ...skus];
+}
+
+/**
+ * {@link DemoProductSeedPorts} on the running server; `businessOf` and `ownerUserOf` are the business seed's own owner
+ * lookups.
+ */
 export function demoProductSeedPorts(
   app: INestApplicationContext,
   ctx: RequestContext,
   businessOf: (ownerEmail: string) => Promise<string | undefined>,
+  ownerUserOf: DemoOwnerUserOf,
 ): DemoProductSeedPorts {
   return {
     businessOf,
     storesOf: (businessId) => app.get(BusinessStoreDirectory).storesOf(asOperationContext(ctx), businessId),
-    seedStore: async ({ businessId, store }) => {
-      const storeCtx = await storeContext(app, ctx, store.channelId);
-      const scope = { businessId, storeId: store.id };
-      const language = storeCtx.channel.defaultLanguageCode;
-      return app.get(DemoCatalogSeedService).seedStore(asCatalogOperationContext(storeCtx), scope, language);
+    seedStore: async (target) => {
+      const storeCtx = await storeContext(app, ctx, target, ownerUserOf);
+      return seedStoreCatalog(app, storeCtx, { businessId: target.businessId, storeId: target.store.id });
     },
   };
 }

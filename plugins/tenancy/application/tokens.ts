@@ -51,3 +51,6 @@ export const STORE_REFERENCE_CHECKS: unique symbol = Symbol('TenancyStoreReferen
 
 /** Injection token of the register-only `StoreReferenceCheckRegistrar` other plugins add their checks through. */
 export const STORE_REFERENCE_CHECK_REGISTRAR: unique symbol = Symbol('TenancyStoreReferenceCheckRegistrar');
+
+/** Injection token of the `StorefrontContextsPort` adapter the storefront store guard builds its context with. */
+export const STOREFRONT_CONTEXTS: unique symbol = Symbol('TenancyStorefrontContexts');

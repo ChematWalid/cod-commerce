@@ -50,6 +50,7 @@ export class ChangeSubdomainService {
     }
     const write = { subdomain, updatedAt: this.ports.clock() };
     await this.ports.stores.update(ctx, actor.businessId, id, write);
+    await this.ports.lifecycle.storeChanged?.(ctx, { businessId: actor.businessId, storeId: id, change: 'domain' });
     return { store: { ...store, ...write }, previous: store.subdomain };
   }
 }

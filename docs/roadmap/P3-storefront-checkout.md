@@ -2,12 +2,12 @@
 
 **Phase goal:** public store per subdomain with the COD form, live quotes, order intake.
 
-**Exit criteria:** A buyer on `<sub>.localhost` orders a product with wilaya/commune/home-desk; the order appears as pending with the signed quote total; abandoned checkouts captured; staging deploys on merge to `main` (P3.S5).
+**Exit criteria:** A buyer on `<sub>.localhost` orders a product with wilaya/commune/home-desk; the order appears as pending with the signed quote total; abandoned checkouts captured; staging deploys on merge to `main` (P3.S5b).
 
 **Session order and lanes**
 - **P3.S1** (geo + delivery pricing, needs only P1.S5) runs in parallel with P2.* and with **P3.S2** (storefront skeleton, needs P2.S1 and P1.S6).
-- Then serial: **P3.S3** (needs P3.S1, P3.S2, P2.S4; parallel-safe with P2.S5 and P3.S5) → **P3.S4** (also needs P1.S6).
-- **P3.S5** (staging environment, IaC, observability baseline; needs P3.S2 and P1.S6) runs in parallel with P2.*, P3.S3 and P3.S4. It must be merged before P8.S9 and P10.S3.
+- Then serial: **P3.S3** (needs P3.S1, P3.S2, P2.S4; parallel-safe with P2.S5, P3.S5a and P3.S5b) → **P3.S4** (also needs P1.S6).
+- **P3.S5a** (image, ops code, IaC and observability as code, no accounts; needs P3.S2 and P1.S6) runs in parallel with P2.*, P3.S3 and P3.S4. **P3.S5b** (provider trial and staging go-live; needs P3.S5a, and P3.S4 for the spool checks) must be merged before P8.S9 and P10.S3. Split on 2026-11-23 (D3500).
 - Shared files touched only by appending a registration line: `apps/server/src/vendure-config.ts`, `packages/shared/src/index.ts`.
 
 Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING.md](CONTRIBUTING.md). Architecture reference: [../architecture/README.md](../architecture/README.md). Own branding only: never use the name, logo, theme names or copy of the reference product; clone behaviour only.
@@ -110,6 +110,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P3.S2-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`; handoff notes of P1.S1, P1.S5, P1.S6, P2.S1; tenancy and storefront ADRs in `docs/adr/`
 - docs/adr/0006-* (storefront) and docs/architecture/system-design.md §2.1, §3
 - `docs/research/data-model.md` → "Product" (options, variants), "Storefront ordering protocol" (host model)
@@ -185,7 +186,7 @@ link and stop without merging.
 | **Branch** | `feat/p3-s3-cod-checkout` |
 | **GitHub issue** | `P3.S3 Product page, COD form, cart & checkout` (label `phase-3`, milestone `P3 Storefront & COD checkout`) |
 | **Prerequisites** | P3.S1, P3.S2, P2.S4 merged |
-| **Parallel-safe** | Only with P2.S5 and P3.S5. Owns `apps/storefront/src/checkout/**`, `apps/storefront/src/cart/**`, `plugins/storefront-api/src/quotes/**`. |
+| **Parallel-safe** | Only with P2.S5, P3.S5a and P3.S5b. Owns `apps/storefront/src/checkout/**`, `apps/storefront/src/cart/**`, `plugins/storefront-api/src/quotes/**`. |
 | **Model / size** | Sonnet · L |
 | **External needs** | None. |
 
@@ -254,7 +255,7 @@ link and stop without merging.
 | **Branch** | `feat/p3-s4-order-intake` |
 | **GitHub issue** | `P3.S4 Order intake & abandoned checkouts` (label `phase-3`, milestone `P3 Storefront & COD checkout`) |
 | **Prerequisites** | P3.S3 and P1.S6 merged |
-| **Parallel-safe** | Only with P3.S5. Owns `plugins/order-intake/**` (incl. the `cod_order` / `cod_order_item` / `order_counter` read-model tables and the intake spool), `packages/shared/src/events/order-placed.ts`, `packages/shared/src/intake/**`. |
+| **Parallel-safe** | Only with P3.S5a and P3.S5b. Owns `plugins/order-intake/**` (incl. the `cod_order` / `cod_order_item` / `order_counter` read-model tables and the intake spool), `packages/shared/src/events/order-placed.ts`, `packages/shared/src/intake/**`. |
 | **Model / size** | Opus · L |
 | **External needs** | Cloudflare Turnstile site/secret key; until provided, Cloudflare's published Turnstile test keys (always-pass / always-fail). |
 
@@ -333,17 +334,20 @@ link and stop without merging.
 
 ---
 
-## P3.S5 — Staging environment, IaC & observability baseline
+## P3.S5a — Image, ops code, IaC & observability as code
+
+> **Split (2026-11-23, D3500).** The original brief is split because accounts and calendar time (provider trial, Cloudflare, Grafana, Sentry) block it. **P3.S5a** builds and verifies locally everything that needs no account: steps 1–5 and 7 as code (role image, drain/readiness, OTel and metrics code, compose overlay, OpenTofu modules checked with `fmt`/`validate`, Ansible checked with syntax and check mode against a container, Kamal config, pgBackRest plus a local PITR restore test, image and deploy workflows gated on the `staging` GitHub environment, k6 scripts, alerts and dashboards as code, runbook, local chaos, "needs you" checklist). **P3.S5b** does step 0 (provider trial), step 6 (spike F (f)/(g)) and every acceptance criterion that needs a public URL or real accounts. The acceptance criteria below that need a public URL or accounts are carried by P3.S5b.
+> **Source-edit allowance (#137, D3501).** P3.S5a may edit these paths, ops-only: `apps/server/src/main-*.ts`, `apps/server/src/config/**`, `plugins/platform-health/**`, a new `plugins/platform-metrics/**` (metrics exporter), `apps/storefront/{next.config.ts,instrumentation.ts,app/api/readyz/**}`, `docker-compose.yml`, `.env.example`, `Dockerfile`, `.dockerignore`, `scripts/**`. Nothing else in plugin or app source.
 
 | Field | Value |
 |---|---|
 | **Goal** | Choose the Algerian VPS provider (ADR 0011) and stand up a persistent staging environment on it, with the edge built reproducibly (OpenTofu for Cloudflare/DNS) and the servers by runbook/Ansible + Kamal, the single role-based image, migrations as a release job, Cloudflare edge (wildcard subdomains, WAF, Turnstile, R2 for public assets), and the observability baseline, so carriers, Cloudflare for SaaS and payment sandboxes can call a public URL. |
 | **Branch** | `chore/p3-s5-staging` |
-| **GitHub issue** | `P3.S5 Staging environment, IaC & observability baseline` (label `phase-3`, milestone `P3 Storefront & COD checkout`) |
+| **GitHub issue** | `P3.S5 Staging environment, IaC & observability baseline` (#19, now tracks P3.S5a; label `phase-3`, milestone `P3 Storefront & COD checkout`) |
 | **Prerequisites** | P3.S2 and P1.S6 merged. |
-| **Parallel-safe** | Yes, with P2.*, P3.S3, P3.S4. Owns `Dockerfile`, `.dockerignore`, `infra/**`, `deploy/**`, `.github/workflows/deploy-staging.yml`, `docs/ops/**`, `otel/**`. Edits no plugin or app source (health endpoints already exist from P0.S2b). |
+| **Parallel-safe** | Yes, with P2.*, P3.S3, P3.S4. Owns `Dockerfile`, `.dockerignore`, `infra/**`, `deploy/**`, `.github/workflows/deploy-staging.yml`, `docs/ops/**`, `otel/**`. Edits plugin and app source only on the ops-only paths listed in the D3501 note above (health endpoints already exist from P0.S2b). |
 | **Model / size** | Opus · L |
-| **External needs** | 🔑 trial VPSs at the shortlisted Algerian providers (ICOSNET, ISSAL, Algérie Télécom, ADEX; ADR 0011) and an account at the chosen one plus a second Algerian provider for backups, Cloudflare account with the `.com.dz` platform domain (staging zone), GitHub environment secrets. Until provided: everything runs locally (docker compose + `kamal` against a local VM or skipped), and the session stops at a "needs you" checklist. |
+| **External needs** | None for P3.S5a: everything is verified locally. The 🔑 items below move to P3.S5b (kept here for reference): trial VPSs at the shortlisted Algerian providers (ICOSNET, ISSAL, Algérie Télécom, ADEX; ADR 0011) and an account at the chosen one plus a second Algerian provider for backups, Cloudflare account with the `.com.dz` platform domain (staging zone), GitHub environment secrets. Until provided: everything runs locally (docker compose + `kamal` against a local VM or skipped), and the session stops at a "needs you" checklist. |
 
 **Inventory rows covered:** none (infrastructure).
 
@@ -355,7 +359,7 @@ link and stop without merging.
 **High-level plan**
 0. Provider selection (ADR 0011 Decision 4): a 1-month trial on the shortlist measuring CPU steal, disk `fsync` latency (pgbench) and RTT from Djezzy, Mobilis, Ooredoo and Algérie Télécom fixed lines (the spike G method; spike G itself must be closed before P10.S3), ARPCE cloud authorisation and DZD invoicing; record the results and the choice (primary + second provider for backups) in `docs/ops/provider-selection.md` and the ADR 0011 follow-ups → commit `docs(ops): algerian provider trial and choice`
 1. Multi-stage Dockerfile producing one non-root image with `ROLE=api|worker|storefront|migrate`, graceful SIGTERM handling, OTel preload; CI job builds and pushes `ghcr.io/<org>/platform:<sha>`, uploads `.next/static` to R2 `sf/`, runs Trivy and SBOM → commit `chore(deploy): role-based image and build pipeline`
-2. OpenTofu limited to Cloudflare/DNS (ADR 0011: Algerian providers have no API or Terraform provider): `infra/modules/{cloudflare,r2}` and `infra/envs/staging`; the staging VPS is provisioned by a documented runbook + Ansible/cloud-init (`infra/ansible/`: users, SSH hardening, firewall accepting 80/443 from Cloudflare IP ranges only, Docker, swap, `TZ=UTC`) and runs the P0.S2b compose data services (Postgres 17, PgBouncer transaction mode, Valkey, MinIO for private objects) with `pg_stat_statements` enabled (ADR 0015); pgBackRest with WAL archiving to the second Algerian provider. Cloudflare DNS (`*.staging.<root>`, `app.`/`api.`, `challenge.`), cache rule (query string ignored on product/landing/home paths, Edge TTL **"Respect origin"** so `Cloudflare-CDN-Cache-Control` decides, ADR 0012), WAF rule blocking `/store/*`, `/shop-api*`, `/_internal/*`, `/_t/*` on **every** host, Bot Fight Mode off, CGNAT-safe rate-limit rule, Turnstile widget (hostname `challenge.<root>`), R2 bucket `assets-prod` (public assets only; private objects stay in MinIO in Algeria, ADR 0012); state in R2 → commit `chore(infra): staging server runbook and opentofu edge`
+2. OpenTofu limited to Cloudflare/DNS (ADR 0011: Algerian providers have no API or Terraform provider): `infra/modules/{cloudflare,r2}` and `infra/envs/staging`; the staging VPS is provisioned by a documented runbook + Ansible/cloud-init (`infra/ansible/`: users, SSH hardening, firewall accepting 80/443 from Cloudflare IP ranges only, Docker, swap, `TZ=UTC`) and runs the P0.S2b compose data services (Postgres 17, PgBouncer transaction mode, Valkey, MinIO for private objects) with `pg_stat_statements` enabled (ADR 0015); pgBackRest with WAL archiving to the second Algerian provider. Cloudflare DNS (`*.staging.<root>`, `app.`/`api.`, `challenge.`), cache rule (query string ignored on product/landing/home paths, Edge TTL **"Respect origin"** so `Cloudflare-CDN-Cache-Control` decides, ADR 0012), WAF rule blocking `/store/*`, `/shop-api*`, `/_internal/*`, `/api/internal/*`, `/_t/*` on **every** host, Bot Fight Mode off, CGNAT-safe rate-limit rule (including `/search` and `/api/store/*`, which skip the edge cache, D3226), a cache rule that never stores 5xx or 429 responses (the proxy sets `Cloudflare-CDN-Cache-Control` before the status is known, D3226), `STOREFRONT_TRUST_EDGE_IP=true` set only after the 80/443 firewall allow-list of Cloudflare ranges is in place (the storefront believes `CF-Connecting-IP` from any caller, D3226), Turnstile widget (hostname `challenge.<root>`), R2 bucket `assets-prod` (public assets only; private objects stay in MinIO in Algeria, ADR 0012); state in R2 → commit `chore(infra): staging server runbook and opentofu edge`
 3. Kamal 2 config (`deploy/staging.yml`): roles api/worker/storefront on the host with memory limits and heap flags (infrastructure.md "Launch node budget"), kamal-proxy host rules (app/api/api.internal → api, default → storefront), pre-deploy hook running the `migrate` role (`kamal app exec --version`) to completion before any api/worker container starts (ADR 0013), api/worker on the pooled `DATABASE_URL` and migrate on `DATABASE_URL_DIRECT` (ADR 0016 §6), per-container health checks on `/readyz` (never Vendure's `/health`, ADR 0015) and the node-level `/api/readyz`, backups (pgBackRest + nightly encrypted dump to the second provider), secrets from GitHub environment; record measured RSS per role → commit `chore(deploy): kamal staging deploy with migrate hook`
 4. `deploy-staging.yml`: on merge to main → build → migrate → rolling deploy → Playwright smoke + k6 smoke (synthetic test store) → warm-up of top pages; a k6 **flash-sale** scenario (one business, one hot product, burst of parallel intakes) records intake p95 and lock waits (ADR 0009 addendum); failure → `kamal rollback` → commit `ci(deploy): staging pipeline with smoke and rollback`
 5. Observability baseline: OTel Collector container, Grafana Cloud stack (Free), Sentry projects, Cloudflare Web Analytics, pick the uptime tool (ADR 0015 pending item) and check `/readyz`, one storefront page and intake (never `/health`); `pg_stat_statements` panel and slow-query report; queue gauges (waiting/active/failed/delayed, oldest-waiting age) computed **per job name**, because Vendure keeps all its queues in one BullMQ queue (ADR 0015); dashboards "Is buying working?", "Queues" and "Data tier"; first alerts (5xx rate, readyz down, outbox lag, webhook backlog, Valkey memory) → commit `chore(ops): observability baseline and first alerts`
@@ -384,10 +388,10 @@ link and stop without merging.
 
 **Kickoff prompt** (paste into a fresh Claude session in the repo)
 ```
-You are running session P3.S5 "Staging environment, IaC & observability baseline" of the roadmap in docs/roadmap/.
+You are running session P3.S5a "Image, ops code, IaC & observability as code" of the roadmap in docs/roadmap/.
 Follow CLAUDE.md at the repo root for every step. First write your plan with the writing-plans
 skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
-Read docs/roadmap/P3-storefront-checkout.md (section P3.S5), docs/roadmap/CONTRIBUTING.md,
+Read docs/roadmap/P3-storefront-checkout.md (section P3.S5a), docs/roadmap/CONTRIBUTING.md,
 and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
 branch chore/p3-s5-staging from an up-to-date phase/P3 (PR into phase/P3, ADR 0018), small Conventional Commits after each step,
 no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
@@ -398,4 +402,66 @@ Finish with the end-of-session checklist in CONTRIBUTING.md
 link and stop without merging.
 ```
 
-**Ends with** (from CONTRIBUTING.md): tick inventory rows → write `docs/roadmap/handoff/P3.S5.md` → commit → push → `gh pr create` → report PR link → stop.
+**Ends with** (from CONTRIBUTING.md): tick inventory rows → write `docs/roadmap/handoff/P3.S5a.md` → commit → push → `gh pr create` → report PR link → stop.
+
+## P3.S5b — Provider trial & staging go-live
+
+| Field | Value |
+|---|---|
+| **Goal** | Run the provider trial and choose the Algerian VPS provider (ADR 0011), then take the P3.S5a code live: apply OpenTofu, run Ansible for real, `kamal setup`, first pipeline deploy to a persistent staging environment reachable at a public URL, with observability and backups wired to real accounts. |
+| **Branch** | `chore/p3-s5b-staging-live` |
+| **GitHub issue** | `P3.S5b Provider trial & staging go-live` (#299; label `phase-3`, milestone `P3 Storefront & COD checkout`) |
+| **Prerequisites** | P3.S5a merged (and P3.S4 merged for the spool chaos and flash-sale checks). |
+| **Parallel-safe** | Yes, with P3.S3, P3.S4 and P4.*. Edits ops files only (`infra/envs/staging/**`, `deploy/staging.yml`, `docs/ops/**`, GitHub staging environment settings); no plugin or app source. |
+| **Model / size** | Opus · M |
+| **External needs** | 🔑 Algerian VPS trials + chosen provider, second provider for backups, Cloudflare account + staging zone + API token, R2, GitHub staging environment secrets, Grafana Cloud, Sentry, uptime tool. The user creates every account and secret; the session stops at the "needs you" checklist until they exist. |
+
+**Inventory rows covered:** none (infrastructure).
+
+**Read first**
+- `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- `docs/roadmap/plans/P3.S5b-plan.md` (executable plan, once written); `docs/roadmap/CONTRIBUTING.md`; handoff `P3.S5a.md` (and `P3.S4.md` for the spool checks).
+- `docs/adr/` 0011 (hosting in Algeria, provider selection method), 0012, 0006 (spike F items left "pending" in P0.S2a), 0015.
+
+**High-level plan**
+0. Provider selection (original step 0, ADR 0011 Decision 4): a 1-month trial on the shortlist measuring CPU steal, disk `fsync` latency (pgbench) and RTT from Djezzy, Mobilis, Ooredoo and Algérie Télécom fixed lines; ARPCE cloud authorisation and DZD invoicing; record the results and the choice (primary + second provider for backups) in `docs/ops/provider-selection.md` and the ADR 0011 follow-ups → commit `docs(ops): algerian provider trial and choice`
+1. Go live: `tofu apply` for Cloudflare/DNS/R2 (state in R2), run the P3.S5a Ansible against the real VPS, `kamal setup`, first pipeline deploy on merge, GitHub staging environment secrets in place.
+2. Wire Grafana Cloud, Sentry and the uptime tool (`/readyz`, one storefront page and intake, never `/health`); first alerts firing to a real channel.
+3. pgBackRest to the second provider and a point-in-time restore into a fresh VPS; the monthly restore test scheduled.
+4. Spike F (f)/(g) on the staging zone (ADR 0006): a cached tenant page is stored with the TTL from `Cloudflare-CDN-Cache-Control`, and two URLs differing only by `fbclid` hit one edge entry; if (g) fails, implement the Transform Rule / Worker branch; record results in ADR 0006's follow-ups.
+5. Chaos on staging (stop Valkey; stop worker; kill PG connection; stop Postgres with `intake.spool.enabled`) and the k6 flash-sale and rollout-under-load runs, with observed behaviour recorded in `docs/ops/runbook.md` and the handoff.
+
+**Acceptance criteria** (carried from the original P3.S5 brief; those that need a public URL or real accounts)
+- [ ] The provider trial results (CPU steal, `fsync` latency, RTT per Algerian ISP) and the chosen primary and backup providers are recorded (ADR 0011).
+- [ ] `tofu plan` (Cloudflare/DNS) on a clean checkout shows no drift after apply; a fresh VPS rebuilt from the runbook/Ansible reproduces staging with only the documented manual steps (account, VPS order, domain).
+- [ ] A pgBackRest point-in-time restore from the second provider into a fresh VPS passes the smoke test; no private object or backup is written to R2.
+- [ ] `https://demo.staging.<root>` serves the storefront over valid TLS through Cloudflare; `api.staging.<root>/store/*` returns 403 at the edge; `app.staging.<root>` serves the dashboard login.
+- [ ] A merge to main deploys staging with zero failed requests during rollout (k6 constant load during deploy shows no 5xx) and runs migrations before rollout.
+- [ ] Stopping the worker triggers the queue/outbox alert within 10 min; stopping Valkey keeps cached storefront pages serving and the intake path degrades as documented; stopping Postgres with `intake.spool.enabled` turns submits into 202s that are replayed exactly once when it returns (needs P3.S4 merged).
+- [ ] Two requests to the same product URL with different `fbclid` values: the second is an edge HIT (`cf-cache-status`), and the edge TTL follows `Cloudflare-CDN-Cache-Control` (spike F (f)/(g)).
+- [ ] On first deploy to an empty database, api/worker start only after `migrate` succeeded; every container runs with `TZ=UTC` (on the live staging host).
+- [ ] No secret in the repo, image layers or logs (secret scan + `docker history` check) on the deployed image.
+
+**Verification**
+- Pipeline run evidence, k6 output (incl. the flash-sale scenario), alert screenshots in the PR; `tofu plan` output after apply; provider trial numbers; restore evidence.
+- Browser check: storefront on a staging subdomain and the dashboard login on `app.staging.<root>` (no reference-product screen; note it).
+- Multi-tenant: two seeded stores on two staging subdomains never serve each other's catalog; host-header spoof returns 404.
+
+**Out of scope:** production (P10.S3), custom domains (P8.S9), Postgres standby/HA (Growth), Kubernetes (never, ADR 0011), any change to plugin or app source.
+
+**Kickoff prompt** (paste into a fresh Claude session in the repo)
+```
+You are running session P3.S5b "Provider trial & staging go-live" of the roadmap in docs/roadmap/.
+Follow CLAUDE.md at the repo root for every step. First write your plan with the writing-plans
+skill, save it to docs/roadmap/plans/<this session ID>-plan.md (or follow it if it exists), commit it.
+Read docs/roadmap/P3-storefront-checkout.md (section P3.S5b), docs/roadmap/CONTRIBUTING.md,
+and the files listed under "Read first". Follow CONTRIBUTING.md exactly:
+branch chore/p3-s5b-staging-live from an up-to-date phase/P3 (PR into phase/P3, ADR 0018), small Conventional Commits after each step,
+no Claude attribution in commits or PRs (no Co-Authored-By trailer, no "Generated with" line).
+Never handle cloud or GitHub tokens: ask me to create accounts and secrets myself.
+Finish with the end-of-session checklist in CONTRIBUTING.md
+(tick inventory rows, write the handoff note, commit, push, gh pr create), report the PR
+link and stop.
+```
+
+**Ends with** (from CONTRIBUTING.md): tick inventory rows → write `docs/roadmap/handoff/P3.S5b.md` → commit → push → `gh pr create` → report PR link → stop.

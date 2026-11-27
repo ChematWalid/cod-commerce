@@ -39,13 +39,14 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 | **P2.S5** Offer kinds BXGY/add-on & offers admin: `plugins/offers` buy-X-get-Y (gift lines) and add-on kinds (add-ons in quotes and tokens), target roles per kind, post-order add-on service and `offer.applied` event, publish validation, duplicate, code generation, paged lists, stats, app types and preview; offers Admin API (GraphQL + REST); dashboard offers list, 7-card create dialog, per-kind editors with shared sections, live summary and Arabic order-form preview, codes panel, product editor Offers block | #14 | `feat/p2-s5-offers-admin` | #256 | **merged** into `phase/P2` (squash, ADR 0018); handoff `handoff/P2.S5.md`; evidence `docs/evidence/P2.S5/`; decisions D2500-D2544 in `P2-decisions.md`; ADR 0004 amendment (P2.S5) accepted 2026-11-21; follow-up #273 |
 | P2 phase end: #261 items 1 and 3 (bulk results by title, import preview on a phone, D2000), style-gate fix-forward | #261 | `fix/p2-catalog-import-261`, `fix/p2-style-gate-comment` | #275, #276 | **merged** into `phase/P2`; P2.S2 evidence regenerated |
 | **P2 phase → `main`** | — | `phase/P2` | #277 | **merged** (squash cbdb3114, 2026-11-21) after 52/52 checks green incl. browser; `phase/P2` kept, tag `phase-P2-final` at 2b8d703c. **P2 complete.** |
+| **P3.S2** Storefront skeleton: `plugins/storefront-api` (per-store `storefront_product` projection, public catalog, collection and Arabic-aware search endpoints with per-business Darija synonyms, outbox-driven revalidation with a coalesced CDN purge port), tenancy storefront store context and `store.changed`, storefront app (host binding `/_t/{locale}/{storeId}/{binding}`, ar/fr/en with RTL, pluggable theme renderer, catalog pages, cart/checkout shells, SEO, image loader, same-origin `/api/store`), cache hardening (#120 #121 #180 #183 #184), id lint (#127), catalog public read fixes (#246 #266), demo seed, P3 isolation e2e and smoke on pull requests (#182); #251 storefront part | #16 | `feat/p3-s2-storefront-skeleton` | PR into `phase/P3` (see handoff) | **merged** into `phase/P3` (squash, ADR 0018); handoff `handoff/P3.S2.md`; evidence `docs/evidence/P3.S2/`; decisions D3200-D3226 in `P3-decisions.md`; ADR 0006 addendum to accept; follow-ups #284-#291, #295-#297; first CI runs of the new jobs due before the phase PR |
 
 **Merge order:** P0.S2a (#71–#77) and the P0.S2b split (#84) are merged. **P0.S2b runs as six sequential parts** (`P0-setup.md` split table); each part branches from `main` after the previous one merges.
 
 **Working agreement (user, 2026-11-07):** the agent merges its own PRs and asks the user only for decisions, as multiple-choice questions (the user is the decider). It is recorded in CLAUDE.md §4. **From P2 on (user, 2026-11-13, ADR 0018):** session PRs target `phase/P{n}` and merge at once while CI runs in the background; only the phase-end PR into `main` waits for green CI and browser tests. Decisions so far:
 - P0.S2a-1/-2 ADRs accepted; product name stays the placeholder "CodShop" (ADR 0007).
 - No Cloudflare staging zone or latency probes for P0.S2a-3.
-- **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5.
+- **Production hosted in Algeria** (Law 18-07); budget not a constraint now (worst case: one Algerian VPS); provider chosen in P3.S5b.
 - Platform domain `.com.dz`; everything through Cloudflare.
 - Legal questions parked until before production (ADR 0011 §8).
 - P0.S2a-3 ADRs (0006, 0011, 0012, 0014, 0015) accepted; **all 16 ADRs are Accepted**.
@@ -77,14 +78,14 @@ This is a multi-store cash-on-delivery commerce SaaS for Algeria, built on **Ven
 - **External access the user may provide:**
   - a Cloudflare staging zone, for spike F items (f) and (g);
   - latency probes, for spike G.
-  - Without them, record those items as `pending` and name the session that re-runs them (P3.S5 / before P10.S3).
+  - Without them, record those items as `pending` and name the session that re-runs them (P3.S5b / before P10.S3).
 
 ## What to do next
 1. Check PR state: `gh pr list --state all --limit 10`.
 2. Branch from an up-to-date `main` (all earlier PRs are merged).
 3. **P2 is complete** (2026-11-21): P2.S1-S5 are on `main` via the phase PR #277. Next is **P3**: create `phase/P3` from `main` (ADR 0018) and follow its brief. Read the P2 handoffs and `P2-decisions.md` first. Awaiting the user's acceptance: the ADR 0002 §2 addendum (D2117), the ADR 0004 amendments (P2.S4 D2421/D2445/D2446, P2.S5), and the ADR 0013 and 0016 amendments (P2.S3). Open `after-P2` follow-ups: #245-#251, #254, #261 (items 2, 4, 5), #262, #264-#267, #270, #273; from P1: #230 (P3.S1), #231 (P10.S2).
 4. Open items for later sessions, flagged while applying the ADRs:
-   - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Proposal: split it at its start into **P3.S5a** "Provider trial & server baseline" and **P3.S5b** "Image, pipeline, edge & observability", per the mutation protocol.
+   - **P3.S5 is now heavy**: an Algerian provider trial (calendar time), hand-built servers (Ansible), a self-run PG/PgBouncer/Valkey/MinIO stack, pgBackRest with restore tests, spike F (f)/(g), plus the original image, pipeline and observability work. Split on 2026-11-23 into P3.S5a (no accounts) and P3.S5b (accounts, go-live); see the P3 brief and D3500.
    - **P4.S2 pagination**: the research-shaped page response (`totalCount`, `totalPages`) conflicts with keyset pagination and `order_counter` (ADR 0016 §4). P4.S2 resolves it: counts from `order_counter`, pages via keyset cursors.
    - **P10.S1/S2 load targets** still use the old capacity figures (infrastructure §3); re-check them once the Algerian provider is benchmarked.
    - **The ADR 0006 cache handler** is adopted in P0.S2b and wired into caching in P3.S2; P3.S2 must not redo the adoption.

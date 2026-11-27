@@ -132,6 +132,18 @@ jobs:
         run: ROLE=api pnpm --filter @cod/server build:dashboard
       - name: Migrate
         run: ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-migrate.js
+      # Logo and product image uploads write to object storage (P2.S1), the demo seed's product images too (P3.S2), so it
+      # starts before the seed; without it every upload fails. The compose service creates the job's bucket with the
+      # job's placeholder keys, which .env.example holds too.
+      - name: Start the object storage
+        run: docker compose --env-file .env.example up -d --wait garage
+      # The dashboard puts import files on, and reads exports from, the private bucket directly (D2208).
+      - name: Allow the dashboard's origin on the private bucket
+        run: node scripts/garage-cors.mjs
+      # The memory storage of the integration and e2e suites cannot show it: the real Garage must refuse a presigned
+      # upload whose body is larger than the size signed into it.
+      - name: Refuse a presigned PUT with a larger body than signed
+        run: node scripts/check-presigned-put.mjs
       # The seed's real wiring (owner lookup, store channel context, store language) runs only here: the first run must
       # give the demo stores their products, and a second run must create nothing (D2129).
       - name: Seed the demo businesses
@@ -142,17 +154,6 @@ jobs:
         run: |
           ROLE=migrate node --env-file-if-exists=.env apps/server/dist/main-seed-demo.js | tee seed-demo-again.log
           grep -F '"event":"seed-demo.done","created":[]' seed-demo-again.log
-      # Logo and product image uploads write to object storage (P2.S1); without it every upload fails. The compose
-      # service creates the job's bucket with the job's placeholder keys, which .env.example holds too.
-      - name: Start the object storage
-        run: docker compose --env-file .env.example up -d --wait garage
-      # The dashboard puts import files on, and reads exports from, the private bucket directly (D2208).
-      - name: Allow the dashboard's origin on the private bucket
-        run: node scripts/garage-cors.mjs
-      # The memory storage of the integration and e2e suites cannot show it: the real Garage must refuse a presigned
-      # upload whose body is larger than the size signed into it.
-      - name: Refuse a presigned PUT with a larger body than signed
-        run: node scripts/check-presigned-put.mjs
       - name: Start the api
         run: |
           ROLE=api API_PORT=3100 setsid node --env-file-if-exists=.env --enable-source-maps apps/server/dist/main-api.js > api.log 2>&1 &

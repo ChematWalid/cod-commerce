@@ -49,6 +49,7 @@ import { OutboxDeliveryEntity } from './infrastructure/outbox-delivery.entity';
 import { OutboxEventEntity } from './infrastructure/outbox-event.entity';
 import { OutboxBootstrap } from './infrastructure/outbox-bootstrap';
 import { PostgresOutboxDueScan } from './infrastructure/outbox-due-scan';
+import { OutboxStoreChangedHook } from './infrastructure/store-changed.outbox';
 import { outboxSweeperTask } from './infrastructure/outbox-tasks';
 import { PlatformOutboxQueues } from './infrastructure/platform-outbox-queues';
 import { TypeOrmOutboxStore } from './infrastructure/typeorm-outbox.repositories';
@@ -107,6 +108,8 @@ const outboxLogger: OutboxLogger = {
     },
     AfterCommitRelaySubscriber,
     OutboxBootstrap,
+    // Tenancy's `store.changed`, written in the store change's transaction (D3204, D3218).
+    OutboxStoreChangedHook,
     {
       provide: OutboxConsumerRegistry,
       useFactory: (queues: OutboxQueuesPort) => new OutboxConsumerRegistry(queues),

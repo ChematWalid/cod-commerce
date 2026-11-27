@@ -1,221 +1,176 @@
-import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
+import { StorefrontApiPlugin } from '@cod/plugin-storefront-api';
+import { INTERNAL_AUTH_HEADERS, parseInternalKeys, type InternalSigningKey } from '@cod/shared/internal-auth';
 import { getMetadataArgsStorage } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { P3_ISOLATION_CASES } from '../isolation/cases';
-import { ANY_CARRIER_ID, STORE_REFERENCE_NOT_FOUND } from '../isolation/cases/delivery-pricing';
-import { DELIVERY_PRICING_OPERATIONS, DELIVERY_PRICING_ROUTES } from '../isolation/delivery-pricing-operations';
+import { describe, expect, it } from 'vitest';
 import {
-  DELIVERY_PRICING_WORLDS,
-  deliveryPricingFingerprints,
-  type DeliveryPricingWorld,
-} from '../isolation/delivery-pricing-rows';
-import { fingerprintsOf } from '../isolation/run';
-import { DELIVERY_PRICING_TABLE_COUNTS, P2_TENANT_TABLES, P3_TENANT_TABLES } from '../isolation/tenant-tables';
-import type { World } from '../isolation/world-types';
-import { businessOf } from './p2-isolation-fixtures';
+  STOREFRONT_ISOLATION_CASES,
+  type StorefrontHoldings,
+  type StorefrontIsolationCase,
+} from '../isolation/cases/storefront-catalog';
+import { runStorefrontMatrix, storefrontFailuresOf, storefrontHeadersOf } from '../isolation/storefront-run';
+import { P2_TENANT_TABLES, P3_TENANT_TABLES, STOREFRONT_TABLE_COUNTS } from '../isolation/tenant-tables';
 
 type Class = abstract new (...args: never[]) => object;
-type Handler = (...args: never[]) => unknown;
 
-const ROOT_TYPES = new Set(['Query', 'Mutation']);
 const REQUEST_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
-
-const handlersOf = (type: Class): Handler[] =>
-  Object.getOwnPropertyNames(type.prototype)
-    .filter((name) => name !== 'constructor')
-    .map((name) => (type.prototype as Record<string, Handler>)[name] as Handler);
-
-/** Every Admin API operation the resolvers of `plugin` declare (Nest's GraphQL metadata). */
-function declaredOperations(plugin: Class): string[] {
-  const extension = Reflect.getMetadata('adminApiExtensions', plugin) as { resolvers: Class[] };
-  return extension.resolvers.flatMap((resolver) =>
-    handlersOf(resolver).flatMap((handler) => {
-      const type = Reflect.getMetadata('graphql:resolver_type', handler) as string | undefined;
-      if (type === undefined || !ROOT_TYPES.has(type)) return [];
-      return [(Reflect.getMetadata('graphql:resolver_name', handler) as string | undefined) ?? handler.name];
-    }),
-  );
-}
+const KEY = parseInternalKeys('k1:synthetic-p3-matrix-unit-secret-0000000000')[0] as InternalSigningKey;
 
 /** Every REST route the controllers of `plugin` declare, as `METHOD /path`. */
 function declaredRoutes(plugin: Class): string[] {
   const controllers = Reflect.getMetadata('controllers', plugin) as Class[];
   return controllers.flatMap((controller) => {
     const base = Reflect.getMetadata('path', controller) as string;
-    return handlersOf(controller).flatMap((handler) => {
-      const path = Reflect.getMetadata('path', handler) as string | undefined;
-      if (path === undefined) return [];
-      const method = REQUEST_METHODS[Reflect.getMetadata('method', handler) as number] ?? 'UNKNOWN';
-      return [`${method} ${`/${base}/${path}`.replaceAll(/\/+/g, '/').replace(/(.)\/$/, '$1')}`];
+    return Object.getOwnPropertyNames(controller.prototype).flatMap((name) => {
+      const handler = (controller.prototype as Record<string, unknown>)[name];
+      const path = Reflect.getMetadata('path', handler as object) as string | undefined;
+      if (name === 'constructor' || path === undefined) return [];
+      const method = REQUEST_METHODS[Reflect.getMetadata('method', handler as object) as number] ?? 'UNKNOWN';
+      return [`${method} /${base}/${path}`];
     });
   });
 }
 
-/** The tables of the entities `plugin` registers (Vendure's `entities` plugin metadata). */
+/** The tables of the entities `plugin` registers. */
 function tablesOf(plugin: Class): string[] {
   const entities = Reflect.getMetadata('entities', plugin) as Class[];
   const tables = getMetadataArgsStorage().tables;
   return entities.map((entity) => tables.find((table) => table.target === entity)?.name ?? entity.name);
 }
 
-/** The delivery-pricing rows of a business of the matrix, with made-up ids. */
-function deliveryPricingOf(label: 'A' | 'B'): DeliveryPricingWorld {
-  const n = label === 'A' ? '1' : '2';
-  const id = (prefix: string): string => `${prefix}1000000000000000${n}`;
-  return {
-    groupId: id('7'),
-    groupName: `Pricing ${label}`,
-    spareGroupId: id('8'),
-    spareGroupName: `Spare group ${label}`,
-    platformDefaultId: id('9'),
-    otherStoreGroupId: id('6'),
-    homePrice: label === 'A' ? 611 : 622,
-    communeHomePrice: label === 'A' ? 661 : 672,
-    pricingRole: { id: id('5'), name: `Pricing role ${label}` },
-  };
-}
+const holdingsOf = (label: 'A' | 'B'): StorefrontHoldings => ({
+  storeId: label === 'A' ? '7100000000000000001' : '7200000000000000002',
+  names: [`Product ${label}`],
+  productSlug: `product-${label.toLowerCase()}`,
+  productName: `Product ${label}`,
+  searchTerm: `term${label}`,
+  collectionSlug: `collection-${label.toLowerCase()}`,
+});
+const pair = { attacker: holdingsOf('A'), victim: holdingsOf('B') };
 
-describe('P3 isolation matrix', () => {
-  const world: World = { a: businessOf('A'), b: businessOf('B'), superadmin: { label: 'superadmin', token: 's' } };
-
-  beforeAll(() => {
-    for (const label of ['A', 'B'] as const) DELIVERY_PRICING_WORLDS.set(label, deliveryPricingOf(label));
-  });
-
-  afterAll(() => {
-    DELIVERY_PRICING_WORLDS.clear();
-  });
-
-  it('counts every table the delivery-pricing plugin registers in the P3 census', () => {
+describe('P3 storefront isolation matrix', () => {
+  it('covers every route the storefront API declares', () => {
     // Act
-    const counted = Object.keys(DELIVERY_PRICING_TABLE_COUNTS);
+    const covered = new Set(STOREFRONT_ISOLATION_CASES.map((testCase) => testCase.endpoint));
 
     // Assert
-    expect([...counted].sort()).toEqual(tablesOf(DeliveryPricingPlugin).sort());
-    expect([...P3_TENANT_TABLES].sort()).toEqual([...counted].sort());
+    expect([...covered].sort()).toEqual(declaredRoutes(StorefrontApiPlugin).sort());
   });
 
-  it('keeps the delivery-pricing tables out of the P2 census, whose world seeds no commune rate', () => {
+  it('counts every table the storefront API registers in the P3 census, and leaves them out of P2', () => {
     // Act
-    const inP2 = P2_TENANT_TABLES.filter((table) => P3_TENANT_TABLES.includes(table));
+    const counted = Object.keys(STOREFRONT_TABLE_COUNTS).sort();
 
     // Assert
-    expect(inP2).toEqual([]);
+    expect(counted).toEqual(tablesOf(StorefrontApiPlugin).sort());
+    expect(P3_TENANT_TABLES).toEqual(expect.arrayContaining(counted));
+    expect(P2_TENANT_TABLES.filter((table) => P3_TENANT_TABLES.includes(table))).toEqual([]);
   });
 
-  it('names every Admin API operation and REST route the delivery-pricing plugin declares', () => {
+  it('names each cell once and holds unsigned and forged-header cells that must never reach the guard', () => {
     // Act
-    const named = {
-      operations: DELIVERY_PRICING_OPERATIONS.map((operation) => operation.name).sort(),
-      routes: DELIVERY_PRICING_ROUTES.map((route) => `${route.method} ${route.route}`).sort(),
+    const ids = STOREFRONT_ISOLATION_CASES.map((testCase) => testCase.id);
+    const unreached = STOREFRONT_ISOLATION_CASES.filter((testCase) => !testCase.reachesGuard);
+
+    // Assert
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(unreached.map((testCase) => testCase.call(pair).signing.kind)).toEqual(['unsigned', 'signed', 'signed']);
+    expect(unreached.every((testCase) => testCase.expect.kind === 'refused')).toBe(true);
+  });
+
+  it("reads A's own collection through both membership routes, showing A's product and hiding B's", () => {
+    // Arrange
+    const ownCollectionIds = ['storefront.collection-own-slug', 'storefront.products-own-collection'];
+
+    // Act
+    const cells = STOREFRONT_ISOLATION_CASES.filter((testCase) => ownCollectionIds.includes(testCase.id));
+
+    // Assert
+    expect(cells.map((testCase) => testCase.id).sort()).toEqual([...ownCollectionIds].sort());
+    for (const testCase of cells) {
+      const call = testCase.call(pair);
+      expect(call.path).toContain(encodeURIComponent(pair.attacker.collectionSlug));
+      expect(call.signing).toEqual({ kind: 'signed', storeId: pair.attacker.storeId });
+      expect(testCase.reachesGuard).toBe(true);
+      if (testCase.expect.kind !== 'answers') throw new Error(`${testCase.id} must answer`);
+      expect(testCase.expect.shows(pair)).toContain(pair.attacker.productName);
+      expect(testCase.expect.hides(pair)).toEqual(pair.victim.names);
+    }
+  });
+});
+
+describe('storefrontHeadersOf', () => {
+  it('sends only the x-store-id of an unsigned call', () => {
+    // Act
+    const headers = storefrontHeadersOf(KEY, {
+      path: '/store/products',
+      signing: { kind: 'unsigned', storeHeader: '9' },
+    });
+
+    // Assert
+    expect(headers).toEqual({ [INTERNAL_AUTH_HEADERS.storeId]: '9' });
+  });
+
+  it('replaces the signed store header with the one sent beside it', () => {
+    // Act
+    const headers = storefrontHeadersOf(KEY, {
+      path: '/store/products',
+      signing: { kind: 'signed', storeId: '1', storeHeader: '2' },
+    });
+
+    // Assert
+    expect(headers[INTERNAL_AUTH_HEADERS.storeId]).toBe('2');
+    expect(headers[INTERNAL_AUTH_HEADERS.signature]).toBeDefined();
+  });
+});
+
+describe('storefrontFailuresOf', () => {
+  it('fails a refusal that answers 200 or carries a body', () => {
+    // Act
+    const failures = storefrontFailuresOf({ kind: 'refused' }, pair, { status: 200, body: 'x' });
+
+    // Assert
+    expect(failures).toEqual(['status 200, expected 404', 'a refusal carried a body']);
+  });
+
+  it("fails an answer that misses the caller's own data or holds the victim's", () => {
+    // Arrange
+    const expectation = { kind: 'answers', shows: () => ['Product A'], hides: () => ['Product B'] } as const;
+
+    // Act
+    const failures = storefrontFailuresOf(expectation, pair, { status: 200, body: '{"name":"Product B"}' });
+
+    // Assert
+    expect(failures).toEqual(['missing its own "Product A"', 'leaked "Product B"']);
+  });
+});
+
+describe('runStorefrontMatrix', () => {
+  it('fails a cell whose call reached the store guard although it must not, in both directions', async () => {
+    // Arrange
+    const testCase: StorefrontIsolationCase = {
+      id: 'probe',
+      endpoint: 'GET /store/products',
+      title: 'probe',
+      call: () => ({ path: '/store/products', signing: { kind: 'unsigned' } }),
+      expect: { kind: 'refused' },
+      reachesGuard: false,
+    };
+    let calls = 0;
+    const runner = {
+      send: () => {
+        calls += 1;
+        return Promise.resolve({ status: 404, body: '', headers: {} });
+      },
+      guardCalls: () => calls,
     };
 
-    // Assert
-    expect(named).toEqual({
-      operations: declaredOperations(DeliveryPricingPlugin).sort(),
-      routes: declaredRoutes(DeliveryPricingPlugin).sort(),
-    });
-  });
-
-  it('gives every route and operation of the delivery-pricing plugin a cell', () => {
-    // Arrange
-    const declared = [...declaredOperations(DeliveryPricingPlugin), ...declaredRoutes(DeliveryPricingPlugin)];
-
     // Act
-    const covered = new Set(P3_ISOLATION_CASES.map((testCase) => testCase.endpoint));
+    const outcomes = await runStorefrontMatrix(runner, [testCase], { A: holdingsOf('A'), B: holdingsOf('B') });
 
     // Assert
-    expect(declared.filter((endpoint) => !covered.has(endpoint))).toEqual([]);
-  });
-
-  it.each([
-    ['deliveryPricing.deliveryFeeGroups.own', '/admin-api'],
-    ['deliveryPricing.get-/delivery-fees.own', '/delivery-fees'],
-  ])("lists A's own first-store groups only in %s", (id, path) => {
-    // Arrange
-    const cell = P3_ISOLATION_CASES.find((testCase) => testCase.id === id);
-
-    // Act
-    const request = cell?.request(world.a, world.b, world);
-
-    // Assert
-    expect(request?.path).toBe(path);
-    expect(request?.channel?.token).toBe(world.a.stores[0].channelToken);
-    const own = deliveryPricingOf('A');
-    expect(cell?.expect.kind === 'own' ? cell.expect.mustInclude(world.a) : []).toEqual([
-      own.groupId,
-      own.spareGroupId,
-      own.platformDefaultId,
+    expect(outcomes.map((outcome) => [outcome.attacker, outcome.failures])).toEqual([
+      ['A', ['store guard ran 1 times']],
+      ['B', ['store guard ran 1 times']],
     ]);
-    expect(cell?.expect.kind === 'own' ? cell.expect.mustExclude?.(world.a) : []).toEqual([own.otherStoreGroupId]);
   });
-
-  it.each([
-    ['tenancy.updateStore.foreign-fee-group', deliveryPricingOf('B').groupId, 0],
-    ['tenancy.updateStore.other-store-fee-group', deliveryPricingOf('A').groupId, 1],
-  ] as const)('refuses %s with the pinned reference code (D3111)', (id, groupId, storeIndex) => {
-    // Arrange
-    const cell = P3_ISOLATION_CASES.find((testCase) => testCase.id === id);
-
-    // Act
-    const request = cell?.request(world.a, world.b, world);
-
-    // Assert
-    expect(cell?.expect).toEqual({ kind: 'code', code: STORE_REFERENCE_NOT_FOUND });
-    expect(request?.body).toMatchObject({
-      variables: { id: world.a.stores[storeIndex].id, input: { defaultDeliveryFeeGroupId: groupId } },
-    });
-    expect(request?.channel?.token).toBe(world.a.stores[storeIndex].channelToken);
-  });
-
-  it('refuses any carrier id on updateStore until P5.S1 (D3109)', () => {
-    // Arrange
-    const cell = P3_ISOLATION_CASES.find((testCase) => testCase.id === 'tenancy.updateStore.carrier');
-
-    // Act
-    const request = cell?.request(world.a, world.b, world);
-
-    // Assert
-    expect(cell?.expect).toEqual({ kind: 'code', code: STORE_REFERENCE_NOT_FOUND });
-    expect(request?.body).toMatchObject({ variables: { input: { defaultCarrierId: ANY_CARRIER_ID } } });
-  });
-
-  it("scans every answer for the victim's delivery-pricing ids and names", () => {
-    // Act
-    const scanned = fingerprintsOf(world.b);
-
-    // Assert
-    expect(scanned).toEqual(expect.arrayContaining(deliveryPricingFingerprints(deliveryPricingOf('B'))));
-  });
-
-  it('gives every cell a unique id', () => {
-    // Arrange
-    const ids = P3_ISOLATION_CASES.map((testCase) => testCase.id);
-
-    // Act
-    const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
-
-    // Assert
-    expect(duplicates).toEqual([]);
-  });
-
-  it.each(P3_ISOLATION_CASES.map((testCase) => [testCase.id, testCase] as const))(
-    'builds %s in both directions from a seeded world',
-    (_id, testCase) => {
-      // Arrange
-      const directions = [
-        [world.a, world.b],
-        [world.b, world.a],
-      ] as const;
-
-      // Act
-      const requests = directions.map(([attacker, victim]) => testCase.request(attacker, victim, world));
-
-      // Assert
-      for (const request of requests) {
-        expect(['/admin-api', '/delivery-fees'].some((prefix) => request.path.startsWith(prefix))).toBe(true);
-        expect(JSON.stringify(request)).not.toContain('undefined');
-      }
-    },
-  );
 });

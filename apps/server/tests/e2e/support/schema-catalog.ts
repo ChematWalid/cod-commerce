@@ -71,10 +71,15 @@ export async function catalogSnapshot(client: Client): Promise<Record<string, un
          JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public' AND NOT t.tgisinternal ORDER BY c.relname, t.tgname`,
     ),
+    // Extension members are left out: the extensions (pg_trgm, unaccent, btree_gin) are kept by `down` on purpose
+    // (migration StorefrontApi1795600000000), so their functions are not ours to revert.
     functions: await run(
       `SELECT p.proname AS name, pg_get_functiondef(p.oid) AS definition
          FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'public' ORDER BY p.proname`,
+        WHERE n.nspname = 'public'
+          AND NOT EXISTS (SELECT 1 FROM pg_depend d
+                           WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+        ORDER BY p.proname`,
     ),
   };
 }

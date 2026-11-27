@@ -38,6 +38,13 @@ export interface MediaStoragePort {
   urlsOf(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<ReadonlyMap<CoreId, StoredMedia>>;
 
   /**
+   * The preview storage path of each image among `assetIds` (Vendure's `asset.preview`, never an absolute URL: the
+   * storefront maps it to its own image loader, the same contract as a store's `logoPath`), in one read; a missing one
+   * is left out.
+   */
+  previewsOf(ctx: OperationContext, assetIds: readonly CoreId[]): Promise<ReadonlyMap<CoreId, string>>;
+
+  /**
    * Makes each image usable by products of the store channel of `ctx` (a media item of another store, D2132).
    *
    * @throws {MediaNotFoundError} when an image's asset is gone although its media row remains.

@@ -20,6 +20,7 @@ const BY_ROW = { rowNumber: 'ASC' } as const;
 const APPLIABLE: readonly ImportRowAction[] = ['create', 'update'];
 
 /** A product id as the row stores it (Vendure's integer id). */
+// eslint-disable-next-line cod-ids/no-numeric-id -- Vendure core id: an int4 column value, exact as a number
 const productIdOf = (id: string | null): number | null => (id === null ? null : Number(id));
 
 /**

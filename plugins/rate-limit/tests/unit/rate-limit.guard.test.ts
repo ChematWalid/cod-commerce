@@ -29,13 +29,15 @@ class RecordingLimiter extends RateLimiter {
 
 const limitedHandler = (): void => undefined;
 const unlimitedHandler = (): void => undefined;
+const catalogReadHandler = (): void => undefined;
 Reflect.defineMetadata(RATE_LIMIT_METADATA, 'subdomain-ip', limitedHandler);
+Reflect.defineMetadata(RATE_LIMIT_METADATA, 'storefront-read', catalogReadHandler);
 
-const restContext = (handler: () => void): ExecutionContext =>
+const restContext = (handler: () => void, request: object = { ip: '203.0.113.5', headers: {} }): ExecutionContext =>
   ({
     getHandler: () => handler,
     getType: () => 'http',
-    switchToHttp: () => ({ getRequest: () => ({ ip: '203.0.113.5', headers: {} }), getResponse: () => ({}) }),
+    switchToHttp: () => ({ getRequest: () => request, getResponse: () => ({}) }),
   }) as unknown as ExecutionContext;
 
 const guardWith = (limiter: RateLimiter): RateLimitGuard =>
@@ -64,6 +66,42 @@ describe('RateLimitGuard', () => {
     // Assert
     await expect(attempt).rejects.toThrow(RateLimitedError);
     await expect(attempt).rejects.toMatchObject({ code: 'RATE_LIMITED', extensions: { retryAfterSeconds: 7 } });
+  });
+
+  it('limits a signed catalog render without a client address by key id and store under storefront-render', async () => {
+    // Arrange
+    const limiter = new RecordingLimiter({ allowed: true, retryAfterSeconds: 0, exhausted: false });
+    const request = { ip: '10.0.0.7', headers: {}, internalAuth: { kid: 'storefront-1', storeId: '42' } };
+
+    // Act
+    await guardWith(limiter).canActivate(restContext(catalogReadHandler, request));
+
+    // Assert
+    expect(limiter.consumed).toEqual([['storefront-render', 'internal:storefront-1:42']]);
+  });
+
+  it('keeps a strict handler policy for a signed request without a client address', async () => {
+    // Arrange
+    const limiter = new RecordingLimiter({ allowed: true, retryAfterSeconds: 0, exhausted: false });
+    const request = { ip: '10.0.0.7', headers: {}, internalAuth: { kid: 'storefront-1' } };
+
+    // Act
+    await guardWith(limiter).canActivate(restContext(limitedHandler, request));
+
+    // Assert
+    expect(limiter.consumed).toEqual([['subdomain-ip', '10.0.0.7']]);
+  });
+
+  it('limits a signed buyer request by the buyer address under the handler policy', async () => {
+    // Arrange
+    const limiter = new RecordingLimiter({ allowed: true, retryAfterSeconds: 0, exhausted: false });
+    const request = { ip: '10.0.0.7', headers: {}, internalAuth: { kid: 'storefront-1', clientIp: '198.51.100.4' } };
+
+    // Act
+    await guardWith(limiter).canActivate(restContext(limitedHandler, request));
+
+    // Assert
+    expect(limiter.consumed).toEqual([['subdomain-ip', '198.51.100.4']]);
   });
 
   it('ignores a handler without a policy', async () => {
