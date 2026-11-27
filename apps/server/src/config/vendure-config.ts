@@ -1,20 +1,14 @@
-import { DefaultLogger, LogLevel, type VendureConfig } from '@vendure/core';
+import { DefaultLogger, type VendureConfig } from '@vendure/core';
 // Not in the package index; `SchedulerService` tests for exactly this class.
 import { NoopSchedulerStrategy } from '@vendure/core/dist/scheduler/noop-scheduler-strategy';
 import { buildAuthConfig } from './auth.config';
 import { buildDbConfig } from './db.config';
 import { DzdMoneyStrategy } from './dzd-money-strategy';
-import type { AppEnv, LogLevelName, ServerRole } from './env';
+import type { AppEnv, ServerRole } from './env';
 import { assertPooledJobQueue, buildJobQueueConfig } from './job-queue.config';
+import { VENDURE_LOG_LEVELS } from './log-levels';
+import { errorHandlersOf } from './observability.config';
 import { buildPlugins } from './plugins.config';
-
-const VENDURE_LOG_LEVELS: Record<LogLevelName, LogLevel> = {
-  error: LogLevel.Error,
-  warn: LogLevel.Warn,
-  info: LogLevel.Info,
-  verbose: LogLevel.Verbose,
-  debug: LogLevel.Debug,
-};
 
 /**
  * The Vendure config of one server role. It only composes the per-concern builders. The built-in health
@@ -35,7 +29,7 @@ export function buildVendureConfig(env: AppEnv, role: ServerRole): VendureConfig
     dbConnectionOptions: buildDbConfig(env, role),
     entityOptions: { moneyStrategy: new DzdMoneyStrategy() },
     jobQueueOptions: buildJobQueueConfig(env, role),
-    systemOptions: { healthChecks: [] },
+    systemOptions: { healthChecks: [], errorHandlers: errorHandlersOf(env) },
     logger: new DefaultLogger({ level: VENDURE_LOG_LEVELS[env.LOG_LEVEL] }),
     plugins: buildPlugins(env, role),
     // `DefaultSchedulerPlugin` replaces this in its own configuration step; `buildPlugins` puts a plugin last that

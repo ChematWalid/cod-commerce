@@ -1,0 +1,121 @@
+# The node's OpenTelemetry Collector (ADR 0015). Everything the app roles and the storefront send passes here, is
+# scrubbed and sampled, and only then leaves the node. This file exports to the debug exporter only (local runs and
+# evidence); a deployed node merges collector.grafana.yaml on top, which adds the Grafana Cloud exporter.
+# docker-compose.yml carries a copy inline (configs.content, `$` written `$$`); packages/config/tests/otel-collector.test.ts
+# keeps the two equal. Validate: scripts/ops/otel-validate.sh
+# No hostmetrics receiver: node CPU, memory and disk come from the node exporter Ansible installs (P3.S5b).
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  # Valkey memory is what the 60 % (cache writes off) and 80 % (page) alerts read (ADR 0015).
+  redis:
+    endpoint: ${env:COLLECTOR_REDIS_ENDPOINT}
+    collection_interval: 60s
+  postgresql:
+    endpoint: ${env:COLLECTOR_POSTGRES_ENDPOINT}
+    transport: tcp
+    username: ${env:COLLECTOR_POSTGRES_USER}
+    password: ${env:COLLECTOR_POSTGRES_PASSWORD}
+    collection_interval: 60s
+    tls:
+      insecure: true
+
+processors:
+  # Below the container's 150 MB hard limit (infrastructure.md "Launch node budget").
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 120
+    spike_limit_mib: 25
+  # What may identify a buyer never leaves the node: query strings, request and response headers, client addresses
+  # and SQL literals. Metric labels never carry a business, store or order id (ADR 0015 cardinality rule).
+  transform/scrub:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - delete_key(span.attributes, "url.query")
+          - replace_pattern(span.attributes["url.full"], "\\?.*$", "")
+          - replace_pattern(span.attributes["http.url"], "\\?.*$", "")
+          - replace_pattern(span.attributes["http.target"], "\\?.*$", "")
+          - delete_matching_keys(span.attributes, "^http\\.(request|response)\\.header\\..*")
+          - delete_matching_keys(span.attributes, "^(client\\.address|client\\.port|net\\.peer\\.ip|http\\.client_ip|enduser\\..*)$")
+          - delete_matching_keys(span.attributes, "^db\\.(query\\.parameter\\..*|postgresql\\.values)$")
+          - replace_pattern(span.attributes["db.statement"], "'(?:[^']|'')*'", "'?'")
+          - replace_pattern(span.attributes["db.query.text"], "'(?:[^']|'')*'", "'?'")
+    log_statements:
+      - context: log
+        statements:
+          - delete_key(log.attributes, "url.query")
+          - delete_matching_keys(log.attributes, "^http\\.(request|response)\\.header\\..*")
+          - delete_matching_keys(log.attributes, "^(client\\.address|net\\.peer\\.ip|http\\.client_ip|enduser\\..*)$")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - delete_matching_keys(datapoint.attributes, "(?i)^(business|store|order)[_.]?id$")
+          - delete_matching_keys(datapoint.attributes, "^(server\\.address|host\\.name|url\\.full|client\\.address)$")
+  # Visitor track and beacon requests (~55 % of Launch requests) are never traced and their logs stay on the node.
+  filter/visitor-beacons:
+    error_mode: ignore
+    logs:
+      log_record:
+        - IsMatch(attributes["url.path"], "^/api/store/visitors/(track|beacon)")
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 20000
+    expected_new_traces_per_sec: 50
+    policies:
+      - name: drop-visitor-beacons
+        type: drop
+        drop:
+          drop_sub_policy:
+            - name: beacon-route
+              type: ottl_condition
+              ottl_condition:
+                error_mode: ignore
+                span:
+                  - IsMatch(attributes["url.path"], "^/api/store/visitors/(track|beacon)")
+                  - IsMatch(attributes["http.target"], "^/api/store/visitors/(track|beacon)")
+                  - IsMatch(attributes["http.route"], "^/api/store/visitors/(track|beacon)")
+      - name: errors
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: slow
+        type: latency
+        latency:
+          threshold_ms: 1000
+      - name: ten-percent-of-the-rest
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+  batch:
+    timeout: 5s
+
+exporters:
+  # basic: one line per batch; detailed (evidence runs) prints every data point.
+  debug:
+    verbosity: ${env:COLLECTOR_DEBUG_VERBOSITY:-basic}
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/scrub, tail_sampling, batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp, redis, postgresql]
+      processors: [memory_limiter, transform/scrub, batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/scrub, filter/visitor-beacons, batch]
+      exporters: [debug]

@@ -29,6 +29,7 @@ import { authEmailTemplates } from '../email';
 import { assetServerPlugin } from './asset-storage.config';
 import { isDeployed } from './deployed-env';
 import { MigrateNoSchedulerPlugin } from './migrate-no-scheduler.plugin';
+import { observabilityPlugins } from './observability.config';
 import { storefrontTargetOf } from './storefront-revalidate-env';
 import { DASHBOARD_ROUTE } from './dashboard-route';
 import type { AppEnv, ServerRole } from './env';
@@ -171,12 +172,17 @@ const catalogImportPlugin = (env: AppEnv): VendurePluginEntry =>
     appEnv: env.APP_ENV,
   });
 
-/** The storefront's public catalog API, with the storefront its revalidations go to and the domain its purges name. */
+/**
+ * The storefront's public catalog API, with the storefront its revalidations go to, the domain its purges name and
+ * the Cloudflare zone they go to (`loadEnv` checked that the token and the zone come together).
+ */
 const storefrontApiPlugin = (env: AppEnv): VendurePluginEntry => {
   const storefront = storefrontTargetOf(env);
+  const { CLOUDFLARE_API_TOKEN: apiToken, CLOUDFLARE_ZONE_ID: zoneId } = env;
   return StorefrontApiPlugin.init({
     platformDomain: env.PLATFORM_DOMAIN,
     ...(storefront === undefined ? {} : { storefront }),
+    ...(apiToken === undefined || zoneId === undefined ? {} : { cloudflare: { apiToken, zoneId } }),
   });
 };
 
@@ -242,6 +248,7 @@ export function buildPlugins(env: AppEnv, role: ServerRole): VendurePluginEntry[
     ...tenantDataPlugins(env),
     ...memberPlugins(env),
     assetServerPlugin(env),
+    ...observabilityPlugins(env, role),
   ];
   if (role !== 'api') {
     // Last on `migrate`, so it runs after `DefaultSchedulerPlugin`'s configuration (D122, SRV-12).

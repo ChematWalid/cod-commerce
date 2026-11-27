@@ -1,4 +1,5 @@
 import type { InternalSigningKey } from '@cod/shared/internal-auth';
+import type { CloudflarePurgeTarget } from './cloudflare-cdn-purge.adapter';
 
 /** Where the api reaches the storefront for revalidations (D3211). */
 export interface StorefrontTarget {
@@ -14,6 +15,8 @@ export interface StorefrontApiPluginOptions {
   readonly platformDomain?: string;
   /** Unset: revalidations are logged, not sent (D3222). */
   readonly storefront?: StorefrontTarget;
+  /** Unset: CDN purges are logged, not sent, and pages leave the CDN by their 60 s edge TTL (D3210). */
+  readonly cloudflare?: CloudflarePurgeTarget;
 }
 
 /** The platform domain when the host names none: the development one. */

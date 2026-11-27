@@ -17,6 +17,8 @@ const UNGUARDED_FILES = ['**/*.test.ts', '**/tests/**', '**/*.config.{ts,mts}', 
  */
 export const PROCESS_ENV_READERS = {
   'apps/server/src/config/env.ts': 'the server env module: loadEnv validates process.env for every role',
+  'apps/server/src/config/otel.ts':
+    'the observability preload, which runs before loadEnv so the SDK patches modules first: it hands process.env to readTelemetryEnv',
   'apps/server/src/healthcheck.ts':
     'the entry of the container healthcheck, a separate process: it hands process.env to readHealthEnv',
   'apps/storefront/src/config/storefront-env.ts': 'the storefront env module: it validates process.env at boot',

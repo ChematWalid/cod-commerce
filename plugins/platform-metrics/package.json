@@ -1,0 +1,34 @@
+{
+  "name": "@cod/plugin-platform-metrics",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Platform gauges for OpenTelemetry: outbox backlog, scheduler heartbeats and queue depth per pool and job name (ADR 0015, D120).",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner"
+  },
+  "dependencies": {
+    "@cod/plugin-platform-jobs": "workspace:*",
+    "@cod/plugin-platform-outbox": "workspace:*",
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@opentelemetry/api": "1.9.1",
+    "@vendure/core": "3.8.1",
+    "bullmq": "5.81.5"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@opentelemetry/sdk-metrics": "2.12.0",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.1.0"
+  }
+}

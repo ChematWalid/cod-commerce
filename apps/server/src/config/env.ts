@@ -23,6 +23,7 @@ import { InvalidRedisUrlError, redisOptionsFromUrl } from './redis-url';
 import { SERVER_ROLES, type ServerRole } from './roles';
 import { rejectUnsafeTenancySettings } from './tenancy-env';
 import { requireRevalidateSigningKey, storefrontRevalidateEnvShape } from './storefront-revalidate-env';
+import { requireCloudflarePair, telemetryEnvShape } from './telemetry-env';
 import { requireKnownKekActiveKid, tenantSecretsEnvShape, tenantSecretsSecretsOf } from './tenant-secrets-env';
 
 export { SERVER_ROLES, type ServerRole };
@@ -151,6 +152,7 @@ const baseSchema = z.object({
   ...authEnvShape,
   ...catalogImportEnvShape,
   ...storefrontRevalidateEnvShape,
+  ...telemetryEnvShape,
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;
@@ -191,6 +193,7 @@ function secretsOf(env: BaseEnv): [name: string, value: string | undefined][] {
     ['DEMO_OWNER_PASSWORD', env.DEMO_OWNER_PASSWORD],
     ['S3_SECRET_KEY', env.S3_SECRET_KEY],
     ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
+    ['CLOUDFLARE_API_TOKEN', env.CLOUDFLARE_API_TOKEN],
     ['DATABASE_URL', passwordOf(env.DATABASE_URL)],
     ['DATABASE_URL_DIRECT', passwordOf(env.DATABASE_URL_DIRECT)],
     ...internalKeysOf(env).map((key): [string, string] => ['INTERNAL_HMAC_KEYS', key.secret]),
@@ -234,6 +237,7 @@ const envSchema = baseSchema
   .superRefine(requireProxySettings)
   .superRefine(requireKnownActiveKid)
   .superRefine(requireRevalidateSigningKey)
+  .superRefine(requireCloudflarePair)
   .superRefine(requireKnownKekActiveKid)
   .superRefine(requireCatalogImportSettings)
   .superRefine(quoteKeys.requireKnownQuoteActiveKid)

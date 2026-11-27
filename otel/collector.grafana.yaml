@@ -1,0 +1,18 @@
+# Merged on top of collector.yaml on a deployed node (`--config collector.yaml --config collector.grafana.yaml`):
+# the same pipelines also export to Grafana Cloud's OTLP gateway (EU stack, ADR 0015). Lists replace, so each
+# pipeline names both exporters. The endpoint and the base64 "instance:token" come from the node's environment
+# (Ansible Vault, P3.S5b); neither is ever written here.
+exporters:
+  otlphttp/grafana:
+    endpoint: ${env:GRAFANA_OTLP_ENDPOINT}
+    headers:
+      authorization: Basic ${env:GRAFANA_OTLP_AUTH}
+
+service:
+  pipelines:
+    traces:
+      exporters: [debug, otlphttp/grafana]
+    metrics:
+      exporters: [debug, otlphttp/grafana]
+    logs:
+      exporters: [debug, otlphttp/grafana]
