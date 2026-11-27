@@ -54,6 +54,14 @@ describe('CsvPricingFile.read', () => {
     // Act and Assert
     expect(file.read(utf8('a\nb\n'), 2)).toHaveLength(2);
   });
+
+  it('counts only records holding a cell: the row cap with blank records between and below them is read', () => {
+    // Act
+    const records = file.read(utf8('a,b\n,\nc,d\n\n , \n,\n'), 2);
+
+    // Assert
+    expect(records).toHaveLength(6);
+  });
 });
 
 describe('CsvPricingFile.write', () => {

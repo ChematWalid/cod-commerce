@@ -4,7 +4,7 @@ import { InvalidPricingCsvFileError } from '../errors';
 import type { CommuneRateRow, FeeGroupRecord, WilayaRateRow } from '../fee-group';
 import { mergeCommuneRow, wilayaOverrideOf } from '../override-rules';
 import type { CommuneRowsChange } from '../ports/fee-group-repository.port';
-import { cellText, csvColumnsOf } from './csv-header';
+import { csvColumnsOf, isBlankCsvRecord } from './csv-header';
 import { type CsvCommuneRow, readCsvRow, type CsvRowContext, type CsvWilayaRow } from './csv-row';
 import { communeValuesOf, wilayaValuesOf } from './csv-values';
 
@@ -45,9 +45,6 @@ const WILAYA_WRITTEN_FIELDS = [
   'deliveryEnabled',
   'deskEnabled',
 ] as const satisfies readonly (keyof WilayaRateRow)[];
-
-/** A record whose every cell is blank, as a spreadsheet leaves below its data: skipped, not counted. */
-const isBlankRecord = (record: readonly string[]): boolean => record.every((cell) => cellText(cell) === '');
 
 /** A wilaya row of the file over the stored one: typed prices are overrides of the kept base (D3107). */
 function planWilaya(draft: PlanDraft, row: CsvWilayaRow, stored: WilayaRateRow): void {
@@ -128,7 +125,7 @@ export function planCsvImport(records: readonly (readonly string[])[], context: 
   const draft: PlanDraft = { changes: [], issues: [], wilayaRows: [], upserts: [], removals: [], seen: new Set() };
   let rows = 0;
   data.forEach((record, index) => {
-    if (isBlankRecord(record)) return;
+    if (isBlankCsvRecord(record)) return;
     rows += 1;
     const rowNumber = index + FIRST_DATA_ROW;
     const reading = readCsvRow(record, columns, rowContext);

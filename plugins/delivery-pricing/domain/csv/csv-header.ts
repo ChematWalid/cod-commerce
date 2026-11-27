@@ -6,6 +6,9 @@ export type CsvColumns = Readonly<Record<PricingCsvColumn, number>>;
 /** A header or data cell as the import reads it: the export's formula guard dropped, spaces trimmed (D2209). */
 export const cellText = (raw: string | undefined): string => unguardCell(raw ?? '').trim();
 
+/** A record whose every cell is blank, as a spreadsheet leaves below its data: skipped, and not counted by the cap. */
+export const isBlankCsvRecord = (record: readonly string[]): boolean => record.every((cell) => cellText(cell) === '');
+
 /**
  * The columns of a header row, matched by name in any letter case; other columns are ignored. `undefined` when a
  * column is missing or named twice, which refuses the whole file.

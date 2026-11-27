@@ -2,6 +2,7 @@ import { detectDelimiter, DomainError, strictUtf8Text } from '@cod/shared';
 import { CsvError, parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
 import { PRICING_CSV_MAX_RECORD_CHARS } from '../domain/constants';
+import { isBlankCsvRecord } from '../domain/csv/csv-header';
 import { InvalidPricingCsvFileError, PricingCsvTooManyRowsError } from '../domain/errors';
 import type { CsvRecords, PricingCsvPort } from '../domain/ports/pricing-csv.port';
 
@@ -23,7 +24,7 @@ function readFailureOf(error: unknown): unknown {
 /**
  * The pricing CSV adapter (D3142), with catalog-import's behaviour (D2209): strict UTF-8 (BOM allowed, as Excel writes
  * it, read through the shared `strictUtf8Text`), the delimiter detected among `,`, `;` and tab, csv-parse with
- * `max_record_size` and unbalanced quotes refused, reading stopped past the row cap; the export is UTF-8 with a BOM and
+ * `max_record_size` and unbalanced quotes refused, reading stopped past the row cap (blank records not counted); the export is UTF-8 with a BOM and
  * CRLF lines, a cell holding a line break quoted.
  */
 export class CsvPricingFile implements PricingCsvPort {
@@ -31,13 +32,16 @@ export class CsvPricingFile implements PricingCsvPort {
     const text = strictUtf8Text(bytes);
     if (text === undefined) throw new InvalidPricingCsvFileError();
     const records: string[][] = [];
+    let counted = 0;
     try {
       parse(text, {
         delimiter: detectDelimiter(text),
         relax_column_count: true,
         max_record_size: PRICING_CSV_MAX_RECORD_CHARS,
         on_record: (record: string[]) => {
-          if (records.length >= maxRecords) throw new PricingCsvTooManyRowsError();
+          // Blank records are kept (record numbers stay the spreadsheet's rows) but the plan skips them, so they
+          // do not count: a full file with blank rows below its data is not too long.
+          if (!isBlankCsvRecord(record) && ++counted > maxRecords) throw new PricingCsvTooManyRowsError();
           records.push(record);
           return null;
         },

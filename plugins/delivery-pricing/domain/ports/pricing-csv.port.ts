@@ -5,10 +5,11 @@ export type CsvRecords = readonly (readonly string[])[];
 export interface PricingCsvPort {
   /**
    * The records of strict UTF-8 CSV `bytes` (a byte order mark is dropped, the delimiter is `,`, `;` or tab), every
-   * record counted, blank ones included.
+   * record answered, blank ones included.
    *
    * @throws {InvalidPricingCsvFileError} for bytes that are not UTF-8, or text that is not CSV.
-   * @throws {PricingCsvTooManyRowsError} as soon as a record past `maxRecords` is read.
+   * @throws {PricingCsvTooManyRowsError} as soon as a non-blank record past `maxRecords` is read: blank records
+   *   (every cell empty once unguarded and trimmed) do not count.
    */
   read(bytes: Uint8Array, maxRecords: number): CsvRecords;
   /** UTF-8 CSV with a byte order mark and CRLF lines, as Excel opens it; the cells are written as given. */
