@@ -1,0 +1,5 @@
+profile: production
+# Collections come from requirements.yml, installed beforehand; lint never downloads anything.
+offline: true
+exclude_paths:
+  - .ansible/

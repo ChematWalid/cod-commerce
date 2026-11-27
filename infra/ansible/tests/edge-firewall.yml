@@ -1,0 +1,15 @@
+# Applies the firewall role's DOCKER-USER part for real to a Docker-in-Docker target (scripts/ops/ansible-check.sh).
+# The ufw part is left out: the target is not Debian and runs no systemd.
+- name: Edge chain on a Docker host
+  hosts: edge_test
+  gather_facts: true
+  tasks:
+    - name: Work out the edge ranges
+      ansible.builtin.include_role:
+        name: firewall
+        tasks_from: edge_ranges
+
+    - name: Build the edge chain
+      ansible.builtin.include_role:
+        name: firewall
+        tasks_from: docker_user

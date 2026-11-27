@@ -1,0 +1,10 @@
+# Collections the playbook and its check run use, pinned. The tool image carries only ansible.posix, so they are
+# installed next to the playbook (git-ignored .ansible/collections, ansible.cfg collections_path):
+#   scripts/ops/tool.sh ansible-galaxy collection install -r requirements.yml -p .ansible/collections
+collections:
+  # ufw (firewall role).
+  - name: community.general
+    version: 14.0.1
+  # The docker connection of the local check run (tests/inventory.yml); the playbook itself does not need it.
+  - name: community.docker
+    version: 5.4.1

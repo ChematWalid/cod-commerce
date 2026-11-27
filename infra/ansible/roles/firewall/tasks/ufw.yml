@@ -1,0 +1,46 @@
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+# First, so enabling the firewall below can never cut the operator's session.
+- name: Allow SSH before anything is denied
+  community.general.ufw:
+    rule: limit
+    port: '{{ ssh_port | default(22) | string }}'
+    proto: tcp
+    from_ip: '{{ item }}'
+    comment: cod-ssh
+  loop: '{{ firewall_ssh_sources }}'
+
+- name: Read the edge ranges applied last time
+  ansible.builtin.slurp:
+    src: '{{ firewall_ranges_file }}'
+  register: firewall_previous_ranges
+  failed_when: false
+
+- name: Remove web-port rules for ranges that are no longer listed
+  community.general.ufw:
+    rule: allow
+    from_ip: '{{ item }}'
+    port: "{{ firewall_edge_ports | join(',') }}"
+    proto: tcp
+    delete: true
+  loop: >-
+    {{ (firewall_previous_ranges.content | default('') | b64decode).split()
+       | difference(firewall_edge_ranges) }}
+
+- name: Allow the web ports from the edge ranges only
+  community.general.ufw:
+    rule: allow
+    from_ip: '{{ item }}'
+    port: "{{ firewall_edge_ports | join(',') }}"
+    proto: tcp
+    comment: cod-edge
+  loop: '{{ firewall_edge_ranges }}'
+
+- name: Deny other incoming traffic and enable ufw
+  community.general.ufw:
+    state: enabled
+    direction: incoming
+    default: deny

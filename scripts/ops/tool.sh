@@ -9,6 +9,8 @@
 # Environment variables reach the container only by name: TOOL_ENV="CLOUDFLARE_API_TOKEN TF_VAR_x" passes
 # those names (docker reads the values from this environment; they never appear on a command line).
 # TOOL_NETWORK picks a docker network (e.g. host for a k6 run against localhost).
+# TOOL_DOCKER_SOCKET=1 hands the tool the docker socket, and TOOL_DOCKER_CLI=<path> a docker client binary at
+# /usr/local/bin/docker: the Ansible image has neither, and its check run reaches its test containers that way.
 # Never add `set -x` here: it would print passed-through values.
 set -euo pipefail
 
@@ -20,7 +22,7 @@ image_of() {
     tofu) echo 'ghcr.io/opentofu/opentofu:1.10.6@sha256:879a73a0ee45132abf1b26583e3ab3a1e5443157a13b460114578d13dbe40b6e' ;;
     kamal) echo 'ghcr.io/basecamp/kamal:v2.7.0@sha256:025693d748bf2f33ff8999ac1b935f92b07cdf8cfbacf2a40870689b9c4b7257' ;;
     # Ansible publishes no ansible-core image; its dev-tools image carries ansible-core and ansible-lint.
-    ansible-playbook | ansible-lint | ansible-galaxy | ansible-inventory)
+    ansible-playbook | ansible-lint | ansible-galaxy | ansible-inventory | ansible-vault)
       echo 'ghcr.io/ansible/community-ansible-dev-tools:v25.9.0@sha256:01c11d4852af5573a0a84380456eefa736217fd2073a9137f6a1bf698ddabdc6' ;;
     k6) echo 'grafana/k6:1.3.0@sha256:3ddc8b1a33a2c3d8edc6e99b6a762ae36cba08788463458f5e6a7703e14eb77d' ;;
     trivy) echo 'aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08' ;;
@@ -36,7 +38,7 @@ image_of() {
 # The binary each image runs, when it is not the image's own entry point.
 entrypoint_of() {
   case "$1" in
-    ansible-playbook | ansible-lint | ansible-galaxy | ansible-inventory) echo "$1" ;;
+    ansible-playbook | ansible-lint | ansible-galaxy | ansible-inventory | ansible-vault) echo "$1" ;;
     otelcol) echo '/otelcol-contrib' ;;
     promtool) echo '/bin/promtool' ;;
     *) echo '' ;;
@@ -44,7 +46,7 @@ entrypoint_of() {
 }
 
 usage() {
-  echo "usage: $0 <tofu|kamal|ansible-playbook|ansible-lint|ansible-galaxy|ansible-inventory|k6|trivy|otelcol|promtool|actionlint|shellcheck> [args...]" >&2
+  echo "usage: $0 <tofu|kamal|ansible-playbook|ansible-lint|ansible-galaxy|ansible-inventory|ansible-vault|k6|trivy|otelcol|promtool|actionlint|shellcheck> [args...]" >&2
   echo "       $0 image <tool>" >&2
   exit "$EX_USAGE"
 }
@@ -104,8 +106,25 @@ case "$tool" in
     docker_args+=(-v /var/run/docker.sock:/var/run/docker.sock -v cod-trivy-cache:/tmp/trivy-cache
       -e TRIVY_CACHE_DIR=/tmp/trivy-cache)
     ;;
+  # Ansible looks up a user name for the host uid, which the image's passwd lacks. The playbook reaches servers over
+  # the caller's ssh agent and checks their keys against the caller's known_hosts. Falls through (;;&) to the default.
+  ansible-*)
+    docker_args+=(-e USER=ansible)
+    if [ "$tool" = ansible-playbook ] && [ -n "${SSH_AUTH_SOCK:-}" ]; then
+      docker_args+=(-v "$SSH_AUTH_SOCK:/ssh-agent" -e SSH_AUTH_SOCK=/ssh-agent)
+    fi
+    if [ "$tool" = ansible-playbook ] && [ -f "$HOME/.ssh/known_hosts" ]; then
+      docker_args+=(-v "$HOME/.ssh/known_hosts:/tmp/.ssh/known_hosts:ro")
+    fi
+    ;;&
   *)
     docker_args+=(--user "$(id -u):$(id -g)")
+    if [ "${TOOL_DOCKER_SOCKET:-}" = 1 ]; then
+      docker_args+=(-v /var/run/docker.sock:/var/run/docker.sock --group-add "$(stat -c %g /var/run/docker.sock)")
+    fi
+    if [ -n "${TOOL_DOCKER_CLI:-}" ]; then
+      docker_args+=(-v "$TOOL_DOCKER_CLI:/usr/local/bin/docker:ro")
+    fi
     ;;
 esac
 

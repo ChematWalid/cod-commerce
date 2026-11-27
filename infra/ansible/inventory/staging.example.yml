@@ -1,0 +1,11 @@
+# Copy to inventory/staging.yml (git-ignored) and set the server's address.
+# First run: the provider's root login (ansible_user: root). The play creates operator_user, logs in as that user,
+# and only then disables root and password logins; every later run uses ansible_user: cod.
+all:
+  children:
+    staging:
+      hosts:
+        staging-1:
+          # Documentation address (RFC 5737), replaced by the real one.
+          ansible_host: 203.0.113.10
+          ansible_user: root

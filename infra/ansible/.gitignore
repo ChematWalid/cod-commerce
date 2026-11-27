@@ -1,0 +1,5 @@
+# Real inventory and secrets stay on the operator's machine.
+inventory/staging.yml
+group_vars/*/vault.yml
+# Collections installed from requirements.yml, and ansible-lint's cache.
+.ansible/

@@ -1,0 +1,9 @@
+# Synthetic values for the local --check run only: the target is a throwaway container and nothing is applied.
+# They are not secrets and must never be used on a server (the zero patterns of the root .env.example).
+operator_ssh_public_keys:
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA check-only-not-a-real-key
+data_tier_postgres_password: check-only-not-a-secret
+data_tier_garage_rpc_secret: '0000000000000000000000000000000000000000000000000000000000000000'
+data_tier_garage_admin_token: check-only-not-a-secret
+data_tier_s3_access_key: GK000000000000000000000000
+data_tier_s3_secret_key: '0000000000000000000000000000000000000000000000000000000000000000'

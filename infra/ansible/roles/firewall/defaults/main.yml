@@ -1,0 +1,16 @@
+# Cloudflare publishes its edge ranges here; they are fetched at run time and checked, and the pinned copies in
+# files/ are used when the fetch fails or looks wrong (refresh them when Cloudflare announces a change).
+firewall_edge_ranges_urls:
+  v4: https://www.cloudflare.com/ips-v4
+  v6: https://www.cloudflare.com/ips-v6
+# A fetched list shorter than this is treated as broken (Cloudflare has published 15 IPv4 and 7 IPv6 ranges for years).
+firewall_edge_ranges_min:
+  v4: 10
+  v6: 5
+# Extra sources allowed on the web ports, e.g. a load balancer in front of a second node. The firewall test uses it.
+firewall_edge_ranges_extra: []
+firewall_edge_ports: [80, 443]
+# Where the internet arrives; traffic on any other interface (containers, loopback) is not filtered by the edge chain.
+firewall_public_interface: "{{ ansible_facts['default_ipv4']['interface'] | default('') }}"
+firewall_ssh_sources: ['any']
+firewall_ranges_file: /etc/cod/edge-ranges.txt

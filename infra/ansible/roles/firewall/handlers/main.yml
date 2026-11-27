@@ -1,0 +1,10 @@
+- name: Apply the edge chain
+  ansible.builtin.command: /usr/local/sbin/cod-edge-firewall
+  changed_when: true
+
+- name: Enable the edge chain unit
+  ansible.builtin.systemd_service:
+    name: cod-edge-firewall.service
+    enabled: true
+    daemon_reload: true
+  when: ansible_facts['service_mgr'] == 'systemd'

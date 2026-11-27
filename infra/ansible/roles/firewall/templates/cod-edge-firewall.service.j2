@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Edge allow-list for Docker-published ports (DOCKER-USER)
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/cod-edge-firewall
+
+[Install]
+WantedBy=docker.service

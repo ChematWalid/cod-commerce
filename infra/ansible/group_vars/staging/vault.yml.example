@@ -1,0 +1,9 @@
+# Copy to vault.yml, fill in, then encrypt: scripts/ops/tool.sh ansible-vault encrypt vault.yml
+# vault.yml is git-ignored; run the playbook with --ask-vault-pass (README). Generate values on the operator's
+# machine (formats in the root .env.example); never paste them into chat, tickets or CI logs.
+# The preflight refuses an empty value or one still set to CHANGE_ME.
+vault_postgres_password: CHANGE_ME
+vault_garage_rpc_secret: CHANGE_ME
+vault_garage_admin_token: CHANGE_ME
+vault_s3_access_key: CHANGE_ME
+vault_s3_secret_key: CHANGE_ME

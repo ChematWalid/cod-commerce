@@ -1,0 +1,11 @@
+- name: Work out the edge ranges
+  ansible.builtin.import_tasks: edge_ranges.yml
+
+# ufw guards the host's own sockets (SSH, and IPv6 web traffic that Docker's userland proxy takes in).
+- name: Host firewall (ufw)
+  ansible.builtin.import_tasks: ufw.yml
+  tags: [firewall-ufw]
+
+# Docker-published ports bypass ufw (DNAT happens before INPUT), so they are filtered in DOCKER-USER.
+- name: Docker-published ports (DOCKER-USER)
+  ansible.builtin.import_tasks: docker_user.yml

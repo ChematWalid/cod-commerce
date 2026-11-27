@@ -1,0 +1,11 @@
+# Handlers run in this order: the full configuration (main file plus every drop-in) is tested before a restart.
+- name: Check the whole sshd configuration
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+
+# A restart keeps open sessions, so the running play is not cut off.
+- name: Restart sshd
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+  when: ansible_facts['service_mgr'] == 'systemd'

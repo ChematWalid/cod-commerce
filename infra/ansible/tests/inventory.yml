@@ -1,0 +1,14 @@
+# Local test targets started by scripts/ops/ansible-check.sh (Docker containers, reached through the Docker socket).
+all:
+  children:
+    # A fresh Debian 12 container standing in for the staging server in the --check run.
+    staging:
+      hosts:
+        cod-ansible-check-target:
+          ansible_connection: community.docker.docker
+    # A Docker-in-Docker container whose published ports exercise the DOCKER-USER edge chain for real.
+    edge_test:
+      hosts:
+        cod-ansible-edge-target:
+          ansible_connection: community.docker.docker
+          ansible_python_interpreter: /usr/bin/python3

@@ -1,0 +1,43 @@
+- name: Check for an existing swap file
+  ansible.builtin.stat:
+    path: '{{ swap_file }}'
+  register: swap_file_stat
+
+- name: Allocate the swap file
+  ansible.builtin.command: 'dd if=/dev/zero of={{ swap_file }} bs=1M count={{ swap_size_mb }} status=none'
+  args:
+    creates: '{{ swap_file }}'
+  register: swap_allocated
+  notify:
+    - Format the swap file
+    - Turn the swap on
+
+- name: Restrict the swap file to root
+  ansible.builtin.file:
+    path: '{{ swap_file }}'
+    owner: root
+    group: root
+    mode: '0600'
+  # In --check a new file is only announced, not allocated.
+  when: swap_file_stat.stat.exists or (swap_allocated is changed and not ansible_check_mode)
+
+- name: Mount the swap file at boot
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^{{ swap_file }}\s'
+    line: '{{ swap_file }} none swap sw 0 0'
+
+- name: Keep the persisted swappiness
+  ansible.builtin.copy:
+    content: "vm.swappiness = {{ swap_swappiness }}\n"
+    dest: /etc/sysctl.d/60-cod-swap.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+# A container cannot set kernel parameters; the check run skips this (README).
+- name: Apply the swappiness now
+  ansible.builtin.command: 'sysctl -p /etc/sysctl.d/60-cod-swap.conf'
+  register: swap_sysctl
+  changed_when: false
+  tags: [host-kernel]

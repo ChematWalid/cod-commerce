@@ -1,0 +1,72 @@
+# Staging server baseline (Debian 12). Order matters: the operator account is created and a login as that user is
+# proven before sshd drops root and passwords, and SSH is allowed in the firewall before it is enabled.
+- name: Preflight
+  hosts: staging
+  gather_facts: true
+  tags: [always]
+  tasks:
+    - name: Refuse anything but Debian 12
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['distribution'] == 'Debian'
+          - ansible_facts['distribution_major_version'] == '12'
+        fail_msg: 'This baseline targets Debian 12 (bookworm) only.'
+        quiet: true
+
+    - name: Refuse to run without an operator key (the play disables every other login)
+      ansible.builtin.assert:
+        that: operator_ssh_public_keys | length > 0
+        fail_msg: 'Set operator_ssh_public_keys in group_vars/staging/vars.yml.'
+        quiet: true
+
+    - name: Refuse empty or placeholder secrets
+      ansible.builtin.assert:
+        that:
+          - item | length > 0
+          - item != 'CHANGE_ME'
+        fail_msg: 'A data-tier secret is empty or still CHANGE_ME: fill and encrypt group_vars/staging/vault.yml.'
+        quiet: true
+      no_log: true
+      loop:
+        - '{{ data_tier_postgres_password }}'
+        - '{{ data_tier_garage_rpc_secret }}'
+        - '{{ data_tier_garage_admin_token }}'
+        - '{{ data_tier_s3_access_key }}'
+        - '{{ data_tier_s3_secret_key }}'
+
+# sudo only when logged in as the operator: a fresh image may lack sudo, and root needs none.
+- name: Operator account
+  hosts: staging
+  become: "{{ (ansible_user | default('root')) != 'root' }}"
+  roles:
+    - role: base
+      tags: [base]
+    - role: users
+      tags: [users]
+  post_tasks:
+    - name: Drop the current connection so the next login is a fresh one
+      ansible.builtin.meta: reset_connection
+
+    - name: Log in as the operator before root and password logins are disabled
+      ansible.builtin.ping:
+      become: false
+      vars:
+        ansible_user: '{{ operator_user }}'
+      # In --check the account does not exist yet.
+      when: not ansible_check_mode
+      tags: [users]
+
+- name: Hardening, Docker and data tier
+  hosts: staging
+  become: "{{ (ansible_user | default('root')) != 'root' }}"
+  roles:
+    - role: ssh
+      tags: [ssh]
+    - role: docker
+      tags: [docker]
+    - role: firewall
+      tags: [firewall]
+    - role: swap
+      tags: [swap]
+    - role: data_tier
+      tags: [data_tier]

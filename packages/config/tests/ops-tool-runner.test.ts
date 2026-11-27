@@ -13,6 +13,7 @@ const TOOLS = [
   'kamal',
   'ansible-playbook',
   'ansible-lint',
+  'ansible-vault',
   'k6',
   'trivy',
   'otelcol',

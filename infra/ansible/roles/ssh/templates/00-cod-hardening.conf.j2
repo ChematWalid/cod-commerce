@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+Port {{ ssh_port }}
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+AllowUsers {{ operator_user }}
+MaxAuthTries 3
+LoginGraceTime 30
+ClientAliveInterval 300
+ClientAliveCountMax 2
+X11Forwarding no
+AllowAgentForwarding no
+AllowTcpForwarding {{ ssh_allow_tcp_forwarding }}
+PermitTunnel no

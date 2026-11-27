@@ -1,0 +1,22 @@
+data_tier_dir: /opt/cod
+# The compose project name sets the network (cod_default) that the Kamal-run app containers join.
+data_tier_compose_project: cod
+data_tier_compose_source: '{{ playbook_dir }}/../../docker-compose.yml'
+data_tier_services: [postgres, pgbouncer, valkey, garage]
+# Data ports stay on loopback; the app reaches them over the compose network, the operator over an SSH tunnel.
+data_tier_bind_addr: 127.0.0.1
+data_tier_pgbouncer_pool_size: 20
+data_tier_valkey_maxmemory: 256mb
+data_tier_wait_timeout: 180
+data_tier_compose:
+  [docker, compose, --project-directory, '{{ data_tier_dir }}', --project-name, '{{ data_tier_compose_project }}']
+data_tier_psql:
+  - psql
+  - -v
+  - ON_ERROR_STOP=1
+  - --username
+  - '{{ data_tier_postgres_user }}'
+  - --dbname
+  - '{{ data_tier_postgres_db }}'
+  - --command
+  - CREATE EXTENSION IF NOT EXISTS pg_stat_statements

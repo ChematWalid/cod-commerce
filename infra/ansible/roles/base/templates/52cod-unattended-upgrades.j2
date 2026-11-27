@@ -1,0 +1,7 @@
+// {{ ansible_managed }}
+// Security updates only: Docker CE and every other pinned package move by a reviewed change, never here.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "{{ base_auto_reboot | ternary('true', 'false') }}";

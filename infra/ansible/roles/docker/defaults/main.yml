@@ -1,0 +1,14 @@
+# Exact package versions from download.docker.com (bookworm). Bump them together in a reviewed change; the packages
+# are held so neither apt upgrade nor unattended upgrades move them.
+docker_packages:
+  - docker-ce=5:29.10.1-1~debian.12~bookworm
+  - docker-ce-cli=5:29.10.1-1~debian.12~bookworm
+  - containerd.io=2.4.2-4~debian.12~bookworm
+  - docker-buildx-plugin=0.39.1-1~debian.12~bookworm
+  # The compose file needs Compose >= 2.23.1 (configs.content).
+  - docker-compose-plugin=5.8.1-1~debian.12~bookworm
+docker_apt_key_url: https://download.docker.com/linux/debian/gpg
+# Docker Release (CE deb) signing key; the download is refused unless it carries exactly this fingerprint.
+docker_apt_key_fingerprint: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+docker_log_max_size: 20m
+docker_log_max_file: '5'

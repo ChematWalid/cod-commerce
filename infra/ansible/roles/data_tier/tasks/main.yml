@@ -1,0 +1,50 @@
+- name: Create the data tier directory
+  ansible.builtin.file:
+    path: '{{ data_tier_dir }}'
+    state: directory
+    owner: root
+    group: '{{ operator_user }}'
+    mode: '0750'
+
+- name: Copy the repository's compose file
+  ansible.builtin.copy:
+    src: '{{ data_tier_compose_source }}'
+    dest: '{{ data_tier_dir }}/docker-compose.yml'
+    owner: root
+    group: '{{ operator_user }}'
+    mode: '0640'
+
+# no_log and diff off: the file holds the vault values, and --diff would print them.
+- name: Write the data tier environment from the vault
+  ansible.builtin.template:
+    src: data-tier.env.j2
+    dest: '{{ data_tier_dir }}/.env'
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+  diff: false
+
+- name: Look for the Docker CLI
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: data_tier_docker_cli
+
+- name: Start the data services and wait until they are healthy
+  ansible.builtin.command:
+    argv: '{{ data_tier_compose + ["up", "--detach", "--wait", "--wait-timeout", data_tier_wait_timeout | string] + data_tier_services }}'
+  register: data_tier_up
+  # Compose reports what it did on stderr; "Running"/"Healthy" alone means nothing changed.
+  changed_when: data_tier_up.stderr is search('Created|Recreated|Started|Pulled')
+  # The output can echo the interpolated environment.
+  no_log: true
+  # --check on a fresh host has no Docker yet.
+  when: data_tier_docker_cli.stat.exists or not ansible_check_mode
+
+# Idempotent; the statistics fill once postgres preloads the library (compose command, runbook).
+- name: Create the pg_stat_statements extension
+  ansible.builtin.command:
+    argv: '{{ data_tier_compose + ["exec", "-T", "postgres"] + data_tier_psql }}'
+  register: data_tier_pgss
+  changed_when: "'already exists' not in data_tier_pgss.stderr"
+  when: data_tier_docker_cli.stat.exists or not ansible_check_mode

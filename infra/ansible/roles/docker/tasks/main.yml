@@ -1,0 +1,80 @@
+- name: Create the apt keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Download the Docker apt signing key
+  ansible.builtin.get_url:
+    url: '{{ docker_apt_key_url }}'
+    dest: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Read the downloaded key's fingerprint
+  ansible.builtin.command: gpg --show-keys --with-colons /etc/apt/keyrings/docker.asc
+  register: docker_key_listing
+  changed_when: false
+  check_mode: false
+  # In --check the key was not downloaded on a fresh host.
+  failed_when: docker_key_listing.rc != 0 and not ansible_check_mode
+
+- name: Refuse a key that is not Docker's release key
+  ansible.builtin.assert:
+    that: ('fpr:::::::::' ~ docker_apt_key_fingerprint ~ ':') in docker_key_listing.stdout
+    fail_msg: '/etc/apt/keyrings/docker.asc does not carry fingerprint {{ docker_apt_key_fingerprint }}.'
+    quiet: true
+  when: docker_key_listing.rc == 0
+
+- name: Add the Docker CE repository
+  ansible.builtin.template:
+    src: docker.sources.j2
+    dest: /etc/apt/sources.list.d/docker.sources
+    owner: root
+    group: root
+    mode: '0644'
+  register: docker_repo
+
+- name: Create the Docker configuration directory
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure the Docker daemon (log rotation)
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart docker
+
+- name: Install the pinned Docker CE packages
+  ansible.builtin.apt:
+    name: '{{ docker_packages }}'
+    state: present
+    allow_downgrade: true
+    update_cache: '{{ docker_repo is changed }}'
+  register: docker_install
+  # --check on a fresh host cannot resolve packages from a repository it has not added yet.
+  when: not (ansible_check_mode and docker_repo is changed)
+
+- name: Hold the Docker packages at the pinned versions
+  ansible.builtin.dpkg_selections:
+    name: "{{ item.split('=') | first }}"
+    selection: hold
+  loop: '{{ docker_packages }}'
+  when: docker_install is not skipped
+
+- name: Start Docker now and at boot
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+  when: ansible_facts['service_mgr'] == 'systemd'

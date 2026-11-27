@@ -1,0 +1,37 @@
+- name: Install base packages
+  ansible.builtin.apt:
+    name: '{{ base_packages }}'
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set the time zone to UTC
+  ansible.builtin.file:
+    src: /usr/share/zoneinfo/Etc/UTC
+    dest: /etc/localtime
+    state: link
+    force: true
+
+- name: Record the time zone for tools that read /etc/timezone
+  ansible.builtin.copy:
+    content: "Etc/UTC\n"
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Turn on the daily unattended upgrade run
+  ansible.builtin.template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Limit unattended upgrades to Debian security updates
+  ansible.builtin.template:
+    src: 52cod-unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/52cod-unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'

@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: {{ ansible_facts['distribution_release'] }}
+Components: stable
+Architectures: {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
+Signed-By: /etc/apt/keyrings/docker.asc

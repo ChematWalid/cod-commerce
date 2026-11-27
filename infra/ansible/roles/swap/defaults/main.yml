@@ -1,0 +1,4 @@
+# The OOM buffer of the launch node (infrastructure.md §1.1): steady use stays in RAM, swap absorbs a role swap.
+swap_file: /swapfile
+swap_size_mb: 2048
+swap_swappiness: 10

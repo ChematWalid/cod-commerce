@@ -1,0 +1,46 @@
+# Without it the chain would filter nothing (or everything); iproute2 provides the default-route fact.
+- name: Refuse to build the edge chain without a public interface
+  ansible.builtin.assert:
+    that: firewall_public_interface | length > 0
+    fail_msg: 'No default IPv4 route found: set firewall_public_interface.'
+    quiet: true
+
+- name: Create /etc/cod
+  ansible.builtin.file:
+    path: /etc/cod
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Write the edge ranges the chain is built from
+  ansible.builtin.template:
+    src: edge-ranges.txt.j2
+    dest: '{{ firewall_ranges_file }}'
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Apply the edge chain
+
+- name: Install the script that rebuilds the edge chain
+  ansible.builtin.template:
+    src: cod-edge-firewall.sh.j2
+    dest: /usr/local/sbin/cod-edge-firewall
+    owner: root
+    group: root
+    mode: '0755'
+  notify: Apply the edge chain
+
+# Persisted by re-running the script whenever Docker starts (Docker creates DOCKER-USER but never fills it).
+- name: Install the unit that rebuilds the edge chain with Docker
+  ansible.builtin.template:
+    src: cod-edge-firewall.service.j2
+    dest: /etc/systemd/system/cod-edge-firewall.service
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_facts['service_mgr'] == 'systemd'
+  notify: Enable the edge chain unit
+
+- name: Apply the edge chain now
+  ansible.builtin.meta: flush_handlers

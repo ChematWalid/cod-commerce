@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+{% for key in operator_ssh_public_keys %}
+{{ key }}
+{% endfor %}

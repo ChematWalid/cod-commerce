@@ -1,0 +1,54 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# Rebuilds the COD-EDGE chain that DOCKER-USER jumps to: new connections arriving on the public interface reach a
+# published port only when they come from an edge range and target a web port. Everything else from that interface
+# is dropped; replies and container or loopback traffic pass. The chain is built aside and swapped in, so the old
+# rules stay in force until the new ones are complete.
+set -eu
+
+ranges_file='{{ firewall_ranges_file }}'
+public_if='{{ firewall_public_interface }}'
+ports='{{ firewall_edge_ports | join(" ") }}'
+
+ranges_of() {
+  case "$1" in
+    v4) grep -v ':' "$ranges_file" | grep '/' || true ;;
+    v6) grep ':' "$ranges_file" || true ;;
+  esac
+}
+
+build() {
+  ipt="$1"
+  family="$2"
+  "$ipt" -w -N COD-EDGE-NEXT 2>/dev/null || "$ipt" -w -F COD-EDGE-NEXT
+  "$ipt" -w -A COD-EDGE-NEXT -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
+  "$ipt" -w -A COD-EDGE-NEXT ! -i "$public_if" -j RETURN
+  for cidr in $(ranges_of "$family"); do
+    for port in $ports; do
+      # The original port: after Docker's DNAT the packet carries the container's port.
+      "$ipt" -w -A COD-EDGE-NEXT -s "$cidr" -p tcp -m conntrack --ctorigdstport "$port" -j RETURN
+    done
+  done
+  "$ipt" -w -A COD-EDGE-NEXT -j DROP
+
+  "$ipt" -w -N DOCKER-USER 2>/dev/null || true
+  "$ipt" -w -I DOCKER-USER 1 -j COD-EDGE-NEXT
+  while "$ipt" -w -D DOCKER-USER -j COD-EDGE 2>/dev/null; do :; done
+  if "$ipt" -w -L COD-EDGE -n >/dev/null 2>&1; then
+    "$ipt" -w -F COD-EDGE
+    "$ipt" -w -X COD-EDGE
+  fi
+  "$ipt" -w -E COD-EDGE-NEXT COD-EDGE
+}
+
+# An empty list would drop every web request: refuse and keep the rules in force.
+if [ -z "$(ranges_of v4)" ]; then
+  echo "cod-edge-firewall: no IPv4 range in $ranges_file, rules left unchanged" >&2
+  exit 1
+fi
+
+build iptables v4
+if command -v ip6tables >/dev/null 2>&1; then
+  build ip6tables v6
+fi
+echo "cod-edge-firewall: edge chain applied on $public_if for ports $ports"

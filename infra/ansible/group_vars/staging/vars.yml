@@ -1,0 +1,20 @@
+# Non-secret settings of the staging server. Secrets live in vault.yml next to this file (Ansible Vault,
+# git-ignored; vault.yml.example lists the names).
+
+# The only account that logs in over SSH (sudo, docker). Root and password logins are disabled.
+operator_user: cod
+
+# Public keys of the people allowed to log in as operator_user (public, not secret). Empty fails the preflight.
+operator_ssh_public_keys: []
+
+# Who may reach SSH. 'any' until the operator has a fixed address; then list CIDRs.
+firewall_ssh_sources: ['any']
+
+data_tier_postgres_user: cod
+data_tier_postgres_db: cod
+data_tier_s3_bucket_private: cod-private
+data_tier_postgres_password: '{{ vault_postgres_password }}'
+data_tier_garage_rpc_secret: '{{ vault_garage_rpc_secret }}'
+data_tier_garage_admin_token: '{{ vault_garage_admin_token }}'
+data_tier_s3_access_key: '{{ vault_s3_access_key }}'
+data_tier_s3_secret_key: '{{ vault_s3_secret_key }}'

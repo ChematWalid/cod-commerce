@@ -1,0 +1,12 @@
+base_packages:
+  - apt-listchanges
+  - ca-certificates
+  - curl
+  - gnupg
+  - iproute2
+  - iptables
+  - sudo
+  - tzdata
+  - unattended-upgrades
+# Security updates install unattended; a kernel update waits for a planned reboot (runbook), never an automatic one.
+base_auto_reboot: false

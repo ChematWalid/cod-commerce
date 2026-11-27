@@ -1,0 +1,43 @@
+# The docker group exists before Docker CE is installed, so the operator can join it now; the package reuses it.
+- name: Create the docker group
+  ansible.builtin.group:
+    name: docker
+    system: true
+    state: present
+
+- name: Create the operator account (key login only, password locked)
+  ansible.builtin.user:
+    name: '{{ operator_user }}'
+    shell: /bin/bash
+    groups: [sudo, docker]
+    append: true
+    create_home: true
+    password_lock: true
+    state: present
+
+- name: Create the operator's .ssh directory
+  ansible.builtin.file:
+    path: '/home/{{ operator_user }}/.ssh'
+    state: directory
+    owner: '{{ operator_user }}'
+    group: '{{ operator_user }}'
+    mode: '0700'
+
+# A template, not one task per key: a key removed from the list is removed from the server.
+- name: Install exactly the listed operator keys
+  ansible.builtin.template:
+    src: authorized_keys.j2
+    dest: '/home/{{ operator_user }}/.ssh/authorized_keys'
+    owner: '{{ operator_user }}'
+    group: '{{ operator_user }}'
+    mode: '0600'
+
+# The password is locked, so sudo cannot ask for one; access rests on the SSH key.
+- name: Let the operator use sudo without a password
+  ansible.builtin.template:
+    src: sudoers-operator.j2
+    dest: /etc/sudoers.d/90-cod-operator
+    owner: root
+    group: root
+    mode: '0440'
+    validate: /usr/sbin/visudo -cf %s
