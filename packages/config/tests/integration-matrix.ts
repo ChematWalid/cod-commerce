@@ -54,6 +54,10 @@ const FILE_SPLITS: Readonly<Record<string, readonly string[]>> = { [CATALOG]: CA
 const COLLECTIONS = '@cod/plugin-collections-rules';
 /** The offers have a part of their own too: five Vendure test-server suites would overrun `others` (D2433). */
 const OFFERS = '@cod/plugin-offers';
+/** Geo has a part of its own: `others` timed out at ten minutes once geo and delivery pricing joined it (#305). */
+const GEO = '@cod/plugin-geo';
+/** Delivery pricing runs in two shards: seven Vendure test-server suites, near ten minutes as one part (#305). */
+const DELIVERY_PRICING = '@cod/plugin-delivery-pricing';
 /** The platform plugins of part `platform-1` (D118). */
 const PLATFORM_1 = [
   '@cod/plugin-platform-jobs',
@@ -78,6 +82,8 @@ const othersExclusions = [
   CATALOG_IMPORT,
   COLLECTIONS,
   OFFERS,
+  GEO,
+  DELIVERY_PRICING,
 ]
   .map((name) => `--filter=!${name}`)
   .join(' ');
@@ -100,6 +106,9 @@ export const EXPECTED_MATRIX_PARTS: readonly MatrixPart[] = [
   { part: 'offers', command: unshardedCommand(OFFERS) },
   { part: 'catalog-packs', command: unshardedCommand(CATALOG_PACKS) },
   { part: 'catalog-import', command: unshardedCommand(CATALOG_IMPORT) },
+  { part: 'geo', command: unshardedCommand(GEO) },
+  { part: 'delivery-pricing-1', command: shardedCommand(DELIVERY_PRICING, 1) },
+  { part: 'delivery-pricing-2', command: shardedCommand(DELIVERY_PRICING, 2) },
 ];
 
 /** True when a whole-suite `turbo` part runs `name`'s suite, alone or grouped: no shard and no file arguments. */
