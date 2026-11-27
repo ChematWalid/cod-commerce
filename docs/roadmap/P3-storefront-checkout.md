@@ -196,6 +196,7 @@ link and stop without merging.
 
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
+- docs/roadmap/plans/P3.S3-plan.md (executable plan)
 - `docs/roadmap/CONTRIBUTING.md`; handoff notes of P3.S1, P3.S2, P2.S4
 - `docs/research/data-model.md` → "Storefront ordering protocol" items 1–3 (shipping-quote and cart-quote request/response, `quoteToken`, `nudge`, `applied`, `skipped`, `rejectedCodes`)
 - `docs/research/second-pass.md` → "Storefront order → delivered" step 1 (Arabic default theme form), "Builder page templates" (Product Info and In-Page Checkout settings: default delivery type, option style, show address/note, sticky button)
