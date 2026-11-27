@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import type { RequestContext } from '@vendure/core';
 import { asOperationContext } from '../domain/ports/operation-context';
 import { toGroupDto, toPageDto } from './dto';
-import { FeeGroupUseCases } from './fee-group-use-cases';
+import { FeeGroupBulkUseCases, FeeGroupUseCases } from './fee-group-use-cases';
 import {
   idArgOf,
   parseCommunePricesInput,
@@ -21,7 +21,10 @@ import { scopeOf } from './store-scope-of';
  */
 @Injectable()
 export class FeeGroupActions {
-  constructor(private readonly useCases: FeeGroupUseCases) {}
+  constructor(
+    private readonly useCases: FeeGroupUseCases,
+    private readonly bulk: FeeGroupBulkUseCases,
+  ) {}
 
   /** A page of the active store's groups. */
   async list(ctx: RequestContext, options: unknown): Promise<DeliveryFeeGroupPage> {
@@ -71,7 +74,7 @@ export class FeeGroupActions {
   async adjustPrices(ctx: RequestContext, id: unknown, input: unknown): Promise<DeliveryFeeGroup> {
     const scope = scopeOf(ctx);
     const parsed = parsePriceAdjustmentInput(input);
-    const group = await this.useCases.adjusting.adjust(asOperationContext(ctx), scope, idArgOf(id), parsed);
+    const group = await this.bulk.adjusting.adjust(asOperationContext(ctx), scope, idArgOf(id), parsed);
     return toGroupDto(group);
   }
 
@@ -84,7 +87,7 @@ export class FeeGroupActions {
   ): Promise<DeliveryFeeGroup> {
     const scope = scopeOf(ctx);
     const parsed = parseCommunePricesInput(provinceCode, prices);
-    const group = await this.useCases.communePrices.set(asOperationContext(ctx), scope, idArgOf(id), parsed);
+    const group = await this.bulk.communePrices.set(asOperationContext(ctx), scope, idArgOf(id), parsed);
     return toGroupDto(group);
   }
 
@@ -92,7 +95,7 @@ export class FeeGroupActions {
   async duplicate(ctx: RequestContext, id: unknown, name: unknown): Promise<DeliveryFeeGroup> {
     const scope = scopeOf(ctx);
     const parsed = parseDuplicateInput(name);
-    const group = await this.useCases.duplicating.duplicate(asOperationContext(ctx), scope, idArgOf(id), parsed);
+    const group = await this.bulk.duplicating.duplicate(asOperationContext(ctx), scope, idArgOf(id), parsed);
     return toGroupDto(group);
   }
 }

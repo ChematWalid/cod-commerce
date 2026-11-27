@@ -96,6 +96,10 @@ export function adjustCommunePrices(
     });
 }
 
+/** The override a commune price ends with: the stored one when no price is asked, else the asked one over `base`. */
+const priceOverride = (base: number | null, stored: number | null, asked: number | null | undefined): number | null =>
+  asked === undefined ? stored : communeOverrideOf(base, asked);
+
 /** One commune with the asked prices: bases and switches as stored, an absent price keeping its stored override. */
 function communeWithPrices(
   codeOns: number,
@@ -103,19 +107,22 @@ function communeWithPrices(
   stored: CommuneRateRow | undefined,
   prices: CommunePrices,
 ): CommuneRateRow {
-  const baseHome = stored?.baseHome ?? null;
-  const baseDesk = stored?.baseDesk ?? null;
-  return {
+  const own: CommuneRateRow = stored ?? {
     codeOns,
     provinceCode,
-    baseHome,
-    baseDesk,
-    overrideHome:
-      prices.homePrice === undefined ? (stored?.overrideHome ?? null) : communeOverrideOf(baseHome, prices.homePrice),
-    overrideDesk:
-      prices.deskPrice === undefined ? (stored?.overrideDesk ?? null) : communeOverrideOf(baseDesk, prices.deskPrice),
-    deliveryEnabled: stored?.deliveryEnabled ?? null,
-    deskEnabled: stored?.deskEnabled ?? null,
+    baseHome: null,
+    baseDesk: null,
+    overrideHome: null,
+    overrideDesk: null,
+    deliveryEnabled: null,
+    deskEnabled: null,
+  };
+  return {
+    ...own,
+    codeOns,
+    provinceCode,
+    overrideHome: priceOverride(own.baseHome, own.overrideHome, prices.homePrice),
+    overrideDesk: priceOverride(own.baseDesk, own.overrideDesk, prices.deskPrice),
   };
 }
 

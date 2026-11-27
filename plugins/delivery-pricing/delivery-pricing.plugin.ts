@@ -6,7 +6,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { DeliveryPricingTranslations } from './api/delivery-pricing-translations';
 import { FeeGroupActions } from './api/fee-group-actions';
-import { FeeGroupUseCases } from './api/fee-group-use-cases';
+import { FeeGroupBulkUseCases, FeeGroupUseCases } from './api/fee-group-use-cases';
 import { FeeGroupsController } from './api/fee-groups.controller';
 import { FeeGroupsResolver } from './api/fee-groups.resolver';
 import { RestI18nMiddleware } from './api/rest-i18n.middleware';
@@ -29,7 +29,13 @@ export const DELIVERY_PRICING_REST_CONTROLLERS = [FeeGroupsController];
 @VendurePlugin({
   imports: [PluginCommonModule, TenancyPlugin, GeoPlugin, CatalogPlugin, OffersPlugin],
   entities: DELIVERY_PRICING_ENTITIES,
-  providers: [...DELIVERY_PRICING_PROVIDERS, FeeGroupUseCases, FeeGroupActions, DeliveryPricingTranslations],
+  providers: [
+    ...DELIVERY_PRICING_PROVIDERS,
+    FeeGroupUseCases,
+    FeeGroupBulkUseCases,
+    FeeGroupActions,
+    DeliveryPricingTranslations,
+  ],
   exports: [DefaultTableService, DeliveryDefaultsConvergeService, ShippingQuoteService],
   adminApiExtensions: { schema: deliveryPricingAdminApiSchema, resolvers: [FeeGroupsResolver] },
   controllers: DELIVERY_PRICING_REST_CONTROLLERS,

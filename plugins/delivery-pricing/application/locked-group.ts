@@ -8,6 +8,14 @@ import type { FeeGroupPorts } from './fee-group-ports';
 /** The work of a bulk write on the store's group, given the transactional context and the group as read under lock. */
 export type LockedGroupWork = (tx: OperationContext, group: FeeGroupRecord) => Promise<void>;
 
+/** Which group a bulk write locks: the store's group `rawId`, through `ports`, in the request `ctx`. */
+export interface LockedGroupTarget {
+  readonly ports: FeeGroupPorts;
+  readonly ctx: OperationContext;
+  readonly scope: StoreScope;
+  readonly rawId: string;
+}
+
 /**
  * Runs `work` on the store's group `rawId` in one transaction, the group row locked `FOR UPDATE` first, then answers
  * the group as written.
@@ -15,10 +23,7 @@ export type LockedGroupWork = (tx: OperationContext, group: FeeGroupRecord) => P
  * @throws {DeliveryFeeGroupNotFoundError} for an unknown, foreign, other-store or malformed id, checked first.
  */
 export async function withLockedGroup(
-  ports: FeeGroupPorts,
-  ctx: OperationContext,
-  scope: StoreScope,
-  rawId: string,
+  { ports, ctx, scope, rawId }: LockedGroupTarget,
   work: LockedGroupWork,
 ): Promise<FeeGroupRecord> {
   const id = groupIdOf(rawId);

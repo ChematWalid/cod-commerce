@@ -7,7 +7,7 @@ import { SaveFeeGroupService } from '../application/save-fee-group.service';
 import { SetCommunePricesService } from '../application/set-commune-prices.service';
 import { SetCommuneRatesService } from '../application/set-commune-rates.service';
 
-/** The fee-group use cases, injected together. */
+/** The fee-group use cases that read or edit one group, injected together. */
 @Injectable()
 export class FeeGroupUseCases {
   constructor(
@@ -15,6 +15,13 @@ export class FeeGroupUseCases {
     readonly saving: SaveFeeGroupService,
     readonly deleting: DeleteFeeGroupService,
     readonly communes: SetCommuneRatesService,
+  ) {}
+}
+
+/** The bulk price tools and the copy of a group (D3140), injected together. */
+@Injectable()
+export class FeeGroupBulkUseCases {
+  constructor(
     readonly adjusting: AdjustPricesService,
     readonly communePrices: SetCommunePricesService,
     readonly duplicating: DuplicateFeeGroupService,

@@ -26,7 +26,7 @@ export class AdjustPricesService {
     input: DeliveryFeePriceAdjustmentInput,
   ): Promise<FeeGroupRecord> {
     const selection = new Set<WilayaCode>(input.provinceCodes);
-    return withLockedGroup(this.ports, ctx, scope, rawId, async (tx, group) => {
+    return withLockedGroup({ ports: this.ports, ctx, scope, rawId }, async (tx, group) => {
       const held = new Set(group.rates.map((row) => row.provinceCode));
       if (input.provinceCodes.some((code) => !held.has(code))) throw new InvalidDeliveryFeeInputError();
       const rates = adjustPrices(group.rates, selection, input);

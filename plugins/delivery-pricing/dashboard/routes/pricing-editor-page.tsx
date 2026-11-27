@@ -111,10 +111,50 @@ function EditorActions(props: { readonly canSave: boolean; readonly busy: boolea
   );
 }
 
+interface WilayasBlockProps extends Pick<EditorProps, 'scope' | 'group'> {
+  readonly form: PricingForm;
+  readonly errors: ReadonlySet<string>;
+  readonly disabled: boolean;
+  /** Whether the form holds edits not saved yet, which a server-side bulk tool would not see. */
+  readonly unsaved: boolean;
+  readonly onForm: (update: (current: PricingForm) => PricingForm) => void;
+  readonly onWritten: (written: FeeGroupDto) => void;
+}
+
+/** The wilaya table with its selection bar for "Raise/lower by…" (D3140). */
+function WilayasBlock(props: WilayasBlockProps): ReactNode {
+  const { selection, setSelection, onSelect } = useSelection();
+  const groupId = props.group?.id ?? null;
+  return (
+    <>
+      <SelectionBar
+        scope={props.scope}
+        groupId={groupId}
+        codes={props.form.rows.map((row) => row.provinceCode)}
+        selection={selection}
+        unsaved={props.unsaved}
+        disabled={props.disabled}
+        onSelection={setSelection}
+        onAdjusted={props.onWritten}
+      />
+      <WilayaTable
+        form={props.form}
+        selection={selection}
+        onSelect={onSelect}
+        errors={props.errors}
+        disabled={props.disabled}
+        scope={props.scope}
+        groupId={groupId}
+        communeRates={props.group?.communeRates ?? NO_COMMUNE_RATES}
+        onForm={props.onForm}
+      />
+    </>
+  );
+}
+
 function EditorPage(props: EditorProps): ReactNode {
   const { i18n } = useLingui();
   const { form, setForm, errors, save, canSave, unsaved, onWritten } = useEditor(props);
-  const { selection, setSelection, onSelect } = useSelection();
   const disabled = !canSave;
   const onChange = (change: Partial<PricingForm>): void => {
     setForm((current) => ({ ...current, ...change }));
@@ -137,26 +177,15 @@ function EditorPage(props: EditorProps): ReactNode {
           <BulkCard form={form} disabled={disabled} onForm={setForm} />
         </PageBlock>
         <PageBlock column="main" blockId={BLOCK_IDS.table} title={i18n._('delivery-pricing.wilayas-title')}>
-          <SelectionBar
+          <WilayasBlock
             scope={props.scope}
-            groupId={props.group?.id ?? null}
-            codes={form.rows.map((row) => row.provinceCode)}
-            selection={selection}
-            unsaved={unsaved}
-            disabled={disabled}
-            onSelection={setSelection}
-            onAdjusted={onWritten}
-          />
-          <WilayaTable
+            group={props.group}
             form={form}
-            selection={selection}
-            onSelect={onSelect}
             errors={errors}
             disabled={disabled}
-            scope={props.scope}
-            groupId={props.group?.id ?? null}
-            communeRates={props.group?.communeRates ?? NO_COMMUNE_RATES}
+            unsaved={unsaved}
             onForm={setForm}
+            onWritten={onWritten}
           />
         </PageBlock>
       </PageLayout>

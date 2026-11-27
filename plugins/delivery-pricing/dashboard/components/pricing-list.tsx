@@ -160,6 +160,37 @@ function Toolbar({ store, held, search, onSearch }: ToolbarProps): ReactNode {
   );
 }
 
+/** The copy and delete dialogs of the row being acted on, if any. */
+function RowDialogs({ rows }: { readonly rows: ReturnType<typeof useRowActions> }): ReactNode {
+  return (
+    <>
+      {rows.copying !== null && (
+        <CopyDialog
+          key={rows.copying.id}
+          group={rows.copying}
+          pending={rows.copy.isPending}
+          onConfirm={(name) => {
+            if (rows.copying !== null) rows.copy.mutate({ groupId: rows.copying.id, name });
+          }}
+          onClose={() => {
+            rows.setCopying(null);
+          }}
+        />
+      )}
+      <DeleteDialog
+        group={rows.deleting}
+        pending={rows.remove.isPending}
+        onConfirm={(group) => {
+          rows.remove.mutate(group.id);
+        }}
+        onClose={() => {
+          rows.setDeleting(null);
+        }}
+      />
+    </>
+  );
+}
+
 /** The Delivery pricing tab: the store filter, the search, Add pricing option, the table and its pager (captured). */
 export function PricingList({ store, scope, held }: PricingListProps): ReactNode {
   const [query, setQuery] = useState<PricingListQuery>({ page: 1, search: '' });
@@ -185,29 +216,7 @@ export function PricingList({ store, scope, held }: PricingListProps): ReactNode
           setQuery({ ...query, page });
         }}
       />
-      {rows.copying !== null && (
-        <CopyDialog
-          key={rows.copying.id}
-          group={rows.copying}
-          pending={rows.copy.isPending}
-          onConfirm={(name) => {
-            if (rows.copying !== null) rows.copy.mutate({ groupId: rows.copying.id, name });
-          }}
-          onClose={() => {
-            rows.setCopying(null);
-          }}
-        />
-      )}
-      <DeleteDialog
-        group={rows.deleting}
-        pending={rows.remove.isPending}
-        onConfirm={(group) => {
-          rows.remove.mutate(group.id);
-        }}
-        onClose={() => {
-          rows.setDeleting(null);
-        }}
-      />
+      <RowDialogs rows={rows} />
     </div>
   );
 }

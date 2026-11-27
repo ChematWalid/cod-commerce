@@ -25,7 +25,7 @@ export class SetCommunePricesService {
     input: DeliveryFeeCommunePricesInput,
   ): Promise<FeeGroupRecord> {
     const { provinceCode, prices } = input;
-    return withLockedGroup(this.ports, ctx, scope, rawId, async (tx, group) => {
+    return withLockedGroup({ ports: this.ports, ctx, scope, rawId }, async (tx, group) => {
       if (!group.rates.some((row) => row.provinceCode === provinceCode)) throw new InvalidDeliveryFeeInputError();
       const towns = await this.ports.towns.townsOf(provinceCode);
       const stored = group.communeRates.filter((row) => row.provinceCode === provinceCode);

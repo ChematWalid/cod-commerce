@@ -22,10 +22,29 @@ interface CopyDialogProps {
   readonly onClose: () => void;
 }
 
+/** The copy's name, at most `FEE_GROUP_NAME_MAX` characters. */
+function CopyNameField({ name, onName }: { readonly name: string; readonly onName: (name: string) => void }) {
+  const { i18n } = useLingui();
+  const id = useId();
+  return (
+    <div className="grid gap-1">
+      <Label htmlFor={id}>{i18n._('delivery-pricing.copy-name-label')}</Label>
+      <Input
+        id={id}
+        data-testid={COPY_NAME_TEST_ID}
+        maxLength={FEE_GROUP_NAME_MAX}
+        value={name}
+        onChange={(event) => {
+          onName(event.target.value);
+        }}
+      />
+    </div>
+  );
+}
+
 /** "Copy" a pricing option (D3140): asks the copy's name, starting from "Copy of <name>"; the server copies the rest. */
 export function CopyDialog({ group, pending, onConfirm, onClose }: CopyDialogProps): ReactNode {
   const { i18n } = useLingui();
-  const id = useId();
   const [name, setName] = useState(() =>
     copyNameOf(group.name, (source) => i18n._('delivery-pricing.copy-name', { name: source })),
   );
@@ -40,18 +59,7 @@ export function CopyDialog({ group, pending, onConfirm, onClose }: CopyDialogPro
         <DialogHeader>
           <DialogTitle>{i18n._('delivery-pricing.copy-heading')}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-1">
-          <Label htmlFor={id}>{i18n._('delivery-pricing.copy-name-label')}</Label>
-          <Input
-            id={id}
-            data-testid={COPY_NAME_TEST_ID}
-            maxLength={FEE_GROUP_NAME_MAX}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-            }}
-          />
-        </div>
+        <CopyNameField name={name} onName={setName} />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             {i18n._('delivery-pricing.cancel')}

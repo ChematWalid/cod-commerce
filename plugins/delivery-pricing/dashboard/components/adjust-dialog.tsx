@@ -81,6 +81,36 @@ function Tick(props: { readonly label: string; readonly checked: boolean; readon
 const DIRECTION_LABELS = { raise: 'delivery-pricing.adjust-raise', lower: 'delivery-pricing.adjust-lower' } as const;
 const KIND_LABELS = { amount: 'delivery-pricing.adjust-amount', percent: 'delivery-pricing.adjust-percent' } as const;
 
+/** Which prices move: home, desk, and whether the commune overrides move too. */
+function AdjustTicks(props: { readonly form: AdjustForm; readonly onChange: (change: Partial<AdjustForm>) => void }) {
+  const { i18n } = useLingui();
+  return (
+    <div className="grid gap-2">
+      <Tick
+        label={i18n._('delivery-pricing.column-home')}
+        checked={props.form.home}
+        onChange={(home) => {
+          props.onChange({ home });
+        }}
+      />
+      <Tick
+        label={i18n._('delivery-pricing.column-desk')}
+        checked={props.form.desk}
+        onChange={(desk) => {
+          props.onChange({ desk });
+        }}
+      />
+      <Tick
+        label={i18n._('delivery-pricing.adjust-include-communes')}
+        checked={props.form.includeCommunes}
+        onChange={(includeCommunes) => {
+          props.onChange({ includeCommunes });
+        }}
+      />
+    </div>
+  );
+}
+
 /** The dialog's fields: direction, DZD or %, the value, which prices, and whether commune overrides move too. */
 function AdjustFields({ form, onForm }: { readonly form: AdjustForm; readonly onForm: (form: AdjustForm) => void }) {
   const { i18n } = useLingui();
@@ -114,31 +144,36 @@ function AdjustFields({ form, onForm }: { readonly form: AdjustForm; readonly on
           set({ value });
         }}
       />
-      <div className="grid gap-2">
-        <Tick
-          label={i18n._('delivery-pricing.column-home')}
-          checked={form.home}
-          onChange={(home) => {
-            set({ home });
-          }}
-        />
-        <Tick
-          label={i18n._('delivery-pricing.column-desk')}
-          checked={form.desk}
-          onChange={(desk) => {
-            set({ desk });
-          }}
-        />
-        <Tick
-          label={i18n._('delivery-pricing.adjust-include-communes')}
-          checked={form.includeCommunes}
-          onChange={(includeCommunes) => {
-            set({ includeCommunes });
-          }}
-        />
-      </div>
+      <AdjustTicks form={form} onChange={set} />
       <p className="text-muted-foreground text-xs">{i18n._('delivery-pricing.adjust-communes-note')}</p>
     </div>
+  );
+}
+
+/** Cancel and apply; `onApply` is null while the form is not valid. */
+function AdjustFooter(props: {
+  readonly pending: boolean;
+  readonly onApply: (() => void) | null;
+  readonly onClose: () => void;
+}): ReactNode {
+  const { i18n } = useLingui();
+  const { onApply } = props;
+  return (
+    <DialogFooter>
+      <Button type="button" variant="outline" onClick={props.onClose}>
+        {i18n._('delivery-pricing.cancel')}
+      </Button>
+      <Button
+        type="button"
+        data-testid={ADJUST_APPLY_TEST_ID}
+        disabled={props.pending || onApply === null}
+        onClick={() => {
+          onApply?.();
+        }}
+      >
+        {i18n._('delivery-pricing.adjust-apply')}
+      </Button>
+    </DialogFooter>
   );
 }
 
@@ -168,21 +203,17 @@ export function AdjustDialog({ open, selection, pending, onApply, onClose }: Adj
             {i18n._('delivery-pricing.adjust-invalid')}
           </p>
         )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            {i18n._('delivery-pricing.cancel')}
-          </Button>
-          <Button
-            type="button"
-            data-testid={ADJUST_APPLY_TEST_ID}
-            disabled={pending || !submit.ok}
-            onClick={() => {
-              if (submit.ok) onApply(submit.input);
-            }}
-          >
-            {i18n._('delivery-pricing.adjust-apply')}
-          </Button>
-        </DialogFooter>
+        <AdjustFooter
+          pending={pending}
+          onApply={
+            submit.ok
+              ? () => {
+                  onApply(submit.input);
+                }
+              : null
+          }
+          onClose={onClose}
+        />
       </DialogContent>
     </Dialog>
   );
