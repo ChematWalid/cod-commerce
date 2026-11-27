@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  communeEditorKeyOf,
   communeInputOf,
   communeOverridden,
   communePanelOf,
@@ -152,5 +153,35 @@ describe('place names in the UI language', () => {
 
     // Assert
     expect(names).toEqual(['الجزائر', 'Alger', 'باب الوادي', 'Bab El Oued']);
+  });
+});
+
+describe('commune editor reload key', () => {
+  it('changes when a bulk write changes the stored commune prices, even with the same updatedAt', () => {
+    // Arrange
+    const updatedAt = '2026-11-20T10:00:00.000Z';
+    const before = [communeRateOf(1601, '16', { homePrice: 450, overridden: true })];
+    const after = [
+      communeRateOf(1601, '16', { homePrice: 800, overridden: true }),
+      communeRateOf(1652, '16', { homePrice: 800, overridden: true }),
+    ];
+
+    // Act
+    const keys = [communeEditorKeyOf(updatedAt, before), communeEditorKeyOf(updatedAt, after)];
+
+    // Assert
+    expect(keys[0]).not.toEqual(keys[1]);
+  });
+
+  it('stays the same when nothing stored changed', () => {
+    // Arrange
+    const updatedAt = '2026-11-20T10:00:00.000Z';
+    const rows = [communeRateOf(1601, '16', { homePrice: 450, overridden: true })];
+
+    // Act
+    const keys = [communeEditorKeyOf(updatedAt, rows), communeEditorKeyOf(updatedAt, [...rows])];
+
+    // Assert
+    expect(keys[0]).toEqual(keys[1]);
   });
 });

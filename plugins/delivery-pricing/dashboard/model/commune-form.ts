@@ -133,3 +133,11 @@ export const communesSwitchedOn = (stored: readonly CommuneRateDto[], provinceCo
 /** Whether a wilaya's communes can be edited: only once the pricing option is saved and has an id. */
 export const communePanelOf = (groupId: string | null): 'save-first' | 'editable' =>
   groupId === null ? 'save-first' : 'editable';
+
+/**
+ * The key the commune editor is mounted under: it copies the stored rows once, so it must remount whenever they
+ * change. `updatedAt` moves on every price write; the stored rows are in the key too, so a write that left
+ * `updatedAt` as it was (an older server) still reloads the editor instead of letting its next save undo the write.
+ */
+export const communeEditorKeyOf = (updatedAt: string, stored: readonly CommuneRateDto[]): string =>
+  `${updatedAt}|${JSON.stringify(stored)}`;

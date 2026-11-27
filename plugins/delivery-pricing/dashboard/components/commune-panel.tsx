@@ -8,6 +8,7 @@ import { useCommuneSave } from '../hooks/use-pricing-writes';
 import {
   type CommuneChange,
   type CommuneRow as CommuneRowState,
+  communeEditorKeyOf,
   communeRowsOf,
   withCommune,
   withCommuneReset,
@@ -98,7 +99,10 @@ export function CommunePanel(props: CommunePanelProps): ReactNode {
   if (towns.isError || group.isError) body = <p role="alert">{i18n._('delivery-pricing.error-generic')}</p>;
   else if (towns.data === undefined || group.data === undefined) body = <p>{i18n._('delivery-pricing.loading')}</p>;
   else if (group.data === null) body = <p role="alert">{i18n._('delivery-pricing.not-found-page')}</p>;
-  else body = <CommuneEditor key={group.data.updatedAt} {...props} initial={communeRowsOf(towns.data, own)} />;
+  else {
+    const key = communeEditorKeyOf(group.data.updatedAt, own);
+    body = <CommuneEditor key={key} {...props} initial={communeRowsOf(towns.data, own)} />;
+  }
   return (
     <div data-testid={COMMUNE_PANEL_TEST_ID} className="bg-muted/40 rounded-md p-3">
       {!props.disabled && (

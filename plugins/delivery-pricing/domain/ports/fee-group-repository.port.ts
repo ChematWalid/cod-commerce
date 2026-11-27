@@ -70,6 +70,10 @@ export interface FeeGroupRepositoryPort {
     groupId: Snowflake,
     provinceCode: WilayaCode,
   ): Promise<readonly CommuneRateRow[]>;
+  /**
+   * Deletes the `removals` and the `upserts`' communes, inserts the `upserts`, and moves the group's `updatedAt`
+   * forward, as any price write does; throws `DeliveryFeeGroupNotFoundError` when the group is not the store's.
+   */
   writeCommuneRows(
     ctx: OperationContext,
     scope: StoreScope,

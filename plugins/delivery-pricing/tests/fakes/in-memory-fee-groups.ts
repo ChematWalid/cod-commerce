@@ -110,7 +110,12 @@ export class InMemoryFeeGroups implements FeeGroupRepositoryPort {
     if (group === undefined) return Promise.resolve();
     const touched = new Set([...change.removals, ...change.upserts.map((row) => row.codeOns)]);
     const kept = group.communeRates.filter((row) => !touched.has(row.codeOns));
-    this.of(scope).set(groupId, { ...group, communeRates: [...kept, ...change.upserts] });
+    this.clock += 1000;
+    this.of(scope).set(groupId, {
+      ...group,
+      communeRates: [...kept, ...change.upserts],
+      updatedAt: new Date(this.clock),
+    });
     return Promise.resolve();
   }
 

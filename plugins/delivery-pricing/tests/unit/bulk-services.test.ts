@@ -120,6 +120,22 @@ describe('SetCommunePricesService', () => {
     expect(rateOf(updated, '16')).toEqual(rateOf(group, '16'));
   });
 
+  it('moves the group updatedAt forward, so an editor keyed on it reloads the written communes', async () => {
+    // Arrange
+    const w = world();
+    const group = await pricedGroup(w);
+    const before = (await w.reads.get(ctx, STORE_A1, group.id))?.updatedAt.getTime() ?? Number.POSITIVE_INFINITY;
+
+    // Act
+    const updated = await w.communePrices.set(ctx, STORE_A1, group.id, {
+      provinceCode: '16',
+      prices: { homePrice: 800 },
+    });
+
+    // Assert
+    expect(updated.updatedAt.getTime()).toBeGreaterThan(before);
+  });
+
   it('clears every commune override of the wilaya on null', async () => {
     // Arrange
     const w = world();

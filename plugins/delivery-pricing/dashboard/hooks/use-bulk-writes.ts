@@ -33,7 +33,10 @@ export function useAdjustPrices({
   });
 }
 
-/** "Set price for all communes" of one wilaya (D3140); the commune panel reloads from the refreshed option. */
+/**
+ * "Set price for all communes" of one wilaya (D3140). The write moves the option's `updatedAt` and its commune rows,
+ * so once the option is refreshed the commune editor remounts (keyed by `communeEditorKeyOf`) with the new prices.
+ */
 export function useCommunePrices({ scope, groupId }: GroupWriteOptions) {
   const { i18n } = useLingui();
   const refresh = useRefreshAll();

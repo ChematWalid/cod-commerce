@@ -183,6 +183,9 @@ export class TypeOrmFeeGroupRepository implements FeeGroupRepositoryPort {
     change: CommuneRowsChange,
   ): Promise<void> {
     const tenant = requestScope(ctx, scope);
+    // A commune write changes the group's prices, so it moves `updatedAt` like `update` (the dashboard reloads on it).
+    const header = await this.groups.update(tenant, { ...inStore(scope), id: groupId }, { updatedAt: new Date() });
+    if (header !== 1) throw new DeliveryFeeGroupNotFoundError();
     const touched = [...change.removals, ...change.upserts.map((row) => row.codeOns)];
     if (touched.length > 0) await this.communes.delete(tenant, { ...inStore(scope), groupId, codeOns: In(touched) });
     for (const row of change.upserts) {
