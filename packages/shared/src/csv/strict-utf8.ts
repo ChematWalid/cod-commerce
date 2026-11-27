@@ -1,5 +1,5 @@
 /** The byte order mark Excel writes before a UTF-8 CSV, read as text. */
-const UTF8_BOM = '﻿';
+const UTF8_BOM = '\uFEFF';
 
 /**
  * The text of strict UTF-8 `bytes` without its byte order mark (D2209, as Excel writes it), or `undefined` when the
