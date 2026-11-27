@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { ACTIVITY_LOG_SCHEMA, RbacPlugin } from '@cod/plugin-rbac';
 import type { DeliveryFeeGroupInput, Province, Town } from '@cod/shared';
+import { INTERNAL_AUTH_HEADERS } from '@cod/shared/internal-auth';
 import type { BusinessFixture, StoreFixture } from '@cod/testing';
 import { RequestContextService } from '@vendure/core';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -13,10 +14,15 @@ const ALGER = '16';
 const ALGER_CENTRE = 1601;
 const CHERAGA = 1652;
 
-/** The towns of Alger as the signed storefront route answers them for `store` (geo caches each store's answer). */
+/**
+ * The towns of Alger as the signed storefront route answers them for `store` (geo caches each store's answer). The
+ * signed store header is the one the internal-only middleware passes on once the signature checks (D3106, D3135).
+ */
 async function algerTownsFor(store: StoreFixture): Promise<readonly Town[]> {
   const { port } = (suite.kit.app.getHttpServer() as Server).address() as AddressInfo;
-  const response = await fetch(`http://localhost:${String(port)}/store/provinces/code/${ALGER}?storeId=${store.id}`);
+  const response = await fetch(`http://localhost:${String(port)}/store/provinces/code/${ALGER}?storeId=${store.id}`, {
+    headers: { [INTERNAL_AUTH_HEADERS.storeId]: store.id },
+  });
   expect(response.status).toBe(200);
   return ((await response.json()) as Province).towns ?? [];
 }
