@@ -59,3 +59,28 @@ export const REDIS_ERROR_LOG_INTERVAL_MS = 30_000;
 
 /** The logger context of everything this plugin logs. */
 export const LOGGER_CONTEXT = 'PlatformHealthPlugin';
+
+/** ADR 0013: after SIGTERM the api waits this long for its in-flight requests before it closes. */
+export const REQUEST_DRAIN_TIMEOUT_MS = 25_000;
+
+/** ADR 0013: after SIGTERM the worker waits this long for its active jobs before it closes its queues and DB. */
+export const JOB_DRAIN_TIMEOUT_MS = 60_000;
+
+/**
+ * Time left after a drain to close the queues, the DB pool and the HTTP server. The drain plus this margin stays
+ * under the orchestrator's stop grace (compose: api 35 s, worker 75 s), so a stuck close ends with our own exit
+ * code and log line instead of a SIGKILL.
+ */
+export const SHUTDOWN_CLOSE_MARGIN_MS = 5_000;
+
+/** The exit code of a process whose shutdown outlived its deadline. */
+export const SHUTDOWN_DEADLINE_EXIT_CODE = 1;
+
+/** The reason every `/readyz` check gives while the process drains: the load balancer must stop sending traffic. */
+export const DRAINING_CODE = 'platform-health.draining';
+
+/**
+ * A `/readyz` result is reused this long (#137): a flood of anonymous probes then costs one round of Postgres
+ * and Valkey queries per second. Short enough that a failure shows within one probe period.
+ */
+export const READINESS_CACHE_TTL_MS = 1_000;

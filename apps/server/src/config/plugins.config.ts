@@ -64,6 +64,7 @@ const healthPlugin = (env: AppEnv, role: ServerRole): VendurePluginEntry =>
     redisUrl: env.REDIS_URL,
     workerHealthPort: env.WORKER_HEALTH_PORT,
     serveWorkerHealth: role === 'worker',
+    role,
   });
 
 /** Guards the Shop API, /store and /_internal on every host with the internal signature (D112). */

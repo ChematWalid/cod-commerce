@@ -20,6 +20,8 @@ x-app: &app
       # Namespaces the storefront's cache keys and assets: export the commit id before building
       # (verify-stack does). A bare rebuild reuses `local` and must flush the `next:*` keys in Valkey.
       NEXT_DEPLOYMENT_ID: ${NEXT_DEPLOYMENT_ID:-local}
+      # The static files' CDN prefix; the standalone build embeds it (empty locally: served by the storefront).
+      STOREFRONT_ASSET_PREFIX: ${STOREFRONT_ASSET_PREFIX:-}
   image: ${APP_IMAGE:-cod-platform:local}
   environment: &app-env
     TZ: UTC
@@ -229,6 +231,8 @@ services:
       - '${API_BIND_ADDR:-127.0.0.1}:${API_HOST_PORT:-3100}:${COMPOSE_API_PORT:-3000}'
     healthcheck: *app-healthcheck
     restart: unless-stopped
+    # Above the api's drain deadline (25 s requests + 5 s close, ADR 0013), so a stop never ends in SIGKILL.
+    stop_grace_period: 35s
 
   worker:
     <<: *app
@@ -242,6 +246,8 @@ services:
       - '${DATA_BIND_ADDR:-127.0.0.1}:${WORKER_HEALTH_HOST_PORT:-3020}:${COMPOSE_WORKER_HEALTH_PORT:-3020}'
     healthcheck: *app-healthcheck
     restart: unless-stopped
+    # Above the worker's drain deadline (60 s jobs + 5 s close, ADR 0013).
+    stop_grace_period: 75s
 
   # The Next.js storefront from the same image. It needs only Valkey (the shared cache); while Valkey is
   # down it serves uncached and /readyz stays 200 with checks.redis.ok false (plan deviation 15).
@@ -288,6 +294,8 @@ services:
       retries: 6
       start_period: 30s
     restart: unless-stopped
+    # Same grace as the api, so a slow render is never cut by SIGKILL (scripts/ops/image-check.sh times the stop).
+    stop_grace_period: 35s
 
 configs:
   garage_toml:
