@@ -12,14 +12,14 @@ const settings = readTelemetryEnv(process.env);
 // The SDKs are loaded only when switched on, and synchronously: an `import()` would resolve after the server's
 // modules were already loaded, unpatched. A static import would load both SDKs into every process.
 if (settings.sentryDsn !== undefined) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded only when switched on, before the server
   const { startErrorReporting } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded only when switched on, before the server
     require('./observability/error-reporting') as typeof import('./observability/error-reporting');
   startErrorReporting(settings.sentryDsn, settings);
 }
 if (settings.otlpEndpoint !== undefined) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded only when switched on, before the server
   const { startOpenTelemetry } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded only when switched on, before the server
     require('./observability/open-telemetry') as typeof import('./observability/open-telemetry');
   startOpenTelemetry(settings);
 }
