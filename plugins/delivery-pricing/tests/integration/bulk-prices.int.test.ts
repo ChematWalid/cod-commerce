@@ -116,6 +116,25 @@ describe('setDeliveryFeeProvinceCommunePrices', () => {
     expect(rateOf(updated, '16')).toEqual(rateOf(group, '16'));
   });
 
+  it('moves the group updatedAt forward, so a client keyed on it reloads the communes', async () => {
+    // Arrange
+    await suite.kit.asOwner(suite.fixtures.a);
+    const group = await suite.kit.createGroup('Communes reload');
+    const { setDeliveryFeeCommuneRates: before } = await suite.kit.gql<{ setDeliveryFeeCommuneRates: GroupResult }>(
+      SET_COMMUNES,
+      { groupId: group.id, provinceCode: '16', rows: [communeRow(1601, 450)] },
+    );
+
+    // Act
+    const { setDeliveryFeeProvinceCommunePrices: after } = await suite.kit.gql<{
+      setDeliveryFeeProvinceCommunePrices: GroupResult;
+    }>(SET_COMMUNE_PRICES, { groupId: group.id, provinceCode: '16', input: { homePrice: 800 } });
+
+    // Assert
+    expect(Date.parse(before.updatedAt)).toBeGreaterThan(Date.parse(group.updatedAt));
+    expect(Date.parse(after.updatedAt)).toBeGreaterThan(Date.parse(before.updatedAt));
+  });
+
   it('clears every commune override of the wilaya on null, over REST', async () => {
     // Arrange
     const group = await pricedGroup('Clear communes');

@@ -110,6 +110,7 @@ export interface GroupResult {
   readonly isPlatformDefault: boolean;
   readonly rates: readonly RateResult[];
   readonly communeRates: readonly CommuneResult[];
+  readonly updatedAt: string;
 }
 
 /** A whole fee-group input: one rate per wilaya at `homePrice` home and 400 desk, everything enabled. */
