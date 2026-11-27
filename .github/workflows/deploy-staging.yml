@@ -1,9 +1,10 @@
 name: deploy-staging
 
 # Deploys the image a successful image.yml run pushed (ghcr.io/<owner>/platform:<sha>) to staging with Kamal, then
-# smokes and warms it, rolling back on any failure (scripts/ops/deploy-staging.sh, D3505). workflow_run fires only
-# from the default branch's copy of this file, so nothing deploys until P3 reaches main; until then, and until the
-# repository variable STAGING_ENABLED is 'true' (P3.S5b), every run ends in the gate with a notice.
+# smokes and warms it, rolling back on any failure (scripts/ops/deploy-staging.sh, D3505). The commit comes from the
+# run's image-version artifact, written only after GHCR accepted the push (D3523). workflow_run fires only from the
+# default branch's copy of this file, so nothing deploys until P3 reaches main; until then, and until the repository
+# variable STAGING_ENABLED is 'true' (P3.S5b), every run ends in the gate with a notice.
 on:
   workflow_run:
     workflows: [image]
@@ -26,34 +27,59 @@ jobs:
   # No environment here: a job that names one creates it, and the switch must work before it exists.
   gate:
     name: gate
+    # image.yml runs after CI (workflow_run) or by hand, never on a push; a run either way can be deployed. Its
+    # head_branch and head_sha are the default branch's, so the branch and commit are checked from the artifact.
     if: >-
       github.event_name == 'workflow_dispatch' || (
-      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.event == 'workflow_run' || github.event.workflow_run.event == 'workflow_dispatch') &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'phase/')))
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    permissions:
+      actions: read
     outputs:
       enabled: ${{ steps.gate.outputs.enabled }}
       version: ${{ steps.gate.outputs.version }}
     steps:
+      # Absent when GHCR refused the push: the gate step below then skips with a notice.
+      - name: Read the version the image run pushed
+        if: github.event_name == 'workflow_run'
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: image-version
+          path: image-version
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
       - name: Check that staging is switched on and pick the version
         id: gate
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_VERSION: ${{ inputs.version || github.sha }}
           STAGING_ENABLED: ${{ vars.STAGING_ENABLED }}
-          VERSION: ${{ inputs.version || github.event.workflow_run.head_sha || github.sha }}
         run: |
+          skip() {
+            echo "::notice title=staging deploy skipped::$1"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+          VERSION="$DISPATCH_VERSION"
+          if [[ "$EVENT_NAME" == workflow_run ]]; then
+            [[ -s image-version/sha && -s image-version/branch ]] ||
+              skip "the image run left no image-version artifact (GHCR refused its push), so there is no image to deploy."
+            VERSION="$(< image-version/sha)"
+            branch="$(< image-version/branch)"
+            [[ "$branch" =~ ^(main|phase/[A-Za-z0-9._/-]+)$ ]] ||
+              skip "the image was built from a branch other than main or phase/*."
+          fi
           if [[ ! "$VERSION" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error title=bad version::the version must be a full 40-character commit SHA"
             exit 1
           fi
+          [[ "$STAGING_ENABLED" == true ]] ||
+            skip "the repository variable STAGING_ENABLED is not 'true' (set by P3.S5b once the server and the staging environment exist)."
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [[ "$STAGING_ENABLED" != true ]]; then
-            echo "::notice title=staging deploy skipped::the repository variable STAGING_ENABLED is not 'true' (set by P3.S5b once the server and the staging environment exist)."
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
   deploy:

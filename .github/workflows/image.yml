@@ -2,7 +2,7 @@ name: image
 
 # The role image (Dockerfile) of a commit whose CI passed: built once, scanned (Trivy), described (CycloneDX SBOM),
 # pushed to GHCR as ghcr.io/<owner>/platform:<sha>, and its storefront static files put on the CDN bucket.
-# deploy-staging.yml then deploys that exact image (D3505). workflow_run fires only from the default branch's copy
+# deploy-staging.yml then deploys that exact image (D3505, D3523). workflow_run fires only from the default branch's copy
 # of this file, so nothing builds here until P3 reaches main.
 on:
   workflow_run:
@@ -78,6 +78,7 @@ jobs:
       # The job token with packages: write is enough for the repository's own package. A refusal (package settings,
       # plan limits) is noted, not failed: nothing can deploy the image until it is pushed.
       - name: Push to GHCR
+        id: push
         env:
           IMAGE: ${{ steps.name.outputs.ref }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,10 +86,30 @@ jobs:
           if printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null \
             && docker push --quiet "$IMAGE"; then
             echo "pushed $IMAGE"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice title=image not pushed::GHCR refused $IMAGE (package permissions or plan limits); nothing deploys it."
           fi
           docker logout ghcr.io >/dev/null
+      # deploy-staging.yml cannot read the commit from its own event: this run was started by workflow_run, so its
+      # head_sha and head_branch are the default branch's. It deploys what this record names instead, and finds no
+      # record when GHCR refused the push (D3523).
+      - name: Record the pushed version
+        if: steps.push.outputs.pushed == 'true'
+        env:
+          SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        run: |
+          install -d image-version
+          printf '%s\n' "$COMMIT_SHA" > image-version/sha
+          printf '%s\n' "$SOURCE_BRANCH" > image-version/branch
+      - name: Hand the version to deploy-staging
+        if: steps.push.outputs.pushed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-version
+          path: image-version/
+          if-no-files-found: error
+          retention-days: 7
       # Skips with a notice while the R2 secrets or the CDN prefix are absent (P3.S5b sets them).
       - name: Put the storefront static files on the CDN bucket
         env:

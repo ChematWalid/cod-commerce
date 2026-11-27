@@ -9,6 +9,7 @@ const read = (path: string): string => readFileSync(join(repoRoot, path), 'utf8'
 
 interface Step {
   name?: string;
+  'continue-on-error'?: boolean;
   id?: string;
   uses?: string;
   run?: string;
@@ -18,6 +19,7 @@ interface Step {
 }
 interface Job {
   if?: string;
+  permissions?: Record<string, string>;
   needs?: string | string[];
   environment?: string | { name?: string };
   outputs?: Record<string, string>;
@@ -63,16 +65,38 @@ describe('deploy-staging.yml (D3505)', () => {
     expect(deployText).not.toMatch(/pull_request/);
   });
 
-  it('deploys only a green image run of a push to main or a phase branch of this repository', () => {
+  it('deploys only a green image run of this repository, whether CI or a person started that run', () => {
     for (const guard of [
-      "github.event.workflow_run.event == 'push'",
+      "github.event.workflow_run.event == 'workflow_run'",
+      "github.event.workflow_run.event == 'workflow_dispatch'",
       "github.event.workflow_run.conclusion == 'success'",
       'github.event.workflow_run.head_repository.full_name == github.repository',
-      "github.event.workflow_run.head_branch == 'main'",
-      "startsWith(github.event.workflow_run.head_branch, 'phase/')",
     ]) {
       expect(gate.if).toContain(guard);
     }
+    // image.yml is itself started by workflow_run, so the run never has event 'push' and its head_branch/head_sha
+    // are the default branch's, not the commit it built (D3523).
+    expect(gate.if).not.toContain("event == 'push'");
+    expect(gate.if).not.toContain('head_branch');
+    expect(deployText).not.toContain('workflow_run.head_sha');
+  });
+
+  it('reads the version image.yml recorded after its push, from that run, with read access to actions only', () => {
+    const download = stepsOf(gate).find((step) => step.uses?.startsWith('actions/download-artifact@'));
+    const steps = stepsOf(gate);
+
+    expect(download?.uses).toMatch(/^actions\/download-artifact@[0-9a-f]{40}$/);
+    expect(download?.if).toBe("github.event_name == 'workflow_run'");
+    expect(download?.with).toEqual({
+      name: 'image-version',
+      path: 'image-version',
+      'run-id': '${{ github.event.workflow_run.id }}',
+      'github-token': '${{ github.token }}',
+    });
+    // A refused push leaves no artifact: the gate then skips with a notice instead of failing.
+    expect(download?.['continue-on-error']).toBe(true);
+    expect(steps.indexOf(download ?? {})).toBeLessThan(steps.findIndex((step) => step.id === 'gate'));
+    expect(gate.permissions).toEqual({ actions: 'read' });
   });
 
   it('skips with a notice until the repository variable STAGING_ENABLED is true, without touching the environment', () => {
@@ -85,12 +109,15 @@ describe('deploy-staging.yml (D3505)', () => {
     expect(job.if).toBe("needs.gate.outputs.enabled == 'true'");
   });
 
-  it('deploys the image run head SHA (or a dispatched one), checked as a full commit id', () => {
+  it('checks out and deploys the version the gate picked, without keeping the checkout token', () => {
     const check = stepsOf(gate).find((step) => step.id === 'gate');
     const checkout = stepsOf(job).find((step) => step.uses?.startsWith('actions/checkout@'));
 
-    expect(check?.env?.['VERSION']).toBe('${{ inputs.version || github.event.workflow_run.head_sha || github.sha }}');
-    expect(check?.run).toContain('^[0-9a-f]{40}$');
+    expect(check?.env).toEqual({
+      EVENT_NAME: '${{ github.event_name }}',
+      DISPATCH_VERSION: '${{ inputs.version || github.sha }}',
+      STAGING_ENABLED: '${{ vars.STAGING_ENABLED }}',
+    });
     expect(job.env?.['VERSION']).toBe('${{ needs.gate.outputs.version }}');
     expect(checkout?.uses).toBe(ciCheckout);
     expect(checkout?.with?.['ref']).toBe('${{ env.VERSION }}');

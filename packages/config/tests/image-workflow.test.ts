@@ -126,6 +126,34 @@ describe('image.yml (D3505)', () => {
     expect(push?.run).not.toMatch(/-p\s|--password\s/);
   });
 
+  const stepWith = (needle: string): Step => stepsOf(job)[indexOf(job, needle)] ?? {};
+  const pushedOnly = "steps.push.outputs.pushed == 'true'";
+
+  it('marks a push GHCR accepted, and only that one, as pushed (D3523)', () => {
+    const push = stepWith('docker push');
+    const [accepted = '', refused = ''] = (push.run ?? '').split(/^\s*else$/m);
+
+    expect(push.id).toBe('push');
+    expect(accepted).toContain('echo "pushed=true" >> "$GITHUB_OUTPUT"');
+    expect(refused).not.toContain('pushed=true');
+  });
+
+  it('records the commit and its CI branch for deploy-staging only after an accepted push (D3523)', () => {
+    const steps = stepsOf(job);
+    const record = stepWith('image-version/sha');
+    const handoff = steps.find((step) => step.with?.['name'] === 'image-version') ?? {};
+
+    expect(record.if).toBe(pushedOnly);
+    expect(record.env).toEqual({ SOURCE_BRANCH: '${{ github.event.workflow_run.head_branch || github.ref_name }}' });
+    expect(record.run).toContain('"$COMMIT_SHA" > image-version/sha');
+    expect(record.run).toContain('"$SOURCE_BRANCH" > image-version/branch');
+    expect(handoff.if).toBe(pushedOnly);
+    expect(handoff.uses).toBe(usesOf(browser, 'actions/upload-artifact@'));
+    expect(handoff.with).toMatchObject({ path: 'image-version/', 'if-no-files-found': 'error' });
+    expect(steps.indexOf(stepWith('docker push'))).toBeLessThan(steps.indexOf(record));
+    expect(steps.indexOf(record)).toBeLessThan(steps.indexOf(handoff));
+  });
+
   it('puts the static files on the CDN bucket after the push, with R2 secrets only in that step', () => {
     const upload = stepsOf(job)[indexOf(job, 'scripts/ops/upload-static.sh')];
     const withSecrets = stepsOf(job).filter((step) => JSON.stringify(step).includes('secrets.R2_'));
