@@ -1,0 +1,272 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.page-title"
+msgstr "Delivery & shipping"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.tab-carriers"
+msgstr "Carriers"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.tab-pricing"
+msgstr "Delivery pricing"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.store-filter"
+msgstr "Store"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.search"
+msgstr "Search pricing options"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.add"
+msgstr "Add pricing option"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.empty"
+msgstr "No pricing options yet."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.no-match"
+msgstr "No pricing option matches this search."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-name"
+msgstr "Pricing option"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-carrier"
+msgstr "Delivery agent"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-created"
+msgstr "Created"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.row-actions"
+msgstr "Actions"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-edit"
+msgstr "Edit"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-view"
+msgstr "View"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.action-delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.platform-badge"
+msgstr "Platform default"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.no-carrier"
+msgstr "No carrier"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.carrier-unknown"
+msgstr "Unknown carrier"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.page-previous"
+msgstr "Previous"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.page-next"
+msgstr "Next"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.delete-heading"
+msgstr "Delete this pricing option?"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.delete-body"
+msgstr "{name} and its wilaya and commune prices will be deleted. This cannot be undone."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.deleted"
+msgstr "Pricing option deleted."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.saved"
+msgstr "Pricing option saved."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-saved"
+msgstr "Commune prices saved."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.fix-errors"
+msgstr "Fix the highlighted fields, then save again."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-generic"
+msgstr "Something went wrong. Try again."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-forbidden"
+msgstr "You do not have permission to do this in this store."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-store-switched"
+msgstr "The active store changed. Reload the page and try again."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-name"
+msgstr "Enter a name of at most 80 characters on one line."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-number"
+msgstr "Enter a whole number within the allowed range."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.error-price"
+msgstr "Enter whole DZD prices from 0 to 100,000."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.new-heading"
+msgstr "New pricing option"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.back"
+msgstr "Back to pricing"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.settings-title"
+msgstr "Pricing option"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.bulk-title"
+msgstr "Apply to all"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.wilayas-title"
+msgstr "Prices by wilaya"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-name"
+msgstr "Name"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-carrier"
+msgstr "Carrier"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-charge-overweight"
+msgstr "Charge overweight to the customer"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-charge-overweight-hint"
+msgstr "Each started kilogram above the allowance adds the rate to the delivery fee."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-allowance"
+msgstr "Weight allowance (kg)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.field-rate"
+msgstr "Rate per extra kg (DZD)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.apply-to-all"
+msgstr "Apply to all"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.deliver-everywhere"
+msgstr "Deliver to every wilaya"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.desk-everywhere"
+msgstr "Stop desk in every delivered wilaya"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-wilaya"
+msgstr "Wilaya"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-home"
+msgstr "Home delivery (DZD)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-desk"
+msgstr "Stop desk (DZD)"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-delivery"
+msgstr "Delivery"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.column-desk-switch"
+msgstr "Stop desk"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes"
+msgstr "Communes"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-hint"
+msgstr "A blank price uses the commune base, then the wilaya price. A switch follows the wilaya until you change it."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-save"
+msgstr "Save commune prices"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-save-first"
+msgstr "Save this pricing option first to set commune prices."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.communes-still-on"
+msgstr "Communes switched on in this wilaya still deliver: {count}"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.overridden"
+msgstr "Edited"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.reset-default"
+msgstr "Reset to default"
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.template-missing"
+msgstr "The store has no platform default prices to start from."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.not-found-page"
+msgstr "This pricing option does not exist in this store."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.invalid-input"
+msgstr "Some values are not valid. Check the prices and settings."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.not-found"
+msgstr "This pricing option does not exist in this store."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.group-in-use"
+msgstr "This pricing option is the store's default or the platform default table and cannot be deleted. Choose another default first."
+
+#. js-lingui-explicit-id
+msgid "delivery-pricing.carrier-not-found"
+msgstr "This carrier does not exist in this store."

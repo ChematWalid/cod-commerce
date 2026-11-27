@@ -49,6 +49,7 @@ describe('StoreSettingsReader', () => {
       language: 'ar',
       channelId: a.store.channelId,
       status: 'active',
+      defaultDeliveryFeeGroupId: null,
     });
   });
 
@@ -78,6 +79,7 @@ describe('StoreSettingsReader', () => {
       language: 'ar',
       channelId: archived.store.channelId,
       status: 'archived',
+      defaultDeliveryFeeGroupId: null,
     });
   });
 

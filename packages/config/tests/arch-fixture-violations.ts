@@ -15,6 +15,8 @@ const COLLECTIONS_ENTRY = 'plugins/collections-rules/index.ts';
 const CATALOG_PACKS_ENTRY = 'plugins/catalog-packs/index.ts';
 const CATALOG_IMPORT_ENTRY = 'plugins/catalog-import/index.ts';
 const OFFERS_ENTRY = 'plugins/offers/index.ts';
+const GEO_ENTRY = 'plugins/geo/index.ts';
+const DELIVERY_PRICING_ENTRY = 'plugins/delivery-pricing/index.ts';
 const ADAPTER = `${BAD}/infrastructure/adapter.ts`;
 const OWN_ENTRY = `${BAD}/index.ts`;
 /** Code parked where the permission and data access gates do not scan: production code must not import it. */
@@ -49,6 +51,14 @@ export const BAD_FIXTURE_VIOLATIONS: readonly ArchitectureViolation[] = [
   violation('catalog-packs-entry-infra-only', 'application/uses-catalog-packs-package.ts', CATALOG_PACKS_ENTRY),
   violation('catalog-import-entry-infra-only', 'api/uses-catalog-import-package.ts', CATALOG_IMPORT_ENTRY),
   violation('catalog-import-entry-infra-only', 'application/uses-catalog-import-package.ts', CATALOG_IMPORT_ENTRY),
+  violation('geo-entry-infra-only', 'api/uses-geo-package.ts', GEO_ENTRY),
+  violation('geo-entry-infra-only', 'application/uses-geo-package.ts', GEO_ENTRY),
+  violation('delivery-pricing-entry-infra-only', 'api/uses-delivery-pricing-package.ts', DELIVERY_PRICING_ENTRY),
+  violation(
+    'delivery-pricing-entry-infra-only',
+    'application/uses-delivery-pricing-package.ts',
+    DELIVERY_PRICING_ENTRY,
+  ),
   // Catalog never imports offers (D2402); the fixture lives in the catalog plugin, not in `bad`.
   {
     rule: 'catalog-no-offers',

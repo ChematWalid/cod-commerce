@@ -12,6 +12,7 @@
     "test:integration": "turbo run test:integration --concurrency=1",
     "test:arch": "pnpm --filter @cod/config run test:arch",
     "i18n:check": "pnpm --filter @cod/shared run i18n:check",
+    "seed:geo": "pnpm --filter @cod/server seed:geo",
     "build": "turbo run build --concurrency=1",
     "dev": "turbo run dev"
   },

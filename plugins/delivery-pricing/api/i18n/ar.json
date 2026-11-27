@@ -1,0 +1,9 @@
+{
+  "error": {
+    "delivery-pricing-invalid-input": "بعض تفاصيل أسعار التوصيل غير صالحة.",
+    "delivery-pricing-not-found": "خيار التسعير غير موجود.",
+    "delivery-pricing-group-in-use": "خيار التسعير هذا مستخدم: اختر خيارًا افتراضيًا آخر قبل حذفه.",
+    "delivery-pricing-carrier-not-found": "شركة التوصيل غير موجودة.",
+    "delivery-pricing-internal": "تعذّر إكمال الطلب."
+  }
+}

@@ -6,6 +6,7 @@ import { CATALOG_IMPORT_PAGE_TEST_ID } from '@cod/plugin-catalog-import';
 import { BUSINESS_CARD_TEST_ID, SETTINGS_PATH } from '@cod/plugin-merchant-shell';
 import { COLLECTION_EDITOR_TEST_ID, COLLECTION_LIST_TEST_ID } from '@cod/plugin-collections-rules';
 import { OFFER_EDITOR_TEST_ID, OFFER_LIST_TEST_ID } from '@cod/plugin-offers';
+import { PRICING_EDITOR_TEST_ID, PRICING_LIST_TEST_ID } from '@cod/plugin-delivery-pricing';
 
 /** A dashboard page the RTL browser test opens in Arabic and in English. */
 export interface DashboardPageUnderTest {
@@ -27,6 +28,8 @@ export const DASHBOARD_PAGES_UNDER_TEST: readonly DashboardPageUnderTest[] = [
   { path: '/stores/active/offers', readyTestId: OFFER_LIST_TEST_ID, slug: 'offers' },
   { path: '/stores/active/offers/new?type=quantity', readyTestId: OFFER_EDITOR_TEST_ID, slug: 'offer-editor' },
   { path: '/stores/active/products/import', readyTestId: CATALOG_IMPORT_PAGE_TEST_ID, slug: 'product-import' },
+  { path: '/delivery?tab=pricing', readyTestId: PRICING_LIST_TEST_ID, slug: 'delivery-pricing' },
+  { path: '/stores/active/delivery/pricing/new', readyTestId: PRICING_EDITOR_TEST_ID, slug: 'delivery-pricing-editor' },
 ];
 
 /** The dashboard of a host-run api (`pnpm --filter @cod/server dev`). */

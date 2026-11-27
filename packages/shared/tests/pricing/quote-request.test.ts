@@ -99,7 +99,7 @@ describe('quoteRequestSchema', () => {
   });
 
   it('refuses an unknown province code', () => {
-    const destination = { provinceCode: '59', stopdesk: false };
+    const destination = { provinceCode: '70', stopdesk: false };
 
     expect(quoteRequestSchema.safeParse({ channel: 'storefront', lines: [line(1)], destination }).success).toBe(false);
   });

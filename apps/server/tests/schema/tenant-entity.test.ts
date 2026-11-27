@@ -23,6 +23,9 @@ const NOT_TENANT_OWNED = [
   // Staff-managed flag configuration; an override's business or store id is a target, not an owner (D108).
   'FeatureFlagEntity',
   'FeatureFlagOverrideEntity',
+  // Global geo reference data: the wilayas and communes every store reads, written only by the seed (D3103).
+  'GeoProvinceEntity',
+  'GeoTownEntity',
 ];
 
 /** A plugin's `entities` metadata, an array or the function form `entities: () => [...]`. */

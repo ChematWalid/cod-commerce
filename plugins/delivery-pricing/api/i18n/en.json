@@ -1,0 +1,9 @@
+{
+  "error": {
+    "delivery-pricing-invalid-input": "Some of the delivery pricing details are not valid.",
+    "delivery-pricing-not-found": "Pricing option not found.",
+    "delivery-pricing-group-in-use": "This pricing option is in use: choose another default before deleting it.",
+    "delivery-pricing-carrier-not-found": "Carrier not found.",
+    "delivery-pricing-internal": "The request could not be completed."
+  }
+}

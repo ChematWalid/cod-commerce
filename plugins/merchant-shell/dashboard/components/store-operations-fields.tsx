@@ -3,6 +3,8 @@ import { useLingui } from '@lingui/react';
 import { Label, RadioGroup, RadioGroupItem, Switch } from '@vendure/dashboard';
 import { type ReactNode, useId } from 'react';
 import { soldOutOptionTestId, STORE_SHOW_ADDRESS_TEST_ID, STORE_SOLD_OUT_TEST_ID } from '../constants';
+import type { FeeGroupFieldView } from '../model/fee-group-field';
+import { DeliveryFeeGroupField } from './delivery-fee-group-field';
 
 /** The sentence of each sold-out behaviour. */
 const SOLD_OUT_LABEL_IDS: Readonly<Record<SoldOutBehavior, string>> = {
@@ -13,11 +15,21 @@ const SOLD_OUT_LABEL_IDS: Readonly<Record<SoldOutBehavior, string>> = {
 const isSoldOutBehavior = (value: unknown): value is SoldOutBehavior =>
   typeof value === 'string' && (SOLD_OUT_BEHAVIORS as readonly string[]).includes(value);
 
+/** What a change of one operations field sends up to the card's draft. */
+export interface OperationsPatch {
+  readonly showAddressField?: boolean;
+  readonly soldOutBehavior?: SoldOutBehavior;
+  readonly defaultDeliveryFeeGroupId?: string;
+}
+
 interface OperationsFieldsProps {
   readonly showAddressField: boolean;
   readonly soldOutBehavior: SoldOutBehavior;
+  readonly defaultDeliveryFeeGroupId: string | null;
+  /** The fee group field's options, or only whether one is set (no `delivery.pricing.view`). */
+  readonly feeGroupField: FeeGroupFieldView;
   readonly disabled: boolean;
-  readonly onChange: (patch: { showAddressField?: boolean; soldOutBehavior?: SoldOutBehavior }) => void;
+  readonly onChange: (patch: OperationsPatch) => void;
 }
 
 /** Whether the storefront's checkout asks for an address. */
@@ -86,12 +98,14 @@ function SoldOutField({
 }
 
 /**
- * The store's operations settings P2.S1 owns (D2120): the address field and sold-out products. The default delivery
- * fee group (P3.S1) and the default carrier (P5.S1) join here once their data exists.
+ * The store's operations settings (D2120): the address field, sold-out products and the default delivery fee group
+ * (D3114). The default carrier (P5.S1) joins here once carriers exist.
  */
 export function StoreOperationsFields({
   showAddressField,
   soldOutBehavior,
+  defaultDeliveryFeeGroupId,
+  feeGroupField,
   disabled,
   onChange,
 }: OperationsFieldsProps): ReactNode {
@@ -109,6 +123,14 @@ export function StoreOperationsFields({
         disabled={disabled}
         onChange={(behavior) => {
           onChange({ soldOutBehavior: behavior });
+        }}
+      />
+      <DeliveryFeeGroupField
+        value={defaultDeliveryFeeGroupId}
+        view={feeGroupField}
+        disabled={disabled}
+        onChange={(groupId) => {
+          onChange({ defaultDeliveryFeeGroupId: groupId });
         }}
       />
     </>

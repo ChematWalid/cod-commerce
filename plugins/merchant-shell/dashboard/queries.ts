@@ -1,6 +1,13 @@
+import { FEE_GROUP_LIST_MAX_TAKE } from '@cod/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@vendure/dashboard';
-import { ACTIVE_BUSINESS_QUERY_KEY, STORE_RECORD_QUERY_KEY, SWITCHABLE_STORES_QUERY_KEY } from './constants';
+import {
+  ACTIVE_BUSINESS_QUERY_KEY,
+  STORE_FEE_GROUPS_QUERY_KEY,
+  STORE_RECORD_QUERY_KEY,
+  SWITCHABLE_STORES_QUERY_KEY,
+} from './constants';
+import { type FeeGroupOption, type FeeGroupOptionPage, readAllFeeGroups } from './model/fee-group-field';
 import type { BusinessRecord, StoreRecord, SwitchableStoreView } from './model/types';
 
 const SWITCHABLE_STORES_QUERY = /* GraphQL */ `
@@ -60,6 +67,19 @@ const STORE_QUERY = /* GraphQL */ `
       logoUrl
       showAddressField
       soldOutBehavior
+      defaultDeliveryFeeGroupId
+    }
+  }
+`;
+
+const FEE_GROUP_OPTIONS_QUERY = /* GraphQL */ `
+  query ShellFeeGroupOptions($options: DeliveryFeeGroupListInput) {
+    deliveryFeeGroups(options: $options) {
+      items {
+        id
+        name
+      }
+      totalItems
     }
   }
 `;
@@ -88,6 +108,29 @@ export function useStoreRecord(
     queryKey: [...STORE_RECORD_QUERY_KEY, activeChannelId, storeId],
     queryFn: async () => (await api.query<{ readonly store: StoreRecord | null }>(STORE_QUERY, { id: storeId })).store,
     enabled: enabled && activeChannelId !== undefined && storeId !== undefined,
+    retry: false,
+  });
+}
+
+const fetchFeeGroupPage = async (skip: number, take: number): Promise<FeeGroupOptionPage> =>
+  (
+    await api.query<{ readonly deliveryFeeGroups: FeeGroupOptionPage }>(FEE_GROUP_OPTIONS_QUERY, {
+      options: { skip, take },
+    })
+  ).deliveryFeeGroups;
+
+/**
+ * Every pricing option of the active store, for the Default delivery fee group select (issue 207). Only for whoever
+ * holds `delivery.pricing.view`, which the server checks again.
+ */
+export function useStoreFeeGroups(
+  activeChannelId: string | undefined,
+  enabled: boolean,
+): ReturnType<typeof useQuery<readonly FeeGroupOption[]>> {
+  return useQuery({
+    queryKey: [...STORE_FEE_GROUPS_QUERY_KEY, activeChannelId],
+    queryFn: () => readAllFeeGroups(fetchFeeGroupPage, FEE_GROUP_LIST_MAX_TAKE),
+    enabled: enabled && activeChannelId !== undefined,
     retry: false,
   });
 }

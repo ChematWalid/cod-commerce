@@ -11,6 +11,7 @@ import {
 } from '../constants';
 import { useUpdateStore } from '../hooks/use-settings-mutations';
 import { settingsErrorMessageId } from '../model/api-error';
+import type { FeeGroupFieldView } from '../model/fee-group-field';
 import { canSaveStore, draftOfStore, type StoreDraft, storePatchOf } from '../model/settings-form';
 import type { StoreRecord } from '../model/types';
 import { LogoField } from './logo-field';
@@ -29,6 +30,8 @@ interface StoreProfileCardProps {
    * the store's channel.
    */
   readonly canUploadLogo: boolean;
+  /** The Default delivery fee group field: the store's options, or only whether one is set. */
+  readonly feeGroupField: FeeGroupFieldView;
 }
 
 function DescriptionField({
@@ -119,10 +122,11 @@ function useStoreForm(store: StoreRecord, canEdit: boolean) {
 }
 
 /**
- * The store's logo, name, description, language, address field and sold-out behaviour. The form restarts from the
+ * The store's logo, name, description, language, address field, sold-out behaviour and default delivery fee group. The
+ * form restarts from the
  * saved record whenever the record changes.
  */
-function StoreForm({ store, canEdit, canUploadLogo }: StoreProfileCardProps): ReactNode {
+function StoreForm({ store, canEdit, canUploadLogo, feeGroupField }: StoreProfileCardProps): ReactNode {
   const { i18n } = useLingui();
   const { draft, setDraft, update, canSave, submit } = useStoreForm(store, canEdit);
   return (
@@ -141,6 +145,8 @@ function StoreForm({ store, canEdit, canUploadLogo }: StoreProfileCardProps): Re
       <StoreOperationsFields
         showAddressField={draft.showAddressField}
         soldOutBehavior={draft.soldOutBehavior}
+        defaultDeliveryFeeGroupId={draft.defaultDeliveryFeeGroupId}
+        feeGroupField={feeGroupField}
         disabled={!canEdit}
         onChange={(patch) => {
           setDraft((current) => ({ ...current, ...patch }));
@@ -158,11 +164,8 @@ function StoreForm({ store, canEdit, canUploadLogo }: StoreProfileCardProps): Re
   );
 }
 
-/**
- * The active store's card of General settings (CO-6). The delivery fee group (P3.S1) and the carrier (P5.S1) wait for
- * their data.
- */
-export function StoreProfileCard({ store, canEdit, canUploadLogo }: StoreProfileCardProps): ReactNode {
+/** The active store's card of General settings (CO-6). The default carrier (P5.S1) waits for carriers. */
+export function StoreProfileCard({ store, canEdit, canUploadLogo, feeGroupField }: StoreProfileCardProps): ReactNode {
   const savedKey = [
     store.id,
     store.name,
@@ -171,10 +174,17 @@ export function StoreProfileCard({ store, canEdit, canUploadLogo }: StoreProfile
     store.logoAssetId ?? '',
     String(store.showAddressField),
     store.soldOutBehavior,
+    store.defaultDeliveryFeeGroupId ?? '',
   ].join(':');
   return (
     <div data-testid={STORE_CARD_TEST_ID}>
-      <StoreForm key={savedKey} store={store} canEdit={canEdit} canUploadLogo={canUploadLogo} />
+      <StoreForm
+        key={savedKey}
+        store={store}
+        canEdit={canEdit}
+        canUploadLogo={canUploadLogo}
+        feeGroupField={feeGroupField}
+      />
     </div>
   );
 }

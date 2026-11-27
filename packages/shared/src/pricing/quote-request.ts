@@ -61,6 +61,7 @@ const hasDistinctAddons = (addons: readonly { offerId: string; variantId: string
 const destinationSchema = z.object(
   {
     provinceCode: z.enum(WILAYA_CODES, invalidQuoteRequest),
+    /** The commune's ONS code as text: `String(codeOns)` of a geo `Town` (P3.S1). */
     townOns: z
       .string(invalidQuoteRequest)
       .trim()
