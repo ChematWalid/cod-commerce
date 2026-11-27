@@ -179,7 +179,7 @@ function AdjustFooter(props: {
 
 /**
  * "Raise/lower by…" (D3140): moves the selected wilayas' prices by DZD or %, rounded to the dinar and never below 0.
- * The note says commune prices set by hand stay unless "Include communes" is ticked.
+ * The note says commune prices stay as they are unless "Include communes" is ticked.
  */
 export function AdjustDialog({ open, selection, pending, onApply, onClose }: AdjustDialogProps): ReactNode {
   const { i18n } = useLingui();

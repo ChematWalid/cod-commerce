@@ -333,7 +333,7 @@ msgstr "Include communes"
 
 #. js-lingui-explicit-id
 msgid "delivery-pricing.adjust-communes-note"
-msgstr "Commune prices set by hand stay as they are unless \"Include communes\" is ticked. Prices are rounded to the nearest dinar and never go below 0."
+msgstr "Commune prices stay as they are unless \"Include communes\" is ticked. Prices are rounded to the nearest dinar and never go below 0."
 
 #. js-lingui-explicit-id
 msgid "delivery-pricing.adjust-invalid"

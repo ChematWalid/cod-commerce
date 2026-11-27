@@ -333,7 +333,7 @@ msgstr "تضمين البلديات"
 
 #. js-lingui-explicit-id
 msgid "delivery-pricing.adjust-communes-note"
-msgstr "أسعار البلديات المحددة يدويًا تبقى كما هي ما لم تُحدَّد \"تضمين البلديات\". تُقرَّب الأسعار إلى أقرب دينار ولا تنزل أبدًا تحت 0."
+msgstr "تبقى أسعار البلديات كما هي ما لم تُحدِّد خيار \"تضمين البلديات\". تُقرَّب الأسعار إلى أقرب دينار ولا تنزل أبدًا تحت 0."
 
 #. js-lingui-explicit-id
 msgid "delivery-pricing.adjust-invalid"
