@@ -54,6 +54,16 @@ export const STOREFRONT_RENDER_CAPACITY = 6000;
  * search pages behind the storefront's cache, so a real buyer never comes near it.
  */
 export const STOREFRONT_READ_IP_CAPACITY = 600;
+/**
+ * Storefront quotes (shipping and cart, D3302) one buyer address may ask for per minute: each one reads the DB and is
+ * never cached, and a buyer's form asks again on every change (debounced), behind shared mobile addresses.
+ */
+export const STOREFRONT_QUOTE_IP_CAPACITY = 120;
+/**
+ * Storefront quotes per minute of one store whose signed request names no buyer address (D3302): every buyer of the
+ * store shares this bucket then, and each store has its own.
+ */
+export const STOREFRONT_QUOTE_STORE_CAPACITY = 3000;
 /** What a signed request without a client address is keyed by, before its key id (D3213). */
 export const INTERNAL_CLIENT_KEY_PREFIX = 'internal:';
 

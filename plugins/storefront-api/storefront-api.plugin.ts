@@ -1,11 +1,13 @@
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
+import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
 import { RateLimitPlugin } from '@cod/plugin-rate-limit';
 import { TenancyPlugin } from '@cod/plugin-tenancy';
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { StorefrontCatalogController } from './api/storefront-catalog.controller';
+import { StorefrontQuoteController } from './api/storefront-quote.controller';
 import { PROJECTION_BACKFILL_TASK_ID } from './domain/constants';
 import type { StorefrontApiPluginOptions } from './infrastructure/plugin-options';
 import { projectionBackfillTask } from './infrastructure/projection-backfill';
@@ -15,17 +17,19 @@ import { StorefrontProductEntity } from './infrastructure/storefront-product.ent
 import { StorefrontSearchSynonymEntity } from './infrastructure/storefront-search-synonym.entity';
 
 /** Every REST controller of the plugin. */
-export const STOREFRONT_API_CONTROLLERS = [StorefrontCatalogController];
+export const STOREFRONT_API_CONTROLLERS = [StorefrontCatalogController, StorefrontQuoteController];
 
 /**
  * The storefront's public catalog API (P3.S2): HMAC-signed REST under `/store` (D111) as the signed store (D3201),
  * over the per-store `storefront_product` projection the outbox keeps (D3205), with product pages and collections read
  * from the catalog and collections plugins (D3206). Catalog and store changes revalidate the storefront through the
- * outbox and a coalesced CDN purge (Task 11, D3210, D3211). This module only wires the layers.
+ * outbox and a coalesced CDN purge (Task 11, D3210, D3211). The public quotes (P3.S3) price through delivery pricing
+ * and the offers. This module only wires the layers.
  */
 @VendurePlugin({
   // Tenancy builds the storefront context, the outbox feeds the projection, the jobs plugin runs the backfill task,
-  // the rate limiter limits per buyer (D3213), and the catalog and collections serve the public reads.
+  // the rate limiter limits per buyer (D3213), the catalog and collections serve the public reads, and delivery
+  // pricing answers the shipping quote (D3301).
   imports: [
     PluginCommonModule,
     TenancyPlugin,
@@ -34,6 +38,7 @@ export const STOREFRONT_API_CONTROLLERS = [StorefrontCatalogController];
     RateLimitPlugin,
     CatalogPlugin,
     CollectionsRulesPlugin,
+    DeliveryPricingPlugin,
   ],
   entities: [StorefrontProductEntity, StorefrontSearchSynonymEntity],
   configuration: (config) => {

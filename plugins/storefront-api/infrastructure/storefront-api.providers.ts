@@ -1,9 +1,11 @@
 import { SNOWFLAKE_ID_GENERATOR, type SnowflakeIdGeneratorPort, TenantRepositoryFactory } from '@cod/plugin-tenancy';
 import type { Provider } from '@nestjs/common';
 import { ProjectionService } from '../application/projection.service';
+import { ShippingQuoteUseCase } from '../application/shipping-quote.use-case';
 import { StorefrontCatalogService } from '../application/storefront-catalog.service';
 import { StorefrontSearchService } from '../application/storefront-search.service';
 import { CatalogProjectionSource } from './catalog-projection-source';
+import { DeliveryPricingQuoteAdapter } from './delivery-quote.adapter';
 import { ProjectionBackfill } from './projection-backfill';
 import { StorefrontProjectionConsumer } from './projection.consumer';
 import { CatalogStorefrontReads } from './storefront-reads.adapter';
@@ -12,7 +14,10 @@ import { TenancyStorefrontStore } from './tenancy-storefront-store.adapter';
 import { TypeOrmProjectionRepository } from './typeorm-projection.repository';
 import { TypeOrmSynonymRepository } from './typeorm-synonym.repository';
 
-/** Every provider of the storefront API: the adapters, the use cases built from them, the consumer and the backfill. */
+/**
+ * Every provider of the storefront API: the adapters, the use cases built from them (catalog, search and quotes), the
+ * consumer and the backfill.
+ */
 export const STOREFRONT_API_PROVIDERS: Provider[] = [
   TenancyStorefrontStore,
   CatalogProjectionSource,
@@ -57,6 +62,13 @@ export const STOREFRONT_API_PROVIDERS: Provider[] = [
       projection: TypeOrmProjectionRepository,
     ) => new ProjectionService({ stores, source, projection }),
     inject: [TenancyStorefrontStore, CatalogProjectionSource, TypeOrmProjectionRepository],
+  },
+  DeliveryPricingQuoteAdapter,
+  {
+    provide: ShippingQuoteUseCase,
+    useFactory: (stores: TenancyStorefrontStore, delivery: DeliveryPricingQuoteAdapter) =>
+      new ShippingQuoteUseCase({ stores, delivery }),
+    inject: [TenancyStorefrontStore, DeliveryPricingQuoteAdapter],
   },
   StorefrontProjectionConsumer,
   ProjectionBackfill,

@@ -1,11 +1,20 @@
 import { Permission } from '@vendure/core';
 
-/** One public storefront route and a path that reaches it with a real store's data. */
+/** What a route's sample is filled with: a product (slug and id) and a collection slug of some store. */
+export interface StorefrontRouteFill {
+  readonly productSlug: string;
+  readonly productId: string;
+  readonly collectionSlug: string;
+}
+
+/** One public storefront route and a call that reaches it with a real store's data. */
 export interface StorefrontRoute {
-  readonly method: 'GET';
+  readonly method: 'GET' | 'POST';
   readonly path: string;
-  /** The route with its parameters filled, given a product slug and a collection slug of the signed store. */
-  readonly sample: (fill: { readonly productSlug: string; readonly collectionSlug: string }) => string;
+  /** The route with its parameters filled. */
+  readonly sample: (fill: StorefrontRouteFill) => string;
+  /** The JSON body a POST route is called with. */
+  readonly body?: (fill: StorefrontRouteFill) => unknown;
 }
 
 /**
@@ -21,6 +30,12 @@ export const STOREFRONT_ROUTES: readonly StorefrontRoute[] = [
     method: 'GET',
     path: '/store/collection/:slug',
     sample: ({ collectionSlug }) => `/store/collection/${collectionSlug}`,
+  },
+  {
+    method: 'POST',
+    path: '/store/shipping-quote',
+    sample: () => '/store/shipping-quote',
+    body: ({ productId }) => ({ provinceCode: '16', stopdesk: false, items: [{ productId, quantity: 1 }] }),
   },
 ];
 

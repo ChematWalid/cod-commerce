@@ -23,15 +23,19 @@ export interface RateLimitKey {
   readonly key: string;
 }
 
-/** The policy of signed requests that name no buyer (D3213). */
-const SIGNED_RENDER_POLICY: RateLimitPolicyName = 'storefront-render';
-
 /**
- * The handler policies a signed request that names no buyer may move onto the render bucket (D3213). Only cacheable
- * catalog reads opt in: a strict policy (login, reset, OTP, tokens, sign-up) must never be loosened to the render
- * capacity just because the storefront sent no buyer address.
+ * The handler policies a signed request that names no buyer moves onto a per-signer, per-store bucket, and that
+ * bucket's policy. Cacheable catalog reads go to the high `storefront-render` bucket (D3213); storefront quotes go to
+ * their own `storefront-quote-store` bucket, never the render one (D3302). A strict policy (login, reset, OTP, tokens,
+ * sign-up) is absent: it must never be loosened just because the storefront sent no buyer address.
  */
-const RENDER_REMAPPABLE: ReadonlySet<RateLimitPolicyName> = new Set<RateLimitPolicyName>(['storefront-read']);
+const SIGNER_BUCKETS: ReadonlyMap<RateLimitPolicyName, RateLimitPolicyName> = new Map<
+  RateLimitPolicyName,
+  RateLimitPolicyName
+>([
+  ['storefront-read', 'storefront-render'],
+  ['storefront-quote', 'storefront-quote-store'],
+]);
 
 const IPV6_GROUPS = 8;
 /** An IPv6 network is 64 bits: the first four of eight 16-bit groups. A household or host gets the whole /64. */
@@ -84,8 +88,8 @@ function canonical(address: string): string {
     .join(':')}::/64`;
 }
 
-/** The render bucket of a signer: per key id and, when the signature named one, per store. */
-function renderKeyOf(signer: SignedClient): string {
+/** The bucket of a signer: per key id and, when the signature named one, per store. */
+function signerKeyOf(signer: SignedClient): string {
   const storeId = signer.storeId?.trim();
   const base = `${INTERNAL_CLIENT_KEY_PREFIX}${signer.kid}`;
   return storeId === undefined || storeId === '' ? base : `${base}:${storeId}`;
@@ -125,13 +129,15 @@ export class ClientIpResolver {
   /**
    * The bucket of `request` under the handler's `policy`. A signed catalog read that names no buyer is a storefront
    * server render: it is keyed by its signing key and store under the high `storefront-render` policy, so renders
-   * never spend a buyer's tokens and one flooded store cannot drain another store's renders (D3213). Every other
-   * policy keeps its own capacity, keyed as usual.
+   * never spend a buyer's tokens and one flooded store cannot drain another store's renders (D3213). A signed quote
+   * that names no buyer is keyed the same way under `storefront-quote-store` (D3302). Every other policy keeps its own
+   * capacity, keyed as usual.
    */
   limitKeyOf(request: ClientRequest, policy: RateLimitPolicyName): RateLimitKey {
     const signer = request.internalAuth;
-    if (signer !== undefined && RENDER_REMAPPABLE.has(policy) && this.signedClientIp(request) === undefined) {
-      return { policy: SIGNED_RENDER_POLICY, key: renderKeyOf(signer) };
+    const signerPolicy = SIGNER_BUCKETS.get(policy);
+    if (signer !== undefined && signerPolicy !== undefined && this.signedClientIp(request) === undefined) {
+      return { policy: signerPolicy, key: signerKeyOf(signer) };
     }
     return { policy, key: this.resolve(request) };
   }

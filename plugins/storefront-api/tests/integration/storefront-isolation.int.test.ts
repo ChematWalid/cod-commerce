@@ -34,10 +34,17 @@ describe('the storefront API between two businesses', () => {
     "%s signed for A never answers B's product or collection",
     async (_path, route) => {
       // Arrange
-      const fill = { productSlug: held.b.product.slug, collectionSlug: held.b.collectionSlug };
+      const fill = {
+        productSlug: held.b.product.slug,
+        productId: held.b.product.id,
+        collectionSlug: held.b.collectionSlug,
+      };
 
       // Act
-      const answer = await suite.kit.store(route.sample(fill), suite.fixtures.a.stores[0].id);
+      const answer = await suite.kit.store(route.sample(fill), suite.fixtures.a.stores[0].id, {
+        method: route.method,
+        body: route.body?.(fill),
+      });
 
       // Assert
       expect([200, 404]).toContain(answer.status);
@@ -51,10 +58,17 @@ describe('the storefront API between two businesses', () => {
     "%s signed for A's other store never answers A's first store's data",
     async (_path, route) => {
       // Arrange
-      const fill = { productSlug: held.a.product.slug, collectionSlug: held.a.collectionSlug };
+      const fill = {
+        productSlug: held.a.product.slug,
+        productId: held.a.product.id,
+        collectionSlug: held.a.collectionSlug,
+      };
 
       // Act
-      const answer = await suite.kit.store(route.sample(fill), suite.fixtures.a.stores[1].id);
+      const answer = await suite.kit.store(route.sample(fill), suite.fixtures.a.stores[1].id, {
+        method: route.method,
+        body: route.body?.(fill),
+      });
 
       // Assert
       expect([200, 404]).toContain(answer.status);

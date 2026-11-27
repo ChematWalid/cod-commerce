@@ -2,6 +2,8 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CatalogPlugin } from '@cod/plugin-catalog';
 import { CollectionsRulesPlugin } from '@cod/plugin-collections-rules';
+import { DeliveryPricingPlugin } from '@cod/plugin-delivery-pricing';
+import { GeoPlugin, GeoSeedService } from '@cod/plugin-geo';
 import { OffersPlugin } from '@cod/plugin-offers';
 import { PlatformJobsPlugin } from '@cod/plugin-platform-jobs';
 import { OUTBOX_SCHEMAS, PlatformOutboxPlugin } from '@cod/plugin-platform-outbox';
@@ -26,7 +28,11 @@ import type { SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { StorefrontApiPlugin } from '../../storefront-api.plugin';
-import { SIGNED_STORE_TEST_HEADER, SignedStoreTestPlugin } from '../fixtures/signed-store.plugin';
+import {
+  SIGNED_CLIENT_IP_TEST_HEADER,
+  SIGNED_STORE_TEST_HEADER,
+  SignedStoreTestPlugin,
+} from '../fixtures/signed-store.plugin';
 import { aTestQuoteKeyRing } from '../support/quote-keys';
 import { applySearchSchema } from '../support/search-schema';
 
@@ -39,6 +45,25 @@ export interface RestAnswer {
   readonly status: number;
   readonly body: unknown;
   readonly text: string;
+  readonly cacheControl?: string | null;
+}
+
+/** How a storefront call is sent: GET by default; a POST carries a JSON body; a signed call may name its buyer. */
+export interface StoreCallOptions {
+  readonly method?: 'GET' | 'POST';
+  readonly body?: unknown;
+  readonly clientIp?: string;
+}
+
+/** The headers of a storefront call: the stand-in signature, its buyer address, and a JSON body's type. */
+function headersOf(storeId: string | undefined, options: StoreCallOptions): Record<string, string> {
+  return {
+    ...(storeId === undefined ? {} : { [SIGNED_STORE_TEST_HEADER]: storeId }),
+    ...(storeId === undefined || options.clientIp === undefined
+      ? {}
+      : { [SIGNED_CLIENT_IP_TEST_HEADER]: options.clientIp }),
+    ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
+  };
 }
 
 /** What a test file passes from plugins outside the chain (rbac and its activity log; rule `no-cross-plugin-internals`). */
@@ -118,13 +143,24 @@ export class StorefrontKit {
     return rawId(createStoreCollection.id);
   }
 
-  /** A storefront call signed for `storeId` (the stand-in of the internal signature), or unsigned without one. */
-  async store(path: string, storeId?: string): Promise<RestAnswer> {
+  /**
+   * A storefront call signed for `storeId` (the stand-in of the internal signature), or unsigned without one; a GET
+   * unless `options` says otherwise.
+   */
+  async store(path: string, storeId?: string, options: StoreCallOptions = {}): Promise<RestAnswer> {
     const { port } = (this.app.getHttpServer() as Server).address() as AddressInfo;
-    const headers = storeId === undefined ? undefined : { [SIGNED_STORE_TEST_HEADER]: storeId };
-    const response = await fetch(`http://localhost:${String(port)}${path}`, { headers });
+    const response = await fetch(`http://localhost:${String(port)}${path}`, {
+      method: options.method ?? 'GET',
+      headers: headersOf(storeId, options),
+      ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    });
     const text = await response.text();
-    return { status: response.status, body: text === '' ? null : (JSON.parse(text) as unknown), text };
+    return {
+      status: response.status,
+      body: text === '' ? null : (JSON.parse(text) as unknown),
+      text,
+      cacheControl: response.headers.get('cache-control'),
+    };
   }
 
   /** Polls a signed storefront call until `accept` holds for its answer; answers it. */
@@ -162,6 +198,9 @@ export function storefrontSuite(snowflakeWorkerId: number, foreign: StorefrontFo
       CatalogPlugin,
       OffersPlugin.init({ quoteKeys: aTestQuoteKeyRing() }),
       CollectionsRulesPlugin,
+      // The shipping quote (P3.S3) prices with the store's fee table over geo's towns.
+      GeoPlugin,
+      DeliveryPricingPlugin,
       SignedStoreTestPlugin,
       StorefrontApiPlugin,
     ],
@@ -173,6 +212,7 @@ export function storefrontSuite(snowflakeWorkerId: number, foreign: StorefrontFo
   beforeAll(async () => {
     await server.init({ initialData: PLUGIN_TEST_INITIAL_DATA, customerCount: 0 });
     await applySearchSchema(server.app);
+    await server.app.get(GeoSeedService).converge();
     suite.kit = new StorefrontKit(server.app, adminClient);
     suite.fixtures = await createTwoBusinesses(adminClient);
   });

@@ -2,7 +2,7 @@
   "name": "@cod/plugin-storefront-api",
   "version": "0.0.0",
   "private": true,
-  "description": "The storefront's public catalog API: HMAC-signed REST over a per-store product projection (P3.S2).",
+  "description": "The storefront's public catalog and quote API: HMAC-signed REST over a per-store product projection (P3.S2) and the store's delivery and cart quotes (P3.S3).",
   "exports": {
     ".": {
       "@cod/source": "./index.ts",
@@ -18,6 +18,8 @@
   "dependencies": {
     "@cod/plugin-catalog": "workspace:*",
     "@cod/plugin-collections-rules": "workspace:*",
+    "@cod/plugin-delivery-pricing": "workspace:*",
+    "@cod/plugin-offers": "workspace:*",
     "@cod/plugin-platform-jobs": "workspace:*",
     "@cod/plugin-platform-outbox": "workspace:*",
     "@cod/plugin-rate-limit": "workspace:*",
@@ -30,7 +32,7 @@
   },
   "devDependencies": {
     "@cod/config": "workspace:*",
-    "@cod/plugin-offers": "workspace:*",
+    "@cod/plugin-geo": "workspace:*",
     "@cod/plugin-platform-partitions": "workspace:*",
     "@cod/plugin-rbac": "workspace:*",
     "@cod/testing": "workspace:*",

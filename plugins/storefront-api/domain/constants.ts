@@ -44,3 +44,9 @@ export const PURGE_MAX_HOSTNAMES = 100;
 
 /** How often the worker sends the purges a window held back. */
 export const PURGE_FLUSH_INTERVAL_MS = PURGE_WINDOW_MS;
+
+/** The code of a refused quote body that names no shared pricing code (D3303). */
+export const QUOTE_REQUEST_INVALID_CODE = 'storefront.invalid-quote-request';
+
+/** What every quote answer, refusals included, says to caches: a quote is one buyer's, priced now (D3303). */
+export const QUOTE_CACHE_CONTROL = 'private, no-store';

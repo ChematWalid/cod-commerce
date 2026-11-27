@@ -19,6 +19,8 @@ import {
   OTP_DAILY_CAPACITY,
   PROVINCES_IP_CAPACITY,
   REGISTER_IP_CAPACITY,
+  STOREFRONT_QUOTE_IP_CAPACITY,
+  STOREFRONT_QUOTE_STORE_CAPACITY,
   STOREFRONT_READ_IP_CAPACITY,
   STOREFRONT_RENDER_CAPACITY,
   TEAM_ACTOR_MAIL_CAPACITY,
@@ -100,6 +102,10 @@ export const RATE_LIMIT_POLICIES = {
   'storefront-render': perMinute(STOREFRONT_RENDER_CAPACITY, 'open'),
   // Public storefront catalog reads by buyer address (D3213); reads only, so they fail open.
   'storefront-read': perMinute(STOREFRONT_READ_IP_CAPACITY, 'open'),
+  // Storefront shipping and cart quotes by buyer address, or by store when the signature names no buyer (D3302). Each
+  // one reads the DB uncached, so they keep limiting from memory during an outage.
+  'storefront-quote': perMinute(STOREFRONT_QUOTE_IP_CAPACITY, 'in-process'),
+  'storefront-quote-store': perMinute(STOREFRONT_QUOTE_STORE_CAPACITY, 'in-process'),
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** One of the {@link RATE_LIMIT_POLICIES}. */

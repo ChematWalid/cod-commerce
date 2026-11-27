@@ -174,6 +174,31 @@ describe('ClientIpResolver with a signed storefront request (D3213)', () => {
     expect(limit).toEqual({ policy: 'storefront-render', key: 'internal:k2' });
   });
 
+  it('keys a signed storefront quote that names its buyer by the buyer address under storefront-quote (D3302)', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const limit = resolver.limitKeyOf(
+      signed({ kid: 'k2', storeId: '7340032000000001', clientIp: '203.0.113.10' }),
+      'storefront-quote',
+    );
+
+    // Assert
+    expect(limit).toEqual({ policy: 'storefront-quote', key: '203.0.113.10' });
+  });
+
+  it('keys a signed storefront quote without a buyer address by its store under storefront-quote-store, never the render bucket', () => {
+    // Arrange
+    const resolver = new ClientIpResolver('CF-Connecting-IP');
+
+    // Act
+    const limit = resolver.limitKeyOf(signed({ kid: 'k2', storeId: '7340032000000001' }), 'storefront-quote');
+
+    // Assert
+    expect(limit).toEqual({ policy: 'storefront-quote-store', key: 'internal:k2:7340032000000001' });
+  });
+
   it.each(['reset-ip', 'login-ip', 'otp-ip', 'register-ip', 'token-redeem-ip', 'invitation-accept-ip'] as const)(
     'keeps a signed request without a client address on its strict %s policy',
     (policy) => {

@@ -6,6 +6,8 @@ import { PluginCommonModule, VendurePlugin } from '@vendure/core';
  * e2e suite (Task 10).
  */
 export const SIGNED_STORE_TEST_HEADER = 'x-test-signed-store';
+/** The buyer address the stand-in signature names, as the storefront signs `x-client-ip` (D3213). */
+export const SIGNED_CLIENT_IP_TEST_HEADER = 'x-test-signed-client-ip';
 
 /** The part of an Express request the stand-in reads and writes. */
 interface SignedRequest {
@@ -15,7 +17,9 @@ interface SignedRequest {
 
 const signAsTest = (req: SignedRequest, _res: unknown, next: () => void): void => {
   const storeId = req.header(SIGNED_STORE_TEST_HEADER);
-  if (storeId !== undefined) req.internalAuth = { kid: 'test', storeId };
+  const clientIp = req.header(SIGNED_CLIENT_IP_TEST_HEADER);
+  if (storeId !== undefined)
+    req.internalAuth = clientIp === undefined ? { kid: 'test', storeId } : { kid: 'test', storeId, clientIp };
   next();
 };
 

@@ -20,18 +20,19 @@ describe('the storefront API endpoint registry', () => {
     );
   });
 
-  it('serves every catalog route of the shared storefront contract (Task 4)', () => {
+  it('serves every catalog and quote route of the shared storefront contract (P3.S2 Task 4, P3.S3)', () => {
     // Arrange
     const shared = [
-      STOREFRONT_API_ROUTES.products,
-      STOREFRONT_API_ROUTES.productSearch,
-      `${STOREFRONT_API_ROUTES.product}/:slug`,
-      STOREFRONT_API_ROUTES.collections,
-      `${STOREFRONT_API_ROUTES.collection}/:slug`,
+      `GET ${STOREFRONT_API_ROUTES.products}`,
+      `GET ${STOREFRONT_API_ROUTES.productSearch}`,
+      `GET ${STOREFRONT_API_ROUTES.product}/:slug`,
+      `GET ${STOREFRONT_API_ROUTES.collections}`,
+      `GET ${STOREFRONT_API_ROUTES.collection}/:slug`,
+      `POST ${STOREFRONT_API_ROUTES.shippingQuote}`,
     ];
 
     // Act
-    const served = declaredRoutes().map((route) => route.key.replace(/^GET /, ''));
+    const served = declaredRoutes().map((route) => route.key);
 
     // Assert
     expect(served.sort()).toEqual(shared.sort());

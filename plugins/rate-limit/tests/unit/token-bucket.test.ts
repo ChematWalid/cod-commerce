@@ -40,7 +40,20 @@ describe('RATE_LIMIT_POLICIES', () => {
       'catalog-pack-preview-actor': [600, 3600],
       'storefront-render': [6000, 60],
       'storefront-read': [600, 60],
+      'storefront-quote': [120, 60],
+      'storefront-quote-store': [3000, 60],
     });
+  });
+
+  it('keeps the storefront quotes limiting from memory during an outage, because each one reads the DB (D3302)', () => {
+    // Act
+    const outages = [
+      RATE_LIMIT_POLICIES['storefront-quote'].outage,
+      RATE_LIMIT_POLICIES['storefront-quote-store'].outage,
+    ];
+
+    // Assert
+    expect(outages).toEqual(['in-process', 'in-process']);
   });
 
   it('keeps credential policies limiting during an outage and lets the others fail open (D31)', () => {
