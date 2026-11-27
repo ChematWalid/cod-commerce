@@ -110,8 +110,8 @@ describe('P3 delivery-pricing isolation matrix', () => {
   it('names every Admin API operation and REST route the delivery-pricing plugin declares', () => {
     // Act
     const named = {
-      operations: DELIVERY_PRICING_OPERATIONS.map((operation) => operation.name).sort(),
-      routes: DELIVERY_PRICING_ROUTES.map((route) => `${route.method} ${route.route}`).sort(),
+      operations: [...new Set(DELIVERY_PRICING_OPERATIONS.map((operation) => operation.name))].sort(),
+      routes: [...new Set(DELIVERY_PRICING_ROUTES.map((route) => `${route.method} ${route.route}`))].sort(),
     };
 
     // Assert
@@ -188,6 +188,32 @@ describe('P3 delivery-pricing isolation matrix', () => {
       path: `/delivery-fees/${deliveryPricingOf('B').groupId}/import?dryRun=false`,
       rawBody: PRICING_CSV,
       headers: { 'content-type': 'text/csv' },
+    });
+  });
+
+  it("sweeps the CSV import's dry run too, naming B's group without dryRun and expecting not found (D3143)", () => {
+    // Arrange
+    const upload = P3_ISOLATION_CASES.find(
+      (c) => c.id === 'deliveryPricing.importDeliveryFeeGroupCsv.dry-run.foreign-id',
+    );
+    const rest = P3_ISOLATION_CASES.find(
+      (c) => c.id === 'deliveryPricing.post-/delivery-fees/:id/import.dry-run.foreign-id',
+    );
+
+    // Act
+    const uploadRequest = upload?.request(world.a, world.b, world);
+    const restRequest = rest?.request(world.a, world.b, world);
+
+    // Assert
+    expect(upload?.expect).toEqual({ kind: 'code', code: 'delivery-pricing.not-found' });
+    expect(rest?.expect).toMatchObject({ kind: 'status', status: 404, code: 'delivery-pricing.not-found' });
+    const query = (uploadRequest?.body as { query: string } | undefined)?.query ?? '';
+    expect(query).toContain('before { homePrice');
+    expect(query).not.toContain('dryRun:');
+    expect(uploadRequest?.body).toMatchObject({ variables: { groupId: deliveryPricingOf('B').groupId, file: null } });
+    expect(restRequest).toMatchObject({
+      path: `/delivery-fees/${deliveryPricingOf('B').groupId}/import`,
+      rawBody: PRICING_CSV,
     });
   });
 

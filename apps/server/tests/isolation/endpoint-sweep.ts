@@ -16,6 +16,8 @@ const FORBIDDEN = 403;
 /** One Admin API operation, aimed at the rows of `T`. */
 export interface SweptOperation<T> {
   readonly name: string;
+  /** Tells a second call of the same operation apart in cell ids and titles (e.g. `dry-run`). */
+  readonly variant?: string;
   readonly entity: IsolationEntity;
   readonly document: string;
   readonly variables: (target: T) => Record<string, unknown>;
@@ -30,6 +32,8 @@ export interface SweptRoute<T> {
   readonly method: MatrixRequest['method'];
   /** The route as the controller declares it, e.g. `/catalog/packs/:productId`. */
   readonly route: string;
+  /** Tells a second call of the same route apart in cell ids and titles (e.g. `dry-run`). */
+  readonly variant?: string;
   readonly entity: IsolationEntity;
   readonly path: (target: T) => string;
   readonly body?: (target: T) => Record<string, unknown>;
@@ -91,8 +95,18 @@ function routeRequest<T>(route: SweptRoute<T>, target: T, who: { caller: Caller;
 export const routeName = (route: { readonly method: string; readonly route: string }): string =>
   `${route.method} ${route.route}`;
 
-const routeId = (prefix: string, route: { readonly method: string; readonly route: string }): string =>
-  `${prefix}.${route.method.toLowerCase()}-${route.route}`;
+/** A variant's part of a cell id (`.dry-run`), empty for the endpoint's main call. */
+const variantPart = (variant: string | undefined): string => (variant === undefined ? '' : `.${variant}`);
+/** An endpoint as a cell title names it, with its variant. */
+const calledAs = (endpoint: string, variant: string | undefined): string =>
+  variant === undefined ? endpoint : `${endpoint} (${variant})`;
+
+const routeId = (
+  prefix: string,
+  route: { readonly method: string; readonly route: string; readonly variant?: string },
+): string => `${prefix}.${route.method.toLowerCase()}-${route.route}${variantPart(route.variant)}`;
+const operationId = (prefix: string, op: { readonly name: string; readonly variant?: string }): string =>
+  `${prefix}.${op.name}${variantPart(op.variant)}`;
 
 const accessOf = (document: string): 'read by id' | 'write' => (document.startsWith('query') ? 'read by id' : 'write');
 
@@ -140,11 +154,11 @@ function notFoundCells<T>(endpoints: SweptEndpoints<T>, family: NotFoundFamily):
     const { foreign } = op;
     if (foreign === undefined) return [];
     const cell: IsolationCase = {
-      id: `${prefix}.${op.name}.${family.suffix}`,
+      id: `${operationId(prefix, op)}.${family.suffix}`,
       entity: op.entity,
       endpoint: op.name,
       access: accessOf(op.document),
-      title: titleOf(op.name, op.entity),
+      title: titleOf(calledAs(op.name, op.variant), op.entity),
       request: (a, b) => {
         const { caller, channel, target } = family.reach(a, b);
         return sweptOperationRequest(op, targetOf(target), { caller, channel });
@@ -162,7 +176,7 @@ function notFoundCells<T>(endpoints: SweptEndpoints<T>, family: NotFoundFamily):
       entity: route.entity,
       endpoint: routeName(route),
       access: route.method === 'GET' ? 'read by id' : 'write',
-      title: titleOf(routeName(route), route.entity),
+      title: titleOf(calledAs(routeName(route), route.variant), route.entity),
       request: (a, b) => {
         const { caller, channel, target } = family.reach(a, b);
         return routeRequest(route, restTargetOf(target), { caller, channel });
@@ -192,11 +206,11 @@ const REFUSALS: readonly Refusal[] = [
 function refusedCells<T>(endpoints: SweptEndpoints<T>, refusal: Refusal): IsolationCase[] {
   const { prefix, targetOf, restTargetOf } = endpoints;
   const ops = endpoints.operations.map((op): IsolationCase => ({
-    id: `${prefix}.${op.name}.${refusal.suffix}`,
+    id: `${operationId(prefix, op)}.${refusal.suffix}`,
     entity: op.entity,
     endpoint: op.name,
     access: 'victim channel',
-    title: `${refusal.who} calls ${op.name}: FORBIDDEN`,
+    title: `${refusal.who} calls ${calledAs(op.name, op.variant)}: FORBIDDEN`,
     request: (a, b) => {
       const { caller, channel, target } = refusal.reach(a, b);
       return sweptOperationRequest(op, targetOf(target), { caller, channel });
@@ -209,7 +223,7 @@ function refusedCells<T>(endpoints: SweptEndpoints<T>, refusal: Refusal): Isolat
     entity: route.entity,
     endpoint: routeName(route),
     access: 'victim channel',
-    title: `${refusal.who} calls ${routeName(route)}: ${String(FORBIDDEN)}`,
+    title: `${refusal.who} calls ${calledAs(routeName(route), route.variant)}: ${String(FORBIDDEN)}`,
     request: (a, b) => {
       const { caller, channel, target } = refusal.reach(a, b);
       return routeRequest(route, restTargetOf(target), { caller, channel });

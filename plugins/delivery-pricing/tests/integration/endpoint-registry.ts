@@ -21,6 +21,8 @@ export type ForeignOutcome = 'null' | 'not-found' | 'none';
 /** One Admin API operation of the plugin, with a call aimed at a target's ids. */
 export interface OperationEntry {
   readonly operation: string;
+  /** Names a second call of the same operation the isolation sweep also makes (the import's dry run). */
+  readonly variant?: string;
   readonly access: PermissionKey;
   readonly foreign: ForeignOutcome;
   readonly notFound: string;
@@ -34,6 +36,8 @@ export interface OperationEntry {
 export interface RouteEntry {
   readonly method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   readonly route: string;
+  /** Names a second call of the same route the isolation sweep also makes (the import's dry run). */
+  readonly variant?: string;
   readonly access: PermissionKey;
   /** Whether the route names a group id, so another store's id answers 404. */
   readonly byId: boolean;
@@ -227,6 +231,41 @@ export const ROUTE_REGISTRY: readonly RouteEntry[] = [
     access: 'delivery.pricing.delete',
     byId: true,
     url: (ids) => `/delivery-fees/${ids.spareGroupId}`,
+  },
+];
+
+/**
+ * The CSV import's dry run (the default on both surfaces), swept beside the registry's applying calls: it writes
+ * nothing, but its answer holds the group's prices before the import, so another store's id must answer not found
+ * before any of them is read. Not handlers of their own, so the coverage test leaves them out.
+ */
+export const DRY_RUN_OPERATIONS: readonly OperationEntry[] = [
+  {
+    operation: 'importDeliveryFeeGroupCsv',
+    variant: 'dry run',
+    access: 'delivery.pricing.edit',
+    foreign: 'not-found',
+    notFound: D.NOT_FOUND,
+    document: `mutation ($groupId: String!, $file: Upload!) {
+      importDeliveryFeeGroupCsv(groupId: $groupId, file: $file) {
+        dryRun changes { codeOns before { homePrice deskPrice } after { homePrice deskPrice } }
+      }
+    }`,
+    variables: (ids) => ({ groupId: ids.groupId }),
+    upload: importedCsv,
+  },
+];
+
+/** The REST import's dry run (no `?dryRun`), as {@link DRY_RUN_OPERATIONS}. */
+export const DRY_RUN_ROUTES: readonly RouteEntry[] = [
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/import',
+    variant: 'dry run',
+    access: 'delivery.pricing.edit',
+    byId: true,
+    url: (ids) => `/delivery-fees/${ids.groupId}/import`,
+    csv: importedCsv,
   },
 ];
 

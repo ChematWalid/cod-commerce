@@ -146,6 +146,22 @@ describe('P3 isolation: a business sees only its own delivery pricing', () => {
     expect(leaking).toEqual([]);
   });
 
+  it("answers the CSV import's dry runs naming the victim's group without any of the victim's prices", () => {
+    const dryRuns = [...outcomes.entries()].filter(([run]) => run.includes('.dry-run.'));
+    const leaking = dryRuns
+      .filter(([run, outcome]) => {
+        const victim = DELIVERY_PRICING_WORLDS.get(run.endsWith('(A→B)') ? 'B' : 'A');
+        const answer = JSON.stringify(outcome.exchange.body);
+        return [victim?.homePrice, victim?.communeHomePrice].some((price) =>
+          new RegExp(`(?<!\\d)${String(price)}(?!\\d)`).test(answer),
+        );
+      })
+      .map(([run]) => run);
+
+    expect(dryRuns.length).toBeGreaterThan(0);
+    expect(leaking).toEqual([]);
+  });
+
   it("leaves each business's pricing options and store defaults as its owner saw them before the attacks", async () => {
     expect(await deliveryPricingSnapshotOf(http, world.a)).toEqual(before.a);
     expect(await deliveryPricingSnapshotOf(http, world.b)).toEqual(before.b);

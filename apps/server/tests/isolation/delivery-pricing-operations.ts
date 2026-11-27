@@ -97,6 +97,13 @@ export const IMPORT_CSV = `mutation ($groupId: String!, $file: Upload!) {
   importDeliveryFeeGroupCsv(groupId: $groupId, file: $file, dryRun: false) { applied }
 }`;
 
+/** The import's dry run (the default): its diff holds the group's prices, so a foreign id answers not found (D3143). */
+export const DRY_RUN_IMPORT_CSV = `mutation ($groupId: String!, $file: Upload!) {
+  importDeliveryFeeGroupCsv(groupId: $groupId, file: $file) {
+    dryRun changes { codeOns before { homePrice deskPrice } after { homePrice deskPrice } }
+  }
+}`;
+
 export const DELIVERY_PRICING_OPERATIONS: readonly SweptOperation<FeeGroupTarget>[] = [
   {
     name: 'deliveryFeeGroups',
@@ -179,6 +186,15 @@ export const DELIVERY_PRICING_OPERATIONS: readonly SweptOperation<FeeGroupTarget
     upload: () => ({ bytes: Buffer.from(PRICING_CSV), name: 'pricing.csv' }),
     foreign: { kind: 'code', code: D.NOT_FOUND },
   },
+  {
+    name: 'importDeliveryFeeGroupCsv',
+    variant: 'dry-run',
+    entity: 'delivery fee group',
+    document: DRY_RUN_IMPORT_CSV,
+    variables: (t) => ({ groupId: t.groupId }),
+    upload: () => ({ bytes: Buffer.from(PRICING_CSV), name: 'pricing.csv' }),
+    foreign: { kind: 'code', code: D.NOT_FOUND },
+  },
 ];
 
 const notFound = { kind: 'status', status: NOT_FOUND, code: D.NOT_FOUND } as const;
@@ -251,6 +267,15 @@ export const DELIVERY_PRICING_ROUTES: readonly SweptRoute<FeeGroupTarget>[] = [
     route: '/delivery-fees/:id/import',
     entity: 'delivery fee group',
     path: (t) => `/delivery-fees/${t.groupId}/import?dryRun=false`,
+    raw: () => ({ body: PRICING_CSV, contentType: 'text/csv' }),
+    foreign: notFound,
+  },
+  {
+    method: 'POST',
+    route: '/delivery-fees/:id/import',
+    variant: 'dry-run',
+    entity: 'delivery fee group',
+    path: (t) => `/delivery-fees/${t.groupId}/import`,
     raw: () => ({ body: PRICING_CSV, contentType: 'text/csv' }),
     foreign: notFound,
   },
