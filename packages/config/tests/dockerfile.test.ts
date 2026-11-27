@@ -116,6 +116,29 @@ describe('Dockerfile', () => {
     );
   });
 
+  // Writing the deploy's ~115k small files through overlayfs on a busy disk took over 40 min; into a tmpfs it
+  // takes about 2 min, and one archive is a single sequential write.
+  it('deploys the server into a tmpfs, with the shared store, and keeps it as one archive owned by node', () => {
+    const deploy = stage('build').lines.find((line) => line.includes('@cod/server deploy')) ?? '';
+
+    expect(deploy).toMatch(/^RUN --mount=type=tmpfs,target=\/out /);
+    expect(deploy).toContain('--config.store-dir="$(pnpm store path)"');
+    expect(deploy).toContain('tar -C /out -cf /server.tar --numeric-owner --owner=1000 --group=1000 server');
+  });
+
+  it('unpacks the server archive into /app/apps without copying it into a layer of its own', () => {
+    const unpack = runtime.lines
+      .filter((line) => line.includes('/server.tar'))
+      .map((line) => line.replace(/\s+/g, ' '));
+
+    expect(unpack).toEqual([
+      'RUN --mount=type=bind,from=build,source=/server.tar,target=/tmp/server.tar mkdir -p /app/apps && tar -xf /tmp/server.tar --numeric-owner -C /app/apps',
+    ]);
+    expect(runtime.lines.findIndex((line) => line.includes('/server.tar'))).toBeLessThan(
+      runtime.lines.indexOf('USER node'),
+    );
+  });
+
   it('ships no toolchain, source tree or dev dependencies in the runtime stage', () => {
     const body = runtime.lines.join('\n');
 
@@ -124,13 +147,12 @@ describe('Dockerfile', () => {
     expect(body).not.toMatch(/COPY --from=build \/app\/node_modules\b/);
   });
 
-  it('copies the deploy output and every storefront artefact to the same /app paths', () => {
+  it('copies the compiled server and every storefront artefact to the same /app paths', () => {
     const copies = runtime.lines.filter((line) => line.startsWith('COPY --from=build'));
     const targets = copies.map((line) => line.split(/\s+/).at(-1));
 
     expect(targets).toEqual(
       expect.arrayContaining([
-        '/app/apps/server',
         '/app/apps/server/dist',
         '/app/apps/storefront/cache/dist',
         '/app/apps/storefront/.next/standalone',

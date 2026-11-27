@@ -39,9 +39,13 @@ RUN APP_ENV=development ROLE=api \
 # The server with its production dependencies only; workspace packages are copied in (with their dist), not linked.
 # Injected workspace packages let deploy reuse the shared lockfile (exact versions, offline); `--legacy` would
 # resolve again without it. Plain copies: hard links to the store (a lower layer) would make overlayfs copy each
-# file up with an fsync, which took over 30 min on a busy disk.
-RUN pnpm --filter @cod/server deploy --prod --config.inject-workspace-packages=true --config.package-import-method=copy --offline /out/server \
- && rm -rf /out/server/src /out/server/tests
+# file up with an fsync. The deploy writes into a tmpfs (about 1.2 GB of RAM while this step runs) and is kept as one
+# archive: its ~115k small files written through overlayfs took over 40 min on a busy disk, against about 2 min into
+# memory plus one sequential write. pnpm picks a store per filesystem, so the tmpfs target names the shared store.
+RUN --mount=type=tmpfs,target=/out pnpm --filter @cod/server deploy --prod --config.inject-workspace-packages=true \
+    --config.store-dir="$(pnpm store path)" --config.package-import-method=copy --offline /out/server \
+ && rm -rf /out/server/src /out/server/tests \
+ && tar -C /out -cf /server.tar --numeric-owner --owner=1000 --group=1000 server
 # The storefront's deployment id namespaces its cache keys and assets (ADR 0006). next build embeds it, and the
 # standalone server sets process.env.NEXT_DEPLOYMENT_ID to that embedded id at start whatever the environment
 # says; the runtime ENV stays for the cache handlers' process.env read, which then sees the same value. Declared
@@ -60,7 +64,9 @@ RUN STOREFRONT_ASSET_PREFIX="$STOREFRONT_ASSET_PREFIX" NODE_OPTIONS=--max-old-sp
 FROM node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS runtime
 WORKDIR /app
 # Paths stay those of the build (/app/apps/...): the storefront's cacheHandler paths are absolute and embedded.
-COPY --from=build --chown=node:node /out/server /app/apps/server
+# The archive is read through a bind mount, so only its unpacked files (owned by node, uid 1000) enter a layer.
+RUN --mount=type=bind,from=build,source=/server.tar,target=/tmp/server.tar mkdir -p /app/apps \
+ && tar -xf /tmp/server.tar --numeric-owner -C /app/apps
 # deploy copies the package as published; the compiled server and the dashboard are copied explicitly.
 COPY --from=build --chown=node:node /app/apps/server/dist /app/apps/server/dist
 COPY --from=build --chown=node:node /app/apps/storefront/cache/dist /app/apps/storefront/cache/dist
