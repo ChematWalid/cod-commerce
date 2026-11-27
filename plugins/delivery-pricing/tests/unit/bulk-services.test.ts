@@ -66,6 +66,22 @@ describe('AdjustPricesService', () => {
     expect(adjusted.communeRates).toEqual([expect.objectContaining({ codeOns: 1601, overrideHome: 495 })]);
   });
 
+  it.each([
+    ['the wilayas only', false],
+    ['communes included', true],
+  ])('writes nothing when the change leaves every price as it is (%s)', async (_label, includeCommunes) => {
+    // Arrange
+    const w = world();
+    const group = await pricedGroup(w);
+    const before = await w.reads.get(ctx, STORE_A1, group.id);
+
+    // Act
+    const adjusted = await w.adjusting.adjust(ctx, STORE_A1, group.id, adjustment({ value: 0, includeCommunes }));
+
+    // Assert
+    expect(adjusted).toEqual(before);
+  });
+
   it('keeps the settings and name of the group', async () => {
     // Arrange
     const w = world();
