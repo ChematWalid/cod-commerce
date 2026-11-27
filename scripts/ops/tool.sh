@@ -99,6 +99,10 @@ case "$tool" in
     if [ -n "${SSH_AUTH_SOCK:-}" ]; then
       docker_args+=(-v "$SSH_AUTH_SOCK:/ssh-agent" -e SSH_AUTH_SOCK=/ssh-agent)
     fi
+    # net-ssh accepts an unknown host key but refuses a changed one: the deploy job pins the server's key here.
+    if [ -f "$HOME/.ssh/known_hosts" ]; then
+      docker_args+=(-v "$HOME/.ssh/known_hosts:/tmp/.ssh/known_hosts:ro")
+    fi
     docker_args+=(--user "$(id -u):$(id -g)")
     ;;
   # Trivy scans local images through the daemon and keeps its vulnerability database in a named volume.

@@ -1,0 +1,131 @@
+name: deploy-staging
+
+# Deploys the image a successful image.yml run pushed (ghcr.io/<owner>/platform:<sha>) to staging with Kamal, then
+# smokes and warms it, rolling back on any failure (scripts/ops/deploy-staging.sh, D3505). workflow_run fires only
+# from the default branch's copy of this file, so nothing deploys until P3 reaches main; until then, and until the
+# repository variable STAGING_ENABLED is 'true' (P3.S5b), every run ends in the gate with a notice.
+on:
+  workflow_run:
+    workflows: [image]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Full commit SHA of an image already in GHCR (blank deploys the selected branch's head)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  # No environment here: a job that names one creates it, and the switch must work before it exists.
+  gate:
+    name: gate
+    if: >-
+      github.event_name == 'workflow_dispatch' || (
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'phase/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+      version: ${{ steps.gate.outputs.version }}
+    steps:
+      - name: Check that staging is switched on and pick the version
+        id: gate
+        env:
+          STAGING_ENABLED: ${{ vars.STAGING_ENABLED }}
+          VERSION: ${{ inputs.version || github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error title=bad version::the version must be a full 40-character commit SHA"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$STAGING_ENABLED" != true ]]; then
+            echo "::notice title=staging deploy skipped::the repository variable STAGING_ENABLED is not 'true' (set by P3.S5b once the server and the staging environment exist)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: deploy
+    needs: gate
+    if: needs.gate.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    # Kamal's deploy_timeout (120 s) and drain (75 s) per role, the migration, the smoke and the warm-up.
+    timeout-minutes: 30
+    environment:
+      name: staging
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.VERSION }}
+          persist-credentials: false
+      # The server's host key is pinned in a variable (ssh-keyscan on a trusted machine): never trusted on first use.
+      - name: Load the deploy key
+        env:
+          STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          STAGING_SSH_KNOWN_HOSTS: ${{ vars.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          [[ -n "$STAGING_SSH_KNOWN_HOSTS" ]] || { echo "::error::the STAGING_SSH_KNOWN_HOSTS variable is empty"; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$STAGING_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          sock="$RUNNER_TEMP/ssh-agent.sock"
+          eval "$(ssh-agent -a "$sock" -s)" >/dev/null
+          printf '%s\n' "$STAGING_SSH_PRIVATE_KEY" | ssh-add - 2>/dev/null
+          echo "SSH_AUTH_SOCK=$sock" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+      # The only step that sees the Kamal secrets; the script hands them to Kamal alone (TOOL_ENV), never to k6.
+      - name: Deploy, smoke and warm up (rolls back on failure)
+        env:
+          KAMAL_REGISTRY_USERNAME: ${{ vars.KAMAL_REGISTRY_USERNAME }}
+          STAGING_HOST: ${{ vars.STAGING_HOST }}
+          STAGING_BASE_DOMAIN: ${{ vars.STAGING_BASE_DOMAIN }}
+          STAGING_S3_PUBLIC_ENDPOINT: ${{ vars.STAGING_S3_PUBLIC_ENDPOINT }}
+          STAGING_SMTP_HOST: ${{ vars.STAGING_SMTP_HOST }}
+          STAGING_SMTP_PORT: ${{ vars.STAGING_SMTP_PORT }}
+          STAGING_SMTP_FROM: ${{ vars.STAGING_SMTP_FROM }}
+          STAGING_OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.STAGING_OTEL_EXPORTER_OTLP_ENDPOINT }}
+          STAGING_SENTRY_DSN: ${{ vars.STAGING_SENTRY_DSN }}
+          STAGING_STOREFRONT_SENTRY_DSN: ${{ vars.STAGING_STOREFRONT_SENTRY_DSN }}
+          STAGING_CLOUDFLARE_ZONE_ID: ${{ vars.STAGING_CLOUDFLARE_ZONE_ID }}
+          STOREFRONT_ASSET_PREFIX: ${{ vars.STOREFRONT_ASSET_PREFIX }}
+          # Synthetic test stores only (space-separated store hosts): the smoke and the warm-up request them.
+          STAGING_SMOKE_HOSTS: ${{ vars.STAGING_SMOKE_HOSTS }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          ORIGIN_CA_CERTIFICATE_PEM: ${{ secrets.ORIGIN_CA_CERTIFICATE_PEM }}
+          ORIGIN_CA_PRIVATE_KEY_PEM: ${{ secrets.ORIGIN_CA_PRIVATE_KEY_PEM }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+          AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
+          SUPERADMIN_PASSWORD: ${{ secrets.SUPERADMIN_PASSWORD }}
+          INTERNAL_HMAC_KEYS: ${{ secrets.INTERNAL_HMAC_KEYS }}
+          INTERNAL_HMAC_ACTIVE_KID: ${{ secrets.INTERNAL_HMAC_ACTIVE_KID }}
+          TENANT_SECRET_KEKS: ${{ secrets.TENANT_SECRET_KEKS }}
+          TENANT_SECRET_ACTIVE_KID: ${{ secrets.TENANT_SECRET_ACTIVE_KID }}
+          QUOTE_HMAC_KEYS: ${{ secrets.QUOTE_HMAC_KEYS }}
+          QUOTE_HMAC_ACTIVE_KID: ${{ secrets.QUOTE_HMAC_ACTIVE_KID }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+        run: bash scripts/ops/deploy-staging.sh
+      - name: Stop the agent
+        if: always()
+        run: |
+          if [[ -n "${SSH_AGENT_PID:-}" ]]; then ssh-agent -k >/dev/null; fi
+          rm -f ~/.ssh/known_hosts

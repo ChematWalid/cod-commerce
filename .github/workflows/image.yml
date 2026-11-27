@@ -1,0 +1,100 @@
+name: image
+
+# The role image (Dockerfile) of a commit whose CI passed: built once, scanned (Trivy), described (CycloneDX SBOM),
+# pushed to GHCR as ghcr.io/<owner>/platform:<sha>, and its storefront static files put on the CDN bucket.
+# deploy-staging.yml then deploys that exact image (D3505). workflow_run fires only from the default branch's copy
+# of this file, so nothing builds here until P3 reaches main.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: image
+    # A green CI run of a push to main or a phase branch of this repository only: never a pull request or a fork.
+    if: >-
+      github.event_name == 'workflow_dispatch' || (
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'phase/')))
+    runs-on: ubuntu-latest
+    # The two memory-heavy builds (storefront, dashboard) run one after the other inside the image build.
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      # A repository variable, so the staging environment's deploy reads the same value (https://cdn.<base>/sf, or
+      # blank to serve the static files from the store host). The standalone build embeds it (D3521).
+      STOREFRONT_ASSET_PREFIX: ${{ vars.STOREFRONT_ASSET_PREFIX }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT_SHA }}
+          persist-credentials: false
+      - name: Name the image
+        id: name
+        run: echo "ref=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/platform:${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        env:
+          IMAGE: ${{ steps.name.outputs.ref }}
+        run: >-
+          docker build -t "$IMAGE"
+          --build-arg NEXT_DEPLOYMENT_ID="$COMMIT_SHA"
+          --build-arg STOREFRONT_ASSET_PREFIX="$STOREFRONT_ASSET_PREFIX" .
+      # The pinned Trivy of scripts/ops/tool.sh (D3503), so CI and laptops scan with the same version.
+      - name: Fail on a fixable high or critical vulnerability
+        env:
+          IMAGE: ${{ steps.name.outputs.ref }}
+        run: >-
+          scripts/ops/tool.sh trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+          --no-progress "$IMAGE"
+      # Any secret in any layer fails the build, whatever its severity.
+      - name: Fail on a secret in the image
+        env:
+          IMAGE: ${{ steps.name.outputs.ref }}
+        run: scripts/ops/tool.sh trivy image --scanners secret --exit-code 1 --no-progress "$IMAGE"
+      - name: Describe the image (CycloneDX SBOM)
+        env:
+          IMAGE: ${{ steps.name.outputs.ref }}
+        run: scripts/ops/tool.sh trivy image --format cyclonedx --output sbom.cdx.json --no-progress "$IMAGE"
+      - name: Keep the SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-${{ env.COMMIT_SHA }}
+          path: sbom.cdx.json
+          if-no-files-found: error
+      # The job token with packages: write is enough for the repository's own package. A refusal (package settings,
+      # plan limits) is noted, not failed: nothing can deploy the image until it is pushed.
+      - name: Push to GHCR
+        env:
+          IMAGE: ${{ steps.name.outputs.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null \
+            && docker push --quiet "$IMAGE"; then
+            echo "pushed $IMAGE"
+          else
+            echo "::notice title=image not pushed::GHCR refused $IMAGE (package permissions or plan limits); nothing deploys it."
+          fi
+          docker logout ghcr.io >/dev/null
+      # Skips with a notice while the R2 secrets or the CDN prefix are absent (P3.S5b sets them).
+      - name: Put the storefront static files on the CDN bucket
+        env:
+          IMAGE: ${{ steps.name.outputs.ref }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ASSETS_BUCKET: ${{ vars.R2_ASSETS_BUCKET }}
+        run: bash scripts/ops/upload-static.sh

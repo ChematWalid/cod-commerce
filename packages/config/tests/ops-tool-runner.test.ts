@@ -51,6 +51,12 @@ describe('scripts/ops/tool.sh', () => {
     expect(script).toMatch(/^set -euo pipefail$/m);
   });
 
+  it('hands kamal the caller known_hosts read-only, so a deploy refuses a server whose host key changed', () => {
+    const kamalCase = script.split(/^ {2}kamal\)$/m)[1]?.split(/^ {4};;$/m)[0] ?? '';
+
+    expect(kamalCase).toContain('"$HOME/.ssh/known_hosts:/tmp/.ssh/known_hosts:ro"');
+  });
+
   it('passes environment variables by name only, never by value on the command line', () => {
     expect(script).not.toMatch(/-e\s+"?\$?[A-Z_]+=\$/);
   });

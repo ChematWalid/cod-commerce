@@ -1,0 +1,44 @@
+name: restore-test
+
+# The monthly point-in-time restore drill, synthetic variant (scripts/ops/restore-test.sh): a compose stack of its
+# own, a pgBackRest posix repository on a named volume, synthetic rows only, so it needs no secret. The restore of a
+# real backup runs on an Algerian host from cron (docs/ops runbook), never on a GitHub runner: data residency
+# (D3507, ADR 0011 section 1, Law 18-07). schedule fires only from the default branch.
+on:
+  schedule:
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restore-test
+  cancel-in-progress: false
+
+jobs:
+  restore-test:
+    name: restore-test
+    runs-on: ubuntu-latest
+    # The role image build (about 20 minutes) plus two restores.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the role image
+        run: docker build -t cod-platform:restore-test --build-arg NEXT_DEPLOYMENT_ID="restore-test-${GITHUB_SHA}" .
+      # The script reads .env; the placeholders are enough for a synthetic stack, and it fills its own test keys.
+      - name: Use the placeholder environment
+        run: cp .env.example .env
+      - name: Restore to a point in time and to the latest WAL
+        env:
+          RESTORE_APP_IMAGE: cod-platform:restore-test
+        run: bash scripts/ops/restore-test.sh
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: restore-test-report
+          path: docs/evidence/P3.S5a/restore-test.md
+          if-no-files-found: warn
