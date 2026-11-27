@@ -1,0 +1,35 @@
+{
+  "name": "@cod/plugin-geo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Algeria's geo reference data: the wilayas and communes (law 26-06, D3123), global tables read by a public endpoint.",
+  "exports": {
+    ".": {
+      "@cod/source": "./index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner -c vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@cod/plugin-rate-limit": "workspace:*",
+    "@cod/plugin-tenancy": "workspace:*",
+    "@cod/shared": "workspace:*",
+    "@nestjs/common": "12.4.0",
+    "@vendure/core": "3.8.1",
+    "typeorm": "0.3.31",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cod/config": "workspace:*",
+    "@cod/testing": "workspace:*",
+    "@types/node": "24.19.2",
+    "graphql-tag": "2.12.7",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

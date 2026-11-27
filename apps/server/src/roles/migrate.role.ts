@@ -6,6 +6,13 @@ import {
   RbacConvergeService,
   SESSION_FLUSH_SETTLE_MS,
 } from '@cod/plugin-rbac';
+import {
+  asOperationContext as asDeliveryPricingContext,
+  type DeliveryDefaultsConvergeReport,
+  DeliveryDefaultsConvergeFailedError,
+  DeliveryDefaultsConvergeService,
+} from '@cod/plugin-delivery-pricing';
+import { GeoSeedService } from '@cod/plugin-geo';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
 import { PartitionMaintenanceService } from '@cod/plugin-platform-partitions';
 import {
@@ -38,6 +45,7 @@ export interface MigrateReport {
   seed: SeedReport;
   rbacConverged: ConvergeReport;
   teamConverged: MemberConvergeReport;
+  deliveryDefaults: DeliveryDefaultsConvergeReport;
 }
 
 /** Running the migrations failed, or left the schema out of step with the entities. */
@@ -196,10 +204,37 @@ async function seedFlags(app: INestApplicationContext): Promise<void> {
   await app.get(FlagSeedService).converge();
 }
 
+/** Upserts every wilaya and commune of the geo seed; rows that left the seed stay, orders reference them (D3116). */
+async function seedGeo(app: INestApplicationContext): Promise<void> {
+  await app.get(GeoSeedService).converge();
+}
+
+/**
+ * Links every active store to its "Platform default prices" table and repairs a default id the store does not own
+ * (D3112), after the geo seed; a store that fails is logged by id and rejects this once the others are done.
+ */
+async function convergeDeliveryDefaults(app: INestApplicationContext): Promise<DeliveryDefaultsConvergeReport> {
+  try {
+    const ctx = asDeliveryPricingContext(await superadminContext(app));
+    return await app.get(DeliveryDefaultsConvergeService).convergeAll(ctx);
+  } catch (error: unknown) {
+    if (error instanceof DeliveryDefaultsConvergeFailedError) {
+      for (const { businessId, storeId, reason } of error.failures) {
+        Logger.error(
+          `Store ${storeId} of business ${businessId} failed to link its default delivery fee group: ${reason}`,
+          CONVERGE_LOG_CONTEXT,
+        );
+      }
+    }
+    throw error;
+  }
+}
+
 /**
  * The `migrate` role: under the migrate advisory lock, runs the pending migrations over the direct
  * connection (a missing migrations table is created on the first run), then boots a worker without its job
- * queue to seed the platform defaults, converge the roles of existing businesses and then their members, and maintain the partitions.
+ * queue to seed the platform defaults, converge the roles of existing businesses and then their members, maintain the
+ * partitions, converge the flags and the geo seed, and link every store to its default delivery fee table.
  * Concurrent runs are serialised, so each migration applies once; one that cannot get the lock in time throws
  * {@link MigrationLockTimeoutError}.
  */
@@ -213,7 +248,9 @@ export async function runMigrate(env: AppEnv, options: { lockWaitMs?: number } =
       const teamConverged = await convergeMembers(worker.app);
       await maintainPartitions(worker.app);
       await seedFlags(worker.app);
-      return { migrationsRun, seed, rbacConverged, teamConverged };
+      await seedGeo(worker.app);
+      const deliveryDefaults = await convergeDeliveryDefaults(worker.app);
+      return { migrationsRun, seed, rbacConverged, teamConverged, deliveryDefaults };
     } finally {
       await worker.app.close();
     }

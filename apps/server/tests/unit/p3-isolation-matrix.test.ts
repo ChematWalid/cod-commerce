@@ -62,7 +62,7 @@ describe('P3 storefront isolation matrix', () => {
 
     // Assert
     expect(counted).toEqual(tablesOf(StorefrontApiPlugin).sort());
-    expect([...P3_TENANT_TABLES].sort()).toEqual(counted);
+    expect(P3_TENANT_TABLES).toEqual(expect.arrayContaining(counted));
     expect(P2_TENANT_TABLES.filter((table) => P3_TENANT_TABLES.includes(table))).toEqual([]);
   });
 

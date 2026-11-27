@@ -1,13 +1,17 @@
-import type { BusinessId, StoreId } from '@cod/shared';
+import type { BusinessId, Snowflake, StoreId } from '@cod/shared';
 import type { SoldOutBehavior, StoreStatus } from '../store';
 import type { OperationContext } from './operation-context';
 
-/** The store settings other plugins act on: what a sold-out product does, the content language and the channel. */
+/**
+ * The store settings other plugins act on: what a sold-out product does, the content language, the channel and the
+ * default delivery fee group (D3111; `null` when none is linked).
+ */
 export interface StoreSettings {
   readonly soldOutBehavior: SoldOutBehavior;
   readonly language: string;
   readonly channelId: number;
   readonly status: StoreStatus;
+  readonly defaultDeliveryFeeGroupId: Snowflake | null;
 }
 
 /**

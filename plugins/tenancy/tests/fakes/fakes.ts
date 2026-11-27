@@ -1,5 +1,5 @@
 import type { StoreHostChange, StoreHostInvalidatorPort } from '../../domain/ports/store-host-invalidator.port';
-import { type Snowflake, toSnowflake } from '@cod/shared';
+import { type Snowflake, type StoreId, toSnowflake } from '@cod/shared';
 import type { Business } from '../../domain/business';
 import type {
   AdministratorRequest,
@@ -120,6 +120,17 @@ export class InMemoryPlatformStore implements PlatformStorePort {
   saveStore(_ctx: OperationContext, store: Store): Promise<void> {
     this.stores.push(store);
     return Promise.resolve();
+  }
+
+  findStore(_ctx: OperationContext, id: StoreId): Promise<Store | undefined> {
+    return Promise.resolve(this.stores.find((store) => store.id === id));
+  }
+
+  /** Test arrangement: changes a saved store as a lifecycle hook's write would. */
+  patchStore(id: StoreId, patch: Partial<Store>): void {
+    const index = this.stores.findIndex((store) => store.id === id);
+    const saved = this.stores[index];
+    if (saved !== undefined) this.stores[index] = { ...saved, ...patch };
   }
 
   findStoreAccess(_ctx: OperationContext, businessId: string): Promise<readonly StoreAccess[]> {

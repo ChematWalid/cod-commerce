@@ -148,10 +148,14 @@ export const BUSINESS_EDIT_PERMISSION: PermissionKey = 'settings.business.edit';
 /** See the active store, and change it. */
 export const STORE_VIEW_PERMISSION: PermissionKey = 'store.stores.view';
 export const STORE_EDIT_PERMISSION: PermissionKey = 'store.settings.edit';
+/** Name the store's pricing options; without it the fee group field only says whether one is set (D3114). */
+export const PRICING_VIEW_PERMISSION: PermissionKey = 'delivery.pricing.view';
 
 /** The query keys of the two records the page edits, prefixed by the active channel so a switch refetches. */
 export const ACTIVE_BUSINESS_QUERY_KEY = ['merchant-shell', 'active-business'] as const;
 export const STORE_RECORD_QUERY_KEY = ['merchant-shell', 'store'] as const;
+/** The query key of the active store's pricing options, which the fee group select lists. */
+export const STORE_FEE_GROUPS_QUERY_KEY = ['merchant-shell', 'fee-groups'] as const;
 
 /** The General settings page's route below the dashboard base. */
 export const SETTINGS_PATH = '/settings';
@@ -175,6 +179,7 @@ export const STORE_LOGO_INPUT_TEST_ID = 'store-logo-input';
 /** Markers of the store's operations fields: the address toggle and the sold-out choice (`store-sold-out-hide`). */
 export const STORE_SHOW_ADDRESS_TEST_ID = 'store-show-address';
 export const STORE_SOLD_OUT_TEST_ID = 'store-sold-out';
+export const STORE_FEE_GROUP_TEST_ID = 'store-fee-group';
 export const soldOutOptionTestId = (behavior: string): string => `${STORE_SOLD_OUT_TEST_ID}-${behavior}`;
 
 /** The image types a logo upload offers; the server sniffs the content again (D34). */

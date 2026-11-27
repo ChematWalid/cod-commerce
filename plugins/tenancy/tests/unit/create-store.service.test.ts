@@ -11,6 +11,7 @@ import {
 } from '../../domain/errors';
 import type { AssetAccessPort } from '../../domain/ports/asset-access.port';
 import { asOperationContext } from '../../domain/ports/operation-context';
+import type { TenantLifecycleHook } from '../../domain/ports/tenant-lifecycle.port';
 import {
   FakeChannelProvisioner,
   InMemoryPlatformStore,
@@ -45,7 +46,11 @@ describe('CreateStoreService', () => {
   let platform: InMemoryPlatformStore;
   let hosts: RecordingHostInvalidator;
 
-  const serviceWith = (channels: FakeChannelProvisioner, assets: AssetAccessPort = openAssets): CreateStoreService =>
+  const serviceWith = (
+    channels: FakeChannelProvisioner,
+    assets: AssetAccessPort = openAssets,
+    lifecycle: TenantLifecycleHook = noLifecycle,
+  ): CreateStoreService =>
     new CreateStoreService(
       {
         channels,
@@ -53,7 +58,7 @@ describe('CreateStoreService', () => {
         transaction: inlineTransaction,
         ids: new SequentialIdGenerator('500'),
         assets,
-        lifecycle: noLifecycle,
+        lifecycle,
         clock: () => NOW,
       },
       hosts,
@@ -64,6 +69,24 @@ describe('CreateStoreService', () => {
     provisioner = new FakeChannelProvisioner();
     platform = new InMemoryPlatformStore();
     platform.businesses.set(BUSINESS_ID, business);
+  });
+
+  it('returns the store as the lifecycle hooks left it, such as its default fee group (D3111)', async () => {
+    // Arrange
+    const group = toSnowflake('900');
+    const linking: TenantLifecycleHook = {
+      businessProvisioned: () => Promise.resolve(),
+      storeCreated: (_ctx, event) => {
+        platform.patchStore(event.storeId, { defaultDeliveryFeeGroupId: group });
+        return Promise.resolve();
+      },
+    };
+
+    // Act
+    const store = await serviceWith(provisioner, openAssets, linking).create(ctx, BUSINESS_ID, INPUT);
+
+    // Assert
+    expect(store.defaultDeliveryFeeGroupId).toBe(group);
   });
 
   it('asks for a channel with the seller and language of the business', async () => {

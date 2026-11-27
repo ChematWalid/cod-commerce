@@ -177,10 +177,11 @@ describe('every business administrator is a team member (D215)', () => {
     // Test-only reach into tenancy's registry (its token is internal): the hooks run in this array's order.
     const provisioning = server.app.get(ProvisionBusinessService);
     const registry = (provisioning as unknown as { ports: { lifecycle: { hooks: unknown[] } } }).ports.lifecycle;
-    expect(registry.hooks.map((hook) => (hook as object).constructor.name)).toEqual([
-      'RbacLifecycleHook',
-      'TeamLifecycleHook',
-    ]);
+    // Other plugins' hooks (the outbox's store-changed hook, P3.S2) may share the registry; only these two matter.
+    const membershipHooks = registry.hooks
+      .map((hook) => (hook as object).constructor.name)
+      .filter((name) => name === 'RbacLifecycleHook' || name === 'TeamLifecycleHook');
+    expect(membershipHooks).toEqual(['RbacLifecycleHook', 'TeamLifecycleHook']);
     const suffix = randomBytes(3).toString('hex');
     const email = `c-owner-${suffix}@example.test`;
     registry.hooks.reverse();

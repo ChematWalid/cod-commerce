@@ -5,6 +5,7 @@ import {
   ProvisionBusinessService,
   SubdomainTakenError,
 } from '@cod/plugin-tenancy';
+import { ProjectionBackfill } from '@cod/plugin-storefront-api';
 import { asOperationContext as asTeamContext, TeamConvergeService } from '@cod/plugin-team';
 import { type Snowflake, toSnowflake } from '@cod/shared';
 import type { INestApplicationContext } from '@nestjs/common';
@@ -119,7 +120,7 @@ async function ensureBusiness(
 
 /**
  * Creates the two synthetic businesses local stacks and browser tests run on, their members and the demo products of
- * their first stores. Safe to run again: what exists is left alone, and a run interrupted between stores finishes the
+ * their first stores, then builds the storefront projection of every store that has none. Safe to run again: what exists is left alone, and a run interrupted between stores finishes the
  * job.
  *
  * @throws {@link DemoSeedRefusedError} when `APP_ENV` is production or `DEMO_OWNER_PASSWORD` is missing.
@@ -146,5 +147,8 @@ export async function seedDemoBusinesses(app: INestApplicationContext, env: AppE
       DEMO_BUSINESSES.map((demo) => demo.ownerEmail),
     )),
   );
+  // The worker fills the projection from the outbox later; building the empty stores' rows here makes a fresh stack
+  // (CI's storefront smoke, verify-stack, the evidence scripts) list the demo products at once (D3205).
+  await app.get(ProjectionBackfill).run();
   return { created };
 }

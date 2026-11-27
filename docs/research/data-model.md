@@ -63,7 +63,7 @@ Reason codes seen: `TEST_ORDER` (name looks like a test), `JUNK_PHONE {distinctD
 Rule = **If** (conditions, AND) **Then** one of: *To Spam* (hold) / *Flag as suspicious* / *Always accept*. Unsaved-changes bar, Save.
 Limits: maxRules 25, maxConditions 10, maxListValues 500, maxListChars 20k (business 60k), maxValueChars 100, nameMax 60, minContains 3, minWord 2, minPhonePrefix 4, maxTrustedDevices 50.
 Fields (`group`, ops → value type):
-- order: `name`, `address` (contains / contains_word → text_list); `phone` (in_list → phone_list, starts_with → phone_prefix_list); `wilaya` (in_list province_list 1–58); `product` (has_any product_list); `quantity` (gte / lte / between int); `delivery` (is home|desk); `source` (in_list: facebook, instagram, tiktok, snapchat, google, direct, other).
+- order: `name`, `address` (contains / contains_word → text_list); `phone` (in_list → phone_list, starts_with → phone_prefix_list); `wilaya` (in_list province_list 1–58 as captured; 1–69 since law 26-06, D3123); `product` (has_any product_list); `quantity` (gte / lte / between int); `delivery` (is home|desk); `source` (in_list: facebook, instagram, tiktok, snapchat, google, direct, other).
 - history (usesHistory): `delivered`, `returned` (gte / lte count of past parcels for this phone).
 - identity (velocity): `device_orders`, `device_phones` (in_1h / 6h / 24h / 7d, count 2–50 or 2–20), `device_ad_clicks` (6h/24h/7d), `shared_link` (1h/24h), `ip_orders` (10m/1h/6h, can't hold), `fill_time` (lte seconds 1–120), `network` (abroad), `app` (in-app browser: facebook, instagram, messenger, tiktok, snapchat, telegram, other_app, browser).
 Thresholds (rule-quality hints): thinOrders 30, minDecided 5, minMatchedForShare 3, deliveredShare 0.2, broadShare 0.3…

@@ -6,7 +6,7 @@ Detail per screen (fields, columns, dialogs, endpoints): [research/dashboard-cap
 Legend: **C** = Core, **S** = Secondary, **I** = Integration (external service). Checkbox = implemented and verified in our clone.
 Routes are relative to `/[locale]/dashboard/:businessId`. `S:` = `/stores/:storeId`.
 
-Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) → 1..n Stores (storefront on `<sub>.tassyir.io` or a custom domain). Algerian cash-on-delivery: 58 wilayas → communes, home vs stop-desk delivery, DZD. Dashboard in EN/AR (RTL); storefront in AR/FR/EN. The same Next.js app serves the dashboard and the storefronts (by host).
+Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) → 1..n Stores (storefront on `<sub>.tassyir.io` or a custom domain). Algerian cash-on-delivery: 69 wilayas (58 until law 26-06 of April 2026) → communes, home vs stop-desk delivery, DZD. Dashboard in EN/AR (RTL); storefront in AR/FR/EN. The same Next.js app serves the dashboard and the storefronts (by host).
 
 ---
 
@@ -102,11 +102,11 @@ Product shape: multi-tenant SaaS. Account → Business (billing, team, finance) 
 | [ ] | Carrier accounts list (agent, system, status), edit, refund rates, delete | C | `/delivery` |
 | [ ] | Connect carrier from catalogue: Yalidine platform (Yalidine, Economiqua, Goupex, WeCan…), Ecotrack platform (DHD, Anderson, TSL, Navex, 48HR…), Maystro, ZR Express, NOEST, Elogistia, Ecom Delivery, Zimou, Osen; Private Courier | I | adapter per "system" |
 | [ ] | Multiple accounts per carrier; choose carrier per order; default per store | C | |
-| [ ] | Delivery pricing options: name, carrier, overweight charge, per-wilaya home and stop-desk prices for 58 wilayas, apply-to-all, per-wilaya delivery toggle, overrides, sync defaults from carrier | C | `/delivery?tab=pricing` |
+| [ ] | Delivery pricing options: name, carrier, overweight charge, per-wilaya home and stop-desk prices for 58 wilayas (69 since law 26-06), apply-to-all, per-wilaya delivery toggle, overrides, sync defaults from carrier | C | `/delivery?tab=pricing` |
 | [ ] | Dispatch to carrier API, tracking number back, carrier rejection reason | I | |
 | [ ] | Status sync from carriers (webhook/polling) | I | |
 | [ ] | Carrier cash collection and payouts tracking | C | finance |
-| [ ] | Wilaya and commune reference data | C | `/provinces`, `/provinces/code/:code` |
+| [x] | Wilaya and commune reference data | C | `/provinces`, `/provinces/code/:code` |
 
 ## 7. Products, catalog, offers
 
@@ -236,7 +236,7 @@ Details: [research/second-pass.md](research/second-pass.md) · data models and p
 | [x] | Store switcher with "Create Store" | C | Accounts |
 | [ ] | Notification feed entries per order event | C | Notifications |
 | [ ] | Storefront pricing engine: cart-quote with offers applied/skipped + reasons, upsell nudge ("add 1 more, save X"), signed quote token, shipping-quote (base, overweight, waived, speed) | C | Storefront |
-| [ ] | Commune data with ONS codes and per-commune home/stop-desk availability | C | Delivery |
+| [x] | Commune data with ONS codes and per-commune home/stop-desk availability | C | Delivery |
 | [ ] | Anti-bot signals on order submit: deviceId, page/form fill time, fbp | C | Spam |
 | [ ] | Spam engine: built-in reasons (TEST_ORDER, JUNK_PHONE…), device fingerprint and 24h velocity, held list by order/by device, "Not spam" releases into orders, "Discard and block device", 30-day expiry | C | Spam |
 | [ ] | Spam rule builder: If (≤10 conditions over order fields, buyer history, device/IP/ad-click/shared-link velocity, fill time, network abroad, in-app browser) Then To Spam / Flag as suspicious / Always accept; ≤25 rules | C | Spam |

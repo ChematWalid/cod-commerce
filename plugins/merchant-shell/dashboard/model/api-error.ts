@@ -16,6 +16,8 @@ const SETTINGS_ERROR_CODES: ReadonlySet<string> = new Set([
   'tenancy.store-archived',
   'tenancy.business-not-found',
   'tenancy.asset-not-available',
+  'tenancy.store-reference-not-found',
+  'tenancy.store-reference-required',
 ]);
 
 /** Used for a refusal the catalogue has no sentence for, such as `FORBIDDEN`. */

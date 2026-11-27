@@ -1,4 +1,4 @@
-import type { BusinessId, Snowflake } from '@cod/shared';
+import type { BusinessId, Snowflake, StoreId } from '@cod/shared';
 import type { Business } from '../business';
 import type { Store, StoreAccess } from '../store';
 import type { OperationContext } from './operation-context';
@@ -24,6 +24,8 @@ export interface PlatformStorePort {
   /** Every store of the business, whatever its status. */
   findStoreAccess(ctx: OperationContext, businessId: BusinessId): Promise<readonly StoreAccess[]>;
   saveStore(ctx: OperationContext, store: Store): Promise<void>;
+  /** The store row, whatever its business: read back after the creation hooks wrote to it. */
+  findStore(ctx: OperationContext, id: StoreId): Promise<Store | undefined>;
   /** True when any store, archived included, holds `subdomain` (D4). */
   isSubdomainTaken(ctx: OperationContext, subdomain: string): Promise<boolean>;
 }

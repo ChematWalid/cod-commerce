@@ -18,7 +18,7 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 
 | Field | Value |
 |---|---|
-| **Goal** | Provide the 58 wilayas with all communes (ONS codes), the `/provinces` endpoints, delivery-fee groups ("pricing options") with the seeded default table, a shipping-quote service, and the Delivery → Delivery Pricing admin tab. |
+| **Goal** | Provide the 69 wilayas (law 26-06 of 4 April 2026; 58 before) with all communes (ONS codes), the `/provinces` endpoints, delivery-fee groups ("pricing options") with the seeded default table, a shipping-quote service, and the Delivery → Delivery Pricing admin tab. |
 | **Branch** | `feat/p3-s1-geo-delivery-pricing` |
 | **GitHub issue** | `P3.S1 Wilaya/commune data & delivery pricing` (label `phase-3`, milestone `P3 Storefront & COD checkout`) |
 | **Prerequisites** | P1.S5 merged |
@@ -27,7 +27,7 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 | **External needs** | None. Commune seed built from the public ONS commune list (document source URL, retrieval date and licence in `plugins/geo/DATA-SOURCE.md`); platform default prices are our own placeholder values. |
 
 **Inventory rows covered** (exact text from `docs/feature-inventory.md`)
-- Delivery pricing options: name, carrier, overweight charge, per-wilaya home and stop-desk prices for 58 wilayas, apply-to-all, per-wilaya delivery toggle, overrides, sync defaults from carrier — `/delivery?tab=pricing` (this session: everything except the carrier sync; sync hooks only, real sync in P5.S4–S7)
+- Delivery pricing options: name, carrier, overweight charge, per-wilaya home and stop-desk prices for 58 wilayas (69 since law 26-06), apply-to-all, per-wilaya delivery toggle, overrides, sync defaults from carrier — `/delivery?tab=pricing` (this session: everything except the carrier sync; sync hooks only, real sync in P5.S4–S7)
 - Wilaya and commune reference data — `/provinces`, `/provinces/code/:code`
 - Commune data with ONS codes and per-commune home/stop-desk availability
 - Default "Tassyir prices" delivery-fee table; carrier price sync keeps your overrides (default table seeded under our own name, e.g. "Platform default prices"; sync part = P5.S4–S7)
@@ -36,6 +36,7 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 **Read first**
 - `CLAUDE.md` (repo root; session procedure) and this session's plan in `docs/roadmap/plans/` once written.
 - `docs/roadmap/CONTRIBUTING.md`; handoff notes of P1.S1, P1.S5
+- docs/roadmap/plans/P3.S1-plan.md (executable plan)
 - `docs/research/data-model.md` → "Storefront ordering protocol" items 1–2 (`Province`, `towns`, `codeOns`, `isStopdesk`, `isHomeDelivery`, shipping-quote response)
 - `docs/research/dashboard-captures.md` → "Delivery & Shipping" (Delivery Pricing tab, New pricing option form), "Store settings" (Operations → Delivery Fee Group)
 - `docs/research/api-surface.md` → "Delivery" (`/delivery-fees`, `/overrides`, `/sync-default`), `/provinces`
@@ -47,19 +48,19 @@ Brief format: [_session-template.md](_session-template.md). Rules: [CONTRIBUTING
 
 **High-level plan**
 1. Shared types/zod: `Province`, `Town`, `DeliveryFeeGroup`, `ShippingQuote` in `packages/shared` → commit `feat(shared): geo and delivery-fee types`
-2. `geo` plugin: Province/Town entities (global reference data, not tenant-owned), migration, idempotent seed from the ONS list (58 wilayas with `arabicName`, `names[]` aliases; communes with `codeOns`, `isStopdesk`, `isHomeDelivery`) → commit `feat(geo): wilaya and commune seed`
+2. `geo` plugin: Province/Town entities (global reference data, not tenant-owned), migration, idempotent seed from the ONS list (69 wilayas with `arabicName`, `names[]` aliases; communes with `codeOns`, `isStopdesk`, `isHomeDelivery`) → commit `feat(geo): wilaya and commune seed`
 3. Public REST `/provinces` and `/provinces/code/:code?storeId` (cached; stop-desk flag may be narrowed per store) → commit `feat(geo): provinces endpoints`
 4. `delivery-pricing` plugin: `DeliveryFeeGroup` (+ per-wilaya rows, `overrides`), GraphQL CRUD with tenant guard, default table seeded per store and linked as the store's default fee group → commit `feat(delivery-pricing): fee groups and default table`
 5. `ShippingQuoteService.quote({storeId, provinceCode, stopdesk, items})` → `{baseFee, overweightFee, totalFee, resolved, speed, offeredSpeeds[], freeShipping, waivedFee}`; overweight from carrier allowance/rate placeholder (nullable carrier → group-level rate) → commit `feat(delivery-pricing): shipping quote service`
-6. Dashboard extension: Delivery → Delivery Pricing tab (store filter, search, Add pricing option; columns Pricing Option / Delivery Agent / Created / Actions; form with charge-overweight toggle, Apply to all, Deliver to every wilaya, Stop desk in every delivered wilaya, per-wilaya toggle, 58-row table) → commit `feat(delivery-pricing): pricing tab ui`
+6. Dashboard extension: Delivery → Delivery Pricing tab (store filter, search, Add pricing option; columns Pricing Option / Delivery Agent / Created / Actions; form with charge-overweight toggle, Apply to all, Deliver to every wilaya, Stop desk in every delivered wilaya, per-wilaya toggle, one row per wilaya) → commit `feat(delivery-pricing): pricing tab ui`
 7. `CarrierPriceSyncPort` (no-op default) and an override-preserving merge function with tests → commit `feat(delivery-pricing): carrier sync hook`
 
 **Deliverables:** `plugins/geo`, `plugins/delivery-pricing` (+ dashboard extension), migrations, a `seed:geo` workspace script (package manager per ADR 0001), GraphQL CRUD, REST `/provinces*`, `ShippingQuoteService` exported for P2.S4/P3.S3/P4.S3, "delivery pricing" permissions (create/view/delete/edit) registered in the catalog.
 
 **Acceptance criteria**
-- [ ] Exactly 58 provinces with Arabic name and aliases; every commune has a unique `codeOns`; a spot-check of 10 communes (incl. Alger, Oran, Tamanrasset) matches the source list.
+- [ ] Exactly 69 provinces (law 26-06, JO 25/2026; D3123) with Arabic name and aliases; every commune has a unique `codeOns`; a spot-check of 10 communes (incl. Alger, Oran, Tamanrasset) matches the source list.
 - [ ] `GET /provinces/code/16` returns `towns[]` with `codeOns`, `isStopdesk`, `isHomeDelivery` in the data-model.md shape.
-- [ ] "Apply to all" sets all 58 rows; "Deliver to every wilaya" and "Stop desk in every delivered wilaya" toggle rows; one wilaya can be switched off or have stop-desk disabled.
+- [ ] "Apply to all" sets every wilaya row; "Deliver to every wilaya" and "Stop desk in every delivered wilaya" toggle rows; one wilaya can be switched off or have stop-desk disabled.
 - [ ] A new store gets the seeded default table as its default fee group; editing a price creates an override that a (mock) sync never overwrites.
 - [ ] Quote: home vs stop-desk base fee by wilaya; overweight fee = ceil(weight − allowance) × rate only when "charge overweight to customer" is on; free delivery returns `freeShipping`, `waivedFee` and fee 0; an undelivered wilaya returns `resolved:false`.
 - [ ] Pricing screens require the delivery-pricing permissions.

@@ -6,14 +6,16 @@ import { StoreProfileCard } from '../components/store-profile-card';
 import {
   BUSINESS_EDIT_PERMISSION,
   BUSINESS_VIEW_PERMISSION,
+  PRICING_VIEW_PERMISSION,
   SETTINGS_LOAD_ERROR_TEST_ID,
   STORE_EDIT_PERMISSION,
   STORE_VIEW_PERMISSION,
 } from '../constants';
 import { useSettledActiveChannel } from '../hooks/use-settled-active-channel';
 import { useActiveStore } from '../hooks/use-store-session';
+import { feeGroupFieldView } from '../model/fee-group-field';
 import { channelHolds } from '../model/permissions';
-import { useActiveBusiness, useStoreRecord } from '../queries';
+import { useActiveBusiness, useStoreFeeGroups, useStoreRecord } from '../queries';
 
 const PAGE_ID = 'shell-settings-general';
 const BUSINESS_BLOCK_ID = 'shell-settings-business';
@@ -21,7 +23,9 @@ const STORE_BLOCK_ID = 'shell-settings-store';
 const STATUS_BLOCK_ID = 'shell-settings-status';
 
 /** What the caller may do on the active store: a card is shown with its view key and saved with its edit key. */
-function useCardAccess(): Readonly<Record<'viewBusiness' | 'editBusiness' | 'viewStore' | 'editStore', boolean>> {
+function useCardAccess(): Readonly<
+  Record<'viewBusiness' | 'editBusiness' | 'viewStore' | 'editStore' | 'viewPricing', boolean>
+> {
   const { channels } = useAuth();
   const { activeChannelId } = useSettledActiveChannel();
   return {
@@ -29,10 +33,11 @@ function useCardAccess(): Readonly<Record<'viewBusiness' | 'editBusiness' | 'vie
     editBusiness: channelHolds(channels, activeChannelId, BUSINESS_EDIT_PERMISSION),
     viewStore: channelHolds(channels, activeChannelId, STORE_VIEW_PERMISSION),
     editStore: channelHolds(channels, activeChannelId, STORE_EDIT_PERMISSION),
+    viewPricing: channelHolds(channels, activeChannelId, PRICING_VIEW_PERMISSION),
   };
 }
 
-/** General settings: the business's and the active store's profile (CO-6); fee group and carrier come with their data. */
+/** General settings: the business's and the active store's profile (CO-6), with its default delivery fee group. */
 export function GeneralSettingsPage(): ReactNode {
   const { i18n } = useLingui();
   const access = useCardAccess();
@@ -40,6 +45,7 @@ export function GeneralSettingsPage(): ReactNode {
   const activeStore = useActiveStore();
   const business = useActiveBusiness(activeChannelId, access.viewBusiness);
   const store = useStoreRecord(activeChannelId, activeStore?.id, access.viewStore);
+  const feeGroups = useStoreFeeGroups(activeChannelId, access.viewStore && access.viewPricing);
   const loadFailed = business.isError || store.isError;
   return (
     <Page pageId={PAGE_ID}>
@@ -52,7 +58,12 @@ export function GeneralSettingsPage(): ReactNode {
         )}
         {store.data !== undefined && store.data !== null && (
           <PageBlock column="main" blockId={STORE_BLOCK_ID} title={i18n._('shell.settings.store.title')}>
-            <StoreProfileCard store={store.data} canEdit={access.editStore} canUploadLogo={access.editBusiness} />
+            <StoreProfileCard
+              store={store.data}
+              canEdit={access.editStore}
+              canUploadLogo={access.editBusiness}
+              feeGroupField={feeGroupFieldView(access.viewPricing, feeGroups.data)}
+            />
           </PageBlock>
         )}
         {loadFailed && (

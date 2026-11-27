@@ -11,3 +11,5 @@ apps/server/src/migrations/
 apps/storefront/next-env.d.ts
 # Ansible collections installed from infra/ansible/requirements.yml, and ansible-lint's cache
 **/.ansible/
+# Written by scripts/geo/build-geo-seed.mjs; regenerate it, never hand-format it
+plugins/geo/infrastructure/seed/geo-seed.json

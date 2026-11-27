@@ -1,0 +1,6 @@
+{
+  "error": {
+    "geo-province-not-found": "Wilaya not found.",
+    "geo-store-not-found": "Store not found."
+  }
+}

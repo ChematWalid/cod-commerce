@@ -21,6 +21,7 @@ describe('RATE_LIMIT_POLICIES', () => {
       'current-password-ip': [60, 60],
       'register-ip': [20, 3600],
       'subdomain-ip': [60, 60],
+      'provinces-ip': [120, 60],
       'invitation-accept-ip': [60, 60],
       'team-invite-business': [100, 3600],
       'team-invite-actor': [30, 3600],
@@ -47,7 +48,13 @@ describe('RATE_LIMIT_POLICIES', () => {
       .filter(([, policy]) => policy.outage === 'open')
       .map(([name]) => name);
 
-    expect(failOpen.sort()).toEqual(['register-ip', 'storefront-read', 'storefront-render', 'subdomain-ip']);
+    expect(failOpen.sort()).toEqual([
+      'provinces-ip',
+      'register-ip',
+      'storefront-read',
+      'storefront-render',
+      'subdomain-ip',
+    ]);
   });
 });
 

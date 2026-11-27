@@ -16,7 +16,10 @@ export const MERCHANT_SECTIONS = [
   'Settings',
 ];
 
-/** Every leaf except `/team`, `/team/roles`, `/settings`, the product and offer lists and the collections, which have real pages, in tree order. */
+/**
+ * Every leaf except `/team`, `/team/roles`, `/settings`, the product and offer lists, the collections and `/delivery`
+ * (P3.S1's pricing page), which have real pages, in tree order.
+ */
 export const SKELETON_LEAVES = [
   '/home',
   '/cod-orders',
@@ -40,7 +43,6 @@ export const SKELETON_LEAVES = [
   '/finance/wallets',
   '/finance/study',
   '/team/distribution',
-  '/delivery',
   '/apps',
   '/sourcing',
   '/stores/active/settings/pixels',

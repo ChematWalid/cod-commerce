@@ -131,6 +131,26 @@ export class CatalogProductFactsReader {
     return { brands: brands.map(ruleNameOf), tags: tags.map(ruleNameOf), options };
   }
 
+  /**
+   * The weight in grams of each of the store's live products among `productIds`, `null` when none is set, in one read
+   * (D3119: delivery pricing's overweight fee). Unknown, deleted, other-store and malformed ids are left out.
+   *
+   * @throws {CatalogStoreChannelMismatchError} when `ctx` is not on the store's channel.
+   * @throws {InvalidCatalogInputError} for more than {@link CATALOG_FACTS_MAX_IDS} ids.
+   */
+  async weightsOf(
+    ctx: RequestContext,
+    scope: StoreScope,
+    productIds: readonly string[],
+  ): Promise<ReadonlyMap<CoreId, number | null>> {
+    await this.assertStoreChannel(ctx, scope);
+    if (productIds.length > CATALOG_FACTS_MAX_IDS) throw new InvalidCatalogInputError();
+    const ids = parsedIds(productIds);
+    if (ids.length === 0) return new Map();
+    const rows = await this.query.weights(ctx, ids);
+    return new Map(rows.map((row) => [row.productId, row.weight]));
+  }
+
   private async assertStoreChannel(ctx: RequestContext, scope: StoreScope): Promise<void> {
     if (!(await this.stores.isChannelOf(asOperationContext(ctx), scope))) throw new CatalogStoreChannelMismatchError();
   }
