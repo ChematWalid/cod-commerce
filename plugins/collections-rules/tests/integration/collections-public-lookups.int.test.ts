@@ -20,7 +20,8 @@ async function probe<T>(route: string): Promise<T> {
 }
 
 const membersOf = (collectionId: string) => probe<string[] | null>(`visible-members?id=${rawId(collectionId)}`);
-const bySlug = (slug: string) => probe<string | null>(`by-slug?slug=${encodeURIComponent(slug)}`);
+const bySlug = async (slug: string) =>
+  (await probe<{ id: string | null }>(`by-slug?slug=${encodeURIComponent(slug)}`)).id;
 
 const product = async (title: string, input: Readonly<Record<string, unknown>> = {}): Promise<string> =>
   rawId((await createRuleProduct(suite.kit, { title, ...input })).id);

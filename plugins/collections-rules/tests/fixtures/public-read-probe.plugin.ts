@@ -90,13 +90,16 @@ class CollectionsReadProbeController {
     return (await this.reads.visibleMemberIds(asCollectionsOperationContext(ctx), id)) ?? null;
   }
 
-  /** The visible collection of the store whose slug is `slug`, its id only, or `null`. */
+  /**
+   * The visible collection of the store whose slug is `slug`, its id only, or `null`. Wrapped in an object: Nest sends
+   * a bare string as text, which a JSON reader turns into a number.
+   */
   @Get('by-slug')
   @Allow(Permission.Authenticated)
   @TenantScoped()
-  async bySlug(@Ctx() ctx: RequestContext, @Query('slug') slug: string | undefined): Promise<string | null> {
+  async bySlug(@Ctx() ctx: RequestContext, @Query('slug') slug: string | undefined): Promise<{ id: string | null }> {
     const found = await this.reads.findVisibleBySlug(asCollectionsOperationContext(ctx), slug ?? '');
-    return found === undefined ? null : found.id;
+    return { id: found === undefined ? null : found.id };
   }
 
   /** The caller's tenant on the channel of `token`, another store's: the read must refuse it (D2142). */
