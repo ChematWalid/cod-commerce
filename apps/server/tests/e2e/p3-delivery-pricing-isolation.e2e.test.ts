@@ -1,7 +1,12 @@
 import { randomBytes } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { RandomAssetNamingStrategy } from '@cod/plugin-auth';
 import { parseInternalKeys } from '@cod/shared/internal-auth';
 import { GeoSeedService } from '@cod/plugin-geo';
 import { FlagSeedService } from '@cod/plugin-platform-flags';
+import { AssetServerPlugin, PresetOnlyStrategy } from '@vendure/asset-server-plugin';
 import { TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -26,6 +31,7 @@ import {
 } from './support/e2e-config';
 import { E2E_PORTS } from './support/ports';
 import { sendRaw, signedHeaders } from './support/signed-request';
+import { ASSET_ROUTE } from '../../src/config/asset-storage.config';
 
 const SUITE = 'p3-delivery-pricing-isolation';
 const PORT = E2E_PORTS.p3DeliveryPricingIsolation;
@@ -51,6 +57,13 @@ const runsOf = P3_ISOLATION_CASES.flatMap((testCase) => [
 describe('P3 isolation: a business sees only its own delivery pricing', () => {
   const env = e2eEnv({ env: ENV });
   const { server } = createTestEnvironment(buildE2eConfig({}, { suite: SUITE, port: PORT, env: ENV }));
+  // CI's integration job runs no Garage, so the world's logos go to a local folder instead of S3 (as in P1's suite).
+  AssetServerPlugin.init({
+    route: ASSET_ROUTE,
+    assetUploadDir: mkdtempSync(join(tmpdir(), 'cod-delivery-pricing-isolation-assets-')),
+    namingStrategy: new RandomAssetNamingStrategy(),
+    imageTransformStrategy: new PresetOnlyStrategy({ defaultPreset: 'medium' }),
+  });
   const http = new IsolationHttp(`http://localhost:${String(PORT)}`);
   const sql = () => server.app.get(TransactionalConnection).rawConnection;
   let world: World;
