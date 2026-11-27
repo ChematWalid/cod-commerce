@@ -106,6 +106,17 @@ describe('adjustPrices', () => {
     );
   });
 
+  it('answers no row for a selected wilaya whose prices the change leaves as they are', () => {
+    // Arrange
+    const rows = [wilaya('16', { overrideHome: 0 }), wilaya('31')];
+
+    // Act
+    const adjusted = adjustPrices(rows, new Set<WilayaCode>(['16', '31']), change({ kind: 'percent', value: -10 }));
+
+    // Assert
+    expect(adjusted).toEqual([wilaya('31', { overrideHome: 450 })]);
+  });
+
   it('answers no row for a selection the group does not hold', () => {
     expect(adjustPrices([wilaya('16')], new Set<WilayaCode>(['31']), change())).toEqual([]);
   });

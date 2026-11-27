@@ -48,8 +48,8 @@ export function adjustedPrice(price: number, change: Pick<PriceChange, 'kind' | 
 
 /**
  * The selected wilaya rows with their effective prices (override ?? base) moved, stored as overrides of the kept base
- * (D3107: a price equal to the base stores none). Bases and switches are never written; rows outside the selection
- * are not answered, so the caller writes only what changed.
+ * (D3107: a price equal to the base stores none). Bases and switches are never written; rows outside the selection,
+ * and selected rows the change leaves as they are, are not answered, so the caller writes only what changed.
  */
 export function adjustPrices(
   rows: readonly WilayaRateRow[],
@@ -58,15 +58,19 @@ export function adjustPrices(
 ): WilayaRateRow[] {
   return rows
     .filter((row) => selection.has(row.provinceCode))
-    .map((row) => ({
-      ...row,
-      overrideHome: change.home
-        ? wilayaOverrideOf(row.baseHome, adjustedPrice(row.overrideHome ?? row.baseHome, change))
-        : row.overrideHome,
-      overrideDesk: change.desk
-        ? wilayaOverrideOf(row.baseDesk, adjustedPrice(row.overrideDesk ?? row.baseDesk, change))
-        : row.overrideDesk,
-    }));
+    .flatMap((row) => {
+      const moved: WilayaRateRow = {
+        ...row,
+        overrideHome: change.home
+          ? wilayaOverrideOf(row.baseHome, adjustedPrice(row.overrideHome ?? row.baseHome, change))
+          : row.overrideHome,
+        overrideDesk: change.desk
+          ? wilayaOverrideOf(row.baseDesk, adjustedPrice(row.overrideDesk ?? row.baseDesk, change))
+          : row.overrideDesk,
+      };
+      const unchanged = moved.overrideHome === row.overrideHome && moved.overrideDesk === row.overrideDesk;
+      return unchanged ? [] : [moved];
+    });
 }
 
 /** A commune's override after the change: one with no price of its own inherits the moved wilaya price, untouched. */
