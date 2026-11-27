@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DELIVERY_TYPES, type DeliveryType } from '../checkout-constants';
 
 /** The only theme JSON version P3 reads (D3207); the builder (P8) bumps it with a migration. */
 export const THEME_VERSION = 0;
@@ -95,4 +96,32 @@ export type ThemeTokens = Theme['tokens'];
 /** A section of `type` whose id is its type, which is unique while a page holds each type once. */
 export function defineSection(type: SectionType, settings: Section['settings'] = {}): Section {
   return { id: type, type, settings };
+}
+
+/** The settings an `in-page-checkout` section reads (D3306); the builder edits them in P8. */
+export interface InPageCheckoutSettings {
+  /** Whether the COD form shows the optional note field. */
+  readonly showNote: boolean;
+  /** The delivery type the form starts on. */
+  readonly defaultDeliveryType: DeliveryType;
+}
+
+/** The defaults of an `in-page-checkout` section: no note, home delivery. */
+export const IN_PAGE_CHECKOUT_DEFAULTS: InPageCheckoutSettings = { showNote: false, defaultDeliveryType: 'home' };
+
+const isDeliveryType = (value: unknown): value is DeliveryType =>
+  typeof value === 'string' && (DELIVERY_TYPES as readonly string[]).includes(value);
+
+/**
+ * The checkout settings of an `in-page-checkout` section. Section settings are a flat, untyped record, so an absent
+ * or unreadable value falls back to its default rather than breaking the page.
+ */
+export function inPageCheckoutSettingsOf(settings: Section['settings']): InPageCheckoutSettings {
+  const { showNote, defaultDeliveryType } = settings;
+  return {
+    showNote: typeof showNote === 'boolean' ? showNote : IN_PAGE_CHECKOUT_DEFAULTS.showNote,
+    defaultDeliveryType: isDeliveryType(defaultDeliveryType)
+      ? defaultDeliveryType
+      : IN_PAGE_CHECKOUT_DEFAULTS.defaultDeliveryType,
+  };
 }

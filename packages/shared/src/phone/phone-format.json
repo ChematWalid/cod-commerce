@@ -1,0 +1,6 @@
+{
+  "countryCode": "213",
+  "trunkPrefix": "0",
+  "mobilePrefixes": ["5", "6", "7"],
+  "nationalLength": 10
+}

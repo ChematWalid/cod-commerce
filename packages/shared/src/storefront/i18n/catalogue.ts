@@ -80,7 +80,20 @@ export function formatMessage(locale: StorefrontLocale, key: StorefrontMessageKe
   return fillPlaceholders(locale, text, params);
 }
 
+/** The message that writes an amount of each currency the catalogue spells; another one is written with its code. */
+const CURRENCY_MESSAGES: Readonly<Record<string, StorefrontMessageKey>> = { DZD: 'money.dzd' };
+
+/**
+ * A whole amount of `currency` as the store's language writes it (D3312): the currency comes from the quote, never
+ * from the code. A currency without a catalogue message is written `1,200 EUR`.
+ */
+export function formatMoney(locale: StorefrontLocale, amount: number, currency: string): string {
+  const number = formatNumber(locale, amount);
+  const key = Object.hasOwn(CURRENCY_MESSAGES, currency) ? CURRENCY_MESSAGES[currency] : undefined;
+  return key === undefined ? `${number} ${currency}` : formatMessage(locale, key, { amount: number });
+}
+
 /** A whole-DZD amount as the store's language writes it: `12 500 DA`, `12,500 DA`, `12.500 د.ج`. */
 export function formatDzd(locale: StorefrontLocale, amount: number): string {
-  return formatMessage(locale, 'money.dzd', { amount: formatNumber(locale, amount) });
+  return formatMoney(locale, amount, 'DZD');
 }

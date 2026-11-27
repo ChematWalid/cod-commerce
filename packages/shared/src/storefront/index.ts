@@ -7,3 +7,6 @@ export * from './theme/schema';
 export * from './theme/default-theme';
 export * from './theme/compact-theme';
 export * from './i18n/catalogue';
+export * from './checkout-constants';
+export * from './checkout';
+export * from './order-submit';

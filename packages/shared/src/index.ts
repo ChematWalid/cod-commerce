@@ -42,3 +42,4 @@ export * from './catalog-import';
 export * from './pricing';
 export * from './geo';
 export * from './delivery';
+export * from './phone/phone';

@@ -45,6 +45,22 @@ export const STOREFRONT_API_ROUTES = {
   product: '/store/product',
   collections: '/store/collections',
   collection: '/store/collection',
+  shippingQuote: '/store/shipping-quote',
+  cartQuote: '/store/cart-quote',
+  /** P3.S1's signed wilaya list and detail; both need `?storeId=` equal to the signed store (D3305). */
+  provinces: '/store/provinces',
+  provinceByCode: '/store/provinces/code',
+} as const;
+
+/**
+ * The storefront's same-origin routes a buyer's browser calls (ADR 0006/0017): each injects the host-resolved store
+ * and relays to the api; a client never names a store. Province detail takes the wilaya code as one trailing segment.
+ */
+export const STOREFRONT_RELAY_PATHS = {
+  shippingQuote: '/api/store/shipping-quote',
+  cartQuote: '/api/store/cart-quote',
+  provinces: '/api/store/provinces',
+  orders: '/api/store/orders',
 } as const;
 
 /**
@@ -57,7 +73,7 @@ export const STOREFRONT_RESERVED_PRODUCT_SLUGS: readonly string[] = ['search'];
 export const STOREFRONT_REVALIDATE_PATH = '/api/internal/revalidate';
 
 /** A storefront api route that takes one trailing parameter. */
-export type StorefrontParamRoute = 'byId' | 'product' | 'collection';
+export type StorefrontParamRoute = 'byId' | 'product' | 'collection' | 'provinceByCode';
 
 /** `route` with `param` as one encoded trailing segment: a `/` or `..` in it can never reach another route. */
 export function storefrontApiPath(route: StorefrontParamRoute, param: string): string {
