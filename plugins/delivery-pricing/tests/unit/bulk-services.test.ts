@@ -167,6 +167,20 @@ describe('SetCommunePricesService', () => {
     expect(updated.communeRates).toEqual([]);
   });
 
+  it('writes nothing when every commune already has the price', async () => {
+    // Arrange
+    const w = world();
+    const group = await pricedGroup(w);
+    const input = { provinceCode: '16', prices: { homePrice: 520 } } as const;
+    const first = await w.communePrices.set(ctx, STORE_A1, group.id, input);
+
+    // Act
+    const second = await w.communePrices.set(ctx, STORE_A1, group.id, input);
+
+    // Assert
+    expect(second).toEqual(first);
+  });
+
   it.each([
     ['another business', STORE_B1],
     ['another store of the same business', STORE_A2],

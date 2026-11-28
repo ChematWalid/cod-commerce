@@ -30,6 +30,8 @@ export class SetCommunePricesService {
       const towns = await this.ports.towns.townsOf(provinceCode);
       const stored = group.communeRates.filter((row) => row.provinceCode === provinceCode);
       const change = setCommunePrices(towns, provinceCode, stored, prices);
+      // Like a no-op adjustment (D3143): no write, so updatedAt does not move and no editor reloads.
+      if (change.upserts.length === 0 && change.removals.length === 0) return;
       await this.ports.groups.writeCommuneRows(tx, scope, group.id, change);
     });
   }
