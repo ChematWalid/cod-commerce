@@ -21,7 +21,10 @@ function download(file: CsvFileDto): void {
   link.href = url;
   link.download = file.fileName;
   link.click();
-  URL.revokeObjectURL(url);
+  // Revoking in the same tick can cancel the download in Safari.
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
 }
 
 /** "Export" (D3142): downloads the pricing option as CSV. */
